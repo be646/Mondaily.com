@@ -1271,11 +1271,17 @@ function crmSearchBuckets() {
 
 function findCrmRecord(query) {
   const q = query.trim().toLowerCase();
+  const tokens = q.split(/\s+/).filter(Boolean);
   return crmSearchBuckets()
     .filter(([, key]) => !["appointments", "notes"].includes(key))
     .flatMap(([type, key, items, fields]) => items
-      .filter((item) => !q || type.toLowerCase().includes(q) || fields.some((field) => String(item[field] || "").toLowerCase().includes(q)))
-      .map((item) => ({ type, key, item, id: item.id, title: item[fields[0]], meta: fields.slice(1).map((f) => item[f]).filter(Boolean).join(" · ") })));
+      .map((item) => {
+        const haystack = `${type} ${fields.map((field) => item[field]).filter(Boolean).join(" ")}`.toLowerCase();
+        const score = !tokens.length ? 1 : tokens.reduce((sum, token) => sum + (haystack.includes(token) ? 1 : 0), 0);
+        return { type, key, item, id: item.id, title: item[fields[0]], meta: fields.slice(1).map((f) => item[f]).filter(Boolean).join(" · "), score };
+      })
+      .filter((match) => !tokens.length || match.score === tokens.length))
+    .sort((a, b) => b.score - a.score);
 }
 
 function collectSearchResults(query) {
