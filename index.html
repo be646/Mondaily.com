@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mondaily Workspace</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+  <main id="authScreen" class="auth-screen">
+    <section class="auth-card">
+      <div class="brand-row">
+        <div class="mondaily-symbol" aria-hidden="true"><span></span></div>
+        <div>
+          <p class="eyebrow">Enterprise AI workspace platform</p>
+          <h1 class="animated-mondaily-logo">Mondaily <b>AI</b></h1>
+        </div>
+      </div>
+
+      <div class="auth-copy compact-copy">
+        <h2>Secure code access</h2>
+        <p>Register once, then log in with your email and workspace type using a one-time code.</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="showRegisterBtn" class="auth-tab active" type="button">Register</button>
+        <button id="showLoginBtn" class="auth-tab" type="button">Login</button>
+      </div>
+
+      <form id="authForm" class="auth-form auth-mode">
+        <div class="form-grid">
+          <label>Full name<input id="authName" required autocomplete="name" placeholder="John Doe"></label>
+          <label>Email address<input id="authEmail" type="email" required autocomplete="email" placeholder="john@company.com"></label>
+          <label>Company or institution<input id="authCompany" required placeholder="Mondaily Group"></label>
+          <label>Phone number<input id="authPhone" type="tel" placeholder="+48 123 456 789"></label>
+        </div>
+
+        <fieldset class="role-picker">
+          <legend>Workspace type</legend>
+          <input type="hidden" id="authRole" value="realestate">
+          <div class="role-grid">
+            <button class="role-card active" type="button" data-role="realestate"><span>🏢</span><strong>Real Estate Agent</strong><small>Properties and leads</small></button>
+            <button class="role-card" type="button" data-role="ceo"><span>💼</span><strong>Executive</strong><small>Partners and ventures</small></button>
+            <button class="role-card" type="button" data-role="doctor"><span>⚕</span><strong>Medical</strong><small>Patients and visits</small></button>
+            <button class="role-card" type="button" data-role="teacher"><span>🎓</span><strong>Teacher</strong><small>Classes and exams</small></button>
+            <button class="role-card" type="button" data-role="student"><span>📚</span><strong>Student</strong><small>Courses and study plan</small></button>
+            <button class="role-card" type="button" data-role="general"><span>⌘</span><strong>Office</strong><small>Team work and events</small></button>
+          </div>
+        </fieldset>
+
+        <button class="primary full" type="submit">Create workspace</button>
+      </form>
+
+      <form id="loginForm" class="auth-form auth-mode hidden">
+        <div class="form-grid">
+          <label>Email address<input id="loginEmail" type="email" required placeholder="john@company.com"></label>
+          <label>Workspace type
+            <select id="loginRole">
+              <option value="realestate">Real Estate Agent</option>
+              <option value="doctor">Doctor</option>
+              <option value="ceo">Executive / Founder</option>
+              <option value="teacher">Teacher</option>
+              <option value="student">Student</option>
+              <option value="general">Office</option>
+            </select>
+          </label>
+        </div>
+        <button id="requestCodeBtn" class="ghost full" type="button">Get login code</button>
+        <label id="codeField" class="hidden">One-time code<input id="loginCode" inputmode="numeric" placeholder="000000"></label>
+        <div id="loginCodeHint" class="login-code-hint hidden"></div>
+        <button class="primary full" type="submit">Open workspace</button>
+      </form>
+    </section>
+  </main>
+
+  <div id="appShell" class="app-shell hidden">
+    <header class="topbar">
+      <div class="brand-row compact">
+        <div class="mondaily-symbol" aria-hidden="true"><span></span></div>
+        <div>
+          <h1 class="animated-mondaily-logo">Mondaily <b>AI</b></h1>
+          <p id="roleLabel">Workspace</p>
+        </div>
+      </div>
+      <button id="mobileMenuBtn" class="icon-btn mobile-menu-btn" type="button" aria-label="Open menu">☰</button>
+      <div class="profile">
+        <div id="profileAvatar" class="avatar">🏢</div>
+        <div class="profile-text">
+          <strong id="profileName">User</strong>
+          <span id="profileMeta">email · company</span>
+        </div>
+        <button id="tasksBtn" class="ghost mini-action" type="button"><span>✓</span> Tasks</button>
+        <button id="chatBtn" class="ghost mini-action" type="button"><span>✦</span> Chat</button>
+        <button id="breakBtn" class="ghost mini-action" type="button"><span>◐</span> Break</button>
+        <button id="themeToggleBtn" class="ghost mini-action" type="button"><span>☾</span> Theme</button>
+        <button id="newAppointmentBtn" class="primary mini-action" type="button"><span>＋</span> Add Appointment</button>
+        <button id="logoutBtn" class="danger mini-action" type="button"><span>↗</span> Logout</button>
+      </div>
+    </header>
+
+    <aside id="mobileSideNav" class="side-nav hidden">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Workspace menu</p>
+          <h2>Actions</h2>
+        </div>
+        <button id="closeMobileMenuBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <button class="side-action" data-shell-action="tasks" type="button"><span>✓</span> Tasks</button>
+      <button class="side-action" data-shell-action="chat" type="button"><span>✦</span> Company chat</button>
+      <button class="side-action" data-shell-action="appointment" type="button"><span>＋</span> Add appointment</button>
+      <button class="side-action" data-shell-action="break" type="button"><span>◐</span> Break</button>
+      <button class="side-action" data-shell-action="theme" type="button"><span>☾</span> Theme mode</button>
+      <button class="side-action danger-line" data-shell-action="logout" type="button"><span>↗</span> Logout</button>
+    </aside>
+
+    <section id="upcomingBanner" class="upcoming-banner hidden">
+      <div class="pulse-dot"></div>
+      <div>
+        <p class="eyebrow">AI reminder monitor</p>
+        <strong id="upcomingBannerText">Upcoming appointment detected.</strong>
+      </div>
+      <button id="dismissBannerBtn" class="icon-btn" type="button" aria-label="Close reminder">×</button>
+    </section>
+
+    <section class="search-panel compact-search">
+      <input id="globalSearch" placeholder="Search only the selected account type database">
+      <div id="searchResults" class="search-results hidden"></div>
+    </section>
+
+    <section class="timer-strip">
+      <div>
+        <span id="timerContextLabel">Workspace timer</span>
+        <strong id="roleTimerDisplay">00:00:00</strong>
+      </div>
+      <div class="timer-actions">
+        <button id="timerStartBtn" class="small-btn" type="button">Start</button>
+        <button id="timerPauseBtn" class="small-btn" type="button">Pause</button>
+        <button id="timerResetBtn" class="small-btn" type="button">Reset</button>
+        <button id="timerLogsBtn" class="small-btn" type="button">Logs</button>
+      </div>
+    </section>
+
+    <aside class="panel agenda-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Upcoming</p>
+          <h2>Agenda</h2>
+        </div>
+      </div>
+      <div id="agendaList" class="stack"></div>
+    </aside>
+
+    <div class="dashboard-grid">
+      <section class="panel calendar-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Calendar</p>
+            <h2 id="calendarTitle">Appointments</h2>
+          </div>
+          <div class="month-controls">
+            <button id="prevMonth" class="icon-btn" type="button" aria-label="Previous month">‹</button>
+            <strong id="monthLabel"></strong>
+            <button id="nextMonth" class="icon-btn" type="button" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div class="calendar-wrap">
+          <div class="weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+        </div>
+      </section>
+
+      <section id="rolePanel" class="panel role-panel"></section>
+    </div>
+
+    <section id="recordsPanel" class="panel records-panel"></section>
+
+    <button id="aiMobileToggle" class="ai-mobile-toggle" type="button" aria-label="Open Mondaily AI">
+      <span class="mondaily-symbol chat-logo" aria-hidden="true"><span></span></span>
+    </button>
+
+    <section id="aiDock" class="ai-command ai-dock">
+      <div class="mondaily-symbol chat-logo" aria-hidden="true"><span></span></div>
+      <div class="ai-dock-copy">
+        <p class="eyebrow">Mondaily AI</p>
+        <div id="aiResult" class="ai-result">Ready for commands.</div>
+      </div>
+      <div class="command-row">
+        <input id="aiInput" placeholder="Try: schedule investor review on 2026-05-30 at 16:00 priority top">
+        <button id="aiRunBtn" class="primary arrow-btn" type="button" aria-label="Run AI command">➜</button>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="appointmentDialog" class="modal">
+    <form id="appointmentForm" method="dialog" class="modal-card">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Calendar entry</p>
+          <h2 id="appointmentDialogTitle">New appointment</h2>
+        </div>
+        <button class="icon-btn" value="cancel" type="button" data-close-dialog>×</button>
+      </div>
+      <input id="appointmentId" type="hidden">
+      <label>Title<input id="aptTitle" required placeholder="Client strategy call"></label>
+      <div class="form-grid two">
+        <label>Date<input id="aptDate" type="date" required></label>
+        <label>Time<input id="aptTime" type="time" required></label>
+      </div>
+      <label>Priority
+        <select id="aptPriority">
+          <option value="neutral">Neutral</option>
+          <option value="priority">Priority</option>
+          <option value="top">Top priority</option>
+        </select>
+      </label>
+      <label>Details<textarea id="aptDetails" rows="4" placeholder="Participants, goal, and notes"></textarea></label>
+      <button class="primary full" type="submit">Save appointment</button>
+    </form>
+  </dialog>
+
+  <dialog id="recordDialog" class="modal">
+    <section class="modal-card">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow" id="recordDialogType">CRM record</p>
+          <h2 id="recordDialogTitle">Record</h2>
+        </div>
+        <button id="recordDialogCloseBtn" class="icon-btn" type="button">×</button>
+      </div>
+      <div id="recordDialogBody" class="record-dialog-body"></div>
+      <div class="card-actions">
+        <button id="recordDialogEditBtn" class="small-btn" type="button">Save changes</button>
+        <button id="recordDialogDeleteBtn" class="small-btn danger-line" type="button">Delete</button>
+      </div>
+    </section>
+  </dialog>
+
+  <aside id="taskDrawer" class="task-drawer hidden">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">My tasks</p>
+        <h2>Active and closed work</h2>
+      </div>
+      <button id="closeTasksBtn" class="icon-btn" type="button">×</button>
+    </div>
+    <button id="addNoteBtn" class="ghost full" type="button">Add quick note</button>
+    <div class="task-columns">
+      <section>
+        <h3>Open</h3>
+        <div id="activeTasksList" class="stack"></div>
+      </section>
+      <section>
+        <h3>Done</h3>
+        <div id="doneTasksList" class="stack"></div>
+      </section>
+    </div>
+  </aside>
+
+  <aside id="companyChatDrawer" class="task-drawer chat-drawer hidden">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Company chat</p>
+        <h2>Team workspace</h2>
+      </div>
+      <button id="closeChatBtn" class="icon-btn" type="button">×</button>
+    </div>
+    <div class="invite-row">
+      <input id="inviteEmailInput" type="email" placeholder="Invite teammate by email">
+      <button id="inviteUserBtn" class="small-btn" type="button">Invite</button>
+    </div>
+    <div id="invitedUsersList" class="invited-users"></div>
+    <div id="chatMessagesList" class="chat-messages"></div>
+    <div class="invite-row">
+      <input id="chatMessageInput" placeholder="Write a team message">
+      <button id="sendChatBtn" class="small-btn" type="button">Send</button>
+    </div>
+  </aside>
+
+  <aside id="timeLogDrawer" class="task-drawer hidden">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Time records</p>
+        <h2 id="timeLogTitle">Work statistics</h2>
+      </div>
+      <button id="closeTimeLogBtn" class="icon-btn" type="button">×</button>
+    </div>
+    <div id="timeLogStats" class="time-stats"></div>
+    <div id="timeLogList" class="stack"></div>
+  </aside>
+
+  <div id="breakOverlay" class="break-overlay hidden">
+    <section id="gameMenu" class="game-card">
+      <div class="break-top">
+        <p class="eyebrow">Recovery break</p>
+        <div id="breakTimer" class="digital-timer">00:00</div>
+        <button id="exitBreakBtn" class="ghost" type="button">Return</button>
+      </div>
+      <div class="game-choice-grid">
+        <button class="game-choice" data-game="breakout" type="button"><b>◈</b><strong>Chronos Strike</strong><span>Breakout</span></button>
+        <button class="game-choice" data-game="snake" type="button"><b>◆</b><strong>Retro Snake</strong><span>Arrow keys</span></button>
+        <button class="game-choice" data-game="blocks" type="button"><b>▦</b><strong>Matrix Block Fall</strong><span>Rotate and clear</span></button>
+      </div>
+    </section>
+    <section id="gameStage" class="game-stage hidden">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow" id="gameName">Game</p>
+          <h2>Score <span id="gameScore">0</span></h2>
+        </div>
+        <div class="game-actions">
+          <button id="gameBackBtn" class="ghost" type="button">Games</button>
+          <button id="gameExitBtn" class="danger" type="button">Dashboard</button>
+        </div>
+      </div>
+      <canvas id="gameCanvas" width="720" height="420"></canvas>
+      <p class="game-help">Use mouse or arrow keys depending on the selected game.</p>
+    </section>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
