@@ -1,4 +1,6 @@
 const STORAGE_KEY = "mondaily_workspace_v3";
+const ADMIN_EMAIL = "admin@mondaily.com";
+const ADMIN_PASSWORD = "MondailyAdmin2026!";
 
 const $ = (id) => document.getElementById(id);
 const localIsoDate = (date) => {
@@ -59,6 +61,22 @@ function makeWorkspace(profile) {
   };
 }
 
+function makeAdminWorkspace() {
+  return {
+    session: {
+      name: "Mondaily Administrator",
+      email: ADMIN_EMAIL,
+      company: "Mondaily",
+      phone: "",
+      role: "admin",
+      avatar: "◇"
+    },
+    adminAiNotes: [
+      { id: uid(), text: "Admin dashboard is local-only until a backend is connected.", time: new Date().toISOString() }
+    ]
+  };
+}
+
 const demoProfile = {
   name: "Bassem Eprahim",
   email: "b.eprahim@mondaily.com",
@@ -98,7 +116,12 @@ function accountKey(email, role) {
   return `${String(email || "").trim().toLowerCase()}::${role}`;
 }
 
+function isAdminEmail(email) {
+  return String(email || "").trim().toLowerCase() === ADMIN_EMAIL;
+}
+
 function roleAvatar(role) {
+  if (role === "admin") return "◇";
   return role === "doctor" ? "⚕" : role === "ceo" ? "💼" : role === "teacher" ? "🎓" : role === "student" ? "📚" : role === "general" ? "⌘" : "🏢";
 }
 
@@ -126,15 +149,43 @@ function saveState() {
 
 function createOrLoadWorkspace(profile) {
   const key = accountKey(profile.email, profile.role);
+  const now = new Date().toISOString();
   if (!accountStore.accounts[key]) {
     accountStore.accounts[key] = makeWorkspace(profile);
+    accountStore.accounts[key].adminMeta = createRegistrationMeta(profile, now);
   } else {
     accountStore.accounts[key].session = { ...accountStore.accounts[key].session, ...profile };
+    accountStore.accounts[key].adminMeta = { ...createRegistrationMeta(profile, now), ...accountStore.accounts[key].adminMeta, updatedAt: now };
   }
   accountStore.activeKey = key;
   state = accountStore.accounts[key];
   ensureWorkspaceShape();
   saveState();
+}
+
+function createRegistrationMeta(profile, at = new Date().toISOString()) {
+  return {
+    accountId: accountKey(profile.email, profile.role),
+    registeredAt: at,
+    updatedAt: at,
+    lastLoginAt: "",
+    loginCount: 0,
+    ipAddress: "Unavailable in static/local app",
+    ipNote: "GitHub Pages/local browser cannot expose visitor IP to client JavaScript. Add a backend endpoint to capture server-side IP.",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+    locale: navigator.language || "Unknown",
+    platform: navigator.platform || "Unknown",
+    userAgent: navigator.userAgent || "Unknown",
+    screen: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
+    source: "Mondaily local registration"
+  };
+}
+
+function recordAccountLogin(workspace) {
+  if (!workspace || workspace.session?.role === "admin") return;
+  if (!workspace.adminMeta) workspace.adminMeta = createRegistrationMeta(workspace.session);
+  workspace.adminMeta.lastLoginAt = new Date().toISOString();
+  workspace.adminMeta.loginCount = Number(workspace.adminMeta.loginCount || 0) + 1;
 }
 
 function toast(title, message = "") {
@@ -159,6 +210,10 @@ function init() {
 }
 
 function ensureWorkspaceShape() {
+  if (state.session?.role === "admin") {
+    if (!Array.isArray(state.adminAiNotes)) state.adminAiNotes = [];
+    return;
+  }
   const sample = makeWorkspace(state.session);
   ["realestateReviews", "timeLogs", "officePeople", "officeEvents", "invitedUsers", "chatMessages"].forEach((key) => {
     if (!Array.isArray(state[key])) state[key] = clone(sample[key]);
@@ -191,6 +246,7 @@ function updateThemeButton() {
 function bindAuth() {
   $("showRegisterBtn").addEventListener("click", () => setAuthMode("register"));
   $("showLoginBtn").addEventListener("click", () => setAuthMode("login"));
+  $("loginEmail").addEventListener("input", syncAdminLoginMode);
 
   document.querySelectorAll(".role-card").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -206,8 +262,23 @@ function bindAuth() {
   $("loginForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const email = $("loginEmail").value.trim();
-    const role = $("loginRole").value;
+    const adminLogin = isAdminEmail(email);
+    const role = adminLogin ? "admin" : $("loginRole").value;
     const code = $("loginCode").value.trim();
+    if (adminLogin) {
+      if ($("adminPassword").value !== ADMIN_PASSWORD) {
+        toast("Admin access denied", "Check the Mondaily admin password.");
+        return;
+      }
+      const key = accountKey(ADMIN_EMAIL, "admin");
+      accountStore.accounts[key] = accountStore.accounts[key] || makeAdminWorkspace();
+      accountStore.activeKey = key;
+      state = accountStore.accounts[key];
+      saveState();
+      showApp();
+      toast("Admin dashboard opened", "Mondaily administration mode.");
+      return;
+    }
     const key = accountKey(email, role);
     if (!accountStore.accounts[key]) {
       toast("Account not found", "Register this email and account type first.");
@@ -218,6 +289,7 @@ function bindAuth() {
       return;
     }
     state = accountStore.accounts[key];
+    recordAccountLogin(state);
     accountStore.activeKey = key;
     saveState();
     showApp();
@@ -236,6 +308,7 @@ function bindAuth() {
       avatar: roleAvatar(role)
     };
     createOrLoadWorkspace(profile);
+    recordAccountLogin(state);
     showApp();
     toast("Workspace created", `Welcome, ${state.session.name}.`);
   });
@@ -247,10 +320,32 @@ function setAuthMode(mode) {
   $("loginForm").classList.toggle("hidden", !login);
   $("showLoginBtn").classList.toggle("active", login);
   $("showRegisterBtn").classList.toggle("active", !login);
+  if (login) syncAdminLoginMode();
+}
+
+function syncAdminLoginMode() {
+  const adminLogin = isAdminEmail($("loginEmail").value);
+  $("adminPasswordField").classList.toggle("hidden", !adminLogin);
+  $("requestCodeBtn").classList.toggle("hidden", adminLogin);
+  $("codeField").classList.toggle("hidden", adminLogin || !pendingLogin);
+  $("loginCodeHint").classList.add("hidden");
+  if (adminLogin) {
+    $("loginRole").value = "admin";
+    $("loginRole").disabled = true;
+    $("loginCode").value = "";
+  } else {
+    if ($("loginRole").value === "admin") $("loginRole").value = "realestate";
+    $("loginRole").disabled = false;
+  }
 }
 
 function requestLoginCode() {
   const email = $("loginEmail").value.trim();
+  if (isAdminEmail(email)) {
+    toast("Admin login", "Use the Mondaily admin password.");
+    syncAdminLoginMode();
+    return;
+  }
   const role = $("loginRole").value;
   const key = accountKey(email, role);
   if (!email) {
@@ -359,6 +454,16 @@ function renderAll() {
   $("profileName").textContent = greetingName(s.name);
   $("profileMeta").textContent = `${s.email} · ${s.company}`;
   $("roleLabel").textContent = `${roleDisplayName(s.role)} workspace`;
+  if (s.role === "admin") {
+    renderAdminDashboard();
+    return;
+  }
+  document.querySelector(".dashboard-grid").classList.remove("hidden");
+  ["tasksBtn", "chatBtn", "breakBtn", "newAppointmentBtn"].forEach((id) => $(id).classList.remove("hidden"));
+  $("upcomingBanner").classList.remove("admin-hidden");
+  $("globalSearch").closest("section").classList.remove("hidden");
+  $("timerContextLabel").closest("section").classList.remove("hidden");
+  document.querySelector(".agenda-panel").classList.remove("hidden");
   $("calendarTitle").textContent = ["teacher", "student"].includes(s.role) ? "Class planner" : "Appointments";
   if ($("searchTitle")) $("searchTitle").textContent = `Search ${roleDisplayName(s.role)}`;
   renderCalendar();
@@ -385,6 +490,7 @@ function renderRoleTimerLabel() {
 
 function roleDisplayName(role) {
   return {
+    admin: "Mondaily Admin",
     realestate: "Real Estate CRM",
     doctor: "Medical Records",
     ceo: "Executive / Founder",
@@ -392,6 +498,157 @@ function roleDisplayName(role) {
     student: "Student",
     general: "Office"
   }[role] || "Workspace";
+}
+
+function renderAdminDashboard(filter = "") {
+  document.querySelector(".dashboard-grid").classList.add("hidden");
+  ["tasksBtn", "chatBtn", "breakBtn", "newAppointmentBtn"].forEach((id) => $(id).classList.add("hidden"));
+  $("upcomingBanner").classList.add("hidden", "admin-hidden");
+  $("globalSearch").closest("section").classList.add("hidden");
+  $("timerContextLabel").closest("section").classList.add("hidden");
+  document.querySelector(".agenda-panel").classList.add("hidden");
+  $("roleLabel").textContent = "Mondaily administration";
+  $("recordsPanel").classList.remove("hidden");
+
+  const accounts = getAdminAccounts(filter);
+  const allAccounts = getAdminAccounts("");
+  const roleCounts = allAccounts.reduce((acc, account) => {
+    acc[account.session.role] = (acc[account.session.role] || 0) + 1;
+    return acc;
+  }, {});
+  const latest = allAccounts[0]?.meta?.registeredAt || "";
+
+  $("recordsPanel").innerHTML = `
+    <div class="panel-head admin-head">
+      <div>
+        <p class="eyebrow">Hidden Mondaily control</p>
+        <h2>Administration Dashboard</h2>
+      </div>
+      <span class="record-chip">Admin only</span>
+    </div>
+    <div class="admin-stats">
+      <div><span>Total registered</span><strong>${allAccounts.length}</strong></div>
+      <div><span>Latest registration</span><strong>${escapeHtml(latest ? formatDateTime(latest) : "No registrations yet")}</strong></div>
+      <div><span>Static IP capture</span><strong>Backend needed</strong></div>
+      <div><span>Most used account</span><strong>${escapeHtml(topRoleLabel(roleCounts))}</strong></div>
+    </div>
+    <section class="admin-ai-panel">
+      <div>
+        <p class="eyebrow">Admin AI</p>
+        <h3>Ask the bottom Mondaily AI to find users, count roles, or open a registration card.</h3>
+      </div>
+      <div class="admin-role-counts">${Object.entries(roleCounts).map(([role, count]) => `<span>${escapeHtml(roleDisplayName(role))}: ${count}</span>`).join("") || "<span>No accounts yet</span>"}</div>
+    </section>
+    <div class="records-section-head admin-filter">
+      <h3>Registered accounts</h3>
+      <input id="adminSearchInput" placeholder="Filter name, email, company, account type, phone">
+    </div>
+    <div class="admin-account-list">
+      ${accounts.length ? accounts.map(adminAccountRow).join("") : `<div class="empty-state">No registrations match this filter.</div>`}
+    </div>
+  `;
+
+  $("adminSearchInput").value = filter;
+  $("adminSearchInput").addEventListener("input", (event) => renderAdminDashboard(event.currentTarget.value));
+  $("recordsPanel").querySelectorAll("[data-admin-account]").forEach((btn) => {
+    btn.addEventListener("click", () => openAdminAccountDetails(btn.dataset.adminAccount));
+  });
+  $("aiResult").textContent = "Admin AI ready: try 'find admin', 'count users', 'open account john@company.com'.";
+}
+
+function getAdminAccounts(filter = "") {
+  const q = filter.trim().toLowerCase();
+  return Object.entries(accountStore.accounts)
+    .filter(([, workspace]) => workspace?.session && workspace.session.role !== "admin")
+    .map(([key, workspace]) => {
+      if (!workspace.adminMeta) workspace.adminMeta = createRegistrationMeta(workspace.session);
+      const session = workspace.session;
+      const meta = workspace.adminMeta;
+      const searchable = `${session.name} ${session.email} ${session.company} ${session.phone} ${session.role} ${meta.timezone} ${meta.locale} ${meta.platform}`.toLowerCase();
+      return { key, workspace, session, meta, searchable };
+    })
+    .filter((account) => !q || account.searchable.includes(q))
+    .sort((a, b) => String(b.meta.registeredAt || "").localeCompare(String(a.meta.registeredAt || "")));
+}
+
+function adminAccountRow(account) {
+  const { key, session, meta, workspace } = account;
+  const activityCount = [
+    workspace.appointments?.length,
+    workspace.realestateClients?.length,
+    workspace.realestateProjects?.length,
+    workspace.realestateReviews?.length,
+    workspace.patients?.length,
+    workspace.partners?.length,
+    workspace.courses?.length,
+    workspace.officeRecords?.length,
+    workspace.officePeople?.length,
+    workspace.officeEvents?.length
+  ].filter(Boolean).reduce((sum, value) => sum + value, 0);
+  return `
+    <button class="admin-account-row record-row ${recordStatusClass({ priority: session.role === "doctor" ? "High" : "Medium" })}" type="button" data-admin-account="${escapeHtml(key)}">
+      <span class="record-colorbar"></span>
+      <span class="record-main">
+        <strong>${escapeHtml(session.name || "Unnamed user")}</strong>
+        <em class="record-level level-normal">${escapeHtml(roleDisplayName(session.role))}</em>
+      </span>
+      <span class="record-row-meta">${escapeHtml(session.email)} · ${escapeHtml(session.company || "No company")} · ${escapeHtml(session.phone || "No phone")} · ${activityCount} records · ${escapeHtml(formatDateTime(meta.registeredAt))}</span>
+    </button>`;
+}
+
+function topRoleLabel(roleCounts) {
+  const top = Object.entries(roleCounts).sort((a, b) => b[1] - a[1])[0];
+  return top ? `${roleDisplayName(top[0])} (${top[1]})` : "None";
+}
+
+function openAdminAccountDetails(key) {
+  const workspace = accountStore.accounts[key];
+  if (!workspace?.session) return;
+  if (!workspace.adminMeta) workspace.adminMeta = createRegistrationMeta(workspace.session);
+  const s = workspace.session;
+  const m = workspace.adminMeta;
+  const totals = {
+    appointments: workspace.appointments?.length || 0,
+    notes: workspace.notes?.length || 0,
+    crmRecords: countWorkspaceRecords(workspace),
+    timeLogs: workspace.timeLogs?.length || 0,
+    chatMessages: workspace.chatMessages?.length || 0
+  };
+  $("recordDialogType").textContent = "Mondaily admin record";
+  $("recordDialogTitle").textContent = `${s.name} · ${roleDisplayName(s.role)}`;
+  $("recordDialogBody").innerHTML = `
+    ${adminDetail("Full name", s.name)}
+    ${adminDetail("Email", s.email)}
+    ${adminDetail("Company", s.company)}
+    ${adminDetail("Phone", s.phone || "Not provided")}
+    ${adminDetail("Account type", roleDisplayName(s.role))}
+    ${adminDetail("Registered", formatDateTime(m.registeredAt))}
+    ${adminDetail("Last login", m.lastLoginAt ? formatDateTime(m.lastLoginAt) : "Not logged after registration")}
+    ${adminDetail("Login count", m.loginCount || 0)}
+    ${adminDetail("IP address", m.ipAddress)}
+    ${adminDetail("IP note", m.ipNote)}
+    ${adminDetail("Timezone", m.timezone)}
+    ${adminDetail("Locale", m.locale)}
+    ${adminDetail("Platform", m.platform)}
+    ${adminDetail("Screen", m.screen)}
+    ${adminDetail("CRM records", totals.crmRecords)}
+    ${adminDetail("Appointments", totals.appointments)}
+    ${adminDetail("Tasks / notes", totals.notes)}
+    ${adminDetail("Time logs", totals.timeLogs)}
+    <div class="record-detail extra-wide-field"><span>User agent</span><strong>${escapeHtml(m.userAgent)}</strong></div>
+  `;
+  $("recordDialogEditBtn").classList.add("hidden");
+  $("recordDialogDeleteBtn").classList.add("hidden");
+  $("recordDialog").showModal();
+}
+
+function adminDetail(label, value) {
+  return `<div class="record-detail"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+
+function countWorkspaceRecords(workspace) {
+  return ["realestateProjects", "realestateClients", "realestateReviews", "patients", "partners", "courses", "officeRecords", "officePeople", "officeEvents"]
+    .reduce((sum, key) => sum + (workspace[key]?.length || 0), 0);
 }
 
 function getNextAppointment() {
@@ -533,6 +790,7 @@ function runAiCommand() {
 }
 
 function processCommand(text) {
+  if (state.session?.role === "admin") return processAdminCommand(text);
   const lower = text.toLowerCase();
   const crmAction = processCrmAiAction(text);
   if (crmAction) return crmAction;
@@ -607,6 +865,41 @@ function processCommand(text) {
   }
 
   return { title: "Try another prompt", message: "Use: add appointment on 28/5/2026 at 15:00" };
+}
+
+function processAdminCommand(text) {
+  const lower = text.toLowerCase();
+  const allAccounts = getAdminAccounts("");
+  if (/(count|summary|total|stats|statistics)/.test(lower)) {
+    const roleCounts = allAccounts.reduce((acc, account) => {
+      acc[account.session.role] = (acc[account.session.role] || 0) + 1;
+      return acc;
+    }, {});
+    renderAdminDashboard("");
+    return {
+      title: "Admin summary",
+      message: `${allAccounts.length} registered account${allAccounts.length === 1 ? "" : "s"} · ${Object.entries(roleCounts).map(([role, count]) => `${roleDisplayName(role)} ${count}`).join(", ") || "No users yet"}`,
+      skipRender: true
+    };
+  }
+  if (/(show all|all users|all accounts|registrations|registered)/.test(lower)) {
+    renderAdminDashboard("");
+    return { title: "Registrations shown", message: `${allAccounts.length} account${allAccounts.length === 1 ? "" : "s"} visible.`, skipRender: true };
+  }
+  if (/(find|search|lookup|open|show)/.test(lower)) {
+    const query = cleanupTitle(text, ["find", "search", "lookup", "open", "show", "me", "account", "accounts", "user", "users", "registration", "registrations", "card", "data", "for", "of"]).trim();
+    const matches = getAdminAccounts(query);
+    renderAdminDashboard(query);
+    if (matches.length && /(open|show|card|data)/.test(lower)) openAdminAccountDetails(matches[0].key);
+    return matches.length
+      ? { title: "Admin search complete", message: `${matches.length} registration match${matches.length === 1 ? "" : "es"} for ${query || "all accounts"}.`, skipRender: true }
+      : { title: "No admin matches", message: `No registrations found for ${query || "that request"}.`, skipRender: true };
+  }
+  return {
+    title: "Admin AI ready",
+    message: "Try: count users, show all registrations, find doctor, open account john@company.com.",
+    skipRender: true
+  };
 }
 
 function processCrmAiAction(text) {
@@ -947,6 +1240,8 @@ function showRecordDialog(key, id) {
   const labels = section.dataset.labels ? section.dataset.labels.split("|") : [...section.querySelectorAll("form label")].map((label) => label.childNodes[0].textContent.trim());
   const types = section.dataset.types ? section.dataset.types.split("|") : fields.map(() => "");
   if (!item) return;
+  $("recordDialogEditBtn").classList.remove("hidden");
+  $("recordDialogDeleteBtn").classList.remove("hidden");
   if (!Array.isArray(item.sessions)) item.sessions = [];
   $("recordDialogType").textContent = key.replace(/([A-Z])/g, " $1");
   $("recordDialogTitle").textContent = item[fields[0]] || "Record";

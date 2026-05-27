@@ -64,10 +64,12 @@
               <option value="teacher">Teacher</option>
               <option value="student">Student</option>
               <option value="general">Office</option>
+              <option value="admin" hidden>Mondaily Admin</option>
             </select>
           </label>
         </div>
         <button id="requestCodeBtn" class="ghost full" type="button">Get login code</button>
+        <label id="adminPasswordField" class="hidden">Admin password<input id="adminPassword" type="password" placeholder="Mondaily admin password"></label>
         <label id="codeField" class="hidden">One-time code<input id="loginCode" inputmode="numeric" placeholder="000000"></label>
         <div id="loginCodeHint" class="login-code-hint hidden"></div>
         <button class="primary full" type="submit">Open workspace</button>
