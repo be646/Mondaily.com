@@ -17,10 +17,10 @@
 
 body[data-theme="morning"] {
   color-scheme: light;
-  --bg: #ffffff;
-  --panel: rgba(255, 255, 255, .86);
-  --panel-2: rgba(248, 250, 252, .88);
-  --line: rgba(15, 23, 42, .14);
+  --bg: #eef4fb;
+  --panel: rgba(248, 252, 255, .74);
+  --panel-2: rgba(238, 246, 255, .68);
+  --line: rgba(51, 65, 85, .16);
   --muted: #475569;
   --text: #0f172a;
   --blue: #0369a1;
@@ -29,7 +29,7 @@ body[data-theme="morning"] {
   --green: #047857;
   --amber: #b45309;
   --red: #be123c;
-  --shadow: 0 10px 28px rgba(15, 23, 42, .08);
+  --shadow: 0 18px 42px rgba(30, 41, 59, .13);
 }
 
 * { box-sizing: border-box; }
@@ -46,7 +46,13 @@ body {
   color: var(--text);
 }
 body[data-theme="morning"] {
-  background: #ffffff;
+  background:
+    linear-gradient(120deg, rgba(14, 165, 233, .055) 1px, transparent 1px),
+    linear-gradient(35deg, rgba(124, 58, 237, .045) 1px, transparent 1px),
+    radial-gradient(circle at 8% -12%, rgba(14, 165, 233, .18), transparent 34rem),
+    radial-gradient(circle at 96% 0%, rgba(217, 70, 239, .10), transparent 30rem),
+    linear-gradient(180deg, #f8fbff 0%, #eef4fb 48%, #eaf1f8 100%);
+  background-size: 72px 72px, 96px 96px, auto, auto, auto;
 }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -70,9 +76,9 @@ body[data-theme="morning"] .game-card,
 body[data-theme="morning"] .game-stage,
 body[data-theme="morning"] .modal-card,
 body[data-theme="morning"] .upcoming-banner {
-  background: rgba(255, 255, 255, .96);
-  border-color: rgba(15, 23, 42, .10);
-  box-shadow: 0 8px 20px rgba(15,23,42,.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .82), rgba(239, 246, 255, .70));
+  border-color: rgba(51, 65, 85, .13);
+  box-shadow: 0 16px 38px rgba(30, 41, 59, .12), inset 0 1px 0 rgba(255,255,255,.72);
   color: var(--text);
 }
 .auth-card {
@@ -193,7 +199,8 @@ input, select, textarea {
 body[data-theme="morning"] input,
 body[data-theme="morning"] select,
 body[data-theme="morning"] textarea {
-  background-color: rgba(255, 255, 255, .58);
+  background-color: rgba(248, 250, 252, .76);
+  border-color: rgba(51, 65, 85, .16);
   color: var(--text);
 }
 select {
@@ -283,8 +290,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shado
   backdrop-filter: blur(22px);
 }
 body[data-theme="morning"] .side-nav {
-  background: rgba(255,255,255,.98);
-  box-shadow: 0 16px 32px rgba(15,23,42,.12);
+  background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(239,246,255,.78));
+  border-color: rgba(51,65,85,.13);
+  box-shadow: 0 18px 38px rgba(30,41,59,.13);
 }
 .side-action {
   width: 100%;
@@ -410,7 +418,10 @@ body[data-theme="morning"] .side-nav {
   background: rgba(8,13,27,.88);
   backdrop-filter: blur(14px);
 }
-body[data-theme="morning"] .role-panel > .panel-head { background: rgba(255,255,255,.94); }
+body[data-theme="morning"] .role-panel > .panel-head {
+  background: rgba(246, 250, 255, .88);
+  border-radius: 12px;
+}
 .agenda-panel {
   margin-top: 10px;
   padding: 0;
@@ -449,12 +460,12 @@ body[data-theme="morning"] .role-panel > .panel-head { background: rgba(255,255,
 }
 .day-cell:hover { border-color: rgba(56,189,248,.55); background: rgba(15, 23, 42, .98); }
 body[data-theme="morning"] .day-cell {
-  background: rgba(255,255,255,.76);
-  border-color: rgba(15,23,42,.12);
+  background: rgba(255,255,255,.58);
+  border-color: rgba(51,65,85,.13);
   color: #0f172a;
 }
 body[data-theme="morning"] .day-cell:hover {
-  background: #f8fafc;
+  background: rgba(240,249,255,.92);
   border-color: rgba(3,105,161,.42);
 }
 .day-cell.outside { opacity: .32; }
@@ -482,15 +493,15 @@ body[data-theme="morning"] .record-row,
 body[data-theme="morning"] .collection-form,
 body[data-theme="morning"] .timer-strip,
 body[data-theme="morning"] .ai-command {
-  background: rgba(255,255,255,.94);
-  border-color: rgba(15,23,42,.10);
-  box-shadow: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.72), rgba(239,246,255,.58));
+  border-color: rgba(51,65,85,.13);
+  box-shadow: 0 10px 26px rgba(30,41,59,.08), inset 0 1px 0 rgba(255,255,255,.68);
   color: #0f172a;
 }
 body[data-theme="morning"] .compact-search input,
 body[data-theme="morning"] .command-row input {
-  background: rgba(255,255,255,.96);
-  border-color: rgba(15,23,42,.12);
+  background: rgba(248,250,252,.72);
+  border-color: rgba(51,65,85,.14);
   color: #0f172a;
 }
 body[data-theme="morning"] .mini-event,
@@ -521,10 +532,32 @@ body[data-theme="morning"] .role-card,
 body[data-theme="morning"] .game-choice,
 body[data-theme="morning"] .small-btn,
 body[data-theme="morning"] .save-action {
-  background: rgba(255,255,255,.88);
+  background: rgba(248,250,252,.72);
   color: #0f172a;
-  border-color: rgba(15,23,42,.12);
+  border-color: rgba(51,65,85,.13);
   box-shadow: none;
+}
+body[data-theme="morning"] .primary,
+body[data-theme="morning"] .icon-btn {
+  background: rgba(14,165,233,.10);
+  border-color: rgba(14,165,233,.24);
+  color: #075985;
+}
+body[data-theme="morning"] .ghost,
+body[data-theme="morning"] .role-card,
+body[data-theme="morning"] .game-choice {
+  background: rgba(124,58,237,.075);
+  border-color: rgba(124,58,237,.18);
+  color: #312e81;
+}
+body[data-theme="morning"] .danger {
+  background: rgba(225,29,72,.075);
+  border-color: rgba(225,29,72,.20);
+  color: #9f1239;
+}
+body[data-theme="morning"] .small-btn,
+body[data-theme="morning"] .save-action {
+  background: rgba(255,255,255,.54);
 }
 .search-hit:first-child { border-top: 0; }
 .upcoming-banner {
@@ -583,8 +616,8 @@ body[data-theme="morning"] .save-action {
 .role-panel { padding: 12px; background: rgba(2,6,23,.10); border-color: rgba(148,163,184,.10); box-shadow: none; }
 body[data-theme="morning"] .role-panel,
 body[data-theme="morning"] .records-panel {
-  background: rgba(255,255,255,.96);
-  border-color: rgba(15,23,42,.10);
+  background: rgba(248,250,252,.62);
+  border-color: rgba(51,65,85,.12);
 }
 .agenda-panel .panel-head { margin-bottom: 7px; }
 .agenda-panel .panel-head h2 { display: none; }
@@ -661,8 +694,8 @@ body[data-theme="morning"] .records-panel {
   font-weight: 600;
 }
 body[data-theme="morning"] .review-summary div {
-  background: rgba(255,255,255,.94);
-  border-color: rgba(15,23,42,.10);
+  background: rgba(255,255,255,.58);
+  border-color: rgba(51,65,85,.12);
 }
 .collection-form {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -803,8 +836,16 @@ body[data-theme="morning"] .record-level.level-normal { color: #0369a1; backgrou
 body[data-theme="morning"] .time-stats div,
 body[data-theme="morning"] .time-log-item,
 body[data-theme="morning"] .record-detail {
-  background: rgba(255,255,255,.94);
-  border-color: rgba(15,23,42,.10);
+  background: rgba(255,255,255,.60);
+  border-color: rgba(51,65,85,.12);
+}
+body[data-theme="morning"] .record-row:hover {
+  background: rgba(240,249,255,.86);
+  border-color: rgba(14,165,233,.34);
+}
+body[data-theme="morning"] .empty-state {
+  background: rgba(255,255,255,.44);
+  border-color: rgba(51,65,85,.16);
 }
 .empty-state {
   border: 1px dashed rgba(117,139,177,.22);
