@@ -1,0 +1,2 @@
+{"name":"@mondaily/shared","version":"0.1.0","private":true,"type":"module","exports":{"./types":"./src/types.ts","./constants":"./src/constants.ts"},"scripts":{"typecheck":"tsc --noEmit"},"devDependencies":{"typescript":"^5.8.3"}}
+

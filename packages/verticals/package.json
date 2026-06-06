@@ -1,0 +1,23 @@
+{
+  "name": "@mondaily/verticals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./sales/schema": "./sales/schema.ts",
+    "./realestate/schema": "./realestate/schema.ts",
+    "./hr/schema": "./hr/schema.ts",
+    "./finance/schema": "./finance/schema.ts",
+    "./investments/schema": "./investments/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.25.42"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "@mondaily/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./ubc": "./src/ubc.ts",
+    "./embedding": "./src/embedding.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "openai": "^4.104.0",
+    "zod": "^3.25.42"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
+

@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@mondaily/db/*": ["../db/src/*"],
+      "@mondaily/agents/*": ["../agents/src/*"]
+    }
+  },
+  "include": ["src"]
+}
+

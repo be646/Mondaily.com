@@ -1,0 +1,26 @@
+{
+  "name": "@mondaily/tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./records": "./src/records.ts",
+    "./email": "./src/email.ts",
+    "./calendar": "./src/calendar.ts",
+    "./web-research": "./src/web-research.ts",
+    "./documents": "./src/documents.ts",
+    "./enrichment": "./src/enrichment.ts",
+    "./notifications": "./src/notifications.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mondaily/db": "workspace:*",
+    "zod": "^3.25.42"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
+

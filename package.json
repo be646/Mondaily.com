@@ -1,15 +1,37 @@
 {
   "name": "mondaily-desktop",
   "version": "1.0.0",
-  "description": "Mondaily AI desktop workspace app",
+  "description": "Mondaily AI business operating system",
   "main": "main.js",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "start": "electron .",
+    "start": "node server.js",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "desktop": "electron .",
     "package:mac": "electron-packager . Mondaily --platform=darwin --arch=arm64,x64 --overwrite",
     "package:win": "electron-packager . Mondaily --platform=win32 --arch=x64 --overwrite"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.18.3",
+    "jsonwebtoken": "^9.0.2",
+    "stripe": "^16.12.0"
+  },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-packager": "^17.1.2"
+    "electron-packager": "^17.1.2",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
   }
 }
