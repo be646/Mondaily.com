@@ -38,6 +38,8 @@ import { ObjectsSettings } from "./routes/dashboard/settings/objects";
 import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
 import { EmailSettings } from "./routes/dashboard/settings/email";
 import { SecuritySettings } from "./routes/dashboard/settings/security";
+import { ListPage } from "./routes/dashboard/lists/[listId]";
+import { SearchPage } from "./routes/dashboard/search";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
@@ -77,6 +79,8 @@ export function App() {
         <Route path="ask/:threadId?" element={<AskPage />} />
         <Route path="objects/:objectType" element={<ObjectIndexPage />} />
         <Route path="objects/:objectType/:recordId" element={<RecordDetailPage />} />
+        <Route path="lists/:listId" element={<ListPage />} />
+        <Route path="search" element={<SearchPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="account" replace />} />
           <Route path="account" element={<AccountSettings />} />

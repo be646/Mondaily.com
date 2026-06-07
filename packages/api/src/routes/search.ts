@@ -18,8 +18,13 @@ router.post("/", requireAuth, zValidator("json", z.object({
     objectTypes: body.object_types,
     limit: body.limit
   });
-  return c.json(results);
+  const ids = results.flatMap((result) => result.id ? [result.id] : []);
+  const { data: activities } = ids.length
+    ? await import("@mondaily/db/client").then(({ supabase }) => supabase.from("activities").select("node_id,created_at").in("node_id", ids).order("created_at", { ascending: false }))
+    : { data: [] };
+  const latest = new Map<string, string>();
+  for (const activity of activities ?? []) if (!latest.has(activity.node_id)) latest.set(activity.node_id, activity.created_at);
+  return c.json(results.map((result) => ({ ...result, last_activity_at: result.id ? latest.get(result.id) : undefined })));
 });
 
 export { router as searchRouter };
-
