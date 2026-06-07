@@ -12,6 +12,8 @@ import { invitesRouter } from "./routes/invites";
 import { notesRouter } from "./routes/notes";
 import { emailsRouter } from "./routes/emails";
 import { callsRouter } from "./routes/calls";
+import { reportsRouter } from "./routes/reports";
+import { dashboardsRouter } from "./routes/dashboards";
 
 const app = new Hono();
 
@@ -31,6 +33,8 @@ app.route("/api/v1/invites", invitesRouter);
 app.route("/api/v1/notes", notesRouter);
 app.route("/api/v1/emails", emailsRouter);
 app.route("/api/v1/calls", callsRouter);
+app.route("/api/v1/reports", reportsRouter);
+app.route("/api/v1/dashboards", dashboardsRouter);
 app.route("/api/v1", appDataRouter);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
