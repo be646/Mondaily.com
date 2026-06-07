@@ -5,14 +5,14 @@ import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
 
 const navItems = [
-  { to: "/dashboard/home", label: "Home", icon: Home },
-  { to: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { to: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
-  { to: "/dashboard/notes", label: "Notes", icon: FileText },
-  { to: "/dashboard/emails", label: "Emails", icon: Mail },
-  { to: "/dashboard/calls", label: "Calls", icon: Phone },
-  { to: "/dashboard/reports", label: "Reports", icon: BarChart2 },
-  { to: "/dashboard/automations", label: "Automations", icon: Zap }
+  { to: "/home", label: "Home", icon: Home },
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/notes", label: "Notes", icon: FileText },
+  { to: "/emails", label: "Emails", icon: Mail },
+  { to: "/calls", label: "Calls", icon: Phone },
+  { to: "/reports", label: "Reports", icon: BarChart2 },
+  { to: "/automations", label: "Automations", icon: Zap }
 ];
 
 export function Sidebar() {
@@ -38,11 +38,10 @@ export function Sidebar() {
         <SidebarLists />
         <SidebarAsk />
       </nav>
-      <Link to="/dashboard/settings/account" className="m-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04]">
+      <Link to="/settings/account" className="m-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04]">
         <Settings size={15} />
         Settings
       </Link>
     </aside>
   );
 }
-

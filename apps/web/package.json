@@ -17,6 +17,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@next/swc-wasm-nodejs": "14.2.33",
     "@types/node": "^22.15.29",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
@@ -26,4 +27,3 @@
     "typescript": "^5.8.3"
   }
 }
-
