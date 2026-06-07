@@ -7,6 +7,9 @@ import { askRouter } from "./routes/ask";
 import { agentsRouter } from "./routes/agents";
 import { activitiesRouter } from "./routes/activities";
 import { webhooksRouter } from "./routes/webhooks";
+import { appDataRouter } from "./routes/app-data";
+import { invitesRouter } from "./routes/invites";
+import { notesRouter } from "./routes/notes";
 
 const app = new Hono();
 
@@ -22,8 +25,10 @@ app.route("/api/v1/ask", askRouter);
 app.route("/api/v1/agents", agentsRouter);
 app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/webhooks", webhooksRouter);
+app.route("/api/v1/invites", invitesRouter);
+app.route("/api/v1/notes", notesRouter);
+app.route("/api/v1", appDataRouter);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
 
 export default app;
-
