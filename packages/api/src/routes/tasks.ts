@@ -1,12 +1,10 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@mondaily/db/client";
 
 const tasks = new Hono();
-
 tasks.use("*", requireAuth);
 
-// GET /tasks?filter=mine|all|overdue
 tasks.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
@@ -19,16 +17,13 @@ tasks.get("/", async (c) => {
     .order("created_at", { ascending: false });
 
   if (filter === "mine") query = query.eq("assignee_id", userId);
-  if (filter === "overdue") {
-    query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
-  }
+  if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
 
   const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data || []);
 });
 
-// POST /tasks
 tasks.post("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
@@ -51,7 +46,6 @@ tasks.post("/", async (c) => {
   return c.json(data, 201);
 });
 
-// PATCH /tasks/:id
 tasks.patch("/:id", async (c) => {
   const workspaceId = c.get("workspaceId");
   const id = c.req.param("id");
@@ -69,7 +63,6 @@ tasks.patch("/:id", async (c) => {
   return c.json(data);
 });
 
-// DELETE /tasks/:id
 tasks.delete("/:id", async (c) => {
   const workspaceId = c.get("workspaceId");
   const id = c.req.param("id");
