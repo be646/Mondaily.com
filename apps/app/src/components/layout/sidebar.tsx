@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown } from "lucide-react";
+import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus } from "lucide-react";
 import { useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
@@ -47,10 +47,8 @@ export function Sidebar() {
 
   const doneCount = GETTING_STARTED.filter(i => i.done).length;
   const progress = Math.round((doneCount / GETTING_STARTED.length) * 100);
-
-  const handleSignOut = () => {
-    signOut(() => navigate("/sign-in"));
-  };
+  const workspaceName = user?.organizationMemberships?.[0]?.organization?.name || "Mondaily";
+  const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
   return (
     <aside
@@ -74,37 +72,57 @@ export function Sidebar() {
           <Logo size={28} />
           {!collapsed && (
             <>
-              <div className="flex-1 text-left">
-                <div style={{ fontWeight: 200, letterSpacing: "0.2em", fontSize: "0.75rem", textTransform: "uppercase" }} className="text-white">mondaily</div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="truncate text-sm font-medium text-white">{workspaceName}</div>
                 <div className="text-xs text-slate-500">Pro workspace</div>
               </div>
-              <ChevronsUpDown size={13} className="text-slate-500"/>
+              <ChevronsUpDown size={13} className="text-slate-500 shrink-0"/>
             </>
           )}
         </button>
 
         {/* Workspace dropdown */}
         {workspaceOpen && !collapsed && (
-          <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#161820] shadow-xl">
-            <div className="p-2">
-              <div className="mb-1 px-2 py-1 text-xs text-slate-500">Workspace</div>
-              <div className="flex items-center gap-2 rounded-lg bg-white/[.06] px-3 py-2 text-sm text-white">
-                <Logo size={18}/>
-                <span style={{fontWeight:200, letterSpacing:"0.1em", fontSize:"0.75rem", textTransform:"uppercase"}}>mondaily</span>
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setWorkspaceOpen(false)}/>
+            <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#161820] shadow-2xl">
+              {/* Current workspace */}
+              <div className="p-2">
+                <div className="mb-1 px-2 py-1 text-xs text-slate-500 uppercase tracking-wider">Workspaces</div>
+                <div className="flex items-center gap-2.5 rounded-lg bg-white/[.06] px-3 py-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-sm text-white">{workspaceName}</div>
+                    <div className="text-xs text-slate-500">Pro</div>
+                  </div>
+                  <div className="h-2 w-2 rounded-full bg-green-400"/>
+                </div>
+              </div>
+
+              {/* Create new workspace */}
+              <div className="border-t border-white/10 p-2">
+                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                  <Plus size={14}/> Create new workspace
+                </button>
+              </div>
+
+              {/* Workspace actions */}
+              <div className="border-t border-white/10 p-2">
+                <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                  <Users size={14}/> Invite members
+                </Link>
+                <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                  <Settings size={14}/> Workspace settings
+                </Link>
+                <button
+                  onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400 transition-colors"
+                >
+                  <LogOut size={14}/> Sign out
+                </button>
               </div>
             </div>
-            <div className="border-t border-white/10 p-2">
-              <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
-                <Users size={14}/> Invite members
-              </Link>
-              <Link to="/settings/account" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
-                <Settings size={14}/> Settings
-              </Link>
-              <button onClick={handleSignOut} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400">
-                <LogOut size={14}/> Sign out
-              </button>
-            </div>
-          </div>
+          </>
         )}
       </div>
 
@@ -129,7 +147,6 @@ export function Sidebar() {
       {/* Bottom section */}
       {!collapsed && (
         <div className="border-t border-white/10 p-2 space-y-1">
-          {/* Getting started */}
           <button
             onClick={() => setGettingStartedOpen(!gettingStartedOpen)}
             className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
@@ -137,12 +154,9 @@ export function Sidebar() {
             <span>Getting started {doneCount}/{GETTING_STARTED.length}</span>
             <ChevronDown size={12} className={`transition-transform ${gettingStartedOpen ? "rotate-180" : ""}`}/>
           </button>
-          {/* Progress bar */}
           <div className="mx-3 h-1 rounded-full bg-white/10">
             <div className="h-1 rounded-full bg-red-500 transition-all" style={{ width: `${progress}%` }}/>
           </div>
-
-          {/* Getting started steps */}
           {gettingStartedOpen && (
             <div className="mx-1 mt-1 space-y-0.5">
               {GETTING_STARTED.map((item, i) => (
@@ -155,17 +169,10 @@ export function Sidebar() {
               ))}
             </div>
           )}
-
-          {/* Invite team */}
-          <Link
-            to="/settings/members"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
-          >
+          <Link to="/settings/members" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
             <Users size={13}/> Invite team members
           </Link>
-
-          {/* Trial badge */}
-          <div className="mx-3 mb-1 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+          <div className="mx-1 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
             <div className="text-xs font-medium text-amber-400">14 days left on trial</div>
             <div className="text-xs text-slate-500 mt-0.5">Upgrade to keep access</div>
             <Link to="/settings/billing" className="mt-1.5 block rounded-md bg-amber-500/15 px-2 py-1 text-center text-xs text-amber-400 hover:bg-amber-500/25 transition-colors">
@@ -175,7 +182,6 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Collapsed settings */}
       {collapsed && (
         <Link to="/settings/account" title="Settings" className="m-2 flex items-center justify-center rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04]">
           <Settings size={15}/>
