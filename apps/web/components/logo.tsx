@@ -1,3 +1,5 @@
+import React from "react";
+
 export function Logo({ size = 44 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -13,14 +15,11 @@ export function Logo({ size = 44 }: { size?: number }) {
           <feGaussianBlur stdDeviation="2"/>
         </filter>
       </defs>
-      <!-- Outer glow blob -->
       <circle cx="22" cy="22" r="20" fill="url(#glowR)" filter="url(#gb)"/>
-      <!-- Rings -->
       <circle cx="22" cy="22" r="18" fill="none" stroke="#ef4444" strokeWidth="0.6" opacity="0.15"/>
       <circle cx="22" cy="22" r="14" fill="none" stroke="#ef4444" strokeWidth="0.8" opacity="0.3"/>
       <circle cx="22" cy="22" r="10" fill="none" stroke="#ef4444" strokeWidth="1.2" opacity="0.55"/>
       <circle cx="22" cy="22" r="6" fill="none" stroke="#ef4444" strokeWidth="1.8" opacity="0.8"/>
-      <!-- Center dot with glow -->
       <circle cx="22" cy="22" r="3" fill="#ef4444" filter="url(#sb)" opacity="0.6"/>
       <circle cx="22" cy="22" r="2.5" fill="#ef4444"/>
     </svg>
