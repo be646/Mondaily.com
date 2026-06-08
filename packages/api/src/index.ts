@@ -44,3 +44,9 @@ app.route("/api/v1", appDataRouter);
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
 
 export default app;
+
+import { serve } from '@hono/node-server'
+const port = parseInt(process.env.PORT || '8787')
+serve({ fetch: app.fetch, port }, () => {
+  console.log(`Mondaily API running on port ${port}`)
+})
