@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { ClerkProvider, useAuth, useOrganization } from "@clerk/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { App } from "./App";
 import "./styles.css";
 
@@ -13,38 +13,51 @@ const queryClient = new QueryClient({
   }
 });
 
-function SessionBridge() {
-  const { getToken, isSignedIn } = useAuth();
+function AppWithAuth() {
+  const { getToken, isSignedIn, isLoaded } = useAuth();
   const { organization } = useOrganization();
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
+    if (!isLoaded) return;
     if (!isSignedIn) {
       localStorage.removeItem("mondaily_session_token");
+      setReady(true);
       return;
     }
-    void getToken().then((token) => {
+    getToken().then((token) => {
       if (token) localStorage.setItem("mondaily_session_token", token);
+      const wsId = organization?.id || '8ccef088-6493-4cd9-a0cf-3214098f59a1';
+      localStorage.setItem("mondaily_workspace_id", wsId);
+      setReady(true);
     });
-  }, [getToken, isSignedIn]);
+  }, [isLoaded, isSignedIn, getToken, organization?.id]);
+
   useEffect(() => {
-    if (organization?.id) localStorage.setItem("mondaily_workspace_id", organization.id);
-  }, [organization?.id]);
-  return null;
+    if (!isSignedIn || !isLoaded) return;
+    const interval = setInterval(() => {
+      getToken().then((token) => {
+        if (token) localStorage.setItem("mondaily_session_token", token);
+      });
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [isSignedIn, isLoaded, getToken]);
+
+  if (!ready) return null;
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <SessionBridge />
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </QueryClientProvider>
+      <AppWithAuth />
     </ClerkProvider>
   </React.StrictMode>
 );
-
-// Temporary: set default workspace
-if (!localStorage.getItem('mondaily_workspace_id')) {
-  localStorage.setItem('mondaily_workspace_id', '8ccef088-6493-4cd9-a0cf-3214098f59a1');
-}
