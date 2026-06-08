@@ -3,25 +3,26 @@ const API_URL = `${BASE_URL}/api/v1`;
 
 async function getToken(): Promise<string | null> {
   try {
-    const token = await window.Clerk?.session?.getToken()
-    return token || null
+    const clerk = (window as any).Clerk;
+    return await clerk?.session?.getToken() || null;
   } catch {
-    return null
+    return null;
   }
 }
 
 async function getWorkspaceId(): Promise<string | null> {
   try {
-    return window.Clerk?.organization?.id || null
+    const clerk = (window as any).Clerk;
+    return clerk?.organization?.id || null;
   } catch {
-    return null
+    return null;
   }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getToken()
-  const workspaceId = await getWorkspaceId()
-  
+  const token = await getToken();
+  const workspaceId = await getWorkspaceId();
+
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
