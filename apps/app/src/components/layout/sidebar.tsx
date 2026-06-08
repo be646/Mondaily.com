@@ -47,7 +47,9 @@ export function Sidebar() {
 
   const doneCount = GETTING_STARTED.filter(i => i.done).length;
   const progress = Math.round((doneCount / GETTING_STARTED.length) * 100);
-  const workspaceName = user?.organizationMemberships?.[0]?.organization?.name || user?.firstName ? `${user.firstName}'s Workspace` : "My Workspace";
+  const org = user?.organizationMemberships?.[0]?.organization;
+  const workspaceName = org?.name || (user?.firstName ? `${user.firstName}'s Workspace` : "My Workspace");
+  const workspaceLogo = (org as any)?.imageUrl as string | null || null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
   return (
@@ -55,7 +57,6 @@ export function Sidebar() {
       style={{ transition: "width 0.25s ease" }}
       className={`relative flex h-full shrink-0 flex-col border-r border-white/10 bg-[#0d0f13] ${collapsed ? "w-16" : "w-64"}`}
     >
-      {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#0d0f13] text-slate-400 hover:text-white transition-colors"
@@ -63,13 +64,16 @@ export function Sidebar() {
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>
 
-      {/* Workspace selector */}
       <div className="relative border-b border-white/10">
-        {workspaceLogo ? <img src={workspaceLogo} alt={workspaceName} className="h-7 w-7 rounded-lg object-cover"/> : <Logo size={28} />}
+        <button
           onClick={() => !collapsed && setWorkspaceOpen(!workspaceOpen)}
           className={`flex w-full items-center gap-2.5 p-4 hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
         >
-          <Logo size={28} />
+          {workspaceLogo ? (
+            <img src={workspaceLogo} alt={workspaceName} className="h-7 w-7 rounded-lg object-cover shrink-0"/>
+          ) : (
+            <Logo size={28} />
+          )}
           {!collapsed && (
             <>
               <div className="flex-1 text-left min-w-0">
@@ -81,16 +85,18 @@ export function Sidebar() {
           )}
         </button>
 
-        {/* Workspace dropdown */}
         {workspaceOpen && !collapsed && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setWorkspaceOpen(false)}/>
             <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#161820] shadow-2xl">
-              {/* Current workspace */}
               <div className="p-2">
                 <div className="mb-1 px-2 py-1 text-xs text-slate-500 uppercase tracking-wider">Workspaces</div>
                 <div className="flex items-center gap-2.5 rounded-lg bg-white/[.06] px-3 py-2">
-                  {workspaceLogo ? <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover"/> : <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>}
+                  {workspaceLogo ? (
+                    <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover"/>
+                  ) : (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-sm text-white">{workspaceName}</div>
                     <div className="text-xs text-slate-500">Pro</div>
@@ -98,15 +104,11 @@ export function Sidebar() {
                   <div className="h-2 w-2 rounded-full bg-green-400"/>
                 </div>
               </div>
-
-              {/* Create new workspace */}
               <div className="border-t border-white/10 p-2">
                 <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
                   <Plus size={14}/> Create new workspace
                 </Link>
               </div>
-
-              {/* Workspace actions */}
               <div className="border-t border-white/10 p-2">
                 <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
                   <Users size={14}/> Invite members
@@ -126,7 +128,6 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 overflow-auto p-2">
         {navItems.map(({ to, label, icon: Icon }) => (
           <Link
@@ -144,7 +145,6 @@ export function Sidebar() {
         {!collapsed && <SidebarAsk />}
       </nav>
 
-      {/* Bottom section */}
       {!collapsed && (
         <div className="border-t border-white/10 p-2 space-y-1">
           <button
