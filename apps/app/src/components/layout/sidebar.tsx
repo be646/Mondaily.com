@@ -44,7 +44,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
-
+  const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const doneCount = GETTING_STARTED.filter(i => i.done).length;
   const progress = Math.round((doneCount / GETTING_STARTED.length) * 100);
   const org = user?.organizationMemberships?.[0]?.organization;
@@ -105,9 +105,9 @@ export function Sidebar() {
                 </div>
               </div>
               <div className="border-t border-white/10 p-2">
-                <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                <button onClick={() => { setWorkspaceOpen(false); setNewWorkspaceOpen(true); }}  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
                   <Plus size={14}/> Create new workspace
-                </Link>
+                </button>
               </div>
               <div className="border-t border-white/10 p-2">
                 <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
