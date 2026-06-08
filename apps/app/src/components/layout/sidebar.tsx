@@ -1,6 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
+import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -27,15 +28,36 @@ function Logo({ size = 28 }: { size?: number }) {
   );
 }
 
+const GETTING_STARTED = [
+  { label: "Create your workspace", done: true },
+  { label: "Invite a team member", done: false },
+  { label: "Add your first contact", done: false },
+  { label: "Create a task", done: false },
+  { label: "Try Ask Mondaily", done: false },
+];
+
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useClerk();
+  const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
+
+  const doneCount = GETTING_STARTED.filter(i => i.done).length;
+  const progress = Math.round((doneCount / GETTING_STARTED.length) * 100);
+
+  const handleSignOut = () => {
+    signOut(() => navigate("/sign-in"));
+  };
 
   return (
     <aside
       style={{ transition: "width 0.25s ease" }}
       className={`relative flex h-full shrink-0 flex-col border-r border-white/10 bg-[#0d0f13] ${collapsed ? "w-16" : "w-64"}`}
     >
+      {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#0d0f13] text-slate-400 hover:text-white transition-colors"
@@ -43,23 +65,57 @@ export function Sidebar() {
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
       </button>
 
-      <div className="flex items-center gap-2.5 border-b border-white/10 p-4 overflow-hidden">
-        <Logo size={28} />
-        {!collapsed && (
-          <div>
-            <div style={{ fontWeight: 200, letterSpacing: "0.2em", fontSize: "0.8rem", textTransform: "uppercase" }} className="text-white">mondaily</div>
-            <div className="text-xs text-slate-500">AI business OS</div>
+      {/* Workspace selector */}
+      <div className="relative border-b border-white/10">
+        <button
+          onClick={() => !collapsed && setWorkspaceOpen(!workspaceOpen)}
+          className={`flex w-full items-center gap-2.5 p-4 hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
+        >
+          <Logo size={28} />
+          {!collapsed && (
+            <>
+              <div className="flex-1 text-left">
+                <div style={{ fontWeight: 200, letterSpacing: "0.2em", fontSize: "0.75rem", textTransform: "uppercase" }} className="text-white">mondaily</div>
+                <div className="text-xs text-slate-500">Pro workspace</div>
+              </div>
+              <ChevronsUpDown size={13} className="text-slate-500"/>
+            </>
+          )}
+        </button>
+
+        {/* Workspace dropdown */}
+        {workspaceOpen && !collapsed && (
+          <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#161820] shadow-xl">
+            <div className="p-2">
+              <div className="mb-1 px-2 py-1 text-xs text-slate-500">Workspace</div>
+              <div className="flex items-center gap-2 rounded-lg bg-white/[.06] px-3 py-2 text-sm text-white">
+                <Logo size={18}/>
+                <span style={{fontWeight:200, letterSpacing:"0.1em", fontSize:"0.75rem", textTransform:"uppercase"}}>mondaily</span>
+              </div>
+            </div>
+            <div className="border-t border-white/10 p-2">
+              <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                <Users size={14}/> Invite members
+              </Link>
+              <Link to="/settings/account" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                <Settings size={14}/> Settings
+              </Link>
+              <button onClick={handleSignOut} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400">
+                <LogOut size={14}/> Sign out
+              </button>
+            </div>
           </div>
         )}
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 overflow-auto p-2">
         {navItems.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to}
             title={collapsed ? label : undefined}
-            className={`mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${location.pathname.startsWith(to) ? "bg-red-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"} ${collapsed ? "justify-center" : ""}`}
+            className={`mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${location.pathname.startsWith(to) ? "bg-red-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"} ${collapsed ? "justify-center" : ""}`}
           >
             <Icon size={15} />
             {!collapsed && label}
@@ -70,14 +126,61 @@ export function Sidebar() {
         {!collapsed && <SidebarAsk />}
       </nav>
 
-      <Link
-        to="/settings/account"
-        title={collapsed ? "Settings" : undefined}
-        className={`m-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] ${collapsed ? "justify-center" : ""}`}
-      >
-        <Settings size={15} />
-        {!collapsed && "Settings"}
-      </Link>
+      {/* Bottom section */}
+      {!collapsed && (
+        <div className="border-t border-white/10 p-2 space-y-1">
+          {/* Getting started */}
+          <button
+            onClick={() => setGettingStartedOpen(!gettingStartedOpen)}
+            className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
+          >
+            <span>Getting started {doneCount}/{GETTING_STARTED.length}</span>
+            <ChevronDown size={12} className={`transition-transform ${gettingStartedOpen ? "rotate-180" : ""}`}/>
+          </button>
+          {/* Progress bar */}
+          <div className="mx-3 h-1 rounded-full bg-white/10">
+            <div className="h-1 rounded-full bg-red-500 transition-all" style={{ width: `${progress}%` }}/>
+          </div>
+
+          {/* Getting started steps */}
+          {gettingStartedOpen && (
+            <div className="mx-1 mt-1 space-y-0.5">
+              {GETTING_STARTED.map((item, i) => (
+                <div key={i} className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ${item.done ? "text-slate-600 line-through" : "text-slate-400"}`}>
+                  <div className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center shrink-0 ${item.done ? "border-slate-600 bg-slate-600" : "border-slate-600"}`}>
+                    {item.done && <div className="h-1.5 w-1.5 rounded-full bg-white"/>}
+                  </div>
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Invite team */}
+          <Link
+            to="/settings/members"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
+          >
+            <Users size={13}/> Invite team members
+          </Link>
+
+          {/* Trial badge */}
+          <div className="mx-3 mb-1 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+            <div className="text-xs font-medium text-amber-400">14 days left on trial</div>
+            <div className="text-xs text-slate-500 mt-0.5">Upgrade to keep access</div>
+            <Link to="/settings/billing" className="mt-1.5 block rounded-md bg-amber-500/15 px-2 py-1 text-center text-xs text-amber-400 hover:bg-amber-500/25 transition-colors">
+              Upgrade to Pro
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Collapsed settings */}
+      {collapsed && (
+        <Link to="/settings/account" title="Settings" className="m-2 flex items-center justify-center rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04]">
+          <Settings size={15}/>
+        </Link>
+      )}
     </aside>
   );
 }
