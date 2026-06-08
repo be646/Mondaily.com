@@ -1,11 +1,16 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 
+const CLERK_TO_WORKSPACE: Record<string, string> = {
+  "org_3Eq2xXHigy4Fz7fhjWYoeyfrQT0": "8ccef088-6493-4cd9-a0cf-3214098f59a1"
+};
+
 export const requireAuth = createMiddleware<{
   Variables: { userId: string; workspaceId: string; role: string };
 }>(async (c, next) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
-  const workspaceId = c.req.header("X-Workspace-Id") || "8ccef088-6493-4cd9-a0cf-3214098f59a1";
+  const rawWorkspaceId = c.req.header("X-Workspace-Id") || "8ccef088-6493-4cd9-a0cf-3214098f59a1";
+  const workspaceId = CLERK_TO_WORKSPACE[rawWorkspaceId] || rawWorkspaceId;
 
   if (!token) {
     throw new HTTPException(401, { message: "Unauthorized" });
