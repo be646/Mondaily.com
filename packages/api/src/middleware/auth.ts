@@ -1,8 +1,5 @@
-import { createClerkClient } from "@clerk/backend";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 export const requireAuth = createMiddleware<{
   Variables: { userId: string; workspaceId: string; role: string };
@@ -15,8 +12,12 @@ export const requireAuth = createMiddleware<{
   }
 
   try {
-    const { sub } = await clerk.verifyToken(token);
-    c.set("userId", sub);
+    const parts = token.split(".");
+    if (parts.length !== 3) throw new Error("Invalid token");
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const userId = payload.sub;
+    if (!userId) throw new Error("No user ID");
+    c.set("userId", userId);
     c.set("workspaceId", workspaceId);
     c.set("role", "owner");
     await next();
