@@ -1,8 +1,130 @@
-import { Sparkles } from "lucide-react";
-import { useState } from "react";
-import { AskMondailyInline } from "./ask-mondaily-inline";
+import { Sparkles, Send, Loader2, User } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+
+interface Message { role: "user" | "assistant"; content: string; }
+
+async function sendMessage(message: string): Promise<string> {
+  const token = localStorage.getItem("mondaily_session_token");
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const res = await fetch(`${apiUrl}/api/v1/ask`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+    },
+    body: JSON.stringify({ message })
+  });
+  const data = await res.json() as any;
+  return data.reply || data.message || "No response.";
+}
 
 export function AskMondaily() {
-  const [response, setResponse] = useState("");
-  return <div className="mx-auto flex h-full max-w-3xl flex-col px-6 py-8"><h1 className="text-2xl font-semibold">Ask Mondaily</h1><p className="mt-2 text-sm text-slate-400">Search, analyze, create, and coordinate work across your workspace.</p><div className="flex flex-1 items-center justify-center">{response ? <article className="w-full rounded-lg border border-white/10 p-5"><div className="mb-3 flex items-center gap-2 text-sm font-medium"><Sparkles size={15} className="text-red-400" /> Mondaily</div><p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">{response}</p></article> : <div className="text-center text-sm text-slate-600">Ask a question or give Mondaily an instruction.</div>}</div><AskMondailyInline placeholder="Ask anything or give Mondaily an instruction..." onResponse={setResponse} /></div>;
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    setMessages(prev => [...prev, { role: "user", content: text }]);
+    setLoading(true);
+    try {
+      const reply = await sendMessage(text);
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch (err: any) {
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${err.message}` }]);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="border-b border-white/10 px-6 py-4">
+        <h1 className="text-lg font-semibold text-white">Ask Mondaily</h1>
+        <p className="text-xs text-slate-500">Powered by Claude — your AI business assistant</p>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
+        {messages.length === 0 && (
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
+                <Sparkles size={20} className="text-red-400"/>
+              </div>
+              <div className="text-sm font-medium text-white mb-1">How can I help you today?</div>
+              <div className="text-xs text-slate-500">Ask about your pipeline, contacts, tasks, or anything else</div>
+              <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                {["Summarize my pipeline", "What tasks are overdue?", "Draft a follow-up email", "Analyze my deals"].map(s => (
+                  <button key={s} onClick={() => { setInput(s); }} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            {m.role === "assistant" && (
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
+                <Sparkles size={13} className="text-red-400"/>
+              </div>
+            )}
+            <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-200"}`}>
+              {m.content}
+            </div>
+            {m.role === "user" && (
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 mt-0.5">
+                <User size={13} className="text-slate-400"/>
+              </div>
+            )}
+          </div>
+        ))}
+        {loading && (
+          <div className="flex gap-3 justify-start">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
+              <Sparkles size={13} className="text-red-400"/>
+            </div>
+            <div className="rounded-2xl bg-white/[.06] px-4 py-2.5">
+              <Loader2 size={14} className="animate-spin text-slate-400"/>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-white/10 px-6 py-4">
+        <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 focus-within:border-red-500/30">
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            placeholder="Ask anything about your business..."
+            rows={1}
+            className="flex-1 resize-none bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+            style={{ maxHeight: "120px" }}
+          />
+          <button
+            onClick={send}
+            disabled={loading || !input.trim()}
+            className="shrink-0 rounded-lg bg-red-500 p-2 text-white hover:bg-red-400 disabled:opacity-40 transition-colors"
+          >
+            <Send size={14}/>
+          </button>
+        </div>
+        <div className="mt-1.5 text-xs text-slate-600 text-center">Press Enter to send · Shift+Enter for new line</div>
+      </div>
+    </div>
+  );
 }

@@ -1,38 +1,51 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
-import { useState } from "react";
-import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal, Copy, Check } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal, Copy, Check, Loader2, Sparkles } from "lucide-react";
+
+interface Message { role: "user" | "assistant"; content: string; }
+
+async function callAsk(message: string): Promise<string> {
+  const token = localStorage.getItem("mondaily_session_token");
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const res = await fetch(`${apiUrl}/api/v1/ask`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+    },
+    body: JSON.stringify({ message })
+  });
+  const data = await res.json() as any;
+  return data.reply || data.message || "No response.";
+}
 
 function AskPanel({ onClose }: { onClose: () => void }) {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: string; text: string }[]>([
-    { role: "assistant", text: "Hi! I'm Mondaily AI. Ask me anything about your business, pipeline, or contacts." }
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "assistant", content: "Hi! I'm Mondaily AI. Ask me anything about your business, pipeline, or contacts." }
   ]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const send = async () => {
-    if (!input.trim()) return;
-    const userMsg = input.trim();
+    const text = input.trim();
+    if (!text || loading) return;
     setInput("");
-    setMessages(prev => [...prev, { role: "user", text: userMsg }]);
+    setMessages(prev => [...prev, { role: "user", content: text }]);
     setLoading(true);
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-        },
-        body: JSON.stringify({ message: userMsg, thread_id: null })
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", text: data.reply || data.message || "I'm thinking..." }]);
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", text: "Sorry, I couldn't connect right now." }]);
+      const reply = await callAsk(text);
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch (err: any) {
+      setMessages(prev => [...prev, { role: "assistant", content: `Error: ${err.message}` }]);
     }
     setLoading(false);
   };
@@ -54,7 +67,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
                 <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#161820] shadow-xl">
                   <div className="p-1">
-                    <Link to="/ask" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                    <Link to="/ask/new" onClick={() => { setMenuOpen(false); onClose(); }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
                       <Share2 size={13}/> Open in full page
                     </Link>
                     <Link to="/settings/account" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
@@ -70,20 +83,35 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-4 space-y-3">
+
+      {/* Messages */}
+      <div className="flex-1 overflow-auto p-3 space-y-3">
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-300"}`}>
-              {m.text}
+          <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            {m.role === "assistant" && (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
+                <Sparkles size={11} className="text-red-400"/>
+              </div>
+            )}
+            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-300"}`}>
+              {m.content}
             </div>
           </div>
         ))}
         {loading && (
-          <div className="flex justify-start">
-            <div className="rounded-xl bg-white/[.06] px-3 py-2 text-sm text-slate-400">Thinking...</div>
+          <div className="flex gap-2 justify-start">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
+              <Sparkles size={11} className="text-red-400"/>
+            </div>
+            <div className="rounded-xl bg-white/[.06] px-3 py-2">
+              <Loader2 size={13} className="animate-spin text-slate-400"/>
+            </div>
           </div>
         )}
+        <div ref={bottomRef}/>
       </div>
+
+      {/* Input */}
       <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2">
           <input
@@ -93,8 +121,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             placeholder="Ask anything..."
             className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
-          <button onClick={send} className="text-slate-500 hover:text-red-400 transition-colors">
-            <Send size={13}/>
+          <button onClick={send} disabled={loading || !input.trim()} className="text-slate-500 hover:text-red-400 disabled:opacity-40 transition-colors">
+            {loading ? <Loader2 size={13} className="animate-spin"/> : <Send size={13}/>}
           </button>
         </div>
       </div>
@@ -105,13 +133,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 function ShareModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const url = window.location.href;
-
-  const copy = () => {
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
+  const copy = () => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}/>
@@ -154,23 +176,14 @@ export function AgentStatusBar() {
       <div className="relative flex items-center justify-between border-b border-white/10 bg-[#0d0f13] px-4 py-2">
         <div className="text-xs text-slate-600">AI status: idle</div>
         <div className="flex items-center gap-1.5">
-          {/* Share button — only on record/list pages */}
           {showShare && (
-            <button
-              onClick={() => setShareOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
-            >
-              <Share2 size={12}/>
-              Share
+            <button onClick={() => setShareOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+              <Share2 size={12}/> Share
             </button>
           )}
-
-          {/* Help */}
           <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white/[.04] hover:text-slate-300 transition-colors">
             <HelpCircle size={15}/>
           </button>
-
-          {/* Ask Mondaily */}
           <button
             onClick={() => setAskOpen(!askOpen)}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-all ${askOpen ? "border-red-500/40 bg-red-500/10 text-white" : "border-white/10 text-slate-400 hover:border-red-500/30 hover:bg-red-500/5 hover:text-white"}`}
@@ -178,8 +191,6 @@ export function AgentStatusBar() {
             <MessageCircle size={13} className="text-red-400"/>
             Ask Mondaily
           </button>
-
-          {/* User avatar */}
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -187,7 +198,6 @@ export function AgentStatusBar() {
             >
               {avatarUrl ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/> : initials}
             </button>
-
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}/>
@@ -210,10 +220,7 @@ export function AgentStatusBar() {
                     </Link>
                   </div>
                   <div className="border-t border-white/10 p-2">
-                    <button
-                      onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400 transition-colors"
-                    >
+                    <button onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400 transition-colors">
                       <LogOut size={14}/> Sign out
                     </button>
                   </div>
@@ -223,13 +230,11 @@ export function AgentStatusBar() {
           </div>
         </div>
       </div>
-
       {askOpen && (
         <div className="fixed right-0 top-0 bottom-0 z-30 flex">
           <AskPanel onClose={() => setAskOpen(false)}/>
         </div>
       )}
-
       {shareOpen && <ShareModal onClose={() => setShareOpen(false)}/>}
     </>
   );
