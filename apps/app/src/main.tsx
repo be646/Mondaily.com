@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { ClerkProvider, useAuth, useOrganization } from "@clerk/react";
-import { useEffect } from "react";
 import { App } from "./App";
 import "./styles.css";
 
@@ -13,31 +12,43 @@ const queryClient = new QueryClient({
   }
 });
 
-function SessionBridge() {
-  const { getToken, isSignedIn } = useAuth();
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { getToken, isSignedIn, isLoaded } = useAuth();
   const { organization } = useOrganization();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!isLoaded) return;
     if (!isSignedIn) {
       localStorage.removeItem("mondaily_session_token");
+      setReady(true);
       return;
     }
-    const refresh = () => {
-      void getToken().then((token) => {
-        if (token) localStorage.setItem("mondaily_session_token", token);
-      });
-    };
-    refresh();
-    const interval = setInterval(refresh, 55_000);
-    return () => clearInterval(interval);
-  }, [getToken, isSignedIn]);
+    getToken().then((token) => {
+      if (token) localStorage.setItem("mondaily_session_token", token);
+      localStorage.setItem("mondaily_workspace_id", organization?.id || "8ccef088-6493-4cd9-a0cf-3214098f59a1");
+      setReady(true);
+    });
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
-    const wsId = organization?.id || '8ccef088-6493-4cd9-a0cf-3214098f59a1';
-    localStorage.setItem("mondaily_workspace_id", wsId);
+    if (!isSignedIn || !isLoaded) return;
+    const interval = setInterval(() => {
+      getToken().then((token) => {
+        if (token) localStorage.setItem("mondaily_session_token", token);
+      });
+    }, 55_000);
+    return () => clearInterval(interval);
+  }, [isSignedIn, isLoaded]);
+
+  useEffect(() => {
+    if (organization?.id) {
+      localStorage.setItem("mondaily_workspace_id", organization.id);
+    }
   }, [organization?.id]);
 
-  return null;
+  if (!ready) return null;
+  return <>{children}</>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -45,8 +56,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <SessionBridge />
-          <App />
+          <AuthGate>
+            <App />
+          </AuthGate>
         </BrowserRouter>
       </QueryClientProvider>
     </ClerkProvider>
