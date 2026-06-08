@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
 const router = new Hono();
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 router.post("/", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
@@ -15,14 +15,19 @@ router.post("/", requireAuth, zValidator("json", z.object({
   const workspaceId = c.get("workspaceId");
 
   try {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: `You are Mondaily AI — an intelligent business assistant. You help users manage their CRM, tasks, contacts, deals, and business operations. Workspace ID: ${workspaceId}. Be concise, helpful, and actionable.`,
-      messages: [{ role: "user", content: message }]
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are Mondaily AI — an intelligent business assistant. You help users manage their CRM, tasks, contacts, deals, and business operations. Workspace ID: ${workspaceId}. Be concise, helpful, and actionable.`
+        },
+        { role: "user", content: message }
+      ],
+      max_tokens: 1024
     });
 
-    const reply = response.content[0].type === "text" ? response.content[0].text : "I couldn't process that request.";
+    const reply = response.choices[0]?.message?.content || "I couldn't process that request.";
     return c.json({ reply, thread_id: null });
   } catch (err: any) {
     return c.json({ reply: `Sorry, I encountered an error: ${err.message}` }, 500);
