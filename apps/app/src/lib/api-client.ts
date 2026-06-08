@@ -1,4 +1,5 @@
-const API_URL = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
+const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const API_URL = `${BASE_URL}/api/v1`;
 
 function requestHeaders(): HeadersInit {
   const token = localStorage.getItem("mondaily_session_token");
@@ -27,10 +28,10 @@ export const apiClient = {
   async get<T>(path: string): Promise<T> {
     return request<T>(path);
   },
-  async post<T>(path: string, body: unknown): Promise<T> {
+  async post<T>(path: string, body?: unknown): Promise<T> {
     return request<T>(path, { method: "POST", body: JSON.stringify(body) });
   },
-  async patch<T>(path: string, body: unknown): Promise<T> {
+  async patch<T>(path: string, body?: unknown): Promise<T> {
     return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
   },
   async delete<T>(path: string): Promise<T> {
