@@ -1,20 +1,35 @@
 const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_URL = `${BASE_URL}/api/v1`;
 
-function requestHeaders(): HeadersInit {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-  };
+async function getToken(): Promise<string | null> {
+  try {
+    const token = await window.Clerk?.session?.getToken()
+    return token || null
+  } catch {
+    return null
+  }
+}
+
+async function getWorkspaceId(): Promise<string | null> {
+  try {
+    return window.Clerk?.organization?.id || null
+  } catch {
+    return null
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getToken()
+  const workspaceId = await getWorkspaceId()
+  
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { ...requestHeaders(), ...init?.headers }
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+      ...init?.headers
+    }
   });
   if (!response.ok) {
     const message = await response.text().catch(() => "");
