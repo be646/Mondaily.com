@@ -1,27 +1,9 @@
 const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_URL = `${BASE_URL}/api/v1`;
 
-async function getToken(): Promise<string | null> {
-  try {
-    const clerk = (window as any).Clerk;
-    return await clerk?.session?.getToken() || null;
-  } catch {
-    return null;
-  }
-}
-
-async function getWorkspaceId(): Promise<string | null> {
-  try {
-    const clerk = (window as any).Clerk;
-    return clerk?.organization?.id || null;
-  } catch {
-    return null;
-  }
-}
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = await getToken();
-  const workspaceId = await getWorkspaceId();
+  const token = localStorage.getItem("mondaily_session_token");
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
 
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
