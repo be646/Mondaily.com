@@ -17,7 +17,7 @@ function TypingText() {
   const [typing, setTyping] = useState(true);
 
   useEffect(() => {
-    const phrase = TYPING_PHRASES[phraseIndex];
+    const phrase = TYPING_PHRASES[phraseIndex] ?? "";
     if (typing) {
       if (displayed.length < phrase.length) {
         const t = setTimeout(() => setDisplayed(phrase.slice(0, displayed.length + 1)), 28);
