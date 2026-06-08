@@ -1,7 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
 import { useState } from "react";
-import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal } from "lucide-react";
+import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal, Copy, Check } from "lucide-react";
 
 function AskPanel({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState("");
@@ -102,27 +102,68 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+function ShareModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const url = window.location.href;
+
+  const copy = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}/>
+      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#161820] p-5 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-sm font-medium text-white">Share this view</div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={15}/></button>
+        </div>
+        <div className="mb-3 text-xs text-slate-500">Anyone with this link can view this page if they have access to this workspace.</div>
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2">
+          <span className="flex-1 truncate text-xs text-slate-400">{url}</span>
+          <button onClick={copy} className="shrink-0 text-slate-400 hover:text-white transition-colors">
+            {copied ? <Check size={14} className="text-green-400"/> : <Copy size={14}/>}
+          </button>
+        </div>
+        {copied && <div className="mt-2 text-xs text-green-400 text-center">Link copied!</div>}
+      </div>
+    </>
+  );
+}
+
+const SHARE_PATHS = ["/objects/", "/lists/", "/search"];
+
 export function AgentStatusBar() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const navigate = useNavigate();
+  const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const initials = user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "U";
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account";
   const avatarUrl = user?.imageUrl;
+  const showShare = SHARE_PATHS.some(p => location.pathname.includes(p));
 
   return (
     <>
       <div className="relative flex items-center justify-between border-b border-white/10 bg-[#0d0f13] px-4 py-2">
         <div className="text-xs text-slate-600">AI status: idle</div>
         <div className="flex items-center gap-1.5">
-          {/* Share button */}
-          <button className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
-            <Share2 size={12}/>
-            Share
-          </button>
+          {/* Share button — only on record/list pages */}
+          {showShare && (
+            <button
+              onClick={() => setShareOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
+            >
+              <Share2 size={12}/>
+              Share
+            </button>
+          )}
 
           {/* Help */}
           <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white/[.04] hover:text-slate-300 transition-colors">
@@ -188,6 +229,8 @@ export function AgentStatusBar() {
           <AskPanel onClose={() => setAskOpen(false)}/>
         </div>
       )}
+
+      {shareOpen && <ShareModal onClose={() => setShareOpen(false)}/>}
     </>
   );
 }
