@@ -47,7 +47,7 @@ export function Sidebar() {
 
   const doneCount = GETTING_STARTED.filter(i => i.done).length;
   const progress = Math.round((doneCount / GETTING_STARTED.length) * 100);
-  const workspaceName = user?.organizationMemberships?.[0]?.organization?.name || "Mondaily";
+  const workspaceName = user?.organizationMemberships?.[0]?.organization?.name || user?.firstName ? `${user.firstName}'s Workspace` : "My Workspace";
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
   return (
@@ -101,9 +101,9 @@ export function Sidebar() {
 
               {/* Create new workspace */}
               <div className="border-t border-white/10 p-2">
-                <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
                   <Plus size={14}/> Create new workspace
-                </button>
+                </Link>
               </div>
 
               {/* Workspace actions */}
