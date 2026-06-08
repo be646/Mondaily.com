@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X } from "lucide-react";
+import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search } from "lucide-react";
 import { useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
@@ -137,6 +137,15 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 overflow-auto p-2">
+        {!collapsed && (
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+            className="mb-2 flex w-full items-center justify-between rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
+          >
+            <div className="flex items-center gap-2"><Search size={13}/> Quick actions</div>
+            <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs opacity-50">⌘K</kbd>
+          </button>
+        )}
           {navItems.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
