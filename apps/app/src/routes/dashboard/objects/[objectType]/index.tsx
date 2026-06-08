@@ -29,7 +29,7 @@ function CreateRecordModal({ objectType, onClose }: { objectType: string; onClos
     if (!data.name) { setError("Name is required"); return; }
     setSaving(true);
     try {
-      await apiClient.post("/nodes", { object_type: objectType, data });
+      await apiClient.post("/nodes", { vertical: "shared", object_type: objectType, data });
       queryClient.invalidateQueries({ queryKey: ["records", objectType] });
       onClose();
     } catch (e: any) {
