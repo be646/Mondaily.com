@@ -43,3 +43,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </ClerkProvider>
   </React.StrictMode>
 );
+
+// Temporary: set default workspace
+if (!localStorage.getItem('mondaily_workspace_id')) {
+  localStorage.setItem('mondaily_workspace_id', '8ccef088-6493-4cd9-a0cf-3214098f59a1');
+}
