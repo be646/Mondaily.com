@@ -65,7 +65,7 @@ export function Sidebar() {
 
       {/* Workspace selector */}
       <div className="relative border-b border-white/10">
-        <button
+        {workspaceLogo ? <img src={workspaceLogo} alt={workspaceName} className="h-7 w-7 rounded-lg object-cover"/> : <Logo size={28} />}
           onClick={() => !collapsed && setWorkspaceOpen(!workspaceOpen)}
           className={`flex w-full items-center gap-2.5 p-4 hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
         >
@@ -90,7 +90,7 @@ export function Sidebar() {
               <div className="p-2">
                 <div className="mb-1 px-2 py-1 text-xs text-slate-500 uppercase tracking-wider">Workspaces</div>
                 <div className="flex items-center gap-2.5 rounded-lg bg-white/[.06] px-3 py-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>
+                  {workspaceLogo ? <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover"/> : <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>}
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-sm text-white">{workspaceName}</div>
                     <div className="text-xs text-slate-500">Pro</div>

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
 import { useState } from "react";
-import { MessageCircle, Settings, LogOut, User, X, Send } from "lucide-react";
+import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal } from "lucide-react";
 
 function AskPanel({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState("");
@@ -9,6 +9,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     { role: "assistant", text: "Hi! I'm Mondaily AI. Ask me anything about your business, pipeline, or contacts." }
   ]);
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const send = async () => {
     if (!input.trim()) return;
@@ -31,7 +32,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       const data = await res.json();
       setMessages(prev => [...prev, { role: "assistant", text: data.reply || data.message || "I'm thinking..." }]);
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", text: "Sorry, I couldn't connect right now. Please try again." }]);
+      setMessages(prev => [...prev, { role: "assistant", text: "Sorry, I couldn't connect right now." }]);
     }
     setLoading(false);
   };
@@ -43,9 +44,31 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <MessageCircle size={14} className="text-red-400"/>
           <span className="text-sm font-medium text-white">Ask Mondaily</span>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-          <X size={14}/>
-        </button>
+        <div className="flex items-center gap-1">
+          <div className="relative">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white transition-colors">
+              <MoreHorizontal size={14}/>
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
+                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#161820] shadow-xl">
+                  <div className="p-1">
+                    <Link to="/ask" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                      <Share2 size={13}/> Open in full page
+                    </Link>
+                    <Link to="/settings/account" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                      <Settings size={13}/> Ask Mondaily settings
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white transition-colors">
+            <X size={14}/>
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto p-4 space-y-3">
         {messages.map((m, i) => (
@@ -57,9 +80,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-xl bg-white/[.06] px-3 py-2 text-sm text-slate-400">
-              Thinking...
-            </div>
+            <div className="rounded-xl bg-white/[.06] px-3 py-2 text-sm text-slate-400">Thinking...</div>
           </div>
         )}
       </div>
@@ -90,12 +111,24 @@ export function AgentStatusBar() {
 
   const initials = user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "U";
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account";
+  const avatarUrl = user?.imageUrl;
 
   return (
     <>
       <div className="relative flex items-center justify-between border-b border-white/10 bg-[#0d0f13] px-4 py-2">
         <div className="text-xs text-slate-600">AI status: idle</div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Share button */}
+          <button className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+            <Share2 size={12}/>
+            Share
+          </button>
+
+          {/* Help */}
+          <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white/[.04] hover:text-slate-300 transition-colors">
+            <HelpCircle size={15}/>
+          </button>
+
           {/* Ask Mondaily */}
           <button
             onClick={() => setAskOpen(!askOpen)}
@@ -109,18 +142,23 @@ export function AgentStatusBar() {
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500/20 text-xs font-medium text-red-400 hover:bg-red-500/30 transition-colors"
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-xs font-medium text-red-400 hover:ring-2 hover:ring-red-500/30 transition-all"
             >
-              {initials}
+              {avatarUrl ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/> : initials}
             </button>
 
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}/>
                 <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/10 bg-[#161820] shadow-2xl">
-                  <div className="border-b border-white/10 px-4 py-3">
-                    <div className="text-sm font-medium text-white">{fullName}</div>
-                    <div className="text-xs text-slate-500 truncate">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                  <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-sm font-medium text-red-400 shrink-0">
+                      {avatarUrl ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/> : initials}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-white truncate">{fullName}</div>
+                      <div className="text-xs text-slate-500 truncate">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                    </div>
                   </div>
                   <div className="p-2">
                     <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
@@ -145,7 +183,6 @@ export function AgentStatusBar() {
         </div>
       </div>
 
-      {/* Ask panel rendered outside the bar as sibling — handled in layout */}
       {askOpen && (
         <div className="fixed right-0 top-0 bottom-0 z-30 flex">
           <AskPanel onClose={() => setAskOpen(false)}/>
