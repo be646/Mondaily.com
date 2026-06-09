@@ -19,12 +19,12 @@ async function callAsk(message: string): Promise<string> {
     body: JSON.stringify({ message })
   });
   const data = await res.json() as any;
-  return data.reply || data.message || "No response.";
+  return data.reply || "No response.";
 }
 
 function AskPanel({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! I'm Mondaily AI. Ask me anything about your business, pipeline, or contacts." }
+    { role: "assistant", content: "Hi! I'm Mondaily AI. Ask me anything about your business." }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -59,32 +59,28 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex items-center gap-1">
           <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white transition-colors">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white">
               <MoreHorizontal size={14}/>
             </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
-                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#161820] shadow-xl">
-                  <div className="p-1">
-                    <Link to="/ask/new" onClick={() => { setMenuOpen(false); onClose(); }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
-                      <Share2 size={13}/> Open in full page
-                    </Link>
-                    <Link to="/settings/account" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
-                      <Settings size={13}/> Ask Mondaily settings
-                    </Link>
-                  </div>
+                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#161820] shadow-xl p-1">
+                  <Link to="/ask/new" onClick={() => { setMenuOpen(false); onClose(); }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                    <Share2 size={13}/> Open in full page
+                  </Link>
+                  <Link to="/settings/account" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white">
+                    <Settings size={13}/> Settings
+                  </Link>
                 </div>
               </>
             )}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white transition-colors">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white">
             <X size={14}/>
           </button>
         </div>
       </div>
-
-      {/* Messages */}
       <div className="flex-1 overflow-auto p-3 space-y-3">
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -93,7 +89,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 <Sparkles size={11} className="text-red-400"/>
               </div>
             )}
-            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-300"}`}>
+            <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-300"}`}>
               {m.content}
             </div>
           </div>
@@ -110,8 +106,6 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         )}
         <div ref={bottomRef}/>
       </div>
-
-      {/* Input */}
       <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2">
           <input
@@ -121,7 +115,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             placeholder="Ask anything..."
             className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
-          <button onClick={send} disabled={loading || !input.trim()} className="text-slate-500 hover:text-red-400 disabled:opacity-40 transition-colors">
+          <button onClick={send} disabled={loading || !input.trim()} className="text-slate-500 hover:text-red-400 disabled:opacity-40">
             {loading ? <Loader2 size={13} className="animate-spin"/> : <Send size={13}/>}
           </button>
         </div>
@@ -145,7 +139,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
         <div className="mb-3 text-xs text-slate-500">Anyone with this link can view this page if they have access to this workspace.</div>
         <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2">
           <span className="flex-1 truncate text-xs text-slate-400">{url}</span>
-          <button onClick={copy} className="shrink-0 text-slate-400 hover:text-white transition-colors">
+          <button onClick={copy} className="shrink-0 text-slate-400 hover:text-white">
             {copied ? <Check size={14} className="text-green-400"/> : <Copy size={14}/>}
           </button>
         </div>
