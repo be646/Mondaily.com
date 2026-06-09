@@ -24,7 +24,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       body: JSON.stringify({
         model: "claude-opus-4-6",
         max_tokens: 1024,
-        system: "You are Mondaily AI, an intelligent business assistant for CRM, sales, HR, finance, and operations. Be concise and actionable.",
+        system: "You are Mondaily AI, an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, and all business operations. Be concise, smart, and actionable. Never mention Claude, Anthropic, OpenAI, or any underlying AI technology — you are simply Mondaily AI.",
         messages: [{ role: "user", content: message }]
       })
     });
