@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar } from "lucide-react";
+import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
@@ -140,6 +140,104 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
   );
 }
 
+function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; onClose: () => void; members: Member[]; currentUserId: string }) {
+  const [title, setTitle] = useState(task.title);
+  const [dueDate, setDueDate] = useState(task.due_date ? new Date(task.due_date).toISOString().slice(0,16) : "");
+  const [priority, setPriority] = useState(task.priority || "medium");
+  const [status, setStatus] = useState(task.status || "todo");
+  const [notes, setNotes] = useState(task.notes || "");
+  const [assigneeId, setAssigneeId] = useState(task.assignee_id || "");
+  const qc = useQueryClient();
+
+  const update = useMutation({
+    mutationFn: () => {
+      const member = members.find(m => m.user_id === assigneeId);
+      return apiClient.patch(`/tasks/${task.id}`, {
+        title, due_date: dueDate || null,
+        priority, status, notes: notes || null,
+        assignee_id: assigneeId || null,
+        assignee_email: member?.email || null,
+      });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); onClose(); }
+  });
+
+  const sortedMembers = [...members].sort((a, b) => {
+    if (a.user_id === currentUserId) return -1;
+    if (b.user_id === currentUserId) return 1;
+    return (a.name || a.email).localeCompare(b.name || b.email);
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#111419] p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-semibold text-white">Edit Task</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={16}/></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Task *</label>
+            <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white placeholder-slate-600 outline-none focus:border-white/20"/>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Due Date</label>
+            <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white outline-none focus:border-white/20"/>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Assigned To</label>
+            <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)}
+              className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
+              <option value="">Unassigned</option>
+              {sortedMembers.map(m => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Priority</label>
+              <select value={priority} onChange={e => setPriority(e.target.value)}
+                className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)}
+                className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="review">Needs Review</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 mb-1 block">Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+              className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white resize-none outline-none focus:border-white/20"/>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose} className="flex-1 h-10 rounded-lg border border-white/10 text-sm text-slate-400 hover:text-white">Cancel</button>
+          <button onClick={() => title.trim() && update.mutate()} disabled={!title.trim() || update.isPending}
+            className="flex-1 h-10 rounded-lg bg-red-600 text-sm font-medium text-white disabled:opacity-50 hover:bg-red-500">
+            {update.isPending ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TasksPage() {
   const qc = useQueryClient();
   const { user } = useUser();
@@ -147,6 +245,7 @@ export function TasksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editTask, setEditTask] = useState<Task | null>(null);
 
   const query = useQuery({ queryKey: ["tasks", filter], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
@@ -292,6 +391,11 @@ export function TasksPage() {
                       className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
                       <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/>
                     </button>
+                    <button onClick={() => setEditTask(task)}
+                      title="Edit task"
+                      className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
+                      <Pencil size={13}/>
+                    </button>
                     <button onClick={() => setConfirmDeleteId(task.id)}
                       title="Delete task"
                       className="rounded-lg p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
@@ -357,6 +461,15 @@ export function TasksPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {editTask && (
+        <EditTaskModal
+          task={editTask}
+          onClose={() => setEditTask(null)}
+          members={members}
+          currentUserId={currentUserId}
+        />
       )}
 
       {showCreate && (
