@@ -38,6 +38,7 @@ import { ObjectsSettings } from "./routes/dashboard/settings/objects";
 import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
 import { EmailSettings } from "./routes/dashboard/settings/email";
 import { SecuritySettings } from "./routes/dashboard/settings/security";
+import { AskMondailySettings } from "./routes/dashboard/settings/ask-mondaily";
 import { ListPage } from "./routes/dashboard/lists/[listId]";
 import { SearchPage } from "./routes/dashboard/search";
 
@@ -91,6 +92,7 @@ export function App() {
           <Route path="integrations" element={<IntegrationsSettings />} />
           <Route path="email" element={<EmailSettings />} />
           <Route path="security" element={<SecuritySettings />} />
+          <Route path="ask-mondaily" element={<AskMondailySettings />} />
         </Route>
       </Route>
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />
