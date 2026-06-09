@@ -5,33 +5,17 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
+import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
 interface Task { id: string; title: string; completed: boolean; due_date?: string }
 interface Meeting { id: string; title: string; start_time: string; attendees?: string[] }
-interface Message { role: "user" | "assistant"; content: string; }
-
-async function callAsk(message: string): Promise<string> {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  const apiUrl = import.meta.env.VITE_API_URL || "";
-  const res = await fetch(`${apiUrl}/api/v1/ask`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-    },
-    body: JSON.stringify({ message })
-  });
-  const data = await res.json() as any;
-  return data.reply || "No response.";
-}
 
 export function HomePage() {
   const { user } = useUser();
   const qc = useQueryClient();
   const [task, setTask] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -41,8 +25,17 @@ export function HomePage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const activeTasks = (tasks.data ?? []).filter((item) => !item.completed);
+  const activeTasks = (tasks.data ?? []).filter(t => !t.completed);
   const isChatting = messages.length > 0;
+
+  // Load most recent thread on mount
+  useEffect(() => {
+    const threads = getThreads();
+    if (threads.length > 0 && threads[0]) {
+      setCurrentThreadId(threads[0].id);
+      setMessages(threads[0].messages);
+    }
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,16 +45,51 @@ export function HomePage() {
     const text = input.trim();
     if (!text || loading) return;
     setInput("");
-    const newMessages = [...messages, { role: "user" as const, content: text }];
-    setMessages(newMessages);
+
+    let threadId = currentThreadId;
+    if (!threadId) {
+      const thread = createThread(text);
+      const threads = getThreads();
+      saveThreads([thread, ...threads]);
+      threadId = thread.id;
+      setCurrentThreadId(threadId);
+    }
+
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const withUser = [...messages, userMsg];
+    setMessages(withUser);
+    addMessageToThread(threadId, userMsg);
     setLoading(true);
+
     try {
-      const reply = await callAsk(text);
-      setMessages([...newMessages, { role: "assistant" as const, content: reply }]);
+      const token = localStorage.getItem("mondaily_session_token");
+      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${apiUrl}/api/v1/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+        },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json() as any;
+      const reply = data.reply || "No response.";
+      const aiMsg: ChatMessage = { role: "assistant", content: reply };
+      setMessages([...withUser, aiMsg]);
+      addMessageToThread(threadId, aiMsg);
     } catch (err: any) {
-      setMessages([...newMessages, { role: "assistant" as const, content: `Error: ${err.message}` }]);
+      const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
+      setMessages([...withUser, errMsg]);
+      addMessageToThread(threadId, errMsg);
     }
     setLoading(false);
+  };
+
+  const newChat = () => {
+    setMessages([]);
+    setCurrentThreadId(null);
   };
 
   return (
@@ -69,7 +97,6 @@ export function HomePage() {
       <h1 className="text-2xl font-semibold">{greeting}, {user?.firstName || "there"}.</h1>
       <p className="mt-1 text-sm text-slate-500">Mondaily is ready to run today's work.</p>
 
-      {/* Chat section */}
       <section className="mt-7">
         {isChatting && (
           <div className="mb-4 space-y-4 rounded-xl border border-white/10 bg-white/[.02] p-4 max-h-96 overflow-auto">
@@ -112,18 +139,12 @@ export function HomePage() {
             className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
           {isChatting && (
-            <button onClick={() => setMessages([])} className="text-xs text-slate-600 hover:text-slate-400 mr-2">Clear</button>
+            <button onClick={newChat} className="text-xs text-slate-600 hover:text-slate-400 mr-2 shrink-0">New chat</button>
           )}
           <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-40">
             {loading ? <Loader2 size={15} className="animate-spin"/> : <Send size={15}/>}
           </button>
         </div>
-        {!isChatting && (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-slate-600">Or open full chat:</span>
-            <Link to="/ask/new" className="text-xs text-red-400 hover:text-red-300">Ask Mondaily →</Link>
-          </div>
-        )}
       </section>
 
       <div className="mt-7 grid gap-4 md:grid-cols-2">

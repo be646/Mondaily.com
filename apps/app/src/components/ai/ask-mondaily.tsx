@@ -1,40 +1,17 @@
 import { Sparkles, Send, Loader2, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-
-interface Message { role: "user" | "assistant"; content: string; }
-
-async function callAsk(message: string): Promise<string> {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  const apiUrl = import.meta.env.VITE_API_URL || "";
-  const res = await fetch(`${apiUrl}/api/v1/ask`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-    },
-    body: JSON.stringify({ message })
-  });
-  const data = await res.json() as any;
-  return data.reply || "No response.";
-}
+import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
 const STORAGE_KEY = "mondaily_chat_messages";
 
-function saveMessages(msgs: Message[]) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch {}
-}
-
-function loadMessages(): Message[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
 export function AskMondaily() {
-  const [messages, setMessages] = useState<Message[]>(() => loadMessages());
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+  });
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(() => {
+    const threads = getThreads();
+    return threads.length > 0 && threads[0] ? threads[0].id : null;
+  });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -43,25 +20,64 @@ export function AskMondaily() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const save = (msgs: ChatMessage[]) => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch {}
+  };
+
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
     setInput("");
-    const newMessages = [...messages, { role: "user" as const, content: text }];
-    setMessages(newMessages);
-    saveMessages(newMessages);
+
+    let threadId = currentThreadId;
+    if (!threadId) {
+      const thread = createThread(text);
+      saveThreads([thread, ...getThreads()]);
+      threadId = thread.id;
+      setCurrentThreadId(threadId);
+    }
+
+    const userMsg: ChatMessage = { role: "user", content: text };
+    const withUser = [...messages, userMsg];
+    setMessages(withUser);
+    save(withUser);
+    addMessageToThread(threadId, userMsg);
     setLoading(true);
+
     try {
-      const reply = await callAsk(text);
-      const withReply = [...newMessages, { role: "assistant" as const, content: reply }];
-      setMessages(withReply);
-      saveMessages(withReply);
+      const token = localStorage.getItem("mondaily_session_token");
+      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${apiUrl}/api/v1/ask`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+        },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json() as any;
+      const reply = data.reply || "No response.";
+      const aiMsg: ChatMessage = { role: "assistant", content: reply };
+      const final = [...withUser, aiMsg];
+      setMessages(final);
+      save(final);
+      addMessageToThread(threadId, aiMsg);
     } catch (err: any) {
-      const withErr = [...newMessages, { role: "assistant" as const, content: `Error: ${err.message}` }];
-      setMessages(withErr);
-      saveMessages(withErr);
+      const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
+      const final = [...withUser, errMsg];
+      setMessages(final);
+      save(final);
+      addMessageToThread(threadId, errMsg);
     }
     setLoading(false);
+  };
+
+  const newChat = () => {
+    setMessages([]);
+    save([]);
+    setCurrentThreadId(null);
   };
 
   const SUGGESTIONS = ["Summarize my pipeline", "What tasks are overdue?", "Draft a follow-up email", "Analyze my deals"];
@@ -74,11 +90,8 @@ export function AskMondaily() {
           <p className="text-xs text-slate-500">Your AI business assistant</p>
         </div>
         {messages.length > 0 && (
-          <button
-            onClick={() => { setMessages([]); saveMessages([]); }}
-            className="text-xs text-slate-500 hover:text-white transition-colors"
-          >
-            Clear chat
+          <button onClick={newChat} className="text-xs text-slate-500 hover:text-white transition-colors">
+            New chat
           </button>
         )}
       </div>
