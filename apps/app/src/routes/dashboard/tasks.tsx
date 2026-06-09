@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useUser } from "@clerk/react";
+import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
 import { EmptyState, PageSkeleton } from "../../components/ui/page-state";
 
@@ -245,6 +246,7 @@ export function TasksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [editTask, setEditTask] = useState<Task | null>(null);
 
   const query = useQuery({ queryKey: ["tasks", filter], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}`) });
@@ -461,6 +463,15 @@ export function TasksPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {detailTask && (
+        <TaskDetailPanel
+          task={detailTask}
+          members={members}
+          onClose={() => setDetailTask(null)}
+          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks"] }); setDetailTask(prev => prev ? { ...prev, labels: prev.labels } : null); }}
+        />
       )}
 
       {editTask && (
