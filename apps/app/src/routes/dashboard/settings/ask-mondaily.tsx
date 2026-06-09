@@ -86,9 +86,9 @@ export function AskMondailySettings() {
   };
 
   // Count messages across all threads for credits
-  const totalMessages = threads.reduce((sum, t) => sum + t.messages.filter(m => m.role === "user").length, 0);
-  const creditLimit = 1000;
-  const creditPct = Math.min(Math.round((totalMessages / creditLimit) * 100), 100);
+  const usedCredits = credits?.used ?? threads.reduce((sum, t) => sum + t.messages.filter(m => m.role === "user").length, 0);
+  const creditLimit = credits?.limit ?? 1000;
+  const creditPct = Math.min(Math.round((usedCredits / creditLimit) * 100), 100);
 
   // Next reset date — first day of next month
   const now = new Date();
