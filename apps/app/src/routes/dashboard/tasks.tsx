@@ -360,7 +360,7 @@ export function TasksPage() {
                       {task.due_date && (
                         <span className={`flex items-center gap-1 ${isOverdue ? "text-red-400" : ""}`}>
                           <Clock size={10}/>
-                          Due {new Date(task.due_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}
+                          Due {new Date(task.due_date).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                           {isOverdue && " · Overdue"}
                         </span>
                       )}
@@ -410,12 +410,12 @@ export function TasksPage() {
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <p className="text-slate-600 mb-0.5">Created</p>
-                        <p className="text-slate-300">{task.created_at ? new Date(task.created_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+                        <p className="text-slate-300">{task.created_at ? new Date(task.created_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
                       </div>
                       <div>
                         <p className="text-slate-600 mb-0.5">Due Date</p>
                         <p className={task.due_date ? (isOverdue ? "text-red-400" : "text-slate-300") : "text-slate-600"}>
-                          {task.due_date ? new Date(task.due_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }) : "No due date"}
+                          {task.due_date ? new Date(task.due_date).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "No due date"}
                         </p>
                       </div>
                       <div>
