@@ -1,4 +1,4 @@
-import { Sparkles, Send, Loader2, User, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Sparkles, Send, Loader2, User, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
@@ -16,6 +16,8 @@ export function AskMondaily() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [lastUserMsg, setLastUserMsg] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Reload messages when threadId changes (clicking sidebar chat)
@@ -50,6 +52,7 @@ export function AskMondaily() {
       threadId = thread.id;
       setCurrentThreadId(threadId);
     }
+    setLastUserMsg(text);
     const userMsg: ChatMessage = { role: "user", content: text };
     const withUser = [...messages, userMsg];
     setMessages(withUser);
@@ -75,6 +78,28 @@ export function AskMondaily() {
       addMessageToThread(threadId, errMsg);
     }
     setLoading(false);
+  };
+
+  const copyMessage = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  const regenerate = () => {
+    if (!lastUserMsg || loading) return;
+    setMessages(prev => prev.slice(0, -1));
+    send(lastUserMsg);
+  };
+
+  const downloadPdf = () => {
+    const lines = messages.map(m => `${m.role === "user" ? "You" : "Mondaily AI"}:\n${m.content}`).join("\n\n---\n\n");
+    const blob = new Blob([lines], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "mondaily-chat.txt";
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) => {
@@ -105,7 +130,10 @@ export function AskMondaily() {
           <p className="text-xs text-slate-500">Your AI business assistant</p>
         </div>
         {messages.length > 0 && (
-          <button onClick={() => { setMessages([]); setCurrentThreadId(null); }} className="text-xs text-slate-500 hover:text-white transition-colors">New chat</button>
+          <div className="flex items-center gap-2">
+            <button onClick={downloadPdf} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-white transition-colors" title="Download chat"><Download size={13}/> Export</button>
+            <button onClick={() => { setMessages([]); setCurrentThreadId(null); }} className="text-xs text-slate-500 hover:text-white transition-colors">New chat</button>
+          </div>
         )}
       </div>
       <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
@@ -133,6 +161,8 @@ export function AskMondaily() {
                   <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} className={`rounded p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-green-400" : "text-slate-600 hover:text-green-400"}`} title="Good response"><ThumbsUp size={12}/></button>
                   <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} className={`rounded p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-red-400" : "text-slate-600 hover:text-red-400"}`} title="Bad response"><ThumbsDown size={12}/></button>
                   {feedbackGiven[i] && <span className="text-xs text-slate-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
+                  <button onClick={() => copyMessage(m.content, i)} className={`rounded p-1.5 transition-colors ml-1 ${copiedIdx === i ? "text-green-400" : "text-slate-600 hover:text-slate-300"}`} title="Copy"><Check size={12} className={copiedIdx === i ? "" : "hidden"}/><Copy size={12} className={copiedIdx === i ? "hidden" : ""}/></button>
+                  {i === messages.length - 1 && !loading && <button onClick={regenerate} className="rounded p-1.5 text-slate-600 hover:text-slate-300 transition-colors" title="Regenerate"><RefreshCw size={12}/></button>}
                 </div>
               )}
             </div>
