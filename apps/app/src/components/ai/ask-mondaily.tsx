@@ -2,11 +2,10 @@ import { Sparkles, Send, Loader2, User } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
-const STORAGE_KEY = "mondaily_chat_messages";
-
 export function AskMondaily() {
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+    const threads = getThreads();
+    return threads.length > 0 && threads[0] ? threads[0].messages : [];
   });
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(() => {
     const threads = getThreads();
@@ -19,10 +18,6 @@ export function AskMondaily() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  const save = (msgs: ChatMessage[]) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch {}
-  };
 
   const send = async () => {
     const text = input.trim();
@@ -40,7 +35,6 @@ export function AskMondaily() {
     const userMsg: ChatMessage = { role: "user", content: text };
     const withUser = [...messages, userMsg];
     setMessages(withUser);
-    save(withUser);
     addMessageToThread(threadId, userMsg);
     setLoading(true);
 
@@ -62,13 +56,11 @@ export function AskMondaily() {
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
       const final = [...withUser, aiMsg];
       setMessages(final);
-      save(final);
       addMessageToThread(threadId, aiMsg);
     } catch (err: any) {
       const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
       const final = [...withUser, errMsg];
       setMessages(final);
-      save(final);
       addMessageToThread(threadId, errMsg);
     }
     setLoading(false);
@@ -76,7 +68,6 @@ export function AskMondaily() {
 
   const newChat = () => {
     setMessages([]);
-    save([]);
     setCurrentThreadId(null);
   };
 
@@ -90,9 +81,7 @@ export function AskMondaily() {
           <p className="text-xs text-slate-500">Your AI business assistant</p>
         </div>
         {messages.length > 0 && (
-          <button onClick={newChat} className="text-xs text-slate-500 hover:text-white transition-colors">
-            New chat
-          </button>
+          <button onClick={newChat} className="text-xs text-slate-500 hover:text-white transition-colors">New chat</button>
         )}
       </div>
 
@@ -107,9 +96,7 @@ export function AskMondaily() {
               <div className="text-xs text-slate-500 mb-4">Ask about your pipeline, contacts, tasks, or anything business related</div>
               <div className="flex flex-wrap gap-2 justify-center">
                 {SUGGESTIONS.map(s => (
-                  <button key={s} onClick={() => setInput(s)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
-                    {s}
-                  </button>
+                  <button key={s} onClick={() => setInput(s)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">{s}</button>
                 ))}
               </div>
             </div>
