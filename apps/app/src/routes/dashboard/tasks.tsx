@@ -102,7 +102,7 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value)}
+              <select value={priority} onChange={e => setPriority(e.target.value as any)}
                 className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -112,7 +112,7 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Status</label>
-              <select value={status} onChange={e => setStatus(e.target.value)}
+              <select value={status} onChange={e => setStatus(e.target.value as any)}
                 className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
@@ -201,7 +201,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value)}
+              <select value={priority} onChange={e => setPriority(e.target.value as any)}
                 className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -211,7 +211,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Status</label>
-              <select value={status} onChange={e => setStatus(e.target.value)}
+              <select value={status} onChange={e => setStatus(e.target.value as any)}
                 className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
