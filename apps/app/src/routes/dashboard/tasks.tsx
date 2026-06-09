@@ -51,7 +51,7 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
     mutationFn: () => {
       const member = members.find(m => m.user_id === assigneeId);
       return apiClient.post("/tasks", {
-        title, due_date: dueDate || undefined,
+        title, due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         priority, status, notes: notes || undefined,
         assignee_id: assigneeId || undefined,
         assignee_email: member?.email || undefined,

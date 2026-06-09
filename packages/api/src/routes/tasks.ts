@@ -16,7 +16,7 @@ tasks.get("/", async (c) => {
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false });
 
-  if (filter === "mine") query = query.eq("assignee_id", userId);
+  if (filter === "mine") query = query.or(`assignee_id.eq.${userId},assignee_id.is.null`);
   if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
   if (filter === "review") query = query.eq("status", "review");
 
