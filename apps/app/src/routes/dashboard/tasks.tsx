@@ -15,6 +15,7 @@ interface Task {
   priority?: "low" | "medium" | "high" | "urgent";
   status?: "todo" | "in_progress" | "review" | "done";
   notes?: string;
+  labels?: string[];
 }
 
 const PRIORITY_STYLE: Record<string, string> = {
