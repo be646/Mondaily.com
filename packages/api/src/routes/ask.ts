@@ -25,9 +25,10 @@ const router = new Hono();
 router.post("/", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().optional(),
-  model: z.enum(["auto", "fast", "smart"]).optional()
+  model: z.enum(["auto", "fast", "smart"]).optional(),
+  web_search: z.boolean().optional()
 })), async (c) => {
-  const { message, model: modelPref, web_search } = c.req.valid("json") as any;
+  const { message, model: modelPref, web_search } = c.req.valid("json");
   const modelMap: Record<string, string> = {
     fast: "claude-haiku-4-5-20251001",
     smart: "claude-sonnet-4-6",
@@ -113,7 +114,7 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().uuid().optional()
 })), async (c) => {
-  const { message, model: modelPref, web_search } = c.req.valid("json") as any;
+  const { message, model: modelPref, web_search } = c.req.valid("json");
   const modelMap: Record<string, string> = {
     fast: "claude-haiku-4-5-20251001",
     smart: "claude-sonnet-4-6",
