@@ -122,7 +122,7 @@ export function AskMondaily() {
       <div className="border-t border-white/10 px-6 py-4">
         <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 focus-within:border-red-500/30">
           <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Ask anything about your business..." rows={1} className="flex-1 resize-none bg-transparent text-sm text-white placeholder-slate-500 outline-none" style={{ maxHeight: "120px" }}/>
-          <button id="ask-send-btn" onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-500 p-2 text-white hover:bg-red-400 disabled:opacity-40 transition-colors"><Send size={14}/></button>
+          <button id="ask-send-btn" onClick={() => send()} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-500 p-2 text-white hover:bg-red-400 disabled:opacity-40 transition-colors"><Send size={14}/></button>
         </div>
         <div className="mt-1.5 text-xs text-slate-600 text-center">Enter to send · Shift+Enter for new line</div>
       </div>
