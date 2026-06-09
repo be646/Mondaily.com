@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { supabase } from "@mondaily/db/client";
 
 const router = new Hono();
 
@@ -43,10 +44,47 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     const data = await res.json() as any;
     const reply = data.content?.[0]?.text || "No response from Claude.";
+
+    // Track usage in Supabase
+    try {
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+      await supabase.from("ai_usage").insert({
+        workspace_id: c.get("workspaceId"),
+        user_id: c.get("userId"),
+        model: model,
+        message_count: 1,
+        period_start: periodStart,
+        period_end: periodEnd
+      });
+    } catch (_) { /* don't fail if tracking fails */ }
+
     return c.json({ reply, thread_id: null });
   } catch (err: any) {
     return c.json({ reply: `Connection error: ${err.message}` }, 500);
   }
+});
+
+router.get("/credits", requireAuth, async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const now = new Date();
+  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+  const { data, error } = await supabase
+    .from("ai_usage")
+    .select("message_count")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .gte("created_at", periodStart)
+    .lte("created_at", periodEnd);
+
+  if (error) return c.json({ used: 0, limit: 1000, period_end: periodEnd });
+
+  const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
+  return c.json({ used, limit: 1000, period_end: periodEnd });
 });
 
 router.post("/stream", requireAuth, zValidator("json", z.object({
