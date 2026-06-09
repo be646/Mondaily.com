@@ -36,13 +36,13 @@ export function AskMondaily() {
   const [threads, setThreads] = useState<Thread[]>(() => loadThreads());
   const [activeId, setActiveId] = useState<string | null>(() => {
     const t = loadThreads();
-    return t.length > 0 ? t[0].id : null;
+    return t.length > 0 && t[0] ? t[0].id : null;
   });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const active = threads.find(t => t.id === activeId) || null;
+  const active = threads.find(t => t.id === activeId) ?? null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,7 +77,7 @@ export function AskMondaily() {
     const updatedMessages = [...thread.messages, userMsg];
     const updatedThread = {
       ...thread,
-      title: thread.messages.length === 0 ? text.slice(0, 40) : thread.title,
+      title: (thread.messages.length === 0 ? text.slice(0, 40) : thread.title) as string,
       messages: updatedMessages
     };
     const newThreads = currentThreads.map(t => t.id === updatedThread.id ? updatedThread : t);
