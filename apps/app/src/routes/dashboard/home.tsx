@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Plus, Sparkles, Send, Loader2, User, Clock, User} from "lucide-react";
+import { Calendar, CheckSquare, Plus, Sparkles, Send, Loader2, User, Clock } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
