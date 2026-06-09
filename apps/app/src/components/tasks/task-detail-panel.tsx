@@ -24,6 +24,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [newCheckItem, setNewCheckItem] = useState("");
   const [newComment, setNewComment] = useState("");
   const [attachUrl, setAttachUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
 
   // Sync localLabels when task prop changes
@@ -89,6 +90,28 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     },
     onSuccess: () => { setAttachUrl(""); attachmentsQ.refetch(); }
   });
+
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
+      const token = localStorage.getItem("mondaily_session_token");
+      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("user_name", userName);
+      const res = await fetch(`${apiUrl}/api/v1/tasks/${task.id}/upload`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+        },
+        body: formData
+      });
+      if (res.ok) attachmentsQ.refetch();
+    } catch {}
+    setUploading(false);
+  };
 
   const checklist = checklistQ.data ?? [];
   const comments = commentsQ.data ?? [];
@@ -321,19 +344,15 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   </div>
                 ))}
               </div>
-              <div className="rounded-lg border border-white/[.06] p-4">
-                <p className="text-xs text-slate-500 mb-2">Add attachment URL</p>
-                <div className="flex gap-2">
-                  <input value={attachUrl} onChange={e => setAttachUrl(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && attachUrl.trim() && addAttachment.mutate()}
-                    placeholder="https://drive.google.com/... or any URL"
-                    className="flex-1 h-9 rounded-lg border border-white/10 bg-transparent px-3 text-xs text-white placeholder-slate-600 outline-none focus:border-white/20"/>
-                  <button onClick={() => attachUrl.trim() && addAttachment.mutate()} disabled={!attachUrl.trim() || addAttachment.isPending}
-                    className="h-9 px-3 rounded-lg bg-red-600 text-xs text-white disabled:opacity-40">
-                    Add
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-700 mt-2">Supports Google Drive, Dropbox, or any direct URL</p>
+              <div className="rounded-lg border border-dashed border-white/10 p-4 text-center">
+                <Paperclip size={18} className="text-slate-600 mx-auto mb-2"/>
+                <p className="text-xs text-slate-400 mb-1">Upload a file or image</p>
+                <p className="text-[11px] text-slate-600 mb-3">Images, PDFs, docs, spreadsheets</p>
+                <label className={`inline-block rounded-lg px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${uploading ? "bg-white/10 text-slate-500" : "bg-red-600 text-white hover:bg-red-500"}`}>
+                  {uploading ? "Uploading..." : "Choose File"}
+                  <input type="file" className="hidden" disabled={uploading}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f); e.target.value = ""; }}/>
+                </label>
               </div>
             </div>
           )}
