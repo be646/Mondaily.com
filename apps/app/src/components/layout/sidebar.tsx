@@ -46,13 +46,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
 
   // Sync current user as workspace member
   useEffect(() => {
-    if (!user) return;
+    const email = user?.primaryEmailAddress?.emailAddress;
+    const name = user?.fullName || user?.firstName;
+    if (!user?.id || !email) return;
     apiClient.post("/members/sync", {
-      email: user.primaryEmailAddress?.emailAddress || "",
-      name: user.fullName || user.firstName || "",
+      email,
+      name: name || email,
       avatar_url: user.imageUrl || undefined
     }).catch(() => {});
-  }, [user?.id]);
+  }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName]);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
