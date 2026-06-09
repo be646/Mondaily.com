@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, useQueryClient } from "@tanstack/react-query";
-import { Home, Users, CheckSquare, FileText, Mail, Phone, BarChart2, Zap, Settings, Search, Bell, Plus, Building2, TrendingUp, X, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Home, Users, CheckSquare, FileText, Mail, Phone, BarChart2, Zap, Settings, Search, Bell, Building2, TrendingUp, X } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { useMutation, useQueryClient as useQC } from "@tanstack/react-query";
-import { useNavigate as useNav } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type ActionType = "navigate" | "create_task" | "create_note" | "create_contact" | "create_company" | "create_deal";
 
@@ -40,7 +39,7 @@ function QuickCreateTask({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
-  const qc = useQC();
+  const qc = useQueryClient();
   const create = useMutation({
     mutationFn: () => apiClient.post("/tasks", { title, priority, due_date: dueDate || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); onClose(); }
@@ -66,8 +65,8 @@ function QuickCreateTask({ onClose }: { onClose: () => void }) {
 function QuickCreateRecord({ type, onClose }: { type: "contact" | "company" | "deal" | "note"; onClose: () => void }) {
   const [name, setName] = useState("");
   const [extra, setExtra] = useState("");
-  const qc = useQC();
-  const navigate = useNav();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const objectType = type === "contact" ? "people" : type === "company" ? "companies" : type === "deal" ? "deals" : "notes";
   const placeholder = type === "contact" ? "Full name" : type === "company" ? "Company name" : type === "deal" ? "Deal name" : "Note title";
@@ -111,7 +110,7 @@ export function QuickActions() {
   const [query, setQuery] = useState("");
   const [activeCreate, setActiveCreate] = useState<ActionType | null>(null);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const navigate = useNav();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
