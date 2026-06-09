@@ -146,6 +146,7 @@ export function TasksPage() {
   const [filter, setFilter] = useState("mine");
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const query = useQuery({ queryKey: ["tasks", filter], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
@@ -291,7 +292,7 @@ export function TasksPage() {
                       className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
                       <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/>
                     </button>
-                    <button onClick={() => { if (confirm("Delete this task?")) remove.mutate(task.id); }}
+                    <button onClick={() => setConfirmDeleteId(task.id)}
                       title="Delete task"
                       className="rounded-lg p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
                       <Trash2 size={13}/>
@@ -333,6 +334,28 @@ export function TasksPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#111419] p-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 mb-4">
+              <Trash2 size={18} className="text-red-400"/>
+            </div>
+            <h2 className="text-base font-semibold text-white mb-1">Delete task?</h2>
+            <p className="text-sm text-slate-500 mb-5">
+              {tasks.find(t => t.id === confirmDeleteId)?.title && (
+                <span>"{tasks.find(t => t.id === confirmDeleteId)?.title}" </span>
+              )}
+              This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 h-10 rounded-lg border border-white/10 text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => { remove.mutate(confirmDeleteId); setConfirmDeleteId(null); }} className="flex-1 h-10 rounded-lg bg-red-600 text-sm font-medium text-white hover:bg-red-500 transition-colors">Delete</button>
+            </div>
+          </div>
         </div>
       )}
 
