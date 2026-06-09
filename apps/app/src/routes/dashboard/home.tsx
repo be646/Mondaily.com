@@ -1,13 +1,13 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Plus, Sparkles, Send, Loader2, User } from "lucide-react";
+import { Calendar, CheckSquare, Plus, Sparkles, Send, Loader2, User, Clock, User} from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
-interface Task { id: string; title: string; completed: boolean; due_date?: string }
+interface Task { id: string; title: string; completed: boolean; due_date?: string; priority?: string; status?: string; assignee_email?: string; created_at?: string; }
 interface Meeting { id: string; title: string; start_time: string; attendees?: string[] }
 
 export function HomePage() {
@@ -183,7 +183,34 @@ export function HomePage() {
           </div>
           {tasks.isLoading ? <PageSkeleton rows={3}/> : activeTasks.length ? (
             <div className="space-y-2">{activeTasks.slice(0, 5).map(item => (
-              <div key={item.id} className="rounded-md bg-white/[.03] p-3 text-sm">{item.title}</div>
+              <Link key={item.id} to="/tasks" className="block rounded-lg bg-white/[.03] hover:bg-white/[.05] p-3 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm text-slate-200">{item.title}</span>
+                    {item.priority && (
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        item.priority === "urgent" ? "bg-red-400/10 text-red-400" :
+                        item.priority === "high" ? "bg-orange-400/10 text-orange-400" :
+                        item.priority === "medium" ? "bg-blue-400/10 text-blue-400" :
+                        "bg-slate-400/10 text-slate-400"
+                      }`}>{item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}</span>
+                    )}
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-2 text-xs text-slate-500">
+                    {item.status && item.status !== "todo" && (
+                      <span className={`${item.status === "review" ? "text-yellow-400" : item.status === "in_progress" ? "text-blue-400" : "text-emerald-400"}`}>
+                        {item.status === "in_progress" ? "In Progress" : item.status === "review" ? "Needs Review" : "Done"}
+                      </span>
+                    )}
+                    {item.due_date && (
+                      <span className={`flex items-center gap-1 ${new Date(item.due_date) < new Date() ? "text-red-400" : ""}`}>
+                        <Clock size={9}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {new Date(item.due_date) < new Date() ? " · Overdue" : ""}
+                      </span>
+                    )}
+                    {item.assignee_email && <span className="flex items-center gap-1"><User size={9}/>{item.assignee_email}</span>}
+                    {item.created_at && <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                  </div>
+                </Link>
             ))}</div>
           ) : (
             <p className="py-10 text-center text-sm text-slate-500">Stay on top of work. Create tasks for yourself or your team.</p>
