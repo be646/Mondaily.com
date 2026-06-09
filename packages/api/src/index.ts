@@ -39,8 +39,8 @@ app.route("/api/v1/calls", callsRouter);
 app.route("/api/v1/reports", reportsRouter);
 app.route("/api/v1/dashboards", dashboardsRouter);
 app.route("/api/v1/sequences", sequencesRouter);
+app.route("/api/v1/lists", listsRouter);
 app.route("/api/v1/tasks", tasksRouter);
-app.route("/api/v1", appDataRouter);
 app.route("/api/v1", appDataRouter);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
