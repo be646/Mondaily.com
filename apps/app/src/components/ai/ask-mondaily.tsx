@@ -12,7 +12,7 @@ export function AskMondaily() {
     }
     return [];
   });
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(threadId && threadId !== "new" ? threadId : null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
