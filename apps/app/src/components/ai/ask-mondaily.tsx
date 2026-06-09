@@ -38,10 +38,10 @@ export function AskMondaily() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const send = async () => {
-    const text = input.trim();
+  const send = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     if (!text || loading) return;
-    setInput("");
+    if (!overrideText) setInput("");
     let threadId = currentThreadId;
     if (!threadId) {
       const thread = createThread(text);
@@ -99,7 +99,7 @@ export function AskMondaily() {
               <div className="text-sm font-medium text-white mb-1">How can I help you today?</div>
               <div className="text-xs text-slate-500 mb-4">Ask about your pipeline, contacts, tasks, or anything business related</div>
               <div className="flex flex-wrap gap-2 justify-center">
-                {SUGGESTIONS.map(s => <button key={s} onClick={() => setInput(s)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">{s}</button>)}
+                {SUGGESTIONS.map(s => <button key={s} onClick={() => send(s)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">{s}</button>)}
               </div>
             </div>
           </div>
@@ -122,7 +122,7 @@ export function AskMondaily() {
       <div className="border-t border-white/10 px-6 py-4">
         <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 focus-within:border-red-500/30">
           <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Ask anything about your business..." rows={1} className="flex-1 resize-none bg-transparent text-sm text-white placeholder-slate-500 outline-none" style={{ maxHeight: "120px" }}/>
-          <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-500 p-2 text-white hover:bg-red-400 disabled:opacity-40 transition-colors"><Send size={14}/></button>
+          <button id="ask-send-btn" onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-500 p-2 text-white hover:bg-red-400 disabled:opacity-40 transition-colors"><Send size={14}/></button>
         </div>
         <div className="mt-1.5 text-xs text-slate-600 text-center">Enter to send · Shift+Enter for new line</div>
       </div>

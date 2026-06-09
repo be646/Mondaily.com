@@ -1,6 +1,7 @@
+import { useParams } from "react-router-dom";
 import { AskMondaily } from "../../../components/ai/ask-mondaily";
 
 export function AskPage() {
-  return <AskMondaily />;
+  const { threadId } = useParams();
+  return <AskMondaily key={threadId ?? "new"} />;
 }
-
