@@ -28,4 +28,63 @@ export function addMessageToThread(threadId: string, message: ChatMessage): void
   const updated: ChatThread = { ...thread, messages: [...thread.messages, message], updatedAt: Date.now() };
   const newThreads: ChatThread[] = [updated, ...threads.filter(t => t.id !== threadId)];
   saveThreads(newThreads);
+  // Sync to server in background
+  syncThreadToServer(updated).catch(() => {});
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = localStorage.getItem("mondaily_session_token");
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+  };
+}
+
+async function syncThreadToServer(thread: ChatThread): Promise<void> {
+  const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
+  const headers = await getAuthHeaders();
+  // Check if thread exists on server
+  const res = await fetch(`${apiUrl}/api/v1/chats/${thread.id}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ title: thread.title, messages: thread.messages })
+  });
+  if (res.status === 404 || res.status === 500) {
+    // Create it
+    await fetch(`${apiUrl}/api/v1/chats`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ title: thread.title, messages: thread.messages })
+    });
+  }
+}
+
+export async function loadThreadsFromServer(): Promise<ChatThread[]> {
+  try {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${apiUrl}/api/v1/chats`, { headers });
+    if (!res.ok) return getThreads();
+    const data = await res.json() as any[];
+    const threads: ChatThread[] = data.map(t => ({
+      id: t.id,
+      title: t.title,
+      messages: t.messages as ChatMessage[],
+      updatedAt: new Date(t.updated_at).getTime()
+    }));
+    saveThreads(threads);
+    return threads;
+  } catch {
+    return getThreads();
+  }
+}
+
+export async function deleteThreadFromServer(threadId: string): Promise<void> {
+  try {
+    const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
+    const headers = await getAuthHeaders();
+    await fetch(`${apiUrl}/api/v1/chats/${threadId}`, { method: "DELETE", headers });
+  } catch {}
 }
