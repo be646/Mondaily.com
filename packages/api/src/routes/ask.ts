@@ -4,6 +4,22 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
+async function searchWeb(query: string): Promise<string> {
+  const apiKey = process.env.TAVILY_API_KEY;
+  if (!apiKey) return "";
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey, query, max_results: 5, search_depth: "basic" })
+    });
+    if (!res.ok) return "";
+    const data = await res.json() as any;
+    const results = (data.results ?? []).slice(0, 5).map((r: any) => `- ${r.title}: ${r.content}`).join("\n");
+    return results ? `\n\nWeb search results for "${query}":\n${results}` : "";
+  } catch { return ""; }
+}
+
 const router = new Hono();
 
 router.post("/", requireAuth, zValidator("json", z.object({
@@ -11,7 +27,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
   thread_id: z.string().optional(),
   model: z.enum(["auto", "fast", "smart"]).optional()
 })), async (c) => {
-  const { message, model: modelPref } = c.req.valid("json");
+  const { message, model: modelPref, web_search } = c.req.valid("json") as any;
   const modelMap: Record<string, string> = {
     fast: "claude-haiku-4-5-20251001",
     smart: "claude-sonnet-4-6",
@@ -22,6 +38,12 @@ router.post("/", requireAuth, zValidator("json", z.object({
   if (!apiKey) return c.json({ reply: "Anthropic API key not configured on server." }, 500);
 
   try {
+    // Web search if enabled
+    let webContext = "";
+    if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") {
+      webContext = await searchWeb(message);
+    }
+
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -32,7 +54,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       body: JSON.stringify({
         model: model,
         max_tokens: 1024,
-        system: "You are Mondaily AI, an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, and all business operations. Be concise, smart, and actionable. Never mention Claude, Anthropic, OpenAI, or any underlying AI technology — you are simply Mondaily AI.",
+        system: `You are Mondaily AI, an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, and all business operations. Be concise, smart, and actionable. Never mention Claude, Anthropic, OpenAI, or any underlying AI technology — you are simply Mondaily AI.${webContext}`,
         messages: [{ role: "user", content: message }]
       })
     });
@@ -91,7 +113,7 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().uuid().optional()
 })), async (c) => {
-  const { message, model: modelPref } = c.req.valid("json");
+  const { message, model: modelPref, web_search } = c.req.valid("json") as any;
   const modelMap: Record<string, string> = {
     fast: "claude-haiku-4-5-20251001",
     smart: "claude-sonnet-4-6",
