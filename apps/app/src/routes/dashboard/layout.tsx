@@ -37,11 +37,7 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
     <>
       <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={onClose}/>
       <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-[#0b0d10] md:hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-          <span className="text-sm font-medium text-white">Menu</span>
-          <button onClick={onClose} className="text-slate-400"><X size={18}/></button>
-        </div>
-        <Sidebar />
+        <Sidebar onMobileClose={onClose} />
       </div>
     </>
   );

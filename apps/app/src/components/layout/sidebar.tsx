@@ -36,7 +36,7 @@ const GETTING_STARTED = [
   { label: "Try Ask Mondaily", done: false },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useClerk();
@@ -61,10 +61,10 @@ export function Sidebar() {
         className={`relative flex h-full shrink-0 flex-col border-r border-white/10 bg-[#0d0f13] ${collapsed ? "w-16" : "w-64"}`}
       >
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => { if (onMobileClose) { onMobileClose(); } else { setCollapsed(!collapsed); } }}
           className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-[#0d0f13] text-slate-400 hover:text-white transition-colors"
         >
-          {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+          {onMobileClose ? <X size={12} /> : collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
 
         {/* Workspace selector */}
