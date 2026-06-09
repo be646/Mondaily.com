@@ -51,7 +51,7 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
     mutationFn: () => {
       const member = members.find(m => m.user_id === assigneeId);
       return apiClient.post("/tasks", {
-        title, due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+        title, due_date: dueDate ? dueDate + ":00" : undefined,
         priority, status, notes: notes || undefined,
         assignee_id: assigneeId || undefined,
         assignee_email: member?.email || undefined,
@@ -360,7 +360,7 @@ export function TasksPage() {
                       {task.due_date && (
                         <span className={`flex items-center gap-1 ${isOverdue ? "text-red-400" : ""}`}>
                           <Clock size={10}/>
-                          Due {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          Due {new Date(task.due_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}
                           {isOverdue && " · Overdue"}
                         </span>
                       )}
@@ -415,7 +415,7 @@ export function TasksPage() {
                       <div>
                         <p className="text-slate-600 mb-0.5">Due Date</p>
                         <p className={task.due_date ? (isOverdue ? "text-red-400" : "text-slate-300") : "text-slate-600"}>
-                          {task.due_date ? new Date(task.due_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "No due date"}
+                          {task.due_date ? new Date(task.due_date).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }) : "No due date"}
                         </p>
                       </div>
                       <div>
