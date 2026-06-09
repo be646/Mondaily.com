@@ -69,6 +69,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
                 <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#161820] shadow-xl p-1">
                   <Link to="/ask/new" onClick={() => { setMenuOpen(false); onClose(); }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white"><Share2 size={13}/> Open in full page</Link>
+                  <Link to="/settings/ask-mondaily" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white"><Settings size={13}/> Ask Mondaily settings</Link>
                 </div>
               </>
             )}
