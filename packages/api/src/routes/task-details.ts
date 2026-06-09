@@ -124,4 +124,45 @@ router.delete("/:id/attachments/:attachmentId", async (c) => {
   return c.body(null, 204);
 });
 
+// ── File Upload ──────────────────────────────────────────
+router.post("/:id/upload", async (c) => {
+  const taskId = c.req.param("id");
+  const userId = c.get("userId");
+  const formData = await c.req.formData();
+  const file = formData.get("file") as File;
+  const userName = formData.get("user_name") as string || "Unknown";
+
+  if (!file) return c.json({ error: "No file provided" }, 400);
+
+  const fileExt = file.name.split(".").pop() || "bin";
+  const filePath = `${taskId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const { error: uploadError } = await supabase.storage
+    .from("task-attachments")
+    .upload(filePath, arrayBuffer, { contentType: file.type });
+
+  if (uploadError) return c.json({ error: uploadError.message }, 500);
+
+  const { data: urlData } = supabase.storage
+    .from("task-attachments")
+    .getPublicUrl(filePath);
+
+  const { data, error } = await supabase
+    .from("task_attachments")
+    .insert({
+      task_id: taskId,
+      user_id: userId,
+      user_name: userName,
+      file_name: file.name,
+      file_url: urlData.publicUrl,
+      file_type: file.type,
+      file_size: file.size
+    })
+    .select().single();
+
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data, 201);
+});
+
 export { router as taskDetailsRouter };
