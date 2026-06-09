@@ -22,7 +22,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-opus-4-6",
+        model: "claude-sonnet-4-6",
         max_tokens: 1024,
         system: "You are Mondaily AI, an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, and all business operations. Be concise, smart, and actionable. Never mention Claude, Anthropic, OpenAI, or any underlying AI technology — you are simply Mondaily AI.",
         messages: [{ role: "user", content: message }]
