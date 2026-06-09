@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { MessageCircle, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getThreads, saveThreads, type ChatThread } from "../../lib/chat-store";
+import { getThreads, saveThreads, loadThreadsFromServer, deleteThreadFromServer, type ChatThread } from "../../lib/chat-store";
 
 export function SidebarAsk() {
   const location = useLocation();
@@ -11,6 +11,8 @@ export function SidebarAsk() {
 
   useEffect(() => {
     refresh();
+    // Load from server on mount
+    loadThreadsFromServer().then(t => setThreads(t)).catch(() => {});
     const interval = setInterval(refresh, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -21,6 +23,7 @@ export function SidebarAsk() {
     const updated = threads.filter(t => t.id !== id);
     saveThreads(updated);
     setThreads(updated);
+    deleteThreadFromServer(id).catch(() => {});
   };
 
   return (
