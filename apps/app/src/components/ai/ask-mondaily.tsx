@@ -1,4 +1,4 @@
-import { Sparkles, Send, Loader2, User } from "lucide-react";
+import { Sparkles, Send, Loader2, User, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
@@ -76,6 +76,23 @@ export function AskMondaily() {
     setLoading(false);
   };
 
+  const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1) => {
+    try {
+      const token = localStorage.getItem("mondaily_session_token");
+      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      await fetch(`${apiUrl}/api/v1/feedback`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+        },
+        body: JSON.stringify({ message: userMsg, response: aiMsg, rating })
+      });
+    } catch {}
+  };
+
   const SUGGESTIONS = ["Summarize my pipeline", "What tasks are overdue?", "Draft a follow-up email", "Analyze my deals"];
 
   return (
@@ -107,7 +124,15 @@ export function AskMondaily() {
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "assistant" && <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5"><Sparkles size={13} className="text-red-400"/></div>}
-            <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-200"}`}>{m.content}</div>
+            <div className="flex flex-col gap-1">
+              <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-200"}`}>{m.content}</div>
+              {m.role === "assistant" && i > 0 && (
+                <div className="flex gap-1 ml-1">
+                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1)} className="rounded p-1 text-slate-600 hover:text-green-400 transition-colors" title="Good response"><ThumbsUp size={11}/></button>
+                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1)} className="rounded p-1 text-slate-600 hover:text-red-400 transition-colors" title="Bad response"><ThumbsDown size={11}/></button>
+                </div>
+              )}
+            </div>
             {m.role === "user" && <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 mt-0.5"><User size={13} className="text-slate-400"/></div>}
           </div>
         ))}
