@@ -340,9 +340,7 @@ export function TasksPage() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     {/* Title */}
-                    <p className={`text-sm font-medium leading-snug ${task.completed ? "text-slate-600 line-through" : "text-slate-100"}`}>
-                      {task.title}
-                    </p>
+                    <button onClick={() => setDetailTask(task)} className={`text-sm font-medium leading-snug text-left hover:underline ${task.completed ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}>{task.title}</button>
 
                     {/* Badges row */}
                     <div className="mt-2 flex flex-wrap gap-1.5">
