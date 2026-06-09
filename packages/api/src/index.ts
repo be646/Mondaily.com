@@ -17,6 +17,9 @@ import { dashboardsRouter } from "./routes/dashboards";
 import { sequencesRouter } from "./routes/sequences";
 import { listsRouter } from "./routes/lists";
 import tasksRouter from "./routes/tasks";
+import { chatsRouter } from "./routes/chats";
+import { feedbackRouter } from "./routes/feedback";
+import { membersRouter } from "./routes/members";
 
 const app = new Hono();
 
@@ -41,6 +44,9 @@ app.route("/api/v1/dashboards", dashboardsRouter);
 app.route("/api/v1/sequences", sequencesRouter);
 app.route("/api/v1/lists", listsRouter);
 app.route("/api/v1/tasks", tasksRouter);
+app.route("/api/v1/chats", chatsRouter);
+app.route("/api/v1/feedback", feedbackRouter);
+app.route("/api/v1/members", membersRouter);
 app.route("/api/v1", appDataRouter);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
