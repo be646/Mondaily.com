@@ -42,6 +42,27 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const { signOut } = useClerk();
   const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Sync current user as workspace member
+  useEffect(() => {
+    if (!user) return;
+    const token = localStorage.getItem("mondaily_session_token");
+    const workspaceId = localStorage.getItem("mondaily_workspace_id");
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    fetch(`${apiUrl}/api/v1/members/sync`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+      },
+      body: JSON.stringify({
+        email: user.primaryEmailAddress?.emailAddress || "",
+        name: user.fullName || user.firstName || "",
+        avatar_url: user.imageUrl || undefined
+      })
+    }).catch(() => {});
+  }, [user?.id]);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
