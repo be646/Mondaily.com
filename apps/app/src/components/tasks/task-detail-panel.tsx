@@ -12,8 +12,6 @@ interface Attachment { id: string; file_name: string; file_url: string; file_siz
 interface Assignee { id: string; user_id: string; name: string; email: string; permission: string; }
 
 const LABELS = ["Need Review", "Help Needed", "Blocked", "Waiting", "High Priority", "Low Priority", "Bug", "Feature", "Research"];
-const PERMISSIONS: Array<"edit"|"comment"|"view"> = ["edit", "comment", "view"];
-
 export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   task: Task; members: Member[]; onClose: () => void; onUpdate: () => void;
 }) {
@@ -42,10 +40,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   });
 
   const addAssignee = useMutation({
-    mutationFn: (vars: { member: Member; permission: string }) =>
+    mutationFn: (member: Member) =>
       apiClient.post(`/tasks/${task.id}/assignees`, {
-        user_id: vars.member.user_id, email: vars.member.email,
-        name: vars.member.name, permission: vars.permission
+        user_id: member.user_id, email: member.email,
+        name: member.name, permission: "collaborator"
       }),
     onSuccess: () => assigneesQ.refetch()
   });
@@ -185,7 +183,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white truncate">{a.name || a.email}</p>
-                        <p className="text-xs text-slate-500 capitalize">{a.permission}</p>
+                        <p className="text-xs text-slate-500">Collaborator</p>
                       </div>
                       <button onClick={() => removeAssignee.mutate(a.user_id)}
                         className="text-slate-600 hover:text-red-400 transition-colors"><X size={13}/></button>
@@ -204,14 +202,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         {(m.name || m.email).charAt(0).toUpperCase()}
                       </div>
                       <span className="flex-1 text-sm text-slate-300 truncate">{m.name || m.email}</span>
-                      <div className="flex gap-1">
-                        {PERMISSIONS.map(p => (
-                          <button key={p} onClick={() => addAssignee.mutate({ member: m, permission: p })}
-                            className="rounded-md px-2 py-1 text-[11px] border border-white/10 text-slate-500 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 capitalize transition-colors">
-                            {p}
-                          </button>
-                        ))}
-                      </div>
+                      <button onClick={() => addAssignee.mutate(m)}
+                        className="rounded-md px-3 py-1 text-[11px] border border-white/10 text-slate-400 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 transition-colors">
+                        + Add
+                      </button>
                     </div>
                   ))}
                 </div>
