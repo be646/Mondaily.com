@@ -11,7 +11,7 @@ async function callAsk(message: string): Promise<string> {
   const res = await fetch(`${apiUrl}/api/v1/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message, model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })() })
   });
   const data = await res.json() as any;
   return data.reply || "No response.";
