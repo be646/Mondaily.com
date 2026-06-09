@@ -18,6 +18,7 @@ tasks.get("/", async (c) => {
 
   if (filter === "mine") query = query.eq("assignee_id", userId);
   if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
+  if (filter === "review") query = query.eq("status", "review");
 
   const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 500);
@@ -34,10 +35,14 @@ tasks.post("/", async (c) => {
     .insert({
       workspace_id: workspaceId,
       title: body.title,
-      assignee_id: userId,
+      assignee_id: body.assignee_id || userId,
+      assignee_email: body.assignee_email || null,
       completed: false,
       due_date: body.due_date || null,
       record_id: body.record_id || null,
+      priority: body.priority || "medium",
+      status: body.status || "todo",
+      notes: body.notes || null,
     })
     .select()
     .single();
