@@ -17,6 +17,23 @@ export function AskMondaily() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Reload messages when threadId changes (clicking sidebar chat)
+  useEffect(() => {
+    if (threadId && threadId !== "new") {
+      const t = getThreads().find(t => t.id === threadId);
+      if (t) {
+        setMessages(t.messages);
+        setCurrentThreadId(t.id);
+      } else {
+        setMessages([]);
+        setCurrentThreadId(null);
+      }
+    } else {
+      setMessages([]);
+      setCurrentThreadId(null);
+    }
+  }, [threadId]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
