@@ -61,7 +61,7 @@ export function AskMondaily() {
       const res = await fetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text, model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })() })
       });
       const data = await res.json() as any;
       const reply = data.reply || "No response.";

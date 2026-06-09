@@ -7,9 +7,16 @@ const router = new Hono();
 
 router.post("/", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
-  thread_id: z.string().optional()
+  thread_id: z.string().optional(),
+  model: z.enum(["auto", "fast", "smart"]).optional()
 })), async (c) => {
-  const { message } = c.req.valid("json");
+  const { message, model: modelPref } = c.req.valid("json");
+  const modelMap: Record<string, string> = {
+    fast: "claude-haiku-4-5-20251001",
+    smart: "claude-sonnet-4-6",
+    auto: "claude-sonnet-4-6"
+  };
+  const model = modelMap[modelPref ?? "auto"] ?? "claude-sonnet-4-6";
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return c.json({ reply: "Anthropic API key not configured on server." }, 500);
 
@@ -22,7 +29,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: model,
         max_tokens: 1024,
         system: "You are Mondaily AI, an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, and all business operations. Be concise, smart, and actionable. Never mention Claude, Anthropic, OpenAI, or any underlying AI technology — you are simply Mondaily AI.",
         messages: [{ role: "user", content: message }]
@@ -46,7 +53,13 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().uuid().optional()
 })), async (c) => {
-  const { message } = c.req.valid("json");
+  const { message, model: modelPref } = c.req.valid("json");
+  const modelMap: Record<string, string> = {
+    fast: "claude-haiku-4-5-20251001",
+    smart: "claude-sonnet-4-6",
+    auto: "claude-sonnet-4-6"
+  };
+  const model = modelMap[modelPref ?? "auto"] ?? "claude-sonnet-4-6";
   return c.json({ ok: true, message: `Received: ${message}` });
 });
 

@@ -63,7 +63,7 @@ export function HomePage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
         },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text, model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })() })
       });
       const data = await res.json() as any;
       const reply = data.reply || "No response.";
