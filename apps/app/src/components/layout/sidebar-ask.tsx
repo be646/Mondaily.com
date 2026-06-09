@@ -1,27 +1,27 @@
 import { Link, useLocation } from "react-router-dom";
-import { MessageCircle, Plus } from "lucide-react";
+import { MessageCircle, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
-
-interface Thread { id: string; title: string; messages: unknown[]; }
-
-function loadThreads(): Thread[] {
-  try {
-    const raw = localStorage.getItem("mondaily_chat_threads");
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
+import { getThreads, saveThreads, type ChatThread } from "../../lib/chat-store";
 
 export function SidebarAsk() {
   const location = useLocation();
-  const [threads, setThreads] = useState<Thread[]>([]);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+
+  const refresh = () => setThreads(getThreads());
 
   useEffect(() => {
-    setThreads(loadThreads());
-    const onStorage = () => setThreads(loadThreads());
-    window.addEventListener("storage", onStorage);
-    const interval = setInterval(() => setThreads(loadThreads()), 2000);
-    return () => { window.removeEventListener("storage", onStorage); clearInterval(interval); };
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    return () => clearInterval(interval);
   }, []);
+
+  const deleteThread = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const updated = threads.filter(t => t.id !== id);
+    saveThreads(updated);
+    setThreads(updated);
+  };
 
   return (
     <section className="mt-5">
@@ -38,15 +38,23 @@ export function SidebarAsk() {
         <MessageCircle size={13}/>
         Ask Mondaily
       </Link>
-      {threads.slice(0, 8).map(t => (
-        <Link
-          key={t.id}
-          to={`/ask/${t.id}`}
-          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors truncate ${location.pathname === `/ask/${t.id}` ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
-        >
-          <MessageCircle size={12} className="shrink-0"/>
-          <span className="truncate">{t.title}</span>
-        </Link>
+      {threads.slice(0, 10).map(t => (
+        <div key={t.id} className="group relative flex items-center">
+          <Link
+            to={`/ask/${t.id}`}
+            className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors truncate ${location.pathname === `/ask/${t.id}` ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
+          >
+            <MessageCircle size={12} className="shrink-0"/>
+            <span className="truncate">{t.title}</span>
+          </Link>
+          <button
+            onClick={(e) => deleteThread(e, t.id)}
+            className="absolute right-2 hidden rounded p-0.5 text-slate-600 hover:text-red-400 group-hover:flex"
+            title="Delete chat"
+          >
+            <Trash2 size={11}/>
+          </button>
+        </div>
       ))}
     </section>
   );

@@ -12,7 +12,11 @@ export function saveThreads(threads: ChatThread[]) {
 }
 
 export function createThread(firstMessage: string): ChatThread {
-  return { id: Date.now().toString(), title: firstMessage.slice(0, 45), messages: [], updatedAt: Date.now() };
+  const uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+  return { id: uuid, title: firstMessage.slice(0, 45), messages: [], updatedAt: Date.now() };
 }
 
 export function addMessageToThread(threadId: string, message: ChatMessage): void {
