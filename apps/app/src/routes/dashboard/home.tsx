@@ -27,15 +27,7 @@ export function HomePage() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const activeTasks = (tasks.data ?? []).filter(t => !t.completed);
   const isChatting = messages.length > 0;
-
-  // Load most recent thread on mount
-  useEffect(() => {
-    const threads = getThreads();
-    if (threads.length > 0 && threads[0]) {
-      setCurrentThreadId(threads[0].id);
-      setMessages(threads[0].messages);
-    }
-  }, []);
+  const recentThreads = getThreads().slice(0, 3);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,8 +41,7 @@ export function HomePage() {
     let threadId = currentThreadId;
     if (!threadId) {
       const thread = createThread(text);
-      const threads = getThreads();
-      saveThreads([thread, ...threads]);
+      saveThreads([thread, ...getThreads()]);
       threadId = thread.id;
       setCurrentThreadId(threadId);
     }
@@ -90,6 +81,7 @@ export function HomePage() {
   const newChat = () => {
     setMessages([]);
     setCurrentThreadId(null);
+    setInput("");
   };
 
   return (
@@ -99,7 +91,7 @@ export function HomePage() {
 
       <section className="mt-7">
         {isChatting && (
-          <div className="mb-4 space-y-4 rounded-xl border border-white/10 bg-white/[.02] p-4 max-h-96 overflow-auto">
+          <div className="mb-4 space-y-4 rounded-xl border border-white/10 bg-white/[.02] p-4 max-h-80 overflow-auto">
             {messages.map((m, i) => (
               <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 {m.role === "assistant" && (
@@ -139,11 +131,23 @@ export function HomePage() {
             className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
           {isChatting && (
-            <button onClick={newChat} className="text-xs text-slate-600 hover:text-slate-400 mr-2 shrink-0">New chat</button>
+            <button onClick={newChat} className="text-xs text-slate-600 hover:text-slate-400 mr-1 shrink-0">New chat</button>
           )}
           <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-40">
             {loading ? <Loader2 size={15} className="animate-spin"/> : <Send size={15}/>}
           </button>
+        </div>
+        <div className="mt-2 flex items-center gap-3 flex-wrap">
+          {!isChatting && recentThreads.length > 0 && (
+            <>
+              <span className="text-xs text-slate-600">Recent:</span>
+              {recentThreads.map(t => (
+                <Link key={t.id} to={`/ask/${t.id}`} className="text-xs text-slate-500 hover:text-red-400 transition-colors truncate max-w-[150px]">{t.title}</Link>
+              ))}
+              <span className="text-slate-700">·</span>
+            </>
+          )}
+          <Link to="/ask/new" className="text-xs text-red-400 hover:text-red-300">Open Ask Mondaily →</Link>
         </div>
       </section>
 
