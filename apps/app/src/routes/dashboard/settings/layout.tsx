@@ -1,10 +1,10 @@
-import { Building2, CreditCard, Database, Mail, Plug, Shield, User, Users } from "lucide-react";
+import { Building2, CreditCard, Database, Mail, Plug, Shield, Sparkles, User, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const items = [
   ["account", User, "Account"], ["workspace", Building2, "Workspace"], ["members", Users, "Members & teams"],
   ["billing", CreditCard, "Billing"], ["objects", Database, "Objects & attributes"],
-  ["integrations", Plug, "Integrations & API"], ["email", Mail, "Email & calendar"], ["security", Shield, "Security"]
+  ["integrations", Plug, "Integrations & API"], ["email", Mail, "Email & calendar"], ["security", Shield, "Security"], ["ask-mondaily", Sparkles, "Ask Mondaily"]
 ] as const;
 
 export function SettingsLayout() {
