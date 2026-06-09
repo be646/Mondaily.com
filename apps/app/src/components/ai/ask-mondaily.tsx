@@ -1,9 +1,17 @@
 import { Sparkles, Send, Loader2, User } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
 export function AskMondaily() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { threadId } = useParams();
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (threadId && threadId !== "new") {
+      const t = getThreads().find(t => t.id === threadId);
+      if (t) return t.messages;
+    }
+    return [];
+  });
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
