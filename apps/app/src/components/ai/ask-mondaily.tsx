@@ -15,6 +15,7 @@ export function AskMondaily() {
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(threadId && threadId !== "new" ? threadId : null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Reload messages when threadId changes (clicking sidebar chat)
@@ -76,7 +77,8 @@ export function AskMondaily() {
     setLoading(false);
   };
 
-  const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1) => {
+  const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) => {
+    setFeedbackGiven(prev => ({ ...prev, [idx]: rating }));
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
@@ -128,8 +130,9 @@ export function AskMondaily() {
               <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-200"}`}>{m.content}</div>
               {m.role === "assistant" && i > 0 && (
                 <div className="flex gap-1 ml-1">
-                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1)} className="rounded p-1 text-slate-600 hover:text-green-400 transition-colors" title="Good response"><ThumbsUp size={11}/></button>
-                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1)} className="rounded p-1 text-slate-600 hover:text-red-400 transition-colors" title="Bad response"><ThumbsDown size={11}/></button>
+                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} className={`rounded p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-green-400" : "text-slate-600 hover:text-green-400"}`} title="Good response"><ThumbsUp size={12}/></button>
+                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} className={`rounded p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-red-400" : "text-slate-600 hover:text-red-400"}`} title="Bad response"><ThumbsDown size={12}/></button>
+                  {feedbackGiven[i] && <span className="text-xs text-slate-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
                 </div>
               )}
             </div>
