@@ -51,6 +51,22 @@ function Row({ label, description, children }: { label: string; description: str
 export function AskMondailySettings() {
   const [settings, setSettings] = useState<AskSettings>(loadSettings);
   const [threads, setThreads] = useState(() => getThreads());
+  const [credits, setCredits] = useState<{ used: number; limit: number; period_end: string } | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("mondaily_session_token");
+    const workspaceId = localStorage.getItem("mondaily_workspace_id");
+    const apiUrl = (window as any).__VITE_API_URL__ || import.meta.env.VITE_API_URL || "";
+    fetch(`${apiUrl}/api/v1/ask/credits`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
+      }
+    })
+      .then(r => r.json())
+      .then(data => setCredits(data))
+      .catch(() => {});
+  }, []);
 
   const update = (patch: Partial<AskSettings>) => {
     const updated = { ...settings, ...patch };
@@ -142,7 +158,7 @@ export function AskMondailySettings() {
         <div className="px-5 py-4">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="text-slate-500">Personal credits used</span>
-            <span className="text-white font-medium">{totalMessages} / {creditLimit}</span>
+            <span className="text-white font-medium">{usedCredits} / {creditLimit}</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-white/10">
             <div className="h-1.5 rounded-full bg-red-500 transition-all" style={{ width: `${creditPct}%` }}/>
