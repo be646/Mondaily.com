@@ -188,7 +188,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const assignReviewer = useMutation({
     mutationFn: (member: Member) => apiClient.patch(`/tasks/${task.id}`, {
       reviewer_id: member.user_id, reviewer_name: member.name || member.email,
-      status: "review", labels: [...localLabels.filter(l => l !== "Need Review"), "Need Review"]
+      status: "review", labels: Array.from(new Set([...localLabels, "Need Review"]))
     }).then(async () => {
       // Notify reviewer
       await apiClient.post("/notifications", {
@@ -243,6 +243,11 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
       setShowReviewerPicker(true);
       return;
     }
+    if (label === "Need Review" && localLabels.includes(label)) {
+      const nl = localLabels.filter(l => l !== label);
+      setLocalLabels(nl); updateLabels.mutate(nl);
+      return;
+    }
     const nl = localLabels.includes(label) ? localLabels.filter(l => l !== label) : [...localLabels, label];
     setLocalLabels(nl); updateLabels.mutate(nl);
   };
@@ -275,7 +280,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/50" onClick={onClose}/>
-      <div className="w-full max-w-lg bg-[#0f1116] border-l border-white/10 flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-lg bg-[#0f1116] border-l border-white/10 flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-start gap-3 p-5 border-b border-white/10">
@@ -320,22 +325,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 );
               })}
 
-            {/* Reviewer picker */}
-            {showReviewerPicker && (
-              <div className="mt-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 p-4">
-                <p className="text-sm font-medium text-yellow-400 mb-3">Who should review this task?</p>
-                <div className="space-y-2">
-                  {members.map(m => (
-                    <button key={m.user_id} onClick={() => assignReviewer.mutate(m)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] px-3 py-2.5 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-colors">
-                      <Avatar name={m.name || m.email}/>
-                      <span className="text-sm text-slate-300">{m.name || m.email}</span>
-                    </button>
-                  ))}
-                </div>
-                <button onClick={() => setShowReviewerPicker(false)} className="mt-2 text-xs text-slate-600 hover:text-slate-400">Cancel</button>
-              </div>
-            )}
+
 
             {/* Review actions for reviewer */}
             {task.reviewer_id === userId && task.status === "review" && !task.review_result && (
@@ -495,6 +485,30 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
         </div>
       </div>
+
+      {/* Reviewer picker modal */}
+      {showReviewerPicker && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6">
+          <div className="w-full max-w-sm rounded-xl border border-yellow-400/20 bg-[#111419] p-5 shadow-2xl">
+            <h3 className="text-sm font-semibold text-yellow-400 mb-1">Assign Reviewer</h3>
+            <p className="text-xs text-slate-500 mb-4">Who should review this task?</p>
+            <div className="space-y-2 max-h-60 overflow-auto">
+              {members.length === 0 && <p className="text-sm text-slate-600 text-center py-4">No workspace members found</p>}
+              {members.map(m => (
+                <button key={m.user_id} onClick={() => assignReviewer.mutate(m)}
+                  disabled={assignReviewer.isPending}
+                  className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] px-3 py-2.5 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-colors disabled:opacity-50">
+                  <Avatar name={m.name || m.email}/>
+                  <span className="text-sm text-slate-200">{m.name || m.email}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowReviewerPicker(false)} className="mt-4 w-full h-9 rounded-lg border border-white/10 text-sm text-slate-400 hover:text-white transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
