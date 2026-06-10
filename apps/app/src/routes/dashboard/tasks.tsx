@@ -49,7 +49,7 @@ function getCompletionBadge(task: Task) {
   return { label: "To Do", cls: "text-slate-400 bg-slate-400/10 border-slate-400/20" };
 }
 
-function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => void; members: Member[]; currentUserId: string }) {
+function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClose: () => void; members: Member[]; currentUserId: string; userName: string }) {
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -66,7 +66,7 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
         priority, status, notes: notes || undefined,
         assignee_id: assigneeId || undefined,
         assignee_email: member?.email || undefined,
-        _user_name: user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Someone",
+        _user_name: userName,
       });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); onClose(); }
@@ -541,6 +541,7 @@ export function TasksPage() {
           onClose={() => setShowCreate(false)}
           members={members}
           currentUserId={currentUserId}
+          userName={user?.fullName || user?.firstName || "Someone"}
         />
       )}
     </div>
