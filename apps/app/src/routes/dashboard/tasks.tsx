@@ -268,7 +268,7 @@ export function TasksPage() {
   const [sortBy, setSortBy] = useState("created_at");
   const [editTask, setEditTask] = useState<Task | null>(null);
 
-  const query = useQuery({ queryKey: ["tasks", filter], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}`) });
+  const query = useQuery({ queryKey: ["tasks", filter, labelFilter, sortBy], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}&sort=${sortBy}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const members = membersQuery.data ?? [];
   const currentUserId = user?.id ?? "";
