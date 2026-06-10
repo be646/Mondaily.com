@@ -319,7 +319,6 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   </button>
                 );
               })}
-            </div>
 
             {/* Reviewer picker */}
             {showReviewerPicker && (
