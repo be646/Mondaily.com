@@ -275,7 +275,9 @@ export function TasksPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
 
-  const tasks = query.data ?? [];
+  const allTasks = query.data ?? [];
+  const tasks = allTasks.filter((t: Task) => !t.completed && t.status !== "done");
+  const doneTasks: Task[] = allTasks.filter((t: Task) => t.completed || t.status === "done");
   const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) < new Date());
 
   const getMemberName = (task: Task) => {
