@@ -267,7 +267,7 @@ export function TasksPage() {
   const currentUserId = user?.id ?? "";
 
   const toggle = useMutation({
-    mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed, _user_name: currentUser?.fullName || currentUser?.firstName || "Someone" }),
+    mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed, _user_name: user?.fullName || user?.firstName || "Someone" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
 
