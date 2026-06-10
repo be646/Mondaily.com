@@ -53,18 +53,43 @@ tasks.post("/", async (c) => {
 
 tasks.patch("/:id", async (c) => {
   const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
   const id = c.req.param("id");
   const body = await c.req.json();
 
+  // Extract meta fields before saving
+  const userName = body._user_name || "Someone";
+  const { _user_name, ...updateBody } = body;
+
+  // Get old values for activity logging
+  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();
+
   const { data, error } = await supabase
     .from("tasks")
-    .update(body)
+    .update(updateBody)
     .eq("id", id)
     .eq("workspace_id", workspaceId)
     .select()
     .single();
 
   if (error) return c.json({ error: error.message }, 500);
+
+  // Log activity
+  const statusLabels: Record<string,string> = { todo: "To Do", in_progress: "In Progress", review: "Needs Review", done: "Done" };
+  const priorityLabels: Record<string,string> = { low: "Low", medium: "Medium", high: "High", urgent: "Urgent" };
+  const activities: string[] = [];
+
+  if (updateBody.status && oldTask?.status !== updateBody.status)
+    activities.push(`changed status to ${statusLabels[updateBody.status] || updateBody.status}`);
+  if (updateBody.priority && oldTask?.priority !== updateBody.priority)
+    activities.push(`changed priority to ${priorityLabels[updateBody.priority] || updateBody.priority}`);
+  if (updateBody.assignee_id !== undefined && oldTask?.assignee_id !== updateBody.assignee_id)
+    activities.push(updateBody.assignee_id ? `assigned task to ${updateBody.assignee_email || updateBody.assignee_id}` : "removed assignee");
+
+  for (const action of activities) {
+    await supabase.from("task_activity").insert({ task_id: id, user_id: userId, user_name: userName, action });
+  }
+
   return c.json(data);
 });
 
