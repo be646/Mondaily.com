@@ -18,6 +18,18 @@ interface Task {
   labels?: string[];
 }
 
+const LABEL_COLORS: Record<string, string> = {
+  "Need Review": "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
+  "Help Needed": "text-blue-400 bg-blue-400/10 border-blue-400/30",
+  "Blocked": "text-red-400 bg-red-400/10 border-red-400/30",
+  "Waiting": "text-slate-400 bg-slate-400/10 border-slate-400/30",
+  "High Priority": "text-orange-400 bg-orange-400/10 border-orange-400/30",
+  "Low Priority": "text-green-400 bg-green-400/10 border-green-400/30",
+  "Bug": "text-red-500 bg-red-500/10 border-red-500/30",
+  "Feature": "text-purple-400 bg-purple-400/10 border-purple-400/30",
+  "Research": "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
+};
+
 const PRIORITY_STYLE: Record<string, string> = {
   low: "text-slate-400 bg-slate-400/10 border-slate-400/20",
   medium: "text-blue-400 bg-blue-400/10 border-blue-400/20",
@@ -355,6 +367,15 @@ export function TasksPage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Labels */}
+                    {task.labels && task.labels.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {task.labels.map(l => (
+                          <span key={l} className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${LABEL_COLORS[l] || "text-slate-400 bg-slate-400/10 border-slate-400/30"}`}>{l}</span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Meta row */}
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">

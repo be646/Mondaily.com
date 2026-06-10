@@ -11,7 +11,18 @@ interface Comment { id: string; content: string; user_name: string; user_id: str
 interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
 interface Assignee { id: string; user_id: string; name: string; email: string; permission: string; }
 
-const LABELS = ["Need Review", "Help Needed", "Blocked", "Waiting", "High Priority", "Low Priority", "Bug", "Feature", "Research"];
+const LABEL_COLORS: Record<string, string> = {
+  "Need Review": "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
+  "Help Needed": "text-blue-400 bg-blue-400/10 border-blue-400/30",
+  "Blocked": "text-red-400 bg-red-400/10 border-red-400/30",
+  "Waiting": "text-slate-400 bg-slate-400/10 border-slate-400/30",
+  "High Priority": "text-orange-400 bg-orange-400/10 border-orange-400/30",
+  "Low Priority": "text-green-400 bg-green-400/10 border-green-400/30",
+  "Bug": "text-red-500 bg-red-500/10 border-red-500/30",
+  "Feature": "text-purple-400 bg-purple-400/10 border-purple-400/30",
+  "Research": "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
+};
+const LABELS = Object.keys(LABEL_COLORS);
 export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   task: Task; members: Member[]; onClose: () => void; onUpdate: () => void;
 }) {
@@ -149,7 +160,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             {localLabels.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {localLabels.map(l => (
-                  <span key={l} className="rounded-full bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[11px] text-red-400">{l}</span>
+                  <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l] || "text-slate-400 bg-slate-400/10 border-slate-400/30"}`}>{l}</span>
                 ))}
               </div>
             )}
@@ -179,8 +190,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 const active = localLabels.includes(label);
                 return (
                   <button key={label} onClick={() => toggleLabel(label)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active ? "bg-red-500/10 border border-red-500/30 text-red-400" : "border border-white/[.06] text-slate-400 hover:border-white/10 hover:text-white"}`}>
-                    <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? "border-red-400 bg-red-400" : "border-white/20"}`}>
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active ? `border ${LABEL_COLORS[label]}` : "border border-white/[.06] text-slate-400 hover:border-white/10 hover:text-white"}`}>
+                    <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? "border-current bg-current opacity-80" : "border-white/20"}`}>
                       {active && <Check size={10} className="text-white"/>}
                     </div>
                     <span className="flex-1 text-left">{label}</span>
