@@ -62,13 +62,14 @@ router.post("/:id/checklist", async (c) => {
 });
 
 router.patch("/:id/checklist/:itemId", async (c) => {
-  const body = await c.req.json() as { completed: boolean };
+  const body = await c.req.json() as { completed: boolean; _user_name?: string };
+  const { _user_name, ...updateBody } = body;
   const { data, error } = await supabase
-    .from("task_checklist").update(body).eq("id", c.req.param("itemId")).select().single();
+    .from("task_checklist").update(updateBody).eq("id", c.req.param("itemId")).select().single();
   if (error) return c.json({ error: error.message }, 500);
   if (body.completed !== undefined) {
     const userId = c.get("userId");
-    const userName = body._user_name || "Someone";
+    const userName = _user_name || "Someone";
     await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: userId, user_name: userName, action: body.completed ? `completed: "${data?.text}"` : `unchecked: "${data?.text}"` });
   }
   return c.json(data);
