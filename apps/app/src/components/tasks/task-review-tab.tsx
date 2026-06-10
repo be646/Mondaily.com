@@ -109,7 +109,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
         action, action_note: actionNote || undefined,
         reviewer_name: userName, owner_id: task.assignee_id || ""
       }),
-    onSuccess: () => { reviewsQ.refetch(); onUpdate(); setScreen("idle"); setActionNote(""); }
+    onSuccess: () => { reviewsQ.refetch(); onUpdate(); setScreen("idle"); setActionNote(""); setTimeout(() => onUpdate(), 500); }
   });
 
   const reassign = useMutation({
