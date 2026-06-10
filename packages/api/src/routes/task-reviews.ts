@@ -129,7 +129,7 @@ router.patch("/:id/reviews/:reviewId", async (c) => {
     await supabase.from("tasks").update({
       review_result: "approved",
       reviewed_at: new Date().toISOString(),
-      status: "done",
+      status: "in_progress",
       labels: []
     }).eq("id", c.req.param("id"));
   } else if (body.action === "changes_requested") {

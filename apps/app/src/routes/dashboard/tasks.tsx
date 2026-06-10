@@ -257,6 +257,7 @@ export function TasksPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [showDone, setShowDone] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
 
   const query = useQuery({ queryKey: ["tasks", filter], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}`) });
@@ -500,6 +501,36 @@ export function TasksPage() {
           members={members}
           currentUserId={currentUserId}
         />
+      )}
+
+      {/* Done / Completed section */}
+      {doneTasks.length > 0 && (
+        <div className="mt-6">
+          <button onClick={() => setShowDone(!showDone)}
+            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-3">
+            <ChevronDown size={14} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
+            <span>Completed</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-slate-500">{doneTasks.length}</span>
+          </button>
+          {showDone && (
+            <div className="space-y-2 opacity-60">
+              {doneTasks.map(task => (
+                <div key={task.id} className="rounded-xl border border-white/[.04] bg-white/[.01] p-3 flex items-center gap-3">
+                  <button onClick={() => toggle.mutate(task)}
+                    className="h-5 w-5 shrink-0 rounded border border-emerald-500/50 bg-emerald-500/20 grid place-items-center">
+                    <Check size={11} className="text-emerald-400"/>
+                  </button>
+                  <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-slate-500 line-through text-left hover:text-slate-400 truncate">
+                    {task.title}
+                  </button>
+                  <span className="text-[11px] text-slate-600 shrink-0">
+                    {task.status === "done" ? "Done" : "Completed"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {showCreate && (
