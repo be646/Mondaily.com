@@ -3,6 +3,7 @@ import { X, Plus, Check, Trash2, Paperclip, Send, CheckCheck } from "lucide-reac
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
+import { TaskReviewTab } from "./task-review-tab";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; priority?: string; assignee_id?: string; reviewer_id?: string; reviewer_name?: string; review_result?: string; }
@@ -160,16 +161,14 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const { user } = useUser();
   const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Unknown";
   const userId = user?.id || "";
-  const [activeTab, setActiveTab] = useState<"labels"|"assignees"|"checklist"|"comments"|"attachments">("labels");
+  const [activeTab, setActiveTab] = useState<"labels"|"assignees"|"review"|"checklist"|"comments"|"attachments">("labels");
   const [newCheckItem, setNewCheckItem] = useState("");
   const [newComment, setNewComment] = useState("");
   const [uploading, setUploading] = useState(false);
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
   const [localStatus, setLocalStatus] = useState(task.status || "todo");
   const [localPriority, setLocalPriority] = useState(task.priority || "medium");
-  const [showReviewerPicker, setShowReviewerPicker] = useState(false);
-  const [showChangesInput, setShowChangesInput] = useState(false);
-  const [changesNote, setChangesNote] = useState("");
+
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -190,38 +189,9 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, fields),
     onSuccess: onUpdate
   });
-  const assignReviewer = useMutation({
-    mutationFn: async (member: Member) => {
-      const newLabels = Array.from(new Set([...localLabels, "Need Review"]));
-      await apiClient.patch(`/tasks/${task.id}`, {
-        reviewer_id: member.user_id,
-        reviewer_name: member.name || member.email,
-        status: "review",
-        labels: newLabels
-      });
-      setLocalLabels(newLabels);
-      try {
-        await apiClient.post("/notifications", {
-          user_id: member.user_id,
-          title: "Task needs your review 👀",
-          body: `"${task.title}" was sent to you for review by ${userName}`,
-          type: "review",
-          task_id: task.id
-        });
-      } catch {}
-    },
-    onSuccess: () => { onUpdate(); setShowReviewerPicker(false); },
-    onError: (e) => { console.error("assignReviewer error", e); }
-  });
 
-  const reviewAction = useMutation({
-    mutationFn: (vars: { action: "approved" | "changes_requested"; note?: string }) =>
-      apiClient.patch(`/tasks/${task.id}/review-action`, {
-        action: vars.action, reviewer_name: userName, owner_id: task.assignee_id || "",
-        note: vars.note || ""
-      }),
-    onSuccess: () => { onUpdate(); commentsQ.refetch(); setShowChangesInput(false); setChangesNote(""); }
-  });
+
+
 
   const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => assigneesQ.refetch() });
   const removeAssignee = useMutation({ mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`), onSuccess: () => assigneesQ.refetch() });
@@ -286,6 +256,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const tabs = [
     { key: "labels", label: "Labels", count: localLabels.length || 0 },
     { key: "assignees", label: "Assignees", count: assignees.length },
+    { key: "review", label: "Review", count: 0 },
     { key: "checklist", label: "Checklist", count: checklist.length ? `${completedCount}/${checklist.length}` : 0 },
     { key: "comments", label: "Comments", count: comments.length },
     { key: "attachments", label: "Files", count: attachments.length },
@@ -324,9 +295,9 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <option value="urgent">Urgent</option>
               </select>
 
-              {/* Send for Review button */}
+              {/* Review tab shortcut */}
               {localStatus !== "review" && !task.review_result && (
-                <button onClick={() => setShowReviewerPicker(true)}
+                <button onClick={() => setActiveTab("review")}
                   className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
                   Send for Review →
                 </button>
@@ -373,59 +344,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
           {/* Labels */}
           {activeTab === "labels" && (
             <div className="space-y-2">
-              {/* Review status banner - at top */}
-              {task.status === "review" && task.reviewer_id && !task.review_result && (
-                <div className="mb-4 rounded-xl border border-white/10 bg-white/[.03] p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
-                    <p className="text-sm font-medium text-white">Pending Review</p>
-                  </div>
-                  <p className="text-xs text-slate-500">Reviewer: <span className="text-slate-300">{task.reviewer_name}</span></p>
-                  {task.reviewer_id === userId && (
-                    <>
-                      <div className="h-px bg-white/[.06] my-3"/>
-                      <p className="text-xs text-slate-500 mb-3">You are the assigned reviewer. Check the task and take action.</p>
-                      {!showChangesInput ? (
-                        <div className="flex gap-2">
-                          <button onClick={() => reviewAction.mutate({ action: "approved" })} disabled={reviewAction.isPending}
-                            className="flex-1 h-9 rounded-lg bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50">
-                            ✅ Approve
-                          </button>
-                          <button onClick={() => setShowChangesInput(true)}
-                            className="flex-1 h-9 rounded-lg bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 transition-colors">
-                            🔄 Request Changes
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-xs text-slate-400">What needs to be changed?</p>
-                          <textarea value={changesNote} onChange={e => setChangesNote(e.target.value)}
-                            placeholder="Describe what needs to be changed..."
-                            rows={3} autoFocus
-                            className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
-                          <div className="flex gap-2">
-                            <button onClick={() => setShowChangesInput(false)} className="flex-1 h-8 rounded-lg border border-white/10 text-xs text-slate-400 hover:text-white">Cancel</button>
-                            <button onClick={() => changesNote.trim() && reviewAction.mutate({ action: "changes_requested", note: changesNote })}
-                              disabled={!changesNote.trim() || reviewAction.isPending}
-                              className="flex-1 h-8 rounded-lg bg-orange-600 text-xs font-medium text-white disabled:opacity-40 hover:bg-orange-500">
-                              Send Feedback
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
 
-              {task.review_result && (
-                <div className={`mb-4 rounded-xl p-4 ${task.review_result === "approved" ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-orange-500/10 border border-orange-500/20"}`}>
-                  <p className={`text-sm font-medium ${task.review_result === "approved" ? "text-emerald-400" : "text-orange-400"}`}>
-                    {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">by {task.reviewer_name} · See Comments tab for details</p>
-                </div>
-              )}
 
               <p className="text-xs text-slate-500 mb-3">Select labels. "Need Review" moves to review queue.</p>
               {LABELS.map(label => {
@@ -530,6 +449,11 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             </div>
           )}
 
+          {/* Review */}
+          {activeTab === "review" && (
+            <TaskReviewTab task={task} members={members} onUpdate={onUpdate}/>
+          )}
+
           {/* Checklist */}
           {activeTab === "checklist" && (
             <div>
@@ -630,37 +554,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
         </div>
       </div>
 
-      {/* Reviewer picker modal */}
-      {showReviewerPicker && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-6">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0d0f13] p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-white">Send for Review</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Choose who reviews this task</p>
-              </div>
-              <button onClick={() => setShowReviewerPicker(false)} className="text-slate-600 hover:text-white"><X size={16}/></button>
-            </div>
-            <div className="space-y-1.5 max-h-64 overflow-auto">
-              {members.length === 0 && <p className="text-sm text-slate-600 text-center py-4">No workspace members found</p>}
-              {members.map(m => (
-                <button key={m.user_id} onClick={() => { if (!assignReviewer.isPending) assignReviewer.mutate(m); }}
-                  disabled={assignReviewer.isPending}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[.05] transition-colors disabled:opacity-50 group">
-                  <Avatar name={m.name || m.email} size={8}/>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm text-white">{m.name || m.email}</p>
-                    <p className="text-xs text-slate-600">Workspace member</p>
-                  </div>
-                  <span className="text-xs text-slate-600 group-hover:text-slate-400 transition-colors">
-                    {assignReviewer.isPending ? "Sending..." : "Assign →"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
