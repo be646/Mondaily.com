@@ -112,12 +112,15 @@ router.patch("/:id/reviews/:reviewId", async (c) => {
     commentText = `Review reassigned by ${body.reviewer_name} to ${body.new_reviewer_name}.${body.action_note ? `\n\nNote: ${body.action_note}` : ""}`;
   }
 
+  // Log review action as activity
   if (commentText) {
-    await supabase.from("task_comments").insert({
+    await supabase.from("task_activity").insert({
       task_id: c.req.param("id"),
       user_id: userId,
       user_name: body.reviewer_name,
-      content: commentText
+      action: body.action === "approved" ? `approved the task${body.action_note ? `: "${body.action_note}"` : ""}` :
+              body.action === "changes_requested" ? `requested changes: "${body.action_note || "please review and update"}"` :
+              `reassigned review to ${body.new_reviewer_name}`
     });
   }
 
