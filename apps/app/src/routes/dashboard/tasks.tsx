@@ -308,6 +308,26 @@ export function TasksPage() {
         </button>
       </div>
 
+      {/* Label filter + Sort */}
+      <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
+        <select value={labelFilter} onChange={e => setLabelFilter(e.target.value)}
+          className="h-7 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-400 outline-none cursor-pointer">
+          <option value="">All labels</option>
+          <option value="Help Needed">Help Needed</option>
+          <option value="Blocked">Blocked</option>
+          <option value="Waiting">Waiting</option>
+          <option value="Bug">Bug</option>
+          <option value="Feature">Feature</option>
+          <option value="Research">Research</option>
+        </select>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+          className="h-7 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-400 outline-none cursor-pointer">
+          <option value="created_at">Newest first</option>
+          <option value="due_date">Due date</option>
+          <option value="priority">Priority</option>
+        </select>
+      </div>
+
       {/* Overdue warning */}
       {overdueTasks.length > 0 && filter !== "overdue" && (
         <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2.5">
