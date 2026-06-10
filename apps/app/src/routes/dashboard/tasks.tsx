@@ -253,6 +253,11 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
 export function TasksPage() {
   const qc = useQueryClient();
   const { user } = useUser();
+
+  // Check for overdue tasks on page load and notify assignees
+  useEffect(() => {
+    apiClient.post("/tasks/check-overdue", {}).catch(() => {});
+  }, []);
   const [filter, setFilter] = useState("mine");
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
