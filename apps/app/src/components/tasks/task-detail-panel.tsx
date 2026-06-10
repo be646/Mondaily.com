@@ -60,7 +60,7 @@ function SeenBy({ views, currentUserId }: { views: TaskView[]; currentUserId: st
         )}
       </div>
       <span className="text-[11px] text-slate-600">
-        Seen by {others.length === 1 ? others[0].user_name : `${others.length} people`}
+        Seen by {others.length === 1 ? (others[0]?.user_name ?? "") : `${others.length} people`}
       </span>
     </div>
   );
