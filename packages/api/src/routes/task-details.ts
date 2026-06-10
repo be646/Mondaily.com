@@ -97,6 +97,50 @@ router.post("/:id/comments", async (c) => {
     .insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.user_name, content: body.content })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
+
+  // Get task details for notifications
+  const { data: task } = await supabase.from("tasks").select("title, assignee_id, workspace_id").eq("id", c.req.param("id")).single();
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+
+  if (task) {
+    // Notify task owner if commenter is not the owner
+    if (task.assignee_id && task.assignee_id !== userId) {
+      await supabase.from("notifications").insert({
+        workspace_id: workspaceId,
+        user_id: task.assignee_id,
+        title: `New comment on "${task.title}"`,
+        body: `${body.user_name}: ${body.content.slice(0, 80)}${body.content.length > 80 ? "..." : ""}`,
+        type: "comment",
+        task_id: c.req.param("id"),
+        is_read: false
+      });
+    }
+
+    // Parse @ mentions and notify mentioned users
+    const mentions = body.content.match(/@([\w\s]+?)(?=\s|$|[^a-zA-Z\s])/g) || [];
+    for (const mention of mentions) {
+      const mentionedName = mention.slice(1).trim();
+      const { data: mentionedMember } = await supabase
+        .from("workspace_members")
+        .select("user_id")
+        .eq("workspace_id", workspaceId)
+        .ilike("name", mentionedName)
+        .single();
+      if (mentionedMember && mentionedMember.user_id !== userId) {
+        await supabase.from("notifications").insert({
+          workspace_id: workspaceId,
+          user_id: mentionedMember.user_id,
+          title: `${body.user_name} mentioned you in "${task.title}"`,
+          body: body.content.slice(0, 100),
+          type: "mention",
+          task_id: c.req.param("id"),
+          is_read: false
+        });
+      }
+    }
+  }
+
   return c.json(data, 201);
 });
 
