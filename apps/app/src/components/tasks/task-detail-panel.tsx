@@ -5,7 +5,7 @@ import { useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
-interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; assignee_id?: string; reviewer_id?: string; reviewer_name?: string; review_result?: string; }
+interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; priority?: string; assignee_id?: string; reviewer_id?: string; reviewer_name?: string; review_result?: string; }
 interface ChecklistItem { id: string; text: string; completed: boolean; added_by_name: string; created_at: string; }
 interface Comment { id: string; content: string; user_name: string; user_id: string; created_at: string; }
 interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
@@ -165,6 +165,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [newComment, setNewComment] = useState("");
   const [uploading, setUploading] = useState(false);
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
+  const [localStatus, setLocalStatus] = useState(task.status || "todo");
+  const [localPriority, setLocalPriority] = useState(task.priority || "medium");
   const [showReviewerPicker, setShowReviewerPicker] = useState(false);
   const [showChangesInput, setShowChangesInput] = useState(false);
   const [changesNote, setChangesNote] = useState("");
@@ -173,7 +175,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setLocalLabels(task.labels || []); }, [task.id]);
+  useEffect(() => { setLocalLabels(task.labels || []); setLocalStatus(task.status || "todo"); setLocalPriority(task.priority || "medium"); }, [task.id]);
   useEffect(() => { apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch(() => {}); }, [task.id]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeTab]);
 
@@ -184,6 +186,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const viewsQ = useQuery({ queryKey: ["task-views", task.id], queryFn: () => apiClient.get<TaskView[]>(`/tasks/${task.id}/views`) });
 
   const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: onUpdate });
+  const updateTask = useMutation({
+    mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, fields),
+    onSuccess: onUpdate
+  });
   const assignReviewer = useMutation({
     mutationFn: async (member: Member) => {
       const newLabels = Array.from(new Set([...localLabels, "Need Review"]));
@@ -291,18 +297,65 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
       <div className="relative w-full max-w-lg bg-[#0f1116] border-l border-white/10 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-start gap-3 p-5 border-b border-white/10">
+        <div className="flex items-start gap-3 p-4 border-b border-white/10">
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-white leading-snug">{task.title}</h2>
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="text-base font-semibold text-white leading-snug">{task.title}</h2>
+              <button onClick={onClose} className="text-slate-400 hover:text-white shrink-0 mt-0.5"><X size={18}/></button>
+            </div>
             {task.notes && <p className="text-xs text-slate-500 mt-1">{task.notes}</p>}
-            {localLabels.length > 0 && (
+
+            {/* Status + Priority inline selectors */}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <select value={localStatus}
+                onChange={e => { setLocalStatus(e.target.value); updateTask.mutate({ status: e.target.value }); }}
+                className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="review">Needs Review</option>
+                <option value="done">Done</option>
+              </select>
+              <select value={localPriority}
+                onChange={e => { setLocalPriority(e.target.value); updateTask.mutate({ priority: e.target.value }); }}
+                className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+
+              {/* Send for Review button */}
+              {localStatus !== "review" && !task.review_result && (
+                <button onClick={() => setShowReviewerPicker(true)}
+                  className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+                  Send for Review →
+                </button>
+              )}
+              {localStatus === "review" && (
+                <span className="h-7 flex items-center rounded-lg border border-blue-400/20 bg-blue-400/5 px-3 text-xs text-blue-400">
+                  ⏳ In Review
+                </span>
+              )}
+              {task.review_result === "approved" && (
+                <span className="h-7 flex items-center rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 text-xs text-emerald-400">
+                  ✅ Approved
+                </span>
+              )}
+              {task.review_result === "changes_requested" && (
+                <span className="h-7 flex items-center rounded-lg border border-orange-400/20 bg-orange-400/5 px-3 text-xs text-orange-400">
+                  🔄 Changes Requested
+                </span>
+              )}
+            </div>
+
+            {/* Labels */}
+            {localLabels.filter(l => LABEL_COLORS[l]).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {localLabels.filter(l => LABEL_COLORS[l]).map(l => <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>)}
               </div>
             )}
             <SeenBy views={views} currentUserId={userId}/>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white shrink-0 mt-0.5"><X size={18}/></button>
         </div>
 
         {/* Tabs */}
