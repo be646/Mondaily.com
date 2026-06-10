@@ -240,10 +240,25 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
         <div className="flex items-start gap-3 p-4 border-b border-white/10">
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h2 className="text-base font-semibold text-white leading-snug">{task.title}</h2>
+              {editingTitle ? (
+                <input autoFocus value={titleVal} onChange={e => setTitleVal(e.target.value)}
+                  onBlur={() => { if (titleVal.trim() && titleVal !== task.title) updateTask.mutate({ title: titleVal } as any); setEditingTitle(false); }}
+                  onKeyDown={e => { if (e.key === "Enter") { if (titleVal.trim()) updateTask.mutate({ title: titleVal } as any); setEditingTitle(false); } if (e.key === "Escape") { setTitleVal(task.title); setEditingTitle(false); } }}
+                  className="flex-1 text-base font-semibold text-white bg-transparent border-b border-white/20 outline-none pb-0.5"/>
+              ) : (
+                <h2 onClick={() => setEditingTitle(true)} className="flex-1 text-base font-semibold text-white leading-snug cursor-text hover:text-slate-200" title="Click to edit">{task.title}</h2>
+              )}
               <button onClick={onClose} className="text-slate-400 hover:text-white shrink-0 mt-0.5"><X size={18}/></button>
             </div>
-            {task.notes && <p className="text-xs text-slate-500 mt-1">{task.notes}</p>}
+            {editingNotes ? (
+              <textarea autoFocus value={notesVal} onChange={e => setNotesVal(e.target.value)}
+                onBlur={() => { updateTask.mutate({ notes: notesVal } as any); setEditingNotes(false); }}
+                rows={2} className="text-xs text-slate-400 bg-transparent border-b border-white/10 outline-none w-full resize-none mt-1"/>
+            ) : (
+              <p onClick={() => setEditingNotes(true)} className="text-xs mt-1 cursor-text hover:text-slate-400 min-h-[16px]">
+                {task.notes ? <span className="text-slate-500">{task.notes}</span> : <span className="text-slate-700">Click to add notes...</span>}
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <select value={localStatus} onChange={e => { setLocalStatus(e.target.value); updateTask.mutate({ status: e.target.value }); }}
                 className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
