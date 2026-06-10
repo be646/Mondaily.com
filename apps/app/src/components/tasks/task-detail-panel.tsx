@@ -362,6 +362,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"} by {task.reviewer_name}
               </div>
             )}
+          </div>
           )}
 
           {/* Assignees */}
