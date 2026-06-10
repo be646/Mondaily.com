@@ -21,6 +21,7 @@ import { chatsRouter } from "./routes/chats";
 import { feedbackRouter } from "./routes/feedback";
 import { membersRouter } from "./routes/members";
 import { notificationsRouter } from "./routes/notifications";
+import { taskReviewsRouter } from "./routes/task-reviews";
 import { taskDetailsRouter } from "./routes/task-details";
 
 const app = new Hono();
@@ -49,6 +50,7 @@ app.route("/api/v1/chats", chatsRouter);
 app.route("/api/v1/feedback", feedbackRouter);
 app.route("/api/v1/members", membersRouter);
 app.route("/api/v1/notifications", notificationsRouter);
+app.route("/api/v1/tasks", taskReviewsRouter);
 app.route("/api/v1/tasks", taskDetailsRouter);
 app.route("/api/v1/tasks", tasksRouter);
 app.route("/api/v1", appDataRouter);
