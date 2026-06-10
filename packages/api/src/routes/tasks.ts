@@ -104,6 +104,10 @@ tasks.patch("/:id", async (c) => {
   }
   if (updateBody.due_date !== undefined)
     activities.push(updateBody.due_date ? `set due date to ${new Date(updateBody.due_date).toLocaleDateString()}` : "removed due date");
+  if (updateBody.title && oldTask && (updateBody.title as any) !== (oldTask as any).title)
+    activities.push(`renamed task to "${updateBody.title}"`);
+  if (updateBody.notes !== undefined)
+    activities.push(updateBody.notes ? `updated notes` : "removed notes");
   if (updateBody.completed === true)
     activities.push("marked task as complete");
   if (updateBody.completed === false)
