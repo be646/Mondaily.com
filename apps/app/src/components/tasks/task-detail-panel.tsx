@@ -186,19 +186,27 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
   const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: onUpdate });
   const assignReviewer = useMutation({
-    mutationFn: (member: Member) => apiClient.patch(`/tasks/${task.id}`, {
-      reviewer_id: member.user_id, reviewer_name: member.name || member.email,
-      status: "review", labels: Array.from(new Set([...localLabels, "Need Review"]))
-    }).then(async () => {
-      // Notify reviewer
-      await apiClient.post("/notifications", {
-        user_id: member.user_id,
-        title: "Task needs your review 👀",
-        body: `"${task.title}" has been sent to you for review`,
-        type: "review", task_id: task.id
+    mutationFn: async (member: Member) => {
+      const newLabels = Array.from(new Set([...localLabels, "Need Review"]));
+      await apiClient.patch(`/tasks/${task.id}`, {
+        reviewer_id: member.user_id,
+        reviewer_name: member.name || member.email,
+        status: "review",
+        labels: newLabels
       });
-    }),
-    onSuccess: () => { onUpdate(); setShowReviewerPicker(false); }
+      setLocalLabels(newLabels);
+      try {
+        await apiClient.post("/notifications", {
+          user_id: member.user_id,
+          title: "Task needs your review 👀",
+          body: `"${task.title}" was sent to you for review by ${userName}`,
+          type: "review",
+          task_id: task.id
+        });
+      } catch {}
+    },
+    onSuccess: () => { onUpdate(); setShowReviewerPicker(false); },
+    onError: (e) => { console.error("assignReviewer error", e); }
   });
 
   const reviewAction = useMutation({
@@ -327,28 +335,39 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
 
 
-            {/* Review actions for reviewer */}
-            {task.reviewer_id === userId && task.status === "review" && !task.review_result && (
-              <div className="mt-4 rounded-xl border border-blue-400/20 bg-blue-400/5 p-4">
-                <p className="text-sm font-medium text-blue-400 mb-1">You are the reviewer</p>
-                <p className="text-xs text-slate-500 mb-3">Review the task and take action</p>
-                <div className="flex gap-2">
-                  <button onClick={() => reviewAction.mutate("approved")}
-                    className="flex-1 h-9 rounded-lg bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-500 transition-colors">
-                    ✅ Approve
-                  </button>
-                  <button onClick={() => reviewAction.mutate("changes_requested")}
-                    className="flex-1 h-9 rounded-lg bg-orange-600 text-sm font-medium text-white hover:bg-orange-500 transition-colors">
-                    🔄 Request Changes
-                  </button>
+            {/* Review status banner */}
+            {task.status === "review" && task.reviewer_id && !task.review_result && (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/[.03] p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
+                  <p className="text-sm font-medium text-white">Pending Review</p>
                 </div>
+                <p className="text-xs text-slate-500 mb-3">Reviewer: <span className="text-slate-300">{task.reviewer_name}</span></p>
+                {task.reviewer_id === userId && (
+                  <>
+                    <p className="text-xs text-slate-500 mb-3">You are the assigned reviewer. Check the task details and take action.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => reviewAction.mutate("approved")} disabled={reviewAction.isPending}
+                        className="flex-1 h-9 rounded-lg bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50">
+                        ✅ Approve
+                      </button>
+                      <button onClick={() => reviewAction.mutate("changes_requested")} disabled={reviewAction.isPending}
+                        className="flex-1 h-9 rounded-lg bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 transition-colors disabled:opacity-50">
+                        🔄 Request Changes
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
             {/* Review result */}
             {task.review_result && (
-              <div className={`mt-4 rounded-xl border p-3 text-sm ${task.review_result === "approved" ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-400" : "border-orange-400/20 bg-orange-400/5 text-orange-400"}`}>
-                {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"} by {task.reviewer_name}
+              <div className={`mt-4 rounded-xl p-4 ${task.review_result === "approved" ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-orange-500/10 border border-orange-500/20"}`}>
+                <p className={`text-sm font-medium ${task.review_result === "approved" ? "text-emerald-400" : "text-orange-400"}`}>
+                  {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">by {task.reviewer_name} · See Comments tab for details</p>
               </div>
             )}
           </div>
@@ -488,24 +507,32 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
       {/* Reviewer picker modal */}
       {showReviewerPicker && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-6">
-          <div className="w-full max-w-sm rounded-xl border border-yellow-400/20 bg-[#111419] p-5 shadow-2xl">
-            <h3 className="text-sm font-semibold text-yellow-400 mb-1">Assign Reviewer</h3>
-            <p className="text-xs text-slate-500 mb-4">Who should review this task?</p>
-            <div className="space-y-2 max-h-60 overflow-auto">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-6">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0d0f13] p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Send for Review</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Choose who reviews this task</p>
+              </div>
+              <button onClick={() => setShowReviewerPicker(false)} className="text-slate-600 hover:text-white"><X size={16}/></button>
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-auto">
               {members.length === 0 && <p className="text-sm text-slate-600 text-center py-4">No workspace members found</p>}
               {members.map(m => (
-                <button key={m.user_id} onClick={() => assignReviewer.mutate(m)}
+                <button key={m.user_id} onClick={() => { if (!assignReviewer.isPending) assignReviewer.mutate(m); }}
                   disabled={assignReviewer.isPending}
-                  className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] px-3 py-2.5 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-colors disabled:opacity-50">
-                  <Avatar name={m.name || m.email}/>
-                  <span className="text-sm text-slate-200">{m.name || m.email}</span>
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[.05] transition-colors disabled:opacity-50 group">
+                  <Avatar name={m.name || m.email} size={8}/>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm text-white">{m.name || m.email}</p>
+                    <p className="text-xs text-slate-600">Workspace member</p>
+                  </div>
+                  <span className="text-xs text-slate-600 group-hover:text-slate-400 transition-colors">
+                    {assignReviewer.isPending ? "Sending..." : "Assign →"}
+                  </span>
                 </button>
               ))}
             </div>
-            <button onClick={() => setShowReviewerPicker(false)} className="mt-4 w-full h-9 rounded-lg border border-white/10 text-sm text-slate-400 hover:text-white transition-colors">
-              Cancel
-            </button>
           </div>
         </div>
       )}

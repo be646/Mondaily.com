@@ -97,10 +97,14 @@ tasks.patch("/:id/review-action", async (c) => {
 
   if (action === "approved") {
     updates.status = "done";
+    updates.completed = true;
     updates.labels = [];
   } else {
     updates.status = "in_progress";
     updates.labels = [];
+    updates.reviewer_id = null;
+    updates.reviewer_name = null;
+    updates.review_result = null;
   }
 
   const { data, error } = await supabase
