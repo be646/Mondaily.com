@@ -111,6 +111,18 @@ tasks.patch("/:id/review-action", async (c) => {
 
   if (error) return c.json({ error: error.message }, 500);
 
+  // Auto-comment on the task
+  const commentText = action === "approved"
+    ? `✅ Task approved by ${reviewer_name}.`
+    : `🔄 Changes requested by ${reviewer_name}. Please review and update the task before resubmitting for review.`;
+
+  await supabase.from("task_comments").insert({
+    task_id: c.req.param("id"),
+    user_id: userId,
+    user_name: reviewer_name,
+    content: commentText
+  });
+
   // Notify task owner
   const msg = action === "approved"
     ? `${reviewer_name} approved your task`
