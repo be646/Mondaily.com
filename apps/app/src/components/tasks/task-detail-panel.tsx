@@ -5,7 +5,7 @@ import { useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
-interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; assignee_id?: string; }
+interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; assignee_id?: string; reviewer_id?: string; reviewer_name?: string; review_result?: string; }
 interface ChecklistItem { id: string; text: string; completed: boolean; added_by_name: string; created_at: string; }
 interface Comment { id: string; content: string; user_name: string; user_id: string; created_at: string; }
 interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
@@ -168,6 +168,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [newComment, setNewComment] = useState("");
   const [uploading, setUploading] = useState(false);
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
+  const [showReviewerPicker, setShowReviewerPicker] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -184,6 +185,30 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const viewsQ = useQuery({ queryKey: ["task-views", task.id], queryFn: () => apiClient.get<TaskView[]>(`/tasks/${task.id}/views`) });
 
   const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: onUpdate });
+  const assignReviewer = useMutation({
+    mutationFn: (member: Member) => apiClient.patch(`/tasks/${task.id}`, {
+      reviewer_id: member.user_id, reviewer_name: member.name || member.email,
+      status: "review", labels: [...localLabels.filter(l => l !== "Need Review"), "Need Review"]
+    }).then(async () => {
+      // Notify reviewer
+      await apiClient.post("/notifications", {
+        user_id: member.user_id,
+        title: "Task needs your review 👀",
+        body: `"${task.title}" has been sent to you for review`,
+        type: "review", task_id: task.id
+      });
+    }),
+    onSuccess: () => { onUpdate(); setShowReviewerPicker(false); }
+  });
+
+  const reviewAction = useMutation({
+    mutationFn: (action: "approved" | "changes_requested") =>
+      apiClient.patch(`/tasks/${task.id}/review-action`, {
+        action, reviewer_name: userName, owner_id: task.assignee_id || ""
+      }),
+    onSuccess: () => { onUpdate(); commentsQ.refetch(); }
+  });
+
   const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => assigneesQ.refetch() });
   const removeAssignee = useMutation({ mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`), onSuccess: () => assigneesQ.refetch() });
   const addCheckItem = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }), onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); } });
@@ -214,6 +239,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const isOwner = !task.assignee_id || task.assignee_id === userId;
 
   const toggleLabel = (label: string) => {
+    if (label === "Need Review" && !localLabels.includes(label)) {
+      setShowReviewerPicker(true);
+      return;
+    }
     const nl = localLabels.includes(label) ? localLabels.filter(l => l !== label) : [...localLabels, label];
     setLocalLabels(nl); updateLabels.mutate(nl);
   };
@@ -286,11 +315,53 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors border ${active ? LABEL_COLORS[label] : "border-white/[.06] text-slate-400 hover:border-white/10 hover:text-white"}`}>
                     <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${active ? "border-current" : "border-white/20"}`}>{active && <Check size={10}/>}</div>
                     <span className="flex-1 text-left">{label}</span>
-                    {label === "Need Review" && <span className="text-[10px] opacity-60">→ Review queue</span>}
+                    {label === "Need Review" && <span className="text-[10px] opacity-60">→ Assign reviewer</span>}
                   </button>
                 );
               })}
             </div>
+
+            {/* Reviewer picker */}
+            {showReviewerPicker && (
+              <div className="mt-4 rounded-xl border border-yellow-400/20 bg-yellow-400/5 p-4">
+                <p className="text-sm font-medium text-yellow-400 mb-3">Who should review this task?</p>
+                <div className="space-y-2">
+                  {members.map(m => (
+                    <button key={m.user_id} onClick={() => assignReviewer.mutate(m)}
+                      className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] px-3 py-2.5 hover:border-yellow-400/30 hover:bg-yellow-400/5 transition-colors">
+                      <Avatar name={m.name || m.email}/>
+                      <span className="text-sm text-slate-300">{m.name || m.email}</span>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setShowReviewerPicker(false)} className="mt-2 text-xs text-slate-600 hover:text-slate-400">Cancel</button>
+              </div>
+            )}
+
+            {/* Review actions for reviewer */}
+            {task.reviewer_id === userId && task.status === "review" && !task.review_result && (
+              <div className="mt-4 rounded-xl border border-blue-400/20 bg-blue-400/5 p-4">
+                <p className="text-sm font-medium text-blue-400 mb-1">You are the reviewer</p>
+                <p className="text-xs text-slate-500 mb-3">Review the task and take action</p>
+                <div className="flex gap-2">
+                  <button onClick={() => reviewAction.mutate("approved")}
+                    className="flex-1 h-9 rounded-lg bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-500 transition-colors">
+                    ✅ Approve
+                  </button>
+                  <button onClick={() => reviewAction.mutate("changes_requested")}
+                    className="flex-1 h-9 rounded-lg bg-orange-600 text-sm font-medium text-white hover:bg-orange-500 transition-colors">
+                    🔄 Request Changes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Review result */}
+            {task.review_result && (
+              <div className={`mt-4 rounded-xl border p-3 text-sm ${task.review_result === "approved" ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-400" : "border-orange-400/20 bg-orange-400/5 text-orange-400"}`}>
+                {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"} by {task.reviewer_name}
+              </div>
+            )}
           )}
 
           {/* Assignees */}
