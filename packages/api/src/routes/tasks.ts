@@ -82,4 +82,51 @@ tasks.delete("/:id", async (c) => {
   return c.body(null, 204);
 });
 
+// PATCH /:id/review-action - approve or request changes
+tasks.patch("/:id/review-action", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const { action, reviewer_name, owner_id } = await c.req.json() as { action: "approved" | "changes_requested"; reviewer_name: string; owner_id: string };
+
+  const updates: Record<string, any> = {
+    review_result: action,
+    reviewer_id: userId,
+    reviewer_name,
+    reviewed_at: new Date().toISOString(),
+  };
+
+  if (action === "approved") {
+    updates.status = "done";
+    updates.labels = [];
+  } else {
+    updates.status = "in_progress";
+    updates.labels = [];
+  }
+
+  const { data, error } = await supabase
+    .from("tasks").update(updates)
+    .eq("id", c.req.param("id"))
+    .eq("workspace_id", workspaceId)
+    .select().single();
+
+  if (error) return c.json({ error: error.message }, 500);
+
+  // Notify task owner
+  const msg = action === "approved"
+    ? `${reviewer_name} approved your task`
+    : `${reviewer_name} requested changes on your task`;
+
+  await supabase.from("notifications").insert({
+    workspace_id: workspaceId,
+    user_id: owner_id,
+    title: action === "approved" ? "Task Approved ✅" : "Changes Requested 🔄",
+    body: msg,
+    type: "review",
+    task_id: c.req.param("id"),
+    is_read: false
+  });
+
+  return c.json(data);
+});
+
 export default tasks;
