@@ -9,14 +9,18 @@ tasks.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
   const filter = c.req.query("filter") || "mine";
+  const labelFilter = c.req.query("label") || "";
+  const sortBy = c.req.query("sort") || "created_at";
+  const sortDir = c.req.query("dir") || "desc";
 
   let query = supabase
     .from("tasks")
     .select("*")
     .eq("workspace_id", workspaceId)
-    .order("created_at", { ascending: false });
+    .order(sortBy === "due_date" ? "due_date" : sortBy === "priority" ? "priority" : "created_at", { ascending: sortDir === "asc", nullsFirst: false });
 
-  if (filter === "mine") query = query.or(`assignee_id.eq.${userId},assignee_id.is.null`);
+  if (filter === "mine") query = query.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
+  if (labelFilter) query = query.contains("labels", [labelFilter]);
   if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
   if (filter === "review") query = query.eq("status", "review");
 

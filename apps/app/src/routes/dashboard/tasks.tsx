@@ -264,6 +264,8 @@ export function TasksPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const [labelFilter, setLabelFilter] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
   const [editTask, setEditTask] = useState<Task | null>(null);
 
   const query = useQuery({ queryKey: ["tasks", filter], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}`) });
