@@ -160,9 +160,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const attachmentsQ = useQuery({ queryKey: ["task-attachments", task.id], queryFn: () => apiClient.get<Attachment[]>(`/tasks/${task.id}/attachments`) });
   const assigneesQ = useQuery({ queryKey: ["task-assignees", task.id], queryFn: () => apiClient.get<Assignee[]>(`/tasks/${task.id}/assignees`) });
   const viewsQ = useQuery({ queryKey: ["task-views", task.id], queryFn: () => apiClient.get<TaskView[]>(`/tasks/${task.id}/views`) });
+  const activityQ = useQuery({ queryKey: ["task-activity", task.id], queryFn: () => apiClient.get<{id:string;user_name:string;action:string;created_at:string}[]>(`/tasks/${task.id}/activity`) });
 
   const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: onUpdate });
-  const updateTask = useMutation({ mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, fields), onSuccess: onUpdate });
+  const updateTask = useMutation({ mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, { ...fields, _user_name: userName }), onSuccess: onUpdate });
   const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => assigneesQ.refetch() });
   const removeAssignee = useMutation({ mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`), onSuccess: () => assigneesQ.refetch() });
   const addCheckItem = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }), onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); } });
@@ -185,6 +186,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
   const checklist = checklistQ.data ?? [];
   const comments = commentsQ.data ?? [];
+  const activity = activityQ.data ?? [];
   const attachments = attachmentsQ.data ?? [];
   const assignees = assigneesQ.data ?? [];
   const views = viewsQ.data ?? [];
@@ -367,10 +369,29 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
           {activeTab === "comments" && (
             <div className="flex flex-col h-full">
               <div className="flex-1 space-y-3 pb-3">
-                {comments.length === 0 && <p className="text-sm text-slate-600 text-center py-6">No comments yet</p>}
-                {comments.map((c, i) => (
-                  <CommentBubble key={c.id} comment={c} taskId={task.id} userId={userId} userName={userName} isLast={i === comments.length - 1} views={views}/>
-                ))}
+                {comments.length === 0 && activity.length === 0 && <p className="text-sm text-slate-600 text-center py-6">No activity yet</p>}
+                {(() => {
+                  const items = [
+                    ...comments.map(c => ({ type: "comment" as const, date: c.created_at, data: c })),
+                    ...activity.map(a => ({ type: "activity" as const, date: a.created_at, data: a }))
+                  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                  return items.map((item, i) => {
+                    if (item.type === "activity") {
+                      return (
+                        <div key={item.data.id} className="flex items-center gap-2 py-1">
+                          <div className="h-px flex-1 bg-white/[.04]"/>
+                          <span className="text-[11px] text-slate-600 shrink-0">
+                            <span className="text-slate-500">{item.data.user_name}</span> {item.data.action} · {new Date(item.data.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          <div className="h-px flex-1 bg-white/[.04]"/>
+                        </div>
+                      );
+                    }
+                    const c = item.data as Comment;
+                    const isLast = i === items.length - 1 || items.slice(i+1).every(x => x.type === "activity");
+                    return <CommentBubble key={c.id} comment={c} taskId={task.id} userId={userId} userName={userName} isLast={isLast} views={views}/>;
+                  });
+                })()}
                 <div ref={messagesEndRef}/>
               </div>
               <div className="border-t border-white/[.06] pt-3 relative sticky bottom-0 bg-[#0f1116]">

@@ -209,4 +209,26 @@ router.post("/:id/comments/:commentId/reactions", async (c) => {
   return c.json(data);
 });
 
+// ── Activity ─────────────────────────────────────────────
+router.get("/:id/activity", async (c) => {
+  const { data } = await supabase
+    .from("task_activity")
+    .select("*")
+    .eq("task_id", c.req.param("id"))
+    .order("created_at", { ascending: true });
+  return c.json(data ?? []);
+});
+
+router.post("/:id/activity", async (c) => {
+  const { action, user_name } = await c.req.json() as { action: string; user_name: string };
+  const { data, error } = await supabase.from("task_activity").insert({
+    task_id: c.req.param("id"),
+    user_id: c.get("userId"),
+    user_name,
+    action
+  }).select().single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data, 201);
+});
+
 export { router as taskDetailsRouter };
