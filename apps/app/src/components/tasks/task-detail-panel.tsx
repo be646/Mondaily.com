@@ -25,23 +25,17 @@ const LABEL_COLORS: Record<string, string> = {
 const LABELS = Object.keys(LABEL_COLORS);
 const QUICK_EMOJIS = ["👍","❤️","😂","🎉","🔥","👀","😮","😢","🙏","✅","💯","🚀","⚡","🎯","💪","😎","🤔","👏","🥳","😅"];
 
-function Avatar({ name, size = 6 }: { name: string; size?: number }) {
+function Avatar({ name, size = 7 }: { name: string; size?: number }) {
   const colors = ["bg-red-500/20 text-red-400","bg-blue-500/20 text-blue-400","bg-green-500/20 text-green-400","bg-purple-500/20 text-purple-400","bg-orange-500/20 text-orange-400","bg-cyan-500/20 text-cyan-400"];
   const color = colors[name.charCodeAt(0) % colors.length];
-  return (
-    <div className={`h-${size} w-${size} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>
-      {name.charAt(0).toUpperCase()}
-    </div>
-  );
+  return <div className={`h-${size} w-${size} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
 }
 
 function SeenBy({ views, currentUserId }: { views: TaskView[]; currentUserId: string }) {
-  const [showAll, setShowAll] = useState(false);
   const others = views.filter(v => v.user_id !== currentUserId);
   if (others.length === 0) return null;
   const visible = others.slice(0, 5);
   const extra = others.length - 5;
-
   return (
     <div className="flex items-center gap-2 mt-2">
       <div className="flex items-center">
@@ -51,26 +45,18 @@ function SeenBy({ views, currentUserId }: { views: TaskView[]; currentUserId: st
             {v.user_name.charAt(0).toUpperCase()}
           </div>
         ))}
-        {extra > 0 && (
-          <div className="-ml-1.5 h-5 w-5 rounded-full bg-slate-600 border border-[#0f1116] flex items-center justify-center text-[9px] font-medium text-slate-300">
-            +{extra}
-          </div>
-        )}
+        {extra > 0 && <div className="-ml-1.5 h-5 w-5 rounded-full bg-slate-600 border border-[#0f1116] flex items-center justify-center text-[9px] font-medium text-slate-300">+{extra}</div>}
       </div>
-      <span className="text-[11px] text-slate-600">
-        Seen by {others.length === 1 ? (others[0]?.user_name ?? "") : `${others.length} people`}
-      </span>
+      <span className="text-[11px] text-slate-600">Seen by {others.length === 1 ? (others[0]?.user_name ?? "") : `${others.length} people`}</span>
     </div>
   );
 }
 
 function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
-  comment: Comment; taskId: string; userId: string; userName: string;
-  isLast: boolean; views: TaskView[];
+  comment: Comment; taskId: string; userId: string; userName: string; isLast: boolean; views: TaskView[];
 }) {
   const isMe = comment.user_id === userId;
   const [showEmojis, setShowEmojis] = useState(false);
-
   const reactionsQ = useQuery({
     queryKey: ["reactions", comment.id],
     queryFn: () => apiClient.get<Reaction[]>(`/tasks/${taskId}/comments/${comment.id}/reactions`)
@@ -79,55 +65,45 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
     mutationFn: (emoji: string) => apiClient.post(`/tasks/${taskId}/comments/${comment.id}/reactions`, { emoji, user_name: userName }),
     onSuccess: () => reactionsQ.refetch()
   });
-
   const reactions = reactionsQ.data ?? [];
   const grouped: Record<string, Reaction[]> = {};
   reactions.forEach(r => { if (!grouped[r.emoji]) grouped[r.emoji] = []; grouped[r.emoji]!.push(r); });
+  const seenByOthers = isLast && isMe ? views.filter(v => v.user_id !== userId) : [];
 
   const renderContent = (text: string) =>
     text.split(/(@\w[\w\s]*)/g).map((part, i) =>
       part.startsWith("@") ? <span key={i} className={`font-medium ${isMe ? "text-white/80" : "text-red-400"}`}>{part}</span> : <span key={i}>{part}</span>
     );
 
-  const seenByOthers = isLast && isMe && views.filter(v => v.user_id !== userId);
-
   return (
     <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} group`}>
       {!isMe && <span className="text-[11px] text-slate-500 ml-2 mb-0.5">{comment.user_name}</span>}
       <div className={`relative max-w-[80%] ${isMe ? "ml-8" : "mr-8"}`}>
-        {/* Bubble */}
-        <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed relative ${isMe ? "bg-red-600 text-white rounded-br-sm" : "bg-white/[.07] text-slate-200 rounded-bl-sm"}`}>
+        <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${isMe ? "bg-red-600 text-white rounded-br-sm" : "bg-white/[.07] text-slate-200 rounded-bl-sm"}`}>
           <p className="whitespace-pre-wrap">{renderContent(comment.content)}</p>
           <span className={`text-[10px] mt-0.5 block ${isMe ? "text-red-200/70 text-right" : "text-slate-600 text-right"}`}>
             {new Date(comment.created_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
-
-        {/* Emoji picker on hover */}
         <button onClick={() => setShowEmojis(!showEmojis)}
           className={`absolute top-1 ${isMe ? "-left-7" : "-right-7"} opacity-0 group-hover:opacity-100 transition-opacity text-slate-600 hover:text-slate-300 text-sm`}>
           😊
         </button>
       </div>
-
-      {/* Emoji picker */}
       {showEmojis && (
-        <div className={`flex flex-wrap gap-1 mt-1 p-2 rounded-xl border border-white/10 bg-[#161820] shadow-xl w-fit max-w-[220px] ${isMe ? "mr-0" : "ml-0"}`}>
+        <div className={`flex flex-wrap gap-1 mt-1 p-2 rounded-xl border border-white/10 bg-[#161820] shadow-xl w-fit max-w-[220px]`}>
           {QUICK_EMOJIS.map(e => (
             <button key={e} onClick={() => { toggleReaction.mutate(e); setShowEmojis(false); }}
               className="text-base hover:scale-125 transition-transform p-0.5">{e}</button>
           ))}
         </div>
       )}
-
-      {/* Reactions */}
       {Object.keys(grouped).length > 0 && (
         <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? "justify-end" : "justify-start"}`}>
           {Object.entries(grouped).map(([emoji, users]) => {
             const iMine = users.some(u => u.user_id === userId);
             return (
-              <button key={emoji} onClick={() => toggleReaction.mutate(emoji)}
-                title={users.map(u => u.user_name).join(", ")}
+              <button key={emoji} onClick={() => toggleReaction.mutate(emoji)} title={users.map(u => u.user_name).join(", ")}
                 className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[.04] border-white/10 text-slate-400 hover:border-white/20"}`}>
                 <span>{emoji}</span><span>{users.length}</span>
               </button>
@@ -135,9 +111,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
           })}
         </div>
       )}
-
-      {/* Seen indicator on last message */}
-      {seenByOthers && seenByOthers.length > 0 && (
+      {seenByOthers.length > 0 && (
         <div className="flex items-center gap-1 mt-0.5 mr-1">
           <CheckCheck size={12} className="text-blue-400"/>
           <div className="flex">
@@ -168,15 +142,18 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
   const [localStatus, setLocalStatus] = useState(task.status || "todo");
   const [localPriority, setLocalPriority] = useState(task.priority || "medium");
-
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setLocalLabels(task.labels || []); setLocalStatus(task.status || "todo"); setLocalPriority(task.priority || "medium"); }, [task.id]);
+  useEffect(() => {
+    setLocalLabels(task.labels || []);
+    setLocalStatus(task.status || "todo");
+    setLocalPriority(task.priority || "medium");
+  }, [task.id]);
+
   useEffect(() => { apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch(() => {}); }, [task.id]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeTab]);
 
   const checklistQ = useQuery({ queryKey: ["task-checklist", task.id], queryFn: () => apiClient.get<ChecklistItem[]>(`/tasks/${task.id}/checklist`) });
   const commentsQ = useQuery({ queryKey: ["task-comments", task.id], queryFn: () => apiClient.get<Comment[]>(`/tasks/${task.id}/comments`) });
@@ -185,14 +162,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const viewsQ = useQuery({ queryKey: ["task-views", task.id], queryFn: () => apiClient.get<TaskView[]>(`/tasks/${task.id}/views`) });
 
   const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: onUpdate });
-  const updateTask = useMutation({
-    mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, fields),
-    onSuccess: onUpdate
-  });
-
-
-
-
+  const updateTask = useMutation({ mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, fields), onSuccess: onUpdate });
   const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => assigneesQ.refetch() });
   const removeAssignee = useMutation({ mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`), onSuccess: () => assigneesQ.refetch() });
   const addCheckItem = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }), onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); } });
@@ -223,15 +193,6 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const isOwner = !task.assignee_id || task.assignee_id === userId;
 
   const toggleLabel = (label: string) => {
-    if (label === "Need Review" && !localLabels.includes(label)) {
-      setShowReviewerPicker(true);
-      return;
-    }
-    if (label === "Need Review" && localLabels.includes(label)) {
-      const nl = localLabels.filter(l => l !== label);
-      setLocalLabels(nl); updateLabels.mutate(nl);
-      return;
-    }
     const nl = localLabels.includes(label) ? localLabels.filter(l => l !== label) : [...localLabels, label];
     setLocalLabels(nl); updateLabels.mutate(nl);
   };
@@ -254,7 +215,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     .filter(m => (m.name || m.email).toLowerCase().includes(mentionSearch.toLowerCase()));
 
   const tabs = [
-    { key: "labels", label: "Labels", count: localLabels.length || 0 },
+    { key: "labels", label: "Labels", count: localLabels.filter(l => LABEL_COLORS[l]).length || 0 },
     { key: "assignees", label: "Assignees", count: assignees.length },
     { key: "review", label: "Review", count: 0 },
     { key: "checklist", label: "Checklist", count: checklist.length ? `${completedCount}/${checklist.length}` : 0 },
@@ -275,51 +236,26 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               <button onClick={onClose} className="text-slate-400 hover:text-white shrink-0 mt-0.5"><X size={18}/></button>
             </div>
             {task.notes && <p className="text-xs text-slate-500 mt-1">{task.notes}</p>}
-
-            {/* Status + Priority inline selectors */}
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <select value={localStatus}
-                onChange={e => { setLocalStatus(e.target.value); updateTask.mutate({ status: e.target.value }); }}
+              <select value={localStatus} onChange={e => { setLocalStatus(e.target.value); updateTask.mutate({ status: e.target.value }); }}
                 className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
                 <option value="review">Needs Review</option>
                 <option value="done">Done</option>
               </select>
-              <select value={localPriority}
-                onChange={e => { setLocalPriority(e.target.value); updateTask.mutate({ priority: e.target.value }); }}
+              <select value={localPriority} onChange={e => { setLocalPriority(e.target.value); updateTask.mutate({ priority: e.target.value }); }}
                 className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
                 <option value="urgent">Urgent</option>
               </select>
-
-              {/* Review tab shortcut */}
-              {localStatus !== "review" && !task.review_result && (
-                <button onClick={() => setActiveTab("review")}
-                  className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
-                  Send for Review →
-                </button>
-              )}
-              {localStatus === "review" && (
-                <span className="h-7 flex items-center rounded-lg border border-blue-400/20 bg-blue-400/5 px-3 text-xs text-blue-400">
-                  ⏳ In Review
-                </span>
-              )}
-              {task.review_result === "approved" && (
-                <span className="h-7 flex items-center rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 text-xs text-emerald-400">
-                  ✅ Approved
-                </span>
-              )}
-              {task.review_result === "changes_requested" && (
-                <span className="h-7 flex items-center rounded-lg border border-orange-400/20 bg-orange-400/5 px-3 text-xs text-orange-400">
-                  🔄 Changes Requested
-                </span>
-              )}
+              <button onClick={() => setActiveTab("review")}
+                className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+                {localStatus === "review" ? "⏳ In Review" : task.review_result === "approved" ? "✅ Approved" : task.review_result === "changes_requested" ? "🔄 Changes" : "Send for Review →"}
+              </button>
             </div>
-
-            {/* Labels */}
             {localLabels.filter(l => LABEL_COLORS[l]).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {localLabels.filter(l => LABEL_COLORS[l]).map(l => <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>)}
@@ -344,9 +280,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
           {/* Labels */}
           {activeTab === "labels" && (
             <div className="space-y-2">
-
-
-              <p className="text-xs text-slate-500 mb-3">Select labels. "Need Review" moves to review queue.</p>
+              <p className="text-xs text-slate-500 mb-3">Add tags to this task.</p>
               {LABELS.map(label => {
                 const active = localLabels.includes(label);
                 return (
@@ -354,67 +288,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors border ${active ? LABEL_COLORS[label] : "border-white/[.06] text-slate-400 hover:border-white/10 hover:text-white"}`}>
                     <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${active ? "border-current" : "border-white/20"}`}>{active && <Check size={10}/>}</div>
                     <span className="flex-1 text-left">{label}</span>
-                    {label === "Need Review" && <span className="text-[10px] opacity-60">→ Assign reviewer</span>}
                   </button>
                 );
               })}
-
-
-
-            {/* Review status banner */}
-            {task.status === "review" && task.reviewer_id && !task.review_result && (
-              <div className="mt-4 rounded-xl border border-white/10 bg-white/[.03] p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
-                  <p className="text-sm font-medium text-white">Pending Review</p>
-                </div>
-                <p className="text-xs text-slate-500 mb-3">Reviewer: <span className="text-slate-300">{task.reviewer_name}</span></p>
-                {task.reviewer_id === userId && (
-                  <>
-                    <p className="text-xs text-slate-500 mb-3">You are the assigned reviewer. Check the task and take action.</p>
-                    {!showChangesInput ? (
-                      <div className="flex gap-2">
-                        <button onClick={() => reviewAction.mutate({ action: "approved" })} disabled={reviewAction.isPending}
-                          className="flex-1 h-9 rounded-lg bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50">
-                          ✅ Approve
-                        </button>
-                        <button onClick={() => setShowChangesInput(true)}
-                          className="flex-1 h-9 rounded-lg bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 transition-colors">
-                          🔄 Request Changes
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs text-slate-400">What needs to be changed?</p>
-                        <textarea value={changesNote} onChange={e => setChangesNote(e.target.value)}
-                          placeholder="Describe what needs to be changed or improved..."
-                          rows={3} autoFocus
-                          className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
-                        <div className="flex gap-2">
-                          <button onClick={() => setShowChangesInput(false)} className="flex-1 h-8 rounded-lg border border-white/10 text-xs text-slate-400 hover:text-white">Cancel</button>
-                          <button onClick={() => changesNote.trim() && reviewAction.mutate({ action: "changes_requested", note: changesNote })}
-                            disabled={!changesNote.trim() || reviewAction.isPending}
-                            className="flex-1 h-8 rounded-lg bg-orange-600 text-xs font-medium text-white disabled:opacity-40 hover:bg-orange-500">
-                            Send Feedback
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Review result */}
-            {task.review_result && (
-              <div className={`mt-4 rounded-xl p-4 ${task.review_result === "approved" ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-orange-500/10 border border-orange-500/20"}`}>
-                <p className={`text-sm font-medium ${task.review_result === "approved" ? "text-emerald-400" : "text-orange-400"}`}>
-                  {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">by {task.reviewer_name} · See Comments tab for details</p>
-              </div>
-            )}
-          </div>
+            </div>
           )}
 
           {/* Assignees */}
@@ -486,14 +363,13 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             </div>
           )}
 
-          {/* Comments - Telegram style */}
+          {/* Comments */}
           {activeTab === "comments" && (
             <div className="flex flex-col h-full">
               <div className="flex-1 space-y-3 pb-3">
-                {comments.length === 0 && <p className="text-sm text-slate-600 text-center py-6">No comments yet. Start the conversation!</p>}
+                {comments.length === 0 && <p className="text-sm text-slate-600 text-center py-6">No comments yet</p>}
                 {comments.map((c, i) => (
-                  <CommentBubble key={c.id} comment={c} taskId={task.id} userId={userId} userName={userName}
-                    isLast={i === comments.length - 1} views={views}/>
+                  <CommentBubble key={c.id} comment={c} taskId={task.id} userId={userId} userName={userName} isLast={i === comments.length - 1} views={views}/>
                 ))}
                 <div ref={messagesEndRef}/>
               </div>
@@ -501,8 +377,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 {showMentions && mentionMembers.length > 0 && (
                   <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-white/10 bg-[#161820] shadow-xl overflow-hidden z-10">
                     {mentionMembers.slice(0, 5).map(m => (
-                      <button key={m.user_id} onClick={() => insertMention(m.name || m.email)}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/[.06]">
+                      <button key={m.user_id} onClick={() => insertMention(m.name || m.email)} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/[.06]">
                         <Avatar name={m.name || m.email} size={6}/>{m.name || m.email}
                       </button>
                     ))}
@@ -511,8 +386,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <div className="flex gap-2 items-end">
                   <textarea ref={commentRef} value={newComment} onChange={handleCommentInput}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && newComment.trim()) { e.preventDefault(); addComment.mutate(); } }}
-                    placeholder="Message... @ to mention"
-                    rows={1}
+                    placeholder="Message... @ to mention" rows={1}
                     className="flex-1 rounded-2xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20 max-h-32"/>
                   <button onClick={() => newComment.trim() && addComment.mutate()} disabled={!newComment.trim()}
                     className="h-9 w-9 rounded-full bg-red-600 flex items-center justify-center text-white disabled:opacity-40 shrink-0">
@@ -553,8 +427,6 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
         </div>
       </div>
-
-
     </div>
   );
 }
