@@ -44,8 +44,8 @@ function CommentItem({ comment, taskId, userId, userName, assignees, onDelete }:
 
   const reactions = reactionsQ.data ?? [];
   const grouped = reactions.reduce<Record<string, Reaction[]>>((acc, r) => {
-    acc[r.emoji] = acc[r.emoji] || [];
-    acc[r.emoji].push(r);
+    if (!acc[r.emoji]) acc[r.emoji] = [];
+    acc[r.emoji]!.push(r);
     return acc;
   }, {});
 
