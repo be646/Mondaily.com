@@ -163,11 +163,11 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const activityQ = useQuery({ queryKey: ["task-activity", task.id], queryFn: () => apiClient.get<{id:string;user_name:string;action:string;created_at:string}[]>(`/tasks/${task.id}/activity`) });
 
   const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: onUpdate });
-  const updateTask = useMutation({ mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, { ...fields, _user_name: userName }), onSuccess: onUpdate });
-  const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => assigneesQ.refetch() });
+  const updateTask = useMutation({ mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, { ...fields, _user_name: userName }), onSuccess: () => { onUpdate(); activityQ.refetch(); } });
+  const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => { assigneesQ.refetch(); activityQ.refetch(); } });
   const removeAssignee = useMutation({ mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`), onSuccess: () => assigneesQ.refetch() });
-  const addCheckItem = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }), onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); } });
-  const toggleCheckItem = useMutation({ mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) => apiClient.patch(`/tasks/${task.id}/checklist/${itemId}`, { completed }), onSuccess: () => checklistQ.refetch() });
+  const addCheckItem = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }), onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); activityQ.refetch(); } });
+  const toggleCheckItem = useMutation({ mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) => apiClient.patch(`/tasks/${task.id}/checklist/${itemId}`, { completed, _user_name: userName }), onSuccess: () => { checklistQ.refetch(); activityQ.refetch(); } });
   const deleteCheckItem = useMutation({ mutationFn: (id: string) => apiClient.delete(`/tasks/${task.id}/checklist/${id}`), onSuccess: () => checklistQ.refetch() });
   const addComment = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/comments`, { content: newComment, user_name: userName }), onSuccess: () => { setNewComment(""); commentsQ.refetch(); } });
   const deleteComment = useMutation({ mutationFn: (id: string) => apiClient.delete(`/tasks/${task.id}/comments/${id}`), onSuccess: () => commentsQ.refetch() });

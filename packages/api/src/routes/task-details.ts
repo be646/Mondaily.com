@@ -68,7 +68,8 @@ router.patch("/:id/checklist/:itemId", async (c) => {
   if (error) return c.json({ error: error.message }, 500);
   if (body.completed !== undefined) {
     const userId = c.get("userId");
-    await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: userId, user_name: "Someone", action: body.completed ? `completed checklist item: "${data?.text}"` : `unchecked checklist item: "${data?.text}"` });
+    const userName = body._user_name || "Someone";
+    await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: userId, user_name: userName, action: body.completed ? `completed: "${data?.text}"` : `unchecked: "${data?.text}"` });
   }
   return c.json(data);
 });
