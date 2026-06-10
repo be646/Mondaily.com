@@ -162,7 +162,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const viewsQ = useQuery({ queryKey: ["task-views", task.id], queryFn: () => apiClient.get<TaskView[]>(`/tasks/${task.id}/views`) });
   const activityQ = useQuery({ queryKey: ["task-activity", task.id], queryFn: () => apiClient.get<{id:string;user_name:string;action:string;created_at:string}[]>(`/tasks/${task.id}/activity`) });
 
-  const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }), onSuccess: () => { onUpdate(); activityQ.refetch(); } });
+  const updateLabels = useMutation({ mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels, _user_name: userName }), onSuccess: () => { onUpdate(); activityQ.refetch(); } });
   const updateTask = useMutation({ mutationFn: (fields: { status?: string; priority?: string }) => apiClient.patch(`/tasks/${task.id}`, { ...fields, _user_name: userName }), onSuccess: () => { onUpdate(); activityQ.refetch(); } });
   const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => { assigneesQ.refetch(); activityQ.refetch(); commentsQ.refetch(); } });
   const removeAssignee = useMutation({ mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`), onSuccess: () => assigneesQ.refetch() });
@@ -330,7 +330,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
           {/* Review */}
           {activeTab === "review" && (
-            <TaskReviewTab task={task} members={members} onUpdate={onUpdate}/>
+            <TaskReviewTab task={task} members={members} onUpdate={() => { onUpdate(); activityQ.refetch(); commentsQ.refetch(); }}/>
           )}
 
           {/* Checklist */}
