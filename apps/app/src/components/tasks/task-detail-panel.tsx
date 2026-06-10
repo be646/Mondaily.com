@@ -169,6 +169,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [uploading, setUploading] = useState(false);
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
   const [showReviewerPicker, setShowReviewerPicker] = useState(false);
+  const [showChangesInput, setShowChangesInput] = useState(false);
+  const [changesNote, setChangesNote] = useState("");
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -210,11 +212,12 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   });
 
   const reviewAction = useMutation({
-    mutationFn: (action: "approved" | "changes_requested") =>
+    mutationFn: (vars: { action: "approved" | "changes_requested"; note?: string }) =>
       apiClient.patch(`/tasks/${task.id}/review-action`, {
-        action, reviewer_name: userName, owner_id: task.assignee_id || ""
+        action: vars.action, reviewer_name: userName, owner_id: task.assignee_id || "",
+        note: vars.note || ""
       }),
-    onSuccess: () => { onUpdate(); commentsQ.refetch(); }
+    onSuccess: () => { onUpdate(); commentsQ.refetch(); setShowChangesInput(false); setChangesNote(""); }
   });
 
   const addAssignee = useMutation({ mutationFn: (m: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: m.user_id, email: m.email, name: m.name, permission: "collaborator" }), onSuccess: () => assigneesQ.refetch() });
@@ -320,6 +323,60 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
           {/* Labels */}
           {activeTab === "labels" && (
             <div className="space-y-2">
+              {/* Review status banner - at top */}
+              {task.status === "review" && task.reviewer_id && !task.review_result && (
+                <div className="mb-4 rounded-xl border border-white/10 bg-white/[.03] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
+                    <p className="text-sm font-medium text-white">Pending Review</p>
+                  </div>
+                  <p className="text-xs text-slate-500">Reviewer: <span className="text-slate-300">{task.reviewer_name}</span></p>
+                  {task.reviewer_id === userId && (
+                    <>
+                      <div className="h-px bg-white/[.06] my-3"/>
+                      <p className="text-xs text-slate-500 mb-3">You are the assigned reviewer. Check the task and take action.</p>
+                      {!showChangesInput ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => reviewAction.mutate({ action: "approved" })} disabled={reviewAction.isPending}
+                            className="flex-1 h-9 rounded-lg bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50">
+                            ✅ Approve
+                          </button>
+                          <button onClick={() => setShowChangesInput(true)}
+                            className="flex-1 h-9 rounded-lg bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 transition-colors">
+                            🔄 Request Changes
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-xs text-slate-400">What needs to be changed?</p>
+                          <textarea value={changesNote} onChange={e => setChangesNote(e.target.value)}
+                            placeholder="Describe what needs to be changed..."
+                            rows={3} autoFocus
+                            className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
+                          <div className="flex gap-2">
+                            <button onClick={() => setShowChangesInput(false)} className="flex-1 h-8 rounded-lg border border-white/10 text-xs text-slate-400 hover:text-white">Cancel</button>
+                            <button onClick={() => changesNote.trim() && reviewAction.mutate({ action: "changes_requested", note: changesNote })}
+                              disabled={!changesNote.trim() || reviewAction.isPending}
+                              className="flex-1 h-8 rounded-lg bg-orange-600 text-xs font-medium text-white disabled:opacity-40 hover:bg-orange-500">
+                              Send Feedback
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {task.review_result && (
+                <div className={`mb-4 rounded-xl p-4 ${task.review_result === "approved" ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-orange-500/10 border border-orange-500/20"}`}>
+                  <p className={`text-sm font-medium ${task.review_result === "approved" ? "text-emerald-400" : "text-orange-400"}`}>
+                    {task.review_result === "approved" ? "✅ Approved" : "🔄 Changes Requested"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">by {task.reviewer_name} · See Comments tab for details</p>
+                </div>
+              )}
+
               <p className="text-xs text-slate-500 mb-3">Select labels. "Need Review" moves to review queue.</p>
               {LABELS.map(label => {
                 const active = localLabels.includes(label);
@@ -345,17 +402,35 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <p className="text-xs text-slate-500 mb-3">Reviewer: <span className="text-slate-300">{task.reviewer_name}</span></p>
                 {task.reviewer_id === userId && (
                   <>
-                    <p className="text-xs text-slate-500 mb-3">You are the assigned reviewer. Check the task details and take action.</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => reviewAction.mutate("approved")} disabled={reviewAction.isPending}
-                        className="flex-1 h-9 rounded-lg bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50">
-                        ✅ Approve
-                      </button>
-                      <button onClick={() => reviewAction.mutate("changes_requested")} disabled={reviewAction.isPending}
-                        className="flex-1 h-9 rounded-lg bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 transition-colors disabled:opacity-50">
-                        🔄 Request Changes
-                      </button>
-                    </div>
+                    <p className="text-xs text-slate-500 mb-3">You are the assigned reviewer. Check the task and take action.</p>
+                    {!showChangesInput ? (
+                      <div className="flex gap-2">
+                        <button onClick={() => reviewAction.mutate({ action: "approved" })} disabled={reviewAction.isPending}
+                          className="flex-1 h-9 rounded-lg bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50">
+                          ✅ Approve
+                        </button>
+                        <button onClick={() => setShowChangesInput(true)}
+                          className="flex-1 h-9 rounded-lg bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 transition-colors">
+                          🔄 Request Changes
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-slate-400">What needs to be changed?</p>
+                        <textarea value={changesNote} onChange={e => setChangesNote(e.target.value)}
+                          placeholder="Describe what needs to be changed or improved..."
+                          rows={3} autoFocus
+                          className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
+                        <div className="flex gap-2">
+                          <button onClick={() => setShowChangesInput(false)} className="flex-1 h-8 rounded-lg border border-white/10 text-xs text-slate-400 hover:text-white">Cancel</button>
+                          <button onClick={() => changesNote.trim() && reviewAction.mutate({ action: "changes_requested", note: changesNote })}
+                            disabled={!changesNote.trim() || reviewAction.isPending}
+                            className="flex-1 h-8 rounded-lg bg-orange-600 text-xs font-medium text-white disabled:opacity-40 hover:bg-orange-500">
+                            Send Feedback
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

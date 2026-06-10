@@ -86,7 +86,7 @@ tasks.delete("/:id", async (c) => {
 tasks.patch("/:id/review-action", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
-  const { action, reviewer_name, owner_id } = await c.req.json() as { action: "approved" | "changes_requested"; reviewer_name: string; owner_id: string };
+  const { action, reviewer_name, owner_id, note } = await c.req.json() as { action: "approved" | "changes_requested"; reviewer_name: string; owner_id: string; note?: string };
 
   const updates: Record<string, any> = {
     review_result: action,
@@ -96,8 +96,7 @@ tasks.patch("/:id/review-action", async (c) => {
   };
 
   if (action === "approved") {
-    updates.status = "done";
-    updates.completed = true;
+    updates.status = "review";
     updates.labels = [];
   } else {
     updates.status = "in_progress";
@@ -118,7 +117,7 @@ tasks.patch("/:id/review-action", async (c) => {
   // Auto-comment on the task
   const commentText = action === "approved"
     ? `✅ Task approved by ${reviewer_name}.`
-    : `🔄 Changes requested by ${reviewer_name}. Please review and update the task before resubmitting for review.`;
+    : `🔄 Changes requested by ${reviewer_name}:\n\n${note || "Please review and update the task before resubmitting."}`;
 
   await supabase.from("task_comments").insert({
     task_id: c.req.param("id"),
