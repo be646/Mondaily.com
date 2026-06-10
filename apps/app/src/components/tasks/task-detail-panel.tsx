@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { X, Plus, Check, Trash2, Paperclip, Send, RefreshCw } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+import { X, Plus, Check, Trash2, Paperclip, Send, Eye } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 
@@ -10,6 +10,8 @@ interface ChecklistItem { id: string; text: string; completed: boolean; added_by
 interface Comment { id: string; content: string; user_name: string; user_id: string; created_at: string; }
 interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
 interface Assignee { id: string; user_id: string; name: string; email: string; permission: string; }
+interface Reaction { id: string; emoji: string; user_id: string; user_name: string; }
+interface TaskView { user_id: string; user_name: string; viewed_at: string; }
 
 const LABEL_COLORS: Record<string, string> = {
   "Need Review": "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
@@ -23,83 +25,147 @@ const LABEL_COLORS: Record<string, string> = {
   "Research": "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
 };
 const LABELS = Object.keys(LABEL_COLORS);
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "🔥", "👀"];
+
+function CommentItem({ comment, taskId, userId, userName, assignees, onDelete }: {
+  comment: Comment; taskId: string; userId: string; userName: string;
+  assignees: Assignee[]; onDelete: (id: string) => void;
+}) {
+  const [showEmojis, setShowEmojis] = useState(false);
+  const reactionsQ = useQuery({
+    queryKey: ["reactions", comment.id],
+    queryFn: () => apiClient.get<Reaction[]>(`/tasks/${taskId}/comments/${comment.id}/reactions`)
+  });
+
+  const toggleReaction = useMutation({
+    mutationFn: (emoji: string) => apiClient.post(`/tasks/${taskId}/comments/${comment.id}/reactions`, { emoji, user_name: userName }),
+    onSuccess: () => reactionsQ.refetch()
+  });
+
+  const reactions = reactionsQ.data ?? [];
+  const grouped = reactions.reduce<Record<string, Reaction[]>>((acc, r) => {
+    acc[r.emoji] = acc[r.emoji] || [];
+    acc[r.emoji].push(r);
+    return acc;
+  }, {});
+
+  const renderContent = (content: string) => {
+    const parts = content.split(/(@\w+)/g);
+    return parts.map((part, i) =>
+      part.startsWith("@")
+        ? <span key={i} className="text-red-400 font-medium">{part}</span>
+        : <span key={i}>{part}</span>
+    );
+  };
+
+  return (
+    <div className="flex items-start gap-2.5 group">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-xs text-red-400 font-medium">
+        {comment.user_name.charAt(0).toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-xs font-medium text-white">{comment.user_name}</span>
+          <span className="text-[11px] text-slate-600">{new Date(comment.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+          <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => setShowEmojis(!showEmojis)} className="text-slate-600 hover:text-slate-300 text-xs px-1">😊</button>
+            {comment.user_id === userId && (
+              <button onClick={() => onDelete(comment.id)} className="text-slate-600 hover:text-red-400"><Trash2 size={11}/></button>
+            )}
+          </div>
+        </div>
+        <p className="text-sm text-slate-300 whitespace-pre-wrap">{renderContent(comment.content)}</p>
+
+        {/* Emoji picker */}
+        {showEmojis && (
+          <div className="flex gap-1 mt-1.5 p-1.5 rounded-lg bg-white/[.05] border border-white/10 w-fit">
+            {QUICK_EMOJIS.map(e => (
+              <button key={e} onClick={() => { toggleReaction.mutate(e); setShowEmojis(false); }}
+                className="text-base hover:scale-125 transition-transform">{e}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Reactions */}
+        {Object.keys(grouped).length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {Object.entries(grouped).map(([emoji, users]) => {
+              const iMine = users.some(u => u.user_id === userId);
+              return (
+                <button key={emoji} onClick={() => toggleReaction.mutate(emoji)}
+                  title={users.map(u => u.user_name).join(", ")}
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[.04] border-white/10 text-slate-400 hover:border-white/20"}`}>
+                  <span>{emoji}</span>
+                  <span>{users.length}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   task: Task; members: Member[]; onClose: () => void; onUpdate: () => void;
 }) {
   const { user } = useUser();
-  const qc = useQueryClient();
   const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Unknown";
   const userId = user?.id || "";
-
   const [activeTab, setActiveTab] = useState<"labels"|"assignees"|"checklist"|"comments"|"attachments">("labels");
   const [newCheckItem, setNewCheckItem] = useState("");
   const [newComment, setNewComment] = useState("");
-  const [attachUrl, setAttachUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const commentRef = useRef<HTMLTextAreaElement>(null);
 
-  // Sync localLabels when task prop changes
-  useEffect(() => { setLocalLabels(task.labels || []); }, [task.id, task.labels]);
+  useEffect(() => { setLocalLabels(task.labels || []); }, [task.id]);
+
+  // Track view
+  useEffect(() => {
+    apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch(() => {});
+  }, [task.id]);
 
   const checklistQ = useQuery({ queryKey: ["task-checklist", task.id], queryFn: () => apiClient.get<ChecklistItem[]>(`/tasks/${task.id}/checklist`) });
   const commentsQ = useQuery({ queryKey: ["task-comments", task.id], queryFn: () => apiClient.get<Comment[]>(`/tasks/${task.id}/comments`) });
   const attachmentsQ = useQuery({ queryKey: ["task-attachments", task.id], queryFn: () => apiClient.get<Attachment[]>(`/tasks/${task.id}/attachments`) });
   const assigneesQ = useQuery({ queryKey: ["task-assignees", task.id], queryFn: () => apiClient.get<Assignee[]>(`/tasks/${task.id}/assignees`) });
+  const viewsQ = useQuery({ queryKey: ["task-views", task.id], queryFn: () => apiClient.get<TaskView[]>(`/tasks/${task.id}/views`) });
 
   const updateLabels = useMutation({
     mutationFn: (labels: string[]) => apiClient.patch(`/tasks/${task.id}/labels`, { labels }),
-    onSuccess: () => { onUpdate(); }
+    onSuccess: onUpdate
   });
-
   const addAssignee = useMutation({
-    mutationFn: (member: Member) =>
-      apiClient.post(`/tasks/${task.id}/assignees`, {
-        user_id: member.user_id, email: member.email,
-        name: member.name, permission: "collaborator"
-      }),
+    mutationFn: (member: Member) => apiClient.post(`/tasks/${task.id}/assignees`, { user_id: member.user_id, email: member.email, name: member.name, permission: "collaborator" }),
     onSuccess: () => assigneesQ.refetch()
   });
-
   const removeAssignee = useMutation({
     mutationFn: (uid: string) => apiClient.delete(`/tasks/${task.id}/assignees/${uid}`),
     onSuccess: () => assigneesQ.refetch()
   });
-
   const addCheckItem = useMutation({
     mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }),
     onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); }
   });
-
   const toggleCheckItem = useMutation({
-    mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) =>
-      apiClient.patch(`/tasks/${task.id}/checklist/${itemId}`, { completed }),
+    mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) => apiClient.patch(`/tasks/${task.id}/checklist/${itemId}`, { completed }),
     onSuccess: () => checklistQ.refetch()
   });
-
   const deleteCheckItem = useMutation({
     mutationFn: (itemId: string) => apiClient.delete(`/tasks/${task.id}/checklist/${itemId}`),
     onSuccess: () => checklistQ.refetch()
   });
-
   const addComment = useMutation({
     mutationFn: () => apiClient.post(`/tasks/${task.id}/comments`, { content: newComment, user_name: userName }),
     onSuccess: () => { setNewComment(""); commentsQ.refetch(); }
   });
-
   const deleteComment = useMutation({
     mutationFn: (cid: string) => apiClient.delete(`/tasks/${task.id}/comments/${cid}`),
     onSuccess: () => commentsQ.refetch()
-  });
-
-  const addAttachment = useMutation({
-    mutationFn: () => {
-      const name = attachUrl.split("/").pop()?.split("?")[0] || "file";
-      return apiClient.post(`/tasks/${task.id}/attachments`, {
-        file_name: name, file_url: attachUrl,
-        file_type: "link", file_size: 0, user_name: userName
-      });
-    },
-    onSuccess: () => { setAttachUrl(""); attachmentsQ.refetch(); }
   });
 
   const uploadFile = async (file: File) => {
@@ -124,21 +190,47 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     setUploading(false);
   };
 
-  const isOwner = !task.assignee_id || task.assignee_id === userId;
   const checklist = checklistQ.data ?? [];
   const comments = commentsQ.data ?? [];
   const attachments = attachmentsQ.data ?? [];
   const assignees = assigneesQ.data ?? [];
+  const views = viewsQ.data ?? [];
   const completedCount = checklist.filter(i => i.completed).length;
   const unassignedMembers = members.filter(m => !assignees.find(a => a.user_id === m.user_id));
+  const isOwner = !task.assignee_id || task.assignee_id === userId;
 
   const toggleLabel = (label: string) => {
-    const newLabels = localLabels.includes(label)
-      ? localLabels.filter(l => l !== label)
-      : [...localLabels, label];
+    const newLabels = localLabels.includes(label) ? localLabels.filter(l => l !== label) : [...localLabels, label];
     setLocalLabels(newLabels);
     updateLabels.mutate(newLabels);
   };
+
+  const handleCommentInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNewComment(val);
+    const lastAt = val.lastIndexOf("@");
+    if (lastAt !== -1 && lastAt === val.length - 1) {
+      setShowMentions(true);
+      setMentionSearch("");
+    } else if (lastAt !== -1 && val.slice(lastAt).match(/^@\w*$/)) {
+      setShowMentions(true);
+      setMentionSearch(val.slice(lastAt + 1));
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const insertMention = (name: string) => {
+    const lastAt = newComment.lastIndexOf("@");
+    const newVal = newComment.slice(0, lastAt) + `@${name} `;
+    setNewComment(newVal);
+    setShowMentions(false);
+    commentRef.current?.focus();
+  };
+
+  const mentionMembers = [...members, ...assignees.map(a => ({ user_id: a.user_id, name: a.name, email: a.email, id: a.id }))]
+    .filter((m, i, arr) => arr.findIndex(x => x.user_id === m.user_id) === i)
+    .filter(m => (m.name || m.email).toLowerCase().includes(mentionSearch.toLowerCase()));
 
   const tabs = [
     { key: "labels", label: "Labels", count: localLabels.length || 0 },
@@ -152,6 +244,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/50" onClick={onClose}/>
       <div className="w-full max-w-lg bg-[#0f1116] border-l border-white/10 flex flex-col overflow-hidden">
+
         {/* Header */}
         <div className="flex items-start gap-3 p-5 border-b border-white/10">
           <div className="flex-1 min-w-0">
@@ -162,6 +255,14 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 {localLabels.map(l => (
                   <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l] || "text-slate-400 bg-slate-400/10 border-slate-400/30"}`}>{l}</span>
                 ))}
+              </div>
+            )}
+            {/* Views */}
+            {views.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <Eye size={11} className="text-slate-600"/>
+                <span className="text-[11px] text-slate-600">Seen by </span>
+                <span className="text-[11px] text-slate-500">{views.slice(0, 3).map(v => v.user_name).join(", ")}{views.length > 3 ? ` +${views.length - 3}` : ""}</span>
               </div>
             )}
           </div>
@@ -182,7 +283,6 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
         {/* Content */}
         <div className="flex-1 overflow-auto p-4">
 
-          {/* Labels */}
           {activeTab === "labels" && (
             <div className="space-y-2">
               <p className="text-xs text-slate-500 mb-3">Select labels. "Need Review" moves the task to the review queue.</p>
@@ -190,24 +290,21 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 const active = localLabels.includes(label);
                 return (
                   <button key={label} onClick={() => toggleLabel(label)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${active ? `border ${LABEL_COLORS[label]}` : "border border-white/[.06] text-slate-400 hover:border-white/10 hover:text-white"}`}>
-                    <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${active ? "border-current bg-current opacity-80" : "border-white/20"}`}>
-                      {active && <Check size={10} className="text-white"/>}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors border ${active ? LABEL_COLORS[label] : "border-white/[.06] text-slate-400 hover:border-white/10 hover:text-white"}`}>
+                    <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${active ? "border-current" : "border-white/20"}`}>
+                      {active && <Check size={10}/>}
                     </div>
                     <span className="flex-1 text-left">{label}</span>
-                    {label === "Need Review" && <span className="text-[10px] text-slate-600">→ Review queue</span>}
+                    {label === "Need Review" && <span className="text-[10px] opacity-60">→ Review queue</span>}
                   </button>
                 );
               })}
             </div>
           )}
 
-          {/* Assignees */}
           {activeTab === "assignees" && (
             <div className="space-y-3">
-              <p className="text-xs text-slate-500 mb-3">Assign members and set their permission level.</p>
-              
-              {/* Current assignees */}
+              <p className="text-xs text-slate-500 mb-3">Assign members as collaborators.</p>
               {assignees.length > 0 && (
                 <div className="space-y-2 mb-4">
                   <p className="text-xs text-slate-600 uppercase tracking-wider">Assigned</p>
@@ -220,15 +317,12 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <p className="text-sm text-white truncate">{a.name || a.email}</p>
                         <p className="text-xs text-slate-500">Collaborator</p>
                       </div>
-                      {isOwner && <button onClick={() => removeAssignee.mutate(a.user_id)}
-                        className="text-slate-600 hover:text-red-400 transition-colors"><X size={13}/></button>}
+                      {isOwner && <button onClick={() => removeAssignee.mutate(a.user_id)} className="text-slate-600 hover:text-red-400"><X size={13}/></button>}
                     </div>
                   ))}
                 </div>
               )}
-
-              {/* Add members */}
-              {unassignedMembers.length > 0 ? (
+              {unassignedMembers.length > 0 && (
                 <div>
                   <p className="text-xs text-slate-600 uppercase tracking-wider mb-2">Add member</p>
                   {unassignedMembers.map(m => (
@@ -238,21 +332,19 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       </div>
                       <span className="flex-1 text-sm text-slate-300 truncate">{m.name || m.email}</span>
                       <button onClick={() => addAssignee.mutate(m)}
-                        className="rounded-md px-3 py-1 text-[11px] border border-white/10 text-slate-400 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 transition-colors">
+                        className="rounded-md px-3 py-1 text-xs border border-white/10 text-slate-400 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 transition-colors">
                         + Add
                       </button>
                     </div>
                   ))}
                 </div>
-              ) : assignees.length === 0 ? (
-                <p className="text-sm text-slate-600 text-center py-4">No workspace members found. Members appear after they log in.</p>
-              ) : (
-                <p className="text-xs text-slate-600 text-center py-2">All members assigned</p>
+              )}
+              {unassignedMembers.length === 0 && assignees.length === 0 && (
+                <p className="text-sm text-slate-600 text-center py-4">No workspace members found.</p>
               )}
             </div>
           )}
 
-          {/* Checklist */}
           {activeTab === "checklist" && (
             <div>
               {checklist.length > 0 && (
@@ -278,9 +370,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className={`text-sm ${item.completed ? "line-through text-slate-600" : "text-slate-200"}`}>{item.text}</p>
                       <p className="text-[11px] text-slate-600">{item.added_by_name} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
-                    <button onClick={() => deleteCheckItem.mutate(item.id)} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-opacity shrink-0">
-                      <Trash2 size={12}/>
-                    </button>
+                    <button onClick={() => deleteCheckItem.mutate(item.id)} className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 shrink-0"><Trash2 size={12}/></button>
                   </div>
                 ))}
               </div>
@@ -288,7 +378,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <input value={newCheckItem} onChange={e => setNewCheckItem(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && newCheckItem.trim() && addCheckItem.mutate()}
                   placeholder="Add checklist item..."
-                  className="flex-1 h-9 rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white placeholder-slate-600 outline-none focus:border-white/20"/>
+                  className="flex-1 h-9 rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white placeholder-slate-600 outline-none"/>
                 <button onClick={() => newCheckItem.trim() && addCheckItem.mutate()} disabled={!newCheckItem.trim()}
                   className="h-9 w-9 rounded-lg bg-red-600 flex items-center justify-center text-white disabled:opacity-40">
                   <Plus size={14}/>
@@ -297,46 +387,45 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             </div>
           )}
 
-          {/* Comments */}
           {activeTab === "comments" && (
             <div>
               <div className="space-y-4 mb-4">
                 {comments.length === 0 && <p className="text-sm text-slate-600 text-center py-6">No comments yet</p>}
                 {comments.map(c => (
-                  <div key={c.id} className="flex items-start gap-2.5 group">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/10 text-xs text-red-400 font-medium">
-                      {c.user_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-medium text-white">{c.user_name}</span>
-                        <span className="text-[11px] text-slate-600">{new Date(c.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                        {c.user_id === userId && (
-                          <button onClick={() => deleteComment.mutate(c.id)} className="ml-auto opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-opacity">
-                            <Trash2 size={11}/>
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-300 whitespace-pre-wrap">{c.content}</p>
-                    </div>
-                  </div>
+                  <CommentItem key={c.id} comment={c} taskId={task.id} userId={userId} userName={userName}
+                    assignees={assignees} onDelete={id => deleteComment.mutate(id)}/>
                 ))}
               </div>
-              <div className="flex gap-2 border-t border-white/[.06] pt-3">
-                <textarea value={newComment} onChange={e => setNewComment(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && newComment.trim()) { e.preventDefault(); addComment.mutate(); } }}
-                  placeholder="Write a comment... (Enter to send)"
-                  rows={2}
-                  className="flex-1 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
-                <button onClick={() => newComment.trim() && addComment.mutate()} disabled={!newComment.trim()}
-                  className="h-9 w-9 rounded-lg bg-red-600 flex items-center justify-center text-white disabled:opacity-40 self-end">
-                  <Send size={13}/>
-                </button>
+              <div className="border-t border-white/[.06] pt-3 relative">
+                {showMentions && mentionMembers.length > 0 && (
+                  <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-white/10 bg-[#161820] shadow-xl overflow-hidden z-10">
+                    {mentionMembers.slice(0, 5).map(m => (
+                      <button key={m.user_id} onClick={() => insertMention(m.name || m.email)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/[.06] transition-colors">
+                        <div className="h-6 w-6 rounded-full bg-red-500/10 text-xs text-red-400 flex items-center justify-center shrink-0">
+                          {(m.name || m.email).charAt(0).toUpperCase()}
+                        </div>
+                        {m.name || m.email}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <textarea ref={commentRef} value={newComment} onChange={handleCommentInput}
+                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && newComment.trim()) { e.preventDefault(); addComment.mutate(); } }}
+                    placeholder="Write a comment... Use @ to mention someone"
+                    rows={2}
+                    className="flex-1 rounded-lg border border-white/10 bg-transparent px-3 py-2 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
+                  <button onClick={() => newComment.trim() && addComment.mutate()} disabled={!newComment.trim()}
+                    className="h-9 w-9 rounded-lg bg-red-600 flex items-center justify-center text-white disabled:opacity-40 self-end">
+                    <Send size={13}/>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-700 mt-1">Enter to send · Shift+Enter for new line · @ to mention</p>
               </div>
             </div>
           )}
 
-          {/* Attachments */}
           {activeTab === "attachments" && (
             <div>
               <div className="space-y-2 mb-4">
@@ -345,14 +434,11 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div key={a.id} className="flex items-center gap-3 rounded-lg border border-white/[.06] px-3 py-2.5 group">
                     <Paperclip size={14} className="text-slate-500 shrink-0"/>
                     <div className="flex-1 min-w-0">
-                      <a href={a.file_url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm text-blue-400 hover:underline truncate block">{a.file_name}</a>
-                      <p className="text-[11px] text-slate-600">{a.user_name}</p>
+                      <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:underline truncate block">{a.file_name}</a>
+                      <p className="text-[11px] text-slate-600">{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)}KB` : "link"}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
-                      className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-opacity">
-                      <Trash2 size={12}/>
-                    </button>
+                      className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400"><Trash2 size={12}/></button>
                   </div>
                 ))}
               </div>
