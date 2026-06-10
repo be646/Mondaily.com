@@ -303,15 +303,15 @@ export function TasksPage() {
           <p className="text-sm text-slate-500 mt-0.5">Work assigned to you and your team.</p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 transition-colors">
-          <Plus size={15}/> New Task
+          className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-sm text-slate-300 hover:border-white/25 hover:text-white transition-colors">
+          <Plus size={14}/> New Task
         </button>
       </div>
 
       {/* Label filter + Sort */}
-      <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
         <select value={labelFilter} onChange={e => setLabelFilter(e.target.value)}
-          className="h-7 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-400 outline-none cursor-pointer">
+          className="flex items-center rounded-lg border border-white/10 bg-transparent px-2.5 py-1.5 text-xs text-slate-400 outline-none cursor-pointer hover:border-white/15 hover:text-slate-300 transition-colors">
           <option value="">All labels</option>
           <option value="Help Needed">Help Needed</option>
           <option value="Blocked">Blocked</option>
@@ -321,7 +321,7 @@ export function TasksPage() {
           <option value="Research">Research</option>
         </select>
         <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-          className="h-7 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-400 outline-none cursor-pointer">
+          className="flex items-center rounded-lg border border-white/10 bg-transparent px-2.5 py-1.5 text-xs text-slate-400 outline-none cursor-pointer hover:border-white/15 hover:text-slate-300 transition-colors">
           <option value="created_at">Newest first</option>
           <option value="due_date">Due date</option>
           <option value="priority">Priority</option>
