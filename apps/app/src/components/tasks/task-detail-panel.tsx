@@ -142,6 +142,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
   const [localStatus, setLocalStatus] = useState(task.status || "todo");
   const [localPriority, setLocalPriority] = useState(task.priority || "medium");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleVal, setTitleVal] = useState(task.title);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesVal, setNotesVal] = useState(task.notes || "");
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -151,6 +155,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     setLocalLabels(task.labels || []);
     setLocalStatus(task.status || "todo");
     setLocalPriority(task.priority || "medium");
+    setTitleVal(task.title);
+    setNotesVal(task.notes || "");
   }, [task.id]);
 
   useEffect(() => { apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch(() => {}); }, [task.id]);
@@ -428,6 +434,11 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div key={a.id} className="flex items-center gap-3 rounded-lg border border-white/[.06] px-3 py-2.5 group">
                     <Paperclip size={14} className="text-slate-500 shrink-0"/>
                     <div className="flex-1 min-w-0">
+                      {/\.(jpg|jpeg|png|gif|webp)$/i.test(a.file_name) ? (
+                        <a href={a.file_url} target="_blank" rel="noopener noreferrer">
+                          <img src={a.file_url} alt={a.file_name} className="rounded-lg max-h-32 object-cover mb-1"/>
+                        </a>
+                      ) : null}
                       <a href={a.file_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-400 hover:underline truncate block">{a.file_name}</a>
                       <p className="text-[11px] text-slate-600">{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)}KB` : "link"}</p>
                     </div>
