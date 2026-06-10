@@ -30,6 +30,7 @@ router.post("/:id/assignees", async (c) => {
     .upsert({ task_id: c.req.param("id"), ...body }, { onConflict: "task_id,user_id" })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
+  await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.name || body.email, action: `was added as collaborator` });
   return c.json(data);
 });
 
@@ -56,6 +57,7 @@ router.post("/:id/checklist", async (c) => {
     .insert({ task_id: c.req.param("id"), text: body.text, added_by_user_id: c.get("userId"), added_by_name: body.added_by_name })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
+  await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.added_by_name, action: `added checklist item: "${body.text}"` });
   return c.json(data, 201);
 });
 
@@ -64,6 +66,10 @@ router.patch("/:id/checklist/:itemId", async (c) => {
   const { data, error } = await supabase
     .from("task_checklist").update(body).eq("id", c.req.param("itemId")).select().single();
   if (error) return c.json({ error: error.message }, 500);
+  if (body.completed !== undefined) {
+    const userId = c.get("userId");
+    await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: userId, user_name: "Someone", action: body.completed ? `completed checklist item: "${data?.text}"` : `unchecked checklist item: "${data?.text}"` });
+  }
   return c.json(data);
 });
 
