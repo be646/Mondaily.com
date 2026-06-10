@@ -165,4 +165,48 @@ router.post("/:id/upload", async (c) => {
   return c.json(data, 201);
 });
 
+// ── Views ────────────────────────────────────────────────
+router.post("/:id/view", async (c) => {
+  const { user_name } = await c.req.json() as { user_name: string };
+  await supabase.from("task_views").upsert({
+    task_id: c.req.param("id"),
+    user_id: c.get("userId"),
+    user_name,
+    viewed_at: new Date().toISOString()
+  }, { onConflict: "task_id,user_id" });
+  return c.json({ ok: true });
+});
+
+router.get("/:id/views", async (c) => {
+  const { data } = await supabase
+    .from("task_views").select("user_id, user_name, viewed_at")
+    .eq("task_id", c.req.param("id"))
+    .order("viewed_at", { ascending: false });
+  return c.json(data ?? []);
+});
+
+// ── Comment Reactions ─────────────────────────────────────
+router.get("/:id/comments/:commentId/reactions", async (c) => {
+  const { data } = await supabase
+    .from("task_comment_reactions").select("*")
+    .eq("comment_id", c.req.param("commentId"));
+  return c.json(data ?? []);
+});
+
+router.post("/:id/comments/:commentId/reactions", async (c) => {
+  const { emoji, user_name } = await c.req.json() as { emoji: string; user_name: string };
+  const existing = await supabase.from("task_comment_reactions")
+    .select("id").eq("comment_id", c.req.param("commentId"))
+    .eq("user_id", c.get("userId")).eq("emoji", emoji).maybeSingle();
+  if (existing.data) {
+    await supabase.from("task_comment_reactions").delete().eq("id", existing.data.id);
+    return c.json({ removed: true });
+  }
+  const { data, error } = await supabase.from("task_comment_reactions")
+    .insert({ comment_id: c.req.param("commentId"), user_id: c.get("userId"), user_name, emoji })
+    .select().single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data);
+});
+
 export { router as taskDetailsRouter };
