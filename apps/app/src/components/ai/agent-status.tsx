@@ -78,6 +78,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <span className="text-sm font-medium text-white">Ask Mondaily</span>
         </div>
         <div className="flex items-center gap-1">
+          <NotificationsBell/>
           <div className="relative">
             <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white"><MoreHorizontal size={14}/></button>
             {menuOpen && (
