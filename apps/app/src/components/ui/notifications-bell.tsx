@@ -31,7 +31,7 @@ export function NotificationsBell() {
   });
 
   const notifications = notifQ.data ?? [];
-  const unread = notifications.filter(n => !n.is_read).length;
+  const unread = notifications.filter((n: any) => !n.is_read).length;
 
   const handleClick = (n: Notification) => {
     markRead.mutate(n.id);
@@ -79,6 +79,11 @@ export function NotificationsBell() {
                   </button>
                 ))
               )}
+            </div>
+            <div className="border-t border-white/10 px-4 py-2">
+              <button onClick={() => { setOpen(false); navigate("/notifications"); }} className="text-xs text-slate-500 hover:text-white transition-colors w-full text-center">
+                View all notifications →
+              </button>
             </div>
           </div>
         </>
