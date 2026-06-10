@@ -14,12 +14,9 @@ interface Reaction { id: string; emoji: string; user_id: string; user_name: stri
 interface TaskView { user_id: string; user_name: string; viewed_at: string; }
 
 const LABEL_COLORS: Record<string, string> = {
-  "Need Review": "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
   "Help Needed": "text-blue-400 bg-blue-400/10 border-blue-400/30",
   "Blocked": "text-red-400 bg-red-400/10 border-red-400/30",
   "Waiting": "text-slate-400 bg-slate-400/10 border-slate-400/30",
-  "High Priority": "text-orange-400 bg-orange-400/10 border-orange-400/30",
-  "Low Priority": "text-green-400 bg-green-400/10 border-green-400/30",
   "Bug": "text-red-500 bg-red-500/10 border-red-500/30",
   "Feature": "text-purple-400 bg-purple-400/10 border-purple-400/30",
   "Research": "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
@@ -300,7 +297,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             {task.notes && <p className="text-xs text-slate-500 mt-1">{task.notes}</p>}
             {localLabels.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {localLabels.map(l => <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l] || "text-slate-400 bg-slate-400/10 border-slate-400/30"}`}>{l}</span>)}
+                {localLabels.filter(l => LABEL_COLORS[l]).map(l => <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>)}
               </div>
             )}
             <SeenBy views={views} currentUserId={userId}/>
