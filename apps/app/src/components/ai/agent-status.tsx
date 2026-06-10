@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal, Copy, Check, Loader2, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
+import { NotificationsBell } from "../ui/notifications-bell";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
 async function callAsk(message: string): Promise<string> {
