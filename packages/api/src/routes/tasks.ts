@@ -85,6 +85,12 @@ tasks.patch("/:id", async (c) => {
     activities.push(`changed priority to ${priorityLabels[updateBody.priority] || updateBody.priority}`);
   if (updateBody.assignee_id !== undefined && oldTask?.assignee_id !== updateBody.assignee_id)
     activities.push(updateBody.assignee_id ? `assigned task to ${updateBody.assignee_email || updateBody.assignee_id}` : "removed assignee");
+  if (updateBody.due_date !== undefined)
+    activities.push(updateBody.due_date ? `set due date to ${new Date(updateBody.due_date).toLocaleDateString()}` : "removed due date");
+  if (updateBody.completed === true)
+    activities.push("marked task as complete");
+  if (updateBody.completed === false)
+    activities.push("reopened this task");
 
   for (const action of activities) {
     await supabase.from("task_activity").insert({ task_id: id, user_id: userId, user_name: userName, action });

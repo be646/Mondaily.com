@@ -72,6 +72,14 @@ router.post("/:id/reviews", async (c) => {
     is_read: false
   });
 
+  // Log activity
+  await supabase.from("task_activity").insert({
+    task_id: c.req.param("id"),
+    user_id: userId,
+    user_name: body.sent_by_name,
+    action: `sent task for review to ${body.reviewer_name} (Round ${round}): "${body.context.slice(0, 60)}${body.context.length > 60 ? "..." : ""}"`
+  });
+
   return c.json(data, 201);
 });
 

@@ -66,6 +66,7 @@ function CreateTaskModal({ onClose, members, currentUserId }: { onClose: () => v
         priority, status, notes: notes || undefined,
         assignee_id: assigneeId || undefined,
         assignee_email: member?.email || undefined,
+        _user_name: user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Someone",
       });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); onClose(); }
@@ -266,7 +267,7 @@ export function TasksPage() {
   const currentUserId = user?.id ?? "";
 
   const toggle = useMutation({
-    mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed }),
+    mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed, _user_name: currentUserName }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
 
