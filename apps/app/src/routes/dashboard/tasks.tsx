@@ -397,11 +397,13 @@ export function TasksPage() {
                       className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
                       <Pencil size={13}/>
                     </button>
-                    <button onClick={() => setConfirmDeleteId(task.id)}
-                      title="Delete task"
-                      className="rounded-lg p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
-                      <Trash2 size={13}/>
-                    </button>
+                    {(task.assignee_id === currentUserId || !task.assignee_id) && (
+                      <button onClick={() => setConfirmDeleteId(task.id)}
+                        title="Delete task"
+                        className="rounded-lg p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                        <Trash2 size={13}/>
+                      </button>
+                    )}
                   </div>
                 </div>
 

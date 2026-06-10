@@ -5,7 +5,7 @@ import { useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
-interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; }
+interface Task { id: string; title: string; labels?: string[]; notes?: string; status?: string; assignee_id?: string; }
 interface ChecklistItem { id: string; text: string; completed: boolean; added_by_name: string; created_at: string; }
 interface Comment { id: string; content: string; user_name: string; user_id: string; created_at: string; }
 interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
@@ -113,6 +113,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     setUploading(false);
   };
 
+  const isOwner = !task.assignee_id || task.assignee_id === userId;
   const checklist = checklistQ.data ?? [];
   const comments = commentsQ.data ?? [];
   const attachments = attachmentsQ.data ?? [];
@@ -208,8 +209,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <p className="text-sm text-white truncate">{a.name || a.email}</p>
                         <p className="text-xs text-slate-500">Collaborator</p>
                       </div>
-                      <button onClick={() => removeAssignee.mutate(a.user_id)}
-                        className="text-slate-600 hover:text-red-400 transition-colors"><X size={13}/></button>
+                      {isOwner && <button onClick={() => removeAssignee.mutate(a.user_id)}
+                        className="text-slate-600 hover:text-red-400 transition-colors"><X size={13}/></button>}
                     </div>
                   ))}
                 </div>
