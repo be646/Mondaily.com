@@ -3,7 +3,6 @@ import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Za
 import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
-import { NotificationsBell } from "../ui/notifications-bell";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -98,7 +97,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   <div className="truncate text-sm font-medium text-white">{workspaceName}</div>
                   <div className="text-xs text-slate-500">Pro workspace</div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0"><NotificationsBell/><ChevronsUpDown size={13} className="text-slate-500"/></div>
+                <ChevronsUpDown size={13} className="text-slate-500 shrink-0"/>
               </>
             )}
           </button>

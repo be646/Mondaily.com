@@ -174,6 +174,7 @@ export function AgentStatusBar() {
             </button>
           )}
           <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white/[.04] hover:text-slate-300 transition-colors"><HelpCircle size={15}/></button>
+          <NotificationsBell/>
           <button onClick={() => setAskOpen(!askOpen)} className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-all ${askOpen ? "border-red-500/40 bg-red-500/10 text-white" : "border-white/10 text-slate-400 hover:border-red-500/30 hover:bg-red-500/5 hover:text-white"}`}>
             <MessageCircle size={13} className="text-red-400"/> Ask Mondaily
           </button>
