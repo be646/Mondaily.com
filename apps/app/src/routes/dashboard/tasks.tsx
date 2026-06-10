@@ -500,7 +500,7 @@ export function TasksPage() {
           task={detailTask}
           members={members}
           onClose={() => setDetailTask(null)}
-          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks", activeFilter, labelFilter, sortBy] }).then(() => { const allT = qc.getQueryData<any[]>(["tasks", activeFilter, labelFilter, sortBy]) || []; const updated = allT.find((t: any) => t.id === detailTask?.id); if (updated) setDetailTask(updated); }); }}
+          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks", filter, labelFilter, sortBy] }).then(() => { const allT = qc.getQueryData<any[]>(["tasks", filter, labelFilter, sortBy]) || []; const updated = allT.find((t: any) => t.id === detailTask?.id); if (updated) setDetailTask(updated); }); }}
         />
       )}
 
