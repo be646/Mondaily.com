@@ -489,7 +489,7 @@ export function TasksPage() {
           task={detailTask}
           members={members}
           onClose={() => setDetailTask(null)}
-          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks"] }); setDetailTask(prev => prev ? { ...prev, labels: prev.labels } : null); }}
+          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks"] }).then(() => { const tasks = qc.getQueryData<any[]>(["tasks"]) || []; const updated = tasks.find((t: any) => t.id === detailTask?.id); if (updated) setDetailTask(updated); }); }}
         />
       )}
 
