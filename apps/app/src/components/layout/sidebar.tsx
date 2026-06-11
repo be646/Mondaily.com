@@ -12,6 +12,7 @@ const navItems = [
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/notes", label: "Notes", icon: FileText },
+  { to: "/search", label: "Search", icon: Search },
   { to: "/emails", label: "Emails", icon: Mail },
   { to: "/calls", label: "Calls", icon: Phone },
   { to: "/reports", label: "Reports", icon: BarChart2 },
