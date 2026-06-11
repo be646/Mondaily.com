@@ -106,7 +106,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           {workspaceOpen && !collapsed && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setWorkspaceOpen(false)}/>
-              <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#161820] shadow-2xl">
+              <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] backdrop-blur-md">
                 <div className="p-2">
                   <div className="mb-1 px-2 py-1 text-xs text-slate-500 uppercase tracking-wider">Workspaces</div>
                   <div className="flex items-center gap-2.5 rounded-lg bg-white/[.06] px-3 py-2">

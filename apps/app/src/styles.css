@@ -13,6 +13,19 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Tactile Minimalist — floating dropdown panel */
+@layer components {
+  .dropdown-panel {
+    @apply absolute z-50 mt-1.5 rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] backdrop-blur-md p-1;
+  }
+  .dropdown-item {
+    @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/[.05] hover:text-white;
+  }
+  .dropdown-item-active {
+    @apply bg-white/[.06] text-white;
+  }
+}
+
 /* Tactile Minimalist — global border & radius tokens */
 @layer base {
   /* Ultra-thin borders throughout */

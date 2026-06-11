@@ -472,7 +472,7 @@ export function TasksPage() {
             <ChevronDown size={10} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
           </button>
           {labelOpen && (
-            <div className="absolute left-0 top-full z-50 mt-1.5 w-44 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
+            <div className="dropdown-panel left-0 w-44">
               {[
                 { value: "",            label: "All labels",  dot: "bg-slate-600" },
                 { value: "Help Needed", label: "Help Needed", dot: "bg-blue-400" },
@@ -483,7 +483,7 @@ export function TasksPage() {
                 { value: "Research",    label: "Research",    dot: "bg-cyan-400" },
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setLabelFilter(opt.value); setLabelOpen(false); }}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${labelFilter === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
+                  className={`dropdown-item ${labelFilter === opt.value ? "dropdown-item-active" : ""}`}>
                   <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>
                   {opt.label}
                   {labelFilter === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
@@ -504,7 +504,7 @@ export function TasksPage() {
             <ChevronDown size={10} className={`transition-transform ${priorityOpen ? "rotate-180" : ""}`}/>
           </button>
           {priorityOpen && (
-            <div className="absolute left-0 top-full z-50 mt-1.5 w-40 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
+            <div className="dropdown-panel left-0 w-40">
               {[
                 { value: "",       label: "All priorities", dot: "bg-slate-600" },
                 { value: "urgent", label: "Urgent",         dot: "bg-red-500" },
@@ -513,7 +513,7 @@ export function TasksPage() {
                 { value: "low",    label: "Low",            dot: "bg-slate-400" },
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setPriorityFilter(opt.value); setPriorityOpen(false); }}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${priorityFilter === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
+                  className={`dropdown-item ${priorityFilter === opt.value ? "dropdown-item-active" : ""}`}>
                   <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>
                   {opt.label}
                   {priorityFilter === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
@@ -540,7 +540,7 @@ export function TasksPage() {
             );
           })()}
           {sortOpen && (
-            <div className="absolute left-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
+            <div className="dropdown-panel left-0 w-48">
               {[
                 { value: "created_at", label: "Date created", icon: <Calendar size={13}/> },
                 { value: "due_date",   label: "Due date",     icon: <Clock size={13}/> },
@@ -548,7 +548,7 @@ export function TasksPage() {
                 { value: "assignee",   label: "Assignee",     icon: <User size={13}/> },
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${sortBy === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
+                  className={`dropdown-item ${sortBy === opt.value ? "dropdown-item-active" : ""}`}>
                   {opt.icon}{opt.label}
                   {sortBy === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
                 </button>
