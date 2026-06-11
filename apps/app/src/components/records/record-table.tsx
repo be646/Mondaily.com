@@ -57,35 +57,35 @@ export function RecordTable({ objectType }: { objectType: string }) {
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col} className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 border-b border-white/[.06]">
+              <th key={col} className="whitespace-nowrap px-4 py-2 border-b border-white/[.05]">
                 <div className={`flex items-center gap-1.5 ${isNumeric(col) ? "justify-end" : ""}`}>
                   {getColumnIcon(col)}
-                  <span>{col.replaceAll("_", " ")}</span>
+                  <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">{col.replaceAll("_", " ")}</span>
                 </div>
               </th>
             ))}
-            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 border-b border-white/[.06]">
+            <th className="whitespace-nowrap px-4 py-2 border-b border-white/[.05]">
               <div className="flex items-center gap-1.5">
-                <Calendar size={12} className="text-slate-500"/>
-                <span>Updated</span>
+                <Calendar size={11} className="text-slate-600"/>
+                <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">Updated</span>
               </div>
             </th>
           </tr>
         </thead>
         <tbody>
           {records.map((record) => (
-            <tr key={record.id} className="border-b border-white/[.04] hover:bg-white/[.02] transition-colors group">
+            <tr key={record.id} className="border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
               {columns.map((col, index) => (
-                <td key={col} className={`px-4 py-3 text-slate-300 ${isNumeric(col) ? "text-right tabular-nums" : "max-w-64 truncate"}`}>
+                <td key={col} className={`px-4 py-2.5 text-slate-300 text-sm ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64 truncate"}`}>
                   {index === 0 ? (
-                    <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2 font-medium text-white hover:text-red-400 transition-colors">
+                    <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
                       <RowLogo name={display(record.data[col])}/>
                       <span className="truncate">{display(record.data[col])}</span>
                     </Link>
                   ) : display(record.data[col])}
                 </td>
               ))}
-              <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600">
+              <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-600 tabular-nums">
                 {new Date(record.updated_at).toLocaleDateString()}
               </td>
             </tr>

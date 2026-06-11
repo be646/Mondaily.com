@@ -447,7 +447,6 @@ export function TasksPage() {
             { key: "all",     label: "All" },
             { key: "overdue", label: "Overdue" },
             { key: "review",  label: "Needs Review" },
-            { key: "done",    label: "Done" },
           ].map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`rounded-md px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
@@ -659,11 +658,11 @@ export function TasksPage() {
           <div className="overflow-auto rounded-xl border border-white/10">
             <table className="min-w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-white/10 bg-white/[.02]">
+                <tr className="border-b border-white/[.05]">
                   {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
-                    <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium text-slate-500">{h}</th>
+                    <th key={h} className="whitespace-nowrap px-4 py-2 text-left text-[11px] font-medium tracking-wide uppercase text-slate-600">{h}</th>
                   ))}
-                  <th className="px-4 py-3"/>
+                  <th className="px-4 py-2"/>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[.04]">
@@ -672,41 +671,41 @@ export function TasksPage() {
                   const assigneeName = getMemberName(task);
                   const completion = getCompletionBadge(task);
                   return (
-                    <tr key={task.id} className="group hover:bg-white/[.02] transition-colors">
-                      <td className="px-4 py-3 w-8">
+                    <tr key={task.id} className="group border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
+                      <td className="px-4 py-2.5 w-8">
                         <button onClick={() => toggle.mutate(task)} className={`grid h-4 w-4 place-items-center rounded border transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-white/25 hover:border-white/50"}`}>
                           {task.completed && <Check size={9} className="text-white"/>}
                         </button>
                       </td>
-                      <td className="px-4 py-3 max-w-[260px]">
+                      <td className="px-4 py-2.5 max-w-[260px]">
                         <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-slate-600 line-through" : "text-slate-100"}`}>{task.title}</button>
                         {task.notes && <p className="text-xs text-slate-600 truncate mt-0.5">{task.notes}</p>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${completion.cls}`}>{completion.label}</span>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <span className={`rounded border px-2 py-0.5 text-[11px] font-medium ${completion.cls}`}>{completion.label}</span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {task.priority && <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>}
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        {task.priority && <span className={`rounded border px-2 py-0.5 text-[11px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-400">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-400">
                         {assigneeName ? <span className="flex items-center gap-1"><User size={11}/>{assigneeName}</span> : <span className="text-slate-600">—</span>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-xs tabular-nums">
                         {task.due_date
                           ? <span className={isOverdue ? "text-red-400" : "text-slate-400"}>{new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
                           : <span className="text-slate-600">—</span>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-500 tabular-nums">
                         {task.created_at ? new Date(task.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <div className="flex flex-wrap gap-1">
                           {(task.labels ?? []).filter(l => LABEL_COLORS[l]).map(l => (
-                            <span key={l} className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
+                            <span key={l} className={`rounded border px-1.5 py-px text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => setEditTask(task)} className="rounded p-1 text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"><Pencil size={12}/></button>
                           {(task.assignee_id === currentUserId || !task.assignee_id) && <button onClick={() => setConfirmDeleteId(task.id)} className="rounded p-1 text-slate-600 hover:text-red-400 hover:bg-red-400/10"><Trash2 size={12}/></button>}
