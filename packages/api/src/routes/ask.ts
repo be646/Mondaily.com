@@ -109,6 +109,18 @@ const TOOLS = [
       },
       required: ["object_type"]
     }
+  },
+  {
+    name: "list_notifications",
+    description: "Fetch the user's recent notifications — task assignments, overdue alerts, deal updates, review requests, mentions, agent completions. Use for daily briefs or 'what happened recently'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Max notifications to return (default 15)" },
+        unread_only: { type: "boolean", description: "Only return unread notifications" }
+      },
+      required: []
+    }
   }
 ];
 
@@ -257,6 +269,24 @@ async function executeTool(
           `- [${r.id}] ${r.data.name || "Untitled"}${r.data.email ? ` | ${r.data.email}` : ""}${r.data.company ? ` | ${r.data.company}` : ""}${r.data.stage ? ` | stage: ${r.data.stage}` : ""}`
         ).join("\n");
         return `${input.object_type} (${data.length}):\n${list}`;
+      }
+
+      case "list_notifications": {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("title, body, type, is_read, created_at")
+          .eq("workspace_id", workspaceId)
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(input.limit || 15);
+        if (error) return `Error fetching notifications: ${error.message}`;
+        if (!data?.length) return "No notifications found.";
+        const unread = input.unread_only ? data.filter((n: any) => !n.is_read) : data;
+        if (!unread.length) return "No unread notifications.";
+        const list = unread.map((n: any) =>
+          `- [${n.type}] ${n.title}: ${n.body}${n.is_read ? "" : " (unread)"} — ${new Date(n.created_at).toLocaleDateString()}`
+        ).join("\n");
+        return `${unread.length} notification(s):\n${list}`;
       }
 
       default:

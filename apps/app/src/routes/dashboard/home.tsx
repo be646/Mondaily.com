@@ -1,12 +1,51 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
+
+const QUICK_PROMPTS = [
+  {
+    icon: BellDot,
+    label: "Daily brief",
+    description: "Everything that happened",
+    prompt: "Give me a full daily brief: check my notifications, list my open tasks by priority, highlight any overdue items, and summarise recent CRM activity (deals, contacts updated today). Then tell me exactly what I should focus on right now and suggest 3 specific actions to take.",
+  },
+  {
+    icon: TrendingUp,
+    label: "Deals needing attention",
+    description: "CRM pipeline check",
+    prompt: "Review all my deals in the CRM. Which ones are stalled, overdue for follow-up, or close to closing? Rank them by urgency and tell me exactly what action to take on each one.",
+  },
+  {
+    icon: Brain,
+    label: "Meeting prep",
+    description: "Brief on who you're meeting",
+    prompt: "Help me prep for my next meeting. Search my CRM for the contact or company I'm meeting with, find any related deals or tasks, and give me a concise brief: key facts, open items, what to ask, and what outcome to aim for.",
+  },
+  {
+    icon: MailCheck,
+    label: "Follow-up email",
+    description: "Draft after a meeting",
+    prompt: "Draft a professional follow-up email for my last meeting. Check my recent tasks and CRM records for context on who I met, what was discussed, and any open action items. Make it concise, warm, and end with a clear next step.",
+  },
+  {
+    icon: ListChecks,
+    label: "Weekly focus plan",
+    description: "Priorities for this week",
+    prompt: "Review all my open tasks and tell me what I should focus on this week. Group them by priority, flag anything overdue, and build me a simple day-by-day action plan for the week. Be specific and opinionated.",
+  },
+  {
+    icon: Zap,
+    label: "What needs action today?",
+    description: "Urgent items right now",
+    prompt: "Scan everything — my tasks, notifications, and CRM — and tell me what genuinely needs my attention today. Only surface real urgent items: overdue tasks, deals at risk, unread important notifications. Give me a ranked list with one action per item.",
+  },
+] as const;
 
 interface Task { id: string; title: string; completed: boolean; due_date?: string; priority?: string; status?: string; assignee_id?: string; assignee_email?: string; created_at?: string; notes?: string; labels?: string[]; record_id?: string; record_name?: string; updated_at?: string; }
 interface Member { id: string; user_id: string; email: string; name: string; }
@@ -31,8 +70,19 @@ export function HomePage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [addingTask, setAddingTask] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [promptPickerOpen, setPromptPickerOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!promptPickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPromptPickerOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [promptPickerOpen]);
   const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
@@ -107,6 +157,12 @@ export function HomePage() {
     setInput("");
     setSuggestions([]);
   };
+
+  const firePrompt = useCallback((text: string) => {
+    setPromptPickerOpen(false);
+    sendSuggestion(text);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, currentThreadId, loading]);
 
   const sendSuggestion = (text: string) => {
     setInput(text);
@@ -195,21 +251,56 @@ export function HomePage() {
             <div ref={bottomRef}/>
           </div>
         )}
-        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.04] px-5 py-4 focus-within:border-red-500/30">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder={isChatting ? "Continue the conversation..." : "Ask anything or give Mondaily an instruction..."}
-            className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
-          />
-          {isChatting && (
-            <button onClick={newChat} className="text-xs text-slate-500 hover:text-slate-300 shrink-0">New chat</button>
+        <div className="relative" ref={pickerRef}>
+          {/* Prompt picker panel */}
+          {promptPickerOpen && (
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl overflow-hidden z-50">
+              <div className="px-4 py-2.5 border-b border-white/[.06]">
+                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Quick prompts</p>
+              </div>
+              <div className="p-2 grid grid-cols-1 gap-0.5">
+                {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
+                  <button
+                    key={label}
+                    onClick={() => firePrompt(prompt)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group"
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
+                      <Icon size={13} className="text-red-400"/>
+                    </span>
+                    <span>
+                      <span className="block text-sm text-slate-200 group-hover:text-white transition-colors">{label}</span>
+                      <span className="block text-xs text-slate-600">{description}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
-          <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-30 p-2 transition-colors">
-            {loading ? <Loader2 size={14} className="animate-spin text-white"/> : <Send size={14} className="text-white"/>}
-          </button>
+
+          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.04] px-4 py-4 focus-within:border-red-500/30">
+            <button
+              onClick={() => setPromptPickerOpen(o => !o)}
+              title="Quick prompts"
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-500 hover:bg-white/[.06] hover:text-white"}`}
+            >
+              <Zap size={14}/>
+            </button>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+              placeholder={isChatting ? "Continue the conversation..." : "Ask anything or give Mondaily an instruction..."}
+              className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+            />
+            {isChatting && (
+              <button onClick={newChat} className="text-xs text-slate-500 hover:text-slate-300 shrink-0">New chat</button>
+            )}
+            <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-30 p-2 transition-colors">
+              {loading ? <Loader2 size={14} className="animate-spin text-white"/> : <Send size={14} className="text-white"/>}
+            </button>
+          </div>
         </div>
         <div className="mt-2 flex items-center gap-3 flex-wrap">
           {!isChatting && recentThreads.length > 0 && (
