@@ -341,6 +341,8 @@ export function TasksPage() {
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [labelFilter, setLabelFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [priorityOpen, setPriorityOpen] = useState(false);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [labelOpen, setLabelOpen] = useState(false);
@@ -348,7 +350,7 @@ export function TasksPage() {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "board" | "sheet">("list");
 
-  const query = useQuery({ queryKey: ["tasks", filter, labelFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
+  const query = useQuery({ queryKey: ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}${priorityFilter ? `&priority=${priorityFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const members = membersQuery.data ?? [];
   const currentUserId = user?.id ?? "";
@@ -368,14 +370,14 @@ export function TasksPage() {
       apiClient.patch(`/tasks/${id}`, { status, _user_name: user?.fullName || user?.firstName || "Someone" }),
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
-      const prev = qc.getQueryData(["tasks", filter, labelFilter, sortBy, sortDir]);
-      qc.setQueryData(["tasks", filter, labelFilter, sortBy, sortDir], (old: any) =>
+      const prev = qc.getQueryData(["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir]);
+      qc.setQueryData(["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir], (old: any) =>
         old?.map((t: Task) => t.id === id ? { ...t, status } : t)
       );
       return { prev };
     },
     onError: (_e, _v, ctx: any) => {
-      if (ctx?.prev) qc.setQueryData(["tasks", filter, labelFilter, sortBy, sortDir], ctx.prev);
+      if (ctx?.prev) qc.setQueryData(["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir], ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
@@ -445,6 +447,7 @@ export function TasksPage() {
             { key: "all",     label: "All" },
             { key: "overdue", label: "Overdue" },
             { key: "review",  label: "Needs Review" },
+            { key: "done",    label: "Done" },
           ].map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`rounded-md px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
@@ -485,6 +488,36 @@ export function TasksPage() {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>
                   {opt.label}
                   {labelFilter === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Priority filter */}
+        <div className="relative">
+          {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
+          <button onClick={() => { setPriorityOpen(o => !o); setLabelOpen(false); setSortOpen(false); }}
+            className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
+            <Flag size={11}/>
+            {priorityFilter ? priorityFilter.charAt(0).toUpperCase() + priorityFilter.slice(1) : "Priority"}
+            {priorityFilter && <span className="h-1.5 w-1.5 rounded-full bg-red-400"/>}
+            <ChevronDown size={10} className={`transition-transform ${priorityOpen ? "rotate-180" : ""}`}/>
+          </button>
+          {priorityOpen && (
+            <div className="absolute left-0 top-full z-50 mt-1.5 w-40 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
+              {[
+                { value: "",       label: "All priorities", dot: "bg-slate-600" },
+                { value: "urgent", label: "Urgent",         dot: "bg-red-500" },
+                { value: "high",   label: "High",           dot: "bg-orange-400" },
+                { value: "medium", label: "Medium",         dot: "bg-yellow-400" },
+                { value: "low",    label: "Low",            dot: "bg-slate-400" },
+              ].map(opt => (
+                <button key={opt.value} onClick={() => { setPriorityFilter(opt.value); setPriorityOpen(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${priorityFilter === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>
+                  {opt.label}
+                  {priorityFilter === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
                 </button>
               ))}
             </div>
