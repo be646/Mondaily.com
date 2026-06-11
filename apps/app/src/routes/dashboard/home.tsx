@@ -142,7 +142,7 @@ export function HomePage() {
             <div ref={bottomRef}/>
           </div>
         )}
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 focus-within:border-red-500/30">
+        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.04] px-5 py-4 focus-within:border-red-500/30">
           <input
             ref={inputRef}
             value={input}
@@ -152,10 +152,10 @@ export function HomePage() {
             className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
           {isChatting && (
-            <button onClick={newChat} className="text-xs text-slate-600 hover:text-slate-400 mr-1 shrink-0">New chat</button>
+            <button onClick={newChat} className="text-xs text-slate-500 hover:text-slate-300 shrink-0">New chat</button>
           )}
-          <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-40">
-            {loading ? <Loader2 size={15} className="animate-spin"/> : <Send size={15}/>}
+          <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-30 p-2 transition-colors">
+            {loading ? <Loader2 size={14} className="animate-spin text-white"/> : <Send size={14} className="text-white"/>}
           </button>
         </div>
         <div className="mt-2 flex items-center gap-3 flex-wrap">
@@ -227,46 +227,46 @@ export function HomePage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-white/[.04]">
-                  <th className="px-4 py-1.5 text-left font-medium text-[10px] text-slate-600 w-full">Task</th>
-                  <th className="px-3 py-1.5 text-left font-medium text-[10px] text-slate-600 whitespace-nowrap">Priority</th>
-                  <th className="px-3 py-1.5 text-left font-medium text-[10px] text-slate-600 whitespace-nowrap hidden sm:table-cell">Assignee</th>
-                  <th className="px-3 py-1.5 text-left font-medium text-[10px] text-slate-600 whitespace-nowrap hidden sm:table-cell">Due</th>
+                  <th className="px-4 py-2 text-left font-medium text-xs text-slate-500 w-full">Task</th>
+                  <th className="px-3 py-2 text-left font-medium text-xs text-slate-500 whitespace-nowrap">Priority</th>
+                  <th className="px-3 py-2 text-left font-medium text-xs text-slate-500 whitespace-nowrap hidden sm:table-cell">Assignee</th>
+                  <th className="px-3 py-2 text-left font-medium text-xs text-slate-500 whitespace-nowrap hidden sm:table-cell">Due</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[.03]">
-                {activeTasks.slice(0, 8).map(item => {
+              <tbody className="divide-y divide-white/[.04]">
+                {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusDot = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-500";
+                  const statusDot = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-600";
                   return (
                     <tr key={item.id} onClick={() => setDetailTask(item)}
                       className="group cursor-pointer hover:bg-white/[.03] transition-colors">
-                      <td className="px-4 py-1.5 max-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                      <td className="px-4 py-2.5 max-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusDot}`}/>
-                          <span className="text-[11px] text-slate-300 group-hover:text-white transition-colors truncate">
+                          <span className="text-xs text-slate-200 group-hover:text-white transition-colors truncate">
                             {item.title}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3 py-1.5 whitespace-nowrap">
+                      <td className="px-3 py-2.5 whitespace-nowrap">
                         {item.priority ? (
-                          <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[9px] font-medium ${PRIORITY_STYLE[item.priority]}`}>
-                            <Flag size={7}/>{item.priority}
+                          <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>
+                            <Flag size={8}/>{item.priority}
                           </span>
-                        ) : <span className="text-[10px] text-slate-700">—</span>}
+                        ) : <span className="text-xs text-slate-700">—</span>}
                       </td>
-                      <td className="px-3 py-1.5 whitespace-nowrap hidden sm:table-cell">
+                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
                         {assigneeName ? (
-                          <span className="flex items-center gap-1 text-[10px] text-slate-500"><User size={8}/>{assigneeName}</span>
-                        ) : <span className="text-[10px] text-slate-700">—</span>}
+                          <span className="flex items-center gap-1 text-xs text-slate-500"><User size={10}/>{assigneeName}</span>
+                        ) : <span className="text-xs text-slate-700">—</span>}
                       </td>
-                      <td className="px-3 py-1.5 whitespace-nowrap hidden sm:table-cell">
+                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
                         {item.due_date ? (
-                          <span className={`flex items-center gap-0.5 text-[10px] ${isOverdue ? "text-red-400" : "text-slate-500"}`}>
-                            <Clock size={8}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          <span className={`flex items-center gap-0.5 text-xs ${isOverdue ? "text-red-400" : "text-slate-500"}`}>
+                            <Clock size={10}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
-                        ) : <span className="text-[10px] text-slate-700">—</span>}
+                        ) : <span className="text-xs text-slate-700">—</span>}
                       </td>
                     </tr>
                   );
