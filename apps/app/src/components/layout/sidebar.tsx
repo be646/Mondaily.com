@@ -203,11 +203,13 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             <Link to="/settings/members" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
               <Users size={13}/> Invite team members
             </Link>
-            <div className="mx-1 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-              <div className="text-xs font-medium text-amber-400">14 days left on trial</div>
-              <div className="text-xs text-slate-500 mt-0.5">Upgrade to keep access</div>
-              <Link to="/settings/billing" className="mt-1.5 block rounded-md bg-amber-500/15 px-2 py-1 text-center text-xs text-amber-400 hover:bg-amber-500/25 transition-colors">
-                Upgrade to Pro
+            <div className="mx-1 flex items-center justify-between rounded-lg border border-white/[.06] bg-white/[.03] px-3 py-2">
+              <div>
+                <span className="text-[11px] text-slate-400">14-day trial</span>
+                <span className="ml-1.5 text-[11px] text-slate-600">· 14 days left</span>
+              </div>
+              <Link to="/settings/billing" className="rounded-md border border-white/10 px-2 py-0.5 text-[10px] text-slate-400 hover:text-white hover:border-white/20 transition-colors whitespace-nowrap">
+                Upgrade
               </Link>
             </div>
           </div>
