@@ -49,6 +49,7 @@ export function HomePage() {
 
   const isChatting = messages.length > 0;
   const recentThreads = getThreads().slice(0, 3);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -74,19 +75,10 @@ export function HomePage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${apiUrl}/api/v1/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-        },
-        body: JSON.stringify({ message: text, model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })(), web_search: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").webSearch === "allow"; } catch { return false; } })() })
-      });
-      const data = await res.json() as any;
+      let model = "auto";
+      let web_search = false;
+      try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; web_search = s.webSearch === "allow"; } catch {}
+      const data = await apiClient.post<{ reply: string }>("/ask", { message: text, model, web_search });
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
       setMessages([...withUser, aiMsg]);
@@ -145,9 +137,10 @@ export function HomePage() {
         )}
         <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 focus-within:border-red-500/30">
           <input
+            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && send()}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
             placeholder={isChatting ? "Continue the conversation..." : "Ask anything or give Mondaily an instruction..."}
             className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
           />
@@ -224,49 +217,49 @@ export function HomePage() {
               <p className="text-xs text-slate-600 mt-1">Ask it to create tasks or manage your work.</p>
             </div>
           ) : (
-            <table className="w-full border-collapse text-xs">
+            <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-white/[.04]">
-                  <th className="px-4 py-2 text-left font-medium text-slate-600 w-full">Task</th>
-                  <th className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap">Priority</th>
-                  <th className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap hidden sm:table-cell">Assignee</th>
-                  <th className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap hidden sm:table-cell">Due</th>
+                  <th className="px-4 py-1.5 text-left font-medium text-[10px] text-slate-600 w-full">Task</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-[10px] text-slate-600 whitespace-nowrap">Priority</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-[10px] text-slate-600 whitespace-nowrap hidden sm:table-cell">Assignee</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-[10px] text-slate-600 whitespace-nowrap hidden sm:table-cell">Due</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[.03]">
-                {activeTasks.slice(0, 7).map(item => {
+                {activeTasks.slice(0, 8).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
+                  const statusDot = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-500";
                   return (
                     <tr key={item.id} onClick={() => setDetailTask(item)}
                       className="group cursor-pointer hover:bg-white/[.03] transition-colors">
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs leading-snug ${item.status === "in_progress" ? "text-blue-300" : item.status === "review" ? "text-yellow-300" : "text-slate-200"} group-hover:text-white transition-colors`}>
+                      <td className="px-4 py-1.5 max-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusDot}`}/>
+                          <span className="text-[11px] text-slate-300 group-hover:text-white transition-colors truncate">
                             {item.title}
                           </span>
-                          {item.status === "in_progress" && <span className="shrink-0 text-[9px] text-blue-400 bg-blue-400/10 rounded px-1 py-px">In progress</span>}
-                          {item.status === "review" && <span className="shrink-0 text-[9px] text-yellow-400 bg-yellow-400/10 rounded px-1 py-px">Review</span>}
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
+                      <td className="px-3 py-1.5 whitespace-nowrap">
                         {item.priority ? (
-                          <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>
-                            <Flag size={8}/>{item.priority}
+                          <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[9px] font-medium ${PRIORITY_STYLE[item.priority]}`}>
+                            <Flag size={7}/>{item.priority}
                           </span>
-                        ) : <span className="text-slate-700">—</span>}
+                        ) : <span className="text-[10px] text-slate-700">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
+                      <td className="px-3 py-1.5 whitespace-nowrap hidden sm:table-cell">
                         {assigneeName ? (
-                          <span className="flex items-center gap-1 text-slate-500"><User size={9}/>{assigneeName}</span>
-                        ) : <span className="text-slate-700">—</span>}
+                          <span className="flex items-center gap-1 text-[10px] text-slate-500"><User size={8}/>{assigneeName}</span>
+                        ) : <span className="text-[10px] text-slate-700">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
+                      <td className="px-3 py-1.5 whitespace-nowrap hidden sm:table-cell">
                         {item.due_date ? (
-                          <span className={`flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-slate-500"}`}>
-                            <Clock size={9}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          <span className={`flex items-center gap-0.5 text-[10px] ${isOverdue ? "text-red-400" : "text-slate-500"}`}>
+                            <Clock size={8}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
-                        ) : <span className="text-slate-700">—</span>}
+                        ) : <span className="text-[10px] text-slate-700">—</span>}
                       </td>
                     </tr>
                   );
@@ -276,11 +269,16 @@ export function HomePage() {
           )}
 
           {/* AI footer */}
-          <div className="border-t border-white/[.06] px-4 py-2.5 flex items-center gap-2">
-            <Sparkles size={11} className="text-red-400 shrink-0"/>
-            <p className="text-xs text-slate-600 flex-1">Tell Mondaily what to do with your tasks…</p>
-            <button onClick={() => setInput("Review my tasks and tell me what to focus on today")}
-              className="text-[10px] text-red-400 hover:text-red-300 transition-colors shrink-0">Ask AI →</button>
+          <div className="border-t border-white/[.06] px-4 py-2 flex items-center gap-2">
+            <Sparkles size={10} className="text-red-400 shrink-0"/>
+            <button
+              onClick={() => { setInput("Review my tasks and tell me what to focus on today"); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}
+              className="flex-1 text-left text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
+              Ask AI about your tasks…
+            </button>
+            <button
+              onClick={() => { setInput("Review my tasks and tell me what to focus on today"); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}
+              className="text-[10px] text-red-400 hover:text-red-300 transition-colors shrink-0">↑ Ask</button>
           </div>
         </section>
       </div>
