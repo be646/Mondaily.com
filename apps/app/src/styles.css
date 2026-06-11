@@ -26,6 +26,16 @@ body {
   }
 }
 
+/* Tactile Minimalist — keyboard key style inputs */
+@layer components {
+  .key-input {
+    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-x-white/[.15] focus:border-t-white/[.15] focus:border-b-red-500/40 focus:bg-white/[.06];
+  }
+  .key-button {
+    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-400 transition-all hover:bg-white/[.06] hover:text-white active:translate-y-[1px] active:border-b active:border-b-white/[.10];
+  }
+}
+
 /* Tactile Minimalist — global border & radius tokens */
 @layer base {
   /* Ultra-thin borders throughout */

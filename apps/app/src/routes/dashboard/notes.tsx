@@ -122,7 +122,7 @@ export function NotesPage() {
           {(["all", "mine", "following"] as const).map((item) => <button key={item} onClick={() => setFilter(item)} className={`rounded-md px-3 py-1.5 text-sm capitalize ${filter === item ? "bg-white/10 text-white" : "text-slate-500"}`}>{item}</button>)}
         </div>
         <div className="flex gap-2">
-          <label className="relative min-w-0 flex-1 sm:w-64"><Search className="absolute left-3 top-2.5 text-slate-600" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search notes" className="h-9 w-full rounded-md border border-white/10 bg-transparent pl-9 pr-3 text-sm outline-none focus:border-white/20" /></label>
+          <label className="relative min-w-0 flex-1 sm:w-64"><Search className="absolute left-3 top-2.5 text-slate-600" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search notes" className="key-input h-9 w-full pl-9 pr-3 text-sm" /></label>
           <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} className="h-9 rounded-md border border-white/10 bg-[#0b0d10] px-3 text-sm text-slate-400"><option value="newest">Newest first</option><option value="oldest">Oldest</option><option value="updated">Recently updated</option></select>
         </div>
       </div>
