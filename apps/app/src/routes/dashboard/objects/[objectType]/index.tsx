@@ -1,24 +1,22 @@
-import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
-import { Plus, X } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { Plus, X, FlaskConical } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { apiClient } from "../../../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { getDemoRecords } from "../../../../lib/demo-data";
+import {
+  getSimMode, getSimView, setSimMode, setSimView, onSimChange,
+  getSimViewData, SIM_VIEWS, type SimView,
+} from "../../../../lib/simulation";
 
-function getDefaultFields(objectType: string) {
-  const t = objectType.toLowerCase();
-  if (t.includes("employee") || t.includes("staff") || t.includes("hr"))
-    return ["name", "email", "role", "department"];
-  if (t.includes("deal") || t.includes("opportunit") || t.includes("crm") || t.includes("pipeline"))
-    return ["name", "stage", "owner", "value"];
-  if (t.includes("compan") || t.includes("org") || t.includes("account"))
-    return ["name", "description", "arr", "funding_raised", "employee_range"];
-  if (t.includes("people") || t.includes("person") || t.includes("contact"))
-    return ["name", "email", "job_title", "linkedin", "twitter", "twitter_followers"];
-  return ["name", "email"];
+// ─── Simulation state hook ────────────────────────────────────────────────────
+function useSimulation() {
+  const mode = useSyncExternalStore(onSimChange, getSimMode, getSimMode);
+  const view = useSyncExternalStore(onSimChange, getSimView, getSimView);
+  return { mode, view };
 }
 
+// ─── Toggle pill ──────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
@@ -33,14 +31,16 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-function CreateRecordModal({ objectType, onClose, existingColumns }: { objectType: string; onClose: () => void; existingColumns: string[] }) {
+// ─── Create record modal ──────────────────────────────────────────────────────
+function CreateRecordModal({
+  objectType, onClose, fieldKeys,
+}: { objectType: string; onClose: () => void; fieldKeys: string[] }) {
   const queryClient = useQueryClient();
-  const fieldKeys = existingColumns.length > 0 ? existingColumns : getDefaultFields(objectType);
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(fieldKeys.map(k => [k, ""]))
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError]   = useState("");
   const [createMore, setCreateMore] = useState(false);
 
   const resetForm = () => setValues(Object.fromEntries(fieldKeys.map(k => [k, ""])));
@@ -51,8 +51,7 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
       if (k.trim()) data[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
     }
     if (!data.name) { setError("Name is required"); return; }
-    setSaving(true);
-    setError("");
+    setSaving(true); setError("");
     try {
       const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
       await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data });
@@ -61,9 +60,7 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
     } catch (e: any) {
       const msg = e?.message || "Failed to create record";
       setError(msg.includes("createNode failed") ? msg.replace("createNode failed: ", "") : msg);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }, [values, objectType, createMore, onClose, queryClient]);
 
   useEffect(() => {
@@ -81,8 +78,6 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
       <div className="fixed left-1/2 top-1/2 z-50 w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
-
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
           <span className="text-[13px] font-semibold capitalize text-white tracking-tight">
             New {objectType.replace(/[-_]/g, " ")}
@@ -92,10 +87,9 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
           </button>
         </div>
 
-        {/* Fields */}
         <div className="max-h-[360px] overflow-auto px-5 py-4 space-y-1">
           {fieldKeys.map((k) => (
-            <div key={k} className="grid grid-cols-[120px_1fr] items-center gap-3 py-1.5 border-b border-white/[.04] last:border-0">
+            <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-1.5 border-b border-white/[.04] last:border-0">
               <span className="text-[11px] font-medium uppercase tracking-wide text-slate-600 select-none truncate">
                 {label(k)}
               </span>
@@ -110,7 +104,6 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
           {error && <p className="pt-1 text-xs text-red-400">{error}</p>}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3.5">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500 select-none">
             <Toggle checked={createMore} onChange={setCreateMore}/>
@@ -129,9 +122,7 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
               className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50 disabled:opacity-50"
             >
               {saving ? "Creating…" : "Create record"}
-              <kbd className="rounded border border-red-400/40 bg-red-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70 tracking-normal">
-                ⌘↵
-              </kbd>
+              <kbd className="rounded border border-red-400/40 bg-red-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70 tracking-normal">⌘↵</kbd>
             </button>
           </div>
         </div>
@@ -140,32 +131,95 @@ function CreateRecordModal({ objectType, onClose, existingColumns }: { objectTyp
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export function ObjectIndexPage() {
   const { objectType = "records" } = useParams();
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
+  const { mode: simMode, view: simView } = useSimulation();
 
-  // Derive column names from demo data (if available) so modal pre-matches the visible columns
-  const demoRecords = getDemoRecords(objectType);
-  const existingColumns = demoRecords
-    ? Array.from(new Set(demoRecords.flatMap(r => Object.keys(r.data)))).slice(0, 8)
-    : [];
+  // When simulation is on, redirect to the active sim view route if we're on a
+  // non-sim route, so the table always shows meaningful data.
+  useEffect(() => {
+    if (simMode) {
+      const expectedRoute = `/objects/${simView}`;
+      if (window.location.pathname !== expectedRoute) navigate(expectedRoute, { replace: true });
+    }
+  }, [simMode, simView, navigate]);
+
+  // Determine the columns/fields the modal should present
+  const simViewData = simMode ? getSimViewData(simView) : null;
+  const modalFieldKeys = simViewData
+    ? simViewData.columns.filter(c => c !== "logo" && c !== "avatar" && c !== "indicator")
+    : (() => {
+        const t = objectType.toLowerCase();
+        if (t.includes("employee") || t.includes("staff") || t.includes("hr"))
+          return ["name","email","role","department"];
+        if (t.includes("deal") || t.includes("opportunit") || t.includes("crm") || t.includes("pipeline"))
+          return ["name","stage","owner","value"];
+        if (t.includes("compan") || t.includes("org") || t.includes("account"))
+          return ["name","description","arr","funding_raised","employee_range","country"];
+        if (t.includes("people") || t.includes("person") || t.includes("contact"))
+          return ["name","email","job_title","linkedin","twitter","twitter_followers"];
+        return ["name","email"];
+      })();
+
+  const activeLabel = simMode
+    ? simViewData!.label
+    : objectType.replace(/[-_]/g, " ");
 
   return (
-    <div className="px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold capitalize text-white tracking-tight">{objectType.replace(/[-_]/g, " ")}</h1>
+    <div className="flex min-h-full flex-col">
+      {/* ── Toolbar ── */}
+      <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
+        <h1 className="text-[15px] font-semibold capitalize text-white tracking-tight flex-1">{activeLabel}</h1>
+
+        {/* Simulation Mode toggle */}
+        <div className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-colors ${simMode ? "border-amber-500/30 bg-amber-500/[.06]" : "border-white/[.06] bg-white/[.02]"}`}>
+          <FlaskConical size={12} className={simMode ? "text-amber-400" : "text-slate-600"}/>
+          <span className={`text-[11px] font-medium select-none ${simMode ? "text-amber-300" : "text-slate-600"}`}>
+            Simulation
+          </span>
+          <Toggle checked={simMode} onChange={setSimMode}/>
+        </div>
+
+        {/* Dataset picker — only visible in sim mode */}
+        {simMode && (
+          <div className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] p-1">
+            {SIM_VIEWS.map(v => (
+              <button
+                key={v.key}
+                onClick={() => setSimView(v.key as SimView)}
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  simView === v.key
+                    ? "bg-white/[.08] text-white"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* New record button */}
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+          className="flex items-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
         >
-          <Plus size={14}/> New {objectType.replace(/[-_]/g, " ")}
+          <Plus size={13}/> New {activeLabel}
         </button>
       </div>
-      <RecordTable objectType={objectType} />
+
+      {/* ── Table ── */}
+      <div className="flex-1 overflow-auto px-6 py-4">
+        <RecordTable objectType={simMode ? simView : objectType} simMode={simMode} simView={simView}/>
+      </div>
+
       {showCreate && (
         <CreateRecordModal
-          objectType={objectType}
-          existingColumns={existingColumns}
+          objectType={simMode ? simView : objectType}
+          fieldKeys={modalFieldKeys}
           onClose={() => setShowCreate(false)}
         />
       )}
