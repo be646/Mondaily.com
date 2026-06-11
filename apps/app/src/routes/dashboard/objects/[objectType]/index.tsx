@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, X } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { apiClient } from "../../../../lib/api-client";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -20,21 +20,12 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-// ─── Derive column keys from live records ─────────────────────────────────────
-function useObjectColumns(objectType: string) {
-  const query = useQuery({
-    queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<Array<{ id: string; data: Record<string, unknown> }>>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
-    staleTime: 30_000,
-  });
-  const records = query.data ?? [];
-  return Array.from(new Set(records.flatMap(r => Object.keys(r.data)))).slice(0, 8);
-}
-
 // ─── Create record modal ──────────────────────────────────────────────────────
 function CreateRecordModal({ objectType, onClose }: { objectType: string; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const liveColumns = useObjectColumns(objectType);
+  // Read columns from the already-warm TanStack Query cache — no extra fetch
+  const cachedRecords = (queryClient.getQueryData<Array<{ data: Record<string, unknown> }>>(["records", objectType])) ?? [];
+  const liveColumns = Array.from(new Set(cachedRecords.flatMap(r => Object.keys(r.data)))).slice(0, 8);
 
   // Field key order: prefer live columns from real records, else smart defaults
   const fieldKeys = liveColumns.length > 0 ? liveColumns : (() => {
