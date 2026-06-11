@@ -124,7 +124,7 @@ export function AskMondaily() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-white/[.06] px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white">Ask Mondaily</h1>
           <p className="text-xs text-slate-500">Your AI business assistant</p>
@@ -146,7 +146,7 @@ export function AskMondaily() {
               <div className="text-sm font-medium text-white mb-1">How can I help you today?</div>
               <div className="text-xs text-slate-500 mb-4">Ask about your pipeline, contacts, tasks, or anything business related</div>
               <div className="flex flex-wrap gap-2 justify-center">
-                {SUGGESTIONS.map(s => <button key={s} onClick={() => send(s)} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">{s}</button>)}
+                {SUGGESTIONS.map(s => <button key={s} onClick={() => send(s)} className="key-button px-3 py-1.5 text-xs">{s}</button>)}
               </div>
             </div>
           </div>
@@ -155,7 +155,7 @@ export function AskMondaily() {
           <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "assistant" && <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5"><Sparkles size={13} className="text-red-400"/></div>}
             <div className="flex flex-col gap-1">
-              <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-200"}`}>{m.content}</div>
+              <div className={`max-w-[75%] rounded-xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.05] border border-white/[.06] text-slate-200"}`}>{m.content}</div>
               {m.role === "assistant" && i > 0 && (
                 <div className="flex gap-1 ml-1">
                   <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} className={`rounded p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-green-400" : "text-slate-600 hover:text-green-400"}`} title="Good response"><ThumbsUp size={12}/></button>
@@ -172,13 +172,13 @@ export function AskMondaily() {
         {loading && (
           <div className="flex gap-3 justify-start">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5"><Sparkles size={13} className="text-red-400"/></div>
-            <div className="rounded-2xl bg-white/[.06] px-4 py-3"><Loader2 size={14} className="animate-spin text-slate-400"/></div>
+            <div className="rounded-xl border border-white/[.06] bg-white/[.05] px-4 py-3"><Loader2 size={14} className="animate-spin text-slate-400"/></div>
           </div>
         )}
         <div ref={bottomRef}/>
       </div>
-      <div className="border-t border-white/10 px-6 py-4">
-        <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-3 focus-within:border-red-500/30">
+      <div className="border-t border-white/[.06] px-6 py-4">
+        <div className="flex items-end gap-2 rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] px-4 py-3 focus-within:border-b-red-500/40 transition-colors">
           <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Ask anything about your business..." rows={1} className="flex-1 resize-none bg-transparent text-sm text-white placeholder-slate-500 outline-none" style={{ maxHeight: "120px" }}/>
           <button id="ask-send-btn" onClick={() => send()} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-500 p-2 text-white hover:bg-red-400 disabled:opacity-40 transition-colors"><Send size={14}/></button>
         </div>

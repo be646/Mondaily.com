@@ -34,7 +34,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
 
   return (
     <form
-      className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2"
+      className="flex items-center gap-2 rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] px-3 py-2 focus-within:border-b-red-500/40 transition-colors"
       onSubmit={(e) => { e.preventDefault(); void submit(); }}
     >
       <input
