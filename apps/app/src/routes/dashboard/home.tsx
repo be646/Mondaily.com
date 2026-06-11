@@ -252,59 +252,73 @@ export function HomePage() {
       <p className="mt-1 text-sm text-slate-500">Mondaily is ready to run today's work.</p>
 
       <section className="mt-7">
+        {/* ── Conversation history ── */}
         {isChatting && (
-          <div className="mb-4 space-y-4 rounded-xl border border-white/10 bg-white/[.02] p-4 max-h-80 overflow-auto">
+          <div className="mb-6 max-h-[460px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
             {messages.map((m, i) => (
-              <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                 {m.role === "assistant" && (
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
-                    <Sparkles size={11} className="text-red-400"/>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5 ring-1 ring-red-500/20">
+                    <Sparkles size={12} className="text-red-400"/>
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-200"}`}>
-                  {m.content}
-                </div>
-                {m.role === "user" && (
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 mt-0.5">
-                    <User size={11} className="text-slate-400"/>
+                {m.role === "user" ? (
+                  <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-4 py-2.5 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                    {m.content}
+                  </div>
+                ) : (
+                  <div className="flex-1 min-w-0 text-sm text-slate-200 leading-7 whitespace-pre-wrap">
+                    {m.content}
                   </div>
                 )}
               </div>
             ))}
+
+            {/* Thinking state */}
             {loading && (
-              <div className="flex gap-3 justify-start">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
-                  <Sparkles size={11} className="text-red-400"/>
+              <div className="flex gap-3 items-center">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 ring-1 ring-red-500/20">
+                  <Sparkles size={12} className="text-red-400"/>
                 </div>
-                <div className="rounded-xl bg-white/[.06] px-3 py-2">
-                  <Loader2 size={13} className="animate-spin text-slate-400"/>
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <span className="italic">Thinking</span>
+                  <span className="flex gap-0.5 items-end h-3">
+                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "0ms" }}/>
+                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "150ms" }}/>
+                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "300ms" }}/>
+                  </span>
                 </div>
               </div>
             )}
+
+            {/* Follow-up suggestion chips */}
             {!loading && suggestions.length > 0 && (
-              <div className="flex flex-wrap gap-2 pl-9">
+              <div className="flex flex-wrap gap-2 pl-10">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => sendSuggestion(s)}
-                    className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[.04] px-3 py-1.5 text-xs text-slate-300 hover:border-red-500/30 hover:text-white hover:bg-white/[.07] transition-all"
+                    className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:border-red-500/30 hover:text-white hover:bg-white/[.06] transition-all"
                   >
                     <Sparkles size={9} className="text-red-400 shrink-0"/>{s}
                   </button>
                 ))}
               </div>
             )}
+
             <div ref={bottomRef}/>
           </div>
         )}
+
+        {/* ── Input bar ── */}
         <div className="relative" ref={pickerRef}>
           {/* Prompt picker panel */}
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl overflow-hidden z-50">
               <div className="px-4 py-2.5 border-b border-white/[.06]">
-                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Quick prompts</p>
+                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">Quick prompts</p>
               </div>
-              <div className="p-2 grid grid-cols-1 gap-0.5">
+              <div className="p-2 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button
                     key={label}
@@ -316,7 +330,7 @@ export function HomePage() {
                     </span>
                     <span>
                       <span className="block text-sm text-slate-200 group-hover:text-white transition-colors">{label}</span>
-                      <span className="block text-xs text-slate-600">{description}</span>
+                      <span className="block text-[11px] text-slate-600">{description}</span>
                     </span>
                   </button>
                 ))}
@@ -324,41 +338,57 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[.04] px-4 py-4 focus-within:border-red-500/30">
+          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3.5 focus-within:border-white/20 transition-colors">
+            {/* ⚡ prompt picker */}
             <button
               onClick={() => setPromptPickerOpen(o => !o)}
               title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-500 hover:bg-white/[.06] hover:text-white"}`}
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}
             >
               <Zap size={14}/>
             </button>
+
             <input
               ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation..." : "Ask anything or give Mondaily an instruction..."}
-              className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+              className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"
             />
+
             {isChatting && (
-              <button onClick={newChat} className="text-xs text-slate-500 hover:text-slate-300 shrink-0">New chat</button>
+              <button onClick={newChat} className="shrink-0 text-xs text-slate-600 hover:text-slate-400 transition-colors mr-1">
+                Clear
+              </button>
             )}
-            <button onClick={send} disabled={loading || !input.trim()} className="shrink-0 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-30 p-2 transition-colors">
-              {loading ? <Loader2 size={14} className="animate-spin text-white"/> : <Send size={14} className="text-white"/>}
+
+            {/* Send button — changes opacity based on input */}
+            <button
+              onClick={send}
+              disabled={loading || !input.trim()}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-200 ${input.trim() && !loading ? "bg-red-600 text-white shadow-lg shadow-red-900/30 hover:bg-red-500" : "bg-white/[.05] text-slate-600"}`}
+            >
+              {loading
+                ? <Loader2 size={14} className="animate-spin"/>
+                : <Send size={14}/>
+              }
             </button>
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-3 flex-wrap">
+
+        {/* Recent threads / open link */}
+        <div className="mt-2.5 flex items-center gap-3 flex-wrap">
           {!isChatting && recentThreads.length > 0 && (
             <>
-              <span className="text-xs text-slate-600">Recent:</span>
+              <span className="text-xs text-slate-700">Recent:</span>
               {recentThreads.map(t => (
-                <Link key={t.id} to={`/ask/${t.id}`} className="text-xs text-slate-500 hover:text-red-400 transition-colors truncate max-w-[150px]">{t.title}</Link>
+                <Link key={t.id} to={`/ask/${t.id}`} className="text-xs text-slate-600 hover:text-red-400 transition-colors truncate max-w-[160px]">{t.title}</Link>
               ))}
-              <span className="text-slate-700">·</span>
+              <span className="text-slate-800">·</span>
             </>
           )}
-          <Link to="/ask/new" className="text-xs text-red-400 hover:text-red-300">Open Ask Mondaily →</Link>
+          <Link to="/ask/new" className="text-xs text-slate-600 hover:text-red-400 transition-colors">Open full chat →</Link>
         </div>
       </section>
 
