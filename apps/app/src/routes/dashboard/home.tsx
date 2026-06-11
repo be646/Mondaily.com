@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag } from "lucide-react";
+import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -28,10 +28,17 @@ export function HomePage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [addingTask, setAddingTask] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const newTaskRef = useRef<HTMLInputElement>(null);
   const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
+  const createTask = useMutation({
+    mutationFn: (title: string) => apiClient.post<Task>("/tasks", { title, priority: "medium", status: "todo" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks", "home"] }); setNewTaskTitle(""); setAddingTask(false); }
+  });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -268,17 +275,42 @@ export function HomePage() {
             </table>
           )}
 
-          {/* AI footer */}
-          <div className="border-t border-white/[.06] px-4 py-2 flex items-center gap-2">
-            <Sparkles size={10} className="text-red-400 shrink-0"/>
-            <button
-              onClick={() => { setInput("Review my tasks and tell me what to focus on today"); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}
-              className="flex-1 text-left text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
-              Ask AI about your tasks…
-            </button>
-            <button
-              onClick={() => { setInput("Review my tasks and tell me what to focus on today"); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}
-              className="text-[10px] text-red-400 hover:text-red-300 transition-colors shrink-0">↑ Ask</button>
+          {/* Add task row */}
+          <div className="border-t border-white/[.06] px-4 py-2">
+            {addingTask ? (
+              <div className="flex items-center gap-2">
+                <Plus size={10} className="text-slate-500 shrink-0"/>
+                <input
+                  ref={newTaskRef}
+                  value={newTaskTitle}
+                  onChange={e => setNewTaskTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && newTaskTitle.trim()) createTask.mutate(newTaskTitle.trim());
+                    if (e.key === "Escape") { setAddingTask(false); setNewTaskTitle(""); }
+                  }}
+                  onBlur={() => { if (!newTaskTitle.trim()) { setAddingTask(false); } }}
+                  placeholder="Task title… press Enter to save"
+                  autoFocus
+                  className="flex-1 bg-transparent text-[11px] text-white placeholder-slate-600 outline-none"
+                />
+                {createTask.isPending && <Loader2 size={11} className="animate-spin text-slate-500 shrink-0"/>}
+                <button onClick={() => { setAddingTask(false); setNewTaskTitle(""); }} className="text-[10px] text-slate-600 hover:text-slate-400 shrink-0">Cancel</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setAddingTask(true); }}
+                  className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-white transition-colors flex-1">
+                  <Plus size={10}/> Add task
+                </button>
+                <span className="h-3 w-px bg-white/10"/>
+                <button
+                  onClick={() => { setInput("Review my tasks and tell me what to focus on today"); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}
+                  className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 transition-colors shrink-0">
+                  <Sparkles size={9}/> Ask AI
+                </button>
+              </div>
+            )}
           </div>
         </section>
       </div>
