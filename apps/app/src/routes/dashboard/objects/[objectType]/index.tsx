@@ -7,10 +7,17 @@ import { useQueryClient } from "@tanstack/react-query";
 
 function CreateRecordModal({ objectType, onClose }: { objectType: string; onClose: () => void }) {
   const queryClient = useQueryClient();
-  const [fields, setFields] = useState<{ key: string; value: string }[]>([
-    { key: "name", value: "" },
-    { key: "email", value: "" },
-  ]);
+  const defaultFields = (() => {
+    const t = objectType.toLowerCase();
+    if (t.includes("employee") || t.includes("staff") || t.includes("hr"))
+      return [{ key: "name", value: "" }, { key: "email", value: "" }, { key: "role", value: "" }, { key: "department", value: "" }];
+    if (t.includes("deal") || t.includes("opportunit"))
+      return [{ key: "name", value: "" }, { key: "company", value: "" }, { key: "amount", value: "" }, { key: "stage", value: "" }];
+    if (t.includes("compan") || t.includes("org"))
+      return [{ key: "name", value: "" }, { key: "email", value: "" }, { key: "website", value: "" }, { key: "phone", value: "" }];
+    return [{ key: "name", value: "" }, { key: "email", value: "" }];
+  })();
+  const [fields, setFields] = useState<{ key: string; value: string }[]>(defaultFields);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,18 +31,22 @@ function CreateRecordModal({ objectType, onClose }: { objectType: string; onClos
   const save = async () => {
     const data: Record<string, string> = {};
     for (const f of fields) {
-      if (f.key.trim()) data[f.key.trim()] = f.value;
+      if (f.key.trim()) data[f.key.trim().toLowerCase().replace(/\s+/g, "_")] = f.value;
     }
     if (!data.name) { setError("Name is required"); return; }
     setSaving(true);
+    setError("");
     try {
-      await apiClient.post("/nodes", { vertical: "shared", object_type: objectType, data });
+      const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+      await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data });
       queryClient.invalidateQueries({ queryKey: ["records", objectType] });
       onClose();
     } catch (e: any) {
-      setError(e?.message || "Failed to create record");
+      const msg = e?.message || "Failed to create record";
+      setError(msg.includes("createNode failed") ? msg.replace("createNode failed: ", "") : msg);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
