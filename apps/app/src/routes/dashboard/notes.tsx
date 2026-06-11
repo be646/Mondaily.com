@@ -4,7 +4,7 @@ import { Bot, FileText, Link2, MessageCircle, Pencil, Plus, Search, SmilePlus, T
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { NoteEditor } from "../../components/notes/note-editor";
-import { EmptyState, PageHeader, PageSkeleton } from "../../components/ui/page-state";
+import { EmptyState, ErrorState, PageHeader, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 
 interface Note {
@@ -126,7 +126,7 @@ export function NotesPage() {
           <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} className="h-9 rounded-md border border-white/10 bg-[#0b0d10] px-3 text-sm text-slate-400"><option value="newest">Newest first</option><option value="oldest">Oldest</option><option value="updated">Recently updated</option></select>
         </div>
       </div>
-      {notesQuery.isLoading ? <PageSkeleton rows={5} /> : notes.length === 0 ? <EmptyState icon={FileText} title="No notes yet" description="Add one to any record." action={<button onClick={() => setModalOpen(true)} className="rounded-md bg-red-600 px-3 py-2 text-sm">Add a note</button>} /> : (
+      {notesQuery.isLoading ? <PageSkeleton rows={5} /> : notesQuery.isError ? <ErrorState error={notesQuery.error as Error} onRetry={() => notesQuery.refetch()} /> : notes.length === 0 ? <EmptyState icon={FileText} title="No notes yet" description="Add one to any record." action={<button onClick={() => setModalOpen(true)} className="rounded-md bg-red-600 px-3 py-2 text-sm">Add a note</button>} /> : (
         <div className="space-y-3">
           {notes.map((note) => {
             const isExpanded = expanded.includes(note.id);

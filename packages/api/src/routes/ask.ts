@@ -150,11 +150,22 @@ async function executeTool(
     switch (name) {
       case "list_tasks": {
         const filter = input.filter || "mine";
-        const { data, error } = await supabase
+        let taskQuery = supabase
           .from("tasks")
-          .select("id, title, priority, status, due_date, completed")
+          .select("id, title, priority, status, due_date, completed, assignee_id, created_by")
           .eq("workspace_id", workspaceId)
-          .eq("completed", false)
+          .eq("completed", false);
+
+        if (filter === "mine") {
+          taskQuery = taskQuery.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
+        }
+        if (filter === "overdue") {
+          taskQuery = taskQuery
+            .or(`assignee_id.eq.${userId},created_by.eq.${userId}`)
+            .lt("due_date", new Date().toISOString());
+        }
+
+        const { data, error } = await taskQuery
           .order("created_at", { ascending: false })
           .limit(20);
         if (error) return `Error fetching tasks: ${error.message}`;

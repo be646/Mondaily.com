@@ -3,7 +3,7 @@ import { Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2, Che
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { apiClient } from "../../lib/api-client";
-import { EmptyState, PageSkeleton } from "../ui/page-state";
+import { EmptyState, ErrorState, PageSkeleton } from "../ui/page-state";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; ai_summary?: string }
 
@@ -48,6 +48,7 @@ export function RecordTable({ objectType }: { objectType: string }) {
   const columns = Array.from(new Set(records.flatMap((record) => Object.keys(record.data)))).slice(0, 8);
 
   if (query.isLoading) return <div className="mt-6"><PageSkeleton /></div>;
+  if (query.isError) return <div className="mt-6"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
   if (!records.length) return <div className="mt-6"><EmptyState icon={Database} title={`No ${objectType}`} description="Create a record manually or ask Mondaily to build this collection." /></div>;
 
   return (

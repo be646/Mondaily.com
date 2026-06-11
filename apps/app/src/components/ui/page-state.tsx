@@ -1,3 +1,4 @@
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -7,6 +8,26 @@ export function PageSkeleton({ rows = 6 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, index) => (
         <div key={index} className="h-14 animate-pulse rounded-lg border border-white/10 bg-white/[.035]" />
       ))}
+    </div>
+  );
+}
+
+export function ErrorState({ error, onRetry }: { error?: Error | null; onRetry?: () => void }) {
+  return (
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-red-500/10 bg-red-500/[.03] px-6 text-center">
+      <AlertTriangle className="mb-3 text-red-400/60" size={26} />
+      <h2 className="text-sm font-medium text-slate-200">Something went wrong</h2>
+      <p className="mt-1 max-w-sm text-sm text-slate-500">
+        {error?.message ?? "An unexpected error occurred. Please try again."}
+      </p>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          className="mt-4 flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors"
+        >
+          <RefreshCw size={12} /> Retry
+        </button>
+      )}
     </div>
   );
 }

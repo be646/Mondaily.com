@@ -5,7 +5,7 @@ import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSe
 import { useUser } from "@clerk/react";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
-import { EmptyState, PageSkeleton } from "../../components/ui/page-state";
+import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -534,7 +534,7 @@ export function TasksPage() {
 
       {/* ── LIST VIEW ─────────────────────────────────────── */}
       {viewMode === "list" && (
-        query.isLoading ? <PageSkeleton /> : tasks.length === 0 ? (
+        query.isLoading ? <PageSkeleton /> : query.isError ? <ErrorState error={query.error as Error} onRetry={() => query.refetch()} /> : tasks.length === 0 ? (
           <EmptyState icon={Check} title="No tasks" description="You are all caught up." />
         ) : (
           <div className="space-y-2">
