@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
-import * as ubc from "@mondaily/db/ubc";
 import { supabase } from "@mondaily/db/client";
 
 const router = new Hono();
@@ -15,33 +14,31 @@ router.post("/", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const body = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
+  const q = body.query;
 
-  const [nodeResults, taskResults, noteResults] = await Promise.all([
-    ubc.searchNodes(workspaceId, body.query, {
-      verticals: body.verticals,
-      objectTypes: body.object_types,
-      limit: body.limit
-    }).catch(() => []),
+  const [nameResults, emailResults, taskResults] = await Promise.all([
+    supabase.from("nodes")
+      .select("id, object_type, vertical, data, updated_at")
+      .eq("workspace_id", workspaceId)
+      .ilike("data->>name", `%${q}%`)
+      .limit(body.limit),
+    supabase.from("nodes")
+      .select("id, object_type, vertical, data, updated_at")
+      .eq("workspace_id", workspaceId)
+      .ilike("data->>email", `%${q}%`)
+      .limit(10),
     supabase.from("tasks")
       .select("id, title, priority, status, due_date, updated_at")
       .eq("workspace_id", workspaceId)
-      .ilike("title", `%${body.query}%`)
-      .limit(10),
-    supabase.from("activities")
-      .select("id, node_id, action, created_at")
-      .eq("workspace_id", workspaceId)
-      .ilike("action", `%${body.query}%`)
-      .limit(5)
+      .ilike("title", `%${q}%`)
+      .limit(10)
   ]);
 
-  const ids = (nodeResults as any[]).flatMap((result: any) => result.id ? [result.id] : []);
-  const { data: activities } = ids.length
-    ? await supabase.from("activities").select("node_id,created_at").in("node_id", ids).order("created_at", { ascending: false })
-    : { data: [] };
-  const latest = new Map<string, string>();
-  for (const activity of activities ?? []) if (!latest.has(activity.node_id)) latest.set(activity.node_id, activity.created_at);
-
-  const crmResults = (nodeResults as any[]).map((result: any) => ({ ...result, last_activity_at: result.id ? latest.get(result.id) : undefined }));
+  // Merge node results, deduplicate by id
+  const seen = new Set<string>();
+  const nodeItems = [...(nameResults.data ?? []), ...(emailResults.data ?? [])]
+    .filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
+    .map(r => ({ id: r.id, object_type: r.object_type, data: r.data, updated_at: r.updated_at }));
 
   const taskItems = (taskResults.data ?? []).map((t: any) => ({
     id: t.id,
@@ -50,7 +47,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
     updated_at: t.updated_at
   }));
 
-  return c.json([...crmResults, ...taskItems]);
+  return c.json([...nodeItems, ...taskItems]);
 });
 
 export { router as searchRouter };
