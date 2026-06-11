@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil } from "lucide-react";
+import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil, LayoutList, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/react";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
@@ -303,7 +303,7 @@ export function TasksPage() {
           <p className="text-sm text-slate-500 mt-0.5">Work assigned to you and your team.</p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-sm text-slate-300 hover:border-white/25 hover:text-white transition-colors">
+          className="flex items-center gap-1.5 rounded-md border-t border-x border-white/20 border-b-[3px] border-b-slate-600 bg-white/[.07] px-3 py-1.5 text-sm text-slate-200 transition-all active:translate-y-[1px] active:border-b active:border-b-white/20 hover:bg-white/[.10] hover:text-white">
           <Plus size={14}/> New Task
         </button>
       </div>
@@ -340,16 +340,29 @@ export function TasksPage() {
       {/* Filters */}
       <div className="mb-5 flex gap-2 flex-wrap">
         {[
-          { key: "mine", label: "Mine" },
-          { key: "all", label: "All" },
-          { key: "overdue", label: "Overdue" },
-          { key: "review", label: "Needs Review" },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${filter === f.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
-            {f.label}
-          </button>
-        ))}
+          { key: "mine",    label: "Mine",        icon: <User size={12}/> },
+          { key: "all",     label: "All",          icon: <LayoutList size={12}/> },
+          { key: "overdue", label: "Overdue",      icon: <Clock size={12}/> },
+          { key: "review",  label: "Needs Review", icon: <Eye size={12}/> },
+        ].map(f => {
+          const active = filter === f.key;
+          return (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              className={`flex items-center gap-1.5 rounded-md border-x border-t px-3 py-1.5 text-xs font-medium transition-all
+                ${active
+                  ? "translate-y-[1px] border-white/15 border-b border-b-white/15 bg-white/[.12] text-white"
+                  : "border-white/15 border-b-[3px] border-b-slate-600 bg-white/[.05] text-slate-400 hover:bg-white/[.08] hover:text-slate-200 active:translate-y-[1px] active:border-b active:border-b-white/15"
+                }`}>
+              {f.icon}
+              {f.label}
+              {active && f.key !== "all" && (
+                <span className="ml-0.5 rounded bg-white/10 px-1.5 py-px text-[10px] font-normal text-slate-300">
+                  {f.key === "mine" ? "you" : f.key === "overdue" ? "past due" : "review"}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {query.isLoading ? <PageSkeleton /> : tasks.length === 0 ? (
