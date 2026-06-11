@@ -1,31 +1,52 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Plus, Sparkles, Send, Loader2, User, Clock } from "lucide-react";
+import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
+import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 
-interface Task { id: string; title: string; completed: boolean; due_date?: string; priority?: string; status?: string; assignee_email?: string; created_at?: string; }
+interface Task { id: string; title: string; completed: boolean; due_date?: string; priority?: string; status?: string; assignee_id?: string; assignee_email?: string; created_at?: string; notes?: string; labels?: string[]; record_id?: string; record_name?: string; updated_at?: string; }
+interface Member { id: string; user_id: string; email: string; name: string; }
 interface Meeting { id: string; title: string; start_time: string; attendees?: string[] }
+
+const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+const PRIORITY_STYLE: Record<string, string> = {
+  urgent: "bg-red-400/10 text-red-400",
+  high:   "bg-orange-400/10 text-orange-400",
+  medium: "bg-blue-400/10 text-blue-400",
+  low:    "bg-slate-400/10 text-slate-400",
+};
 
 export function HomePage() {
   const { user } = useUser();
   const qc = useQueryClient();
-  const [task, setTask] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const tasks = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine") });
+  const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
+  const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
-  const create = useMutation({ mutationFn: () => apiClient.post("/tasks", { title: task }), onSuccess: () => { setTask(""); qc.invalidateQueries({ queryKey: ["tasks"] }); } });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const activeTasks = (tasks.data ?? []).filter(t => !t.completed);
+
+  const members = membersQuery.data ?? [];
+  const activeTasks = (tasksQuery.data ?? [])
+    .filter(t => !t.completed && t.status !== "done")
+    .sort((a, b) => (PRIORITY_ORDER[a.priority ?? "low"] ?? 3) - (PRIORITY_ORDER[b.priority ?? "low"] ?? 3));
+
+  const getMemberName = (task: Task) => {
+    if (!task.assignee_id) return task.assignee_email?.split("@")[0] ?? null;
+    const m = members.find(m => m.user_id === task.assignee_id);
+    return m ? (m.name || m.email.split("@")[0]) : (task.assignee_email?.split("@")[0] ?? null);
+  };
+
   const isChatting = messages.length > 0;
   const recentThreads = getThreads().slice(0, 3);
 
@@ -176,51 +197,102 @@ export function HomePage() {
           )}
         </section>
 
-        <section className="min-h-72 rounded-lg border border-white/10 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-medium"><CheckSquare size={14}/> Tasks</h2>
-            <span className="text-xs text-slate-600">{activeTasks.length}</span>
+        <section className="rounded-lg border border-white/10 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
+            <div className="flex items-center gap-2">
+              <h2 className="flex items-center gap-1.5 text-sm font-medium"><CheckSquare size={13}/> Tasks</h2>
+              <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-px text-[10px] text-red-400">
+                <Sparkles size={9}/> AI sorted
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-600">{activeTasks.length} open</span>
+              <Link to="/tasks" className="flex items-center gap-0.5 text-xs text-slate-500 hover:text-white transition-colors">
+                View all <ArrowUpRight size={11}/>
+              </Link>
+            </div>
           </div>
-          {tasks.isLoading ? <PageSkeleton rows={3}/> : activeTasks.length ? (
-            <div className="space-y-2">{activeTasks.slice(0, 5).map(item => (
-              <Link key={item.id} to="/tasks" className="block rounded-lg bg-white/[.03] hover:bg-white/[.05] p-3 transition-colors">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm text-slate-200">{item.title}</span>
-                    {item.priority && (
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        item.priority === "urgent" ? "bg-red-400/10 text-red-400" :
-                        item.priority === "high" ? "bg-orange-400/10 text-orange-400" :
-                        item.priority === "medium" ? "bg-blue-400/10 text-blue-400" :
-                        "bg-slate-400/10 text-slate-400"
-                      }`}>{item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}</span>
-                    )}
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap gap-2 text-xs text-slate-500">
-                    {item.status && item.status !== "todo" && (
-                      <span className={`${item.status === "review" ? "text-yellow-400" : item.status === "in_progress" ? "text-blue-400" : "text-emerald-400"}`}>
-                        {item.status === "in_progress" ? "In Progress" : item.status === "review" ? "Needs Review" : "Done"}
-                      </span>
-                    )}
-                    {item.due_date && (
-                      <span className={`flex items-center gap-1 ${new Date(item.due_date) < new Date() ? "text-red-400" : ""}`}>
-                        <Clock size={9}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        {new Date(item.due_date) < new Date() ? " · Overdue" : ""}
-                      </span>
-                    )}
-                    {item.assignee_email && <span className="flex items-center gap-1"><User size={9}/>{item.assignee_email}</span>}
-                    {item.created_at && <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
-                  </div>
-                </Link>
-            ))}</div>
+
+          {/* Table */}
+          {tasksQuery.isLoading ? (
+            <div className="p-4"><PageSkeleton rows={3}/></div>
+          ) : activeTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+              <Sparkles size={18} className="text-red-400/50 mb-2"/>
+              <p className="text-sm text-slate-400">Mondaily has nothing to assign you right now.</p>
+              <p className="text-xs text-slate-600 mt-1">Ask it to create tasks or manage your work.</p>
+            </div>
           ) : (
-            <p className="py-10 text-center text-sm text-slate-500">Stay on top of work. Create tasks for yourself or your team.</p>
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-white/[.04]">
+                  <th className="px-4 py-2 text-left font-medium text-slate-600 w-full">Task</th>
+                  <th className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap">Priority</th>
+                  <th className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap hidden sm:table-cell">Assignee</th>
+                  <th className="px-3 py-2 text-left font-medium text-slate-600 whitespace-nowrap hidden sm:table-cell">Due</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[.03]">
+                {activeTasks.slice(0, 7).map(item => {
+                  const isOverdue = item.due_date && new Date(item.due_date) < new Date();
+                  const assigneeName = getMemberName(item);
+                  return (
+                    <tr key={item.id} onClick={() => setDetailTask(item)}
+                      className="group cursor-pointer hover:bg-white/[.03] transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs leading-snug ${item.status === "in_progress" ? "text-blue-300" : item.status === "review" ? "text-yellow-300" : "text-slate-200"} group-hover:text-white transition-colors`}>
+                            {item.title}
+                          </span>
+                          {item.status === "in_progress" && <span className="shrink-0 text-[9px] text-blue-400 bg-blue-400/10 rounded px-1 py-px">In progress</span>}
+                          {item.status === "review" && <span className="shrink-0 text-[9px] text-yellow-400 bg-yellow-400/10 rounded px-1 py-px">Review</span>}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap">
+                        {item.priority ? (
+                          <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>
+                            <Flag size={8}/>{item.priority}
+                          </span>
+                        ) : <span className="text-slate-700">—</span>}
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
+                        {assigneeName ? (
+                          <span className="flex items-center gap-1 text-slate-500"><User size={9}/>{assigneeName}</span>
+                        ) : <span className="text-slate-700">—</span>}
+                      </td>
+                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
+                        {item.due_date ? (
+                          <span className={`flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-slate-500"}`}>
+                            <Clock size={9}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        ) : <span className="text-slate-700">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           )}
-          <form onSubmit={e => { e.preventDefault(); if (task.trim()) create.mutate(); }} className="mt-4 flex gap-2">
-            <input value={task} onChange={e => setTask(e.target.value)} placeholder="New task" className="h-9 flex-1 rounded-md border border-white/10 bg-transparent px-3 text-sm"/>
-            <button className="grid w-9 place-items-center rounded-md border border-white/10 text-red-400"><Plus size={14}/></button>
-          </form>
+
+          {/* AI footer */}
+          <div className="border-t border-white/[.06] px-4 py-2.5 flex items-center gap-2">
+            <Sparkles size={11} className="text-red-400 shrink-0"/>
+            <p className="text-xs text-slate-600 flex-1">Tell Mondaily what to do with your tasks…</p>
+            <button onClick={() => setInput("Review my tasks and tell me what to focus on today")}
+              className="text-[10px] text-red-400 hover:text-red-300 transition-colors shrink-0">Ask AI →</button>
+          </div>
         </section>
       </div>
+
+      {detailTask && (
+        <TaskDetailPanel
+          task={detailTask}
+          members={members}
+          onClose={() => setDetailTask(null)}
+          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks", "home"] }); }}
+        />
+      )}
     </div>
   );
 }
