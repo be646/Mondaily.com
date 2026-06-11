@@ -22,28 +22,20 @@ export function SidebarLists() {
       navigate(`/lists/${data.id}`);
     }
   });
-  const grouped = (query.data ?? []).reduce<Record<string, ListItem[]>>((groups, item) => {
-    (groups[item.object_type] ??= []).push(item);
-    return groups;
-  }, {});
+  const lists = query.data ?? [];
   return (
     <section className="mt-5">
       <div className="mb-2 flex items-center justify-between px-3">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Lists</p>
-        <button onClick={() => setOpen(true)} title="New list" className="text-slate-600 hover:text-white"><Plus size={13} /></button>
+        <button onClick={() => setOpen(true)} title="New list" className="text-slate-600 hover:text-white transition-colors"><Plus size={13} /></button>
       </div>
-      {Object.entries(grouped).map(([type, lists]) => (
-        <div key={type} className="mb-2">
-          <p className="px-3 py-1 text-[10px] capitalize text-slate-700">{type.replaceAll("_", " ")}</p>
-          {lists.map((list) => (
-            <div key={list.id} className="group flex items-center">
-              <Link to={`/lists/${list.id}`} className="flex min-w-0 flex-1 items-center justify-between rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/[.04] hover:text-slate-200">
-                <span className="truncate">{list.name}</span>
-                <span className="text-[10px] text-slate-700">{list.entry_count}</span>
-              </Link>
-              <button title="List menu" className="mr-1 text-slate-700 opacity-0 group-hover:opacity-100"><MoreHorizontal size={12} /></button>
-            </div>
-          ))}
+      {lists.map((list) => (
+        <div key={list.id} className="group flex items-center">
+          <Link to={`/lists/${list.id}`} className="flex min-w-0 flex-1 items-center justify-between rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/[.04] hover:text-slate-200 transition-colors">
+            <span className="truncate">{list.name}</span>
+            <span className="text-[10px] text-slate-700">{list.entry_count}</span>
+          </Link>
+          <button title="List menu" className="mr-1 text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal size={12} /></button>
         </div>
       ))}
       {!query.isLoading && !query.data?.length ? (

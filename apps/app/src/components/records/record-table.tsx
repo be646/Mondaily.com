@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2, ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check } from "lucide-react";
+import { Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2, ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, FlaskConical } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { apiClient } from "../../lib/api-client";
-import { EmptyState, ErrorState, PageSkeleton } from "../ui/page-state";
+import { ErrorState, PageSkeleton } from "../ui/page-state";
+import { getDemoRecords, type DemoRecord } from "../../lib/demo-data";
 
-interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; ai_summary?: string }
+type NodeRecord = DemoRecord;
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
 
 function display(value: unknown) {
@@ -29,7 +30,7 @@ function getColumnIcon(col: string) {
 
 function isNumeric(col: string) {
   const lower = col.toLowerCase();
-  return lower.includes("amount") || lower.includes("price") || lower.includes("value") || lower.includes("count") || lower.includes("number");
+  return ["amount","price","value","arr","mrr","revenue","budget","salary","cost","balance","count","score","number","followers","raised"].some(k => lower.includes(k));
 }
 
 function RowLogo({ name }: { name: string }) {
@@ -119,7 +120,10 @@ function CalcDropdown({ col, current, onSelect, onClose }: { col: string; curren
 
 export function RecordTable({ objectType }: { objectType: string }) {
   const query = useQuery({ queryKey: ["records", objectType], queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`) });
-  const records = query.data ?? [];
+  const apiRecords = query.data ?? [];
+  const demoFallback = getDemoRecords(objectType);
+  const isDemo = !query.isLoading && apiRecords.length === 0 && demoFallback !== null;
+  const records = isDemo ? demoFallback! : apiRecords;
   const columns = Array.from(new Set(records.flatMap((record) => Object.keys(record.data)))).slice(0, 8);
 
   // Sorting
@@ -158,10 +162,22 @@ export function RecordTable({ objectType }: { objectType: string }) {
 
   if (query.isLoading) return <div className="mt-6"><PageSkeleton /></div>;
   if (query.isError) return <div className="mt-6"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
-  if (!records.length) return <div className="mt-6"><EmptyState icon={Database} title={`No ${objectType}`} description="Create a record manually or ask Mondaily to build this collection." /></div>;
+  if (!records.length) return (
+    <div className="mt-6 flex min-h-64 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] px-6 text-center">
+      <Database className="mb-3 text-slate-700" size={26}/>
+      <h2 className="text-sm font-medium text-slate-300">No {objectType} yet</h2>
+      <p className="mt-1 max-w-sm text-sm text-slate-600">Create a record manually or ask Mondaily to build this collection.</p>
+    </div>
+  );
 
   return (
     <section className="mt-6 overflow-auto">
+      {isDemo && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-500/15 bg-amber-500/[.04] px-3 py-2">
+          <FlaskConical size={13} className="text-amber-400/60 shrink-0"/>
+          <span className="text-xs text-amber-400/60">Sample data — create a record above to get started with your real data.</span>
+        </div>
+      )}
       <table className="min-w-full border-collapse text-left text-sm">
         <thead>
           <tr>
