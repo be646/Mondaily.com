@@ -411,7 +411,7 @@ export function TasksPage() {
   };
 
   return (
-    <div className={`mx-auto px-6 py-8 ${viewMode === "list" ? "max-w-2xl" : "max-w-full"}`}>
+    <div className={`mx-auto px-6 py-8 ${viewMode === "list" ? "max-w-3xl" : "max-w-full"}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -435,19 +435,39 @@ export function TasksPage() {
         </div>
       </div>
 
-      {/* Label filter + Sort */}
-      <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+      {/* Filters + Label + Sort — single row */}
+      <div className="mb-5 flex items-center gap-1.5 flex-wrap">
 
-        {/* — Label filter — */}
+        {/* Status filter pill group */}
+        <div className="flex gap-1 rounded-lg border border-white/10 p-1">
+          {[
+            { key: "mine",    label: "Mine" },
+            { key: "all",     label: "All" },
+            { key: "overdue", label: "Overdue" },
+            { key: "review",  label: "Needs Review" },
+          ].map(f => (
+            <button key={f.key} onClick={() => setFilter(f.key)}
+              className={`rounded-md px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
+              {f.label}
+              {f.key === "overdue" && overdueTasks.length > 0 && filter !== "overdue" && (
+                <span className="ml-1.5 rounded-full bg-red-500/20 px-1 py-px text-[10px] text-red-400">{overdueTasks.length}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="h-5 w-px bg-white/10"/>
+
+        {/* Label filter */}
         <div className="relative">
           {labelOpen && <div className="fixed inset-0 z-40" onClick={() => setLabelOpen(false)}/>}
-          <button
-            onClick={() => { setLabelOpen(o => !o); setSortOpen(false); }}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${labelFilter ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
-            <Tag size={12}/>
+          <button onClick={() => { setLabelOpen(o => !o); setSortOpen(false); }}
+            className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
+            <Tag size={11}/>
             {labelFilter || "Label"}
-            {labelFilter && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-red-400"/>}
-            <ChevronDown size={11} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
+            {labelFilter && <span className="h-1.5 w-1.5 rounded-full bg-red-400"/>}
+            <ChevronDown size={10} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
           </button>
           {labelOpen && (
             <div className="absolute left-0 top-full z-50 mt-1.5 w-44 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
@@ -471,20 +491,19 @@ export function TasksPage() {
           )}
         </div>
 
-        {/* — Sort — */}
+        {/* Sort */}
         <div className="relative">
           {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
           {(() => {
-            const sortLabel = sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Date created";
+            const sortLabel = sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Sort";
             const isNonDefault = sortBy !== "created_at" || sortDir !== "desc";
             return (
-              <button
-                onClick={() => { setSortOpen(o => !o); setLabelOpen(false); }}
-                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${isNonDefault ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
-                <ArrowUpDown size={12}/>
+              <button onClick={() => { setSortOpen(o => !o); setLabelOpen(false); }}
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs transition-colors ${isNonDefault ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
+                <ArrowUpDown size={11}/>
                 {sortLabel}
-                {isNonDefault && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-red-400"/>}
-                <ChevronDown size={11} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
+                {isNonDefault && <span className="h-1.5 w-1.5 rounded-full bg-red-400"/>}
+                <ChevronDown size={10} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
               </button>
             );
           })()}
@@ -498,50 +517,19 @@ export function TasksPage() {
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
                   className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${sortBy === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
-                  {opt.icon}
-                  {opt.label}
+                  {opt.icon}{opt.label}
                   {sortBy === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
                 </button>
               ))}
               <div className="mx-2 my-1 border-t border-white/10"/>
               <div className="flex gap-1 px-1 pb-1">
-                <button onClick={() => setSortDir("desc")}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors ${sortDir === "desc" ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}>
-                  <ArrowDown size={12}/> Newest
-                </button>
-                <button onClick={() => setSortDir("asc")}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors ${sortDir === "asc" ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}>
-                  <ArrowUp size={12}/> Oldest
-                </button>
+                <button onClick={() => setSortDir("desc")} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "desc" ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}><ArrowDown size={11}/> Newest</button>
+                <button onClick={() => setSortDir("asc")} className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "asc" ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}><ArrowUp size={11}/> Oldest</button>
               </div>
             </div>
           )}
         </div>
 
-      </div>
-
-      {/* Overdue warning */}
-      {overdueTasks.length > 0 && filter !== "overdue" && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2.5">
-          <AlertCircle size={14} className="text-red-400 shrink-0"/>
-          <span className="text-sm text-red-400">{overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}</span>
-          <button onClick={() => setFilter("overdue")} className="ml-auto text-xs text-red-400 hover:text-red-300 underline">View all</button>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="mb-5 flex gap-1 rounded-lg border border-white/10 p-1 w-fit">
-        {[
-          { key: "mine",    label: "Mine" },
-          { key: "all",     label: "All" },
-          { key: "overdue", label: "Overdue" },
-          { key: "review",  label: "Needs Review" },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${filter === f.key ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
-            {f.label}
-          </button>
-        ))}
       </div>
 
       {/* ── LIST VIEW ─────────────────────────────────────── */}
