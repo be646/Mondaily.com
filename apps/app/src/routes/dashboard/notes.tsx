@@ -70,8 +70,8 @@ export function NotesPage() {
     enabled: modalOpen
   });
   const membersQuery = useQuery({
-    queryKey: ["settings", "members"],
-    queryFn: () => apiClient.get<{ members: { name: string }[] }>("/settings/members"),
+    queryKey: ["members"],
+    queryFn: () => apiClient.get<{ name: string }[]>("/members"),
     enabled: modalOpen
   });
   const createNote = useMutation({
@@ -156,7 +156,7 @@ export function NotesPage() {
         <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg border border-white/10 bg-[#111419] p-5">
           <div className="mb-5 flex items-center justify-between"><div><h2 className="font-medium">{editing ? "Edit note" : "New note"}</h2><p className="mt-1 text-xs text-slate-500">Link the note to a record so the context stays useful.</p></div><button onClick={closeModal} className="grid h-8 w-8 place-items-center rounded hover:bg-white/[.05]"><X size={16} /></button></div>
           {!editing ? <div className="relative mb-4"><input value={recordSearch} onChange={(event) => { setRecordSearch(event.target.value); setLinkedRecord(undefined); }} placeholder="Search records by name, email, or company" className="h-10 w-full rounded-md border border-white/10 bg-transparent px-3 text-sm outline-none" />{recordSearch && !linkedRecord ? <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-white/10 bg-[#15181d] p-1 shadow-xl">{recordOptions.map((record) => <button key={record.id} onClick={() => { setLinkedRecord(record); setRecordSearch(String(record.data.name ?? record.data.title ?? record.id)); }} className="flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm hover:bg-white/[.05]"><span>{String(record.data.name ?? record.data.title ?? "Untitled")}</span><span className="text-xs text-slate-600">{record.object_type}</span></button>)}</div> : null}</div> : <div className="mb-4 rounded-md border border-white/10 px-3 py-2 text-sm text-slate-400">Linked to {linkedRecord?.data.name as string}</div>}
-          <NoteEditor value={content} onChange={setContent} onSave={() => editing ? updateNote.mutate() : linkedRecord ? createNote.mutate() : undefined} saving={createNote.isPending || updateNote.isPending} mentions={(membersQuery.data?.members ?? []).map((member) => member.name)} />
+          <NoteEditor value={content} onChange={setContent} onSave={() => editing ? updateNote.mutate() : linkedRecord ? createNote.mutate() : undefined} saving={createNote.isPending || updateNote.isPending} mentions={(membersQuery.data ?? []).map((member) => member.name)} />
           {!linkedRecord && !editing ? <p className="mt-2 text-xs text-amber-400">Choose a record before saving.</p> : null}
         </div>
       </div> : null}
