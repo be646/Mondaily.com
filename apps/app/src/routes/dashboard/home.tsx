@@ -73,6 +73,8 @@ export function HomePage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const taskWidgetInputRef = useRef<HTMLInputElement>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
+  const [taskPromptPickerOpen, setTaskPromptPickerOpen] = useState(false);
+  const taskPickerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +87,15 @@ export function HomePage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [promptPickerOpen]);
+
+  useEffect(() => {
+    if (!taskPromptPickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (taskPickerRef.current && !taskPickerRef.current.contains(e.target as Node)) setTaskPromptPickerOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [taskPromptPickerOpen]);
   const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
@@ -455,20 +466,7 @@ export function HomePage() {
           )}
 
           {/* Task widget AI footer */}
-          <div className="border-t border-white/[.06] px-4 pt-3 pb-4 space-y-3">
-            {/* Quick prompt chips */}
-            <div className="flex flex-wrap gap-1.5">
-              {TASK_PROMPTS.map(({ label, prompt }) => (
-                <button
-                  key={label}
-                  onClick={() => submitTaskWidgetInput(prompt)}
-                  className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2.5 py-1 text-[11px] text-slate-400 hover:border-red-500/30 hover:text-white hover:bg-white/[.06] transition-all"
-                >
-                  <Sparkles size={8} className="text-red-400 shrink-0"/>{label}
-                </button>
-              ))}
-            </div>
-
+          <div className="border-t border-white/[.06] px-3 py-3 space-y-2" ref={taskPickerRef}>
             {/* Inline AI reply */}
             {taskWidgetReply && (
               <div className="rounded-lg bg-white/[.04] border border-white/[.06] px-3 py-2.5 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
@@ -477,21 +475,63 @@ export function HomePage() {
               </div>
             )}
 
-            {/* Input */}
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2.5 focus-within:border-red-500/30 transition-colors">
+            {/* Task prompt picker dropdown */}
+            {taskPromptPickerOpen && (
+              <div className="rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl overflow-hidden">
+                {TASK_PROMPTS.map(({ label, prompt }) => (
+                  <button
+                    key={label}
+                    onClick={() => { setTaskPromptPickerOpen(false); submitTaskWidgetInput(prompt); }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group"
+                  >
+                    <Sparkles size={10} className="text-red-400 shrink-0"/>
+                    <span className="text-xs text-slate-300 group-hover:text-white">{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Input row */}
+            <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2.5 focus-within:border-red-500/30 transition-colors">
               <Sparkles size={11} className="text-red-400 shrink-0"/>
               <input
                 ref={taskWidgetInputRef}
                 value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
-                placeholder='Add a task, open one ("open TypeScript fix"), or ask anything…'
-                className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none"
+                placeholder="Add task, open one, or ask…"
+                className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none min-w-0"
               />
-              {taskWidgetLoading
-                ? <Loader2 size={12} className="animate-spin text-slate-500 shrink-0"/>
-                : <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()} className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"><Send size={12}/></button>
-              }
+              {taskWidgetLoading ? (
+                <Loader2 size={12} className="animate-spin text-slate-500 shrink-0"/>
+              ) : (
+                <>
+                  {/* Prompt picker icon */}
+                  <button
+                    onClick={() => setTaskPromptPickerOpen(o => !o)}
+                    title="Quick prompts"
+                    className={`shrink-0 p-1 rounded transition-colors ${taskPromptPickerOpen ? "text-red-400" : "text-slate-600 hover:text-slate-300"}`}
+                  >
+                    <Zap size={12}/>
+                  </button>
+                  {/* Auto brief button */}
+                  <button
+                    onClick={() => submitTaskWidgetInput("Scan all my tasks and notifications. Flag every overdue item, summarise what needs action today, and give me 3 specific next steps.")}
+                    title="AI auto-scan"
+                    className="shrink-0 rounded-md border border-white/10 bg-transparent hover:bg-white/[.06] hover:border-white/20 px-2 py-0.5 text-[10px] text-slate-500 hover:text-white transition-all"
+                  >
+                    Scan
+                  </button>
+                  {/* Send */}
+                  <button
+                    onClick={() => submitTaskWidgetInput(taskWidgetInput)}
+                    disabled={!taskWidgetInput.trim()}
+                    className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
+                  >
+                    <Send size={12}/>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </section>
