@@ -261,14 +261,14 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             )}
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <select value={localStatus} onChange={e => { setLocalStatus(e.target.value); updateTask.mutate({ status: e.target.value }); }}
-                className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
+                className="h-7 rounded border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium text-slate-300 outline-none cursor-pointer hover:border-white/20 transition-colors appearance-none">
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
                 <option value="review">Needs Review</option>
                 <option value="done">Done</option>
               </select>
               <select value={localPriority} onChange={e => { setLocalPriority(e.target.value); updateTask.mutate({ priority: e.target.value }); }}
-                className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-2 text-xs text-white outline-none cursor-pointer">
+                className="h-7 rounded border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium text-slate-300 outline-none cursor-pointer hover:border-white/20 transition-colors appearance-none">
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
@@ -281,7 +281,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             </div>
             {localLabels.filter(l => LABEL_COLORS[l]).length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {localLabels.filter(l => LABEL_COLORS[l]).map(l => <span key={l} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>)}
+                {localLabels.filter(l => LABEL_COLORS[l]).map(l => <span key={l} className={`rounded border px-2 py-0.5 text-[11px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>)}
               </div>
             )}
             <SeenBy views={views} currentUserId={userId}/>
