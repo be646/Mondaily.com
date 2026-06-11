@@ -8,6 +8,68 @@ import { apiClient } from "../../lib/api-client";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 
+// Converts markdown to readable plain-text lines for display
+function renderMarkdown(text: string): React.ReactNode {
+  const lines = text.split("\n");
+  const nodes: React.ReactNode[] = [];
+  let listBuffer: string[] = [];
+
+  const flushList = (key: string) => {
+    if (!listBuffer.length) return;
+    nodes.push(
+      <ul key={key} className="my-1 space-y-0.5 pl-3">
+        {listBuffer.map((item, i) => (
+          <li key={i} className="flex gap-2 text-slate-200">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-500"/>
+            <span>{inlineFormat(item)}</span>
+          </li>
+        ))}
+      </ul>
+    );
+    listBuffer = [];
+  };
+
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    // blank line
+    if (!trimmed) { flushList(`l${i}`); nodes.push(<div key={i} className="h-2"/>); return; }
+    // headings
+    if (/^#{1,3}\s/.test(trimmed)) {
+      flushList(`l${i}`);
+      const text = trimmed.replace(/^#{1,3}\s/, "");
+      nodes.push(<p key={i} className="mt-3 mb-0.5 text-sm font-semibold text-white">{text}</p>);
+      return;
+    }
+    // bullet/dash list
+    if (/^[-*•]\s/.test(trimmed)) {
+      listBuffer.push(trimmed.replace(/^[-*•]\s/, ""));
+      return;
+    }
+    // numbered list
+    if (/^\d+\.\s/.test(trimmed)) {
+      listBuffer.push(trimmed.replace(/^\d+\.\s/, ""));
+      return;
+    }
+    flushList(`l${i}`);
+    nodes.push(<p key={i} className="leading-7 text-slate-200">{inlineFormat(trimmed)}</p>);
+  });
+  flushList("end");
+  return nodes;
+}
+
+function inlineFormat(text: string): React.ReactNode {
+  // bold **x** and __x__, strip remaining * and _
+  const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
+  return parts.map((p, i) => {
+    if (/^\*\*/.test(p) || /^__/.test(p)) {
+      const inner = p.slice(2, -2);
+      return <strong key={i} className="font-semibold text-white">{inner}</strong>;
+    }
+    // strip stray stars/underscores
+    return p.replace(/[*_`]/g, "");
+  });
+}
+
 const QUICK_PROMPTS = [
   {
     icon: BellDot,
@@ -75,6 +137,8 @@ export function HomePage() {
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
   const [taskPromptPickerOpen, setTaskPromptPickerOpen] = useState(false);
   const taskPickerRef = useRef<HTMLDivElement>(null);
+  const [scanReport, setScanReport] = useState<string | null>(null);
+  const [scanLoading, setScanLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -165,6 +229,25 @@ export function HomePage() {
     setCurrentThreadId(null);
     setInput("");
     setSuggestions([]);
+  };
+
+  const runScan = async () => {
+    if (scanLoading) return;
+    setScanLoading(true);
+    setScanReport(null);
+    try {
+      let model = "auto";
+      try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
+      const data = await apiClient.post<{ reply: string }>("/ask", {
+        message: "Scan all my tasks and notifications. Flag every overdue item with its due date, summarise what needs action today, and give me 3 specific next steps. Format it as a clear report.",
+        model,
+      });
+      setScanReport(data.reply || "No results.");
+      qc.invalidateQueries({ queryKey: ["tasks", "home"] });
+    } catch (err: any) {
+      setScanReport(`Error: ${err.message}`);
+    }
+    setScanLoading(false);
   };
 
   // Handles the task widget input: open-by-name, create, or free AI question
@@ -263,12 +346,12 @@ export function HomePage() {
                   </div>
                 )}
                 {m.role === "user" ? (
-                  <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-4 py-2.5 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                  <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-4 py-2.5 text-sm text-slate-200 leading-relaxed">
                     {m.content}
                   </div>
                 ) : (
-                  <div className="flex-1 min-w-0 text-sm text-slate-200 leading-7 whitespace-pre-wrap">
-                    {m.content}
+                  <div className="flex-1 min-w-0 text-sm space-y-0.5">
+                    {renderMarkdown(m.content)}
                   </div>
                 )}
               </div>
@@ -496,33 +579,9 @@ export function HomePage() {
           )}
 
           {/* Task widget AI footer */}
-          <div className="border-t border-white/[.06] px-3 py-3 space-y-2" ref={taskPickerRef}>
-            {/* Inline AI reply */}
-            {taskWidgetReply && (
-              <div className="rounded-lg bg-white/[.04] border border-white/[.06] px-3 py-2.5 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                {taskWidgetReply}
-                <button onClick={() => setTaskWidgetReply(null)} className="ml-2 text-slate-600 hover:text-slate-400 text-[10px]">✕</button>
-              </div>
-            )}
-
-            {/* Task prompt picker dropdown */}
-            {taskPromptPickerOpen && (
-              <div className="rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl overflow-hidden">
-                {TASK_PROMPTS.map(({ label, prompt }) => (
-                  <button
-                    key={label}
-                    onClick={() => { setTaskPromptPickerOpen(false); submitTaskWidgetInput(prompt); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group"
-                  >
-                    <Sparkles size={10} className="text-red-400 shrink-0"/>
-                    <span className="text-xs text-slate-300 group-hover:text-white">{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Input row */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2.5 focus-within:border-red-500/30 transition-colors">
+          <div className="border-t border-white/[.06] px-3 py-2.5" ref={taskPickerRef}>
+            {/* Input row — relative so dropdown anchors to it */}
+            <div className="relative flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 focus-within:border-white/20 transition-colors">
               <Sparkles size={11} className="text-red-400 shrink-0"/>
               <input
                 ref={taskWidgetInputRef}
@@ -536,21 +595,38 @@ export function HomePage() {
                 <Loader2 size={12} className="animate-spin text-slate-500 shrink-0"/>
               ) : (
                 <>
-                  {/* Prompt picker icon */}
+                  {/* ⚡ prompt picker — dropdown anchored below this row */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => setTaskPromptPickerOpen(o => !o)}
+                      title="Quick prompts"
+                      className={`p-1 rounded transition-colors ${taskPromptPickerOpen ? "text-red-400" : "text-slate-600 hover:text-slate-300"}`}
+                    >
+                      <Zap size={12}/>
+                    </button>
+                    {taskPromptPickerOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-white/10 bg-[#0f1117]/90 backdrop-blur-md shadow-2xl overflow-hidden z-50">
+                        {TASK_PROMPTS.map(({ label, prompt }) => (
+                          <button
+                            key={label}
+                            onClick={() => { setTaskPromptPickerOpen(false); submitTaskWidgetInput(prompt); }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[.06] transition-colors group"
+                          >
+                            <Sparkles size={9} className="text-red-400 shrink-0"/>
+                            <span className="text-xs text-slate-400 group-hover:text-white">{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Scan → modal report */}
                   <button
-                    onClick={() => setTaskPromptPickerOpen(o => !o)}
-                    title="Quick prompts"
-                    className={`shrink-0 p-1 rounded transition-colors ${taskPromptPickerOpen ? "text-red-400" : "text-slate-600 hover:text-slate-300"}`}
+                    onClick={runScan}
+                    disabled={scanLoading}
+                    title="AI scan — opens a report"
+                    className="shrink-0 rounded border border-white/10 bg-transparent hover:bg-white/[.06] hover:border-white/20 px-1.5 py-0.5 text-[10px] text-slate-500 hover:text-white transition-all disabled:opacity-40"
                   >
-                    <Zap size={12}/>
-                  </button>
-                  {/* Auto brief button */}
-                  <button
-                    onClick={() => submitTaskWidgetInput("Scan all my tasks and notifications. Flag every overdue item, summarise what needs action today, and give me 3 specific next steps.")}
-                    title="AI auto-scan"
-                    className="shrink-0 rounded-md border border-white/10 bg-transparent hover:bg-white/[.06] hover:border-white/20 px-2 py-0.5 text-[10px] text-slate-500 hover:text-white transition-all"
-                  >
-                    Scan
+                    {scanLoading ? <Loader2 size={10} className="animate-spin"/> : "Scan"}
                   </button>
                   {/* Send */}
                   <button
@@ -574,6 +650,47 @@ export function HomePage() {
           onClose={() => setDetailTask(null)}
           onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks", "home"] }); }}
         />
+      )}
+
+      {/* Scan report modal */}
+      {(scanReport || scanLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
+          <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#111419] shadow-2xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06] shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/15">
+                  <Sparkles size={11} className="text-red-400"/>
+                </div>
+                <span className="text-sm font-medium">AI Scan Report</span>
+              </div>
+              {!scanLoading && (
+                <button onClick={() => setScanReport(null)} className="text-slate-500 hover:text-white transition-colors text-lg leading-none">×</button>
+              )}
+            </div>
+            {/* Body */}
+            <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1">
+              {scanLoading ? (
+                <div className="flex items-center gap-2 text-slate-500 py-4">
+                  <span className="italic">Thinking</span>
+                  <span className="flex gap-0.5 items-end h-3">
+                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "0ms" }}/>
+                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "150ms" }}/>
+                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "300ms" }}/>
+                  </span>
+                </div>
+              ) : scanReport ? renderMarkdown(scanReport) : null}
+            </div>
+            {/* Footer */}
+            {!scanLoading && scanReport && (
+              <div className="px-5 py-3 border-t border-white/[.06] shrink-0">
+                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border border-white/10 py-2 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+                  Close report
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
