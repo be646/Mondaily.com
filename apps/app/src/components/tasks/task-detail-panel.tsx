@@ -146,6 +146,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [titleVal, setTitleVal] = useState(task.title);
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesVal, setNotesVal] = useState(task.notes || "");
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
   const [showMentions, setShowMentions] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -260,20 +262,58 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               </p>
             )}
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <select value={localStatus} onChange={e => { setLocalStatus(e.target.value); updateTask.mutate({ status: e.target.value }); }}
-                className="h-7 rounded border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium text-slate-300 outline-none cursor-pointer hover:border-white/20 transition-colors appearance-none">
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="review">Needs Review</option>
-                <option value="done">Done</option>
-              </select>
-              <select value={localPriority} onChange={e => { setLocalPriority(e.target.value); updateTask.mutate({ priority: e.target.value }); }}
-                className="h-7 rounded border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium text-slate-300 outline-none cursor-pointer hover:border-white/20 transition-colors appearance-none">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+              {/* Status dropdown */}
+              <div className="relative">
+                {statusOpen && <div className="fixed inset-0 z-40" onClick={() => setStatusOpen(false)}/>}
+                <button onClick={() => { setStatusOpen(o => !o); setPriorityOpen(false); }}
+                  className="flex items-center gap-1.5 h-7 rounded border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium text-slate-300 hover:border-white/20 transition-colors">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${localStatus === "done" ? "bg-emerald-400" : localStatus === "in_progress" ? "bg-blue-400" : localStatus === "review" ? "bg-yellow-400" : "bg-slate-500"}`}/>
+                  {localStatus === "todo" ? "To Do" : localStatus === "in_progress" ? "In Progress" : localStatus === "review" ? "Needs Review" : "Done"}
+                </button>
+                {statusOpen && (
+                  <div className="dropdown-panel left-0 w-40">
+                    {[
+                      { value: "todo",        label: "To Do",        dot: "bg-slate-500" },
+                      { value: "in_progress", label: "In Progress",  dot: "bg-blue-400" },
+                      { value: "review",      label: "Needs Review", dot: "bg-yellow-400" },
+                      { value: "done",        label: "Done",         dot: "bg-emerald-400" },
+                    ].map(opt => (
+                      <button key={opt.value} onClick={() => { setLocalStatus(opt.value); updateTask.mutate({ status: opt.value }); setStatusOpen(false); }}
+                        className={`dropdown-item ${localStatus === opt.value ? "dropdown-item-active" : ""}`}>
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${opt.dot}`}/>
+                        {opt.label}
+                        {localStatus === opt.value && <Check size={11} className="ml-auto text-red-400"/>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Priority dropdown */}
+              <div className="relative">
+                {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
+                <button onClick={() => { setPriorityOpen(o => !o); setStatusOpen(false); }}
+                  className="flex items-center gap-1.5 h-7 rounded border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium text-slate-300 hover:border-white/20 transition-colors">
+                  <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${localPriority === "urgent" ? "bg-red-500" : localPriority === "high" ? "bg-orange-400" : localPriority === "medium" ? "bg-yellow-400" : "bg-slate-400"}`}/>
+                  {localPriority.charAt(0).toUpperCase() + localPriority.slice(1)}
+                </button>
+                {priorityOpen && (
+                  <div className="dropdown-panel left-0 w-36">
+                    {[
+                      { value: "urgent", label: "Urgent", dot: "bg-red-500" },
+                      { value: "high",   label: "High",   dot: "bg-orange-400" },
+                      { value: "medium", label: "Medium", dot: "bg-yellow-400" },
+                      { value: "low",    label: "Low",    dot: "bg-slate-400" },
+                    ].map(opt => (
+                      <button key={opt.value} onClick={() => { setLocalPriority(opt.value); updateTask.mutate({ priority: opt.value }); setPriorityOpen(false); }}
+                        className={`dropdown-item ${localPriority === opt.value ? "dropdown-item-active" : ""}`}>
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${opt.dot}`}/>
+                        {opt.label}
+                        {localPriority === opt.value && <Check size={11} className="ml-auto text-red-400"/>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button onClick={() => setActiveTab("review")}
                 className="h-7 rounded-lg border border-white/10 bg-white/[.05] px-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
                 {localStatus === "review" ? "⏳ In Review" : task.review_result === "approved" ? "✅ Approved" : task.review_result === "changes_requested" ? "🔄 Changes" : "Send for Review →"}
