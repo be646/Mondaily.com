@@ -616,6 +616,13 @@ export function TasksPage() {
         query.isLoading ? <PageSkeleton /> : allTasks.length === 0 ? (
           <EmptyState icon={Check} title="No tasks" description="You are all caught up." />
         ) : (
+          <div>
+            <div className="flex items-center justify-end mb-2">
+              <button onClick={() => setShowDone(v => !v)}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-400" : "border-white/10 text-slate-500 hover:text-slate-300"}`}>
+                <Check size={11}/> {showDone ? "Hiding completed" : "Show completed"}
+              </button>
+            </div>
           <div className="overflow-auto rounded-xl border border-white/10">
             <table className="min-w-full border-collapse text-sm">
               <thead>
@@ -627,7 +634,7 @@ export function TasksPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[.04]">
-                {tasks.map(task => {
+                {(showDone ? allTasks : tasks).map(task => {
                   const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
                   const assigneeName = getMemberName(task);
                   const completion = getCompletionBadge(task);
@@ -677,6 +684,7 @@ export function TasksPage() {
                 })}
               </tbody>
             </table>
+          </div>
           </div>
         )
       )}
