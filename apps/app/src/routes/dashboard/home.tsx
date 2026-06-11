@@ -460,7 +460,7 @@ export function HomePage() {
         <div className="relative" ref={pickerRef}>
           {/* Prompt picker panel */}
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl overflow-hidden z-50">
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-lg border border-white/[.08] bg-[#13151a] backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-50">
               <div className="px-4 py-2.5 border-b border-white/[.06]">
                 <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">Quick prompts</p>
               </div>

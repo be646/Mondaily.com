@@ -91,7 +91,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
         </button>
       </div>
       {showEmojis && (
-        <div className={`flex flex-wrap gap-1 mt-1 p-2 rounded-xl border border-white/10 bg-[#161820] shadow-xl w-fit max-w-[220px]`}>
+        <div className={`flex flex-wrap gap-1 mt-1 p-2 rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md w-fit max-w-[220px]`}>
           {QUICK_EMOJIS.map(e => (
             <button key={e} onClick={() => { toggleReaction.mutate(e); setShowEmojis(false); }}
               className="text-base hover:scale-125 transition-transform p-0.5">{e}</button>
@@ -417,7 +417,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               </div>
               <div className="border-t border-white/[.06] pt-3 relative sticky bottom-0 bg-[#0f1116]">
                 {showMentions && mentionMembers.length > 0 && (
-                  <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-white/10 bg-[#161820] shadow-xl overflow-hidden z-10">
+                  <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md overflow-hidden z-10">
                     {mentionMembers.slice(0, 5).map(m => (
                       <button key={m.user_id} onClick={() => insertMention(m.name || m.email)} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/[.06]">
                         <Avatar name={m.name || m.email} size={6}/>{m.name || m.email}

@@ -156,7 +156,7 @@ export function QuickActions() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
       <div className="fixed inset-0 bg-black/60" onClick={() => { setOpen(false); setActiveCreate(null); }}/>
-      <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#161820] shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-lg rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md overflow-hidden">
         {!activeCreate ? (
           <>
             <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
