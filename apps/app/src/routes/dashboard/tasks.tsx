@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag } from "lucide-react";
+import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet } from "lucide-react";
 import { useState, useEffect } from "react";
+import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useUser } from "@clerk/react";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
@@ -250,6 +251,81 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
   );
 }
 
+// ── Board column + draggable card ──────────────────────────────
+function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUserId, getMemberName }: {
+  task: Task; onDetail: (t: Task) => void; onEdit: (t: Task) => void;
+  onDelete: (id: string) => void; onToggle: (t: Task) => void;
+  currentUserId: string; getMemberName: (t: Task) => string | null;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
+  const style = transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)`, zIndex: 50 } : undefined;
+  const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
+  const assigneeName = getMemberName(task);
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}
+      className={`rounded-lg border bg-[#111419] p-3 cursor-grab active:cursor-grabbing transition-shadow ${isDragging ? "shadow-2xl opacity-80 border-red-500/40" : "border-white/10 hover:border-white/20"}`}>
+      {/* drag handle = entire card; click targets are separate */}
+      <div {...listeners} className="absolute inset-0 rounded-lg cursor-grab active:cursor-grabbing" style={{ zIndex: 0 }}/>
+      <div className="relative" style={{ zIndex: 1 }}>
+        <div className="flex items-start gap-2">
+          <button onPointerDown={e => e.stopPropagation()} onClick={() => onToggle(task)}
+            className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-red-400/50" : "border-white/25 hover:border-white/50"}`}>
+            {task.completed && <Check size={9} className="text-white"/>}
+          </button>
+          <button onPointerDown={e => e.stopPropagation()} onClick={() => onDetail(task)}
+            className={`flex-1 text-left text-xs font-medium leading-snug hover:underline ${task.completed ? "line-through text-slate-600" : "text-slate-100"}`}>
+            {task.title}
+          </button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {task.priority && <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>}
+          {isOverdue && <span className="rounded-full border border-red-400/30 bg-red-400/10 px-1.5 py-px text-[10px] text-red-400">Overdue</span>}
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+            {assigneeName && <span className="flex items-center gap-0.5"><User size={9}/>{assigneeName.split(" ")[0]}</span>}
+            {task.due_date && <span className="flex items-center gap-0.5"><Clock size={9}/>{new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+          </div>
+          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100">
+            <button onPointerDown={e => e.stopPropagation()} onClick={() => onEdit(task)} className="rounded p-0.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"><Pencil size={10}/></button>
+            {(task.assignee_id === currentUserId || !task.assignee_id) && <button onPointerDown={e => e.stopPropagation()} onClick={() => onDelete(task.id)} className="rounded p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10"><Trash2 size={10}/></button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, currentUserId, getMemberName }: {
+  col: { key: string; label: string; accent: string; badge: string };
+  tasks: Task[]; onDetail: (t: Task) => void; onEdit: (t: Task) => void;
+  onDelete: (id: string) => void; onToggle: (t: Task) => void;
+  currentUserId: string; getMemberName: (t: Task) => string | null;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: col.key });
+  return (
+    <div className="flex flex-col min-w-[240px] w-[240px] shrink-0">
+      {/* Column header */}
+      <div className={`flex items-center gap-2 rounded-lg border-l-2 ${col.accent} pl-2 mb-3`}>
+        <span className="text-sm font-medium text-slate-300">{col.label}</span>
+        <span className={`rounded-full px-1.5 py-px text-[10px] font-semibold ${col.badge}`}>{tasks.length}</span>
+      </div>
+      {/* Drop zone */}
+      <div ref={setNodeRef}
+        className={`flex-1 min-h-[120px] rounded-xl border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-red-500/40 bg-red-500/5" : "border-white/[.05] bg-white/[.01]"}`}>
+        {tasks.length === 0 && (
+          <div className="flex h-16 items-center justify-center text-xs text-slate-700">Drop here</div>
+        )}
+        {tasks.map(task => (
+          <div key={task.id} className="group relative">
+            <DraggableCard task={task} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onToggle={onToggle} currentUserId={currentUserId} getMemberName={getMemberName}/>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function TasksPage() {
   const qc = useQueryClient();
   const { user } = useUser();
@@ -270,6 +346,7 @@ export function TasksPage() {
   const [labelOpen, setLabelOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "board" | "sheet">("list");
 
   const query = useQuery({ queryKey: ["tasks", filter, labelFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
@@ -286,6 +363,42 @@ export function TasksPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
 
+  const moveTask = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiClient.patch(`/tasks/${id}`, { status, _user_name: user?.fullName || user?.firstName || "Someone" }),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const prev = qc.getQueryData(["tasks", filter, labelFilter, sortBy, sortDir]);
+      qc.setQueryData(["tasks", filter, labelFilter, sortBy, sortDir], (old: any) =>
+        old?.map((t: Task) => t.id === id ? { ...t, status } : t)
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["tasks", filter, labelFilter, sortBy, sortDir], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] })
+  });
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const BOARD_COLS = [
+    { key: "todo",        label: "To Do",        accent: "border-slate-500",   badge: "bg-slate-500/10 text-slate-400" },
+    { key: "in_progress", label: "In Progress",   accent: "border-blue-500",    badge: "bg-blue-500/10 text-blue-400" },
+    { key: "review",      label: "Under Review",  accent: "border-yellow-500",  badge: "bg-yellow-500/10 text-yellow-400" },
+    { key: "done",        label: "Done",          accent: "border-emerald-500", badge: "bg-emerald-500/10 text-emerald-400" },
+  ] as const;
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const targetCol = BOARD_COLS.find(c => c.key === over.id);
+    if (!targetCol) return;
+    const task = allTasks.find(t => t.id === active.id);
+    if (!task || task.status === targetCol.key) return;
+    moveTask.mutate({ id: String(active.id), status: targetCol.key });
+  }
+
   const allTasks = query.data ?? [];
   const tasks = allTasks.filter((t: Task) => !t.completed && t.status !== "done");
   const doneTasks: Task[] = allTasks.filter((t: Task) => t.completed || t.status === "done");
@@ -298,17 +411,28 @@ export function TasksPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
+    <div className={`mx-auto px-6 py-8 ${viewMode === "list" ? "max-w-2xl" : "max-w-full"}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-white">Tasks</h1>
           <p className="text-sm text-slate-500 mt-0.5">Work assigned to you and your team.</p>
         </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium hover:bg-red-500">
-          <Plus size={14}/> New Task
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex gap-0.5 rounded-lg border border-white/10 p-1">
+            {([["list","List",<List size={14}/>],["board","Board",<Columns3 size={14}/>],["sheet","Sheet",<Sheet size={14}/>]] as const).map(([mode, label, icon]) => (
+              <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                {icon} {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setShowCreate(true)}
+            className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium hover:bg-red-500">
+            <Plus size={14}/> New Task
+          </button>
+        </div>
       </div>
 
       {/* Label filter + Sort */}
@@ -420,144 +544,176 @@ export function TasksPage() {
         ))}
       </div>
 
-      {query.isLoading ? <PageSkeleton /> : tasks.length === 0 ? (
-        <EmptyState icon={Check} title="No tasks" description="You are all caught up." />
-      ) : (
-        <div className="space-y-2">
-          {tasks.map(task => {
-            const completion = getCompletionBadge(task);
-            const expanded = expandedId === task.id;
-            const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
-            const assigneeName = getMemberName(task);
-
-            return (
-              <div key={task.id} className={`rounded-xl border transition-colors ${isOverdue ? "border-red-500/20 bg-red-500/5" : "border-white/[.07] bg-white/[.02] hover:border-white/[.12]"}`}>
-                
-                {/* Main row */}
-                <div className="flex items-start gap-3 p-4">
-                  {/* Checkbox */}
-                  <button onClick={() => toggle.mutate(task)}
-                    className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border transition-colors ${
-                      task.completed ? "border-emerald-500 bg-emerald-500" :
-                      isOverdue ? "border-red-400/60 hover:border-red-400" :
-                      "border-white/25 hover:border-white/50"
-                    }`}>
-                    {task.completed && <Check size={11} className="text-white"/>}
-                  </button>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Title */}
-                    <button onClick={() => setDetailTask(task)} className={`text-sm font-medium leading-snug text-left hover:underline ${task.completed ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}>{task.title}</button>
-
-                    {/* Badges row */}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {/* Completion/status badge */}
-                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${completion.cls}`}>
-                        {completion.label}
-                      </span>
-                      {/* Priority */}
-                      {task.priority && (
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${PRIORITY_STYLE[task.priority]}`}>
-                          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Labels */}
-                    {task.labels && task.labels.filter(l => l !== "Need Review" && LABEL_COLORS[l]).length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {task.labels.filter(l => l !== "Need Review" && LABEL_COLORS[l]).map(l => (
-                          <span key={l} className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
-                        ))}
+      {/* ── LIST VIEW ─────────────────────────────────────── */}
+      {viewMode === "list" && (
+        query.isLoading ? <PageSkeleton /> : tasks.length === 0 ? (
+          <EmptyState icon={Check} title="No tasks" description="You are all caught up." />
+        ) : (
+          <div className="space-y-2">
+            {tasks.map(task => {
+              const completion = getCompletionBadge(task);
+              const expanded = expandedId === task.id;
+              const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
+              const assigneeName = getMemberName(task);
+              return (
+                <div key={task.id} className={`rounded-xl border transition-colors ${isOverdue ? "border-red-500/20 bg-red-500/5" : "border-white/[.07] bg-white/[.02] hover:border-white/[.12]"}`}>
+                  <div className="flex items-start gap-3 p-4">
+                    <button onClick={() => toggle.mutate(task)} className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-red-400/60 hover:border-red-400" : "border-white/25 hover:border-white/50"}`}>
+                      {task.completed && <Check size={11} className="text-white"/>}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <button onClick={() => setDetailTask(task)} className={`text-sm font-medium leading-snug text-left hover:underline ${task.completed ? "text-slate-600 line-through" : "text-slate-100 hover:text-white"}`}>{task.title}</button>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${completion.cls}`}>{completion.label}</span>
+                        {task.priority && <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>}
                       </div>
-                    )}
-
-                    {/* Meta row */}
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                      {task.due_date && (
-                        <span className={`flex items-center gap-1 ${isOverdue ? "text-red-400" : ""}`}>
-                          <Clock size={10}/>
-                          Due {new Date(task.due_date).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                          {isOverdue && " · Overdue"}
-                        </span>
+                      {task.labels && task.labels.filter(l => l !== "Need Review" && LABEL_COLORS[l]).length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {task.labels.filter(l => l !== "Need Review" && LABEL_COLORS[l]).map(l => (
+                            <span key={l} className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
+                          ))}
+                        </div>
                       )}
-                      {assigneeName && (
-                        <span className="flex items-center gap-1">
-                          <User size={10}/>{assigneeName}
-                        </span>
-                      )}
-                      {task.created_at && (
-                        <span className="flex items-center gap-1">
-                          <Calendar size={10}/>
-                          Created {new Date(task.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </span>
-                      )}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                        {task.due_date && <span className={`flex items-center gap-1 ${isOverdue ? "text-red-400" : ""}`}><Clock size={10}/>Due {new Date(task.due_date).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}{isOverdue && " · Overdue"}</span>}
+                        {assigneeName && <span className="flex items-center gap-1"><User size={10}/>{assigneeName}</span>}
+                        {task.created_at && <span className="flex items-center gap-1"><Calendar size={10}/>Created {new Date(task.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {task.completed && <button onClick={() => toggle.mutate(task)} title="Reactivate" className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors"><RotateCcw size={13}/></button>}
+                      <button onClick={() => setExpandedId(expanded ? null : task.id)} className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors"><ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/></button>
+                      <button onClick={() => setEditTask(task)} title="Edit" className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors"><Pencil size={13}/></button>
+                      {(task.assignee_id === currentUserId || !task.assignee_id) && <button onClick={() => setConfirmDeleteId(task.id)} title="Delete" className="rounded-lg p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors"><Trash2 size={13}/></button>}
                     </div>
                   </div>
-
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    {task.completed && (
-                      <button onClick={() => toggle.mutate(task)}
-                        title="Reactivate task"
-                        className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
-                        <RotateCcw size={13}/>
-                      </button>
-                    )}
-                    <button onClick={() => setExpandedId(expanded ? null : task.id)}
-                      className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
-                      <ChevronDown size={14} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/>
-                    </button>
-                    <button onClick={() => setEditTask(task)}
-                      title="Edit task"
-                      className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
-                      <Pencil size={13}/>
-                    </button>
-                    {(task.assignee_id === currentUserId || !task.assignee_id) && (
-                      <button onClick={() => setConfirmDeleteId(task.id)}
-                        title="Delete task"
-                        className="rounded-lg p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors">
-                        <Trash2 size={13}/>
-                      </button>
-                    )}
-                  </div>
+                  {expanded && (
+                    <div className="border-t border-white/[.07] px-4 py-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div><p className="text-slate-600 mb-0.5">Created</p><p className="text-slate-300">{task.created_at ? new Date(task.created_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                        <div><p className="text-slate-600 mb-0.5">Due Date</p><p className={task.due_date ? (isOverdue ? "text-red-400" : "text-slate-300") : "text-slate-600"}>{task.due_date ? new Date(task.due_date).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "No due date"}</p></div>
+                        <div><p className="text-slate-600 mb-0.5">Assigned To</p><p className="text-slate-300">{assigneeName || "Unassigned"}</p></div>
+                        <div><p className="text-slate-600 mb-0.5">Record</p><p className="text-slate-300">{task.record_name || "—"}</p></div>
+                      </div>
+                      {task.notes && <div><p className="text-xs text-slate-600 mb-1">Notes</p><p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{task.notes}</p></div>}
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )
+      )}
 
-                {/* Expanded details */}
-                {expanded && (
-                  <div className="border-t border-white/[.07] px-4 py-3 space-y-3">
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <p className="text-slate-600 mb-0.5">Created</p>
-                        <p className="text-slate-300">{task.created_at ? new Date(task.created_at).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600 mb-0.5">Due Date</p>
-                        <p className={task.due_date ? (isOverdue ? "text-red-400" : "text-slate-300") : "text-slate-600"}>
-                          {task.due_date ? new Date(task.due_date).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "No due date"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600 mb-0.5">Assigned To</p>
-                        <p className="text-slate-300">{assigneeName || "Unassigned"}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-600 mb-0.5">Record</p>
-                        <p className="text-slate-300">{task.record_name || "—"}</p>
-                      </div>
-                    </div>
-                    {task.notes && (
-                      <div>
-                        <p className="text-xs text-slate-600 mb-1">Notes</p>
-                        <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{task.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+      {/* ── BOARD VIEW ────────────────────────────────────── */}
+      {viewMode === "board" && (
+        query.isLoading ? <PageSkeleton /> : (
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {BOARD_COLS.map(col => {
+                const colTasks = allTasks.filter(t =>
+                  col.key === "done"
+                    ? (t.completed || t.status === "done")
+                    : (t.status === col.key && !t.completed)
+                );
+                return <BoardColumn key={col.key} col={col} tasks={colTasks} onDetail={setDetailTask} onEdit={setEditTask} onDelete={setConfirmDeleteId} onToggle={t => toggle.mutate(t)} currentUserId={currentUserId} getMemberName={getMemberName}/>;
+              })}
+            </div>
+          </DndContext>
+        )
+      )}
+
+      {/* ── SHEET VIEW ────────────────────────────────────── */}
+      {viewMode === "sheet" && (
+        query.isLoading ? <PageSkeleton /> : allTasks.length === 0 ? (
+          <EmptyState icon={Check} title="No tasks" description="You are all caught up." />
+        ) : (
+          <div className="overflow-auto rounded-xl border border-white/10">
+            <table className="min-w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/[.02]">
+                  {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
+                    <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium text-slate-500">{h}</th>
+                  ))}
+                  <th className="px-4 py-3"/>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[.04]">
+                {allTasks.map(task => {
+                  const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
+                  const assigneeName = getMemberName(task);
+                  const completion = getCompletionBadge(task);
+                  return (
+                    <tr key={task.id} className="group hover:bg-white/[.02] transition-colors">
+                      <td className="px-4 py-3 w-8">
+                        <button onClick={() => toggle.mutate(task)} className={`grid h-4 w-4 place-items-center rounded border transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-white/25 hover:border-white/50"}`}>
+                          {task.completed && <Check size={9} className="text-white"/>}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 max-w-[260px]">
+                        <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-slate-600 line-through" : "text-slate-100"}`}>{task.title}</button>
+                        {task.notes && <p className="text-xs text-slate-600 truncate mt-0.5">{task.notes}</p>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${completion.cls}`}>{completion.label}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {task.priority && <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-400">
+                        {assigneeName ? <span className="flex items-center gap-1"><User size={11}/>{assigneeName}</span> : <span className="text-slate-600">—</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs">
+                        {task.due_date
+                          ? <span className={isOverdue ? "text-red-400" : "text-slate-400"}>{new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                          : <span className="text-slate-600">—</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
+                        {task.created_at ? new Date(task.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {(task.labels ?? []).filter(l => LABEL_COLORS[l]).map(l => (
+                            <span key={l} className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditTask(task)} className="rounded p-1 text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"><Pencil size={12}/></button>
+                          {(task.assignee_id === currentUserId || !task.assignee_id) && <button onClick={() => setConfirmDeleteId(task.id)} className="rounded p-1 text-slate-600 hover:text-red-400 hover:bg-red-400/10"><Trash2 size={12}/></button>}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* ── DONE section (list view only) ─────────────────── */}
+      {viewMode === "list" && doneTasks.length > 0 && (
+        <div className="mt-6">
+          <button onClick={() => setShowDone(!showDone)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-3">
+            <ChevronDown size={14} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
+            <span>Completed</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-slate-500">{doneTasks.length}</span>
+          </button>
+          {showDone && (
+            <div className="space-y-2 opacity-60">
+              {doneTasks.map(task => (
+                <div key={task.id} className="rounded-xl border border-white/[.04] bg-white/[.01] p-3 flex items-center gap-3">
+                  <button onClick={() => toggle.mutate(task)} className="h-5 w-5 shrink-0 rounded border border-emerald-500/50 bg-emerald-500/20 grid place-items-center">
+                    <Check size={11} className="text-emerald-400"/>
+                  </button>
+                  <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-slate-500 line-through text-left hover:text-slate-400 truncate">{task.title}</button>
+                  <span className="text-[11px] text-slate-600 shrink-0">{task.status === "done" ? "Done" : "Completed"}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -599,36 +755,6 @@ export function TasksPage() {
           members={members}
           currentUserId={currentUserId}
         />
-      )}
-
-      {/* Done / Completed section */}
-      {doneTasks.length > 0 && (
-        <div className="mt-6">
-          <button onClick={() => setShowDone(!showDone)}
-            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-3">
-            <ChevronDown size={14} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
-            <span>Completed</span>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-slate-500">{doneTasks.length}</span>
-          </button>
-          {showDone && (
-            <div className="space-y-2 opacity-60">
-              {doneTasks.map(task => (
-                <div key={task.id} className="rounded-xl border border-white/[.04] bg-white/[.01] p-3 flex items-center gap-3">
-                  <button onClick={() => toggle.mutate(task)}
-                    className="h-5 w-5 shrink-0 rounded border border-emerald-500/50 bg-emerald-500/20 grid place-items-center">
-                    <Check size={11} className="text-emerald-400"/>
-                  </button>
-                  <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-slate-500 line-through text-left hover:text-slate-400 truncate">
-                    {task.title}
-                  </button>
-                  <span className="text-[11px] text-slate-600 shrink-0">
-                    {task.status === "done" ? "Done" : "Completed"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
 
       {showCreate && (
