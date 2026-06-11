@@ -17,7 +17,7 @@ tasks.get("/", async (c) => {
     .from("tasks")
     .select("*")
     .eq("workspace_id", workspaceId)
-    .order(sortBy === "due_date" ? "due_date" : sortBy === "priority" ? "priority" : "created_at", { ascending: sortDir === "asc", nullsFirst: false });
+    .order(sortBy === "due_date" ? "due_date" : sortBy === "priority" ? "priority" : sortBy === "assignee" ? "assignee_email" : "created_at", { ascending: sortDir === "asc", nullsFirst: false });
 
   if (filter === "mine") query = query.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
   if (labelFilter) query = query.contains("labels", [labelFilter]);

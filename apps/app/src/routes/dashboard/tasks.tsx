@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil } from "lucide-react";
+import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/react";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
@@ -266,9 +266,12 @@ export function TasksPage() {
   const [showDone, setShowDone] = useState(false);
   const [labelFilter, setLabelFilter] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [labelOpen, setLabelOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
 
-  const query = useQuery({ queryKey: ["tasks", filter, labelFilter, sortBy], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}&sort=${sortBy}`) });
+  const query = useQuery({ queryKey: ["tasks", filter, labelFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const members = membersQuery.data ?? [];
   const currentUserId = user?.id ?? "";
@@ -310,22 +313,87 @@ export function TasksPage() {
 
       {/* Label filter + Sort */}
       <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-        <select value={labelFilter} onChange={e => setLabelFilter(e.target.value)}
-          className="flex items-center rounded-lg border border-white/10 bg-transparent px-2.5 py-1.5 text-xs text-slate-400 outline-none cursor-pointer hover:border-white/15 hover:text-slate-300 transition-colors">
-          <option value="">All labels</option>
-          <option value="Help Needed">Help Needed</option>
-          <option value="Blocked">Blocked</option>
-          <option value="Waiting">Waiting</option>
-          <option value="Bug">Bug</option>
-          <option value="Feature">Feature</option>
-          <option value="Research">Research</option>
-        </select>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-          className="flex items-center rounded-lg border border-white/10 bg-transparent px-2.5 py-1.5 text-xs text-slate-400 outline-none cursor-pointer hover:border-white/15 hover:text-slate-300 transition-colors">
-          <option value="created_at">Newest first</option>
-          <option value="due_date">Due date</option>
-          <option value="priority">Priority</option>
-        </select>
+
+        {/* — Label filter — */}
+        <div className="relative">
+          {labelOpen && <div className="fixed inset-0 z-40" onClick={() => setLabelOpen(false)}/>}
+          <button
+            onClick={() => { setLabelOpen(o => !o); setSortOpen(false); }}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${labelFilter ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
+            <Tag size={12}/>
+            {labelFilter || "Label"}
+            {labelFilter && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-red-400"/>}
+            <ChevronDown size={11} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
+          </button>
+          {labelOpen && (
+            <div className="absolute left-0 top-full z-50 mt-1.5 w-44 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
+              {[
+                { value: "",            label: "All labels",  dot: "bg-slate-600" },
+                { value: "Help Needed", label: "Help Needed", dot: "bg-blue-400" },
+                { value: "Blocked",     label: "Blocked",     dot: "bg-red-400" },
+                { value: "Waiting",     label: "Waiting",     dot: "bg-slate-400" },
+                { value: "Bug",         label: "Bug",         dot: "bg-red-500" },
+                { value: "Feature",     label: "Feature",     dot: "bg-purple-400" },
+                { value: "Research",    label: "Research",    dot: "bg-cyan-400" },
+              ].map(opt => (
+                <button key={opt.value} onClick={() => { setLabelFilter(opt.value); setLabelOpen(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${labelFilter === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>
+                  {opt.label}
+                  {labelFilter === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* — Sort — */}
+        <div className="relative">
+          {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
+          {(() => {
+            const sortLabel = sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Date created";
+            const isNonDefault = sortBy !== "created_at" || sortDir !== "desc";
+            return (
+              <button
+                onClick={() => { setSortOpen(o => !o); setLabelOpen(false); }}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${isNonDefault ? "border-red-500/40 bg-red-500/5 text-red-400" : "border-white/10 bg-transparent text-slate-400 hover:border-white/15 hover:text-slate-300"}`}>
+                <ArrowUpDown size={12}/>
+                {sortLabel}
+                {isNonDefault && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-red-400"/>}
+                <ChevronDown size={11} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
+              </button>
+            );
+          })()}
+          {sortOpen && (
+            <div className="absolute left-0 top-full z-50 mt-1.5 w-48 rounded-xl border border-white/10 bg-[#161820]/95 backdrop-blur-sm shadow-2xl p-1">
+              {[
+                { value: "created_at", label: "Date created", icon: <Calendar size={13}/> },
+                { value: "due_date",   label: "Due date",     icon: <Clock size={13}/> },
+                { value: "priority",   label: "Priority",     icon: <Flag size={13}/> },
+                { value: "assignee",   label: "Assignee",     icon: <User size={13}/> },
+              ].map(opt => (
+                <button key={opt.value} onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${sortBy === opt.value ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}>
+                  {opt.icon}
+                  {opt.label}
+                  {sortBy === opt.value && <Check size={12} className="ml-auto text-red-400"/>}
+                </button>
+              ))}
+              <div className="mx-2 my-1 border-t border-white/10"/>
+              <div className="flex gap-1 px-1 pb-1">
+                <button onClick={() => setSortDir("desc")}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors ${sortDir === "desc" ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}>
+                  <ArrowDown size={12}/> Newest
+                </button>
+                <button onClick={() => setSortDir("asc")}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-xs transition-colors ${sortDir === "asc" ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}>
+                  <ArrowUp size={12}/> Oldest
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Overdue warning */}
