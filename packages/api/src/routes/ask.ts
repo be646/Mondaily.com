@@ -8,7 +8,11 @@ const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating
 
 You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, or search records — use the appropriate tool. After using a tool, summarize what you did in plain language.
 
-Never mention Claude, Anthropic, OpenAI, or any underlying AI technology. You are simply Mondaily AI.`;
+Never mention Claude, Anthropic, OpenAI, or any underlying AI technology. You are simply Mondaily AI.
+
+After every response, append a follow-ups block with 3 short suggested next actions the user might want to take, directly relevant to what you just did or said. Format exactly as:
+<followups>["Action one", "Action two", "Action three"]</followups>
+Keep each suggestion under 8 words. Make them specific, actionable, and varied — e.g. create tasks, draft content, set reminders, review items, search records. Never repeat the user's original request.`;
 
 const TOOLS = [
   {
@@ -351,6 +355,14 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     if (!reply) reply = "Done — I took action on your request.";
 
+    // Extract follow-up suggestions
+    let suggestions: string[] = [];
+    const followupMatch = reply.match(/<followups>([\s\S]*?)<\/followups>/);
+    if (followupMatch) {
+      try { suggestions = JSON.parse(followupMatch[1] ?? "[]"); } catch {}
+      reply = reply.replace(/<followups>[\s\S]*?<\/followups>/, "").trim();
+    }
+
     // Track usage
     try {
       const now = new Date();
@@ -366,7 +378,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       });
     } catch (_) {}
 
-    return c.json({ reply, thread_id: null });
+    return c.json({ reply, suggestions, thread_id: null });
   } catch (err: any) {
     return c.json({ reply: `Connection error: ${err.message}` }, 500);
   }

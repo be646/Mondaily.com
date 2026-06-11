@@ -30,6 +30,7 @@ export function HomePage() {
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [addingTask, setAddingTask] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null);
   const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
@@ -81,15 +82,17 @@ export function HomePage() {
     addMessageToThread(threadId, userMsg);
     setLoading(true);
 
+    setSuggestions([]);
     try {
       let model = "auto";
       let web_search = false;
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; web_search = s.webSearch === "allow"; } catch {}
-      const data = await apiClient.post<{ reply: string }>("/ask", { message: text, model, web_search });
+      const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model, web_search });
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
       setMessages([...withUser, aiMsg]);
       addMessageToThread(threadId, aiMsg);
+      if (data.suggestions?.length) setSuggestions(data.suggestions);
     } catch (err: any) {
       const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
       setMessages([...withUser, errMsg]);
@@ -102,6 +105,43 @@ export function HomePage() {
     setMessages([]);
     setCurrentThreadId(null);
     setInput("");
+    setSuggestions([]);
+  };
+
+  const sendSuggestion = (text: string) => {
+    setInput(text);
+    // small delay so state flushes before send fires
+    setTimeout(() => { setInput(""); }, 0);
+    // send directly
+    const go = async () => {
+      setSuggestions([]);
+      let threadId = currentThreadId;
+      if (!threadId) {
+        const thread = createThread(text);
+        saveThreads([thread, ...getThreads()]);
+        threadId = thread.id;
+        setCurrentThreadId(threadId);
+      }
+      const userMsg: ChatMessage = { role: "user", content: text };
+      const withUser = [...messages, userMsg];
+      setMessages(withUser);
+      addMessageToThread(threadId, userMsg);
+      setLoading(true);
+      try {
+        let model = "auto";
+        try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
+        const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model });
+        const reply = data.reply || "No response.";
+        const aiMsg: ChatMessage = { role: "assistant", content: reply };
+        setMessages([...withUser, aiMsg]);
+        addMessageToThread(threadId, aiMsg);
+        if (data.suggestions?.length) setSuggestions(data.suggestions);
+      } catch (err: any) {
+        setMessages([...withUser, { role: "assistant", content: `Error: ${err.message}` }]);
+      }
+      setLoading(false);
+    };
+    go();
   };
 
   return (
@@ -137,6 +177,19 @@ export function HomePage() {
                 <div className="rounded-xl bg-white/[.06] px-3 py-2">
                   <Loader2 size={13} className="animate-spin text-slate-400"/>
                 </div>
+              </div>
+            )}
+            {!loading && suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 pl-9">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => sendSuggestion(s)}
+                    className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[.04] px-3 py-1.5 text-xs text-slate-300 hover:border-red-500/30 hover:text-white hover:bg-white/[.07] transition-all"
+                  >
+                    <Sparkles size={9} className="text-red-400 shrink-0"/>{s}
+                  </button>
+                ))}
               </div>
             )}
             <div ref={bottomRef}/>
