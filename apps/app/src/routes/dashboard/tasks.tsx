@@ -627,7 +627,7 @@ export function TasksPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[.04]">
-                {allTasks.map(task => {
+                {tasks.map(task => {
                   const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
                   const assigneeName = getMemberName(task);
                   const completion = getCompletionBadge(task);
@@ -682,7 +682,7 @@ export function TasksPage() {
       )}
 
       {/* ── DONE section (list view only) ─────────────────── */}
-      {viewMode === "list" && doneTasks.length > 0 && (
+      {viewMode === "list" && doneTasks.length > 0 && !labelFilter && sortBy === "created_at" && (
         <div className="mt-6">
           <button onClick={() => setShowDone(!showDone)} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-3">
             <ChevronDown size={14} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
