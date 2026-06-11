@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot } from "lucide-react";
+import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -8,7 +8,7 @@ import { apiClient } from "../../lib/api-client";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 
-// Converts markdown to readable plain-text lines for display
+// Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
   const lines = text.split("\n");
   const nodes: React.ReactNode[] = [];
@@ -17,11 +17,11 @@ function renderMarkdown(text: string): React.ReactNode {
   const flushList = (key: string) => {
     if (!listBuffer.length) return;
     nodes.push(
-      <ul key={key} className="my-1 space-y-0.5 pl-3">
+      <ul key={key} className="my-1.5 space-y-1 pl-1">
         {listBuffer.map((item, i) => (
-          <li key={i} className="flex gap-2 text-slate-200">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-500"/>
-            <span>{inlineFormat(item)}</span>
+          <li key={i} className="flex gap-2.5 text-slate-200">
+            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-slate-500"/>
+            <span className="leading-7">{inlineFormat(item)}</span>
           </li>
         ))}
       </ul>
@@ -31,16 +31,30 @@ function renderMarkdown(text: string): React.ReactNode {
 
   lines.forEach((line, i) => {
     const trimmed = line.trim();
-    // blank line
+    // blank
     if (!trimmed) { flushList(`l${i}`); nodes.push(<div key={i} className="h-2"/>); return; }
+    // table separator rows like |---|---| — skip entirely
+    if (/^\|[-| :]+\|$/.test(trimmed)) return;
+    // table data rows like | col | col | — render as bullet list row
+    if (/^\|/.test(trimmed) && /\|$/.test(trimmed)) {
+      const cells = trimmed.split("|").map(c => c.trim()).filter(Boolean);
+      listBuffer.push(cells.join("  ·  "));
+      return;
+    }
     // headings
     if (/^#{1,3}\s/.test(trimmed)) {
       flushList(`l${i}`);
-      const text = trimmed.replace(/^#{1,3}\s/, "");
-      nodes.push(<p key={i} className="mt-3 mb-0.5 text-sm font-semibold text-white">{text}</p>);
+      const t = trimmed.replace(/^#{1,3}\s/, "");
+      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold text-white">{t}</p>);
       return;
     }
-    // bullet/dash list
+    // horizontal rule
+    if (/^---+$/.test(trimmed)) {
+      flushList(`l${i}`);
+      nodes.push(<hr key={i} className="border-white/[.06] my-3"/>);
+      return;
+    }
+    // bullet list
     if (/^[-*•]\s/.test(trimmed)) {
       listBuffer.push(trimmed.replace(/^[-*•]\s/, ""));
       return;
@@ -54,19 +68,15 @@ function renderMarkdown(text: string): React.ReactNode {
     nodes.push(<p key={i} className="leading-7 text-slate-200">{inlineFormat(trimmed)}</p>);
   });
   flushList("end");
-  return nodes;
+  return <>{nodes}</>;
 }
 
 function inlineFormat(text: string): React.ReactNode {
-  // bold **x** and __x__, strip remaining * and _
   const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
   return parts.map((p, i) => {
-    if (/^\*\*/.test(p) || /^__/.test(p)) {
-      const inner = p.slice(2, -2);
-      return <strong key={i} className="font-semibold text-white">{inner}</strong>;
-    }
-    // strip stray stars/underscores
-    return p.replace(/[*_`]/g, "");
+    if (/^\*\*/.test(p) || /^__/.test(p))
+      return <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+    return p.replace(/[*_`|]/g, "");  // strip * _ ` | from plain spans
   });
 }
 
@@ -139,6 +149,10 @@ export function HomePage() {
   const taskPickerRef = useRef<HTMLDivElement>(null);
   const [scanReport, setScanReport] = useState<string | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
+  const [scanTimestamp, setScanTimestamp] = useState("");
+  const [streamingMsgIdx, setStreamingMsgIdx] = useState<number | null>(null);
+  const [streamedUpTo, setStreamedUpTo] = useState(0);
+  const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -213,8 +227,10 @@ export function HomePage() {
       const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model, web_search });
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
-      setMessages([...withUser, aiMsg]);
+      const finalMsgs = [...withUser, aiMsg];
+      setMessages(finalMsgs);
       addMessageToThread(threadId, aiMsg);
+      startStreaming(finalMsgs.length - 1, reply);
       if (data.suggestions?.length) setSuggestions(data.suggestions);
     } catch (err: any) {
       const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
@@ -231,10 +247,49 @@ export function HomePage() {
     setSuggestions([]);
   };
 
+  const startStreaming = (msgIdx: number, fullText: string) => {
+    if (streamRef.current) clearInterval(streamRef.current);
+    setStreamingMsgIdx(msgIdx);
+    setStreamedUpTo(0);
+    let pos = 0;
+    streamRef.current = setInterval(() => {
+      pos += Math.floor(Math.random() * 5) + 3; // 3–7 chars per frame — natural pace
+      if (pos >= fullText.length) {
+        pos = fullText.length;
+        clearInterval(streamRef.current!);
+        streamRef.current = null;
+        setStreamingMsgIdx(null);
+      }
+      setStreamedUpTo(pos);
+    }, 18);
+  };
+
+  const printReport = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const plain = (scanReport ?? "").replace(/[*_`#|]/g, "").replace(/\n{3,}/g, "\n\n");
+    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>Mondaily Scan Report — ${scanTimestamp}</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; color: #1a1a1a; line-height: 1.7; font-size: 15px; }
+  h1 { font-size: 20px; margin-bottom: 4px; } p.meta { color: #666; font-size: 13px; margin-bottom: 32px; }
+  pre { white-space: pre-wrap; word-break: break-word; }
+  @media print { body { margin: 24px; } }
+</style></head><body>
+<h1>Mondaily AI Scan Report</h1>
+<p class="meta">${scanTimestamp}</p>
+<pre>${plain}</pre>
+</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+  };
+
   const runScan = async () => {
     if (scanLoading) return;
     setScanLoading(true);
     setScanReport(null);
+    setScanTimestamp(new Date().toLocaleString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }));
     try {
       let model = "auto";
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
@@ -318,8 +373,10 @@ export function HomePage() {
         const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model });
         const reply = data.reply || "No response.";
         const aiMsg: ChatMessage = { role: "assistant", content: reply };
-        setMessages([...withUser, aiMsg]);
+        const finalMsgs2 = [...withUser, aiMsg];
+        setMessages(finalMsgs2);
         addMessageToThread(threadId, aiMsg);
+        startStreaming(finalMsgs2.length - 1, reply);
         if (data.suggestions?.length) setSuggestions(data.suggestions);
       } catch (err: any) {
         setMessages([...withUser, { role: "assistant", content: `Error: ${err.message}` }]);
@@ -338,24 +395,29 @@ export function HomePage() {
         {/* ── Conversation history ── */}
         {isChatting && (
           <div className="mb-6 max-h-[460px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
-            {messages.map((m, i) => (
-              <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
-                {m.role === "assistant" && (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5 ring-1 ring-red-500/20">
-                    <Sparkles size={12} className="text-red-400"/>
-                  </div>
-                )}
-                {m.role === "user" ? (
-                  <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-4 py-2.5 text-sm text-slate-200 leading-relaxed">
-                    {m.content}
-                  </div>
-                ) : (
-                  <div className="flex-1 min-w-0 text-sm space-y-0.5">
-                    {renderMarkdown(m.content)}
-                  </div>
-                )}
-              </div>
-            ))}
+            {messages.map((m, i) => {
+              const isStreaming = streamingMsgIdx === i;
+              const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
+              return (
+                <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
+                  {m.role === "assistant" && (
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5 ring-1 ring-red-500/20">
+                      <Sparkles size={12} className="text-red-400"/>
+                    </div>
+                  )}
+                  {m.role === "user" ? (
+                    <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-4 py-2.5 text-sm text-slate-200 leading-relaxed">
+                      {m.content}
+                    </div>
+                  ) : (
+                    <div className="flex-1 min-w-0 text-sm space-y-0.5">
+                      {renderMarkdown(displayText)}
+                      {isStreaming && <span className="inline-block w-0.5 h-4 bg-red-400 animate-pulse ml-0.5 align-middle"/>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Thinking state */}
             {loading && (
@@ -374,16 +436,17 @@ export function HomePage() {
               </div>
             )}
 
-            {/* Follow-up suggestion chips */}
-            {!loading && suggestions.length > 0 && (
-              <div className="flex flex-wrap gap-2 pl-10">
+            {/* Follow-up suggestion chips — vertical stack */}
+            {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
+              <div className="flex flex-col gap-1.5 pl-10">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => sendSuggestion(s)}
-                    className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:border-red-500/30 hover:text-white hover:bg-white/[.06] transition-all"
+                    className="group flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-white/[.04] px-4 py-2.5 text-left text-sm text-slate-300 transition-all duration-150 hover:bg-white/[.07] hover:border-white/[.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.04)] active:scale-[0.99]"
                   >
-                    <Sparkles size={9} className="text-red-400 shrink-0"/>{s}
+                    <span>{s}</span>
+                    <CornerDownLeft size={13} className="shrink-0 text-slate-600 group-hover:text-slate-300 transition-colors"/>
                   </button>
                 ))}
               </div>
@@ -595,30 +658,6 @@ export function HomePage() {
                 <Loader2 size={12} className="animate-spin text-slate-500 shrink-0"/>
               ) : (
                 <>
-                  {/* ⚡ prompt picker — dropdown anchored below this row */}
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={() => setTaskPromptPickerOpen(o => !o)}
-                      title="Quick prompts"
-                      className={`p-1 rounded transition-colors ${taskPromptPickerOpen ? "text-red-400" : "text-slate-600 hover:text-slate-300"}`}
-                    >
-                      <Zap size={12}/>
-                    </button>
-                    {taskPromptPickerOpen && (
-                      <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-white/10 bg-[#0f1117]/90 backdrop-blur-md shadow-2xl overflow-hidden z-50">
-                        {TASK_PROMPTS.map(({ label, prompt }) => (
-                          <button
-                            key={label}
-                            onClick={() => { setTaskPromptPickerOpen(false); submitTaskWidgetInput(prompt); }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[.06] transition-colors group"
-                          >
-                            <Sparkles size={9} className="text-red-400 shrink-0"/>
-                            <span className="text-xs text-slate-400 group-hover:text-white">{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                   {/* Scan → modal report */}
                   <button
                     onClick={runScan}
@@ -662,11 +701,21 @@ export function HomePage() {
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/15">
                   <Sparkles size={11} className="text-red-400"/>
                 </div>
-                <span className="text-sm font-medium">AI Scan Report</span>
+                <div>
+                  <p className="text-sm font-medium leading-tight">AI Scan Report</p>
+                  {scanTimestamp && <p className="text-[10px] text-slate-600 mt-px">{scanTimestamp}</p>}
+                </div>
               </div>
-              {!scanLoading && (
-                <button onClick={() => setScanReport(null)} className="text-slate-500 hover:text-white transition-colors text-lg leading-none">×</button>
-              )}
+              <div className="flex items-center gap-2">
+                {!scanLoading && scanReport && (
+                  <button onClick={printReport} title="Print / Save as PDF" className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+                    <Printer size={11}/> Print
+                  </button>
+                )}
+                {!scanLoading && (
+                  <button onClick={() => setScanReport(null)} className="text-slate-500 hover:text-white transition-colors text-xl leading-none">×</button>
+                )}
+              </div>
             </div>
             {/* Body */}
             <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1">
