@@ -67,12 +67,14 @@ export function HomePage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [addingTask, setAddingTask] = useState(false);
+  const [taskWidgetInput, setTaskWidgetInput] = useState("");
+  const [taskWidgetLoading, setTaskWidgetLoading] = useState(false);
+  const [taskWidgetReply, setTaskWidgetReply] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const taskWidgetInputRef = useRef<HTMLInputElement>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const newTaskRef = useRef<HTMLInputElement>(null);
+  const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,10 +88,6 @@ export function HomePage() {
   const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
-  const createTask = useMutation({
-    mutationFn: (title: string) => apiClient.post<Task>("/tasks", { title, priority: "medium", status: "todo" }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks", "home"] }); setNewTaskTitle(""); setAddingTask(false); }
-  });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -157,6 +155,43 @@ export function HomePage() {
     setInput("");
     setSuggestions([]);
   };
+
+  // Handles the task widget input: open-by-name, create, or free AI question
+  const submitTaskWidgetInput = async (raw: string) => {
+    const text = raw.trim();
+    if (!text || taskWidgetLoading) return;
+    setTaskWidgetInput("");
+    setTaskWidgetReply(null);
+
+    // Try to open a task by fuzzy title match ("open X", "show X", "find X")
+    const openIntent = /^(open|show|find|view|search|look up)\s+/i.test(text);
+    if (openIntent) {
+      const query = text.replace(/^(open|show|find|view|search|look up)\s+/i, "").toLowerCase();
+      const match = activeTasks.find(t => t.title.toLowerCase().includes(query));
+      if (match) { setDetailTask(match); return; }
+    }
+
+    // Otherwise send to AI (create task / question / anything)
+    setTaskWidgetLoading(true);
+    try {
+      let model = "auto";
+      try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
+      const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model });
+      setTaskWidgetReply(data.reply || "Done.");
+      // Refresh task list in case AI created/updated tasks
+      qc.invalidateQueries({ queryKey: ["tasks", "home"] });
+    } catch (err: any) {
+      setTaskWidgetReply(`Error: ${err.message}`);
+    }
+    setTaskWidgetLoading(false);
+  };
+
+  const TASK_PROMPTS = [
+    { label: "What's overdue?",       prompt: "List all my overdue tasks and tell me what to do about each one." },
+    { label: "What to focus on?",     prompt: "Which of my open tasks should I focus on right now and why?" },
+    { label: "Create from notes",     prompt: "Based on my recent activity and notes, suggest 3 tasks I should create and create them for me." },
+    { label: "Prep daily brief",      prompt: "Give me a quick brief on my tasks for today: what's urgent, what's due, and what I can defer." },
+  ];
 
   const firePrompt = useCallback((text: string) => {
     setPromptPickerOpen(false);
@@ -419,42 +454,45 @@ export function HomePage() {
             </table>
           )}
 
-          {/* Add task row */}
-          <div className="border-t border-white/[.06] px-4 py-2">
-            {addingTask ? (
-              <div className="flex items-center gap-2">
-                <Plus size={10} className="text-slate-500 shrink-0"/>
-                <input
-                  ref={newTaskRef}
-                  value={newTaskTitle}
-                  onChange={e => setNewTaskTitle(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && newTaskTitle.trim()) createTask.mutate(newTaskTitle.trim());
-                    if (e.key === "Escape") { setAddingTask(false); setNewTaskTitle(""); }
-                  }}
-                  onBlur={() => { if (!newTaskTitle.trim()) { setAddingTask(false); } }}
-                  placeholder="Task title… press Enter to save"
-                  autoFocus
-                  className="flex-1 bg-transparent text-[11px] text-white placeholder-slate-600 outline-none"
-                />
-                {createTask.isPending && <Loader2 size={11} className="animate-spin text-slate-500 shrink-0"/>}
-                <button onClick={() => { setAddingTask(false); setNewTaskTitle(""); }} className="text-[10px] text-slate-600 hover:text-slate-400 shrink-0">Cancel</button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
+          {/* Task widget AI footer */}
+          <div className="border-t border-white/[.06] px-4 pt-3 pb-4 space-y-3">
+            {/* Quick prompt chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {TASK_PROMPTS.map(({ label, prompt }) => (
                 <button
-                  onClick={() => { setAddingTask(true); }}
-                  className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-white transition-colors flex-1">
-                  <Plus size={10}/> Add task
+                  key={label}
+                  onClick={() => submitTaskWidgetInput(prompt)}
+                  className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2.5 py-1 text-[11px] text-slate-400 hover:border-red-500/30 hover:text-white hover:bg-white/[.06] transition-all"
+                >
+                  <Sparkles size={8} className="text-red-400 shrink-0"/>{label}
                 </button>
-                <span className="h-3 w-px bg-white/10"/>
-                <button
-                  onClick={() => { setInput("Review my tasks and tell me what to focus on today"); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); }, 50); }}
-                  className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300 transition-colors shrink-0">
-                  <Sparkles size={9}/> Ask AI
-                </button>
+              ))}
+            </div>
+
+            {/* Inline AI reply */}
+            {taskWidgetReply && (
+              <div className="rounded-lg bg-white/[.04] border border-white/[.06] px-3 py-2.5 text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                {taskWidgetReply}
+                <button onClick={() => setTaskWidgetReply(null)} className="ml-2 text-slate-600 hover:text-slate-400 text-[10px]">✕</button>
               </div>
             )}
+
+            {/* Input */}
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2.5 focus-within:border-red-500/30 transition-colors">
+              <Sparkles size={11} className="text-red-400 shrink-0"/>
+              <input
+                ref={taskWidgetInputRef}
+                value={taskWidgetInput}
+                onChange={e => setTaskWidgetInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
+                placeholder='Add a task, open one ("open TypeScript fix"), or ask anything…'
+                className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none"
+              />
+              {taskWidgetLoading
+                ? <Loader2 size={12} className="animate-spin text-slate-500 shrink-0"/>
+                : <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()} className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"><Send size={12}/></button>
+              }
+            </div>
           </div>
         </section>
       </div>
