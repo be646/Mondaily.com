@@ -73,7 +73,9 @@ export function AccountSettings() {
   });
   const [name, setName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
-  const [appearance, setAppearance] = useState<Appearance>("system");
+  const [appearance, setAppearance] = useState<Appearance>(
+    () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "system"
+  );
   const [notifications, setNotifications] = useState<Record<string, NotificationChannel>>({});
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
@@ -82,15 +84,18 @@ export function AccountSettings() {
     if (!query.data) return;
     setName(user?.fullName ?? "");
     setJobTitle(query.data.job_title ?? "");
-    setAppearance(query.data.appearance ?? "system");
+    // Only fall back to API value if nothing saved locally yet
+    if (!localStorage.getItem("mondaily_appearance")) {
+      setAppearance(query.data.appearance ?? "system");
+    }
     setNotifications(defaultNotifications(query.data));
   }, [query.data, user?.fullName]);
 
   useEffect(() => {
-    const root = document.documentElement;
+    localStorage.setItem("mondaily_appearance", appearance);
     const dark = appearance === "dark" ||
       (appearance === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    root.classList.toggle("dark", dark);
+    document.documentElement.classList.toggle("dark", dark);
   }, [appearance]);
 
   const save = useMutation({
