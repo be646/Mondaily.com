@@ -1,14 +1,6 @@
-import { Hero } from "../components/hero";
-import { FeatureSection } from "../components/feature-section";
-import { PricingTable } from "../components/pricing-table";
+import { LandingPage } from "../components/landing-page";
 
 export default function HomePage() {
-  return (
-    <main>
-      <Hero />
-      <FeatureSection />
-      <PricingTable />
-    </main>
-  );
+  return <LandingPage />;
 }
 
