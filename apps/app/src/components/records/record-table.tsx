@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
-  Sparkles, Command,
+  Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -12,6 +12,8 @@ import { ErrorState, PageSkeleton } from "../ui/page-state";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
+type SortDir = "asc" | "desc";
+interface SortRule { col: string; dir: SortDir }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function display(value: unknown): string {
@@ -38,6 +40,16 @@ function getColumnIcon(col: string) {
   if (lower.includes("url") || lower.includes("website") || lower.includes("link") || lower.includes("linkedin") || lower.includes("twitter")) return <Globe size={12} className="text-slate-600"/>;
   if (isNumeric(col)) return <Hash size={12} className="text-slate-600"/>;
   return <Database size={12} className="text-slate-600"/>;
+}
+
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, cb: () => void) {
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) cb();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [ref, cb]);
 }
 
 function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
@@ -75,7 +87,7 @@ function StagePill({ value }: { value: string }) {
   );
 }
 
-// ─── Calculation engine ───────────────────────────────────────────────────────
+// ─── Calc engine ─────────────────────────────────────────────────────────────
 function calcResult(op: CalcOp, col: string, records: NodeRecord[]): string {
   if (!op) return "";
   const vals = records.map(r => r.data[col]);
@@ -100,36 +112,187 @@ function CalcDropdown({ col, current, onSelect, onClose }: {
   col: string; current: CalcOp; onSelect: (op: CalcOp) => void; onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
-
+  useClickOutside(ref, onClose);
   const options: { op: CalcOp; label: string }[] = isNumeric(col)
     ? [{ op:"sum",label:"Sum" },{ op:"avg",label:"Average" },{ op:"min",label:"Min" },{ op:"max",label:"Max" },{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }]
     : [{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }];
-
   return (
     <div ref={ref} className="dropdown-panel absolute bottom-full left-0 mb-1 w-36 z-50">
       {options.map(({ op, label }) => (
-        <button
-          key={op}
-          onClick={() => { onSelect(op); onClose(); }}
-          className={`dropdown-item w-full ${current === op ? "dropdown-item-active" : ""}`}
-        >
-          {label}
-          {current === op && <Check size={11} className="ml-auto text-red-400"/>}
+        <button key={op} onClick={() => { onSelect(op); onClose(); }}
+          className={`dropdown-item w-full ${current === op ? "dropdown-item-active" : ""}`}>
+          {label}{current === op && <Check size={11} className="ml-auto text-red-400"/>}
         </button>
       ))}
-      {current && (
-        <>
-          <div className="mx-2 my-1 border-t border-white/[.06]"/>
-          <button onClick={() => { onSelect(null); onClose(); }} className="dropdown-item w-full text-slate-500">
-            Clear
+      {current && <>
+        <div className="mx-2 my-1 border-t border-white/[.06]"/>
+        <button onClick={() => { onSelect(null); onClose(); }} className="dropdown-item w-full text-slate-500">Clear</button>
+      </>}
+    </div>
+  );
+}
+
+// ─── View Settings dropdown ───────────────────────────────────────────────────
+function ViewSettingsDropdown({ columns, hidden, onToggle, onClose }: {
+  columns: string[];
+  hidden: Set<string>;
+  onToggle: (col: string) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, onClose);
+  return (
+    <div ref={ref} className="dropdown-panel absolute left-0 top-full mt-1.5 w-56 z-50">
+      <div className="px-3 py-2 border-b border-white/[.06]">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Visible columns</p>
+      </div>
+      <div className="py-1 max-h-64 overflow-auto">
+        {columns.map(col => {
+          const visible = !hidden.has(col);
+          return (
+            <button key={col} onClick={() => onToggle(col)}
+              className="dropdown-item w-full gap-2.5">
+              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-red-500 bg-red-500" : "border-white/20 bg-transparent"}`}>
+                {visible && <Check size={10} className="text-white"/>}
+              </div>
+              <span className="capitalize">{col.replace(/_/g, " ")}</span>
+              <GripVertical size={12} className="ml-auto text-slate-700"/>
+            </button>
+          );
+        })}
+      </div>
+      <div className="border-t border-white/[.06] px-3 py-2">
+        <button
+          onClick={() => { columns.forEach(c => hidden.has(c) && onToggle(c)); onClose(); }}
+          className="text-[11px] text-slate-500 hover:text-white transition-colors"
+        >
+          Show all columns
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Sort panel dropdown ──────────────────────────────────────────────────────
+function SortPanel({ columns, rules, onChange, onClose }: {
+  columns: string[];
+  rules: SortRule[];
+  onChange: (rules: SortRule[]) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, onClose);
+
+  function addRule() {
+    const unused = columns.find(c => !rules.some(r => r.col === c));
+    if (unused) onChange([...rules, { col: unused, dir: "asc" }]);
+  }
+
+  function updateRule(i: number, patch: Partial<SortRule>) {
+    const next = rules.map((r, idx) => idx === i ? { ...r, ...patch } : r);
+    onChange(next);
+  }
+
+  function removeRule(i: number) {
+    onChange(rules.filter((_, idx) => idx !== i));
+  }
+
+  return (
+    <div ref={ref} className="dropdown-panel absolute left-0 top-full mt-1.5 w-72 z-50">
+      <div className="px-3 py-2 border-b border-white/[.06]">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Sort rules</p>
+      </div>
+      <div className="py-1.5 space-y-1 px-2">
+        {rules.length === 0 && (
+          <p className="px-1 py-2 text-xs text-slate-600">No sort rules. Click '+ Add sort' below.</p>
+        )}
+        {rules.map((rule, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <GripVertical size={12} className="text-slate-700 shrink-0"/>
+            <select
+              value={rule.col}
+              onChange={e => updateRule(i, { col: e.target.value })}
+              className="flex-1 min-w-0 rounded-md border border-white/[.08] bg-[#13151a] px-2 py-1 text-xs text-white outline-none focus:border-red-500/30"
+            >
+              {columns.map(c => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}
+            </select>
+            <button
+              onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
+              className="flex items-center gap-1 rounded-md border border-white/[.08] bg-white/[.03] px-2 py-1 text-[11px] text-slate-400 hover:text-white transition-colors whitespace-nowrap"
+            >
+              {rule.dir === "asc" ? <ChevronUp size={11}/> : <ChevronDown size={11}/>}
+              {rule.dir === "asc" ? "Asc" : "Desc"}
+            </button>
+            <button onClick={() => removeRule(i)} className="text-slate-600 hover:text-red-400 transition-colors shrink-0">
+              <X size={13}/>
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between">
+        <button onClick={addRule} disabled={rules.length >= columns.length}
+          className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors disabled:opacity-30">
+          <Plus size={11}/> Add sort
+        </button>
+        {rules.length > 0 && (
+          <button onClick={() => onChange([])} className="text-[11px] text-slate-600 hover:text-red-400 transition-colors">
+            Clear all
           </button>
-        </>
-      )}
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Export dropdown ──────────────────────────────────────────────────────────
+function ExportDropdown({ records, columns, objectType, onClose }: {
+  records: NodeRecord[];
+  columns: string[];
+  objectType: string;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, onClose);
+
+  function exportCSV() {
+    const header = [...columns, "updated_at"].join(",");
+    const rows = records.map(r => {
+      const cells = columns.map(c => {
+        const v = r.data[c] ?? "";
+        const str = String(v).replace(/"/g, '""');
+        return str.includes(",") || str.includes("\n") || str.includes('"') ? `"${str}"` : str;
+      });
+      cells.push(new Date(r.updated_at).toISOString());
+      return cells.join(",");
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${objectType}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    onClose();
+  }
+
+  return (
+    <div ref={ref} className="dropdown-panel absolute right-0 top-full mt-1.5 w-44 z-50">
+      <div className="px-3 py-2 border-b border-white/[.06]">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Import / Export</p>
+      </div>
+      <button onClick={exportCSV} className="dropdown-item w-full gap-2">
+        <Download size={12} className="text-emerald-400"/>
+        Export as CSV
+      </button>
+      <button
+        onClick={onClose}
+        className="dropdown-item w-full gap-2 opacity-40 cursor-not-allowed"
+        disabled
+      >
+        <Download size={12} className="text-blue-400"/>
+        Import CSV <span className="ml-auto text-[10px]">soon</span>
+      </button>
     </div>
   );
 }
@@ -137,7 +300,7 @@ function CalcDropdown({ col, current, onSelect, onClose }: {
 // ─── NLP Command Bar ──────────────────────────────────────────────────────────
 function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   columns: string[];
-  onApply: (filterText: string, sortCol: string | null, sortDir: "asc"|"desc", calcOps: Record<string, "sum"|"avg"|"min"|"max"|"count">) => void;
+  onApply: (filterText: string, sortCol: string | null, sortDir: SortDir, calcOps: Record<string, "sum"|"avg"|"min"|"max"|"count">) => void;
   onClear: () => void;
   hasActive: boolean;
 }) {
@@ -158,7 +321,6 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
     const trimmed = value.trim();
     if (!trimmed) return;
     setStatus("thinking");
-    // Simulate brief AI processing delay
     setTimeout(() => {
       const parsed = parseNLPCommand(trimmed, columns);
       if (parsed.confidence === 0) {
@@ -166,12 +328,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
         setTimeout(() => setStatus("idle"), 2500);
         return;
       }
-      onApply(
-        parsed.filterText ?? "",
-        parsed.sortCol ?? null,
-        parsed.sortDir ?? "asc",
-        parsed.calcOps ?? {},
-      );
+      onApply(parsed.filterText ?? "", parsed.sortCol ?? null, parsed.sortDir ?? "asc", parsed.calcOps ?? {});
       setLastApplied(trimmed);
       setStatus("applied");
       setTimeout(() => setStatus("idle"), 2500);
@@ -180,152 +337,132 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "k") { e.preventDefault(); inputRef.current?.focus(); }
     }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const statusColors = {
-    idle:     "border-white/[.06] bg-white/[.02]",
-    thinking: "border-purple-500/30 bg-purple-500/[.04]",
-    applied:  "border-emerald-500/30 bg-emerald-500/[.04]",
-    error:    "border-red-500/30 bg-red-500/[.04]",
-  };
+  const statusColors = { idle: "border-white/[.06] bg-white/[.02]", thinking: "border-purple-500/30 bg-purple-500/[.04]", applied: "border-emerald-500/30 bg-emerald-500/[.04]", error: "border-red-500/30 bg-red-500/[.04]" };
 
   return (
     <div className={`rounded-lg border px-3 py-2 transition-all duration-300 ${statusColors[status]}`}>
       <div className="flex items-center gap-2">
         <Sparkles size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-purple-400 animate-pulse" : status === "applied" ? "text-emerald-400" : "text-slate-600"}`}/>
-        <input
-          ref={inputRef}
-          value={value}
+        <input ref={inputRef} value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") apply(); if (e.key === "Escape") { setValue(""); onClear(); setStatus("idle"); } }}
           placeholder={placeholder}
           className="flex-1 bg-transparent text-xs text-white placeholder-slate-700 outline-none"
         />
         <div className="flex items-center gap-1.5 shrink-0">
-          {hasActive && (
-            <button onClick={() => { setValue(""); onClear(); setStatus("idle"); }} className="text-[10px] text-slate-600 hover:text-red-400 transition-colors">
-              Clear
-            </button>
-          )}
-          <kbd className="flex items-center gap-0.5 rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-slate-600">
-            <Command size={8}/><span>⇧K</span>
-          </kbd>
-          <button
-            onClick={apply}
-            disabled={!value.trim() || status === "thinking"}
-            className="rounded-md border border-white/[.08] bg-white/[.04] px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/[.07] hover:text-white transition-colors disabled:opacity-40"
-          >
+          {hasActive && <button onClick={() => { setValue(""); onClear(); setStatus("idle"); }} className="text-[10px] text-slate-600 hover:text-red-400 transition-colors">Clear</button>}
+          <kbd className="flex items-center gap-0.5 rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-slate-600"><Command size={8}/><span>⇧K</span></kbd>
+          <button onClick={apply} disabled={!value.trim() || status === "thinking"}
+            className="rounded-md border border-white/[.08] bg-white/[.04] px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/[.07] hover:text-white transition-colors disabled:opacity-40">
             {status === "thinking" ? "…" : "Run"}
           </button>
         </div>
       </div>
-      {status === "applied" && lastApplied && (
-        <p className="mt-1.5 text-[10px] text-emerald-500/80 flex items-center gap-1">
-          <Check size={9}/> Applied: {lastApplied}
-        </p>
-      )}
-      {status === "error" && (
-        <p className="mt-1.5 text-[10px] text-red-400/80">
-          Couldn't parse that command — try "sort by ARR desc" or "filter by USA"
-        </p>
-      )}
+      {status === "applied" && lastApplied && <p className="mt-1.5 text-[10px] text-emerald-500/80 flex items-center gap-1"><Check size={9}/> Applied: {lastApplied}</p>}
+      {status === "error" && <p className="mt-1.5 text-[10px] text-red-400/80">Couldn't parse — try "sort by ARR desc" or "filter by USA"</p>}
     </div>
   );
 }
 
 // ─── Main table ───────────────────────────────────────────────────────────────
-export function RecordTable({
-  objectType,
-  enrichedIds = [],
-}: {
-  objectType: string;
-  enrichedIds?: string[];
-}) {
+export function RecordTable({ objectType, enrichedIds = [] }: { objectType: string; enrichedIds?: string[] }) {
   const query = useQuery({
     queryKey: ["records", objectType],
     queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
   });
 
   const records = query.data ?? [];
-  const columns = useMemo(() => {
+
+  const allColumns = useMemo(() => {
     const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
     const nameKey = allKeys.find(k => k.toLowerCase() === "name");
     const rest = allKeys.filter(k => k.toLowerCase() !== "name");
     return (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
   }, [records]);
 
-  // ── Filter state ──
-  const [filterText, setFilterText] = useState("");
+  // ── Column visibility ──
+  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
+  const columns = useMemo(() => allColumns.filter(c => !hiddenCols.has(c)), [allColumns, hiddenCols]);
+  function toggleCol(col: string) {
+    setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
+  }
 
-  // ── Sort state ──
-  const [sortCol, setSortCol] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // ── Multi-sort state (stacked rules) ──
+  const [sortRules, setSortRules] = useState<SortRule[]>([]);
 
-  // ── Calculation state ──
+  // ── Legacy single-sort (header clicks) ──
+  const [quickSortCol, setQuickSortCol] = useState<string | null>(null);
+  const [quickSortDir, setQuickSortDir] = useState<SortDir>("asc");
+
+  // ── Calc state ──
   const [calculations, setCalculations] = useState<Record<string, CalcOp>>({});
   const [openCalcCol, setOpenCalcCol] = useState<string | null>(null);
 
-  // ── NLP command bar state ──
+  // ── Filter ──
+  const [filterText, setFilterText] = useState("");
+
+  // ── NLP ──
   const [nlpActive, setNlpActive] = useState(false);
 
-  useEffect(() => { setFilterText(""); setSortCol(null); setNlpActive(false); }, [objectType]);
+  // ── Toolbar dropdown open state ──
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|null>(null);
 
-  function handleSort(col: string) {
-    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortCol(col); setSortDir("asc"); }
+  useEffect(() => {
+    setFilterText(""); setQuickSortCol(null); setSortRules([]); setNlpActive(false); setHiddenCols(new Set());
+  }, [objectType]);
+
+  function handleHeaderSort(col: string) {
+    if (quickSortCol === col) setQuickSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setQuickSortCol(col); setQuickSortDir("asc"); }
+    setSortRules([]); // clear stacked rules when header-clicking
   }
 
-  const handleNLPApply = useCallback((
-    ft: string,
-    sc: string | null,
-    sd: "asc"|"desc",
-    ops: Record<string, "sum"|"avg"|"min"|"max"|"count">,
-  ) => {
+  const handleNLPApply = useCallback((ft: string, sc: string | null, sd: SortDir, ops: Record<string, "sum"|"avg"|"min"|"max"|"count">) => {
     if (ft) setFilterText(ft);
-    if (sc) { setSortCol(sc); setSortDir(sd); }
-    if (Object.keys(ops).length) {
-      setCalculations(prev => ({ ...prev, ...ops }));
-    }
+    if (sc) { setQuickSortCol(sc); setQuickSortDir(sd); setSortRules([]); }
+    if (Object.keys(ops).length) setCalculations(prev => ({ ...prev, ...ops }));
     setNlpActive(true);
   }, []);
 
-  const handleNLPClear = useCallback(() => {
-    setFilterText(""); setSortCol(null); setNlpActive(false);
-  }, []);
-
-  // ── Filter then sort pipeline ──
+  // ── Filter → sort pipeline ──
   const filtered = useMemo(() => {
     if (!filterText.trim()) return records;
     const q = filterText.toLowerCase();
-    return records.filter(r =>
-      Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q))
-    );
+    return records.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q)));
   }, [records, filterText]);
 
   const sorted = useMemo(() => {
-    if (!sortCol) return filtered;
+    // Stacked sort rules take priority over quick sort
+    const rules = sortRules.length > 0
+      ? sortRules
+      : quickSortCol ? [{ col: quickSortCol, dir: quickSortDir }] : [];
+
+    if (!rules.length) return filtered;
+
     return [...filtered].sort((a, b) => {
-      const av = sortCol === "__updated_at" ? a.updated_at : display(a.data[sortCol]);
-      const bv = sortCol === "__updated_at" ? b.updated_at : display(b.data[sortCol]);
-      const an = typeof a.data[sortCol] === "number" ? (a.data[sortCol] as number) : parseFloat(av.replace(/[^0-9.-]/g, ""));
-      const bn = typeof b.data[sortCol] === "number" ? (b.data[sortCol] as number) : parseFloat(bv.replace(/[^0-9.-]/g, ""));
-      const cmp = !isNaN(an) && !isNaN(bn) ? an - bn : av.localeCompare(bv);
-      return sortDir === "asc" ? cmp : -cmp;
+      for (const { col, dir } of rules) {
+        const av = col === "__updated_at" ? a.updated_at : display(a.data[col]);
+        const bv = col === "__updated_at" ? b.updated_at : display(b.data[col]);
+        const an = typeof a.data[col] === "number" ? (a.data[col] as number) : parseFloat(av.replace(/[^0-9.-]/g, ""));
+        const bn = typeof b.data[col] === "number" ? (b.data[col] as number) : parseFloat(bv.replace(/[^0-9.-]/g, ""));
+        const cmp = !isNaN(an) && !isNaN(bn) ? an - bn : av.localeCompare(bv);
+        if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
+      }
+      return 0;
     });
-  }, [filtered, sortCol, sortDir]);
+  }, [filtered, sortRules, quickSortCol, quickSortDir]);
 
   function SortIcon({ col }: { col: string }) {
-    if (sortCol !== col) return <ChevronsUpDown size={10} className="text-slate-700 ml-1 shrink-0"/>;
-    return sortDir === "asc"
-      ? <ChevronUp size={10} className="text-red-400 ml-1 shrink-0"/>
-      : <ChevronDown size={10} className="text-red-400 ml-1 shrink-0"/>;
+    const rule = sortRules.find(r => r.col === col);
+    if (rule) return rule.dir === "asc" ? <ChevronUp size={10} className="text-purple-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-purple-400 ml-1 shrink-0"/>;
+    if (quickSortCol === col) return quickSortDir === "asc" ? <ChevronUp size={10} className="text-red-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-red-400 ml-1 shrink-0"/>;
+    return <ChevronsUpDown size={10} className="text-slate-700 ml-1 shrink-0"/>;
   }
 
   const nameCol = columns[0];
@@ -334,23 +471,22 @@ export function RecordTable({
     const val = record.data[col];
     const isEnriched = enrichedIds.includes(record.id);
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
-    if (col === nameCol) {
-      return (
-        <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
-          <RowLogo name={display(val)} enriched={isEnriched}/>
-          <span className="truncate">{display(val)}</span>
-          {isEnriched && (
-            <span className="ml-1 inline-flex items-center gap-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 shrink-0">
-              <Sparkles size={8}/> AI
-            </span>
-          )}
-        </Link>
-      );
-    }
+    if (col === nameCol) return (
+      <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
+        <RowLogo name={display(val)} enriched={isEnriched}/>
+        <span className="truncate">{display(val)}</span>
+        {isEnriched && (
+          <span className="ml-1 inline-flex items-center gap-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 shrink-0">
+            <Sparkles size={8}/> AI
+          </span>
+        )}
+      </Link>
+    );
     return <span className="truncate">{display(val)}</span>;
   }
 
-  // ── States ──
+  const activeSortCount = sortRules.length || (quickSortCol ? 1 : 0);
+
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
   if (!records.length) return (
@@ -361,47 +497,95 @@ export function RecordTable({
     </div>
   );
 
-  const hasNlpActive = nlpActive || !!filterText || !!sortCol;
-
   return (
     <section className="flex flex-col gap-3">
       {/* ── NLP command bar ── */}
-      <NLPCommandBar
-        columns={columns}
-        onApply={handleNLPApply}
-        onClear={handleNLPClear}
-        hasActive={hasNlpActive}
-      />
+      <NLPCommandBar columns={allColumns} onApply={handleNLPApply} onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }} hasActive={nlpActive || !!filterText || !!quickSortCol}/>
 
-      {/* ── Manual filter bar ── */}
+      {/* ── Toolbar ── */}
       <div className="flex items-center gap-2">
+        {/* Filter */}
         <div className="relative flex-1 max-w-xs">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"/>
-          <input
-            value={filterText}
-            onChange={e => setFilterText(e.target.value)}
+          <input value={filterText} onChange={e => setFilterText(e.target.value)}
             placeholder={`Filter ${objectType}…`}
-            className="key-input w-full py-1.5 pl-8 pr-8 text-xs"
-          />
+            className="key-input w-full py-1.5 pl-8 pr-8 text-xs"/>
           {filterText && (
-            <button
-              onClick={() => setFilterText("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors"
-            >
+            <button onClick={() => setFilterText("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
               <X size={12}/>
             </button>
           )}
         </div>
-        {(filterText || sortCol) && (
-          <span className="text-xs text-slate-600 tabular-nums">
-            {sorted.length} of {records.length}
-          </span>
+
+        {(filterText || quickSortCol || sortRules.length > 0) && (
+          <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
           <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-2 py-1 text-[10px] text-purple-400">
             <Sparkles size={9}/> AI active
           </span>
         )}
+
+        <div className="ml-auto flex items-center gap-1.5">
+          {/* View settings */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "view" ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+            >
+              <Settings2 size={12}/>
+              <span className="hidden sm:inline">View</span>
+              {hiddenCols.size > 0 && <span className="rounded-full bg-red-500 px-1.5 text-[9px] text-white">{allColumns.length - hiddenCols.size}</span>}
+            </button>
+            {openPanel === "view" && (
+              <ViewSettingsDropdown
+                columns={allColumns}
+                hidden={hiddenCols}
+                onToggle={toggleCol}
+                onClose={() => setOpenPanel(null)}
+              />
+            )}
+          </div>
+
+          {/* Sort panel */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "sort" || activeSortCount > 0 ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+            >
+              <ArrowUpDown size={12}/>
+              <span className="hidden sm:inline">Sort</span>
+              {activeSortCount > 0 && <span className="rounded-full bg-red-500 px-1.5 text-[9px] text-white">{activeSortCount}</span>}
+            </button>
+            {openPanel === "sort" && (
+              <SortPanel
+                columns={[...allColumns, "__updated_at"]}
+                rules={sortRules}
+                onChange={rules => { setSortRules(rules); setQuickSortCol(null); }}
+                onClose={() => setOpenPanel(null)}
+              />
+            )}
+          </div>
+
+          {/* Export */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "export" ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+            >
+              <Download size={12}/>
+              <span className="hidden sm:inline">Export</span>
+            </button>
+            {openPanel === "export" && (
+              <ExportDropdown
+                records={sorted}
+                columns={columns}
+                objectType={objectType}
+                onClose={() => setOpenPanel(null)}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Table ── */}
@@ -411,10 +595,8 @@ export function RecordTable({
             <tr>
               {columns.map(col => (
                 <th key={col} className="whitespace-nowrap px-4 py-2 border-b border-white/[.05]">
-                  <button
-                    onClick={() => handleSort(col)}
-                    className={`flex items-center gap-1.5 hover:text-slate-300 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}
-                  >
+                  <button onClick={() => handleHeaderSort(col)}
+                    className={`flex items-center gap-1.5 hover:text-slate-300 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
                     <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">{col.replaceAll("_", " ")}</span>
                     <SortIcon col={col}/>
@@ -422,7 +604,7 @@ export function RecordTable({
                 </th>
               ))}
               <th className="whitespace-nowrap px-4 py-2 border-b border-white/[.05]">
-                <button onClick={() => handleSort("__updated_at")} className="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
+                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
                   <Calendar size={11} className="text-slate-600"/>
                   <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">Updated</span>
                   <SortIcon col="__updated_at"/>
@@ -432,19 +614,12 @@ export function RecordTable({
           </thead>
           <tbody>
             {sorted.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">
-                  No results for "{filterText}"
-                </td>
-              </tr>
+              <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">No results for "{filterText}"</td></tr>
             ) : (
               sorted.map(record => (
                 <tr key={record.id} className="border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
                   {columns.map(col => (
-                    <td
-                      key={col}
-                      className={`px-4 py-2.5 text-sm text-slate-300 ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64"}`}
-                    >
+                    <td key={col} className={`px-4 py-2.5 text-sm text-slate-300 ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64"}`}>
                       {renderCell(col, record)}
                     </td>
                   ))}
@@ -461,26 +636,19 @@ export function RecordTable({
                 <td key={col} className={`px-4 py-2 ${isNumeric(col) ? "text-right" : ""}`}>
                   <div className={`relative inline-block ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {openCalcCol === col && (
-                      <CalcDropdown
-                        col={col}
-                        current={calculations[col] ?? null}
+                      <CalcDropdown col={col} current={calculations[col] ?? null}
                         onSelect={op => setCalculations(prev => ({ ...prev, [col]: op }))}
-                        onClose={() => setOpenCalcCol(null)}
-                      />
+                        onClose={() => setOpenCalcCol(null)}/>
                     )}
                     {calculations[col] ? (
-                      <button
-                        onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors tabular-nums font-mono"
-                      >
+                      <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
+                        className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors tabular-nums font-mono">
                         <span className="text-slate-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
                         {calcResult(calculations[col], col, sorted)}
                       </button>
                     ) : (
-                      <button
-                        onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-400 transition-colors group"
-                      >
+                      <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
+                        className="flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-400 transition-colors group">
                         <Plus size={10} className="group-hover:text-red-400 transition-colors"/>
                         <span>Calculate</span>
                       </button>
@@ -488,9 +656,7 @@ export function RecordTable({
                   </div>
                 </td>
               ))}
-              <td className="px-4 py-2 text-[11px] text-slate-700 tabular-nums">
-                {sorted.length} rows
-              </td>
+              <td className="px-4 py-2 text-[11px] text-slate-700 tabular-nums">{sorted.length} rows</td>
             </tr>
           </tfoot>
         </table>
