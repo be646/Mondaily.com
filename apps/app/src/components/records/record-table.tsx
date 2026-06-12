@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
+  Sparkles, Command,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { apiClient } from "../../lib/api-client";
+import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
@@ -38,13 +40,20 @@ function getColumnIcon(col: string) {
   return <Database size={12} className="text-slate-600"/>;
 }
 
-function RowLogo({ name }: { name: string }) {
+function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const initials = String(name).split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const colors = ["bg-red-500/20 text-red-400","bg-blue-500/20 text-blue-400","bg-emerald-500/20 text-emerald-400","bg-purple-500/20 text-purple-400","bg-amber-500/20 text-amber-400"];
   const color = colors[(initials.charCodeAt(0) || 0) % colors.length];
   return (
-    <div className={`h-6 w-6 rounded shrink-0 flex items-center justify-center text-[10px] font-semibold ${color}`}>
-      {initials || "?"}
+    <div className="relative shrink-0">
+      <div className={`h-6 w-6 rounded flex items-center justify-center text-[10px] font-semibold ${color}`}>
+        {initials || "?"}
+      </div>
+      {enriched && (
+        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-1 ring-[#0d0f13] flex items-center justify-center">
+          <Sparkles size={5} className="text-white"/>
+        </div>
+      )}
     </div>
   );
 }
@@ -125,8 +134,120 @@ function CalcDropdown({ col, current, onSelect, onClose }: {
   );
 }
 
+// ─── NLP Command Bar ──────────────────────────────────────────────────────────
+function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
+  columns: string[];
+  onApply: (filterText: string, sortCol: string | null, sortDir: "asc"|"desc", calcOps: Record<string, "sum"|"avg"|"min"|"max"|"count">) => void;
+  onClear: () => void;
+  hasActive: boolean;
+}) {
+  const [value, setValue] = useState("");
+  const [status, setStatus] = useState<"idle"|"thinking"|"applied"|"error">("idle");
+  const [lastApplied, setLastApplied] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const EXAMPLES = [
+    "Sort by ARR descending and show total revenue",
+    "Filter by USA and sort by funding raised",
+    "Show sum of deal value sorted by stage",
+    "Average ARR and filter by Series A",
+  ];
+  const [placeholder] = useState(() => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
+
+  const apply = useCallback(() => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setStatus("thinking");
+    // Simulate brief AI processing delay
+    setTimeout(() => {
+      const parsed = parseNLPCommand(trimmed, columns);
+      if (parsed.confidence === 0) {
+        setStatus("error");
+        setTimeout(() => setStatus("idle"), 2500);
+        return;
+      }
+      onApply(
+        parsed.filterText ?? "",
+        parsed.sortCol ?? null,
+        parsed.sortDir ?? "asc",
+        parsed.calcOps ?? {},
+      );
+      setLastApplied(trimmed);
+      setStatus("applied");
+      setTimeout(() => setStatus("idle"), 2500);
+    }, 600);
+  }, [value, columns, onApply]);
+
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const statusColors = {
+    idle:     "border-white/[.06] bg-white/[.02]",
+    thinking: "border-purple-500/30 bg-purple-500/[.04]",
+    applied:  "border-emerald-500/30 bg-emerald-500/[.04]",
+    error:    "border-red-500/30 bg-red-500/[.04]",
+  };
+
+  return (
+    <div className={`rounded-lg border px-3 py-2 transition-all duration-300 ${statusColors[status]}`}>
+      <div className="flex items-center gap-2">
+        <Sparkles size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-purple-400 animate-pulse" : status === "applied" ? "text-emerald-400" : "text-slate-600"}`}/>
+        <input
+          ref={inputRef}
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") apply(); if (e.key === "Escape") { setValue(""); onClear(); setStatus("idle"); } }}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-xs text-white placeholder-slate-700 outline-none"
+        />
+        <div className="flex items-center gap-1.5 shrink-0">
+          {hasActive && (
+            <button onClick={() => { setValue(""); onClear(); setStatus("idle"); }} className="text-[10px] text-slate-600 hover:text-red-400 transition-colors">
+              Clear
+            </button>
+          )}
+          <kbd className="flex items-center gap-0.5 rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-slate-600">
+            <Command size={8}/><span>⇧K</span>
+          </kbd>
+          <button
+            onClick={apply}
+            disabled={!value.trim() || status === "thinking"}
+            className="rounded-md border border-white/[.08] bg-white/[.04] px-2.5 py-1 text-[11px] text-slate-400 hover:bg-white/[.07] hover:text-white transition-colors disabled:opacity-40"
+          >
+            {status === "thinking" ? "…" : "Run"}
+          </button>
+        </div>
+      </div>
+      {status === "applied" && lastApplied && (
+        <p className="mt-1.5 text-[10px] text-emerald-500/80 flex items-center gap-1">
+          <Check size={9}/> Applied: {lastApplied}
+        </p>
+      )}
+      {status === "error" && (
+        <p className="mt-1.5 text-[10px] text-red-400/80">
+          Couldn't parse that command — try "sort by ARR desc" or "filter by USA"
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Main table ───────────────────────────────────────────────────────────────
-export function RecordTable({ objectType }: { objectType: string }) {
+export function RecordTable({
+  objectType,
+  enrichedIds = [],
+}: {
+  objectType: string;
+  enrichedIds?: string[];
+}) {
   const query = useQuery({
     queryKey: ["records", objectType],
     queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
@@ -135,8 +256,6 @@ export function RecordTable({ objectType }: { objectType: string }) {
   const records = query.data ?? [];
   const columns = useMemo(() => {
     const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
-    // Always pin "name" first so the avatar/link cell is stable regardless of
-    // the JSONB key-insertion order returned by Postgres.
     const nameKey = allKeys.find(k => k.toLowerCase() === "name");
     const rest = allKeys.filter(k => k.toLowerCase() !== "name");
     return (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
@@ -153,13 +272,33 @@ export function RecordTable({ objectType }: { objectType: string }) {
   const [calculations, setCalculations] = useState<Record<string, CalcOp>>({});
   const [openCalcCol, setOpenCalcCol] = useState<string | null>(null);
 
-  // Reset filter when objectType changes
-  useEffect(() => { setFilterText(""); setSortCol(null); }, [objectType]);
+  // ── NLP command bar state ──
+  const [nlpActive, setNlpActive] = useState(false);
+
+  useEffect(() => { setFilterText(""); setSortCol(null); setNlpActive(false); }, [objectType]);
 
   function handleSort(col: string) {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortCol(col); setSortDir("asc"); }
   }
+
+  const handleNLPApply = useCallback((
+    ft: string,
+    sc: string | null,
+    sd: "asc"|"desc",
+    ops: Record<string, "sum"|"avg"|"min"|"max"|"count">,
+  ) => {
+    if (ft) setFilterText(ft);
+    if (sc) { setSortCol(sc); setSortDir(sd); }
+    if (Object.keys(ops).length) {
+      setCalculations(prev => ({ ...prev, ...ops }));
+    }
+    setNlpActive(true);
+  }, []);
+
+  const handleNLPClear = useCallback(() => {
+    setFilterText(""); setSortCol(null); setNlpActive(false);
+  }, []);
 
   // ── Filter then sort pipeline ──
   const filtered = useMemo(() => {
@@ -189,16 +328,22 @@ export function RecordTable({ objectType }: { objectType: string }) {
       : <ChevronDown size={10} className="text-red-400 ml-1 shrink-0"/>;
   }
 
-  const nameCol = columns[0]; // always "name" after the pin above
+  const nameCol = columns[0];
 
   function renderCell(col: string, record: NodeRecord) {
     const val = record.data[col];
+    const isEnriched = enrichedIds.includes(record.id);
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
     if (col === nameCol) {
       return (
         <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
-          <RowLogo name={display(val)}/>
+          <RowLogo name={display(val)} enriched={isEnriched}/>
           <span className="truncate">{display(val)}</span>
+          {isEnriched && (
+            <span className="ml-1 inline-flex items-center gap-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 shrink-0">
+              <Sparkles size={8}/> AI
+            </span>
+          )}
         </Link>
       );
     }
@@ -216,9 +361,19 @@ export function RecordTable({ objectType }: { objectType: string }) {
     </div>
   );
 
+  const hasNlpActive = nlpActive || !!filterText || !!sortCol;
+
   return (
     <section className="flex flex-col gap-3">
-      {/* ── Filter bar ── */}
+      {/* ── NLP command bar ── */}
+      <NLPCommandBar
+        columns={columns}
+        onApply={handleNLPApply}
+        onClear={handleNLPClear}
+        hasActive={hasNlpActive}
+      />
+
+      {/* ── Manual filter bar ── */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-xs">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"/>
@@ -237,9 +392,14 @@ export function RecordTable({ objectType }: { objectType: string }) {
             </button>
           )}
         </div>
-        {filterText && (
+        {(filterText || sortCol) && (
           <span className="text-xs text-slate-600 tabular-nums">
             {sorted.length} of {records.length}
+          </span>
+        )}
+        {nlpActive && (
+          <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-2 py-1 text-[10px] text-purple-400">
+            <Sparkles size={9}/> AI active
           </span>
         )}
       </div>

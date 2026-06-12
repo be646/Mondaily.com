@@ -1,8 +1,9 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
-import { Plus, X } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Plus, X, Sparkles } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { apiClient } from "../../../../lib/api-client";
+import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQueryClient } from "@tanstack/react-query";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
@@ -20,14 +21,36 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
+// ─── Enrichment status banner ─────────────────────────────────────────────────
+function EnrichBanner({ name, done }: { name: string; done: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all duration-500 ${
+      done
+        ? "border-emerald-500/30 bg-emerald-500/[.06] text-emerald-400"
+        : "border-purple-500/20 bg-purple-500/[.04] text-purple-400"
+    }`}>
+      <Sparkles size={12} className={done ? "" : "animate-pulse"}/>
+      {done
+        ? `AI enriched "${name}" — fields auto-populated`
+        : `Enriching "${name}" in background…`}
+    </div>
+  );
+}
+
 // ─── Create record modal ──────────────────────────────────────────────────────
-function CreateRecordModal({ objectType, onClose }: { objectType: string; onClose: () => void }) {
+function CreateRecordModal({
+  objectType,
+  onClose,
+  onEnrichStart,
+}: {
+  objectType: string;
+  onClose: () => void;
+  onEnrichStart: (recordId: string, name: string) => void;
+}) {
   const queryClient = useQueryClient();
-  // Read columns from the already-warm TanStack Query cache — no extra fetch
   const cachedRecords = (queryClient.getQueryData<Array<{ data: Record<string, unknown> }>>(["records", objectType])) ?? [];
   const liveColumns = Array.from(new Set(cachedRecords.flatMap(r => Object.keys(r.data)))).slice(0, 8);
 
-  // Field key order: prefer live columns from real records, else smart defaults
   const fieldKeys = liveColumns.length > 0 ? liveColumns : (() => {
     const t = objectType.toLowerCase();
     if (t === "companies") return ["name","description","arr","funding_raised","employee_range","country"];
@@ -53,14 +76,23 @@ function CreateRecordModal({ objectType, onClose }: { objectType: string; onClos
     setSaving(true); setError("");
     try {
       const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-      await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data });
+      const node = await apiClient.post<{ id: string }>("/nodes", { vertical: "shared", object_type: safeType, data });
       queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+
+      // Kick off background enrichment for companies and people
+      const t = objectType.toLowerCase();
+      if ((t === "companies" || t.includes("compan")) && data.name) {
+        onEnrichStart(node.id, data.name);
+      } else if ((t === "people" || t.includes("person") || t.includes("contact")) && data.email) {
+        onEnrichStart(node.id, data.name || data.email);
+      }
+
       if (createMore) { resetForm(); } else { onClose(); }
     } catch (e: any) {
       const msg = e?.message || "Failed to create record";
       setError(msg.includes("createNode failed") ? msg.replace("createNode failed: ", "") : msg);
     } finally { setSaving(false); }
-  }, [values, objectType, createMore, onClose, queryClient]);
+  }, [values, objectType, createMore, onClose, queryClient, onEnrichStart]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -79,9 +111,16 @@ function CreateRecordModal({ objectType, onClose }: { objectType: string; onClos
       <div className="fixed left-1/2 top-1/2 z-50 w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
 
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
-          <span className="text-[13px] font-semibold capitalize text-white tracking-tight">
-            New {objectType.replace(/[-_]/g, " ")}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold capitalize text-white tracking-tight">
+              New {objectType.replace(/[-_]/g, " ")}
+            </span>
+            {(objectType.toLowerCase() === "companies" || objectType.toLowerCase().includes("compan") || objectType.toLowerCase() === "people") && (
+              <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-1.5 py-0.5 text-[9px] text-purple-400">
+                <Sparkles size={8}/> AI enrichment
+              </span>
+            )}
+          </div>
           <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
             <X size={14}/>
           </button>
@@ -134,7 +173,41 @@ function CreateRecordModal({ objectType, onClose }: { objectType: string; onClos
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ObjectIndexPage() {
   const { objectType = "records" } = useParams();
+  const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+
+  // Track enrichment state: { [recordId]: { name, done } }
+  const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
+  const enrichedIds = Object.entries(enriching).filter(([, v]) => v.done).map(([id]) => id);
+
+  const handleEnrichStart = useCallback(async (recordId: string, name: string) => {
+    setEnriching(prev => ({ ...prev, [recordId]: { name, done: false } }));
+    try {
+      const t = objectType.toLowerCase();
+      let result;
+      if (t === "companies" || t.includes("compan")) {
+        const { enrichCompany: ec } = await import("../../../../lib/ai-enrichment");
+        result = await ec(name);
+      } else {
+        const email = name.includes("@") ? name : "";
+        if (!email) return;
+        const { enrichPerson: ep } = await import("../../../../lib/ai-enrichment");
+        result = await ep(email);
+      }
+
+      // Fetch current record, merge enriched fields, patch back
+      const current = await apiClient.get<{ id: string; data: Record<string, unknown> }>(`/nodes/${recordId}`);
+      const merged = { ...current.data, ...result.fields };
+      await apiClient.patch(`/nodes/${recordId}`, { data: merged });
+      queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+
+      setEnriching(prev => ({ ...prev, [recordId]: { name, done: true } }));
+      // Clear banner after 6 seconds
+      setTimeout(() => setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; }), 6000);
+    } catch {
+      setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; });
+    }
+  }, [objectType, queryClient]);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -150,11 +223,26 @@ export function ObjectIndexPage() {
         </button>
       </div>
 
+      {/* Enrichment banners */}
+      {Object.entries(enriching).length > 0 && (
+        <div className="flex flex-col gap-1.5 border-b border-white/[.04] px-6 py-2">
+          {Object.entries(enriching).map(([id, { name, done }]) => (
+            <EnrichBanner key={id} name={name} done={done}/>
+          ))}
+        </div>
+      )}
+
       <div className="flex-1 overflow-auto px-6 py-4">
-        <RecordTable objectType={objectType}/>
+        <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
       </div>
 
-      {showCreate && <CreateRecordModal objectType={objectType} onClose={() => setShowCreate(false)}/>}
+      {showCreate && (
+        <CreateRecordModal
+          objectType={objectType}
+          onClose={() => setShowCreate(false)}
+          onEnrichStart={handleEnrichStart}
+        />
+      )}
     </div>
   );
 }

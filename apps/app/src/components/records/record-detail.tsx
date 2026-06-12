@@ -2,11 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
-  ChevronLeft, Check, Building2, Users, TrendingUp,
+  ChevronLeft, Check, Building2, Users,
   Wifi, Calendar, DollarSign, Users2, Mail, Phone, Tag,
-  Clock, Plus, ChevronDown,
+  Clock, Plus, ChevronDown, Sparkles,
 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -343,6 +344,31 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     patch.mutate({ ...current, [field]: val });
   }, [query.data, patch]);
 
+  // ── Auto-transition: scan activity text for deal stage signals ──
+  const [autoTransitionMsg, setAutoTransitionMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!query.data) return;
+    const activities = query.data.activities ?? [];
+    if (!activities.length) return;
+    const type = objectType.toLowerCase();
+    if (!type.includes("deal")) return;
+
+    const currentStage = String(query.data.data.deal_stage ?? "");
+    for (const act of activities) {
+      const text = `${act.action} ${act.ai_summary ?? ""}`;
+      const detected = detectStageFromActivity(text);
+      if (detected && detected !== currentStage) {
+        // Auto-apply after a short grace period so the user sees the prompt
+        const timer = setTimeout(() => {
+          patch.mutate({ ...query.data.data, deal_stage: detected });
+          setAutoTransitionMsg(`AI moved stage to "${detected}" based on activity`);
+          setTimeout(() => setAutoTransitionMsg(null), 5000);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [query.data?.activities, objectType]);
+
   if (query.isLoading) return <div className="p-8"><PageSkeleton/></div>;
   if (query.isError || !query.data) return (
     <div className="p-8"><ErrorState error={query.error as Error ?? new Error("Record not found")} onRetry={() => query.refetch()}/></div>
@@ -377,6 +403,14 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
         <span className="text-xs text-slate-400 truncate">{name}</span>
         {patch.isPending && <span className="ml-auto text-xs text-slate-600 animate-pulse">Saving…</span>}
       </div>
+
+      {/* ── AI auto-transition banner ── */}
+      {autoTransitionMsg && (
+        <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/[.06] px-6 py-2 text-xs text-emerald-400">
+          <Sparkles size={12} className="shrink-0"/>
+          {autoTransitionMsg}
+        </div>
+      )}
 
       {/* ── Body: left + right ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
