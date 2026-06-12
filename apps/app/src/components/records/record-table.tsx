@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { apiClient } from "../../lib/api-client";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
+import { INDUSTRY_TAXONOMY } from "./record-detail";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
@@ -22,6 +23,35 @@ function display(value: unknown): string {
   if (typeof value === "number") return value.toLocaleString();
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+// ─── Category badges (read-only table cells) ──────────────────────────────────
+function CategoryBadges({ value }: { value: unknown }) {
+  let cats: { name: string; color: string }[] = [];
+  if (Array.isArray(value)) {
+    cats = value as { name: string; color: string }[];
+  } else if (typeof value === "string") {
+    try { cats = JSON.parse(value); } catch { return <span className="text-xs text-slate-600">—</span>; }
+  }
+  if (!cats.length) return <span className="text-xs text-slate-600">—</span>;
+  const MAX = 2;
+  const overflow = cats.length - MAX;
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {cats.slice(0, MAX).map((cat, i) => {
+        const t = INDUSTRY_TAXONOMY.find(x => x.border === cat.color || x.name === cat.name) ?? INDUSTRY_TAXONOMY[0]!;
+        return (
+          <span key={i} style={{ background: t.bg, color: t.text, borderColor: t.border + "55" }}
+            className="inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold border whitespace-nowrap">
+            {cat.name}
+          </span>
+        );
+      })}
+      {overflow > 0 && (
+        <span className="rounded-full bg-white/[.05] border border-white/[.06] px-1.5 py-0.5 text-[9px] text-slate-500">+{overflow}</span>
+      )}
+    </div>
+  );
 }
 
 function isNumeric(col: string) {
@@ -633,6 +663,20 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
       return <span className="text-slate-700 text-xs">—</span>;
     }
 
+    // Categories column — render color-coded badges
+    if (col === "categories") return <CategoryBadges value={val}/>;
+
+    // Owner/assignee/assigned_to columns — all render as OwnerCell
+    if (col === "assigned_to" || col === "deal_owner" || col === "owner" || col === "assignee") {
+      return (
+        <OwnerCell
+          value={String(owners[record.id] ?? val ?? "")}
+          members={members}
+          onSelect={name => setOwners(prev => ({ ...prev, [record.id]: name }))}
+        />
+      );
+    }
+
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
     if (col === nameCol) return (
       <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
@@ -645,7 +689,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
         )}
       </Link>
     );
-    return <span className="truncate">{display(val)}</span>;
+    return <span className="block truncate max-w-[180px] overflow-hidden text-xs">{display(val)}</span>;
   }
 
   const activeSortCount = sortRules.length || (quickSortCol ? 1 : 0);
@@ -799,7 +843,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
               sorted.map(record => (
                 <tr key={record.id} className="group border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
                   {columns.map((col, colIdx) => (
-                    <td key={col} className={`px-4 py-2.5 text-sm text-slate-300 ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318]" : ""}`}>
+                    <td key={col} className={`px-3 py-2.5 text-sm text-slate-300 overflow-hidden ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318]" : ""}`}>
                       {renderCell(col, record)}
                     </td>
                   ))}
