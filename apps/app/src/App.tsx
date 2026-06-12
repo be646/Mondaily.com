@@ -28,6 +28,7 @@ import { WorkflowBuilderPage } from "./routes/dashboard/automations/workflow-bui
 import { SequenceBuilderPage } from "./routes/dashboard/automations/sequence-builder";
 import { AskPage } from "./routes/dashboard/ask/[threadId]";
 import { ObjectIndexPage } from "./routes/dashboard/objects/[objectType]/index";
+import { PipelinePage } from "./routes/dashboard/pipeline";
 import { RecordDetailPage } from "./routes/dashboard/objects/[objectType]/[recordId]";
 import { SettingsLayout } from "./routes/dashboard/settings/layout";
 import { AccountSettings } from "./routes/dashboard/settings/account";
@@ -80,6 +81,7 @@ export function App() {
         <Route path="ask/:threadId?" element={<AskPage />} />
         <Route path="objects/:objectType" element={<ObjectIndexPage />} />
         <Route path="objects/:objectType/:recordId" element={<RecordDetailPage />} />
+        <Route path="pipeline" element={<PipelinePage />} />
         <Route path="lists/:listId" element={<ListPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="settings" element={<SettingsLayout />}>

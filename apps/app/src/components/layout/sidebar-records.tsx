@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
-import { Building2, Users, TrendingUp, Database } from "lucide-react";
+import { Building2, Users, TrendingUp, Database, Kanban } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 
 interface ObjectDefinition { id: string; slug: string; name_plural: string }
@@ -20,10 +20,25 @@ export function SidebarObjects() {
     queryFn: () => apiClient.get<ObjectDefinition[]>("/objects"),
   });
   const objects = query.data ?? [];
+  const pipelineActive = location.pathname === "/pipeline";
 
   return (
     <section className="mt-5">
       <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Records</p>
+
+      {/* Pipeline shortcut */}
+      <Link
+        to="/pipeline"
+        className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+          pipelineActive ? "bg-red-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"
+        }`}
+      >
+        <span className={pipelineActive ? "text-red-400" : "text-slate-600"}>
+          <Kanban size={14} className="shrink-0"/>
+        </span>
+        Sales Pipeline
+      </Link>
+
       {objects.map(obj => {
         const active = location.pathname.startsWith(`/objects/${obj.slug}`);
         return (

@@ -5,7 +5,7 @@ import {
   ChevronLeft, Check, Building2, Users, Wifi, Calendar,
   DollarSign, Users2, Mail, Phone, Tag, Clock, Plus,
   ChevronDown, Sparkles, MapPin, TrendingUp, Square,
-  CheckSquare, FileText, X,
+  CheckSquare, FileText, X, Link2, Search, UserCheck,
 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
@@ -17,6 +17,8 @@ interface RecordData { id: string; object_type: string; vertical: string; data: 
 interface NoteRecord  { id: string; data: Record<string, unknown>; updated_at: string }
 interface TaskRecord  { id: string; data: Record<string, unknown>; updated_at: string }
 interface Category   { name: string; color: string }
+interface Member     { id: string; name: string; email: string; avatar_url?: string | null }
+interface RelatedNode { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -28,17 +30,6 @@ const AVATAR_COLORS = [
 ];
 
 const PIPE_STAGES = ["Lead","Qualified","In Progress","Proposal","Negotiation"] as const;
-
-const STAGE_STYLES: Record<string, string> = {
-  "Lead":        "bg-slate-500/15 text-slate-300 border-slate-500/20",
-  "Qualified":   "bg-blue-500/15 text-blue-300 border-blue-500/20",
-  "In Progress": "bg-violet-500/15 text-violet-300 border-violet-500/20",
-  "Proposal":    "bg-amber-500/15 text-amber-300 border-amber-500/20",
-  "Negotiation": "bg-orange-500/15 text-orange-300 border-orange-500/20",
-  "Closed Won":  "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
-  "Closed Lost": "bg-red-500/15 text-red-300 border-red-500/20",
-};
-void STAGE_STYLES; // used for reference below
 
 const STAGE_DOT: Record<string, string> = {
   "Lead": "bg-slate-400", "Qualified": "bg-blue-400", "In Progress": "bg-violet-400",
@@ -207,6 +198,215 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
       {(isWon || isLost) && (
         <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
           {isWon ? "✓ Deal Won" : "✗ Deal Lost"}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Member picker ────────────────────────────────────────────────────────────
+function MemberPicker({ assignedTo, onAssign }: { assignedTo: string | null; onAssign: (memberId: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const membersQuery = useQuery({
+    queryKey: ["members"],
+    queryFn: () => apiClient.get<Member[]>("/members"),
+    staleTime: 60_000,
+  });
+  const members = membersQuery.data ?? [];
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const current = assignedTo ? members.find(m => m.id === assignedTo || m.name === assignedTo) : null;
+
+  return (
+    <div className="px-4 py-3 border-b border-white/[.06]">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assigned to</p>
+      <div ref={ref} className="relative">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-2 w-full rounded-lg border border-white/[.07] bg-white/[.02] px-2.5 py-2 hover:bg-white/[.04] transition-colors"
+        >
+          {current ? (
+            <>
+              <div className="h-6 w-6 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[10px] font-bold text-red-300 shrink-0">
+                {initials(current.name)}
+              </div>
+              <span className="text-xs text-slate-300 flex-1 text-left truncate">{current.name}</span>
+            </>
+          ) : (
+            <>
+              <UserCheck size={14} className="text-slate-600 shrink-0"/>
+              <span className="text-xs text-slate-600 flex-1 text-left">Unassigned</span>
+            </>
+          )}
+          <ChevronDown size={11} className={`text-slate-600 transition-transform ${open ? "rotate-180" : ""}`}/>
+        </button>
+
+        {open && (
+          <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 max-h-48 overflow-y-auto">
+            <button
+              onClick={() => { onAssign(null); setOpen(false); }}
+              className={`dropdown-item w-full ${!assignedTo ? "dropdown-item-active" : ""}`}
+            >
+              <UserCheck size={12} className="text-slate-600"/>
+              Unassigned
+              {!assignedTo && <Check size={10} className="ml-auto text-red-400"/>}
+            </button>
+            {members.map(m => (
+              <button
+                key={m.id}
+                onClick={() => { onAssign(m.id); setOpen(false); }}
+                className={`dropdown-item w-full ${assignedTo === m.id ? "dropdown-item-active" : ""}`}
+              >
+                <div className="h-5 w-5 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[9px] font-bold text-red-300 shrink-0">
+                  {initials(m.name)}
+                </div>
+                <span className="truncate">{m.name}</span>
+                {assignedTo === m.id && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+              </button>
+            ))}
+            {members.length === 0 && (
+              <p className="px-3 py-2 text-xs text-slate-600">No members yet</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Related records tab ──────────────────────────────────────────────────────
+function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string }) {
+  const qc = useQueryClient();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const searchRef  = useRef<HTMLDivElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  useEffect(() => { if (searchOpen) setTimeout(() => searchInput.current?.focus(), 30); }, [searchOpen]);
+
+  const relatedQuery = useQuery({
+    queryKey: ["related", recordId],
+    queryFn: () => apiClient.get<RelatedNode[]>(`/nodes/${recordId}/related`),
+  });
+
+  const allRecordsQuery = useQuery({
+    queryKey: ["all-nodes-search"],
+    queryFn: () => apiClient.get<RelatedNode[]>("/nodes?limit=200"),
+    enabled: searchOpen,
+  });
+
+  const linkRecord = useMutation({
+    mutationFn: (targetId: string) => apiClient.post(`/nodes/${recordId}/relate`, { target_id: targetId, relationship: "related" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["related", recordId] }); setSearchOpen(false); setSearchText(""); },
+  });
+
+  const related = relatedQuery.data ?? [];
+  const relatedIds = new Set(related.map(r => r.id));
+
+  const searchResults = (allRecordsQuery.data ?? []).filter(n => {
+    if (n.id === recordId || relatedIds.has(n.id)) return false;
+    const name = String(n.data.name ?? n.data.title ?? n.id).toLowerCase();
+    return !searchText || name.includes(searchText.toLowerCase());
+  }).slice(0, 8);
+
+  function recordName(r: RelatedNode) { return String(r.data.name ?? r.data.title ?? r.id); }
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">{tabLabel}</p>
+        <div ref={searchRef} className="relative">
+          <button
+            onClick={() => setSearchOpen(o => !o)}
+            className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+          >
+            <Link2 size={12}/> Link record
+          </button>
+          {searchOpen && (
+            <div className="dropdown-panel absolute right-0 top-full mt-1 w-72 z-50 p-2">
+              <div className="flex items-center gap-2 border border-white/[.08] rounded-md px-2 py-1.5 mb-2 bg-white/[.02]">
+                <Search size={12} className="text-slate-600 shrink-0"/>
+                <input
+                  ref={searchInput}
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                  placeholder="Search records…"
+                  className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none"
+                />
+              </div>
+              {allRecordsQuery.isLoading ? (
+                <p className="text-xs text-slate-600 px-2 py-2">Loading…</p>
+              ) : searchResults.length === 0 ? (
+                <p className="text-xs text-slate-600 px-2 py-2">{searchText ? "No matches" : "No records to link"}</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {searchResults.map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => linkRecord.mutate(r.id)}
+                      disabled={linkRecord.isPending}
+                      className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-white/[.04] transition-colors group"
+                    >
+                      <div className={`h-6 w-6 rounded-lg border bg-gradient-to-br flex items-center justify-center text-[9px] font-bold shrink-0 ${avatarColor(recordName(r))}`}>
+                        {initials(recordName(r))}
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <p className="text-xs text-slate-300 truncate">{recordName(r)}</p>
+                        <p className="text-[10px] text-slate-600 capitalize">{r.object_type}</p>
+                      </div>
+                      <Link2 size={11} className="text-slate-700 group-hover:text-red-400 ml-auto shrink-0 transition-colors"/>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {relatedQuery.isLoading ? (
+        <div className="space-y-2">
+          {[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-white/[.02] animate-pulse"/>)}
+        </div>
+      ) : related.length === 0 ? (
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+          <Link2 size={18} className="mb-2 text-slate-700"/>
+          <p className="text-xs text-slate-600">No linked records yet.</p>
+          <p className="mt-1 text-xs text-slate-700">Click "Link record" to associate companies, people, or deals.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {related.map(r => {
+            const rname = recordName(r);
+            return (
+              <Link
+                key={r.id}
+                to={`/objects/${r.object_type}/${r.id}`}
+                className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] p-3 hover:border-white/[.10] hover:bg-white/[.03] transition-colors group"
+              >
+                <div className={`h-8 w-8 rounded-lg border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(rname)}`}>
+                  {initials(rname)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white truncate">{rname}</p>
+                  <p className="text-xs text-slate-600 capitalize">{r.object_type}</p>
+                </div>
+                <ChevronLeft size={13} className="text-slate-700 group-hover:text-slate-400 rotate-180 transition-colors shrink-0"/>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
@@ -441,7 +641,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
 
   useEffect(() => { if (adding) setTimeout(() => inputRef.current?.focus(), 30); }, [adding]);
 
-  const tasks = tasksQuery.data ?? [];
+  const tasks  = tasksQuery.data ?? [];
   const sorted = [...tasks.filter(t => !t.data.done), ...tasks.filter(t => t.data.done)];
 
   return (
@@ -496,7 +696,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
 // ─── Main component ───────────────────────────────────────────────────────────
 export function RecordDetail({ recordId, objectType }: { recordId: string; objectType: string }) {
   const qc = useQueryClient();
-  const [tab, setTab]         = useState<Tab>("Overview");
+  const [tab, setTab]           = useState<Tab>("Overview");
   const [listOpen, setListOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -532,6 +732,11 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     patch.mutate({ ...query.data.data, categories: cats });
   }, [query.data, patch]);
 
+  const assignMember = useCallback((memberId: string | null) => {
+    if (!query.data) return;
+    patch.mutate({ ...query.data.data, assigned_to: memberId ?? undefined });
+  }, [query.data, patch]);
+
   const [autoMsg, setAutoMsg] = useState<string | null>(null);
   useEffect(() => {
     if (!query.data) return;
@@ -565,9 +770,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   const isPeople  = type === "people"    || type.includes("person") || type.includes("contact");
   const isDeals   = type === "deals"     || type.includes("deal");
 
-  const email      = String(data.email ?? "");
+  const email        = String(data.email ?? "");
+  const assignedTo   = data.assigned_to ? String(data.assigned_to) : null;
   const categories: Category[] = Array.isArray(data.categories) ? (data.categories as Category[]) : [];
-  const leftFields = Object.entries(data).filter(([k]) => k !== "name" && k !== "categories");
+  const leftFields   = Object.entries(data).filter(([k]) => k !== "name" && k !== "categories" && k !== "assigned_to");
   const companyTabLabel = isCompany ? "People" : isPeople ? "Company" : "Related";
 
   return (
@@ -595,7 +801,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
         {/* ── Left panel ── */}
         <aside className="flex w-[272px] shrink-0 flex-col border-r border-white/[.06] overflow-auto">
 
-          {/* Avatar + name + CTA buttons */}
+          {/* Avatar + name + actions */}
           <div className="px-5 pt-6 pb-4 border-b border-white/[.06]">
             <div className={`mx-auto h-14 w-14 rounded-2xl border bg-gradient-to-br flex items-center justify-center text-xl font-bold ${avatarColor(name)}`}>
               {initials(name)}
@@ -606,7 +812,6 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 {record.object_type}
               </span>
             </div>
-
             <div className="mt-4 space-y-2">
               <a
                 href={email ? `mailto:${email}` : undefined}
@@ -633,6 +838,9 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               </div>
             </div>
           </div>
+
+          {/* Assigned to (member picker) */}
+          <MemberPicker assignedTo={assignedTo} onAssign={assignMember}/>
 
           {/* Categories */}
           <div className="px-4 py-3 border-b border-white/[.06]">
@@ -698,20 +906,13 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {tab === "Notes"   && <NotesTab recordId={recordId} vertical={record.vertical}/>}
             {tab === "Tasks"   && <TasksTab recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Company" && <RelatedTab recordId={recordId} tabLabel={companyTabLabel}/>}
 
             {(tab === "Emails" || tab === "Calls" || tab === "Files") && (
               <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
                 <Plus size={20} className="mb-2 text-slate-700"/>
                 <p className="text-sm font-medium text-slate-400">{tab}</p>
                 <p className="mt-1 text-xs text-slate-600">No {tab.toLowerCase()} yet for this record.</p>
-              </div>
-            )}
-
-            {tab === "Company" && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
-                <Building2 size={20} className="mb-2 text-slate-700"/>
-                <p className="text-sm font-medium text-slate-400">{companyTabLabel}</p>
-                <p className="mt-1 text-xs text-slate-600">No associated {companyTabLabel.toLowerCase()} yet.</p>
               </div>
             )}
           </div>

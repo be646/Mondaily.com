@@ -6,6 +6,23 @@ import * as ubc from "@mondaily/db/ubc";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
+router.get("/:id/related", requireAuth, async (c) => {
+  const id = c.req.param("id");
+  const related = await ubc.getRelated(id);
+  return c.json(related);
+});
+
+router.post("/:id/relate", requireAuth, zValidator("json", z.object({
+  target_id: z.string(),
+  relationship: z.string().default("related"),
+})), async (c) => {
+  const id = c.req.param("id");
+  const { target_id, relationship } = c.req.valid("json");
+  await ubc.createEdge(c.get("workspaceId"), id, target_id, relationship);
+  await ubc.createEdge(c.get("workspaceId"), target_id, id, relationship);
+  return c.json({ ok: true }, 201);
+});
+
 router.get("/:id", requireAuth, async (c) => {
   const node = await ubc.getNode(c.req.param("id"));
   if (!node) return c.json({ error: "Not found" }, 404);
@@ -45,4 +62,3 @@ router.patch("/:id", requireAuth, zValidator("json", z.object({
 });
 
 export { router as nodesRouter };
-
