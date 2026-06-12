@@ -3,6 +3,7 @@ import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
+  UserCircle2, Type, ToggleLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -72,16 +73,22 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
 
 function StagePill({ value }: { value: string }) {
   const map: Record<string, string> = {
-    "Lead":        "bg-slate-500/15 text-slate-400",
-    "Qualified":   "bg-blue-500/15 text-blue-400",
-    "In Progress": "bg-blue-500/15 text-blue-400",
-    "Proposal":    "bg-purple-500/15 text-purple-400",
-    "Negotiation": "bg-amber-500/15 text-amber-400",
-    "Closed Won":  "bg-emerald-500/15 text-emerald-400",
-    "Closed Lost": "bg-red-500/15 text-red-400",
+    "Lead":        "bg-slate-900/80 text-slate-300 border border-slate-700/60",
+    "Qualified":   "bg-blue-950/60 text-blue-300 border border-blue-800/50",
+    "In Progress": "bg-violet-950/60 text-violet-300 border border-violet-800/50",
+    "Proposal":    "bg-amber-950/60 text-amber-300 border border-amber-800/50",
+    "Negotiation": "bg-orange-950/60 text-orange-300 border border-orange-800/50",
+    "Closed Won":  "bg-emerald-950/50 text-emerald-400 border border-emerald-800/60",
+    "Closed Lost": "bg-rose-950/50 text-rose-400 border border-rose-800/60",
+  };
+  const dot: Record<string, string> = {
+    "Lead": "bg-slate-500", "Qualified": "bg-blue-400", "In Progress": "bg-violet-400",
+    "Proposal": "bg-amber-400", "Negotiation": "bg-orange-400",
+    "Closed Won": "bg-emerald-400", "Closed Lost": "bg-rose-500",
   };
   return (
-    <span className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium ${map[value] ?? "bg-slate-500/15 text-slate-400"}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium ${map[value] ?? "bg-slate-900/80 text-slate-300 border border-slate-700/60"}`}>
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot[value] ?? "bg-slate-500"}`}/>
       {value}
     </span>
   );
@@ -297,6 +304,128 @@ function ExportDropdown({ records, columns, objectType, onClose }: {
   );
 }
 
+// ─── Owner cell ───────────────────────────────────────────────────────────────
+interface Member { id: string; name: string; email: string; avatar_url?: string }
+
+function OwnerCell({ value, members, onSelect }: {
+  value: string;
+  members: Member[];
+  onSelect: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, () => setOpen(false));
+
+  function initials(name: string) {
+    return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  }
+
+  const assigned = members.find(m => m.name === value || m.email === value);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 group/owner"
+      >
+        {assigned ? (
+          <>
+            <div className="h-5 w-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-[9px] font-semibold shrink-0">
+              {initials(assigned.name || assigned.email)}
+            </div>
+            <span className="text-xs text-slate-300 truncate max-w-[80px]">{assigned.name || assigned.email}</span>
+          </>
+        ) : (
+          <div className="flex items-center gap-1 text-slate-700 hover:text-slate-400 transition-colors">
+            <UserCircle2 size={14}/>
+            <span className="text-[11px]">Assign</span>
+          </div>
+        )}
+      </button>
+      {open && (
+        <div className="dropdown-panel absolute left-0 top-full mt-1 w-44 z-50">
+          <div className="px-3 py-1.5 border-b border-white/[.06]">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assign to</p>
+          </div>
+          {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members yet</p>}
+          {members.map(m => (
+            <button key={m.id} onClick={() => { onSelect(m.name || m.email); setOpen(false); }}
+              className={`dropdown-item w-full gap-2 ${(m.name === value || m.email === value) ? "dropdown-item-active" : ""}`}>
+              <div className="h-5 w-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[9px] font-semibold shrink-0">
+                {initials(m.name || m.email)}
+              </div>
+              <span className="truncate">{m.name || m.email}</span>
+              {(m.name === value || m.email === value) && <Check size={11} className="ml-auto text-red-400 shrink-0"/>}
+            </button>
+          ))}
+          {value && (
+            <>
+              <div className="mx-2 my-1 border-t border-white/[.06]"/>
+              <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full text-slate-500">
+                Clear
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Add column dropdown ───────────────────────────────────────────────────────
+const COLUMN_TYPES = [
+  { type: "text",   label: "Text",    icon: Type },
+  { type: "number", label: "Number",  icon: Hash },
+  { type: "toggle", label: "Checkbox",icon: ToggleLeft },
+  { type: "date",   label: "Date",    icon: Calendar },
+  { type: "owner",  label: "Owner",   icon: UserCircle2 },
+] as const;
+
+function AddColumnDropdown({ onAdd, onClose }: {
+  onAdd: (name: string, type: string) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, onClose);
+  const [name, setName] = useState("");
+  const [type, setType] = useState("text");
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  function submit() {
+    const slug = name.trim().toLowerCase().replace(/\s+/g, "_");
+    if (!slug) return;
+    onAdd(slug, type);
+    onClose();
+  }
+
+  return (
+    <div ref={ref} className="dropdown-panel absolute right-0 top-full mt-1.5 w-56 z-50 p-3 space-y-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">New column</p>
+      <input
+        ref={inputRef}
+        value={name}
+        onChange={e => setName(e.target.value)}
+        onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") onClose(); }}
+        placeholder="Column name…"
+        className="w-full rounded-md border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30"
+      />
+      <div className="grid grid-cols-2 gap-1">
+        {COLUMN_TYPES.map(({ type: t, label, icon: Icon }) => (
+          <button key={t} onClick={() => setType(t)}
+            className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${type === t ? "border-red-500/40 bg-red-500/[.08] text-white" : "border-white/[.06] text-slate-500 hover:text-slate-300"}`}>
+            <Icon size={11}/>{label}
+          </button>
+        ))}
+      </div>
+      <button onClick={submit} disabled={!name.trim()}
+        className="w-full rounded-lg bg-red-500 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-colors disabled:opacity-40">
+        Add column
+      </button>
+    </div>
+  );
+}
+
 // ─── NLP Command Bar ──────────────────────────────────────────────────────────
 function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   columns: string[];
@@ -386,9 +515,8 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
     return (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
   }, [records]);
 
-  // ── Column visibility ──
+  // ── Column visibility (allColumnsWithCustom declared after customCols below) ──
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
-  const columns = useMemo(() => allColumns.filter(c => !hiddenCols.has(c)), [allColumns, hiddenCols]);
   function toggleCol(col: string) {
     setHiddenCols(prev => { const n = new Set(prev); n.has(col) ? n.delete(col) : n.add(col); return n; });
   }
@@ -411,7 +539,22 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
   const [nlpActive, setNlpActive] = useState(false);
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|"addcol"|null>(null);
+
+  // ── Custom columns (appended by user) ──
+  const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>([]);
+  const allColumnsWithCustom = useMemo(() => [...allColumns, ...customCols.map(c => c.key)], [allColumns, customCols]);
+  const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
+
+  // ── Owner cell state: recordId → owner name ──
+  const [owners, setOwners] = useState<Record<string, string>>({});
+
+  // ── Members for owner picker ──
+  const membersQuery = useQuery({
+    queryKey: ["members"],
+    queryFn: () => apiClient.get<Member[]>("/members"),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     setFilterText(""); setQuickSortCol(null); setSortRules([]); setNlpActive(false); setHiddenCols(new Set());
@@ -467,9 +610,29 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
 
   const nameCol = columns[0];
 
+  const members = membersQuery.data ?? [];
+
   function renderCell(col: string, record: NodeRecord) {
     const val = record.data[col];
     const isEnriched = enrichedIds.includes(record.id);
+
+    // Owner column
+    const customDef = customCols.find(c => c.key === col);
+    if (customDef?.type === "owner" || col === "owner" || col === "assignee") {
+      return (
+        <OwnerCell
+          value={String(owners[record.id] ?? val ?? "")}
+          members={members}
+          onSelect={name => setOwners(prev => ({ ...prev, [record.id]: name }))}
+        />
+      );
+    }
+
+    // Custom column — empty by default, show placeholder
+    if (customDef) {
+      return <span className="text-slate-700 text-xs">—</span>;
+    }
+
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
     if (col === nameCol) return (
       <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
@@ -500,7 +663,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
   return (
     <section className="flex flex-col gap-3">
       {/* ── NLP command bar ── */}
-      <NLPCommandBar columns={allColumns} onApply={handleNLPApply} onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }} hasActive={nlpActive || !!filterText || !!quickSortCol}/>
+      <NLPCommandBar columns={allColumnsWithCustom} onApply={handleNLPApply} onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }} hasActive={nlpActive || !!filterText || !!quickSortCol}/>
 
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2">
@@ -539,7 +702,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
             </button>
             {openPanel === "view" && (
               <ViewSettingsDropdown
-                columns={allColumns}
+                columns={allColumnsWithCustom}
                 hidden={hiddenCols}
                 onToggle={toggleCol}
                 onClose={() => setOpenPanel(null)}
@@ -559,9 +722,26 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
             </button>
             {openPanel === "sort" && (
               <SortPanel
-                columns={[...allColumns, "__updated_at"]}
+                columns={[...allColumnsWithCustom, "__updated_at"]}
                 rules={sortRules}
                 onChange={rules => { setSortRules(rules); setQuickSortCol(null); }}
+                onClose={() => setOpenPanel(null)}
+              />
+            )}
+          </div>
+
+          {/* Add column */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "addcol" ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+            >
+              <Plus size={12}/>
+              <span className="hidden sm:inline">Column</span>
+            </button>
+            {openPanel === "addcol" && (
+              <AddColumnDropdown
+                onAdd={(key, type) => setCustomCols(prev => [...prev, { key, type }])}
                 onClose={() => setOpenPanel(null)}
               />
             )}
