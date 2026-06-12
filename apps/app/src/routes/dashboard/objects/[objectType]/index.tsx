@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, X, Sparkles, Check } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
+import { CsvImporter } from "../../../../components/records/csv-importer";
 import { apiClient } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQueryClient } from "@tanstack/react-query";
@@ -241,7 +242,11 @@ export function ObjectIndexPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto px-6 py-4">
+      <div className="px-6 pt-4 pb-2">
+        <CsvImporter objectType={objectType} onImported={() => queryClient.invalidateQueries({ queryKey: ["records", objectType] })}/>
+      </div>
+
+      <div className="flex-1 overflow-auto px-6 pb-4">
         <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
       </div>
 

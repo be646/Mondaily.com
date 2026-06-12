@@ -23,6 +23,7 @@ import { membersRouter } from "./routes/members";
 import { notificationsRouter } from "./routes/notifications";
 import { taskReviewsRouter } from "./routes/task-reviews";
 import { taskDetailsRouter } from "./routes/task-details";
+import { importRouter } from "./routes/import";
 
 const app = new Hono();
 
@@ -32,6 +33,7 @@ app.use("*", cors({
 }));
 app.use("*", logger());
 
+app.route("/api/v1/import", importRouter);
 app.route("/api/v1/nodes", nodesRouter);
 app.route("/api/v1/search", searchRouter);
 app.route("/api/v1/ask", askRouter);
