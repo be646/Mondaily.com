@@ -133,10 +133,14 @@ export function RecordTable({ objectType }: { objectType: string }) {
   });
 
   const records = query.data ?? [];
-  const columns = useMemo(
-    () => Array.from(new Set(records.flatMap(r => Object.keys(r.data)))).slice(0, 8),
-    [records],
-  );
+  const columns = useMemo(() => {
+    const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
+    // Always pin "name" first so the avatar/link cell is stable regardless of
+    // the JSONB key-insertion order returned by Postgres.
+    const nameKey = allKeys.find(k => k.toLowerCase() === "name");
+    const rest = allKeys.filter(k => k.toLowerCase() !== "name");
+    return (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
+  }, [records]);
 
   // ── Filter state ──
   const [filterText, setFilterText] = useState("");
@@ -185,10 +189,12 @@ export function RecordTable({ objectType }: { objectType: string }) {
       : <ChevronDown size={10} className="text-red-400 ml-1 shrink-0"/>;
   }
 
-  function renderCell(col: string, record: NodeRecord, colIndex: number) {
+  const nameCol = columns[0]; // always "name" after the pin above
+
+  function renderCell(col: string, record: NodeRecord) {
     const val = record.data[col];
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
-    if (colIndex === 0) {
+    if (col === nameCol) {
       return (
         <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
           <RowLogo name={display(val)}/>
@@ -274,12 +280,12 @@ export function RecordTable({ objectType }: { objectType: string }) {
             ) : (
               sorted.map(record => (
                 <tr key={record.id} className="border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
-                  {columns.map((col, i) => (
+                  {columns.map(col => (
                     <td
                       key={col}
                       className={`px-4 py-2.5 text-sm text-slate-300 ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64"}`}
                     >
-                      {renderCell(col, record, i)}
+                      {renderCell(col, record)}
                     </td>
                   ))}
                   <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-600 tabular-nums">
