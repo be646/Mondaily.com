@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
-const tasks = new Hono();
+const tasks = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 tasks.use("*", requireAuth);
 
 tasks.get("/", async (c) => {
@@ -23,7 +23,6 @@ tasks.get("/", async (c) => {
   if (filter === "mine") query = query.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
   if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
   if (filter === "review") query = query.eq("status", "review");
-  if (filter === "done") query = query.or("completed.eq.true,status.eq.done");
   if (labelFilter) query = query.contains("labels", [labelFilter]);
   if (priorityFilter) query = query.eq("priority", priorityFilter);
 

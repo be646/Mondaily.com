@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import * as ubc from "@mondaily/db/ubc";
 
-const router = new Hono();
+const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
 router.get("/:id", requireAuth, async (c) => {
   const node = await ubc.getNode(c.req.param("id"));

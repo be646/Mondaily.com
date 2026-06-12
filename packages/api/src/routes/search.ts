@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
-const router = new Hono();
+const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
 router.post("/", requireAuth, zValidator("json", z.object({
   query: z.string().min(1),

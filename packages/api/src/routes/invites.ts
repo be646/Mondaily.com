@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 
-const router = new Hono();
+const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.post("/accept", zValidator("json", z.object({ token: z.string().min(1) })), async (c) => {
   const sessionToken = c.req.header("Authorization")?.replace("Bearer ", "");
   if (!sessionToken) throw new HTTPException(401, { message: "Sign in before accepting an invitation." });

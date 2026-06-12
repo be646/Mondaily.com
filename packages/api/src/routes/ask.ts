@@ -308,7 +308,7 @@ async function executeTool(
   }
 }
 
-const router = new Hono();
+const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
 router.post("/", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),

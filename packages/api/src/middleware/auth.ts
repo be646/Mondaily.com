@@ -19,7 +19,7 @@ export const requireAuth = createMiddleware<{
   try {
     const parts = token.split(".");
     if (parts.length !== 3) throw new Error("Invalid token");
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const payload = JSON.parse(atob(parts[1]!.replace(/-/g, "+").replace(/_/g, "/")));
     const userId = payload.sub;
     if (!userId) throw new Error("No user ID");
     c.set("userId", userId);
