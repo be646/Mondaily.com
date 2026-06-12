@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 
 export function Logo({ size = 44 }: { size?: number }) {
