@@ -589,12 +589,12 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
       </div>
 
       {/* ── Table ── */}
-      <div className="overflow-auto">
+      <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] rounded-lg border border-white/[.05]">
         <table className="min-w-full border-collapse text-left text-sm">
-          <thead>
+          <thead className="sticky top-0 z-20 bg-[#0d0f13]">
             <tr>
-              {columns.map(col => (
-                <th key={col} className="whitespace-nowrap px-4 py-2 border-b border-white/[.05]">
+              {columns.map((col, colIdx) => (
+                <th key={col} className={`whitespace-nowrap px-4 py-2 border-b border-white/[.05] ${colIdx === 0 ? "sticky left-0 z-30 bg-[#0d0f13]" : ""}`}>
                   <button onClick={() => handleHeaderSort(col)}
                     className={`flex items-center gap-1.5 hover:text-slate-300 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
@@ -617,9 +617,9 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
               <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">No results for "{filterText}"</td></tr>
             ) : (
               sorted.map(record => (
-                <tr key={record.id} className="border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
-                  {columns.map(col => (
-                    <td key={col} className={`px-4 py-2.5 text-sm text-slate-300 ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64"}`}>
+                <tr key={record.id} className="group border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
+                  {columns.map((col, colIdx) => (
+                    <td key={col} className={`px-4 py-2.5 text-sm text-slate-300 ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400" : "max-w-64"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318]" : ""}`}>
                       {renderCell(col, record)}
                     </td>
                   ))}
@@ -630,7 +630,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
               ))
             )}
           </tbody>
-          <tfoot>
+          <tfoot className="sticky bottom-0 z-20 bg-[#0d0f13]">
             <tr className="border-t border-white/[.08]">
               {columns.map(col => (
                 <td key={col} className={`px-4 py-2 ${isNumeric(col) ? "text-right" : ""}`}>
