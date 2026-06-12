@@ -26,10 +26,12 @@ export async function updateNode(id: string, updates: Partial<Pick<Node, "data" 
   return data as Node;
 }
 
-export async function getNode(id: string): Promise<Node | null> {
+export async function getNode(id: string): Promise<(Node & { activities: Awaited<ReturnType<typeof getActivities>>; updated_at: string }) | null> {
   const { data, error } = await supabase.from("nodes").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(`getNode failed: ${error.message}`);
-  return data as Node | null;
+  if (!data) return null;
+  const activities = await getActivities(id, 50);
+  return { ...(data as Node & { updated_at: string }), activities };
 }
 
 export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; limit?: number; cursor?: string } = {}): Promise<Node[]> {
