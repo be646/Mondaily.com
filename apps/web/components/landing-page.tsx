@@ -21,7 +21,7 @@ function CheckIcon({ size = 13 }: { size?: number }) {
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 const stagger = { show: { transition: { staggerChildren: 0.1 } } };
 
@@ -174,7 +174,7 @@ export function LandingPage() {
         <motion.h1
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.7, delay: 0.18, ease: "easeOut" }}
           className="mb-5 max-w-3xl text-center text-[clamp(2.5rem,6vw,4.4rem)] font-bold leading-[1.06] tracking-[-0.035em] text-white"
         >
           Your entire business
@@ -198,7 +198,7 @@ export function LandingPage() {
         <motion.div
           initial={{ opacity: 0, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.42, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.7, delay: 0.42, ease: "easeOut" }}
           className="w-full"
         >
           <HeroChat />
