@@ -265,7 +265,7 @@ export function HeroChat() {
             </button>
           </div>
           <p className="mt-2 text-center text-[10px] text-slate-700">
-            Powered by Claude · Connected to your live workspace
+            Powered by AI · Connected to your live workspace
           </p>
         </div>
       </div>

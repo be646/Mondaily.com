@@ -169,7 +169,7 @@ export function LandingPage() {
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 1.8, repeat: Infinity }}
           />
-          Powered by Claude AI · Autonomous by default
+          Powered by AI · Autonomous by default
           <ArrowRight size={11}/>
         </motion.div>
 
@@ -291,7 +291,7 @@ export function LandingPage() {
           <BentoCard icon="🔀" accent="border-blue-500/20 bg-blue-500/[.08] text-blue-300" title="Sales Pipeline" sub="Kanban deal stages with auto-updating totals. Deals move when signals fire — no drag and drop required."/>
           <BentoCard icon="📧" accent="border-pink-500/20 bg-pink-500/[.08] text-pink-300" title="Email Sequences" sub="Multi-step outreach sequences with send-window controls, reply detection, and per-contact personalization."/>
           <BentoCard icon="⚡" accent="border-yellow-500/20 bg-yellow-500/[.08] text-yellow-300" title="Workflow Automation" sub="Visual trigger → condition → action builder. No code. Runs on every deal, contact, or data change."/>
-          <BentoCard icon="📁" accent="border-emerald-500/20 bg-emerald-500/[.08] text-emerald-300" title="CSV Ingestion" sub="Drop a spreadsheet and Claude infers every column type, bulk-inserts all rows, and backfills missing fields."/>
+          <BentoCard icon="📁" accent="border-emerald-500/20 bg-emerald-500/[.08] text-emerald-300" title="CSV Ingestion" sub="Drop a spreadsheet and Mondaily AI infers every column type, bulk-inserts all rows, and backfills missing fields."/>
         </motion.div>
       </section>
 
