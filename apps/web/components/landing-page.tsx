@@ -1,7 +1,24 @@
 "use client";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Database, Zap, GitBranch, Sparkles, ChevronRight } from "lucide-react";
+function ArrowRightIcon({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>;
+}
+function DatabaseIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>;
+}
+function ZapIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>;
+}
+function GitBranchIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>;
+}
+function SparklesIcon({ size = 11 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>;
+}
+function ChevronRightIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+}
 import { MondailyLogo } from "./mondaily-logo";
 import { CrmGridDemo } from "./crm-grid-demo";
 import { PipelineDemo } from "./pipeline-demo";
@@ -38,7 +55,7 @@ function Nav() {
           href="/sign-up"
           className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3.5 py-1.5 text-[13px] font-medium text-indigo-300 transition-all hover:bg-indigo-500/20 hover:text-white"
         >
-          Get started <ChevronRight size={12}/>
+          Get started <ChevronRightIcon size={12}/>
         </Link>
       </div>
     </header>
@@ -126,10 +143,10 @@ export function LandingPage() {
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <Sparkles size={11}/>
+            <SparklesIcon size={11}/>
           </motion.span>
           Powered by Claude · Web Agents · Event Pipelines
-          <ArrowRight size={11} className="opacity-50"/>
+          <ArrowRightIcon size={11}/>
         </motion.div>
 
         {/* Headline */}
@@ -168,7 +185,7 @@ export function LandingPage() {
             href="/sign-up"
             className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-400/50 border-b-[3px] border-b-indigo-700 bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/30 transition-all hover:bg-indigo-500 active:translate-y-[1px]"
           >
-            Launch App <ArrowRight size={14}/>
+            Launch App <ArrowRightIcon size={14}/>
           </Link>
           <a
             href="#features"
@@ -220,7 +237,7 @@ export function LandingPage() {
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <SectionLabel><Sparkles size={10}/> Live Product Demos</SectionLabel>
+          <SectionLabel><SparklesIcon size={10}/> Live Product Demos</SectionLabel>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
             Watch Mondaily work in real time
           </h2>
@@ -284,7 +301,7 @@ export function LandingPage() {
                 href="/sign-up"
                 className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-400/50 border-b-[3px] border-b-indigo-700 bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition-all hover:bg-indigo-500"
               >
-                Start for free <ArrowRight size={14}/>
+                Start for free <ArrowRightIcon size={14}/>
               </Link>
             </div>
           </motion.div>

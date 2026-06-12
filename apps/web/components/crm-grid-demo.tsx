@@ -1,7 +1,13 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+function SparklesIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+    </svg>
+  );
+}
 
 const RECORDS = [
   { name: "Linear",   logo: "L",  arr: "$2.4M",  country: "USA",     employees: "180",  stage: "Series B" },
@@ -180,7 +186,7 @@ export function CrmGridDemo() {
                           animate={{ opacity: 1, scale: 1 }}
                           className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold text-emerald-400"
                         >
-                          <Sparkles size={8} /> AI Enriched
+                          <SparklesIcon size={8} /> AI Enriched
                         </motion.span>
                       )}
                       {state === "enriching" && (
@@ -191,7 +197,7 @@ export function CrmGridDemo() {
                           className="inline-flex items-center gap-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[9px] font-semibold text-indigo-400"
                         >
                           <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
-                            <Sparkles size={8} />
+                            <SparklesIcon size={8} />
                           </motion.span>
                           Enriching…
                         </motion.span>

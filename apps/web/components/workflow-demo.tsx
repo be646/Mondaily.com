@@ -1,7 +1,18 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { GitBranch, Filter, Mail, Zap } from "lucide-react";
+function GitBranchIcon({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>;
+}
+function FilterIcon({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+}
+function MailIcon({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
+}
+function ZapIcon({ size = 14 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>;
+}
 
 type NodeState = "idle" | "active" | "done";
 
@@ -14,9 +25,9 @@ interface WNode {
 }
 
 const NODES: WNode[] = [
-  { id: 0, kind: "trigger",   icon: GitBranch, label: "Deal Stage Equals Won",           sub: "Trigger" },
-  { id: 1, kind: "condition", icon: Filter,    label: "Deal Value > $50K",                sub: "Condition" },
-  { id: 2, kind: "action",    icon: Mail,      label: "Enroll in Enterprise Sequence",    sub: "Action" },
+  { id: 0, kind: "trigger",   icon: GitBranchIcon, label: "Deal Stage Equals Won",           sub: "Trigger" },
+  { id: 1, kind: "condition", icon: FilterIcon,    label: "Deal Value > $50K",                sub: "Condition" },
+  { id: 2, kind: "action",    icon: MailIcon,      label: "Enroll in Enterprise Sequence",    sub: "Action" },
 ];
 
 const KIND_STYLE = {
@@ -40,7 +51,7 @@ function EmailPreview() {
       className="absolute left-[calc(100%+12px)] top-0 w-44 rounded-lg border border-blue-500/20 bg-[#080c18] p-3 shadow-xl"
     >
       <div className="mb-2 flex items-center gap-1.5 text-[9px] text-blue-400">
-        <Mail size={9}/> Sending now…
+        <MailIcon size={9}/> Sending now…
       </div>
       <div className="space-y-1.5">
         <div className="flex justify-between text-[9px]">
@@ -211,7 +222,7 @@ export function WorkflowDemo() {
           <div className="mt-0 flex flex-col items-center">
             <div className="h-8 w-px bg-white/[.06]"/>
             <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[.07] bg-white/[.02] text-slate-700">
-              <Zap size={13}/>
+              <ZapIcon size={13}/>
             </div>
           </div>
         </div>
