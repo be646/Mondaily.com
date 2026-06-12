@@ -59,7 +59,7 @@ export async function enrichCompany(name: string): Promise<EnrichmentResult> {
   if (exact) return { fields: exact, source: "known" };
 
   const partial = Object.keys(DB).find(k => k.includes(key) || key.includes(k));
-  if (partial) return { fields: DB[partial], source: "known" };
+  if (partial) return { fields: DB[partial]!, source: "known" };
 
   return { fields: generateMock(name), source: "generated" };
 }
@@ -132,7 +132,7 @@ export function parseNLPCommand(input: string, availableColumns: string[]): Pars
   // ── Sort intent ──
   const sortMatch = text.match(/sort(?:ed)?\s+by\s+([\w\s]+?)\s*(descend(?:ing)?|asc(?:ending)?|highest|lowest|desc|asc)?(?:\s|$)/);
   if (sortMatch) {
-    const colFragment = sortMatch[1].trim();
+    const colFragment = sortMatch[1]!.trim();
     const resolved = resolveCol(colFragment) ?? availableColumns.find(c => c.toLowerCase().includes(colFragment));
     if (resolved) {
       result.sortCol = resolved;
@@ -154,8 +154,8 @@ export function parseNLPCommand(input: string, availableColumns: string[]): Pars
   for (const [pat, op] of calcPatterns) {
     if (pat.test(text)) {
       // Try to find which column the calc applies to
-      const colHint = text.match(new RegExp(pat.source + "\\s+(?:of\\s+)?([\\w\\s]+)"))?.[1];
-      const col = colHint ? resolveCol(colHint) ?? availableColumns.find(c => c.toLowerCase().includes(colHint.split(" ")[0])) : undefined;
+      const colHint: string | undefined = text.match(new RegExp((pat as RegExp).source + "\\s+(?:of\\s+)?([\\w\\s]+)"))?.[1];
+      const col = colHint ? resolveCol(colHint) ?? availableColumns.find(c => c.toLowerCase().includes(colHint.split(" ")[0] ?? "")) : undefined;
       const target = col ?? availableColumns.find(c => c === "arr" || c === "deal_value" || c === "funding_raised");
       if (target) { calcOps[target] = op; result.confidence += 0.3; }
     }
