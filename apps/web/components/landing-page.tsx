@@ -20,9 +20,10 @@ function CheckIcon({ size = 13 }: { size?: number }) {
 }
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 32 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  hidden: { opacity: 0 as number, y: 32 as number },
+  show:   { opacity: 1 as number, y: 0 as number },
 };
+const FADE_TRANSITION = { duration: 0.6, ease: "easeOut" as const };
 const stagger = { show: { transition: { staggerChildren: 0.1 } } };
 
 // ── Nav ───────────────────────────────────────────────────────────────────────
@@ -58,7 +59,7 @@ function Nav() {
 // ── Stat badge ────────────────────────────────────────────────────────────────
 function StatBadge({ value, label }: { value: string; label: string }) {
   return (
-    <motion.div variants={fadeUp} className="flex flex-col items-center gap-1">
+    <motion.div variants={fadeUp} transition={FADE_TRANSITION} className="flex flex-col items-center gap-1">
       <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
       <span className="text-xs text-slate-600">{label}</span>
     </motion.div>
@@ -86,6 +87,7 @@ function SectionHead({ tag, tagColor, title, sub }: {
   return (
     <motion.div
       variants={fadeUp}
+      transition={FADE_TRANSITION}
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount: 0.3 }}
@@ -107,6 +109,7 @@ function BentoCard({ title, sub, icon, accent, children }: {
   return (
     <motion.div
       variants={fadeUp}
+      transition={FADE_TRANSITION}
       className={`relative overflow-hidden rounded-2xl border border-white/[.07] bg-[#0b0d14] p-5 ${children ? "" : "flex flex-col justify-between"}`}
     >
       <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl border text-lg ${accent}`}>
@@ -344,17 +347,17 @@ export function LandingPage() {
           viewport={{ once: true }}
           className="relative mx-auto max-w-2xl text-center space-y-6"
         >
-          <motion.div variants={fadeUp} className="flex justify-center">
+          <motion.div variants={fadeUp} transition={FADE_TRANSITION} className="flex justify-center">
             <MondailyLogo size={56} />
           </motion.div>
-          <motion.h2 variants={fadeUp} className="text-3xl font-bold tracking-tight text-white">
+          <motion.h2 variants={fadeUp} transition={FADE_TRANSITION} className="text-3xl font-bold tracking-tight text-white">
             Ready to run your business on autopilot?
           </motion.h2>
-          <motion.p variants={fadeUp} className="text-slate-500 text-[15px] leading-relaxed">
+          <motion.p variants={fadeUp} transition={FADE_TRANSITION} className="text-slate-500 text-[15px] leading-relaxed">
             Join teams that replaced manual CRM work, spreadsheet maintenance, and repetitive
             outreach with one autonomous AI workspace.
           </motion.p>
-          <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <motion.div variants={fadeUp} transition={FADE_TRANSITION} className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/sign-up"
               className="flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:bg-slate-100 active:scale-[.97] shadow-xl shadow-white/5"
@@ -368,7 +371,7 @@ export function LandingPage() {
               Sign in
             </Link>
           </motion.div>
-          <motion.div variants={fadeUp}>
+          <motion.div variants={fadeUp} transition={FADE_TRANSITION}>
             <FeatureRow items={["Free to start","No credit card","Cancel anytime"]}/>
           </motion.div>
         </motion.div>
