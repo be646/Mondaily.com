@@ -202,10 +202,10 @@ export function LandingPage() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="mt-10 flex flex-wrap items-center justify-center gap-2"
         >
-          <FeaturePill icon={Database}   label="Relational CRM Tables"   color="border-slate-700/60 bg-slate-800/40 text-slate-400" />
-          <FeaturePill icon={Sparkles}   label="AI Web Enrichment"        color="border-purple-500/20 bg-purple-500/[.06] text-purple-400" />
-          <FeaturePill icon={GitBranch}  label="Event Automation Pipelines" color="border-blue-500/20 bg-blue-500/[.06] text-blue-400" />
-          <FeaturePill icon={Zap}        label="Autonomous Sequences"     color="border-pink-500/20 bg-pink-500/[.06] text-pink-400" />
+          <FeaturePill icon={DatabaseIcon}   label="Relational CRM Tables"   color="border-slate-700/60 bg-slate-800/40 text-slate-400" />
+          <FeaturePill icon={SparklesIcon}   label="AI Web Enrichment"        color="border-purple-500/20 bg-purple-500/[.06] text-purple-400" />
+          <FeaturePill icon={GitBranchIcon}  label="Event Automation Pipelines" color="border-blue-500/20 bg-blue-500/[.06] text-blue-400" />
+          <FeaturePill icon={ZapIcon}        label="Autonomous Sequences"     color="border-pink-500/20 bg-pink-500/[.06] text-pink-400" />
         </motion.div>
 
         {/* Scroll nudge */}
