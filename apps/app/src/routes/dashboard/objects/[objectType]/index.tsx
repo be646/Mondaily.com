@@ -1,7 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, X, Sparkles } from "lucide-react";
+import { Plus, X, Sparkles, Check } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
+import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
 import { apiClient } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQueryClient } from "@tanstack/react-query";
@@ -61,11 +62,12 @@ function CreateRecordModal({
   })();
 
   const [values, setValues]     = useState<Record<string, string>>(() => Object.fromEntries(fieldKeys.map(k => [k, ""])));
+  const [selectedCats, setCats] = useState<{ name: string; color: string }[]>([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState("");
   const [createMore, setCreateMore] = useState(false);
 
-  const resetForm = () => setValues(Object.fromEntries(fieldKeys.map(k => [k, ""])));
+  const resetForm = () => { setValues(Object.fromEntries(fieldKeys.map(k => [k, ""]))); setCats([]); };
 
   const save = useCallback(async () => {
     const data: Record<string, string> = {};
@@ -76,7 +78,7 @@ function CreateRecordModal({
     setSaving(true); setError("");
     try {
       const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-      const node = await apiClient.post<{ id: string }>("/nodes", { vertical: "shared", object_type: safeType, data });
+      const node = await apiClient.post<{ id: string }>("/nodes", { vertical: "shared", object_type: safeType, data: { ...data, ...(selectedCats.length ? { categories: selectedCats } : {}) } });
       queryClient.invalidateQueries({ queryKey: ["records", objectType] });
 
       // Kick off background enrichment for companies and people
@@ -140,6 +142,13 @@ function CreateRecordModal({
               />
             </div>
           ))}
+          {/* Categories (industry taxonomy) */}
+          <div className="py-2 border-b border-white/[.04]">
+            <div className="grid grid-cols-[130px_1fr] items-start gap-3">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-600 select-none pt-1">Categories</span>
+              <CategoryPills categories={selectedCats} onUpdate={setCats}/>
+            </div>
+          </div>
           {error && <p className="pt-2 text-xs text-red-400">{error}</p>}
         </div>
 
