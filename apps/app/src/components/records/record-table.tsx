@@ -346,8 +346,9 @@ function OwnerCell({ value, members, onSelect }: {
   const ref = useRef<HTMLDivElement>(null);
   useClickOutside(ref, () => setOpen(false));
 
-  function initials(name: string) {
-    return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+  function initials(name: string | null | undefined) {
+    if (!name) return "?";
+    return name.split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   }
 
   const assigned = members.find(m => m.name === value || m.email === value);
@@ -361,9 +362,9 @@ function OwnerCell({ value, members, onSelect }: {
         {assigned ? (
           <>
             <div className="h-5 w-5 rounded-full bg-zinc-700/60 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
-              {initials(assigned.name || assigned.email)}
+              {initials(assigned.name || assigned.email || "")}
             </div>
-            <span className="text-xs text-slate-300 truncate max-w-[80px]">{assigned.name || assigned.email}</span>
+            <span className="text-xs text-slate-300 truncate max-w-[80px]">{assigned.name || assigned.email || "?"}</span>
           </>
         ) : (
           <div className="flex items-center gap-1 text-slate-700 hover:text-slate-400 transition-colors">
@@ -378,16 +379,20 @@ function OwnerCell({ value, members, onSelect }: {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assign to</p>
           </div>
           {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members yet</p>}
-          {members.map(m => (
-            <button key={m.id} onClick={() => { onSelect(m.name || m.email); setOpen(false); }}
-              className={`dropdown-item w-full gap-2 ${(m.name === value || m.email === value) ? "dropdown-item-active" : ""}`}>
-              <div className="h-5 w-5 rounded-full bg-zinc-700/50 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
-                {initials(m.name || m.email)}
-              </div>
-              <span className="truncate">{m.name || m.email}</span>
-              {(m.name === value || m.email === value) && <Check size={11} className="ml-auto text-red-400 shrink-0"/>}
-            </button>
-          ))}
+          {members.map(m => {
+            const label = m.name || m.email || "Unknown";
+            const isActive = m.name === value || m.email === value;
+            return (
+              <button key={m.id} onClick={() => { onSelect(label); setOpen(false); }}
+                className={`dropdown-item w-full gap-2 ${isActive ? "dropdown-item-active" : ""}`}>
+                <div className="h-5 w-5 rounded-full bg-zinc-700/50 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
+                  {initials(label)}
+                </div>
+                <span className="truncate">{label}</span>
+                {isActive && <Check size={11} className="ml-auto text-red-400 shrink-0"/>}
+              </button>
+            );
+          })}
           {value && (
             <>
               <div className="mx-2 my-1 border-t border-white/[.06]"/>
