@@ -371,6 +371,18 @@ function AIFillModal({
   const label = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
   const cleanName = objectType.replace(/[-_]/g, " ");
 
+  // Fetch schema attributes as fallback when tableColumns are not yet known (empty sheet)
+  const schemaQuery = useQuery({
+    queryKey: ["sidebar-objects"],
+    queryFn: () => apiClient.get<Array<{ slug: string; name_plural: string; attributes: Array<{ name: string }> }>>("/objects"),
+    staleTime: 60_000,
+  });
+  const schemaAttrs: string[] = (() => {
+    const def = schemaQuery.data?.find(o => o.slug === objectType);
+    if (!def?.attributes?.length) return [];
+    return ["name", ...def.attributes.map(a => a.name.toLowerCase().replace(/\s+/g, "_")).filter(k => k !== "name")];
+  })();
+
   const [prompt, setPrompt] = useState(`Generate realistic ${cleanName} records`);
   const [count, setCount]   = useState(15);
   const [loading, setLoading] = useState(false);
@@ -381,10 +393,12 @@ function AIFillModal({
   const [progress, setProgress] = useState(0);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-generate on open if columns are already known
   useEffect(() => { promptRef.current?.focus(); }, []);
 
-  const fieldKeys = tableColumns.length > 0 ? tableColumns : ["name"];
+  // Use tableColumns (from live table) → schema attrs → fallback
+  const fieldKeys = tableColumns.length > 0 ? tableColumns
+    : schemaAttrs.length > 0 ? schemaAttrs
+    : ["name"];
 
   const generate = async () => {
     if (!prompt.trim()) return;
@@ -568,13 +582,13 @@ export function ObjectIndexPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState<string[]>([]);
 
-  // Detect empty state from cache (same key used by RecordTable)
+  // Detect empty state — shares the same cache key as RecordTable
   const recordsQuery = useQuery({
     queryKey: ["records", objectType],
     queryFn: () => apiClient.get<{ id: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
     staleTime: 30_000,
   });
-  const isEmpty = !recordsQuery.isLoading && (recordsQuery.data?.length ?? 0) === 0;
+  const isEmpty = recordsQuery.isSuccess && (recordsQuery.data?.length ?? 0) === 0;
 
   // Track enrichment state: { [recordId]: { name, done } }
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
