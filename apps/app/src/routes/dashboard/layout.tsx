@@ -47,7 +47,7 @@ export function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0b0d10]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0d0f13]">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />

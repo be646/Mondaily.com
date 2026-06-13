@@ -697,7 +697,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
   if (!records.length) return (
-    <div className="mt-4 flex min-h-64 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] px-6 text-center">
+    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-lg border border-zinc-800/40 bg-white/[.01] px-6 text-center">
       <Database className="mb-3 text-slate-700" size={26}/>
       <h2 className="text-sm font-medium text-slate-300">No {objectType} yet</h2>
       <p className="mt-1 max-w-sm text-sm text-slate-600">Create a record to get started.</p>
@@ -705,12 +705,14 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
   );
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-2">
       {/* ── NLP command bar ── */}
-      <NLPCommandBar columns={allColumnsWithCustom} onApply={handleNLPApply} onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }} hasActive={nlpActive || !!filterText || !!quickSortCol}/>
+      <div className="px-6 pt-3">
+        <NLPCommandBar columns={allColumnsWithCustom} onApply={handleNLPApply} onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }} hasActive={nlpActive || !!filterText || !!quickSortCol}/>
+      </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 px-6">
         {/* Filter */}
         <div className="relative flex-1 max-w-xs">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"/>
@@ -812,8 +814,8 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] rounded-lg border border-white/[.05]">
+      {/* ── Table — edge-to-edge ── */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-168px)] border-t border-zinc-800/40">
         <table className="min-w-full border-collapse text-left text-sm">
           <thead className="sticky top-0 z-20 bg-[#0d0f13]">
             <tr>

@@ -84,7 +84,7 @@ function relativeTime(iso: string): string {
 }
 
 // ─── Avatar / logo uploader ───────────────────────────────────────────────────
-function AvatarSection({ name, logoUrl, onSave }: { name: string; logoUrl?: string; onSave: (url: string) => void }) {
+function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name: string; logoUrl?: string; onSave: (url: string) => void; wrapClass?: string }) {
   const [open, setOpen]     = useState(false);
   const [urlDraft, setUrl]  = useState("");
   const [error, setError]   = useState("");
@@ -113,7 +113,7 @@ function AvatarSection({ name, logoUrl, onSave }: { name: string; logoUrl?: stri
   }
 
   return (
-    <div className="relative mx-auto w-14">
+    <div className={`relative ${wrapClass} w-14`}>
       <button
         onClick={() => setOpen(o => !o)}
         className="relative group h-14 w-14 rounded-2xl overflow-hidden focus:outline-none"
@@ -1056,15 +1056,18 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
         {/* ── Left panel ── */}
         <aside className="flex w-[272px] shrink-0 flex-col border-r border-zinc-800/50 overflow-auto">
 
-          <div className="px-5 pt-6 pb-4 border-b border-zinc-800/50">
-            {/* Clickable avatar / logo */}
-            <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo}/>
-
-            <div className="mt-3 text-center">
-              <h1 className="text-[14px] font-semibold text-white tracking-tight leading-snug">{name}</h1>
-              <span className="mt-1 inline-block rounded-md bg-white/[.04] border border-white/[.06] px-2 py-0.5 text-[10px] text-slate-500 uppercase tracking-wide capitalize">
-                {record.object_type}
-              </span>
+          <div className="px-5 pt-5 pb-4 border-b border-zinc-800/50">
+            {/* Entity header — horizontal layout */}
+            <div className="flex items-center gap-3">
+              <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo} wrapClass="shrink-0"/>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-[13px] font-bold text-white tracking-wide leading-snug uppercase truncate">{name}</h1>
+                <p className="mt-0.5 text-[11px] text-zinc-500 truncate">
+                  {fmt((data.domain ?? data.website ?? "") as string) !== "—"
+                    ? fmt((data.domain ?? data.website ?? "") as string)
+                    : record.object_type}
+                </p>
+              </div>
             </div>
 
             <div className="mt-4 space-y-2">

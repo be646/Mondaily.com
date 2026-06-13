@@ -185,6 +185,7 @@ export function ObjectIndexPage() {
   const { objectType = "records" } = useParams();
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Track enrichment state: { [recordId]: { name, done } }
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
@@ -221,32 +222,43 @@ export function ObjectIndexPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
-        <h1 className="flex-1 text-[15px] font-semibold capitalize text-white tracking-tight">
+      <div className="flex items-center gap-2 border-b border-zinc-800/50 px-6 py-2.5 shrink-0">
+        <h1 className="flex-1 text-[13px] font-semibold capitalize text-white tracking-tight">
           {objectType.replace(/[-_]/g, " ")}
         </h1>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
-        >
-          <Plus size={13}/> New {objectType.replace(/[-_]/g, " ")}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setImportOpen(p => !p)}
+            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-indigo-500/40 bg-indigo-500/[.08] text-indigo-300" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"}`}
+          >
+            <Plus size={11}/> Import CSV
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 rounded-md border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+          >
+            <Plus size={11}/> New record
+          </button>
+        </div>
       </div>
 
       {/* Enrichment banners */}
       {Object.entries(enriching).length > 0 && (
-        <div className="flex flex-col gap-1.5 border-b border-white/[.04] px-6 py-2">
+        <div className="flex flex-col gap-1.5 border-b border-zinc-800/40 px-6 py-2 shrink-0">
           {Object.entries(enriching).map(([id, { name, done }]) => (
             <EnrichBanner key={id} name={name} done={done}/>
           ))}
         </div>
       )}
 
-      <div className="px-6 pt-4 pb-2">
-        <CsvImporter objectType={objectType} onImported={() => queryClient.invalidateQueries({ queryKey: ["records", objectType] })}/>
-      </div>
+      {/* Collapsible CSV importer */}
+      {importOpen && (
+        <div className="border-b border-zinc-800/40 px-6 py-3 shrink-0">
+          <CsvImporter objectType={objectType} onImported={() => { queryClient.invalidateQueries({ queryKey: ["records", objectType] }); setImportOpen(false); }}/>
+        </div>
+      )}
 
-      <div className="flex-1 min-h-0 overflow-auto px-6 pb-4">
+      <div className="flex-1 min-h-0 overflow-auto pb-4">
         <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
       </div>
 
