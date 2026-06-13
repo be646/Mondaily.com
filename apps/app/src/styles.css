@@ -29,16 +29,21 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Tactile Minimalist — floating dropdown panel */
+/* Excel-grid dropdown system */
 @layer components {
+  /* Panel: sharp corners, no padding — items fill edge-to-edge with grid lines */
   .dropdown-panel {
-    @apply absolute z-50 mt-1.5 rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] backdrop-blur-md p-1;
+    @apply absolute z-50 mt-1 overflow-hidden rounded border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm;
   }
+  /* Item: full-width row with bottom grid line, tight height like table rows */
   .dropdown-item {
-    @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/[.05] hover:text-white;
+    @apply flex w-full items-center gap-2 px-3 py-[6px] text-[12px] text-zinc-400
+           border-b border-b-zinc-800/40 last:border-b-0
+           transition-colors duration-100
+           hover:bg-zinc-800/40 hover:text-zinc-100;
   }
   .dropdown-item-active {
-    @apply bg-white/[.06] text-white;
+    @apply bg-zinc-800/30 text-zinc-100;
   }
 }
 

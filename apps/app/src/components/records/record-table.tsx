@@ -130,7 +130,7 @@ function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down
   return createPortal(
     <div
       ref={panelRef}
-      className={`fixed z-[9999] rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.04)_inset] p-1 ${className}`}
+      className={`fixed z-[9999] overflow-hidden rounded border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm ${className}`}
       style={style}
     >
       {children}
