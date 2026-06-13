@@ -562,21 +562,21 @@ export function TasksPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex gap-0.5 rounded-lg border border-white/10 p-1">
-            {([["list","List",<List size={14}/>],["board","Board",<Columns3 size={14}/>],["sheet","Sheet",<Sheet size={14}/>]] as const).map(([mode, label, icon]) => (
+          <div className="flex gap-0.5 rounded-lg border border-white/10 p-0.5">
+            {([["list","List",<List size={13}/>],["board","Board",<Columns3 size={13}/>],["sheet","Sheet",<Sheet size={13}/>]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
                 {icon} {label}
               </button>
             ))}
           </div>
           <button onClick={() => setShowAISuggest(true)}
-            className="flex h-9 items-center gap-2 rounded-md bg-violet-600/20 border border-violet-500/30 px-3 text-sm text-violet-300 hover:bg-violet-600/30 transition-colors">
-            <Sparkles size={14}/> Suggest with AI
+            className="flex items-center gap-1.5 rounded-lg border border-violet-500/25 bg-violet-500/[.08] px-2.5 py-1.5 text-xs text-violet-400 hover:bg-violet-500/[.14] transition-colors">
+            <Sparkles size={12}/> Suggest with AI
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium hover:bg-red-500">
-            <Plus size={14}/> New Task
+            className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 transition-colors">
+            <Plus size={13}/> New Task
           </button>
         </div>
       </div>

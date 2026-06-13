@@ -877,52 +877,45 @@ export function SalesReportPage() {
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:px-8">
         {/* Screen header */}
-        {/* Row 1: title + object picker + actions */}
-        <div className="mb-3 flex items-center gap-3 print:hidden flex-wrap">
-          <Link to="/reports" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors shrink-0">
-            <ArrowLeft size={14}/> Reports
+        {/* Header row */}
+        <div className="mb-4 flex items-center gap-3 print:hidden">
+          <Link to="/reports" className="flex items-center gap-1 text-xs text-slate-600 hover:text-white transition-colors shrink-0">
+            <ArrowLeft size={12}/> Reports
           </Link>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-white shrink-0">Live Report</h1>
-            {objects.length > 0 && (
-              <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>
+          <span className="text-slate-700 text-xs shrink-0">/</span>
+          <h1 className="text-sm font-semibold text-white shrink-0">Live Report</h1>
+          {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
+          <span className="text-xs text-slate-700 hidden sm:inline">
+            {records.length} records{filteredRecords.length !== records.length && ` · ${filteredRecords.length} filtered`}
+          </span>
+          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            {/* Period buttons */}
+            <div className="flex gap-0.5 rounded-lg border border-white/10 bg-white/[.02] p-0.5">
+              {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
+                <button key={p} onClick={() => setPeriod(p)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+            {period === "custom" && (
+              <div className="flex items-center gap-1">
+                <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                  className="h-7 rounded-md border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none"/>
+                <span className="text-xs text-slate-600">–</span>
+                <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                  className="h-7 rounded-md border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none"/>
+              </div>
             )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
             <button onClick={exportCSV}
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
               <Download size={12}/> CSV
             </button>
             <button onClick={() => window.print()}
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
               <Printer size={12}/> Print
             </button>
           </div>
-        </div>
-
-        {/* Row 2: period selector + custom date range */}
-        <div className="mb-4 flex items-center gap-2 flex-wrap print:hidden">
-          <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[.03] p-1">
-            {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
-          {period === "custom" && (
-            <div className="flex items-center gap-1.5">
-              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"/>
-              <span className="text-xs text-slate-600">–</span>
-              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"/>
-            </div>
-          )}
-          <p className="text-xs text-slate-600 ml-1">
-            {records.length} records
-            {filteredRecords.length !== records.length && ` · ${filteredRecords.length} filtered`}
-          </p>
         </div>
 
         {/* Digest scheduler */}
