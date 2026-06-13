@@ -3,7 +3,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList, Legend, ReferenceLine,
 } from "recharts";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
   Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, MessageSquare, Check, Bookmark,
@@ -714,30 +714,29 @@ export function SalesReportPage() {
 
   // ── Filter presets (localStorage per object slug) ──────────────────────────
   type FilterPreset = { id: string; name: string; filters: Record<string, string> };
-  const presetsKey = `mondaily_filter_presets_${activeSlug}`;
 
-  const [presets, setPresets] = useState<FilterPreset[]>(() => {
-    try { return JSON.parse(localStorage.getItem(presetsKey) ?? "[]"); } catch { return []; }
-  });
+  const [presets, setPresets] = useState<FilterPreset[]>([]);
 
-  // Re-load presets when slug changes
-  useMemo(() => {
-    try { setPresets(JSON.parse(localStorage.getItem(`mondaily_filter_presets_${activeSlug}`) ?? "[]")); } catch { setPresets([]); }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Reload from localStorage whenever the active object changes
+  useEffect(() => {
+    try { setPresets(JSON.parse(localStorage.getItem(`mondaily_filter_presets_${activeSlug}`) ?? "[]")); }
+    catch { setPresets([]); }
   }, [activeSlug]);
 
   function savePreset(name: string) {
+    const key = `mondaily_filter_presets_${activeSlug}`;
     const next: FilterPreset[] = [...presets, { id: crypto.randomUUID(), name, filters: activeFilters }];
     setPresets(next);
-    localStorage.setItem(presetsKey, JSON.stringify(next));
+    localStorage.setItem(key, JSON.stringify(next));
     setSavingPreset(false);
     setPresetName("");
   }
 
   function deletePreset(id: string) {
+    const key = `mondaily_filter_presets_${activeSlug}`;
     const next = presets.filter(p => p.id !== id);
     setPresets(next);
-    localStorage.setItem(presetsKey, JSON.stringify(next));
+    localStorage.setItem(key, JSON.stringify(next));
   }
 
   function applyPreset(preset: FilterPreset) {

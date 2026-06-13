@@ -29,9 +29,9 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 // ─── Shared widget shell ──────────────────────────────────────────────────────
-function WidgetShell({ title, icon, link, linkLabel, size, onRemove, onResize, onDragStart, onDragOver, onDrop, children }: {
+function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, onResize, onDragStart, onDragOver, onDrop, children }: {
   title: string; icon: React.ReactNode; link?: string; linkLabel?: string;
-  size?: "small"|"large";
+  size?: "small"|"large"; className?: string;
   onRemove:    () => void;
   onResize:    () => void;
   onDragStart: (e: React.DragEvent) => void;
@@ -42,7 +42,7 @@ function WidgetShell({ title, icon, link, linkLabel, size, onRemove, onResize, o
   return (
     <section
       draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
-      className="group relative rounded-xl border border-white/[.08] bg-white/[.02] p-5"
+      className={`group relative rounded-xl border border-white/[.08] bg-white/[.02] p-5 ${className ?? ""}`}
     >
       <div className="mb-4 flex items-center gap-2 min-w-0">
         <GripVertical size={14} className="shrink-0 cursor-grab text-slate-600" />
@@ -84,7 +84,8 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
     <WidgetShell
       title={widget.title || "Broken widget"}
       icon={<AlertTriangle size={13} className="text-amber-400" />}
-      size={widget.size} onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+      size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
+      onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
       <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-amber-500/10 bg-amber-500/[.04]">
         <AlertTriangle size={22} className="text-amber-500/60" />
@@ -153,7 +154,8 @@ function LiveWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, o
   return (
     <WidgetShell title={title} icon={<Zap size={13} className="text-emerald-400"/>}
       link={`/reports/sales?object=${slug}`} linkLabel="Full report →"
-      size={widget.size} onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+      size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
+      onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
       {recordsQ.isLoading ? (
         <div className="flex h-48 items-center justify-center"><Loader2 size={16} className="animate-spin text-slate-500"/></div>
@@ -217,7 +219,8 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
   return (
     <WidgetShell title={title} icon={<FileBarChart size={13} className="text-red-400"/>}
       link={reportId ? `/reports/${reportId}` : undefined} linkLabel="Edit →"
-      size={widget.size} onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+      size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
+      onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
       {isLoading ? (
         <div className="flex h-48 items-center justify-center"><Loader2 size={16} className="animate-spin text-slate-500"/></div>
@@ -574,10 +577,9 @@ export function DashboardViewPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           {widgets.map(w => {
             const handlers = dh(w.id);
-            const colSpan = w.size === "large" ? "lg:col-span-2" : "";
-            if (isBroken(w)) return <div key={w.id} className={colSpan}><BrokenWidgetCard widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/></div>;
-            if (w.type === "live") return <div key={w.id} className={colSpan}><LiveWidgetCard widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/></div>;
-            return <div key={w.id} className={colSpan}><ReportWidgetCard widget={w as ReportWidget | LegacyWidget} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/></div>;
+            if (isBroken(w)) return <BrokenWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
+            if (w.type === "live") return <LiveWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
+            return <ReportWidgetCard key={w.id} widget={w as ReportWidget | LegacyWidget} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/>;
           })}
         </div>
       )}
