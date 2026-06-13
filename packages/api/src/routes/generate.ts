@@ -579,4 +579,95 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
   }
 });
 
+// ─── AI revenue / pipeline forecast ──────────────────────────────────────────
+router.post("/forecast", requireAuth, zValidator("json", z.object({
+  objectType:  z.string().min(1),
+  valueCol:    z.string().nullable(),
+  stageCol:    z.string().nullable(),
+  period:      z.string(),
+  stats: z.object({
+    wonValue:       z.number(),
+    openValue:      z.number(),
+    wonCount:       z.number(),
+    openCount:      z.number(),
+    totalCount:     z.number(),
+    completionRate: z.number(),
+    avgVal:         z.number(),
+  }),
+  prevStats: z.object({
+    wonValue:       z.number(),
+    wonCount:       z.number(),
+    completionRate: z.number(),
+  }),
+  trendData: z.array(z.object({ label: z.string(), revenue: z.number(), count: z.number() })),
+})), async (c) => {
+  const { objectType, valueCol, stageCol, period, stats, prevStats, trendData } = c.req.valid("json");
+
+  const hasValue = !!valueCol;
+  const trendSummary = trendData.map(d =>
+    hasValue ? `${d.label}: ${d.revenue} value, ${d.count} records` : `${d.label}: ${d.count} records`
+  ).join(" | ");
+
+  const prompt = `You are a business analyst. Analyse the following ${objectType} pipeline data and generate a forecast.
+
+Period: ${period}
+${hasValue ? `Value column: "${valueCol}"` : "No numeric value column detected — counting records only"}
+${stageCol ? `Stage column: "${stageCol}"` : "No stage column detected"}
+
+CURRENT PERIOD STATS:
+- ${hasValue ? `Won/closed value: $${stats.wonValue.toLocaleString()}` : `Completed records: ${stats.wonCount}`}
+- Open pipeline: ${hasValue ? `$${stats.openValue.toLocaleString()} across ${stats.openCount} records` : `${stats.openCount} open records`}
+- Win rate: ${stats.completionRate}%
+- Average ${hasValue ? "deal value" : "records per period"}: ${hasValue ? `$${stats.avgVal.toLocaleString()}` : stats.avgVal}
+- Total records this period: ${stats.totalCount}
+
+PREVIOUS PERIOD (for comparison):
+- ${hasValue ? `Won value: $${prevStats.wonValue.toLocaleString()}` : `Completed: ${prevStats.wonCount}`}
+- Win rate: ${prevStats.completionRate}%
+
+TREND DATA (recent periods):
+${trendSummary}
+
+Based on this data, generate a realistic forecast. Consider:
+1. Current open pipeline × win rate = expected closures
+2. Trend momentum (is the business accelerating or decelerating?)
+3. Win rate change vs previous period
+4. Average deal size trend`;
+
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      tools: [{
+        name: "generate_forecast",
+        description: "Generate a business forecast with projected value and narrative analysis",
+        input_schema: {
+          type: "object",
+          properties: {
+            projectedValue: {
+              type: "number",
+              description: hasValue
+                ? "Projected total value to be won/closed by end of this period, in same units as input"
+                : "Projected number of records to be completed by end of this period"
+            },
+            confidence: { type: "string", enum: ["high", "medium", "low"], description: "Confidence level based on data quality and consistency" },
+            headline: { type: "string", description: "One short sentence headline, e.g. 'On track for a strong month' or 'Pipeline looks thin — expect a slower close'" },
+            narrative: { type: "string", description: "2-3 sentences explaining the forecast. Be specific with numbers. Mention trend, win rate, and pipeline." },
+            risks: { type: "string", description: "One sentence about the key risk to this forecast, or 'None identified' if data looks healthy." },
+          },
+          required: ["projectedValue", "confidence", "headline", "narrative", "risks"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "generate_forecast" },
+      messages: [{ role: "user", content: prompt }]
+    });
+
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse?.input) return c.json({ error: "No forecast generated" }, 500);
+    return c.json(toolUse.input);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 export { router as generateRouter };

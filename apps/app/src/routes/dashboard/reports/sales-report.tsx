@@ -6,7 +6,7 @@ import {
 import { useState, useMemo, useCallback } from "react";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
-  Download, Target, Sparkles, X, ChevronRight, Filter,
+  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
@@ -269,6 +269,128 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
   );
 }
 
+// ─── AI Forecast Card ─────────────────────────────────────────────────────────
+interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"low"; headline: string; narrative: string; risks: string }
+
+const CONFIDENCE_STYLE: Record<string, string> = {
+  high:   "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+  medium: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+  low:    "border-red-500/20 bg-red-500/10 text-red-400",
+};
+
+function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData }: {
+  objectType: string;
+  valueCol: string | null;
+  stageCol: string | null;
+  period: Period;
+  stats: ReturnType<typeof computeStats>;
+  prevStats: ReturnType<typeof computeStats>;
+  trendData: { label: string; revenue: number; count: number }[];
+}) {
+  const [result, setResult]   = useState<ForecastResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
+
+  const hasValue = !!valueCol;
+
+  async function runForecast() {
+    if (result) { setResult(null); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.post<ForecastResult>("/generate/forecast", {
+        objectType, valueCol, stageCol, period,
+        stats: {
+          wonValue:       stats.wonValue,
+          openValue:      stats.openValue,
+          wonCount:       stats.wonCount,
+          openCount:      stats.openCount,
+          totalCount:     stats.totalCount,
+          completionRate: stats.completionRate,
+          avgVal:         stats.avgVal,
+        },
+        prevStats: {
+          wonValue:       prevStats.wonValue,
+          wonCount:       prevStats.wonCount,
+          completionRate: prevStats.completionRate,
+        },
+        trendData,
+      });
+      setResult(res);
+    } catch {
+      setError("Forecast unavailable. Check your API connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mb-6 overflow-hidden rounded-xl border border-violet-500/20 bg-gradient-to-r from-violet-500/[.06] to-blue-500/[.04] print:hidden">
+      {!result && !loading ? (
+        <button onClick={runForecast} className="flex w-full items-center gap-4 px-5 py-4 hover:bg-white/[.02] transition-colors">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/20">
+            <Sparkles size={15} className="text-violet-400"/>
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-white">AI Forecast</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Claude analyses your pipeline, win rate &amp; trend to project {period === "month" ? "end-of-month" : "end-of-period"} {hasValue ? "revenue" : "completions"}
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-[11px] font-medium text-violet-400">
+            Generate →
+          </span>
+        </button>
+      ) : loading ? (
+        <div className="flex items-center gap-3 px-5 py-4">
+          <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
+          <p className="text-sm text-slate-400">Analysing pipeline, win rate &amp; {trendData.length} trend data points…</p>
+        </div>
+      ) : error ? (
+        <div className="flex items-center gap-3 px-5 py-4">
+          <AlertCircle size={15} className="text-red-400 shrink-0"/>
+          <p className="text-sm text-slate-400">{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto text-xs text-slate-600 hover:text-white">Dismiss</button>
+        </div>
+      ) : result ? (
+        <div>
+          <div className="flex items-start gap-4 px-5 pt-4 pb-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/20">
+              <Sparkles size={15} className="text-violet-400"/>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <p className="text-sm font-semibold text-white">AI Forecast</p>
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence]}`}>
+                  {result.confidence} confidence
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 italic">{result.headline}</p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Projected {hasValue ? "revenue" : "completions"}</p>
+              <p className="text-2xl font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+            </div>
+          </div>
+          <div className="border-t border-white/[.05] px-5 py-3 space-y-1.5">
+            <p className="text-xs text-slate-300 leading-relaxed">{result.narrative}</p>
+            {result.risks && result.risks !== "None identified" && (
+              <p className="text-[11px] text-amber-400/80 leading-relaxed">
+                <span className="font-medium">Risk: </span>{result.risks}
+              </p>
+            )}
+          </div>
+          <div className="border-t border-white/[.05] px-5 py-2 flex justify-end">
+            <button onClick={() => setResult(null)} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
+              Regenerate
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 interface AIInsight { title: string; value: string; trend?: "up"|"down"|"neutral"; description: string; category: "performance"|"risk"|"opportunity"|"summary" }
 
 const INSIGHT_COLORS: Record<string, string> = {
@@ -452,18 +574,6 @@ export function SalesReportPage() {
 
   const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period), [filteredRecords, valueCol, stageCol, period]);
 
-  // Smart forecast (month-period only)
-  const forecast = useMemo(() => {
-    if (period !== "month" || trendData.length < 2) return null;
-    const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const dayOfMonth  = now.getDate();
-    if (dayOfMonth >= daysInMonth) return null;
-    const soFar     = trendData.reduce((s, d) => s + (valueCol ? d.revenue : d.count), 0);
-    const projected = Math.round((soFar / dayOfMonth) * daysInMonth);
-    const daysLeft  = daysInMonth - dayOfMonth;
-    return { soFar, projected, daysLeft };
-  }, [period, trendData, valueCol]);
 
   const topRecords = useMemo(() => {
     if (!valueCol) return filteredRecords.slice(0, 10);
@@ -669,23 +779,24 @@ export function SalesReportPage() {
                 color="border-rose-500/20 bg-rose-500/[.06] text-rose-400"
                 delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
-              {forecast ? (
-                <KpiCard
-                  label="Month Forecast"
-                  value={hasValue ? fmtMoney(forecast.projected) : fmtNum(forecast.projected)}
-                  sub={`${forecast.daysLeft}d left · at current pace`}
-                  color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
-                  trend={forecast.projected >= (hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount) ? "up" : "neutral"}
-                />
-              ) : (
-                <KpiCard
-                  label={hasStage ? "Open / Active" : "All Time"}
-                  value={fmtNum(hasStage ? stats.openCount : records.length)}
-                  sub={hasStage ? "in pipeline" : "records total"}
-                  color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
-                />
-              )}
+              <KpiCard
+                label={hasStage ? "Open / Active" : "All Time"}
+                value={fmtNum(hasStage ? stats.openCount : records.length)}
+                sub={hasStage ? "in pipeline" : "records total"}
+                color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
+              />
             </div>
+
+            {/* AI Forecast */}
+            <AIForecastCard
+              objectType={activeSlug}
+              valueCol={valueCol}
+              stageCol={stageCol}
+              period={period}
+              stats={stats}
+              prevStats={prevStats}
+              trendData={trendData}
+            />
 
             {/* Charts */}
             <div className="mb-6 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
