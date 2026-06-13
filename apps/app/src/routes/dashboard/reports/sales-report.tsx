@@ -877,26 +877,32 @@ export function SalesReportPage() {
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:px-8">
         {/* Screen header */}
-        <div className="mb-4 flex flex-wrap items-center gap-3 print:hidden">
-          <Link to="/reports" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors">
+        {/* Row 1: title + object picker + actions */}
+        <div className="mb-3 flex items-center gap-3 print:hidden flex-wrap">
+          <Link to="/reports" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors shrink-0">
             <ArrowLeft size={14}/> Reports
           </Link>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold text-white">Live Report</h1>
-              {objects.length > 0 && (
-                <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>
-              )}
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {records.length} records
-              {filteredRecords.length !== records.length && ` · ${filteredRecords.length} after filters`}
-              {valueCol && ` · value from "${valueCol}"`}
-              {stageCol && ` · status from "${stageCol}"`}
-            </p>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-white shrink-0">Live Report</h1>
+            {objects.length > 0 && (
+              <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>
+            )}
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={exportCSV}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+              <Download size={12}/> CSV
+            </button>
+            <button onClick={() => window.print()}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+              <Printer size={12}/> Print
+            </button>
+          </div>
+        </div>
 
-          <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-white/[.03] p-1">
+        {/* Row 2: period selector + custom date range */}
+        <div className="mb-4 flex items-center gap-2 flex-wrap print:hidden">
+          <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[.03] p-1">
             {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
@@ -906,30 +912,17 @@ export function SalesReportPage() {
           </div>
           {period === "custom" && (
             <div className="flex items-center gap-1.5">
-              <input
-                type="date"
-                value={customStart}
-                onChange={e => setCustomStart(e.target.value)}
-                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"
-              />
+              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"/>
               <span className="text-xs text-slate-600">–</span>
-              <input
-                type="date"
-                value={customEnd}
-                onChange={e => setCustomEnd(e.target.value)}
-                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"
-              />
+              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"/>
             </div>
           )}
-
-          <button onClick={exportCSV}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors">
-            <Download size={13}/> CSV
-          </button>
-          <button onClick={() => window.print()}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors">
-            <Printer size={13}/> Print
-          </button>
+          <p className="text-xs text-slate-600 ml-1">
+            {records.length} records
+            {filteredRecords.length !== records.length && ` · ${filteredRecords.length} filtered`}
+          </p>
         </div>
 
         {/* Digest scheduler */}
@@ -982,29 +975,40 @@ export function SalesReportPage() {
 
         {/* Filter bar */}
         {hasFilters && (
-          <div className={`mb-4 flex flex-wrap items-center gap-2 print:hidden rounded-lg border px-3 py-2 transition-colors ${filtersActive ? "border-blue-500/30 bg-blue-500/[.04]" : "border-white/[.06] bg-white/[.02]"}`}>
-            <Filter size={12} className="text-slate-600 shrink-0"/>
-            <span className="text-[11px] font-medium text-slate-600 mr-1">Filter</span>
-            {filterableCols.map(col => {
-              const uniqueVals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
-              return (
-                <div key={col} className="flex items-center gap-1">
-                  <select
-                    value={activeFilters[col] ?? ""}
-                    onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                    className="h-6 rounded-md border border-white/[.08] bg-[#13151a] px-2 text-[11px] text-slate-300 focus:outline-none focus:border-blue-500/50"
-                  >
-                    <option value="">All {col}</option>
-                    {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </div>
-              );
-            })}
-            {filtersActive && (
-              <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-white transition-colors">
-                Clear filters
-              </button>
-            )}
+          <div className={`mb-4 print:hidden rounded-xl border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-white/[.06] bg-white/[.02]"}`}>
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.05]">
+              <Filter size={11} className="text-slate-600 shrink-0"/>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Filters</span>
+              {filtersActive && (
+                <>
+                  <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5">
+                    {Object.values(activeFilters).filter(Boolean).length} active
+                  </span>
+                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-red-400 transition-colors">
+                    Clear all
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3">
+              {filterableCols.map(col => {
+                const uniqueVals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
+                const active = !!activeFilters[col];
+                return (
+                  <div key={col} className="flex flex-col gap-1">
+                    <label className="text-[10px] font-medium uppercase tracking-wider text-slate-600 truncate">{col.replace(/_/g," ")}</label>
+                    <select
+                      value={activeFilters[col] ?? ""}
+                      onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
+                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#13151a] text-slate-300 focus:border-blue-500/40"}`}
+                    >
+                      <option value="">All</option>
+                      {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

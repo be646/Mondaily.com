@@ -32,7 +32,7 @@ import { workflowsRouter } from "./routes/workflows";
 const app = new Hono();
 
 app.use("*", cors({
-  origin: ["https://mondaily.com", "https://app.mondaily.com", "http://localhost:3000", "http://localhost:5173"],
+  origin: ["https://mondaily.com", "https://app.mondaily.com", "https://mondaily-app.onrender.com", "http://localhost:3000", "http://localhost:5173"],
   credentials: true
 }));
 app.use("*", logger());

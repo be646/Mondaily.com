@@ -53,12 +53,75 @@ function kindLabel(k: NodeKind) {
   return k === "trigger" ? "Trigger" : k === "condition" ? "Condition" : "Action";
 }
 
+// ── Node config fields ────────────────────────────────────────────────────────
+function NodeConfigFields({ node, onChange }: { node: WFNode; onChange: (config: Record<string, string>) => void }) {
+  const set = (key: string, val: string) => onChange({ ...node.config, [key]: val });
+  const inp = (key: string, placeholder: string, type = "text") => (
+    <input
+      type={type}
+      value={node.config[key] ?? ""}
+      onChange={e => set(key, e.target.value)}
+      placeholder={placeholder}
+      className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-current/30"
+    />
+  );
+
+  if (node.type === "field_equals" || node.type === "field_contains") return (
+    <div className="space-y-2">
+      {inp("field", "Field name (e.g. status, stage)")}
+      {inp("value", node.type === "field_equals" ? "Equals…" : "Contains…")}
+    </div>
+  );
+  if (node.type === "field_changed") return inp("field", "Field name (e.g. stage)");
+  if (node.type === "time_elapsed") return (
+    <div className="flex gap-2">
+      {inp("amount", "Amount", "number")}
+      <select value={node.config.unit ?? "days"} onChange={e => set("unit", e.target.value)}
+        className="flex-1 rounded-md border border-white/[.07] bg-[#0d0f13] px-2 py-1.5 text-xs text-white outline-none">
+        <option value="minutes">Minutes</option>
+        <option value="hours">Hours</option>
+        <option value="days">Days</option>
+      </select>
+    </div>
+  );
+  if (node.type === "send_email") return (
+    <div className="space-y-2">
+      {inp("to", "To (e.g. {email} or fixed address)")}
+      {inp("subject", "Subject line")}
+      <textarea value={node.config.body ?? ""} onChange={e => set("body", e.target.value)}
+        placeholder="Email body… use {first_name}, {company} tokens"
+        rows={3}
+        className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none resize-none focus:border-current/30"
+      />
+    </div>
+  );
+  if (node.type === "create_task") return (
+    <div className="space-y-2">
+      {inp("task_title", "Task title")}
+      {inp("due_in_days", "Due in (days)", "number")}
+      {inp("assignee", "Assign to (name or {owner})")}
+    </div>
+  );
+  if (node.type === "assign_owner") return inp("owner", "Owner name or email");
+  if (node.type === "add_to_sequence") return inp("sequence_name", "Sequence name");
+  if (node.type === "send_notification") return inp("message", "Notification message");
+  if (node.type === "update_field") return (
+    <div className="space-y-2">
+      {inp("field", "Field name")}
+      {inp("value", "New value")}
+    </div>
+  );
+  return null;
+}
+
 // ── Node card ─────────────────────────────────────────────────────────────────
-function WFNodeCard({ node, onDelete, onAddAfter }: {
+function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
   node: WFNode;
   onDelete: (id: string) => void;
   onAddAfter: (id: string) => void;
+  onUpdate: (id: string, config: Record<string, string>) => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const s = KIND_STYLES[node.kind];
   const allNodes = node.kind === "trigger" ? TRIGGERS : node.kind === "condition" ? CONDITIONS : ACTIONS;
   const def = allNodes.find(n => n.type === node.type) ?? allNodes[0]!;
@@ -67,7 +130,10 @@ function WFNodeCard({ node, onDelete, onAddAfter }: {
   return (
     <div className="flex flex-col items-center">
       <div className={`group w-72 rounded-xl border ${s.border} ${s.bg} overflow-hidden`}>
-        <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          className="flex w-full items-center gap-3 px-4 py-3 text-left"
+          onClick={() => setExpanded(e => !e)}
+        >
           <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${s.icon}`}>
             <Icon size={13}/>
           </div>
@@ -75,15 +141,23 @@ function WFNodeCard({ node, onDelete, onAddAfter }: {
             <p className="text-[9px] font-semibold uppercase tracking-widest opacity-50">{kindLabel(node.kind)}</p>
             <p className="text-xs font-medium text-white">{node.label}</p>
           </div>
+          <ChevronDown size={12} className={`shrink-0 text-slate-600 transition-transform ${expanded ? "rotate-180" : ""}`}/>
           {node.kind !== "trigger" && (
-            <button
-              onClick={() => onDelete(node.id)}
+            <span
+              role="button"
+              onClick={e => { e.stopPropagation(); onDelete(node.id); }}
               className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-slate-700 hover:bg-red-500/10 hover:text-red-400 transition-all"
             >
               <X size={12}/>
-            </button>
+            </span>
           )}
-        </div>
+        </button>
+
+        {expanded && (
+          <div className="border-t border-white/[.06] px-4 py-3" onClick={e => e.stopPropagation()}>
+            <NodeConfigFields node={node} onChange={cfg => onUpdate(node.id, cfg)}/>
+          </div>
+        )}
       </div>
 
       {/* Add node button */}
@@ -332,6 +406,10 @@ export function WorkflowBuilderPage() {
     });
   };
 
+  const updateNodeConfig = (id: string, config: Record<string, string>) => {
+    setNodes(prev => prev.map(n => n.id === id ? { ...n, config } : n));
+  };
+
   const deleteNode = (id: string) => {
     setNodes(prev => prev.filter(n => n.id !== id));
   };
@@ -437,6 +515,7 @@ export function WorkflowBuilderPage() {
                 node={node}
                 onDelete={deleteNode}
                 onAddAfter={(id) => setPicking(id)}
+                onUpdate={updateNodeConfig}
               />
             ))}
 

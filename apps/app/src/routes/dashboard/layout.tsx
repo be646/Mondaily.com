@@ -2,8 +2,9 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { Sidebar } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
+import { CommandPalette } from "../../components/ui/command-palette";
 import { useState } from "react";
-import { Home, CheckSquare, Users, MessageCircle, Menu } from "lucide-react";
+import { Home, CheckSquare, Users, MessageCircle, Menu, Search } from "lucide-react";
 
 // ─── Inline scanning-lines logo (mirrors sidebar Logo) ───────────────────────
 function NavLogo() {
@@ -119,6 +120,15 @@ export function DashboardLayout() {
             <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-400 select-none hidden sm:inline">
               {pageLabel}
             </span>
+            {/* Search trigger */}
+            <button
+              onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
+              className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[.07] bg-white/[.02] px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-300 hover:bg-white/[.04] transition-colors"
+            >
+              <Search size={12}/>
+              <span>Search…</span>
+              <kbd className="rounded border border-white/[.08] bg-white/[.04] px-1 text-[10px] text-slate-700">⌘K</kbd>
+            </button>
             {/* Page-specific action buttons are portaled here by sub-pages */}
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
           </div>
@@ -130,6 +140,7 @@ export function DashboardLayout() {
       </div>
 
       <QuickActions />
+      <CommandPalette />
       <MobileNav />
     </div>
   );
