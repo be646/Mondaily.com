@@ -83,6 +83,16 @@ router.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async 
   return result.error ? c.json({ error: result.error.message }, 400) : c.json(steps.find((step) => step.id === c.req.param("sid")));
 });
 
+router.delete("/:id", async (c) => {
+  const { error } = await supabase
+    .from("nodes")
+    .delete()
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("object_type", "automation")
+    .eq("id", c.req.param("id"));
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+
 router.delete("/:id/steps/:sid", async (c) => {
   const node = await getSequence(c.get("workspaceId"), c.req.param("id"));
   if (!node) return c.json({ error: "Sequence not found" }, 404);

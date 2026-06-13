@@ -27,6 +27,7 @@ import { importRouter } from "./routes/import";
 import { generateRouter } from "./routes/generate";
 import { digestsRouter } from "./routes/digests";
 import { annotationsRouter } from "./routes/annotations";
+import { workflowsRouter } from "./routes/workflows";
 
 const app = new Hono();
 
@@ -61,6 +62,7 @@ app.route("/api/v1/tasks", taskDetailsRouter);
 app.route("/api/v1/tasks", tasksRouter);
 app.route("/api/v1/digests", digestsRouter);
 app.route("/api/v1/annotations", annotationsRouter);
+app.route("/api/v1/workflows", workflowsRouter);
 app.route("/api/v1", appDataRouter);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));

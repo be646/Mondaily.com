@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Plus, Play, GitBranch, Mail, Bell, Tag, UserPlus,
-  Zap, CheckSquare, ChevronDown, X, Clock, Filter, Sparkles, Loader2
+  Zap, CheckSquare, ChevronDown, X, Clock, Filter, Sparkles, Loader2, Save,
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 
@@ -272,12 +272,43 @@ const DEFAULT_NODES: WFNode[] = [
 
 export function WorkflowBuilderPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState<WFNode[]>(DEFAULT_NODES);
-  const [picking, setPicking] = useState<string | null>(null); // node id after which to insert
+  const [picking, setPicking] = useState<string | null>(null);
   const [status, setStatus] = useState<"draft" | "active">("draft");
-  const [name, setName] = useState(id === "new" ? "New Workflow" : "Workflow");
+  const [name, setName] = useState("New Workflow");
   const [nameEdit, setNameEdit] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [currentId, setCurrentId] = useState<string | undefined>(id === "new" ? undefined : id);
+
+  // Load existing workflow
+  useEffect(() => {
+    if (!id || id === "new") return;
+    apiClient.get<{ id: string; name: string; status: string; nodes: WFNode[] }>(`/workflows/${id}`)
+      .then(wf => {
+        setName(wf.name);
+        setStatus(wf.status as "draft" | "active");
+        if (Array.isArray(wf.nodes) && wf.nodes.length > 0) setNodes(wf.nodes);
+      })
+      .catch(() => {});
+  }, [id]);
+
+  async function saveWorkflow() {
+    setSaving(true);
+    try {
+      const targetId = currentId ?? "new";
+      const wf = await apiClient.patch<{ id: string }>(`/workflows/${targetId}`, { name, status, nodes });
+      if (!currentId) {
+        setCurrentId(wf.id);
+        navigate(`/automations/workflows/${wf.id}`, { replace: true });
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch { /* silently fail */ }
+    finally { setSaving(false); }
+  }
 
   const addNode = (afterId: string, kind: NodeKind, type: string, label: string) => {
     const newNode: WFNode = {
@@ -338,8 +369,14 @@ export function WorkflowBuilderPage() {
           <Sparkles size={12}/> Generate with AI
         </button>
 
+        <button onClick={saveWorkflow} disabled={saving}
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white disabled:opacity-50 transition-colors">
+          {saving ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>}
+          {saved ? "Saved!" : saving ? "Saving…" : "Save"}
+        </button>
+
         <button
-          onClick={() => setStatus(s => s === "active" ? "draft" : "active")}
+          onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}
           className={`flex items-center gap-1.5 rounded-lg border-x border-t border-b-[3px] px-3 py-1.5 text-xs font-semibold transition-all active:translate-y-[1px] ${status === "active" ? "border-yellow-500/40 border-b-yellow-700 bg-yellow-500/80 text-white" : "border-red-500/50 border-b-red-700 bg-red-500 text-white hover:bg-red-400"}`}
         >
           {status === "active" ? "Pause" : <><Play size={11}/> Activate</>}

@@ -258,19 +258,17 @@ router.get("/reports", async (c) => {
   return c.json({ charts: [], reports: reports.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })) });
 });
 router.get("/automations", async (c) => {
-  const data = await rows("nodes", c.get("workspaceId"), { objectType: "automation" });
-  return c.json(data.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })));
-});
-router.get("/automations/sequences/:id", async (c) => {
-  if (c.req.param("id") === "new") return c.json({ id: "new", name: "Untitled sequence", status: "draft", steps: [], enrollments: [] });
-  const { data } = await supabase.from("nodes").select("*").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).single();
-  return data ? c.json({ id: data.id, ...data.data }) : c.json({ error: "Not found" }, 404);
-});
-router.patch("/automations/sequences/:id", async (c) => {
-  const body = await c.req.json<Record<string, unknown>>();
-  const { data, error } = await supabase.from("nodes").upsert({ id: c.req.param("id") === "new" ? undefined : c.req.param("id"), workspace_id: c.get("workspaceId"), vertical: "shared", object_type: "automation", data: { ...body, type: "sequence" }, created_by: c.get("userId") }).select().single();
-  if (error) return c.json({ error: error.message }, 400);
-  return c.json({ id: data.id, ...data.data });
+  const { data } = await supabase
+    .from("nodes")
+    .select("id,data,updated_at")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("object_type", "automation")
+    .order("updated_at", { ascending: false });
+  return c.json((data ?? []).map((node) => ({
+    id: node.id,
+    updated_at: node.updated_at,
+    ...(node.data as Record<string, unknown>),
+  })));
 });
 
 router.get("/settings/account", async (c) => {
