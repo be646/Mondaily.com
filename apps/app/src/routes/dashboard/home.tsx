@@ -408,39 +408,63 @@ export function HomePage() {
     go();
   };
 
+  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
+  const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
+
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">{greeting}, {user?.firstName || "there"}.</h1>
-      <p className="mt-1 text-sm text-slate-500">Mondaily is ready to run today's work.</p>
+    <div className="mx-auto max-w-3xl px-6 py-10">
 
-      {/* AI Risk Alert banner */}
-      {riskBanner !== null && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[.07] px-4 py-3">
-          <BellDot size={15} className="text-amber-400 shrink-0"/>
-          <p className="flex-1 text-sm text-amber-200">
-            Mondaily AI flagged <span className="font-semibold">{riskBanner} risk{riskBanner > 1 ? "s" : ""}</span> in your workspace.{" "}
-            <Link to="/notifications" className="underline underline-offset-2 hover:text-white transition-colors">View alerts →</Link>
-          </p>
-          <button onClick={() => setRiskBanner(null)} className="text-amber-500/60 hover:text-amber-300 text-lg leading-none transition-colors">×</button>
+      {/* ── Hero greeting ── */}
+      <div className="mb-8">
+        <p className="text-xs font-medium text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-white">{greeting}, {user?.firstName || "there"}.</h1>
+
+        {/* Quick stat pills */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {activeTasks.length > 0 && (
+            <Link to="/tasks" className="flex items-center gap-1.5 rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-slate-400 hover:text-white hover:border-white/[.12] transition-colors">
+              <ListChecks size={11} className="text-emerald-400"/>
+              {activeTasks.length} open task{activeTasks.length !== 1 ? "s" : ""}
+            </Link>
+          )}
+          {overdueCount > 0 && (
+            <Link to="/tasks" className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/[.07] px-3 py-1 text-xs text-red-400 hover:bg-red-500/[.12] transition-colors">
+              <Clock size={11}/>
+              {overdueCount} overdue
+            </Link>
+          )}
+          {urgentCount > 0 && (
+            <span className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/[.07] px-3 py-1 text-xs text-amber-400">
+              <Flag size={11}/>
+              {urgentCount} urgent
+            </span>
+          )}
+          {riskBanner !== null && (
+            <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/[.08] px-3 py-1 text-xs text-amber-300 hover:bg-amber-500/[.14] transition-colors">
+              <BellDot size={11}/>
+              {riskBanner} AI risk alert{riskBanner > 1 ? "s" : ""}
+            </Link>
+          )}
         </div>
-      )}
+      </div>
 
-      <section className="mt-7">
-        {/* ── Conversation history ── */}
+      {/* ── Ask Mondaily AI ── */}
+      <section className="mb-8">
         {isChatting && (
-          <div className="mb-6 max-h-[460px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
+          <div className="mb-4 max-h-[420px] overflow-y-auto space-y-5 pr-1 scroll-smooth rounded-2xl border border-white/[.06] bg-white/[.02] p-5" style={{ scrollbarWidth: "none" }}>
             {messages.map((m, i) => {
               const isStreaming = streamingMsgIdx === i;
               const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
               return (
                 <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                   {m.role === "assistant" && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5 ring-1 ring-red-500/20">
-                      <Sparkles size={12} className="text-red-400"/>
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5 ring-1 ring-red-500/20">
+                      <Sparkles size={11} className="text-red-400"/>
                     </div>
                   )}
                   {m.role === "user" ? (
-                    <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-4 py-2.5 text-sm text-slate-200 leading-relaxed">
+                    <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-3.5 py-2.5 text-sm text-slate-200 leading-relaxed">
                       {m.content}
                     </div>
                   ) : (
@@ -452,59 +476,44 @@ export function HomePage() {
                 </div>
               );
             })}
-
-            {/* Thinking state */}
             {loading && (
               <div className="flex gap-3 items-center">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-500/15 ring-1 ring-red-500/20">
-                  <Sparkles size={12} className="text-red-400"/>
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 ring-1 ring-red-500/20">
+                  <Sparkles size={11} className="text-red-400"/>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <span className="italic">Thinking</span>
-                  <span className="flex gap-0.5 items-end h-3">
-                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "0ms" }}/>
-                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "150ms" }}/>
-                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "300ms" }}/>
-                  </span>
-                </div>
+                <span className="flex gap-1 items-end h-3">
+                  <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "0ms" }}/>
+                  <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "150ms" }}/>
+                  <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "300ms" }}/>
+                </span>
               </div>
             )}
-
-            {/* Follow-up suggestion chips — vertical stack */}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
-              <div className="flex flex-col gap-1.5 pl-10">
+              <div className="flex flex-col gap-1.5 pl-9">
                 {suggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => sendSuggestion(s)}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-white/[.04] px-4 py-2.5 text-left text-sm text-slate-300 transition-all duration-150 hover:bg-white/[.07] hover:border-white/[.12] hover:shadow-[0_0_16px_rgba(255,255,255,0.04)] active:scale-[0.99]"
-                  >
+                  <button key={i} onClick={() => sendSuggestion(s)}
+                    className="group flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-white/[.03] px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/[.06] hover:border-white/[.12] transition-colors">
                     <span>{s}</span>
-                    <CornerDownLeft size={13} className="shrink-0 text-slate-600 group-hover:text-slate-300 transition-colors"/>
+                    <CornerDownLeft size={12} className="shrink-0 text-slate-600 group-hover:text-slate-400 transition-colors"/>
                   </button>
                 ))}
               </div>
             )}
-
             <div ref={bottomRef}/>
           </div>
         )}
 
-        {/* ── Input bar ── */}
+        {/* Input */}
         <div className="relative" ref={pickerRef}>
-          {/* Prompt picker panel */}
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-lg border border-white/[.08] bg-[#13151a] backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-50">
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-50">
               <div className="px-4 py-2.5 border-b border-white/[.06]">
-                <p className="text-[11px] font-medium text-slate-500 uppercase tracking-widest">Quick prompts</p>
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Quick prompts</p>
               </div>
-              <div className="p-2 grid grid-cols-1 gap-px">
+              <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
-                  <button
-                    key={label}
-                    onClick={() => firePrompt(prompt)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group"
-                  >
+                  <button key={label} onClick={() => firePrompt(prompt)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
                       <Icon size={13} className="text-red-400"/>
                     </span>
@@ -518,208 +527,171 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[.04] px-4 py-3.5 focus-within:border-white/20 transition-colors">
-            {/* ⚡ prompt picker */}
-            <button
-              onClick={() => setPromptPickerOpen(o => !o)}
-              title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}
-            >
+          <div className="flex items-center gap-2 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3.5 focus-within:border-white/[.15] focus-within:bg-white/[.04] transition-all">
+            <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
             </button>
-
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder={isChatting ? "Continue the conversation..." : "Ask anything or give Mondaily an instruction..."}
-              className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"
-            />
-
+              placeholder={isChatting ? "Continue the conversation…" : "Ask Mondaily AI anything…"}
+              className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"/>
             {isChatting && (
-              <button onClick={newChat} className="shrink-0 text-xs text-slate-600 hover:text-slate-400 transition-colors mr-1">
-                Clear
-              </button>
+              <button onClick={newChat} className="shrink-0 text-xs text-slate-600 hover:text-slate-400 transition-colors mr-1">Clear</button>
             )}
-
-            {/* Send button — changes opacity based on input */}
-            <button
-              onClick={send}
-              disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-200 ${input.trim() && !loading ? "bg-red-600 text-white shadow-lg shadow-red-900/30 hover:bg-red-500" : "bg-white/[.05] text-slate-600"}`}
-            >
-              {loading
-                ? <Loader2 size={14} className="animate-spin"/>
-                : <Send size={14}/>
-              }
+            <button onClick={send} disabled={loading || !input.trim()}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/30" : "bg-white/[.04] text-slate-600"}`}>
+              {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>
         </div>
 
-        {/* Recent threads / open link */}
-        <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-          {!isChatting && recentThreads.length > 0 && (
-            <>
-              <span className="text-xs text-slate-700">Recent:</span>
-              {recentThreads.map(t => (
-                <Link key={t.id} to={`/ask/${t.id}`} className="text-xs text-slate-600 hover:text-red-400 transition-colors truncate max-w-[160px]">{t.title}</Link>
-              ))}
-              <span className="text-slate-800">·</span>
-            </>
-          )}
-          <Link to="/ask/new" className="text-xs text-slate-600 hover:text-red-400 transition-colors">Open full chat →</Link>
-        </div>
+        {/* Recent threads */}
+        {!isChatting && recentThreads.length > 0 && (
+          <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] text-slate-700">Recent:</span>
+            {recentThreads.map(t => (
+              <Link key={t.id} to={`/ask/${t.id}`} className="text-[11px] text-slate-600 hover:text-red-400 transition-colors truncate max-w-[180px]">{t.title}</Link>
+            ))}
+            <span className="text-slate-800 text-xs">·</span>
+            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-red-400 transition-colors">Full chat →</Link>
+          </div>
+        )}
+        {!isChatting && recentThreads.length === 0 && (
+          <div className="mt-2 flex justify-end">
+            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-red-400 transition-colors">Open full chat →</Link>
+          </div>
+        )}
       </section>
 
-      <div className="mt-7 grid gap-4 md:grid-cols-2">
-        <section className="min-h-72 rounded-lg border border-white/10 p-5">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-medium"><Calendar size={14}/> Meetings</h2>
-            <span className="text-xs text-slate-600">Today</span>
-          </div>
-          {meetings.isLoading ? <PageSkeleton rows={3}/> : meetings.data?.length ? (
-            <div className="space-y-2">{meetings.data.map(m => (
-              <div key={m.id} className="rounded-md bg-white/[.03] p-3">
-                <p className="text-sm">{m.title}</p>
-                <p className="mt-1 text-xs text-slate-500">{m.start_time}</p>
-              </div>
-            ))}</div>
-          ) : (
-            <div className="flex h-44 flex-col items-center justify-center text-center">
-              <p className="text-sm font-medium text-slate-300">Turn meetings into opportunities</p>
-              <p className="mt-1 max-w-xs text-xs text-slate-500">Connect Google or Microsoft Calendar to prepare briefs automatically.</p>
-              <div className="mt-4 flex gap-2">
-                <button className="rounded-md border border-white/10 px-3 py-2 text-xs">Sync Google</button>
-                <button className="rounded-md border border-white/10 px-3 py-2 text-xs">Sync Microsoft</button>
-              </div>
-            </div>
-          )}
-        </section>
+      {/* ── Tasks + Meetings ── */}
+      <div className="grid gap-4 md:grid-cols-2">
 
-        <section className="rounded-lg border border-white/10 overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
+        {/* Tasks card */}
+        <section className="flex flex-col rounded-2xl border border-white/[.07] bg-white/[.02] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.05]">
             <div className="flex items-center gap-2">
-              <h2 className="flex items-center gap-1.5 text-sm font-medium"><CheckSquare size={13}/> Tasks</h2>
-              <span className="flex items-center gap-1 rounded-full bg-red-500/10 px-1.5 py-px text-[10px] text-red-400">
-                <Sparkles size={9}/> AI sorted
+              <CheckSquare size={13} className="text-emerald-400"/>
+              <span className="text-sm font-medium text-white">Tasks</span>
+              <span className="flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/15 px-1.5 py-px text-[9px] text-red-400">
+                <Sparkles size={8}/> AI sorted
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-600">{activeTasks.length} open</span>
-              <Link to="/tasks" className="flex items-center gap-0.5 text-xs text-slate-500 hover:text-white transition-colors">
-                View all <ArrowUpRight size={11}/>
-              </Link>
-            </div>
+            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-white transition-colors">
+              View all <ArrowUpRight size={11}/>
+            </Link>
           </div>
 
-          {/* Table */}
-          {tasksQuery.isLoading ? (
-            <div className="p-4"><PageSkeleton rows={3}/></div>
-          ) : activeTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-              <Sparkles size={18} className="text-red-400/50 mb-2"/>
-              <p className="text-sm text-slate-400">Mondaily has nothing to assign you right now.</p>
-              <p className="text-xs text-slate-600 mt-1">Ask it to create tasks or manage your work.</p>
-            </div>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-white/[.04]">
-                  <th className="px-4 py-2 text-left font-medium text-xs text-slate-500 w-full">Task</th>
-                  <th className="px-3 py-2 text-left font-medium text-xs text-slate-500 whitespace-nowrap">Priority</th>
-                  <th className="px-3 py-2 text-left font-medium text-xs text-slate-500 whitespace-nowrap hidden sm:table-cell">Assignee</th>
-                  <th className="px-3 py-2 text-left font-medium text-xs text-slate-500 whitespace-nowrap hidden sm:table-cell">Due</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[.04]">
+          <div className="flex-1">
+            {tasksQuery.isLoading ? (
+              <div className="p-4"><PageSkeleton rows={4}/></div>
+            ) : activeTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                <Sparkles size={16} className="text-slate-700 mb-2"/>
+                <p className="text-sm text-slate-500">No open tasks.</p>
+                <p className="text-xs text-slate-700 mt-0.5">Ask AI to create tasks from your work.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-white/[.04]">
                 {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusDot = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-600";
+                  const statusColor = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-700";
                   return (
-                    <tr key={item.id} onClick={() => setDetailTask(item)}
-                      className="group cursor-pointer hover:bg-white/[.03] transition-colors">
-                      <td className="px-4 py-2.5 max-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusDot}`}/>
-                          <span className="text-xs text-slate-200 group-hover:text-white transition-colors truncate">
-                            {item.title}
+                    <li key={item.id} onClick={() => setDetailTask(item)}
+                      className="group flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[.03] transition-colors">
+                      <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusColor}`}/>
+                      <span className="flex-1 min-w-0 text-sm text-slate-300 group-hover:text-white truncate transition-colors">{item.title}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {item.priority && item.priority !== "low" && (
+                          <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
+                        )}
+                        {item.due_date && (
+                          <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-red-400" : "text-slate-600"}`}>
+                            <Clock size={9}/>
+                            {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        {item.priority ? (
-                          <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>
-                            <Flag size={8}/>{item.priority}
+                        )}
+                        {assigneeName && (
+                          <span className="hidden sm:flex items-center gap-0.5 text-[11px] text-slate-600">
+                            <User size={9}/>{assigneeName}
                           </span>
-                        ) : <span className="text-xs text-slate-700">—</span>}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
-                        {assigneeName ? (
-                          <span className="flex items-center gap-1 text-xs text-slate-500"><User size={10}/>{assigneeName}</span>
-                        ) : <span className="text-xs text-slate-700">—</span>}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap hidden sm:table-cell">
-                        {item.due_date ? (
-                          <span className={`flex items-center gap-0.5 text-xs ${isOverdue ? "text-red-400" : "text-slate-500"}`}>
-                            <Clock size={10}/>{new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
-                        ) : <span className="text-xs text-slate-700">—</span>}
-                      </td>
-                    </tr>
+                        )}
+                      </div>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
-          )}
+              </ul>
+            )}
+          </div>
 
-          {/* Task widget AI footer */}
-          <div className="border-t border-white/[.06] px-3 py-2.5" ref={taskPickerRef}>
-            {/* Input row — relative so dropdown anchors to it */}
-            <div className="relative flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 focus-within:border-white/20 transition-colors">
+          {/* Task AI footer */}
+          <div className="border-t border-white/[.05] px-3 py-2.5" ref={taskPickerRef}>
+            <div className="relative flex items-center gap-2 rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2 focus-within:border-white/[.12] transition-colors">
               <Sparkles size={11} className="text-red-400 shrink-0"/>
-              <input
-                ref={taskWidgetInputRef}
-                value={taskWidgetInput}
+              <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
-                placeholder="Add task, open one, or ask…"
-                className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none min-w-0"
-              />
+                placeholder="Add task or ask AI…"
+                className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none min-w-0"/>
               {taskWidgetLoading ? (
-                <Loader2 size={12} className="animate-spin text-slate-500 shrink-0"/>
+                <Loader2 size={11} className="animate-spin text-slate-600 shrink-0"/>
               ) : (
                 <>
-                  {/* Scan → modal report */}
-                  <button
-                    onClick={runScan}
-                    disabled={scanLoading}
-                    title="AI scan — opens a report"
-                    className="shrink-0 rounded border border-white/10 bg-transparent hover:bg-white/[.06] hover:border-white/20 px-1.5 py-0.5 text-[10px] text-slate-500 hover:text-white transition-all disabled:opacity-40"
-                  >
-                    {scanLoading ? <Loader2 size={10} className="animate-spin"/> : "Scan"}
+                  <button onClick={runScan} disabled={scanLoading} title="AI scan report"
+                    className="shrink-0 rounded-md border border-white/[.08] px-1.5 py-0.5 text-[10px] text-slate-600 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40">
+                    {scanLoading ? <Loader2 size={9} className="animate-spin"/> : "Scan"}
                   </button>
-                  {/* Send */}
-                  <button
-                    onClick={() => submitTaskWidgetInput(taskWidgetInput)}
-                    disabled={!taskWidgetInput.trim()}
-                    className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors"
-                  >
-                    <Send size={12}/>
+                  <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()}
+                    className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors">
+                    <Send size={11}/>
                   </button>
                 </>
               )}
             </div>
           </div>
         </section>
+
+        {/* Meetings card */}
+        <section className="flex flex-col rounded-2xl border border-white/[.07] bg-white/[.02] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.05]">
+            <div className="flex items-center gap-2">
+              <Calendar size={13} className="text-blue-400"/>
+              <span className="text-sm font-medium text-white">Meetings</span>
+            </div>
+            <span className="text-[11px] text-slate-600">Today</span>
+          </div>
+          <div className="flex-1">
+            {meetings.isLoading ? (
+              <div className="p-4"><PageSkeleton rows={3}/></div>
+            ) : meetings.data?.length ? (
+              <ul className="divide-y divide-white/[.04]">
+                {meetings.data.map(m => (
+                  <li key={m.id} className="px-4 py-3">
+                    <p className="text-sm text-slate-200">{m.title}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-600">{m.start_time}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[.03] border border-white/[.06] mb-3">
+                  <Calendar size={16} className="text-slate-600"/>
+                </div>
+                <p className="text-sm text-slate-400 font-medium">No meetings today</p>
+                <p className="mt-1 text-[11px] text-slate-600 max-w-[200px]">Connect your calendar to get automatic meeting briefs.</p>
+                <div className="mt-4 flex gap-2">
+                  <button className="rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-1.5 text-[11px] text-slate-400 hover:text-white hover:border-white/[.12] transition-colors">Sync Google</button>
+                  <button className="rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-1.5 text-[11px] text-slate-400 hover:text-white hover:border-white/[.12] transition-colors">Sync Microsoft</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
       {detailTask && (
-        <TaskDetailPanel
-          task={detailTask}
-          members={members}
+        <TaskDetailPanel task={detailTask} members={members}
           onClose={() => setDetailTask(null)}
           onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks", "home"] }); }}
         />
@@ -729,20 +701,19 @@ export function HomePage() {
       {(scanReport || scanLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
           <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#111419] shadow-2xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06] shrink-0">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/15">
                   <Sparkles size={11} className="text-red-400"/>
                 </div>
                 <div>
-                  <p className="text-sm font-medium leading-tight">AI Scan Report</p>
+                  <p className="text-sm font-medium">AI Scan Report</p>
                   {scanTimestamp && <p className="text-[10px] text-slate-600 mt-px">{scanTimestamp}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {!scanLoading && scanReport && (
-                  <button onClick={printReport} title="Print / Save as PDF" className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
                     <Printer size={11}/> Print
                   </button>
                 )}
@@ -751,24 +722,22 @@ export function HomePage() {
                 )}
               </div>
             </div>
-            {/* Body */}
             <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1">
               {scanLoading ? (
                 <div className="flex items-center gap-2 text-slate-500 py-4">
-                  <span className="italic">Thinking</span>
-                  <span className="flex gap-0.5 items-end h-3">
-                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "0ms" }}/>
-                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "150ms" }}/>
-                    <span className="w-1 h-1 rounded-full bg-slate-500 animate-bounce" style={{ animationDelay: "300ms" }}/>
+                  <span className="italic text-sm">Thinking</span>
+                  <span className="flex gap-1 items-end h-3">
+                    <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "0ms" }}/>
+                    <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "150ms" }}/>
+                    <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "300ms" }}/>
                   </span>
                 </div>
               ) : scanReport ? renderMarkdown(scanReport) : null}
             </div>
-            {/* Footer */}
             {!scanLoading && scanReport && (
               <div className="px-5 py-3 border-t border-white/[.06] shrink-0">
                 <button onClick={() => setScanReport(null)} className="w-full rounded-lg border border-white/10 py-2 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
-                  Close report
+                  Close
                 </button>
               </div>
             )}
