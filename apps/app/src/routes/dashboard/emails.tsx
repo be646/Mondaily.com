@@ -166,7 +166,7 @@ export function EmailsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b border-white/10 px-4 py-4 sm:px-6"><h1 className="text-xl font-semibold">Emails</h1><p className="mt-1 text-sm text-slate-500">Synced Gmail and Outlook conversations.</p></header>
+      <header className="border-b border-white/10 px-4 py-3 sm:px-6"><p className="text-sm text-slate-500">Synced Gmail and Outlook conversations.</p></header>
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <section className={`${mobileThreadOpen ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r border-white/10 md:w-80`}>
           <div className="space-y-3 border-b border-white/10 p-3">

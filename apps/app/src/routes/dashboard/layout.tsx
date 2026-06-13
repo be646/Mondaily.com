@@ -1,50 +1,43 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
 import { CommandPalette } from "../../components/ui/command-palette";
 import { useState } from "react";
-import { Home, CheckSquare, Users, MessageCircle, Menu, Search } from "lucide-react";
+import {
+  Home, CheckSquare, Users, MessageCircle, Menu, Search,
+  FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
+  List, Building2, TrendingUp, type LucideIcon,
+} from "lucide-react";
 
-// ─── Inline scanning-lines logo (mirrors sidebar Logo) ───────────────────────
-function NavLogo() {
-  const size = 20;
-  const lineCount = 10;
-  const lineH = size / lineCount;
-  const radius = 2;
-  const dotSize = 4;
-  return (
-    <div
-      className="relative overflow-hidden bg-black border border-white/20 shrink-0"
-      style={{ width: size, height: size, borderRadius: radius }}
-    >
-      <div className="logo-scan absolute inset-x-0 top-0 will-change-transform" style={{ height: "200%" }}>
-        {Array.from({ length: lineCount * 2 }).map((_, i) => (
-          <div key={i} style={{ height: lineH, borderBottom: `1px solid rgba(255,255,255,${i % 5 === 0 ? 0.22 : i % 2 === 0 ? 0.07 : 0.03})` }}/>
-        ))}
-      </div>
-      <div className="logo-dot absolute rounded-full bg-white" style={{ width: dotSize, height: dotSize, top: 3, right: 3, boxShadow: "0 0 4px rgba(255,255,255,0.9)" }}/>
-    </div>
-  );
-}
+// ─── Page icon + label derived from current path ─────────────────────────────
+type PageMeta = { label: string; Icon: LucideIcon; color: string };
 
-// ─── Derive readable page label from path ────────────────────────────────────
-function getPageLabel(pathname: string): string {
+function getPageMeta(pathname: string): PageMeta {
   if (/^\/objects\//.test(pathname)) {
     const seg = pathname.split("/objects/")[1]?.split("/")[0] ?? "";
-    return seg.replace(/[-_]/g, " ").toUpperCase();
+    const label = seg.replace(/[-_]/g, " ");
+    const icon: Record<string, LucideIcon> = { people: Users, companies: Building2, deals: TrendingUp };
+    return { label, Icon: icon[seg] ?? List, color: "text-violet-400" };
   }
-  const map: Record<string, string> = {
-    "/home": "HOME", "/tasks": "TASKS", "/notes": "NOTES",
-    "/notifications": "NOTIFICATIONS", "/reports": "REPORTS",
-    "/automations": "AUTOMATIONS", "/pipeline": "PIPELINE",
-    "/calls": "CALLS", "/emails": "EMAILS", "/search": "SEARCH",
-    "/settings": "SETTINGS", "/ask": "ASK AI", "/lists": "LISTS",
-  };
-  for (const [prefix, label] of Object.entries(map)) {
-    if (pathname.startsWith(prefix)) return label;
+  const map: [string, PageMeta][] = [
+    ["/home",          { label: "Home",          Icon: Home,        color: "text-blue-400"    }],
+    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-emerald-400" }],
+    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-amber-400"   }],
+    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-red-400"     }],
+    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-cyan-400"    }],
+    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-yellow-400"  }],
+    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-teal-400"    }],
+    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-indigo-400"  }],
+    ["/lists",         { label: "Lists",          Icon: List,        color: "text-slate-400"   }],
+    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-slate-400"   }],
+    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-red-400"   }],
+    ["/search",        { label: "Search",         Icon: Search,      color: "text-slate-400"   }],
+  ];
+  for (const [prefix, meta] of map) {
+    if (pathname.startsWith(prefix)) return meta;
   }
-  return "MONDAILY";
+  return { label: "Mondaily", Icon: Home, color: "text-slate-400" };
 }
 
 function MobileNav() {
@@ -89,7 +82,7 @@ export function DashboardLayout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const pageLabel = getPageLabel(location.pathname);
+  const { label: pageLabel, Icon: PageIcon, color: pageColor } = getPageMeta(location.pathname);
 
   // Spreadsheet grid routes own their scroll via internal flex — keep main overflow-hidden.
   // All other routes need native vertical scrolling.
@@ -116,8 +109,8 @@ export function DashboardLayout() {
             >
               <Menu size={16}/>
             </button>
-            <NavLogo/>
-            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-400 select-none hidden sm:inline">
+            <PageIcon size={16} className={`${pageColor} shrink-0`}/>
+            <span className="text-[13px] font-semibold text-white/80 capitalize select-none hidden sm:inline">
               {pageLabel}
             </span>
             {/* Search trigger */}

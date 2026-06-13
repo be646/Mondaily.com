@@ -118,7 +118,6 @@ export function AskMondailySettings() {
           <Sparkles size={18} className="text-red-400"/>
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-white">Ask Mondaily</h1>
           <p className="text-xs text-slate-500">Manage your Ask Mondaily settings, prompts and tool access.</p>
         </div>
       </div>

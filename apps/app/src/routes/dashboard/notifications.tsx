@@ -67,12 +67,9 @@ export function NotificationsPage() {
     <div className="mx-auto max-w-3xl px-6 py-8">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Notifications</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {unread > 0 ? `${unread} unread` : "All caught up"}
-          </p>
-        </div>
+        <p className="text-sm text-slate-500 pt-1">
+          {unread > 0 ? `${unread} unread` : "All caught up"}
+        </p>
         {unread > 0 && (
           <button
             onClick={() => markAll.mutate()}

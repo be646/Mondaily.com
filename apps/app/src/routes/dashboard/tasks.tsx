@@ -556,10 +556,7 @@ export function TasksPage() {
     <div className={`mx-auto px-6 py-8 ${viewMode === "list" ? "max-w-3xl" : "max-w-full"}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Tasks</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Work assigned to you and your team.</p>
-        </div>
+        <p className="text-sm text-slate-500 pt-1">Work assigned to you and your team.</p>
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex gap-0.5 rounded-lg border border-white/10 p-0.5">
