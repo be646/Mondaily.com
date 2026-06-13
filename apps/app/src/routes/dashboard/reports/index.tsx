@@ -23,10 +23,10 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm rounded-xl border border-white/[.08] bg-[#13151a] p-5 shadow-2xl">
+      <div className="w-full max-w-sm rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-white">New dashboard</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={14}/></button>
+          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={14}/></button>
         </div>
         <input
           ref={inputRef}
@@ -35,12 +35,12 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && name.trim()) onCreate(name.trim()); if (e.key === "Escape") onClose(); }}
           placeholder="e.g. Sales overview, Q2 metrics…"
-          className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-red-500/50 mb-3"
+          className="key-input w-full mb-3"
         />
         <button
           onClick={() => { if (name.trim()) onCreate(name.trim()); }}
           disabled={!name.trim()}
-          className="w-full rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-red-400 transition-colors"
         >
           Create dashboard
         </button>

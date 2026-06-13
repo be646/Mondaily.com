@@ -24,7 +24,7 @@ interface ReportOption { id: string; name: string; type: string }
 interface ObjectType  { slug: string; name_plural: string }
 
 const CHART_TOOLTIP_STYLE = {
-  contentStyle: { background: "#1a1d24", border: "1px solid rgba(255,255,255,.08)", borderRadius: 8, fontSize: 12 },
+  contentStyle: { background: "#0d0f13", border: "1px solid rgba(255,255,255,.09)", borderRadius: 8, fontSize: 12 },
   labelStyle: { color: "#94a3b8" },
 };
 
@@ -42,7 +42,7 @@ function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, 
   return (
     <section
       draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
-      className={`group relative rounded-xl border border-white/[.08] bg-white/[.02] p-5 ${className ?? ""}`}
+      className={`group relative rounded-xl border border-white/[.07] bg-white/[.02] p-5 ${className ?? ""}`}
     >
       <div className="mb-4 flex items-center gap-2 min-w-0">
         <GripVertical size={14} className="shrink-0 cursor-grab text-slate-600" />
@@ -355,7 +355,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-xl border border-white/[.08] bg-[#111419] shadow-2xl">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
           <h2 className="text-sm font-semibold text-white">Add widget</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={15}/></button>
@@ -547,7 +547,7 @@ export function DashboardViewPage() {
       {/* Delete confirm */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-red-500/20 bg-[#13151a] p-5 shadow-2xl">
+          <div className="w-full max-w-sm rounded-2xl border border-red-500/20 bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="mb-2 text-sm font-semibold text-white">Delete dashboard?</h2>
             <p className="mb-5 text-xs text-slate-400">This will permanently delete <strong className="text-white">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
             <div className="flex gap-2">

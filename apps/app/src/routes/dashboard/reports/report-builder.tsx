@@ -51,7 +51,7 @@ export function ReportBuilderPage() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-4 sm:px-6">
+      <header className="flex flex-wrap items-center gap-3 border-b border-white/[.06] px-4 py-4 sm:px-6">
         <input
           value={report.name}
           onChange={e => setReport({ ...report, name: e.target.value })}
@@ -60,7 +60,7 @@ export function ReportBuilderPage() {
         <select
           value={report.type}
           onChange={e => setReport({ ...report, type: e.target.value as ReportType })}
-          className="h-9 rounded-md border border-white/10 bg-[#0b0d10] px-3 text-sm text-white"
+          className="h-9 rounded-lg border border-white/[.08] bg-[#0d0f13] px-3 text-sm text-white outline-none focus:border-red-500/40"
         >
           <option value="insight">Insight</option>
           <option value="funnel">Funnel</option>
@@ -76,12 +76,12 @@ export function ReportBuilderPage() {
       </header>
       <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_320px]">
         <main className="min-w-0 p-4 sm:p-6">
-          <div className="rounded-lg border border-white/10 p-5">
+          <div className="rounded-xl border border-white/[.07] bg-white/[.02] p-5">
             <h2 className="mb-5 text-sm font-medium text-white">{report.name}</h2>
             {run.isLoading ? <PageSkeleton rows={5} /> : <ReportChart type={report.type} result={run.data} config={report.config} />}
           </div>
         </main>
-        <aside className="border-t border-white/10 p-5 lg:border-l lg:border-t-0">
+        <aside className="border-t border-white/[.06] p-5 lg:border-l lg:border-t-0">
           <h2 className="mb-5 text-sm font-semibold text-white">Configuration</h2>
           <ConfigPanel report={report} update={updateConfig} objects={objects} />
         </aside>
@@ -102,7 +102,7 @@ function ConfigPanel({ report, update, objects }: {
         <select
           value={config.object_type}
           onChange={e => update({ object_type: e.target.value })}
-          className="input"
+          className="key-input w-full"
         >
           {objects.length > 0
             ? objects.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)
@@ -112,7 +112,7 @@ function ConfigPanel({ report, update, objects }: {
 
       {report.type === "insight" && <>
         <Field label="Metric">
-          <select value={config.metric} onChange={e => update({ metric: e.target.value })} className="input">
+          <select value={config.metric} onChange={e => update({ metric: e.target.value })} className="key-input w-full">
             <option value="count">Count of records</option>
             <option value="sum">Sum of field</option>
             <option value="average">Average of field</option>
@@ -120,11 +120,11 @@ function ConfigPanel({ report, update, objects }: {
         </Field>
         {config.metric !== "count" && (
           <Field label="Numeric field">
-            <input value={config.field ?? "value"} onChange={e => update({ field: e.target.value })} className="input" />
+            <input value={config.field ?? "value"} onChange={e => update({ field: e.target.value })} className="key-input w-full" />
           </Field>
         )}
         <Field label="Group by">
-          <select value={config.group_by} onChange={e => update({ group_by: e.target.value })} className="input">
+          <select value={config.group_by} onChange={e => update({ group_by: e.target.value })} className="key-input w-full">
             <option value="day">Day</option>
             <option value="week">Week</option>
             <option value="month">Month</option>
@@ -149,7 +149,7 @@ function ConfigPanel({ report, update, objects }: {
 
       {report.type === "funnel" && <>
         <Field label="Stage field">
-          <input value={config.stage_field} onChange={e => update({ stage_field: e.target.value })} className="input" />
+          <input value={config.stage_field} onChange={e => update({ stage_field: e.target.value })} className="key-input w-full" />
         </Field>
         <Field label="Stages">
           <div className="space-y-2">
@@ -183,10 +183,10 @@ function ConfigPanel({ report, update, objects }: {
 
       {report.type === "time_in_stage" && <>
         <Field label="Stage field">
-          <input value={config.stage_field} onChange={e => update({ stage_field: e.target.value })} className="input" />
+          <input value={config.stage_field} onChange={e => update({ stage_field: e.target.value })} className="key-input w-full" />
         </Field>
         <Field label="Date range">
-          <select value={config.range} onChange={e => update({ range: e.target.value })} className="input">
+          <select value={config.range} onChange={e => update({ range: e.target.value })} className="key-input w-full">
             <option value="30d">Last 30 days</option>
             <option value="90d">Last 90 days</option>
             <option value="1y">Last year</option>
@@ -196,10 +196,10 @@ function ConfigPanel({ report, update, objects }: {
 
       {report.type === "historical" && <>
         <Field label="Numeric field">
-          <input value={config.field ?? "value"} onChange={e => update({ field: e.target.value })} className="input" />
+          <input value={config.field ?? "value"} onChange={e => update({ field: e.target.value })} className="key-input w-full" />
         </Field>
         <Field label="Record ID (leave empty for all)">
-          <input value={config.record_id ?? ""} onChange={e => update({ record_id: e.target.value })} placeholder="All records" className="input" />
+          <input value={config.record_id ?? ""} onChange={e => update({ record_id: e.target.value })} placeholder="All records" className="key-input w-full" />
         </Field>
       </>}
     </div>

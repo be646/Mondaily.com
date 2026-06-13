@@ -189,7 +189,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-white/10 bg-[#1a1d24] px-3 py-2 text-xs shadow-xl">
+    <div className="rounded-lg border border-white/[.09] bg-[#0d0f13] px-3 py-2 text-xs shadow-xl">
       <p className="mb-1 font-medium text-slate-300">{label}</p>
       {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }}>
@@ -219,12 +219,12 @@ function ObjectPicker({ objects, value, onChange }: {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
-          <div className="absolute left-0 top-10 z-20 min-w-[160px] overflow-hidden rounded-lg border border-white/[.08] bg-[#13151a] shadow-xl">
+          <div className="dropdown-panel absolute left-0 top-10 z-20 min-w-[160px]">
             {objects.map(o => (
               <button
                 key={o.slug}
                 onClick={() => { onChange(o.slug); setOpen(false); }}
-                className={`flex w-full items-center px-3 py-2.5 text-sm transition-colors hover:bg-white/[.04] ${o.slug === value ? "text-red-400 font-medium" : "text-slate-300"}`}
+                className={`dropdown-item w-full text-sm ${o.slug === value ? "text-red-400 font-medium" : ""}`}
               >
                 {o.name_plural}
               </button>
@@ -242,7 +242,7 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
       <div className="flex-1 bg-black/40" />
-      <div className="w-full max-w-md overflow-y-auto bg-[#13151a] border-l border-white/[.08] p-6" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md overflow-y-auto bg-[#0d0f13] border-l border-white/[.09] p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-semibold text-white truncate">{name}</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
@@ -680,7 +680,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
       </button>
 
       {open && (
-        <div className="mt-3 rounded-xl border border-white/[.08] bg-[#13151a] overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-white/[.09] bg-[#0d0f13] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
           <div className="px-5 py-4 border-b border-white/[.06]">
             <h3 className="text-sm font-semibold text-white mb-1">Scheduled email digests</h3>
             <p className="text-[11px] text-slate-500">Receive a KPI snapshot for <strong className="text-slate-400">{objName}</strong> on a schedule.</p>
@@ -1166,7 +1166,7 @@ export function SalesReportPage() {
           </span>
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
             {/* Period buttons */}
-            <div className="flex gap-0.5 rounded-lg border border-white/10 bg-white/[.02] p-0.5">
+            <div className="flex gap-0.5 rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
               {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
                 <button key={p} onClick={() => setPeriod(p)}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
@@ -1175,11 +1175,11 @@ export function SalesReportPage() {
               ))}
             </div>
             <button onClick={exportCSV}
-              className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
               <Download size={12}/> CSV
             </button>
             <button onClick={generateReport}
-              className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
               <Printer size={12}/> Export
             </button>
           </div>
@@ -1191,10 +1191,10 @@ export function SalesReportPage() {
             <span className="text-[11px] font-medium text-slate-500 shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-md border border-white/10 bg-[#13151a] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
               <span className="text-xs text-slate-600">→</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-md border border-white/10 bg-[#13151a] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
             </div>
             {customStart && customEnd && (
               <span className="ml-auto text-[11px] text-slate-600">
@@ -1239,7 +1239,7 @@ export function SalesReportPage() {
                   onChange={e => setPresetName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && presetName.trim()) savePreset(presetName.trim()); if (e.key === "Escape") { setSavingPreset(false); setPresetName(""); } }}
                   placeholder="Preset name…"
-                  className="h-6 rounded-md border border-blue-500/30 bg-[#13151a] px-2 text-[11px] text-white placeholder-slate-600 outline-none focus:border-blue-500/50 w-36"
+                  className="h-6 rounded-md border border-blue-500/30 bg-[#0d0f13] px-2 text-[11px] text-white placeholder-slate-600 outline-none focus:border-blue-500/50 w-36"
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
@@ -1281,7 +1281,7 @@ export function SalesReportPage() {
                     <select
                       value={activeFilters[col] ?? ""}
                       onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#13151a] text-slate-300 focus:border-blue-500/40"}`}
+                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#0d0f13] text-slate-300 focus:border-blue-500/40"}`}
                     >
                       <option value="">All</option>
                       {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
@@ -1317,7 +1317,7 @@ export function SalesReportPage() {
             {/* Goal dialog */}
             {editingGoal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="w-72 rounded-xl border border-white/10 bg-[#13151a] p-5 shadow-2xl">
+                <div className="w-72 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
                   <h3 className="mb-3 text-sm font-semibold text-white">Set a goal for {vocab.kpi1Label}</h3>
                   <input
                     autoFocus
@@ -1325,11 +1325,11 @@ export function SalesReportPage() {
                     onChange={e => setGoalInput(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") saveGoal(); if (e.key === "Escape") setEditingGoal(false); }}
                     placeholder={hasValue ? "e.g. 100000" : "e.g. 500"}
-                    className="w-full rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-sm text-white placeholder-slate-600 outline-none focus:border-red-500/50 mb-3"
+                    className="key-input w-full mb-3"
                   />
                   <div className="flex gap-2">
                     <button onClick={saveGoal} className="flex-1 rounded-md bg-red-600 py-2 text-xs font-medium text-white hover:bg-red-500">Set goal</button>
-                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-400 hover:text-white">Cancel</button>
+                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-xs text-slate-400 hover:text-white">Cancel</button>
                     {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-600 hover:text-slate-400">Clear</button>}
                   </div>
                 </div>
@@ -1454,7 +1454,7 @@ export function SalesReportPage() {
 
                     {/* Annotation input popover */}
                     {annotating && (
-                      <div className="absolute left-1/2 top-2 -translate-x-1/2 z-20 w-72 rounded-xl border border-amber-500/30 bg-[#13151a] shadow-2xl p-4">
+                      <div className="absolute left-1/2 top-2 -translate-x-1/2 z-20 w-72 rounded-2xl border border-amber-500/30 bg-[#0d0f13] shadow-[0_16px_48px_rgba(0,0,0,0.6)] p-4">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 mb-2">
                           <MessageSquare size={9} className="inline mr-1"/>Annotate · {annotating}
                         </p>
