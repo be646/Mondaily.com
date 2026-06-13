@@ -37,4 +37,9 @@ router.patch("/:id", async (c) => {
   return c.json(unpack(data as never));
 });
 
+router.delete("/:id", async (c) => {
+  const { error } = await supabase.from("nodes").delete().eq("workspace_id", c.get("workspaceId")).eq("object_type", "dashboard").eq("id", c.req.param("id"));
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+
 export { router as dashboardsRouter };

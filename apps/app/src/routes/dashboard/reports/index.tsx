@@ -76,14 +76,6 @@ export function ReportsPage() {
       <PageHeader
         title="Reports"
         description="Live analytics built directly from your records."
-        action={
-          <button
-            onClick={() => setCreating(true)}
-            className="flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-slate-300 hover:text-white transition-colors"
-          >
-            <Plus size={14} /> New dashboard
-          </button>
-        }
       />
 
       {/* ── Live Reports ── */}

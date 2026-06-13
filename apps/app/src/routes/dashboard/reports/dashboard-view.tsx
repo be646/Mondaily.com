@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GripVertical, Plus, Save, Trash2, BarChart2, LineChart as LineChartIcon,
-  Loader2, X, Zap, FileBarChart, Settings2, AlertTriangle,
+  Loader2, X, Zap, FileBarChart, Settings2, AlertTriangle, ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Bar, BarChart, CartesianGrid, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis, Cell,
@@ -413,10 +413,12 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function DashboardViewPage() {
   const { id = "" } = useParams();
-  const qc = useQueryClient();
-  const [dashboard, setDashboard] = useState<Dashboard | undefined>();
-  const [adding, setAdding]       = useState(false);
-  const [saved, setSaved]         = useState(false);
+  const qc       = useQueryClient();
+  const navigate = useNavigate();
+  const [dashboard, setDashboard]     = useState<Dashboard | undefined>();
+  const [adding, setAdding]           = useState(false);
+  const [saved, setSaved]             = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const query = useQuery({
     queryKey: ["dashboard", id],
@@ -440,6 +442,14 @@ export function DashboardViewPage() {
       qc.invalidateQueries({ queryKey: ["dashboard", id] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
+  const deleteDashboard = useMutation({
+    mutationFn: () => apiClient.delete(`/dashboards/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboards"] });
+      navigate("/reports");
     },
   });
 
@@ -489,6 +499,9 @@ export function DashboardViewPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="mb-6 flex flex-wrap items-center gap-3">
+        <Link to="/reports" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors shrink-0">
+          <ArrowLeft size={14}/> Reports
+        </Link>
         <input
           value={dashboard.name || ""}
           onChange={e => setDashboard({ ...dashboard, name: e.target.value })}
@@ -504,7 +517,35 @@ export function DashboardViewPage() {
           {save.isPending ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
           {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
         </button>
+        <button onClick={() => setConfirmDelete(true)}
+          className="flex h-9 items-center gap-2 rounded-md border border-red-500/20 bg-red-500/[.06] px-3 text-sm text-red-400 hover:bg-red-500/20 transition-colors">
+          <Trash2 size={13}/> Delete
+        </button>
       </header>
+
+      {/* Delete confirm */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-red-500/20 bg-[#13151a] p-5 shadow-2xl">
+            <h2 className="mb-2 text-sm font-semibold text-white">Delete dashboard?</h2>
+            <p className="mb-5 text-xs text-slate-400">This will permanently delete <strong className="text-white">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => deleteDashboard.mutate()}
+                disabled={deleteDashboard.isPending}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
+              >
+                {deleteDashboard.isPending ? <Loader2 size={13} className="animate-spin"/> : <Trash2 size={13}/>}
+                Yes, delete
+              </button>
+              <button onClick={() => setConfirmDelete(false)}
+                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-slate-400 hover:text-white transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {widgets.length === 0 ? (
         <EmptyState icon={BarChart2} title="No widgets yet"
