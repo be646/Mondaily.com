@@ -268,4 +268,46 @@ router.post("/records", requireAuth, zValidator("json", z.object({
   }
 });
 
+// ─── AI list-entry selector ───────────────────────────────────────────────────
+router.post("/list-entries", requireAuth, zValidator("json", z.object({
+  prompt: z.string().min(1),
+  objectType: z.string().min(1),
+  records: z.array(z.object({ id: z.string(), data: z.record(z.unknown()) })),
+})), async (c) => {
+  const { prompt, objectType, records } = c.req.valid("json");
+  if (!records.length) return c.json({ selectedIds: [] });
+  try {
+    const recordSummary = records.map(r => `ID:${r.id} | ${Object.entries(r.data).slice(0,5).map(([k,v])=>`${k}=${v}`).join(", ")}`).join("\n");
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      tools: [{
+        name: "select_records",
+        description: "Select record IDs that match the user's description",
+        input_schema: {
+          type: "object",
+          properties: {
+            selectedIds: {
+              type: "array",
+              items: { type: "string" },
+              description: "Array of record IDs that best match the description"
+            },
+            reason: { type: "string", description: "Brief explanation of why these were selected" }
+          },
+          required: ["selectedIds"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "select_records" },
+      messages: [{
+        role: "user",
+        content: `You are selecting ${objectType} records that match this description: "${prompt}"\n\nAvailable records:\n${recordSummary}\n\nSelect the IDs that best match. If none match, return an empty array. Be generous — if a record is a reasonable match, include it.`
+      }]
+    });
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    return c.json({ selectedIds: toolUse?.input?.selectedIds ?? [], reason: toolUse?.input?.reason ?? "" });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 export { router as generateRouter };
