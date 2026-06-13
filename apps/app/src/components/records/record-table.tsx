@@ -139,9 +139,34 @@ function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down
   );
 }
 
+// ─── Human-readable date ──────────────────────────────────────────────────────
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  const diff = Date.now() - d.getTime();
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: d.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined });
+}
+
+// Columns to always hide from the data grid (shown separately or internal)
+const HIDDEN_DATA_COLS = new Set(["updated_at", "created_at", "workspace_id", "id"]);
+
 function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
-  const initials = String(name).split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const colors = ["bg-zinc-800/70 text-zinc-300","bg-zinc-700/50 text-zinc-200","bg-zinc-800/50 text-zinc-400","bg-zinc-900/60 text-zinc-300","bg-zinc-800/60 text-zinc-400"];
+  const initials = String(name).split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
+  const colors = [
+    "bg-red-500/20 text-red-400",
+    "bg-blue-500/20 text-blue-400",
+    "bg-emerald-500/20 text-emerald-400",
+    "bg-purple-500/20 text-purple-400",
+    "bg-amber-500/20 text-amber-400",
+  ];
   const color = colors[(initials.charCodeAt(0) || 0) % colors.length];
   return (
     <div className="relative shrink-0">
@@ -594,7 +619,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
   const records = query.data ?? [];
 
   const allColumns = useMemo(() => {
-    const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
+    const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))))
+      .filter(k => !HIDDEN_DATA_COLS.has(k));
     const nameKey = allKeys.find(k => k.toLowerCase() === "name");
     const rest = allKeys.filter(k => k.toLowerCase() !== "name");
     return (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
@@ -886,25 +912,32 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
         </div>
       </div>
 
-      {/* ── Table — edge-to-edge, flex-fills remaining height ── */}
-      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border-t border-zinc-800/40">
-        <table className="min-w-full border-collapse text-left text-sm">
-          <thead className="sticky top-0 z-20 bg-[#0d0f13] will-change-transform transform-gpu backface-hidden">
+      {/* ── Table — edge-to-edge, flex-fills remaining height ─────────────────
+            KEY: border-separate + border-spacing-0 prevents the sticky-element
+            shaking bug that border-collapse causes in Chromium. Separators are
+            handled per-cell so they composite correctly with the GPU layers.   */}
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto [contain:strict]">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
+          <thead className="sticky top-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
             <tr>
               {columns.map((col, colIdx) => (
-                <th key={col} className={`whitespace-nowrap px-4 py-2 border-b border-zinc-800/60 bg-[#0d0f13] ${colIdx === 0 ? "sticky left-0 z-30 border-r border-r-zinc-800/40 will-change-transform transform-gpu" : ""}`}>
+                <th
+                  key={col}
+                  className={`whitespace-nowrap px-3 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70 ${colIdx === 0 ? "sticky left-0 z-30" : "border-r border-r-zinc-800/20"}`}
+                  style={colIdx === 0 ? { transform: "translateZ(0)", willChange: "transform", boxShadow: "1px 0 0 0 rgba(63,63,70,0.45)" } : undefined}
+                >
                   <button onClick={() => handleHeaderSort(col)}
-                    className={`flex items-center gap-1.5 hover:text-slate-300 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
+                    className={`flex items-center gap-1.5 hover:text-zinc-200 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
-                    <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">{col.replaceAll("_", " ")}</span>
+                    <span className="text-[10px] font-semibold tracking-wider text-zinc-600 uppercase">{col.replaceAll("_", " ")}</span>
                     <SortIcon col={col}/>
                   </button>
                 </th>
               ))}
-              <th className="whitespace-nowrap px-4 py-2 border-b border-zinc-800/60 bg-[#0d0f13]">
-                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
-                  <Calendar size={11} className="text-slate-600"/>
-                  <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">Updated</span>
+              <th className="whitespace-nowrap px-3 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70">
+                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 hover:text-zinc-200 transition-colors">
+                  <Calendar size={11} className="text-zinc-600"/>
+                  <span className="text-[10px] font-semibold tracking-wider text-zinc-600 uppercase">Updated</span>
                   <SortIcon col="__updated_at"/>
                 </button>
               </th>
@@ -912,26 +945,41 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
           </thead>
           <tbody>
             {sorted.length === 0 ? (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">No results for "{filterText || filterQuery}"</td></tr>
+              <tr>
+                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-[12px] text-zinc-600">
+                  No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
+                </td>
+              </tr>
             ) : (
-              sorted.map(record => (
-                <tr key={record.id} className="group border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
+              sorted.map((record, rowIdx) => (
+                <tr
+                  key={record.id}
+                  className={`group hover:bg-zinc-800/25 transition-colors ${rowIdx % 2 === 1 ? "bg-white/[.012]" : ""}`}
+                >
                   {columns.map((col, colIdx) => (
-                    <td key={col} className={`px-3 py-2.5 text-sm text-slate-300 overflow-hidden ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318] border-r border-r-zinc-800/40 will-change-transform transform-gpu" : ""}`}>
+                    <td
+                      key={col}
+                      className={`px-3 py-[6px] text-zinc-300 overflow-hidden border-b border-b-zinc-800/30 ${isNumeric(col) ? "text-right tabular-nums font-mono text-zinc-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx !== 0 ? "border-r border-r-zinc-800/15" : ""} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#101215]" : ""}`}
+                      style={colIdx === 0 ? { transform: "translateZ(0)", willChange: "transform", boxShadow: "1px 0 0 0 rgba(63,63,70,0.45)" } : undefined}
+                    >
                       {renderCell(col, record)}
                     </td>
                   ))}
-                  <td className="whitespace-nowrap px-4 py-2.5 text-xs text-slate-600 tabular-nums">
-                    {new Date(record.updated_at).toLocaleDateString()}
+                  <td className="whitespace-nowrap px-3 py-[6px] text-[11px] text-zinc-600 tabular-nums border-b border-b-zinc-800/30">
+                    {fmtDate(record.updated_at)}
                   </td>
                 </tr>
               ))
             )}
           </tbody>
-          <tfoot className="sticky bottom-0 z-20 bg-[#0d0f13] will-change-transform transform-gpu">
-            <tr className="border-t border-zinc-800/60">
+          <tfoot className="sticky bottom-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+            <tr>
               {columns.map(col => (
-                <td key={col} className={`px-4 py-2 bg-[#0d0f13] ${isNumeric(col) ? "text-right" : ""}`}>
+                <td
+                  key={col}
+                  className={`px-3 py-[6px] bg-[#0d0f13] border-t border-t-zinc-800/60 ${isNumeric(col) ? "text-right" : ""} ${col === columns[0] ? "sticky left-0 z-30" : "border-r border-r-zinc-800/15"}`}
+                  style={col === columns[0] ? { transform: "translateZ(0)", willChange: "transform", boxShadow: "1px 0 0 0 rgba(63,63,70,0.45)" } : undefined}
+                >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
                     className={`inline-block ${isNumeric(col) ? "ml-auto" : ""}`}
@@ -945,13 +993,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                     )}
                     {calculations[col] ? (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors tabular-nums font-mono">
-                        <span className="text-slate-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
+                        className="flex items-center gap-1.5 text-[11px] text-zinc-400 hover:text-white transition-colors tabular-nums font-mono">
+                        <span className="text-zinc-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
                         {calcResult(calculations[col], col, sorted)}
                       </button>
                     ) : (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1 text-[11px] text-slate-700 hover:text-slate-400 transition-colors group">
+                        className="flex items-center gap-1 text-[11px] text-zinc-700 hover:text-zinc-400 transition-colors group">
                         <Plus size={10} className="group-hover:text-red-400 transition-colors"/>
                         <span>Calculate</span>
                       </button>
@@ -959,7 +1007,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                   </div>
                 </td>
               ))}
-              <td className="px-4 py-2 text-[11px] text-slate-700 tabular-nums bg-[#0d0f13]">{sorted.length} rows</td>
+              <td className="px-3 py-[6px] text-[11px] text-zinc-700 tabular-nums bg-[#0d0f13] border-t border-t-zinc-800/60">{sorted.length} rows</td>
             </tr>
           </tfoot>
         </table>

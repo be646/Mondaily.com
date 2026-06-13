@@ -52,7 +52,10 @@ function CreateRecordModal({
 }) {
   const queryClient = useQueryClient();
   const cachedRecords = (queryClient.getQueryData<Array<{ data: Record<string, unknown> }>>(["records", objectType])) ?? [];
-  const liveColumns = Array.from(new Set(cachedRecords.flatMap(r => Object.keys(r.data)))).slice(0, 8);
+  const AUTO_FIELDS = new Set(["updated_at", "created_at", "workspace_id", "id"]);
+  const liveColumns = Array.from(new Set(cachedRecords.flatMap(r => Object.keys(r.data))))
+    .filter(k => !AUTO_FIELDS.has(k))
+    .slice(0, 8);
 
   const fieldKeys = liveColumns.length > 0 ? liveColumns : (() => {
     const t = objectType.toLowerCase();
