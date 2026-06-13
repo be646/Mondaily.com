@@ -319,7 +319,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="text-[13px] font-semibold text-white capitalize">New {objectType.replace(/[-_]/g, " ")}</span>
