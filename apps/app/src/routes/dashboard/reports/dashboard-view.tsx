@@ -13,74 +13,31 @@ import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface LiveWidget   { id: string; type: "live";   slug: string; title: string }
-interface ReportWidget { id: string; type: "report"; report_id: string; title: string; chart_type?: "line" | "bar" }
-type Widget = LiveWidget | ReportWidget;
+// "live"   — fetches records directly from an object type (always fresh)
+// "report" — re-runs a saved Report Builder report on mount
+// legacy   — old format: has embedded `data` array, no `type` field
 
-interface Dashboard { id: string; name: string; access: "private" | "workspace"; widgets: Widget[]; updated_at: string }
+interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string }
+interface ReportWidget { id: string; type: "report"; report_id: string; title?: string; chart_type?: "line"|"bar" }
+interface LegacyWidget { id: string; type?: undefined; report_id?: string; title?: string; chart_type?: "line"|"bar"; data?: { label: string; value: number }[] }
+type AnyWidget = LiveWidget | ReportWidget | LegacyWidget;
+
+interface Dashboard { id: string; name?: string; access?: "private"|"workspace"; widgets?: AnyWidget[]; updated_at?: string }
 interface ReportOption { id: string; name: string; type: string }
 interface ObjectType  { slug: string; name_plural: string }
 
-// ─── Live widget: fetches fresh data for any object type ──────────────────────
-function LiveWidgetCard({
-  widget,
-  onRemove,
-  onDragStart,
-  onDragOver,
-  onDrop,
-}: {
-  widget: LiveWidget;
+// ─── Shared widget wrapper ────────────────────────────────────────────────────
+function WidgetShell({ title, icon, link, linkLabel, onRemove, onDragStart, onDragOver, onDrop, children }: {
+  title: string;
+  icon: React.ReactNode;
+  link?: string;
+  linkLabel?: string;
   onRemove: () => void;
   onDragStart: (e: React.DragEvent) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDragOver:  (e: React.DragEvent) => void;
+  onDrop:      (e: React.DragEvent) => void;
+  children: React.ReactNode;
 }) {
-  const recordsQ = useQuery({
-    queryKey: ["records", widget.slug],
-    queryFn: () => apiClient.get<any[]>(`/nodes?object_type=${encodeURIComponent(widget.slug)}&limit=300`),
-    staleTime: 30_000,
-  });
-
-  const records = recordsQ.data ?? [];
-
-  // Auto-detect value column
-  const valueCol = (() => {
-    const candidates = ["deal_value","value","amount","price","revenue","arr","budget","cost","total","fee"];
-    const keys = Array.from(new Set(records.flatMap(r => Object.keys((r.data as Record<string,unknown>) ?? {}))));
-    for (const c of candidates) if (keys.includes(c)) return c;
-    return keys.find(k => records.some(r => !isNaN(Number((r.data as any)?.[k])) && Number((r.data as any)?.[k]) > 0)) ?? null;
-  })();
-
-  // Monthly trend last 6 months
-  const trendData = (() => {
-    const months: Record<string, { count: number; value: number }> = {};
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(); d.setMonth(d.getMonth() - i);
-      const label = d.toLocaleDateString("en", { month: "short" });
-      months[label] = { count: 0, value: 0 };
-    }
-    for (const r of records) {
-      const raw = r.updated_at ?? r.created_at;
-      if (!raw) continue;
-      const d = new Date(raw);
-      const label = d.toLocaleDateString("en", { month: "short" });
-      if (!(label in months)) continue;
-      months[label]!.count += 1;
-      if (valueCol) {
-        const v = Number((r.data as any)?.[valueCol] ?? 0);
-        months[label]!.value += isNaN(v) ? 0 : v;
-      }
-    }
-    return Object.entries(months).map(([label, { count, value }]) => ({ label, count, value }));
-  })();
-
-  const totalValue = records.reduce((s, r) => {
-    const v = valueCol ? Number(r.data?.[valueCol] ?? 0) : 0;
-    return s + (isNaN(v) ? 0 : v);
-  }, 0);
-
-  const fmtMoney = (n: number) => n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n.toLocaleString()}`;
-
   return (
     <section
       draggable
@@ -89,36 +46,108 @@ function LiveWidgetCard({
       onDrop={onDrop}
       className="rounded-xl border border-white/[.08] bg-white/[.02] p-5"
     >
-      <div className="mb-4 flex items-center gap-2">
-        <GripVertical size={14} className="cursor-grab text-slate-600" />
-        <Zap size={13} className="text-emerald-400" />
-        <h2 className="flex-1 text-sm font-medium text-white">{widget.title}</h2>
-        <Link to={`/reports/sales?object=${widget.slug}`} className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
-          Full report →
-        </Link>
-        <button onClick={onRemove} className="text-slate-600 hover:text-red-400 transition-colors">
+      <div className="mb-4 flex items-center gap-2 min-w-0">
+        <GripVertical size={14} className="shrink-0 cursor-grab text-slate-600" />
+        <span className="shrink-0">{icon}</span>
+        <h2 className="flex-1 truncate text-sm font-semibold text-white">{title || "Untitled widget"}</h2>
+        {link && (
+          <Link to={link} className="shrink-0 text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
+            {linkLabel ?? "Open →"}
+          </Link>
+        )}
+        <button onClick={onRemove} className="shrink-0 text-slate-600 hover:text-red-400 transition-colors">
           <Trash2 size={13} />
         </button>
       </div>
+      {children}
+    </section>
+  );
+}
 
+const CHART_TOOLTIP_STYLE = {
+  contentStyle: { background: "#1a1d24", border: "1px solid rgba(255,255,255,.08)", borderRadius: 8, fontSize: 12 },
+  labelStyle: { color: "#94a3b8" },
+};
+
+// ─── Live widget ──────────────────────────────────────────────────────────────
+function LiveWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
+  widget: LiveWidget;
+  onRemove: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver:  (e: React.DragEvent) => void;
+  onDrop:      (e: React.DragEvent) => void;
+}) {
+  const slug = widget.slug ?? "";
+  const title = widget.title || slug || "Live Report";
+
+  const recordsQ = useQuery({
+    queryKey: ["records", slug],
+    queryFn: () => apiClient.get<any[]>(`/nodes?object_type=${encodeURIComponent(slug)}&limit=300`),
+    staleTime: 30_000,
+    enabled: !!slug,
+  });
+
+  const records = recordsQ.data ?? [];
+
+  const valueCol = (() => {
+    const candidates = ["deal_value","value","amount","price","revenue","arr","budget","cost","total","fee"];
+    const keys = Array.from(new Set(records.flatMap((r: any) => Object.keys(r.data ?? {}))));
+    for (const c of candidates) if (keys.includes(c)) return c;
+    return keys.find(k => records.some((r: any) => !isNaN(Number(r.data?.[k])) && Number(r.data?.[k]) > 0)) ?? null;
+  })();
+
+  const trendData = (() => {
+    const months: Record<string, { count: number; value: number }> = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(); d.setMonth(d.getMonth() - i);
+      months[d.toLocaleDateString("en", { month: "short" })] = { count: 0, value: 0 };
+    }
+    for (const r of records) {
+      const raw = r.updated_at ?? r.created_at;
+      if (!raw) continue;
+      const label = new Date(raw as string).toLocaleDateString("en", { month: "short" });
+      if (!(label in months)) continue;
+      months[label]!.count += 1;
+      if (valueCol) {
+        const v = Number(r.data?.[valueCol] ?? 0);
+        months[label]!.value += isNaN(v) ? 0 : v;
+      }
+    }
+    return Object.entries(months).map(([label, { count, value }]) => ({ label, count, value }));
+  })();
+
+  const totalValue = records.reduce((s: number, r: any) => {
+    const v = valueCol ? Number(r.data?.[valueCol] ?? 0) : 0;
+    return s + (isNaN(v) ? 0 : v);
+  }, 0);
+  const fmtMoney = (n: number) => n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n.toLocaleString()}`;
+
+  return (
+    <WidgetShell
+      title={title}
+      icon={<Zap size={13} className="text-emerald-400" />}
+      link={`/reports/sales?object=${slug}`}
+      linkLabel="Full report →"
+      onRemove={onRemove} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+    >
       {recordsQ.isLoading ? (
         <div className="flex h-48 items-center justify-center">
           <Loader2 size={16} className="animate-spin text-slate-600" />
         </div>
       ) : records.length === 0 ? (
         <div className="flex h-48 items-center justify-center">
-          <p className="text-xs text-slate-600">No records found for {widget.title}</p>
+          <p className="text-xs text-slate-600">No records found for {title}</p>
         </div>
       ) : (
         <>
-          <div className="mb-4 flex items-end gap-4">
+          <div className="mb-4 flex items-end gap-6">
             <div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide">{valueCol ? "Total value" : "Records"}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">{valueCol ? "Total value" : "Total records"}</p>
               <p className="text-2xl font-bold text-white">{valueCol ? fmtMoney(totalValue) : records.length}</p>
             </div>
             <div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide">This month</p>
-              <p className="text-lg font-semibold text-white">{trendData[trendData.length - 1]?.count ?? 0}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">This month</p>
+              <p className="text-xl font-semibold text-white">{trendData[trendData.length - 1]?.count ?? 0}</p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={160}>
@@ -126,78 +155,68 @@ function LiveWidgetCard({
               <CartesianGrid stroke="#1e222a" strokeDasharray="3 3" />
               <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }} />
               <YAxis stroke="#475569" tick={{ fontSize: 10 }} width={28} />
-              <Tooltip
-                contentStyle={{ background: "#1a1d24", border: "1px solid rgba(255,255,255,.08)", borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: "#94a3b8" }}
-              />
-              <Bar dataKey={valueCol ? "value" : "count"} name={valueCol ? "Value" : "Records"} radius={[3, 3, 0, 0]}>
+              <Tooltip {...CHART_TOOLTIP_STYLE} />
+              <Bar dataKey={valueCol ? "value" : "count"} name={valueCol ?? "Records"} radius={[3, 3, 0, 0]}>
                 {trendData.map((_, i) => (
-                  <Cell key={i} fill={i === trendData.length - 1 ? "#10b981" : "#10b98160"} />
+                  <Cell key={i} fill={i === trendData.length - 1 ? "#10b981" : "#10b98150"} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </>
       )}
-    </section>
+    </WidgetShell>
   );
 }
 
-// ─── Report widget: re-runs the saved report on mount for fresh data ──────────
-function ReportWidgetCard({
-  widget,
-  onRemove,
-  onDragStart,
-  onDragOver,
-  onDrop,
-}: {
-  widget: ReportWidget;
+// ─── Report widget (re-runs report on mount) ──────────────────────────────────
+function ReportWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
+  widget: ReportWidget | LegacyWidget;
   onRemove: () => void;
   onDragStart: (e: React.DragEvent) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDragOver:  (e: React.DragEvent) => void;
+  onDrop:      (e: React.DragEvent) => void;
 }) {
+  const reportId = widget.report_id ?? "";
+  const title = widget.title || "Report widget";
+
+  // If it's a legacy widget with embedded data and no valid report_id, just use the data directly
+  const legacyData = (widget as LegacyWidget).data;
+  const hasLegacyData = Array.isArray(legacyData) && legacyData.length > 0;
+
   const runQ = useQuery({
-    queryKey: ["report-run-widget", widget.report_id],
-    queryFn: () => apiClient.post<{ data: { label: string; value: number }[]; chart_type?: "line" | "bar" }>(
-      `/reports/${widget.report_id}/run`, {}
+    queryKey: ["report-run-widget", reportId],
+    queryFn: () => apiClient.post<{ data: { label: string; value: number }[]; chart_type?: "line"|"bar" }>(
+      `/reports/${reportId}/run`, {}
     ),
     staleTime: 60_000,
+    enabled: !!reportId && !hasLegacyData,
   });
 
-  const data = runQ.data?.data ?? [];
+  const data = hasLegacyData ? (legacyData ?? []) : (runQ.data?.data ?? []);
   const chartType = runQ.data?.chart_type ?? widget.chart_type ?? "bar";
+  const isLoading = !hasLegacyData && runQ.isLoading && !!reportId;
 
   return (
-    <section
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      className="rounded-xl border border-white/[.08] bg-white/[.02] p-5"
+    <WidgetShell
+      title={title}
+      icon={<FileBarChart size={13} className="text-red-400" />}
+      link={reportId ? `/reports/${reportId}` : undefined}
+      linkLabel="Edit →"
+      onRemove={onRemove} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
-      <div className="mb-4 flex items-center gap-2">
-        <GripVertical size={14} className="cursor-grab text-slate-600" />
-        <FileBarChart size={13} className="text-red-400" />
-        <h2 className="flex-1 text-sm font-medium text-white">{widget.title}</h2>
-        <Link to={`/reports/${widget.report_id}`} className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
-          Edit →
-        </Link>
-        <button onClick={onRemove} className="text-slate-600 hover:text-red-400 transition-colors">
-          <Trash2 size={13} />
-        </button>
-      </div>
-
-      {runQ.isLoading ? (
+      {isLoading ? (
         <div className="flex h-48 items-center justify-center">
           <Loader2 size={16} className="animate-spin text-slate-600" />
         </div>
       ) : !data.length ? (
-        <div className="flex h-48 flex-col items-center justify-center gap-2">
-          <p className="text-xs text-slate-600">No data for this report</p>
-          <Link to={`/reports/${widget.report_id}`} className="text-xs text-red-400 hover:text-red-300">
-            Configure report →
-          </Link>
+        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
+          <p className="text-xs text-slate-600">No data for this report.</p>
+          {reportId && (
+            <Link to={`/reports/${reportId}`} className="text-xs text-red-400 hover:text-red-300">
+              Configure report →
+            </Link>
+          )}
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={200}>
@@ -206,7 +225,7 @@ function ReportWidgetCard({
               <CartesianGrid stroke="#1e222a" strokeDasharray="3 3" />
               <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }} />
               <YAxis stroke="#475569" tick={{ fontSize: 10 }} width={28} />
-              <Tooltip contentStyle={{ background: "#1a1d24", border: "1px solid rgba(255,255,255,.08)", borderRadius: 8, fontSize: 12 }} />
+              <Tooltip {...CHART_TOOLTIP_STYLE} />
               <Bar dataKey="value" fill="#ef4444" radius={[3, 3, 0, 0]} />
             </BarChart>
           ) : (
@@ -214,29 +233,24 @@ function ReportWidgetCard({
               <CartesianGrid stroke="#1e222a" strokeDasharray="3 3" />
               <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }} />
               <YAxis stroke="#475569" tick={{ fontSize: 10 }} width={28} />
-              <Tooltip contentStyle={{ background: "#1a1d24", border: "1px solid rgba(255,255,255,.08)", borderRadius: 8, fontSize: 12 }} />
+              <Tooltip {...CHART_TOOLTIP_STYLE} />
               <Line dataKey="value" stroke="#ef4444" strokeWidth={2} dot={false} />
             </LineChart>
           )}
         </ResponsiveContainer>
       )}
-    </section>
+    </WidgetShell>
   );
 }
 
 // ─── Add widget modal ─────────────────────────────────────────────────────────
-function AddWidgetModal({
-  objects,
-  reports,
-  onAdd,
-  onClose,
-}: {
+function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   objects: ObjectType[];
   reports: ReportOption[];
-  onAdd: (widget: Widget) => void;
+  onAdd: (widget: AnyWidget) => void;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"live" | "report">("live");
+  const [tab, setTab] = useState<"live"|"report">("live");
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
@@ -246,45 +260,34 @@ function AddWidgetModal({
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={15} /></button>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b border-white/[.06]">
-          <button
-            onClick={() => setTab("live")}
-            className={`flex flex-1 items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${tab === "live" ? "border-b-2 border-emerald-500 text-white" : "text-slate-500 hover:text-slate-300"}`}
-          >
-            <Zap size={12} /> Live Object
-          </button>
-          <button
-            onClick={() => setTab("report")}
-            className={`flex flex-1 items-center justify-center gap-2 py-2.5 text-xs font-medium transition-colors ${tab === "report" ? "border-b-2 border-red-500 text-white" : "text-slate-500 hover:text-slate-300"}`}
-          >
-            <FileBarChart size={12} /> Saved Report
-          </button>
+          {(["live","report"] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${tab === t ? `border-b-2 text-white ${t === "live" ? "border-emerald-500" : "border-red-500"}` : "text-slate-500 hover:text-slate-300"}`}>
+              {t === "live" ? <><Zap size={11}/> Live Object</> : <><FileBarChart size={11}/> Saved Report</>}
+            </button>
+          ))}
         </div>
 
-        <div className="p-4">
+        <div className="p-4 max-h-96 overflow-y-auto">
           {tab === "live" ? (
             objects.length === 0 ? (
               <p className="py-8 text-center text-xs text-slate-600">No object types found in this workspace.</p>
             ) : (
               <div className="space-y-2">
-                <p className="mb-3 text-[11px] text-slate-500">
-                  Always shows live data. Auto-detects value and trend columns.
-                </p>
+                <p className="mb-3 text-[11px] text-slate-500">Always shows live data — auto-detects value and trend columns.</p>
                 {objects.map(obj => (
-                  <button
-                    key={obj.slug}
+                  <button key={obj.slug}
                     onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
-                    className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400">
+                    className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400">
                       <BarChart2 size={14} />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white">{obj.name_plural}</p>
-                      <p className="text-[11px] text-slate-500">KPIs + 6-month trend chart</p>
+                      <p className="text-[11px] text-slate-500">KPIs + 6-month trend</p>
                     </div>
-                    <Plus size={14} className="ml-auto text-slate-600" />
+                    <Plus size={14} className="shrink-0 text-slate-600" />
                   </button>
                 ))}
               </div>
@@ -293,29 +296,25 @@ function AddWidgetModal({
             reports.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-xs text-slate-500 mb-3">No saved reports yet.</p>
-                <Link to="/reports" className="text-xs text-red-400 hover:text-red-300">
+                <Link to="/reports" onClick={onClose} className="text-xs text-red-400 hover:text-red-300">
                   Create a report first →
                 </Link>
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="mb-3 text-[11px] text-slate-500">
-                  Configured reports from the Report Builder. Data refreshes on load.
-                </p>
+                <p className="mb-3 text-[11px] text-slate-500">Data re-runs fresh each time the dashboard loads.</p>
                 {reports.map(report => (
-                  <button
-                    key={report.id}
+                  <button key={report.id}
                     onClick={() => { onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: report.name }); onClose(); }}
-                    className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500/10 text-red-400">
+                    className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500/10 text-red-400">
                       <LineChartIcon size={14} />
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{report.name}</p>
-                      <p className="text-[11px] text-slate-500 capitalize">{report.type?.replace(/_/g, " ") ?? "report"}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{report.name}</p>
+                      <p className="text-[11px] text-slate-500 capitalize">{report.type?.replace(/_/g," ") ?? "report"}</p>
                     </div>
-                    <Plus size={14} className="ml-auto text-slate-600" />
+                    <Plus size={14} className="shrink-0 text-slate-600" />
                   </button>
                 ))}
               </div>
@@ -327,7 +326,7 @@ function AddWidgetModal({
   );
 }
 
-// ─── Main page ─────────────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export function DashboardViewPage() {
   const { id = "" } = useParams();
   const qc = useQueryClient();
@@ -339,21 +338,20 @@ export function DashboardViewPage() {
     queryKey: ["dashboard", id],
     queryFn: () => apiClient.get<Dashboard>(`/dashboards/${id}`),
   });
-
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],
     queryFn: () => apiClient.get<ObjectType[]>("/objects"),
     staleTime: 60_000,
   });
-
   const reportsQ = useQuery({
     queryKey: ["reports"],
     queryFn: () => apiClient.get<ReportOption[]>("/reports"),
     enabled: adding,
   });
-
   const save = useMutation({
-    mutationFn: (value: Dashboard) => apiClient.patch(`/dashboards/${id}`, value),
+    mutationFn: (d: Dashboard) =>
+      // Only send the fields the API needs — don't store updated_at inside data
+      apiClient.patch(`/dashboards/${id}`, { name: d.name, access: d.access ?? "private", widgets: d.widgets ?? [] }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dashboard", id] });
       setSaved(true);
@@ -365,30 +363,31 @@ export function DashboardViewPage() {
 
   if (query.isLoading || !dashboard) return <div className="p-8"><PageSkeleton rows={7} /></div>;
 
-  const widgets: Widget[] = Array.isArray(dashboard.widgets) ? dashboard.widgets : [];
+  const widgets: AnyWidget[] = Array.isArray(dashboard.widgets) ? dashboard.widgets : [];
+  const dashName = dashboard.name || "Untitled dashboard";
 
-  function moveWidget(sourceId: string, targetId: string) {
+  function moveWidget(srcId: string, dstId: string) {
     if (!dashboard) return;
-    const source = widgets.findIndex(w => w.id === sourceId);
-    const target = widgets.findIndex(w => w.id === targetId);
-    if (source < 0 || target < 0 || source === target) return;
+    const src = widgets.findIndex(w => w.id === srcId);
+    const dst = widgets.findIndex(w => w.id === dstId);
+    if (src < 0 || dst < 0 || src === dst) return;
     const next = [...widgets];
-    const [item] = next.splice(source, 1);
-    if (item) next.splice(target, 0, item);
+    const [item] = next.splice(src, 1);
+    if (item) next.splice(dst, 0, item);
     setDashboard({ ...dashboard, widgets: next });
   }
 
-  function removeWidget(widgetId: string) {
+  function removeWidget(wid: string) {
     if (!dashboard) return;
-    setDashboard({ ...dashboard, widgets: widgets.filter(w => w.id !== widgetId) });
+    setDashboard({ ...dashboard, widgets: widgets.filter(w => w.id !== wid) });
   }
 
-  function addWidget(widget: Widget) {
+  function addWidget(w: AnyWidget) {
     if (!dashboard) return;
-    setDashboard({ ...dashboard, widgets: [...widgets, widget] });
+    setDashboard({ ...dashboard, widgets: [...widgets, w] });
   }
 
-  const dragHandlers = (wid: string) => ({
+  const dh = (wid: string) => ({
     onDragStart: (e: React.DragEvent) => e.dataTransfer.setData("widget-id", wid),
     onDragOver:  (e: React.DragEvent) => e.preventDefault(),
     onDrop:      (e: React.DragEvent) => moveWidget(e.dataTransfer.getData("widget-id"), wid),
@@ -396,35 +395,29 @@ export function DashboardViewPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-      {/* Header */}
       <header className="mb-6 flex flex-wrap items-center gap-3">
         <input
-          value={dashboard.name}
+          value={dashName}
           onChange={e => setDashboard({ ...dashboard, name: e.target.value })}
-          className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-white outline-none"
+          className="min-w-0 flex-1 bg-transparent text-xl font-semibold text-white outline-none placeholder-slate-600"
+          placeholder="Dashboard name"
         />
-        <button
-          onClick={() => setAdding(true)}
-          className="flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-slate-300 hover:text-white transition-colors"
-        >
+        <button onClick={() => setAdding(true)}
+          className="flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-slate-300 hover:text-white transition-colors">
           <Plus size={14} /> Add widget
         </button>
-        <button
-          onClick={() => save.mutate(dashboard)}
-          disabled={save.isPending}
-          className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-60 transition-colors"
-        >
+        <button onClick={() => save.mutate(dashboard)} disabled={save.isPending}
+          className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-60 transition-colors">
           {save.isPending ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
         </button>
       </header>
 
-      {/* Widgets */}
       {widgets.length === 0 ? (
         <EmptyState
           icon={BarChart2}
           title="No widgets yet"
-          description="Add a Live Object widget for instant KPIs, or pin a saved Report Builder chart."
+          description='Click "Add widget" — pick a Live Object for instant KPIs, or a saved Report Builder chart.'
           action={
             <button onClick={() => setAdding(true)} className="rounded-md bg-red-600 px-3 py-2 text-sm text-white">
               Add first widget
@@ -433,31 +426,17 @@ export function DashboardViewPage() {
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {widgets.map(widget => {
-            const dh = dragHandlers(widget.id);
-            if (widget.type === "live") {
-              return (
-                <LiveWidgetCard
-                  key={widget.id}
-                  widget={widget}
-                  onRemove={() => removeWidget(widget.id)}
-                  {...dh}
-                />
-              );
+          {widgets.map(w => {
+            const handlers = dh(w.id);
+            if (w.type === "live") {
+              return <LiveWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} {...handlers} />;
             }
-            return (
-              <ReportWidgetCard
-                key={widget.id}
-                widget={widget}
-                onRemove={() => removeWidget(widget.id)}
-                {...dh}
-              />
-            );
+            // "report" type OR legacy (no type) — both render as ReportWidgetCard
+            return <ReportWidgetCard key={w.id} widget={w as ReportWidget | LegacyWidget} onRemove={() => removeWidget(w.id)} {...handlers} />;
           })}
         </div>
       )}
 
-      {/* Add widget modal */}
       {adding && (
         <AddWidgetModal
           objects={objectsQ.data ?? []}
