@@ -220,7 +220,7 @@ export function ObjectIndexPage() {
   }, [objectType, queryClient]);
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
         <h1 className="flex-1 text-[15px] font-semibold capitalize text-white tracking-tight">
           {objectType.replace(/[-_]/g, " ")}
@@ -246,7 +246,7 @@ export function ObjectIndexPage() {
         <CsvImporter objectType={objectType} onImported={() => queryClient.invalidateQueries({ queryKey: ["records", objectType] })}/>
       </div>
 
-      <div className="flex-1 overflow-auto px-6 pb-4">
+      <div className="flex-1 min-h-0 overflow-auto px-6 pb-4">
         <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
       </div>
 

@@ -738,7 +738,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
           <div className="relative">
             <button
               onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "view" ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "view" ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
             >
               <Settings2 size={12}/>
               <span className="hidden sm:inline">View</span>
@@ -758,7 +758,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
           <div className="relative">
             <button
               onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "sort" || activeSortCount > 0 ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "sort" || activeSortCount > 0 ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
             >
               <ArrowUpDown size={12}/>
               <span className="hidden sm:inline">Sort</span>
@@ -778,7 +778,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
           <div className="relative">
             <button
               onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "addcol" ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "addcol" ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
             >
               <Plus size={12}/>
               <span className="hidden sm:inline">Column</span>
@@ -795,7 +795,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
           <div className="relative">
             <button
               onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "export" ? "border-red-500/30 bg-red-500/[.06] text-white" : "border-white/[.08] bg-white/[.03] text-slate-400 hover:text-white hover:border-white/[.12]"}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "export" ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
             >
               <Download size={12}/>
               <span className="hidden sm:inline">Export</span>
@@ -818,7 +818,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
           <thead className="sticky top-0 z-20 bg-[#0d0f13]">
             <tr>
               {columns.map((col, colIdx) => (
-                <th key={col} className={`whitespace-nowrap px-4 py-2 border-b border-white/[.05] ${colIdx === 0 ? "sticky left-0 z-30 bg-[#0d0f13]" : ""}`}>
+                <th key={col} className={`whitespace-nowrap px-4 py-2 border-b border-zinc-800/60 ${colIdx === 0 ? "sticky left-0 z-30 bg-[#0d0f13] border-r border-r-zinc-800/40" : ""}`}>
                   <button onClick={() => handleHeaderSort(col)}
                     className={`flex items-center gap-1.5 hover:text-slate-300 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
@@ -827,7 +827,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
                   </button>
                 </th>
               ))}
-              <th className="whitespace-nowrap px-4 py-2 border-b border-white/[.05]">
+              <th className="whitespace-nowrap px-4 py-2 border-b border-zinc-800/60">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
                   <Calendar size={11} className="text-slate-600"/>
                   <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">Updated</span>
@@ -841,9 +841,9 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
               <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">No results for "{filterText}"</td></tr>
             ) : (
               sorted.map(record => (
-                <tr key={record.id} className="group border-b border-white/[.04] hover:bg-white/[.015] transition-colors">
+                <tr key={record.id} className="group border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
                   {columns.map((col, colIdx) => (
-                    <td key={col} className={`px-3 py-2.5 text-sm text-slate-300 overflow-hidden ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318]" : ""}`}>
+                    <td key={col} className={`px-3 py-2.5 text-sm text-slate-300 overflow-hidden ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318] border-r border-r-zinc-800/40" : ""}`}>
                       {renderCell(col, record)}
                     </td>
                   ))}
@@ -855,7 +855,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
             )}
           </tbody>
           <tfoot className="sticky bottom-0 z-20 bg-[#0d0f13]">
-            <tr className="border-t border-white/[.08]">
+            <tr className="border-t border-zinc-800/60">
               {columns.map(col => (
                 <td key={col} className={`px-4 py-2 ${isNumeric(col) ? "text-right" : ""}`}>
                   <div className={`relative inline-block ${isNumeric(col) ? "ml-auto" : ""}`}>

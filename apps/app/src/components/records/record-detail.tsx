@@ -292,7 +292,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
     if (draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className="group grid grid-cols-[100px_1fr] items-start gap-2 py-2 border-b border-white/[.04] last:border-0">
+    <div className="group grid grid-cols-[100px_1fr] items-start gap-2 py-2 border-b border-zinc-800/40 last:border-0">
       <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 pt-0.5 select-none truncate">{label}</span>
       <div className="min-w-0 flex items-center gap-1">
         {editing ? (
@@ -339,7 +339,7 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
     if (onSave && draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className={`rounded-lg border border-white/[.06] bg-white/[.02] p-3.5 transition-colors ${onSave ? "hover:border-white/[.09] cursor-pointer" : ""}`}>
+    <div className={`rounded-lg border border-zinc-800/70 bg-zinc-900/40 p-3.5 transition-colors ${onSave ? "hover:border-zinc-700/70 cursor-pointer" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <Icon size={12} className={ACCENT_MAP[accent]}/>
@@ -374,7 +374,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
   const isLost = stage === "Closed Lost";
   const activeIdx = PIPE_STAGES.indexOf(stage as typeof PIPE_STAGES[number]);
   return (
-    <div className="rounded-lg border border-white/[.06] bg-white/[.02] p-4 col-span-2">
+    <div className="rounded-lg border border-zinc-800/60 bg-zinc-900/30 p-4 col-span-2">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
           <Tag size={12} className="text-purple-400"/>
@@ -434,12 +434,12 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
   const current = assignedTo ? members.find(m => m.id === assignedTo || m.name === assignedTo) : null;
 
   return (
-    <div className="px-4 py-3 border-b border-white/[.06]">
+    <div className="px-4 py-3 border-b border-zinc-800/50">
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assigned to</p>
       <div ref={ref} className="relative">
         <button
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-2 w-full rounded-lg border border-white/[.07] bg-white/[.02] px-2.5 py-2 hover:bg-white/[.04] transition-colors"
+          className="flex items-center gap-2 w-full rounded-lg border border-zinc-800/60 bg-zinc-900/30 px-2.5 py-2 hover:bg-zinc-800/40 transition-colors"
         >
           {current ? (
             <>
@@ -1036,7 +1036,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 border-b border-white/[.06] px-6 py-3 shrink-0">
+      <div className="flex items-center gap-2 border-b border-zinc-800/50 px-6 py-3 shrink-0">
         <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-white transition-colors">
           <ChevronLeft size={13}/>{objectType}
         </Link>
@@ -1054,9 +1054,9 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Left panel ── */}
-        <aside className="flex w-[272px] shrink-0 flex-col border-r border-white/[.06] overflow-auto">
+        <aside className="flex w-[272px] shrink-0 flex-col border-r border-zinc-800/50 overflow-auto">
 
-          <div className="px-5 pt-6 pb-4 border-b border-white/[.06]">
+          <div className="px-5 pt-6 pb-4 border-b border-zinc-800/50">
             {/* Clickable avatar / logo */}
             <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo}/>
 
@@ -1095,7 +1095,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
           <AssigneesSection assignedTo={assignedTo} onAssign={assignMember}/>
 
           {/* Categories (industry taxonomy) */}
-          <div className="px-4 py-3 border-b border-white/[.06]">
+          <div className="px-4 py-3 border-b border-zinc-800/50">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Categories</p>
             <CategoryPills categories={categories} onUpdate={saveCategories}/>
           </div>
@@ -1112,7 +1112,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
         {/* ── Right panel ── */}
         <main className="flex flex-1 min-w-0 flex-col overflow-hidden">
-          <div className="flex border-b border-white/[.06] shrink-0 overflow-x-auto">
+          <div className="flex border-b border-zinc-800/50 shrink-0 overflow-x-auto">
             {TABS.map(t => {
               const label = t === "Company" ? companyTabLabel : t;
               return (
@@ -1143,10 +1143,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
                 {/* Embedded Notes + Tasks side-by-side */}
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="rounded-xl border border-white/[.06] bg-white/[.01] p-4">
+                  <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/20 p-4">
                     <InlineNotesPanel recordId={recordId} vertical={record.vertical}/>
                   </div>
-                  <div className="rounded-xl border border-white/[.06] bg-white/[.01] p-4">
+                  <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/20 p-4">
                     <InlineTasksPanel recordId={recordId} vertical={record.vertical}/>
                   </div>
                 </div>
