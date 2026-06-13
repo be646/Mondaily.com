@@ -7,7 +7,7 @@ import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records
 import { CsvImporter } from "../../../../components/records/csv-importer";
 import { apiClient } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -361,6 +361,200 @@ function CreateRecordModal({
   );
 }
 
+// ─── AI Fill Sheet modal ───────────────────────────────────────────────────────
+// Streamlined version: opens straight to AI generation, no manual tab.
+// Pre-populates the prompt with the object name + columns so user barely needs to type.
+function AIFillModal({
+  objectType, tableColumns, onClose,
+}: { objectType: string; tableColumns: string[]; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const label = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const cleanName = objectType.replace(/[-_]/g, " ");
+
+  const [prompt, setPrompt] = useState(`Generate realistic ${cleanName} records`);
+  const [count, setCount]   = useState(15);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+  const [records, setRecords] = useState<Record<string, string>[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [saving, setSaving]   = useState(false);
+  const [progress, setProgress] = useState(0);
+  const promptRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-generate on open if columns are already known
+  useEffect(() => { promptRef.current?.focus(); }, []);
+
+  const fieldKeys = tableColumns.length > 0 ? tableColumns : ["name"];
+
+  const generate = async () => {
+    if (!prompt.trim()) return;
+    setLoading(true); setError(""); setRecords([]); setSelected(new Set());
+    try {
+      const token = localStorage.getItem("mondaily_session_token");
+      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
+      const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+        },
+        body: JSON.stringify({ objectType, columns: fieldKeys, prompt, count }),
+      });
+      const data = await res.json() as any;
+      if (data.error) throw new Error(data.error);
+      const recs: Record<string, string>[] = (data.records ?? []).map((r: any) =>
+        Object.fromEntries(fieldKeys.map(k => [k, String(r[k] ?? "")]))
+      );
+      setRecords(recs);
+      setSelected(new Set(recs.map((_, i) => i)));
+    } catch (e: any) { setError(e.message || "Failed to generate"); }
+    finally { setLoading(false); }
+  };
+
+  const toggleSelect = (i: number) => setSelected(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; });
+  const toggleAll = () => setSelected(prev => prev.size === records.length ? new Set() : new Set(records.map((_, i) => i)));
+
+  const importSelected = async () => {
+    const toCreate = records.filter((_, i) => selected.has(i));
+    if (!toCreate.length) return;
+    setSaving(true); setProgress(0);
+    const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+    let done = 0;
+    for (const rec of toCreate) {
+      try { await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data: rec }); } catch {}
+      done++;
+      setProgress(Math.round((done / toCreate.length) * 100));
+    }
+    queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+    setSaving(false);
+    onClose();
+  };
+
+  useEffect(() => {
+    function h(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[3px]" onClick={onClose}/>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[720px]" : "w-[500px]"}`}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/[.06] px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
+              <Sparkles size={13} className="text-red-400"/>
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-white capitalize">Fill "{cleanName}" with AI</p>
+              <p className="text-[10px] text-zinc-600">
+                {fieldKeys.length} column{fieldKeys.length !== 1 ? "s" : ""}: {fieldKeys.slice(0, 4).map(label).join(", ")}{fieldKeys.length > 4 ? ` +${fieldKeys.length - 4} more` : ""}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+            <X size={14}/>
+          </button>
+        </div>
+
+        <div className="flex">
+          {/* Left: prompt + controls */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wide">Describe what you want</label>
+                <textarea
+                  ref={promptRef}
+                  value={prompt}
+                  onChange={e => setPrompt(e.target.value)}
+                  onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); void generate(); } }}
+                  rows={3}
+                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-red-500/30 focus:bg-white/[.05] transition-colors"
+                />
+                <p className="mt-1 text-[10px] text-zinc-700">e.g. "20 tax expense categories for a SaaS company" or "realistic employee records for a 50-person startup"</p>
+              </div>
+
+              {/* Count */}
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-zinc-500 shrink-0">Number of records</span>
+                <div className="flex items-center gap-1">
+                  {[10, 20, 30, 50].map(n => (
+                    <button key={n} onClick={() => setCount(n)}
+                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-red-500/50 bg-red-500/10 text-red-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {error && <p className="text-xs text-red-400">{error}</p>}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-white/[.06] px-6 py-4">
+              <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-slate-400 hover:text-white transition-all">
+                Cancel
+              </button>
+              <button onClick={generate} disabled={loading || !prompt.trim()}
+                className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 disabled:opacity-50 transition-all">
+                {loading
+                  ? <><Loader2 size={12} className="animate-spin"/> Generating {count} records…</>
+                  : <><Sparkles size={12}/> Generate {count} records</>}
+              </button>
+            </div>
+          </div>
+
+          {/* Right: preview panel */}
+          {records.length > 0 && (
+            <div className="flex flex-col w-[260px] shrink-0 border-l border-white/[.06]">
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[.06]">
+                <span className="text-[11px] font-semibold text-zinc-300">{records.length} records ready</span>
+                <button onClick={toggleAll} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                  {selected.size === records.length ? "Deselect all" : "Select all"}
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto" style={{ maxHeight: 320 }}>
+                {records.map((rec, i) => (
+                  <div key={i} onClick={() => toggleSelect(i)}
+                    className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${selected.has(i) ? "bg-red-500/5" : "opacity-35"}`}>
+                    <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors flex items-center justify-center ${selected.has(i) ? "border-red-500 bg-red-500" : "border-zinc-600"}`}>
+                      {selected.has(i) && <Check size={9} className="text-white"/>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-medium text-zinc-200 truncate">{rec.name || "—"}</p>
+                      {fieldKeys.slice(1, 3).map(k => rec[k] && (
+                        <p key={k} className="text-[10px] text-zinc-600 truncate">{label(k)}: {rec[k]}</p>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-3.5 border-t border-white/[.06]">
+                {saving ? (
+                  <div className="space-y-1.5">
+                    <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
+                      <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${progress}%` }}/>
+                    </div>
+                    <p className="text-center text-[10px] text-zinc-500">Importing {progress}%</p>
+                  </div>
+                ) : (
+                  <button onClick={importSelected} disabled={selected.size === 0}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 py-2.5 text-[11px] font-semibold text-white hover:bg-red-400 disabled:opacity-40 transition-all">
+                    <Check size={11}/> Import {selected.size} record{selected.size !== 1 ? "s" : ""}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ObjectIndexPage() {
   const { objectType = "records" } = useParams();
@@ -370,8 +564,17 @@ export function ObjectIndexPage() {
 
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [showAIFill, setShowAIFill] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState<string[]>([]);
+
+  // Detect empty state from cache (same key used by RecordTable)
+  const recordsQuery = useQuery({
+    queryKey: ["records", objectType],
+    queryFn: () => apiClient.get<{ id: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
+    staleTime: 30_000,
+  });
+  const isEmpty = !recordsQuery.isLoading && (recordsQuery.data?.length ?? 0) === 0;
 
   // Track enrichment state: { [recordId]: { name, done } }
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
@@ -436,6 +639,12 @@ export function ObjectIndexPage() {
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            onClick={() => setShowAIFill(true)}
+            className="flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/8 px-2.5 py-1.5 text-[11px] font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/15 hover:text-red-300"
+          >
+            <Sparkles size={11}/> Fill with AI
+          </button>
+          <button
             onClick={() => setImportOpen(p => !p)}
             className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-600/60 bg-zinc-800/50 text-zinc-200" : "border-zinc-800/80 bg-zinc-900/20 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"}`}
           >
@@ -466,11 +675,50 @@ export function ObjectIndexPage() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative">
         {view === "board"
           ? <BoardView objectType={objectType}/>
           : <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
         }
+
+        {/* Empty state — shown when sheet has no records yet */}
+        {isEmpty && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[#0d0f12]/80 backdrop-blur-[1px]">
+            <div className="text-center space-y-2 max-w-sm">
+              <div className="flex justify-center mb-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
+                  <Sparkles size={22} className="text-red-400"/>
+                </div>
+              </div>
+              <h3 className="text-[15px] font-semibold text-white capitalize">
+                {objectType.replace(/[-_]/g, " ")} is empty
+              </h3>
+              <p className="text-[12px] text-zinc-500 leading-relaxed">
+                Let AI build this sheet for you. It already knows your columns — just describe what records you want and it will generate them instantly.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowAIFill(true)}
+                className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-red-400 transition-all"
+              >
+                <Sparkles size={13}/> Fill with AI
+              </button>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.03] px-5 py-2.5 text-[12px] text-zinc-400 hover:text-white hover:bg-white/[.06] transition-all"
+              >
+                <Plus size={13}/> Add manually
+              </button>
+              <button
+                onClick={() => setImportOpen(true)}
+                className="flex items-center gap-2 rounded-lg border border-dashed border-zinc-700/60 bg-transparent px-5 py-2.5 text-[12px] text-zinc-500 hover:text-zinc-300 hover:border-zinc-600/60 transition-all"
+              >
+                <Plus size={13}/> Import CSV
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showCreate && (
@@ -479,6 +727,13 @@ export function ObjectIndexPage() {
           tableColumns={tableColumns}
           onClose={() => setShowCreate(false)}
           onEnrichStart={handleEnrichStart}
+        />
+      )}
+      {showAIFill && (
+        <AIFillModal
+          objectType={objectType}
+          tableColumns={tableColumns}
+          onClose={() => setShowAIFill(false)}
         />
       )}
     </div>
