@@ -3,7 +3,48 @@ import { Sidebar } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
 import { useState } from "react";
-import { Home, CheckSquare, Users, List, MessageCircle, Menu, X } from "lucide-react";
+import { Home, CheckSquare, Users, MessageCircle, Menu } from "lucide-react";
+
+// ─── Inline scanning-lines logo (mirrors sidebar Logo) ───────────────────────
+function NavLogo() {
+  const size = 20;
+  const lineCount = 10;
+  const lineH = size / lineCount;
+  const radius = 2;
+  const dotSize = 4;
+  return (
+    <div
+      className="relative overflow-hidden bg-black border border-white/20 shrink-0"
+      style={{ width: size, height: size, borderRadius: radius }}
+    >
+      <div className="logo-scan absolute inset-x-0 top-0 will-change-transform" style={{ height: "200%" }}>
+        {Array.from({ length: lineCount * 2 }).map((_, i) => (
+          <div key={i} style={{ height: lineH, borderBottom: `1px solid rgba(255,255,255,${i % 5 === 0 ? 0.22 : i % 2 === 0 ? 0.07 : 0.03})` }}/>
+        ))}
+      </div>
+      <div className="logo-dot absolute rounded-full bg-white" style={{ width: dotSize, height: dotSize, top: 3, right: 3, boxShadow: "0 0 4px rgba(255,255,255,0.9)" }}/>
+    </div>
+  );
+}
+
+// ─── Derive readable page label from path ────────────────────────────────────
+function getPageLabel(pathname: string): string {
+  if (/^\/objects\//.test(pathname)) {
+    const seg = pathname.split("/objects/")[1]?.split("/")[0] ?? "";
+    return seg.replace(/[-_]/g, " ").toUpperCase();
+  }
+  const map: Record<string, string> = {
+    "/home": "HOME", "/tasks": "TASKS", "/notes": "NOTES",
+    "/notifications": "NOTIFICATIONS", "/reports": "REPORTS",
+    "/automations": "AUTOMATIONS", "/pipeline": "PIPELINE",
+    "/calls": "CALLS", "/emails": "EMAILS", "/search": "SEARCH",
+    "/settings": "SETTINGS", "/ask": "ASK AI", "/lists": "LISTS",
+  };
+  for (const [prefix, label] of Object.entries(map)) {
+    if (pathname.startsWith(prefix)) return label;
+  }
+  return "MONDAILY";
+}
 
 function MobileNav() {
   const location = useLocation();
@@ -44,7 +85,14 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
 }
 
 export function DashboardLayout() {
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const pageLabel = getPageLabel(location.pathname);
+
+  // Spreadsheet grid routes own their scroll via internal flex — keep main overflow-hidden.
+  // All other routes need native vertical scrolling.
+  const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0d0f13]">
@@ -57,21 +105,26 @@ export function DashboardLayout() {
       <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}/>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Top bar */}
-        <div className="flex items-center">
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex h-10 w-10 items-center justify-center text-slate-400 md:hidden ml-1"
-          >
-            <Menu size={20}/>
-          </button>
-          <div className="flex-1">
-            <AgentStatusBar />
+        {/* Top bar — logo · page label · actions slot · AI/user buttons */}
+        <AgentStatusBar leftSlot={
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-7 w-7 items-center justify-center text-slate-400 md:hidden shrink-0"
+            >
+              <Menu size={16}/>
+            </button>
+            <NavLogo/>
+            <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-400 select-none hidden sm:inline">
+              {pageLabel}
+            </span>
+            {/* Page-specific action buttons are portaled here by sub-pages */}
+            <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
           </div>
-        </div>
+        }/>
 
-        <main className="min-h-0 flex-1 overflow-hidden pb-16 md:pb-0">
+        <main className={`min-h-0 flex-1 pb-16 md:pb-0 ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
           <Outlet />
         </main>
       </div>

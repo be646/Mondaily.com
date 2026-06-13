@@ -6,7 +6,8 @@ import {
   UserCircle2, Type, ToggleLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { apiClient } from "../../lib/api-client";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
@@ -83,6 +84,61 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, cb: () => voi
   }, [ref, cb]);
 }
 
+// ─── Portal dropdown — renders over ALL overflow/z-index traps ────────────────
+function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down", minWidth, className = "", children }: {
+  triggerRef: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
+  align?: "left" | "right";
+  direction?: "down" | "up";
+  minWidth?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<React.CSSProperties>({ visibility: "hidden" });
+
+  useLayoutEffect(() => {
+    const el = triggerRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const s: React.CSSProperties = {
+      visibility: "visible",
+      minWidth: minWidth ?? r.width,
+    };
+    if (direction === "down") s.top = r.bottom + 4;
+    else s.bottom = window.innerHeight - r.top + 4;
+    if (align === "right") s.right = window.innerWidth - r.right;
+    else s.left = r.left;
+    setStyle(s);
+  }, []);
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (panelRef.current?.contains(e.target as Node)) return;
+      if (triggerRef.current?.contains(e.target as Node)) return;
+      onClose();
+    }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      className={`fixed z-[9999] rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.04)_inset] p-1 ${className}`}
+      style={style}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
 function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const initials = String(name).split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const colors = ["bg-zinc-800/70 text-zinc-300","bg-zinc-700/50 text-zinc-200","bg-zinc-800/50 text-zinc-400","bg-zinc-900/60 text-zinc-300","bg-zinc-800/60 text-zinc-400"];
@@ -104,17 +160,17 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
 function StagePill({ value }: { value: string }) {
   const map: Record<string, string> = {
     "Lead":        "bg-zinc-900/60 text-zinc-400 border border-zinc-700/50",
-    "Qualified":   "bg-zinc-800/50 text-zinc-300 border border-zinc-700/60",
-    "In Progress": "bg-zinc-800/60 text-zinc-200 border border-zinc-600/50",
-    "Proposal":    "bg-zinc-800/40 text-zinc-300 border border-zinc-700/50",
-    "Negotiation": "bg-zinc-700/40 text-zinc-200 border border-zinc-600/60",
-    "Closed Won":  "bg-zinc-800/50 text-white border border-zinc-600/70",
-    "Closed Lost": "bg-zinc-900/50 text-zinc-500 border border-zinc-800/60",
+    "Qualified":   "bg-amber-950/30 text-amber-400 border border-amber-900/40",
+    "In Progress": "bg-amber-950/30 text-amber-400 border border-amber-900/40",
+    "Proposal":    "bg-amber-950/30 text-amber-400 border border-amber-900/40",
+    "Negotiation": "bg-amber-950/30 text-amber-400 border border-amber-900/40",
+    "Closed Won":  "bg-emerald-950/40 text-emerald-400 border border-emerald-900/50",
+    "Closed Lost": "bg-rose-950/40 text-rose-400 border border-rose-900/50",
   };
   const dot: Record<string, string> = {
-    "Lead": "bg-zinc-600", "Qualified": "bg-zinc-400", "In Progress": "bg-zinc-300",
-    "Proposal": "bg-zinc-500", "Negotiation": "bg-zinc-300",
-    "Closed Won": "bg-white", "Closed Lost": "bg-zinc-700",
+    "Lead": "bg-zinc-500", "Qualified": "bg-amber-400", "In Progress": "bg-amber-400",
+    "Proposal": "bg-amber-400", "Negotiation": "bg-amber-400",
+    "Closed Won": "bg-emerald-400", "Closed Lost": "bg-rose-400",
   };
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium ${map[value] ?? "bg-slate-900/80 text-slate-300 border border-slate-700/60"}`}>
@@ -145,16 +201,15 @@ function calcResult(op: CalcOp, col: string, records: NodeRecord[]): string {
 }
 
 // ─── Calc dropdown ────────────────────────────────────────────────────────────
-function CalcDropdown({ col, current, onSelect, onClose }: {
+function CalcDropdown({ col, current, onSelect, onClose, triggerRef }: {
   col: string; current: CalcOp; onSelect: (op: CalcOp) => void; onClose: () => void;
+  triggerRef: React.RefObject<HTMLElement | null>;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onClose);
   const options: { op: CalcOp; label: string }[] = isNumeric(col)
     ? [{ op:"sum",label:"Sum" },{ op:"avg",label:"Average" },{ op:"min",label:"Min" },{ op:"max",label:"Max" },{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }]
     : [{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }];
   return (
-    <div ref={ref} className="dropdown-panel absolute bottom-full left-0 mb-1 w-36 z-50">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} direction="up" align="left" className="w-36">
       {options.map(({ op, label }) => (
         <button key={op} onClick={() => { onSelect(op); onClose(); }}
           className={`dropdown-item w-full ${current === op ? "dropdown-item-active" : ""}`}>
@@ -165,21 +220,20 @@ function CalcDropdown({ col, current, onSelect, onClose }: {
         <div className="mx-2 my-1 border-t border-white/[.06]"/>
         <button onClick={() => { onSelect(null); onClose(); }} className="dropdown-item w-full text-slate-500">Clear</button>
       </>}
-    </div>
+    </PortalDropdown>
   );
 }
 
 // ─── View Settings dropdown ───────────────────────────────────────────────────
-function ViewSettingsDropdown({ columns, hidden, onToggle, onClose }: {
+function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }: {
   columns: string[];
   hidden: Set<string>;
   onToggle: (col: string) => void;
   onClose: () => void;
+  triggerRef: React.RefObject<HTMLElement | null>;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onClose);
   return (
-    <div ref={ref} className="dropdown-panel absolute left-0 top-full mt-1.5 w-56 z-50">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="left" className="w-56">
       <div className="px-3 py-2 border-b border-white/[.06]">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Visible columns</p>
       </div>
@@ -206,19 +260,18 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose }: {
           Show all columns
         </button>
       </div>
-    </div>
+    </PortalDropdown>
   );
 }
 
 // ─── Sort panel dropdown ──────────────────────────────────────────────────────
-function SortPanel({ columns, rules, onChange, onClose }: {
+function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
   columns: string[];
   rules: SortRule[];
   onChange: (rules: SortRule[]) => void;
   onClose: () => void;
+  triggerRef: React.RefObject<HTMLElement | null>;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onClose);
 
   function addRule() {
     const unused = columns.find(c => !rules.some(r => r.col === c));
@@ -235,7 +288,7 @@ function SortPanel({ columns, rules, onChange, onClose }: {
   }
 
   return (
-    <div ref={ref} className="dropdown-panel absolute left-0 top-full mt-1.5 w-72 z-50">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="left" className="w-72">
       <div className="px-3 py-2 border-b border-white/[.06]">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Sort rules</p>
       </div>
@@ -266,7 +319,7 @@ function SortPanel({ columns, rules, onChange, onClose }: {
           </div>
         ))}
       </div>
-      <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between">
+      <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between gap-2">
         <button onClick={addRule} disabled={rules.length >= columns.length}
           className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors disabled:opacity-30">
           <Plus size={11}/> Add sort
@@ -277,19 +330,18 @@ function SortPanel({ columns, rules, onChange, onClose }: {
           </button>
         )}
       </div>
-    </div>
+    </PortalDropdown>
   );
 }
 
 // ─── Export dropdown ──────────────────────────────────────────────────────────
-function ExportDropdown({ records, columns, objectType, onClose }: {
+function ExportDropdown({ records, columns, objectType, onClose, triggerRef }: {
   records: NodeRecord[];
   columns: string[];
   objectType: string;
   onClose: () => void;
+  triggerRef: React.RefObject<HTMLElement | null>;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onClose);
 
   function exportCSV() {
     const header = [...columns, "updated_at"].join(",");
@@ -314,12 +366,12 @@ function ExportDropdown({ records, columns, objectType, onClose }: {
   }
 
   return (
-    <div ref={ref} className="dropdown-panel absolute right-0 top-full mt-1.5 w-44 z-50">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-44">
       <div className="px-3 py-2 border-b border-white/[.06]">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Import / Export</p>
       </div>
       <button onClick={exportCSV} className="dropdown-item w-full gap-2">
-        <Download size={12} className="text-emerald-400"/>
+        <Download size={12} className="text-zinc-400"/>
         Export as CSV
       </button>
       <button
@@ -327,10 +379,10 @@ function ExportDropdown({ records, columns, objectType, onClose }: {
         className="dropdown-item w-full gap-2 opacity-40 cursor-not-allowed"
         disabled
       >
-        <Download size={12} className="text-blue-400"/>
+        <Download size={12} className="text-zinc-600"/>
         Import CSV <span className="ml-auto text-[10px]">soon</span>
       </button>
-    </div>
+    </PortalDropdown>
   );
 }
 
@@ -344,7 +396,6 @@ function OwnerCell({ value, members, onSelect }: {
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, () => setOpen(false));
 
   function initials(name: string | null | undefined) {
     if (!name) return "?";
@@ -374,7 +425,7 @@ function OwnerCell({ value, members, onSelect }: {
         )}
       </button>
       {open && (
-        <div className="dropdown-panel absolute left-0 top-full mt-1 w-44 z-50">
+        <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-44">
           <div className="px-3 py-1.5 border-b border-white/[.06]">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assign to</p>
           </div>
@@ -401,7 +452,7 @@ function OwnerCell({ value, members, onSelect }: {
               </button>
             </>
           )}
-        </div>
+        </PortalDropdown>
       )}
     </div>
   );
@@ -416,12 +467,11 @@ const COLUMN_TYPES = [
   { type: "owner",  label: "Owner",   icon: UserCircle2 },
 ] as const;
 
-function AddColumnDropdown({ onAdd, onClose }: {
+function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
   onAdd: (name: string, type: string) => void;
   onClose: () => void;
+  triggerRef: React.RefObject<HTMLElement | null>;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onClose);
   const [name, setName] = useState("");
   const [type, setType] = useState("text");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -435,7 +485,7 @@ function AddColumnDropdown({ onAdd, onClose }: {
   }
 
   return (
-    <div ref={ref} className="dropdown-panel absolute right-0 top-full mt-1.5 w-56 z-50 p-3 space-y-3">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-56 !p-3 space-y-3">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">New column</p>
       <input
         ref={inputRef}
@@ -457,7 +507,7 @@ function AddColumnDropdown({ onAdd, onClose }: {
         className="w-full rounded-lg bg-red-500 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-colors disabled:opacity-40">
         Add column
       </button>
-    </div>
+    </PortalDropdown>
   );
 }
 
@@ -575,6 +625,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
 
   // ── Toolbar dropdown open state ──
   const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|"addcol"|null>(null);
+
+  // ── Toolbar trigger refs (for portal positioning) ──
+  const viewWrapRef   = useRef<HTMLDivElement>(null);
+  const sortWrapRef   = useRef<HTMLDivElement>(null);
+  const exportWrapRef = useRef<HTMLDivElement>(null);
+  const addColWrapRef = useRef<HTMLDivElement>(null);
+
+  // ── Calc footer trigger refs (dynamic columns) ──
+  const calcWrapRefs = useRef(new Map<string, HTMLDivElement>());
 
   // ── Custom columns (appended by user) ──
   const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>([]);
@@ -714,10 +773,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
     </div>
   );
 
+  const TOOL_BTN_BASE = "flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium tracking-wide transition-all duration-200";
+  const TOOL_BTN_IDLE = `${TOOL_BTN_BASE} border-zinc-800/80 bg-zinc-900/20 text-zinc-300 hover:border-zinc-700/60 hover:text-white`;
+  const TOOL_BTN_ON   = `${TOOL_BTN_BASE} border-zinc-600/60 bg-zinc-800/30 text-white`;
+
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col h-full">
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2 px-6">
+      <div className="flex items-center gap-2 px-6 py-2 shrink-0">
         {/* Filter */}
         <div className="relative flex-1 max-w-xs">
           <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"/>
@@ -731,7 +794,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
           )}
         </div>
 
-        {(filterText || quickSortCol || sortRules.length > 0) && (
+        {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
           <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
@@ -742,14 +805,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
 
         <div className="ml-auto flex items-center gap-1.5">
           {/* View settings */}
-          <div className="relative">
+          <div ref={viewWrapRef}>
             <button
               onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "view" ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
+              className={openPanel === "view" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
             >
               <Settings2 size={12}/>
               <span className="hidden sm:inline">View</span>
-              {hiddenCols.size > 0 && <span className="rounded-full bg-red-500 px-1.5 text-[9px] text-white">{allColumns.length - hiddenCols.size}</span>}
+              {hiddenCols.size > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white">{allColumns.length - hiddenCols.size}</span>}
             </button>
             {openPanel === "view" && (
               <ViewSettingsDropdown
@@ -757,19 +820,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                 hidden={hiddenCols}
                 onToggle={toggleCol}
                 onClose={() => setOpenPanel(null)}
+                triggerRef={viewWrapRef}
               />
             )}
           </div>
 
           {/* Sort panel */}
-          <div className="relative">
+          <div ref={sortWrapRef}>
             <button
               onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "sort" || activeSortCount > 0 ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
+              className={openPanel === "sort" || activeSortCount > 0 ? TOOL_BTN_ON : TOOL_BTN_IDLE}
             >
               <ArrowUpDown size={12}/>
               <span className="hidden sm:inline">Sort</span>
-              {activeSortCount > 0 && <span className="rounded-full bg-red-500 px-1.5 text-[9px] text-white">{activeSortCount}</span>}
+              {activeSortCount > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white">{activeSortCount}</span>}
             </button>
             {openPanel === "sort" && (
               <SortPanel
@@ -777,15 +841,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                 rules={sortRules}
                 onChange={rules => { setSortRules(rules); setQuickSortCol(null); }}
                 onClose={() => setOpenPanel(null)}
+                triggerRef={sortWrapRef}
               />
             )}
           </div>
 
           {/* Add column */}
-          <div className="relative">
+          <div ref={addColWrapRef}>
             <button
               onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "addcol" ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
+              className={openPanel === "addcol" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
             >
               <Plus size={12}/>
               <span className="hidden sm:inline">Column</span>
@@ -794,15 +859,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
               <AddColumnDropdown
                 onAdd={(key, type) => setCustomCols(prev => [...prev, { key, type }])}
                 onClose={() => setOpenPanel(null)}
+                triggerRef={addColWrapRef}
               />
             )}
           </div>
 
           {/* Export */}
-          <div className="relative">
+          <div ref={exportWrapRef}>
             <button
               onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${openPanel === "export" ? "border-indigo-500/40 bg-indigo-500/[.08] text-white" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-800/60 hover:text-white font-medium tracking-wide"}`}
+              className={openPanel === "export" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
             >
               <Download size={12}/>
               <span className="hidden sm:inline">Export</span>
@@ -813,19 +879,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                 columns={columns}
                 objectType={objectType}
                 onClose={() => setOpenPanel(null)}
+                triggerRef={exportWrapRef}
               />
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Table — edge-to-edge ── */}
-      <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-168px)] border-t border-zinc-800/40">
+      {/* ── Table — edge-to-edge, flex-fills remaining height ── */}
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto border-t border-zinc-800/40">
         <table className="min-w-full border-collapse text-left text-sm">
-          <thead className="sticky top-0 z-20 bg-[#0d0f13]">
+          <thead className="sticky top-0 z-20 bg-[#0d0f13] will-change-transform transform-gpu backface-hidden">
             <tr>
               {columns.map((col, colIdx) => (
-                <th key={col} className={`whitespace-nowrap px-4 py-2 border-b border-zinc-800/60 ${colIdx === 0 ? "sticky left-0 z-30 bg-[#0d0f13] border-r border-r-zinc-800/40" : ""}`}>
+                <th key={col} className={`whitespace-nowrap px-4 py-2 border-b border-zinc-800/60 bg-[#0d0f13] ${colIdx === 0 ? "sticky left-0 z-30 border-r border-r-zinc-800/40 will-change-transform transform-gpu" : ""}`}>
                   <button onClick={() => handleHeaderSort(col)}
                     className={`flex items-center gap-1.5 hover:text-slate-300 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
@@ -834,7 +901,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                   </button>
                 </th>
               ))}
-              <th className="whitespace-nowrap px-4 py-2 border-b border-zinc-800/60">
+              <th className="whitespace-nowrap px-4 py-2 border-b border-zinc-800/60 bg-[#0d0f13]">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 hover:text-slate-300 transition-colors">
                   <Calendar size={11} className="text-slate-600"/>
                   <span className="text-[11px] font-medium tracking-wide text-slate-600 uppercase">Updated</span>
@@ -845,12 +912,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
           </thead>
           <tbody>
             {sorted.length === 0 ? (
-              <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">No results for "{filterText}"</td></tr>
+              <tr><td colSpan={columns.length + 1} className="px-4 py-8 text-center text-sm text-slate-600">No results for "{filterText || filterQuery}"</td></tr>
             ) : (
               sorted.map(record => (
                 <tr key={record.id} className="group border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
                   {columns.map((col, colIdx) => (
-                    <td key={col} className={`px-3 py-2.5 text-sm text-slate-300 overflow-hidden ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318] border-r border-r-zinc-800/40" : ""}`}>
+                    <td key={col} className={`px-3 py-2.5 text-sm text-slate-300 overflow-hidden ${isNumeric(col) ? "text-right tabular-nums font-mono text-slate-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#111318] border-r border-r-zinc-800/40 will-change-transform transform-gpu" : ""}`}>
                       {renderCell(col, record)}
                     </td>
                   ))}
@@ -861,15 +928,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
               ))
             )}
           </tbody>
-          <tfoot className="sticky bottom-0 z-20 bg-[#0d0f13]">
+          <tfoot className="sticky bottom-0 z-20 bg-[#0d0f13] will-change-transform transform-gpu">
             <tr className="border-t border-zinc-800/60">
               {columns.map(col => (
-                <td key={col} className={`px-4 py-2 ${isNumeric(col) ? "text-right" : ""}`}>
-                  <div className={`relative inline-block ${isNumeric(col) ? "ml-auto" : ""}`}>
+                <td key={col} className={`px-4 py-2 bg-[#0d0f13] ${isNumeric(col) ? "text-right" : ""}`}>
+                  <div
+                    ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
+                    className={`inline-block ${isNumeric(col) ? "ml-auto" : ""}`}
+                  >
                     {openCalcCol === col && (
                       <CalcDropdown col={col} current={calculations[col] ?? null}
                         onSelect={op => setCalculations(prev => ({ ...prev, [col]: op }))}
-                        onClose={() => setOpenCalcCol(null)}/>
+                        onClose={() => setOpenCalcCol(null)}
+                        triggerRef={{ current: calcWrapRefs.current.get(col) ?? null }}
+                      />
                     )}
                     {calculations[col] ? (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
@@ -887,7 +959,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                   </div>
                 </td>
               ))}
-              <td className="px-4 py-2 text-[11px] text-slate-700 tabular-nums">{sorted.length} rows</td>
+              <td className="px-4 py-2 text-[11px] text-slate-700 tabular-nums bg-[#0d0f13]">{sorted.length} rows</td>
             </tr>
           </tfoot>
         </table>

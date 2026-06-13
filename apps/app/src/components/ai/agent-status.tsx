@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
 import { useState, useRef, useEffect } from "react";
@@ -149,7 +150,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
 
 const SHARE_PATHS = ["/objects/", "/lists/", "/search"];
 
-export function AgentStatusBar() {
+export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}) {
   const { user } = useUser();
   const { signOut } = useClerk();
   const navigate = useNavigate();
@@ -166,7 +167,9 @@ export function AgentStatusBar() {
   return (
     <>
       <div className="relative flex items-center justify-between border-b border-white/10 bg-[#0d0f13] px-4 py-2">
-        <div className="text-xs text-slate-600">AI status: idle</div>
+        <div className="flex items-center gap-3 min-w-0">
+          {leftSlot ?? <span className="text-xs text-slate-700">AI status: idle</span>}
+        </div>
         <div className="flex items-center gap-1.5">
           {showShare && (
             <button onClick={() => setShareOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
