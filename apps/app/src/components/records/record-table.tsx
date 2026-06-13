@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
-  UserCircle2, Type, ToggleLeft,
+  UserCircle2, Type, ToggleLeft, ChevronRight,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -24,6 +24,59 @@ function display(value: unknown): string {
   if (typeof value === "number") return value.toLocaleString();
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+// ─── Inline editable cell ─────────────────────────────────────────────────────
+function EditableCell({
+  raw, onSave, className = "", numeric = false,
+}: {
+  raw: unknown; onSave: (v: string) => void; className?: string; numeric?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft]     = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() {
+    setDraft(raw == null || raw === "" ? "" : String(raw));
+    setEditing(true);
+  }
+
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select(); } }, [editing]);
+
+  function commit() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    const original = raw == null || raw === "" ? "" : String(raw);
+    if (trimmed !== original) onSave(trimmed);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type={numeric ? "number" : "text"}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") setEditing(false);
+          e.stopPropagation();
+        }}
+        className={`w-full min-w-0 bg-zinc-900 text-[12px] text-white outline-none rounded px-1 py-0.5 border border-zinc-600/60 -mx-1 ${numeric ? "text-right font-mono" : ""} ${className}`}
+      />
+    );
+  }
+
+  const shown = display(raw);
+  return (
+    <span
+      onClick={startEdit}
+      className={`block truncate cursor-text text-[12px] ${shown === "—" ? "text-zinc-700 hover:text-zinc-500" : ""} ${className}`}
+    >
+      {shown}
+    </span>
+  );
 }
 
 // ─── Category badges (read-only table cells) ──────────────────────────────────
@@ -611,6 +664,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
 
 // ─── Main table ───────────────────────────────────────────────────────────────
 export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: { objectType: string; enrichedIds?: string[]; filterQuery?: string }) {
+  const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["records", objectType],
     queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
@@ -737,12 +791,22 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
 
   const members = membersQuery.data ?? [];
 
+  function saveCell(record: NodeRecord, col: string, newVal: string) {
+    const newData = { ...record.data, [col]: newVal };
+    qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
+      (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
+    );
+    apiClient.patch(`/nodes/${record.id}`, { data: newData }).catch(() => {
+      qc.invalidateQueries({ queryKey: ["records", objectType] });
+    });
+  }
+
   function renderCell(col: string, record: NodeRecord) {
     const val = record.data[col];
     const isEnriched = enrichedIds.includes(record.id);
-
-    // Owner column
     const customDef = customCols.find(c => c.key === col);
+
+    // Custom owner column
     if (customDef?.type === "owner" || col === "owner" || col === "assignee") {
       return (
         <OwnerCell
@@ -753,16 +817,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
       );
     }
 
-    // Custom column — empty by default, show placeholder
-    if (customDef) {
-      return <span className="text-slate-700 text-xs">—</span>;
-    }
+    // Custom column — empty by default
+    if (customDef) return <span className="text-slate-700 text-xs">—</span>;
 
-    // Categories column — render color-coded badges
+    // Categories
     if (col === "categories") return <CategoryBadges value={val}/>;
 
-    // Owner/assignee/assigned_to columns — all render as OwnerCell
-    if (col === "assigned_to" || col === "deal_owner" || col === "owner" || col === "assignee") {
+    // Owner/assigned_to columns
+    if (col === "assigned_to" || col === "deal_owner") {
       return (
         <OwnerCell
           value={String(owners[record.id] ?? val ?? "")}
@@ -772,19 +834,37 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
       );
     }
 
+    // Stage pill (still editable via dropdown in the pill itself)
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
+
+    // Name column — editable text + open link on hover
     if (col === nameCol) return (
-      <Link to={`/objects/${objectType}/${record.id}`} className="flex items-center gap-2.5 font-medium text-white hover:text-red-400 transition-colors">
+      <div className="flex items-center gap-2 min-w-0">
         <RowLogo name={display(val)} enriched={isEnriched}/>
-        <span className="truncate">{display(val)}</span>
+        <EditableCell
+          raw={val}
+          onSave={v => saveCell(record, col, v)}
+          className="flex-1 font-medium text-white"
+        />
         {isEnriched && (
-          <span className="ml-1 inline-flex items-center gap-0.5 rounded-sm bg-zinc-800/60 border border-zinc-700/50 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400 shrink-0">
+          <span className="inline-flex items-center gap-0.5 rounded-sm bg-zinc-800/60 border border-zinc-700/50 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400 shrink-0">
             <Sparkles size={8}/> AI
           </span>
         )}
-      </Link>
+        <Link to={`/objects/${objectType}/${record.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-300 transition-colors">
+          <ChevronRight size={11}/>
+        </Link>
+      </div>
     );
-    return <span className="block truncate max-w-[180px] overflow-hidden text-xs">{display(val)}</span>;
+
+    // All other fields — inline editable
+    return (
+      <EditableCell
+        raw={val}
+        numeric={isNumeric(col)}
+        onSave={v => saveCell(record, col, v)}
+      />
+    );
   }
 
   const activeSortCount = sortRules.length || (quickSortCol ? 1 : 0);

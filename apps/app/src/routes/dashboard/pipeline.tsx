@@ -163,12 +163,62 @@ function StagePill({ stage, stages, onMove }: { stage: string; stages: string[];
   );
 }
 
+// ─── Inline editable field for pipeline cards ─────────────────────────────────
+function CardField({
+  value, onSave, placeholder = "—", numeric = false, className = "",
+}: {
+  value: string; onSave: (v: string) => void; placeholder?: string;
+  numeric?: boolean; className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft]     = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { if (editing) { inputRef.current?.focus(); inputRef.current?.select(); } }, [editing]);
+
+  function commit() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed !== value) onSave(trimmed);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        type={numeric ? "number" : "text"}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); }
+          if (e.key === "Escape") { setDraft(value); setEditing(false); }
+          e.stopPropagation();
+        }}
+        className={`w-full bg-zinc-800 text-[11px] text-white outline-none rounded px-1.5 py-0.5 border border-zinc-600/60 ${numeric ? "text-right font-mono" : ""} ${className}`}
+      />
+    );
+  }
+
+  const shown = value || placeholder;
+  return (
+    <span
+      onClick={() => { setDraft(value); setEditing(true); }}
+      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-zinc-700 hover:text-zinc-500"} ${className}`}
+    >
+      {shown}
+    </span>
+  );
+}
+
 // ─── Deal card ────────────────────────────────────────────────────────────────
-function DealCard({ deal, members, stages, onMove }: {
-  deal: DealRecord; members: Member[]; stages: string[]; onMove: (stage: string) => void;
+function DealCard({ deal, members, stages, onMove, onPatch }: {
+  deal: DealRecord; members: Member[]; stages: string[];
+  onMove: (stage: string) => void;
+  onPatch: (fields: Record<string, unknown>) => void;
 }) {
   const d = deal.data;
-  const name  = String(d.name ?? d.title ?? "Untitled deal");
+  const name  = String(d.name ?? d.title ?? "");
   const value = fmtVal(d.deal_value);
   const owner = String(d.deal_owner ?? d.assigned_to ?? "");
   const ownerMember = owner ? members.find(m => m.id === owner || m.name === owner || m.email === owner) : null;
@@ -176,38 +226,47 @@ function DealCard({ deal, members, stages, onMove }: {
 
   return (
     <div className="group rounded-md border border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700/60 hover:bg-zinc-900/70 transition-all p-3 cursor-default">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <Link
-          to={`/objects/deals/${deal.id}`}
-          className="text-[12px] font-medium text-zinc-100 hover:text-white transition-colors leading-snug line-clamp-2 flex-1"
-        >
-          {name}
-        </Link>
+      {/* Name row */}
+      <div className="flex items-center gap-1.5 mb-2 min-w-0">
+        <CardField
+          value={name}
+          onSave={v => onPatch({ name: v })}
+          placeholder="Untitled deal"
+          className="flex-1 font-medium text-zinc-100"
+        />
         <Link to={`/objects/deals/${deal.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-zinc-400">
           <ChevronRight size={12}/>
         </Link>
       </div>
 
-      {value !== null && (
-        <div className="flex items-center gap-1 mb-2">
-          <DollarSign size={10} className="text-emerald-400 shrink-0"/>
-          <span className="text-[11px] font-semibold text-emerald-400">{fmtDisplay(value)}</span>
-        </div>
-      )}
+      {/* Value row */}
+      <div className="flex items-center gap-1 mb-2">
+        <DollarSign size={10} className="text-emerald-500 shrink-0"/>
+        <CardField
+          value={value !== null ? String(deal.data.deal_value) : ""}
+          onSave={v => onPatch({ deal_value: v === "" ? null : v })}
+          placeholder="Value…"
+          numeric
+          className="flex-1 text-emerald-400 font-semibold"
+        />
+      </div>
 
-      {ownerMember ? (
-        <div className="flex items-center gap-1.5 mb-2.5">
-          <div className="h-4 w-4 rounded-full bg-red-500/20 flex items-center justify-center text-[8px] font-bold text-red-300">
+      {/* Owner row */}
+      <div className="flex items-center gap-1.5 mb-2.5">
+        {ownerMember ? (
+          <div className="h-4 w-4 rounded-full bg-red-500/20 flex items-center justify-center text-[8px] font-bold text-red-300 shrink-0">
             {memberInitials(ownerMember.name)}
           </div>
-          <span className="text-[10px] text-zinc-500">{ownerMember.name}</span>
-        </div>
-      ) : owner ? (
-        <div className="flex items-center gap-1.5 mb-2.5">
-          <User size={10} className="text-zinc-600"/>
-          <span className="text-[10px] text-zinc-500">{owner}</span>
-        </div>
-      ) : null}
+        ) : (
+          <User size={10} className="text-zinc-700 shrink-0"/>
+        )}
+        <CardField
+          value={owner}
+          onSave={v => onPatch({ deal_owner: v })}
+          placeholder="Owner…"
+          className="flex-1 text-zinc-500"
+        />
+      </div>
 
       <StagePill stage={stage} stages={stages} onMove={onMove}/>
     </div>
@@ -339,6 +398,18 @@ export function PipelinePage() {
     queryFn: () => apiClient.get<Member[]>("/members"),
   });
 
+  function patchDeal(id: string, fields: Record<string, unknown>) {
+    const deal = (qc.getQueryData<DealRecord[]>(["pipeline-deals"]) ?? []).find(d => d.id === id);
+    if (!deal) return;
+    const newData = { ...deal.data, ...fields };
+    qc.setQueryData<DealRecord[]>(["pipeline-deals"], old =>
+      (old ?? []).map(d => d.id === id ? { ...d, data: newData } : d)
+    );
+    apiClient.patch(`/nodes/${id}`, { data: newData }).catch(() => {
+      qc.invalidateQueries({ queryKey: ["pipeline-deals"] });
+    });
+  }
+
   const moveDeal = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
       apiClient.patch(`/nodes/${id}`, { data }),
@@ -442,6 +513,7 @@ export function PipelinePage() {
                       members={members}
                       stages={stages}
                       onMove={newStage => moveDeal.mutate({ id: deal.id, data: { ...deal.data, deal_stage: newStage } })}
+                      onPatch={fields => patchDeal(deal.id, fields)}
                     />
                   ))
                 )}
