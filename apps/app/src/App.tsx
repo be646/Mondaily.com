@@ -23,6 +23,7 @@ import { CallDetailPage } from "./routes/dashboard/call-detail";
 import { ReportsPage } from "./routes/dashboard/reports";
 import { DashboardViewPage } from "./routes/dashboard/reports/dashboard-view";
 import { ReportBuilderPage } from "./routes/dashboard/reports/report-builder";
+import { SalesReportPage } from "./routes/dashboard/reports/sales-report";
 import { AutomationsPage } from "./routes/dashboard/automations";
 import { WorkflowBuilderPage } from "./routes/dashboard/automations/workflow-builder";
 import { SequenceBuilderPage } from "./routes/dashboard/automations/sequence-builder";
@@ -73,6 +74,7 @@ export function App() {
         <Route path="calls" element={<CallsPage />} />
         <Route path="calls/:id" element={<CallDetailPage />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="reports/sales" element={<SalesReportPage />} />
         <Route path="reports/dashboards/:id" element={<DashboardViewPage />} />
         <Route path="reports/:id" element={<ReportBuilderPage />} />
         <Route path="automations" element={<AutomationsPage />} />
