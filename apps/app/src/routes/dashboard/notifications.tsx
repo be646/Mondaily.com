@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, CheckCheck, Trash2, Filter } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Filter, ShieldAlert } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -12,6 +12,7 @@ interface Notification {
 const TYPE_LABELS: Record<string, string> = {
   task_review: "Task review", mention: "Mention", approval: "Approval",
   system: "System", comment: "Comment", assignment: "Assignment",
+  ai_risk: "AI Risk Alert",
 };
 
 function relTime(iso: string) {
@@ -130,20 +131,29 @@ export function NotificationsPage() {
         </div>
       ) : (
         <div className="space-y-1">
-          {visible.map(n => (
+          {visible.map(n => {
+            const isRisk = n.type === "ai_risk";
+            return (
             <div
               key={n.id}
-              className={`group flex w-full items-start gap-3 rounded-xl border p-4 transition-colors ${!n.is_read ? "border-red-500/15 bg-red-500/5" : "border-white/[.04] hover:bg-white/[.02]"}`}
+              className={`group flex w-full items-start gap-3 rounded-xl border p-4 transition-colors ${
+                !n.is_read
+                  ? isRisk ? "border-amber-500/20 bg-amber-500/[.05]" : "border-red-500/15 bg-red-500/5"
+                  : "border-white/[.04] hover:bg-white/[.02]"
+              }`}
             >
-              {/* Unread dot */}
-              <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-red-400" : "bg-transparent"}`}/>
+              {/* Unread indicator */}
+              {isRisk && !n.is_read
+                ? <ShieldAlert size={14} className="mt-1 shrink-0 text-amber-400"/>
+                : <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-red-400" : "bg-transparent"}`}/>
+              }
 
               {/* Content */}
               <button className="flex-1 min-w-0 text-left" onClick={() => handleClick(n)}>
                 <div className="flex items-center gap-2">
                   <p className={`text-sm font-medium truncate ${!n.is_read ? "text-white" : "text-slate-400"}`}>{n.title}</p>
                   {n.type && (
-                    <span className="shrink-0 rounded-full border border-white/[.06] bg-white/[.03] px-1.5 py-0.5 text-[9px] text-slate-600 capitalize">
+                    <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] capitalize ${isRisk ? "border-amber-500/30 bg-amber-500/10 text-amber-400" : "border-white/[.06] bg-white/[.03] text-slate-600"}`}>
                       {TYPE_LABELS[n.type] ?? n.type}
                     </span>
                   )}
@@ -172,7 +182,8 @@ export function NotificationsPage() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

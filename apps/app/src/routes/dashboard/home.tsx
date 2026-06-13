@@ -150,6 +150,7 @@ export function HomePage() {
   const [scanReport, setScanReport] = useState<string | null>(null);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanTimestamp, setScanTimestamp] = useState("");
+  const [riskBanner, setRiskBanner] = useState<number | null>(null); // number of new risk alerts created
   const [streamingMsgIdx, setStreamingMsgIdx] = useState<number | null>(null);
   const [streamedUpTo, setStreamedUpTo] = useState(0);
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -199,6 +200,27 @@ export function HomePage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Run AI risk scan once per day (throttled via localStorage)
+  useEffect(() => {
+    const SCAN_KEY = "mondaily:lastRiskScan";
+    const last = localStorage.getItem(SCAN_KEY);
+    const now = Date.now();
+    if (last && now - parseInt(last, 10) < 24 * 60 * 60 * 1000) return;
+    const run = async () => {
+      try {
+        const res = await apiClient.post<{ created: number }>("/generate/risk-alerts", {});
+        localStorage.setItem(SCAN_KEY, String(now));
+        if (res.created > 0) {
+          setRiskBanner(res.created);
+          qc.invalidateQueries({ queryKey: ["notifications"] });
+        }
+      } catch {}
+    };
+    // Small delay so it doesn't block page render
+    const t = setTimeout(run, 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   const send = async () => {
     const text = input.trim();
@@ -390,6 +412,18 @@ export function HomePage() {
     <div className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="text-2xl font-semibold">{greeting}, {user?.firstName || "there"}.</h1>
       <p className="mt-1 text-sm text-slate-500">Mondaily is ready to run today's work.</p>
+
+      {/* AI Risk Alert banner */}
+      {riskBanner !== null && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/[.07] px-4 py-3">
+          <BellDot size={15} className="text-amber-400 shrink-0"/>
+          <p className="flex-1 text-sm text-amber-200">
+            Mondaily AI flagged <span className="font-semibold">{riskBanner} risk{riskBanner > 1 ? "s" : ""}</span> in your workspace.{" "}
+            <Link to="/notifications" className="underline underline-offset-2 hover:text-white transition-colors">View alerts →</Link>
+          </p>
+          <button onClick={() => setRiskBanner(null)} className="text-amber-500/60 hover:text-amber-300 text-lg leading-none transition-colors">×</button>
+        </div>
+      )}
 
       <section className="mt-7">
         {/* ── Conversation history ── */}

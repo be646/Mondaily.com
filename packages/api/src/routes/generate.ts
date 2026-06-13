@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { supabase } from "@mondaily/db/client";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -681,6 +682,120 @@ Based on this data, generate a realistic forecast. Consider:
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     if (!toolUse?.input) return c.json({ error: "No forecast generated" }, 500);
     return c.json(toolUse.input);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+// ─── AI Risk Alerts ───────────────────────────────────────────────────────────
+router.post("/risk-alerts", requireAuth, async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const now = new Date();
+  const cutoff14d = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+
+  // Pull relevant data
+  const [tasksRes, nodesRes, existingRes] = await Promise.all([
+    supabase.from("tasks")
+      .select("id, title, priority, status, due_date, completed, created_at")
+      .eq("workspace_id", workspaceId)
+      .eq("completed", false)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase.from("nodes")
+      .select("id, object_type, data, updated_at, created_at")
+      .eq("workspace_id", workspaceId)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+    supabase.from("notifications")
+      .select("title")
+      .eq("workspace_id", workspaceId)
+      .eq("type", "ai_risk")
+      .gte("created_at", cutoff24h),
+  ]);
+
+  const tasks = tasksRes.data ?? [];
+  const nodes = nodesRes.data ?? [];
+  const recentTitles = new Set((existingRes.data ?? []).map((n: any) => n.title));
+
+  // Build context summary
+  const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < now);
+  const urgentTasks = tasks.filter(t => t.priority === "urgent");
+  const staleNodes = nodes.filter(n => n.updated_at && new Date(n.updated_at) < new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000));
+  const dealNodes = nodes.filter(n => n.object_type === "deals");
+  const highValueStaleDeals = dealNodes.filter(n => {
+    const val = parseFloat((n.data as any)?.value ?? (n.data as any)?.amount ?? "0");
+    return val > 0 && n.updated_at && new Date(n.updated_at) < new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  });
+
+  const context = [
+    `Total open tasks: ${tasks.length}`,
+    `Overdue tasks: ${overdueTasks.length}${overdueTasks.length ? " — titles: " + overdueTasks.slice(0,5).map(t=>t.title).join(", ") : ""}`,
+    `Urgent tasks: ${urgentTasks.length}`,
+    `Total CRM records: ${nodes.length}`,
+    `Stale records (no update in 14d): ${staleNodes.length}`,
+    `Open deals: ${dealNodes.length}`,
+    `High-value stale deals (no activity 14d): ${highValueStaleDeals.length}${highValueStaleDeals.length ? " — " + highValueStaleDeals.slice(0,3).map(n=>(n.data as any)?.name ?? "unnamed").join(", ") : ""}`,
+    `Old open tasks (created > 14d ago, still open): ${tasks.filter(t => new Date(t.created_at) < new Date(cutoff14d)).length}`,
+  ].join("\n");
+
+  if (!context.trim()) return c.json({ created: 0 });
+
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      tools: [{
+        name: "generate_risk_alerts",
+        description: "Identify business risks from CRM/task data and return actionable alerts",
+        input_schema: {
+          type: "object",
+          properties: {
+            alerts: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string", description: "Short alert title, max 60 chars, e.g. '3 deals going cold'" },
+                  body: { type: "string", description: "1-2 sentence description of the risk and recommended action" },
+                  severity: { type: "string", enum: ["high", "medium", "low"] }
+                },
+                required: ["title", "body", "severity"]
+              },
+              minItems: 0,
+              maxItems: 4
+            }
+          },
+          required: ["alerts"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "generate_risk_alerts" },
+      messages: [{
+        role: "user",
+        content: `Analyze this workspace data and identify 0-4 genuine business risks worth alerting on. Only flag real problems — if everything looks healthy, return 0 alerts.\n\nWorkspace snapshot:\n${context}\n\nToday: ${now.toDateString()}\n\nFocus on: overdue tasks, stale high-value deals, urgent items piling up, or patterns suggesting something important is being missed. Skip minor issues. Be specific with numbers.`
+      }]
+    });
+
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    const alerts: Array<{ title: string; body: string; severity: string }> = toolUse?.input?.alerts ?? [];
+
+    // Write new alerts, skipping any already sent in last 24h (by title)
+    let created = 0;
+    for (const alert of alerts) {
+      if (recentTitles.has(alert.title)) continue;
+      await supabase.from("notifications").insert({
+        workspace_id: workspaceId,
+        user_id: userId,
+        title: alert.title,
+        body: `[${alert.severity.toUpperCase()}] ${alert.body}`,
+        type: "ai_risk",
+        is_read: false,
+      });
+      created++;
+    }
+
+    return c.json({ created, total: alerts.length });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
