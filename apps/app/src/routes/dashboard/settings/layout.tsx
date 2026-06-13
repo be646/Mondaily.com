@@ -25,7 +25,7 @@ export function SettingsLayout() {
       {/* Mobile: show nav list when at /settings root, show back+content when in a sub-page */}
       
       {/* Sidebar nav */}
-      <aside className={`w-full md:w-56 md:shrink-0 border-r border-white/10 px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
+      <aside className={`w-full md:w-56 md:shrink-0 border-r border-white/[.06] px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
         <p className="mb-3 px-3 text-xs font-semibold uppercase text-slate-600">Settings</p>
         {items.map(([to, Icon, label]) => (
           <NavLink
@@ -47,7 +47,7 @@ export function SettingsLayout() {
       {/* Content area */}
       <main className={`min-w-0 flex-1 overflow-auto ${isRoot ? "hidden md:block" : "block"}`}>
         {/* Mobile back button */}
-        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3 md:hidden">
+        <div className="flex items-center gap-2 border-b border-white/[.06] px-4 py-3 md:hidden">
           <button onClick={() => navigate("/settings")} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">
             <ArrowLeft size={15}/> Settings
           </button>

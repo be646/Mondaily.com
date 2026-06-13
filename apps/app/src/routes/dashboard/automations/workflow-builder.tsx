@@ -191,7 +191,7 @@ function NodePicker({ onPick, onClose }: {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-2xl overflow-hidden">
+      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
         <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3">
           <p className="text-xs font-semibold text-white">Add step</p>
           <button onClick={onClose} className="text-slate-600 hover:text-slate-300"><X size={14}/></button>
@@ -272,7 +272,7 @@ function AIWorkflowModal({ onClose, onApply }: {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-xl border border-white/10 bg-[#111419] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
+      <div className={`w-full rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
         <div className="flex items-center justify-between p-5 border-b border-white/[.06]">
           <div className="flex items-center gap-2">
             <Sparkles size={15} className="text-violet-400"/>
@@ -288,7 +288,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
-            className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40"
+            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
           />
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
@@ -453,7 +453,7 @@ export function WorkflowBuilderPage() {
         </button>
 
         <button onClick={saveWorkflow} disabled={saving}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[.04] px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white disabled:opacity-50 transition-colors">
+          className="flex items-center gap-1.5 rounded-lg border border-white/[.06] bg-white/[.04] px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white disabled:opacity-50 transition-colors">
           {saving ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>}
           {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>

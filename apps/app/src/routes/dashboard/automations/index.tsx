@@ -57,7 +57,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-xl border border-white/10 bg-[#111419] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
+      <div className={`w-full rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between p-5 border-b border-white/[.06]">
           <div className="flex items-center gap-2">
             <Sparkles size={15} className="text-violet-400"/>
@@ -73,14 +73,14 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "Cold outreach to SaaS founders about our analytics tool" or "Follow-up sequence for leads who downloaded our whitepaper"`}
-            className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40"
+            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
           />
           <div className="flex items-center gap-3">
             <span className="text-xs text-slate-500">Steps</span>
             <div className="flex gap-1">
               {[3,4,5,6].map(n => (
                 <button key={n} onClick={() => setStepCount(n)}
-                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-violet-500/50 bg-violet-500/10 text-violet-300" : "border-white/10 text-slate-500 hover:text-slate-300"}`}>
+                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-violet-500/50 bg-violet-500/10 text-violet-300" : "border-white/[.06] text-slate-500 hover:text-slate-300"}`}>
                   {n}
                 </button>
               ))}
@@ -292,20 +292,20 @@ export function AutomationsPage() {
                   {menuOpen === item.id && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)}/>
-                      <div className="absolute right-0 top-8 z-20 w-36 overflow-hidden rounded-lg border border-white/[.08] bg-[#13151a] shadow-xl">
-                        <Link to={href} className="flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white">
+                      <div className="dropdown-panel absolute right-0 top-8 z-20 w-36">
+                        <Link to={href} className="dropdown-item flex items-center gap-2">
                           <Play size={11}/> Open
                         </Link>
                         <button
                           onClick={() => duplicateItem.mutate({ item, type: title.toLowerCase().includes("sequence") ? "sequence" : "workflow" })}
                           disabled={duplicateItem.isPending}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white disabled:opacity-50">
+                          className="dropdown-item flex w-full items-center gap-2 disabled:opacity-50">
                           <Copy size={11}/> Duplicate
                         </button>
                         <button
                           onClick={() => deleteItem.mutate({ id: item.id, type: title.toLowerCase().includes("sequence") ? "sequence" : "workflow" })}
                           disabled={deleteItem.isPending}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/[.06] disabled:opacity-50">
+                          className="dropdown-item flex w-full items-center gap-2 text-red-400 hover:text-red-300 disabled:opacity-50">
                           <Trash2 size={11}/> Delete
                         </button>
                       </div>

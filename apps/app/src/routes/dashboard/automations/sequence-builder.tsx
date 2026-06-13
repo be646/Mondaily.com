@@ -90,7 +90,7 @@ function StepCard({
         <div className="absolute left-[27px] top-full z-0 h-6 w-px bg-white/[.08]"/>
       )}
 
-      <div className="relative z-10 rounded-xl border border-white/[.08] bg-[#0d0f13] overflow-hidden">
+      <div className="relative z-10 rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
         {/* Step header */}
         <div
           className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-white/[.02] transition-colors"
@@ -442,7 +442,7 @@ export function SequenceBuilderPage() {
                 <p className="mt-1 text-xs text-slate-600">Go to a People or Company record and enroll them in this sequence</p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-white/[.08]">
+              <div className="overflow-hidden rounded-xl border border-white/[.07]">
                 <table className="w-full text-xs">
                   <thead className="border-b border-white/[.06] bg-white/[.02]">
                     <tr>
@@ -480,7 +480,7 @@ export function SequenceBuilderPage() {
         {tab === "settings" && (
           <div className="max-w-lg mx-auto space-y-4">
             {/* Sending window */}
-            <div className="rounded-xl border border-white/[.08] bg-[#0d0f13] overflow-hidden">
+            <div className="rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
               <div className="border-b border-white/[.06] px-4 py-3">
                 <p className="text-xs font-semibold text-white">Sending window</p>
               </div>
@@ -538,7 +538,7 @@ export function SequenceBuilderPage() {
             </div>
 
             {/* Behavior */}
-            <div className="rounded-xl border border-white/[.08] bg-[#0d0f13] overflow-hidden">
+            <div className="rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
               <div className="border-b border-white/[.06] px-4 py-3">
                 <p className="text-xs font-semibold text-white">Behavior</p>
               </div>

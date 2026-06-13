@@ -29,7 +29,7 @@ function Dropdown({ value, onChange, options }: { value: string; onChange: (v: s
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="rounded-lg border border-white/10 bg-[#0d0f13] px-3 py-1.5 text-sm text-white focus:border-red-500/40 outline-none"
+      className="rounded-lg border border-white/[.06] bg-[#0d0f13] px-3 py-1.5 text-sm text-white focus:border-red-500/40 outline-none"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -38,7 +38,7 @@ function Dropdown({ value, onChange, options }: { value: string; onChange: (v: s
 
 function Row({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/10 last:border-0">
+    <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/[.06] last:border-0">
       <div className="min-w-0">
         <div className="text-sm text-white">{label}</div>
         <div className="text-xs text-slate-500 mt-0.5">{description}</div>
@@ -123,8 +123,8 @@ export function AskMondailySettings() {
       </div>
 
       {/* General */}
-      <section className="mb-6 rounded-xl border border-white/10 bg-white/[.02]">
-        <div className="border-b border-white/10 px-5 py-3">
+      <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
+        <div className="border-b border-white/[.06] px-5 py-3">
           <h2 className="text-sm font-medium text-white">General</h2>
         </div>
         <Row label="Privacy" description="Web search queries will be shared with external search providers.">
@@ -139,8 +139,8 @@ export function AskMondailySettings() {
       </section>
 
       {/* Model */}
-      <section className="mb-6 rounded-xl border border-white/10 bg-white/[.02]">
-        <div className="border-b border-white/10 px-5 py-3">
+      <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
+        <div className="border-b border-white/[.06] px-5 py-3">
           <h2 className="text-sm font-medium text-white">Model</h2>
         </div>
         <Row label="Default model" description="This model will be used to generate all responses unless overridden.">
@@ -149,8 +149,8 @@ export function AskMondailySettings() {
       </section>
 
       {/* Credits */}
-      <section className="mb-6 rounded-xl border border-white/10 bg-white/[.02]">
-        <div className="border-b border-white/10 px-5 py-3 flex items-center justify-between">
+      <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
+        <div className="border-b border-white/[.06] px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-white">Credits</h2>
           <span className="text-xs text-slate-500">Resets on {resetStr}</span>
         </div>
@@ -167,8 +167,8 @@ export function AskMondailySettings() {
       </section>
 
       {/* Chat history */}
-      <section className="rounded-xl border border-white/10 bg-white/[.02]">
-        <div className="border-b border-white/10 px-5 py-3 flex items-center justify-between">
+      <section className="rounded-xl border border-white/[.07] bg-white/[.02]">
+        <div className="border-b border-white/[.06] px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-white">Chat history</h2>
           {threads.length > 0 && (
             <button onClick={deleteAllThreads} className="text-xs text-red-400 hover:text-red-300 transition-colors">Delete all</button>

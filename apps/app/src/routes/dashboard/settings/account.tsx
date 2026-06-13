@@ -84,7 +84,6 @@ export function AccountSettings() {
     if (!query.data) return;
     setName(user?.fullName ?? "");
     setJobTitle(query.data.job_title ?? "");
-    // Only fall back to API value if nothing saved locally yet
     if (!localStorage.getItem("mondaily_appearance")) {
       setAppearance(query.data.appearance ?? "system");
     }
@@ -139,12 +138,12 @@ export function AccountSettings() {
     <div>
       <PageHeader title="Account" description="Manage your profile, preferences, and personal security." />
       <div className="space-y-5">
-        <section className="rounded-lg border border-white/10 p-5">
+        <section className="rounded-xl border border-white/[.07] p-5">
           <h2 className="mb-4 text-sm font-medium">Profile</h2>
           <div className="mb-5 flex items-center gap-4">
             <div className="relative">
               <img src={user?.imageUrl} alt="" className="h-16 w-16 rounded-full bg-white/5 object-cover" />
-              <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-white/10 bg-[#111419]" aria-label="Upload profile photo">
+              <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-white/[.07] bg-[#0d0f13]" aria-label="Upload profile photo">
                 <Camera size={12} />
               </button>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => uploadAvatar(event.target.files?.[0])} />
@@ -154,7 +153,7 @@ export function AccountSettings() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name" value={name} onChange={setName} />
             <label className="text-sm">Email
-              <div className="mt-2 flex h-10 items-center rounded-md border border-white/10 bg-white/[.02] px-3">
+              <div className="mt-2 flex h-10 items-center rounded-md border border-white/[.07] bg-white/[.02] px-3">
                 <span className="min-w-0 flex-1 truncate text-slate-400">{user?.primaryEmailAddress?.emailAddress}</span>
                 <button onClick={() => openUserProfile()} className="text-xs text-red-400">Change</button>
               </div>
@@ -164,14 +163,14 @@ export function AccountSettings() {
         </section>
 
         {hasPassword ? (
-          <section className="rounded-lg border border-white/10 p-5">
+          <section className="rounded-xl border border-white/[.07] p-5">
             <h2 className="mb-2 text-sm font-medium">Password</h2>
             <p className="mb-4 text-sm text-slate-500">Update your password through the secure identity profile.</p>
-            <button onClick={() => openUserProfile()} className="flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm"><KeyRound size={14} /> Change password</button>
+            <button onClick={() => openUserProfile()} className="flex items-center gap-2 rounded-md border border-white/[.06] px-3 py-2 text-sm"><KeyRound size={14} /> Change password</button>
           </section>
         ) : null}
 
-        <section className="rounded-lg border border-white/10 p-5">
+        <section className="rounded-xl border border-white/[.07] p-5">
           <h2 className="mb-4 text-sm font-medium">Connected accounts</h2>
           <div className="space-y-2">
             {(["gmail", "outlook"] as const).map((provider) => {
@@ -184,7 +183,7 @@ export function AccountSettings() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-white/10 p-5">
+        <section className="rounded-xl border border-white/[.07] p-5">
           <h2 className="mb-4 text-sm font-medium">Notification preferences</h2>
           <div className="grid grid-cols-[1fr_72px_72px] items-center gap-y-3 text-sm">
             <span className="text-xs text-slate-500">Notification</span><span className="text-center text-xs text-slate-500">In-app</span><span className="text-center text-xs text-slate-500">Email</span>
@@ -197,37 +196,37 @@ export function AccountSettings() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-white/10 p-5">
+        <section className="rounded-xl border border-white/[.07] p-5">
           <h2 className="mb-4 text-sm font-medium">Appearance</h2>
           <div className="grid grid-cols-3 gap-3">
-            {([["light", Sun], ["dark", Moon], ["system", Monitor]] as const).map(([mode, Icon]) => <button key={mode} onClick={() => setAppearance(mode)} className={`relative flex min-h-20 flex-col items-center justify-center gap-2 rounded-md border text-sm capitalize ${appearance === mode ? "border-red-500 bg-red-500/5" : "border-white/10 text-slate-500"}`}><Icon size={18} />{mode}{appearance === mode ? <Check size={12} className="absolute right-2 top-2 text-red-400" /> : null}</button>)}
+            {([["light", Sun], ["dark", Moon], ["system", Monitor]] as const).map(([mode, Icon]) => <button key={mode} onClick={() => setAppearance(mode)} className={`relative flex min-h-20 flex-col items-center justify-center gap-2 rounded-md border text-sm capitalize ${appearance === mode ? "border-red-500 bg-red-500/5" : "border-white/[.06] text-slate-500"}`}><Icon size={18} />{mode}{appearance === mode ? <Check size={12} className="absolute right-2 top-2 text-red-400" /> : null}</button>)}
           </div>
         </section>
 
-        <section className="rounded-lg border border-white/10 p-5">
+        <section className="rounded-xl border border-white/[.07] p-5">
           <h2 className="mb-4 text-sm font-medium">Keyboard shortcuts</h2>
-          {shortcuts.map(([label, keys]) => <div key={label} className="flex justify-between border-t border-white/10 py-2 text-sm first:border-0"><span className="text-slate-400">{label}</span><kbd className="rounded border border-white/10 bg-white/[.03] px-2 py-0.5 text-xs">{keys}</kbd></div>)}
+          {shortcuts.map(([label, keys]) => <div key={label} className="flex justify-between border-t border-white/[.06] py-2 text-sm first:border-0"><span className="text-slate-400">{label}</span><kbd className="rounded border border-white/[.06] bg-white/[.03] px-2 py-0.5 text-xs">{keys}</kbd></div>)}
         </section>
 
-        <section className="rounded-lg border border-red-500/20 p-5">
+        <section className="rounded-xl border border-red-500/20 p-5">
           <h2 className="mb-4 text-sm font-medium text-red-400">Danger zone</h2>
           <div className="flex flex-wrap gap-3">
-            <button onClick={() => signOut({ redirectUrl: "/sign-in" })} className="flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm"><LogOut size={14} /> Sign out</button>
+            <button onClick={() => signOut({ redirectUrl: "/sign-in" })} className="flex items-center gap-2 rounded-md border border-white/[.06] px-3 py-2 text-sm"><LogOut size={14} /> Sign out</button>
             <button onClick={() => setDeleteOpen(true)} className="flex items-center gap-2 rounded-md border border-red-500/30 px-3 py-2 text-sm text-red-400"><Trash2 size={14} /> Delete account</button>
           </div>
         </section>
 
         <div className="flex justify-end">
-          <button onClick={() => save.mutate()} disabled={save.isPending} className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm disabled:opacity-50"><Save size={14} /> {save.isPending ? "Saving..." : "Save changes"}</button>
+          <button onClick={() => save.mutate()} disabled={save.isPending} className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 active:translate-y-[1px] disabled:opacity-50 transition-all"><Save size={14} /> {save.isPending ? "Saving..." : "Save changes"}</button>
         </div>
       </div>
 
-      {deleteOpen ? <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6">
-        <div className="w-full max-w-md rounded-lg border border-white/10 bg-[#111419] p-5">
+      {deleteOpen ? <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px] p-6">
+        <div className="w-full max-w-md rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
           <h2 className="font-medium">Delete account</h2>
           <p className="mt-2 text-sm text-slate-500">This permanently deletes your account. Type DELETE to confirm.</p>
-          <input value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="mt-4 h-10 w-full rounded-md border border-white/10 bg-transparent px-3 text-sm" />
-          <div className="mt-5 flex justify-end gap-2"><button onClick={() => setDeleteOpen(false)} className="rounded-md border border-white/10 px-3 py-2 text-sm">Cancel</button><button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-md bg-red-600 px-3 py-2 text-sm disabled:opacity-40">Delete account</button></div>
+          <input value={deleteText} onChange={(event) => setDeleteText(event.target.value)} className="key-input mt-4 h-10 w-full" />
+          <div className="mt-5 flex justify-end gap-2"><button onClick={() => setDeleteOpen(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm">Cancel</button><button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-md bg-red-600 px-3 py-2 text-sm disabled:opacity-40">Delete account</button></div>
         </div>
       </div> : null}
     </div>
@@ -235,5 +234,5 @@ export function AccountSettings() {
 }
 
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <label className="text-sm">{label}<input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 h-10 w-full rounded-md border border-white/10 bg-transparent px-3" /></label>;
+  return <label className="text-sm">{label}<input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="key-input mt-2 h-10 w-full" /></label>;
 }

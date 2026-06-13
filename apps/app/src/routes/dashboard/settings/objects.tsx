@@ -137,8 +137,8 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
-      <div className="w-full max-w-xl rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-6">
+      <div className="w-full max-w-xl rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
           <div className="flex items-center gap-2.5">
@@ -335,13 +335,13 @@ export function ObjectsSettings() {
           action={
             <div className="flex gap-2">
               <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-2 text-sm"><Sparkles size={13}/> Generate with AI</button>
-              <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/10 px-3 py-2 text-sm text-slate-400">Manual</button>
+              <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm text-slate-400">Manual</button>
             </div>
           }
         />
       ) : (
-        <div className="grid min-h-[560px] grid-cols-[220px_1fr] overflow-hidden rounded-lg border border-white/10">
-          <aside className="border-r border-white/10 p-3">
+        <div className="grid min-h-[560px] grid-cols-[220px_1fr] overflow-hidden rounded-xl border border-white/[.07]">
+          <aside className="border-r border-white/[.06] p-3">
             <div className="mb-3 flex items-center justify-between px-2">
               <span className="text-xs font-medium uppercase text-slate-500">Objects</span>
               <button onClick={() => setObjectOpen(true)} className="text-red-400" aria-label="Create custom object"><Plus size={14}/></button>
@@ -356,7 +356,7 @@ export function ObjectsSettings() {
                 </button>
               ))}
             </div>
-            <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-md border border-dashed border-white/10 px-3 py-2 text-sm text-slate-500 hover:text-slate-300 hover:border-white/20 transition-colors">
+            <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-md border border-dashed border-white/[.06] px-3 py-2 text-sm text-slate-500 hover:text-slate-300 hover:border-white/20 transition-colors">
               <Plus size={13}/> Custom object
             </button>
             <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-red-500/30 px-3 py-2 text-sm text-red-400/70 hover:text-red-300 hover:border-red-500/50 transition-colors">
@@ -381,14 +381,14 @@ export function ObjectsSettings() {
               </div>
 
               {selected.attributes.length ? (
-                <div className="overflow-hidden rounded-md border border-white/10">
+                <div className="overflow-hidden rounded-xl border border-white/[.07]">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-white/[.03] text-xs text-slate-500">
                       <tr><th className="p-3">Attribute name</th><th className="p-3">Type</th><th className="p-3">Required</th><th className="p-3">Unique</th><th className="p-3"/></tr>
                     </thead>
                     <tbody>
                       {selected.attributes.map((item) => (
-                        <tr key={item.id || item.name} className="border-t border-white/10">
+                        <tr key={item.id || item.name} className="border-t border-white/[.06]">
                           <td className="p-3 font-medium">{item.name}</td>
                           <td className="p-3 capitalize text-slate-400">{item.type.replace("_", " ")}</td>
                           <td className="p-3 text-slate-500">{item.required ? "Yes" : "No"}</td>
@@ -420,19 +420,19 @@ export function ObjectsSettings() {
       {attributeOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
           <form onSubmit={e => { e.preventDefault(); if (attribute.name.trim()) createAttribute.mutate(); }}
-            className="h-full w-full max-w-lg overflow-y-auto border-l border-white/10 bg-[#111419] p-6">
+            className="h-full w-full max-w-lg overflow-y-auto border-l border-white/[.07] bg-[#0d0f13] p-6">
             <div className="mb-6 flex items-center justify-between">
               <div><h2 className="font-medium">Add attribute</h2><p className="text-xs text-slate-500">Add a field to {selected?.name_plural}.</p></div>
               <button type="button" onClick={() => setAttributeOpen(false)}><X size={17}/></button>
             </div>
             <label className="text-sm">Attribute name
-              <input value={attribute.name} onChange={e => setAttribute({ ...attribute, name: e.target.value })} className="mt-2 h-10 w-full rounded-md border border-white/10 bg-transparent px-3"/>
+              <input value={attribute.name} onChange={e => setAttribute({ ...attribute, name: e.target.value })} className="key-input mt-2 h-10 w-full"/>
             </label>
             <p className="mb-2 mt-5 text-sm">Type</p>
             <div className="grid grid-cols-2 gap-2">
               {typeOptions.map(({ type, label, icon: Icon }) => (
                 <button type="button" key={type} onClick={() => setAttribute({ ...attribute, type })}
-                  className={`flex items-center gap-2 rounded-md border p-3 text-left text-sm ${attribute.type === type ? "border-red-500 bg-red-500/5" : "border-white/10"}`}>
+                  className={`flex items-center gap-2 rounded-md border p-3 text-left text-sm ${attribute.type === type ? "border-red-500 bg-red-500/5" : "border-white/[.06]"}`}>
                   <Icon size={14}/><span>{label}</span>
                 </button>
               ))}
@@ -442,7 +442,7 @@ export function ObjectsSettings() {
                 <p className="mb-2 text-sm">Options</p>
                 {selectOptions.map((opt, i) => (
                   <div key={i} className="mb-2 flex gap-2">
-                    <input value={opt} onChange={e => setSelectOptions(selectOptions.map((o, j) => j === i ? e.target.value : o))} className="h-9 flex-1 rounded-md border border-white/10 bg-transparent px-3 text-sm"/>
+                    <input value={opt} onChange={e => setSelectOptions(selectOptions.map((o, j) => j === i ? e.target.value : o))} className="h-9 flex-1 rounded-md border border-white/[.06] bg-transparent px-3 text-sm"/>
                     <button type="button" onClick={() => setSelectOptions(selectOptions.filter((_, j) => j !== i))}><X size={13}/></button>
                   </div>
                 ))}
@@ -451,7 +451,7 @@ export function ObjectsSettings() {
             )}
             {attribute.type === "relation" && (
               <label className="mt-5 block text-sm">Related object
-                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-white/10 bg-[#111419] px-3">
+                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-white/[.06] bg-[#0d0f13] px-3">
                   <option value="">Select object</option>
                   {objects.map(o => <option key={o.id} value={o.slug}>{o.name_plural}</option>)}
                 </select>
@@ -468,9 +468,9 @@ export function ObjectsSettings() {
 
       {/* Create object modal */}
       {objectOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-6">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px] p-6">
           <form onSubmit={e => { e.preventDefault(); if (customObject.singular.trim()) createObject.mutate(); }}
-            className="w-full max-w-lg rounded-lg border border-white/10 bg-[#111419] p-5">
+            className="w-full max-w-lg rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-medium">Create custom object</h2>
               <button type="button" onClick={() => setObjectOpen(false)}><X size={16}/></button>
@@ -480,7 +480,7 @@ export function ObjectsSettings() {
               <Field label="Plural name" value={customObject.plural} onChange={v => setCustomObject({ ...customObject, plural: v })} placeholder="Investors"/>
               <Field label="Icon" value={customObject.icon} onChange={v => setCustomObject({ ...customObject, icon: v })} placeholder="circle"/>
               <label className="text-sm">Vertical
-                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-10 w-full rounded-md border border-white/10 bg-[#111419] px-3">
+                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-10 w-full rounded-md border border-white/[.06] bg-[#0d0f13] px-3">
                   {["sales", "realestate", "hr", "finance", "investments", "shared"].map(v => <option key={v}>{v}</option>)}
                 </select>
               </label>
@@ -501,8 +501,8 @@ export function ObjectsSettings() {
 }
 
 function Toggle({ label, checked, change }: { label: string; checked: boolean; change: (v: boolean) => void }) {
-  return <label className="flex items-center justify-between rounded-md border border-white/10 p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={e => change(e.target.checked)}/></label>;
+  return <label className="flex items-center justify-between rounded-md border border-white/[.06] p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={e => change(e.target.checked)}/></label>;
 }
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
-  return <label className="text-sm">{label}<input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="mt-2 h-10 w-full rounded-md border border-white/10 bg-transparent px-3"/></label>;
+  return <label className="text-sm">{label}<input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="key-input mt-2 h-10 w-full"/></label>;
 }
