@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet } from "lucide-react";
+import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, AlertCircle, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet, Sparkles, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useUser } from "@clerk/react";
@@ -326,6 +326,145 @@ function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, current
   );
 }
 
+// ─── AI Suggest Tasks Modal ───────────────────────────────────────────────────
+function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => void; members: Member[]; currentUserId: string }) {
+  const qc = useQueryClient();
+  const [prompt, setPrompt] = useState("Based on my current records and deals, what tasks should I work on this week?");
+  const [count, setCount] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  const generate = async () => {
+    setLoading(true); setError(""); setSuggestions([]); setSelected(new Set());
+    try {
+      const res = await apiClient.post<{ tasks: any[] }>("/generate/tasks", {
+        prompt, count,
+        members: members.map(m => ({ email: m.email, name: m.name || m.email })),
+      });
+      setSuggestions(res.tasks ?? []);
+      setSelected(new Set((res.tasks ?? []).map((_: any, i: number) => i)));
+    } catch (e: any) { setError(e.message || "Failed to generate"); }
+    finally { setLoading(false); }
+  };
+
+  const importSelected = async () => {
+    setSaving(true);
+    const toCreate = suggestions.filter((_, i) => selected.has(i));
+    for (const t of toCreate) {
+      const member = members.find(m => m.email === t.suggested_assignee_email);
+      const dueDate = t.due_days ? new Date(Date.now() + t.due_days * 86400000).toISOString() : undefined;
+      try {
+        await apiClient.post("/tasks", {
+          title: t.title,
+          notes: t.notes || undefined,
+          priority: t.priority || "medium",
+          status: "todo",
+          due_date: dueDate,
+          assignee_id: member?.user_id || undefined,
+          assignee_email: member?.email || undefined,
+        });
+      } catch {}
+    }
+    qc.invalidateQueries({ queryKey: ["tasks"] });
+    setSaving(false);
+    onClose();
+  };
+
+  const PRIORITY_COLOR: Record<string, string> = {
+    low: "text-slate-400", medium: "text-blue-400", high: "text-orange-400", urgent: "text-red-400"
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+      <div className={`w-full rounded-xl border border-white/10 bg-[#111419] transition-all ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
+        <div className="flex items-center justify-between p-5 border-b border-white/[.06]">
+          <div className="flex items-center gap-2">
+            <Sparkles size={15} className="text-violet-400"/>
+            <h2 className="font-semibold text-white">Suggest tasks with AI</h2>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16}/></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <textarea
+            autoFocus
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            rows={3}
+            className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40"
+          />
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-500">Suggest</span>
+            <div className="flex gap-1">
+              {[3,5,10].map(n => (
+                <button key={n} onClick={() => setCount(n)}
+                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${count === n ? "border-violet-500/50 bg-violet-500/10 text-violet-300" : "border-white/10 text-slate-500 hover:text-slate-300"}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-slate-500">tasks</span>
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        </div>
+
+        {suggestions.length > 0 && (
+          <div className="border-t border-white/[.06]">
+            <div className="flex items-center justify-between px-5 py-3">
+              <span className="text-xs font-medium text-slate-400">{suggestions.length} suggestions</span>
+              <button onClick={() => setSelected(prev => prev.size === suggestions.length ? new Set() : new Set(suggestions.map((_,i)=>i)))} className="text-xs text-slate-500 hover:text-slate-300">
+                {selected.size === suggestions.length ? "Deselect all" : "Select all"}
+              </button>
+            </div>
+            <div className="max-h-64 overflow-auto">
+              {suggestions.map((t, i) => (
+                <button key={i} onClick={() => setSelected(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; })}
+                  className={`flex w-full items-start gap-3 px-5 py-3 text-left border-b border-white/[.04] hover:bg-white/[.02] transition-colors ${selected.has(i) ? "" : "opacity-40"}`}>
+                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center ${selected.has(i) ? "bg-violet-600 border-violet-600" : "border-zinc-600"}`}>
+                    {selected.has(i) && <Check size={10} className="text-white"/>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white">{t.title}</p>
+                    {t.notes && <p className="text-xs text-slate-500 mt-0.5 truncate">{t.notes}</p>}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] font-medium capitalize ${PRIORITY_COLOR[t.priority] ?? "text-slate-400"}`}>{t.priority}</span>
+                      {t.due_days && <span className="text-[10px] text-slate-600">due in {t.due_days}d</span>}
+                      {t.suggested_assignee_email && <span className="text-[10px] text-slate-600">→ {t.suggested_assignee_email}</span>}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between p-5 border-t border-white/[.06]">
+          <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300">Cancel</button>
+          {suggestions.length === 0 ? (
+            <button onClick={generate} disabled={loading || !prompt.trim()}
+              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
+              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button onClick={generate} disabled={loading} className="text-sm text-slate-500 hover:text-slate-300">
+                {loading ? "Regenerating…" : "Regenerate"}
+              </button>
+              <button onClick={importSelected} disabled={selected.size === 0 || saving}
+                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
+                {saving ? <Loader2 size={13} className="animate-spin"/> : <Check size={13}/>}
+                Add {selected.size} task{selected.size !== 1 ? "s" : ""}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TasksPage() {
   const qc = useQueryClient();
   const { user } = useUser();
@@ -336,6 +475,7 @@ export function TasksPage() {
   }, []);
   const [filter, setFilter] = useState("mine");
   const [showCreate, setShowCreate] = useState(false);
+  const [showAISuggest, setShowAISuggest] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
@@ -430,6 +570,10 @@ export function TasksPage() {
               </button>
             ))}
           </div>
+          <button onClick={() => setShowAISuggest(true)}
+            className="flex h-9 items-center gap-2 rounded-md bg-violet-600/20 border border-violet-500/30 px-3 text-sm text-violet-300 hover:bg-violet-600/30 transition-colors">
+            <Sparkles size={14}/> Suggest with AI
+          </button>
           <button onClick={() => setShowCreate(true)}
             className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium hover:bg-red-500">
             <Plus size={14}/> New Task
@@ -791,6 +935,13 @@ export function TasksPage() {
           members={members}
           currentUserId={currentUserId}
           userName={user?.fullName || user?.firstName || "Someone"}
+        />
+      )}
+      {showAISuggest && (
+        <AISuggestModal
+          onClose={() => setShowAISuggest(false)}
+          members={members}
+          currentUserId={currentUserId}
         />
       )}
     </div>

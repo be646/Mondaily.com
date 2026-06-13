@@ -268,6 +268,113 @@ router.post("/records", requireAuth, zValidator("json", z.object({
   }
 });
 
+// ─── AI task suggestions ──────────────────────────────────────────────────────
+router.post("/tasks", requireAuth, zValidator("json", z.object({
+  prompt: z.string().min(1),
+  count: z.number().int().min(1).max(20).default(5),
+  members: z.array(z.object({ email: z.string(), name: z.string() })).optional(),
+  records: z.array(z.object({ object_type: z.string(), data: z.record(z.unknown()) })).optional(),
+})), async (c) => {
+  const { prompt, count, members, records } = c.req.valid("json");
+  const memberList = (members ?? []).map(m => `${m.name} <${m.email}>`).join(", ");
+  const recordContext = (records ?? []).slice(0, 20).map(r =>
+    `[${r.object_type}] ${Object.entries(r.data).slice(0,4).map(([k,v])=>`${k}=${v}`).join(", ")}`
+  ).join("\n");
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 2048,
+      tools: [{
+        name: "suggest_tasks",
+        description: "Suggest actionable tasks based on the given context",
+        input_schema: {
+          type: "object",
+          properties: {
+            tasks: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string", description: "Short actionable task title" },
+                  notes: { type: "string", description: "Brief context or description" },
+                  priority: { type: "string", enum: ["low","medium","high","urgent"] },
+                  due_days: { type: "number", description: "Days from today until due (e.g. 3, 7, 14)" },
+                  suggested_assignee_email: { type: "string", description: "Email of the best team member for this task, or empty string" },
+                },
+                required: ["title","priority"]
+              }
+            }
+          },
+          required: ["tasks"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "suggest_tasks" },
+      messages: [{
+        role: "user",
+        content: `Suggest ${count} actionable tasks based on this context: "${prompt}"${recordContext ? `\n\nRelated records:\n${recordContext}` : ""}${memberList ? `\n\nTeam members: ${memberList}` : ""}\n\nMake tasks specific, actionable, and realistic. Set priority based on urgency. Set due_days (days from today) based on realistic timelines.`
+      }]
+    });
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    return c.json({ tasks: toolUse?.input?.tasks ?? [] });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+// ─── AI insights ──────────────────────────────────────────────────────────────
+router.post("/insights", requireAuth, zValidator("json", z.object({
+  objectType: z.string().min(1),
+  records: z.array(z.record(z.unknown())),
+})), async (c) => {
+  const { objectType, records } = c.req.valid("json");
+  if (!records.length) return c.json({ insights: [] });
+  const sample = records.slice(0, 50).map(r => {
+    const d = (r as any).data ?? r;
+    return Object.entries(d).slice(0,6).map(([k,v])=>`${k}=${v}`).join(", ");
+  }).join("\n");
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      tools: [{
+        name: "generate_insights",
+        description: "Analyze records and return business insights",
+        input_schema: {
+          type: "object",
+          properties: {
+            insights: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  value: { type: "string", description: "The headline metric or finding" },
+                  trend: { type: "string", enum: ["up","down","neutral"] },
+                  description: { type: "string", description: "1-2 sentence explanation" },
+                  category: { type: "string", enum: ["performance","risk","opportunity","summary"] }
+                },
+                required: ["title","value","description","category"]
+              },
+              minItems: 3,
+              maxItems: 6
+            }
+          },
+          required: ["insights"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "generate_insights" },
+      messages: [{
+        role: "user",
+        content: `Analyze these ${records.length} ${objectType} records and generate 4-6 business insights.\n\nSample records:\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks. Be specific with numbers where possible.`
+      }]
+    });
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    return c.json({ insights: toolUse?.input?.insights ?? [] });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 // ─── AI list-entry selector ───────────────────────────────────────────────────
 router.post("/list-entries", requireAuth, zValidator("json", z.object({
   prompt: z.string().min(1),
