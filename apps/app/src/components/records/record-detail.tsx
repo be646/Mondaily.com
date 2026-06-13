@@ -497,7 +497,7 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
 // ─── Activity feed ────────────────────────────────────────────────────────────
 function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
   const cls = type === "create" ? "bg-emerald-500" : type === "update" ? "bg-blue-500" : "bg-slate-600";
-  return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[#13151a]`}/>;
+  return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[#0d0f13]`}/>;
 }
 
 function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; createdAt: string }) {

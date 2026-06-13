@@ -182,7 +182,7 @@ function CreateRecordModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[680px]" : "w-[440px]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[680px]" : "w-[440px]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
@@ -455,7 +455,7 @@ function AIFillModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[3px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[720px]" : "w-[500px]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[720px]" : "w-[500px]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[.06] px-6 py-4">
@@ -601,7 +601,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/20 bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
         <div className="px-6 py-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
