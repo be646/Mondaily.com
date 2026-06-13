@@ -148,32 +148,70 @@ export function ReportsPage() {
           <PageSkeleton rows={3} />
         ) : dashboardsQ.data?.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {dashboardsQ.data.map(dashboard => (
-              <Link
-                key={dashboard.id}
-                to={`/reports/dashboards/${dashboard.id}`}
-                className="overflow-hidden rounded-xl border border-white/[.08] hover:border-white/20 transition-colors"
-              >
-                {/* Mini preview */}
-                <div className="grid h-32 grid-cols-2 gap-2 bg-white/[.015] p-3">
-                  <div className="rounded-lg border border-white/[.06] bg-gradient-to-t from-red-500/10 to-transparent" />
-                  <div className="space-y-2">
-                    <div className="h-14 rounded-lg border border-white/[.06] bg-white/[.02]" />
-                    <div className="h-9 rounded-lg border border-white/[.06] bg-white/[.02]" />
+            {dashboardsQ.data.map(dashboard => {
+              const allWidgets = Array.isArray(dashboard.widgets) ? dashboard.widgets as Array<{ type?: string }> : [];
+              const liveCount   = allWidgets.filter(w => w.type === "live").length;
+              const reportCount = allWidgets.filter(w => w.type === "report").length;
+              const totalCount  = allWidgets.length;
+              // Mini bar heights — vary based on dashboard id for visual variety
+              const seed = dashboard.id.charCodeAt(0) ?? 0;
+              const bars = [4,7,5,9,6,8,3].map((h, i) => Math.max(2, (h + ((seed + i) % 4)) * 7));
+              return (
+                <Link
+                  key={dashboard.id}
+                  to={`/reports/dashboards/${dashboard.id}`}
+                  className="group overflow-hidden rounded-xl border border-white/[.08] hover:border-white/20 transition-all hover:shadow-lg hover:shadow-black/20"
+                >
+                  {/* Preview area */}
+                  <div className="relative h-28 overflow-hidden bg-gradient-to-br from-slate-800/60 to-slate-900/80 px-4 pt-3 pb-0">
+                    {totalCount === 0 ? (
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-[11px] text-slate-600">Empty · click to add widgets</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Widget type badges */}
+                        <div className="mb-2 flex gap-1.5">
+                          {liveCount > 0 && (
+                            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                              {liveCount} live
+                            </span>
+                          )}
+                          {reportCount > 0 && (
+                            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400">
+                              {reportCount} chart{reportCount !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {totalCount > 0 && liveCount === 0 && reportCount === 0 && (
+                            <span className="rounded-full border border-white/10 bg-white/[.04] px-2 py-0.5 text-[10px] text-slate-500">
+                              {totalCount} widget{totalCount !== 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+                        {/* Decorative mini chart */}
+                        <div className="flex items-end gap-1 h-12">
+                          {bars.map((h, i) => (
+                            <div
+                              key={i}
+                              className="flex-1 rounded-t-sm transition-all group-hover:opacity-100"
+                              style={{ height: h, background: `rgba(239,68,68,${0.15 + i * 0.04})` }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center gap-2">
-                    <LayoutDashboard size={13} className="text-red-400 shrink-0" />
-                    <h3 className="text-sm font-medium text-white truncate">{dashboard.name || "Untitled dashboard"}</h3>
+                  {/* Info row */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-t border-white/[.05]">
+                    <LayoutDashboard size={13} className="text-red-400 shrink-0"/>
+                    <h3 className="flex-1 truncate text-sm font-medium text-white">{dashboard.name || "Untitled dashboard"}</h3>
+                    <span className="shrink-0 text-[10px] text-slate-600">
+                      {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}
+                    </span>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-slate-500">
-                    Updated {new Date(dashboard.updated_at).toLocaleDateString()} ·{" "}
-                    {Array.isArray(dashboard.widgets) ? dashboard.widgets.length : 0} widgets
-                  </p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <EmptyState
