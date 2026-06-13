@@ -221,4 +221,51 @@ router.post("/enrich/person", requireAuth, zValidator("json", z.object({ email: 
   }
 });
 
+// ─── Bulk record generation ───────────────────────────────────────────────────
+router.post("/records", requireAuth, zValidator("json", z.object({
+  objectType: z.string().min(1),
+  columns: z.array(z.string()).min(1),
+  prompt: z.string().min(1),
+  count: z.number().int().min(1).max(50).default(10),
+})), async (c) => {
+  const { objectType, columns, prompt, count } = c.req.valid("json");
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4096,
+      tools: [{
+        name: "generate_records",
+        description: "Generate realistic sample records for a database table",
+        input_schema: {
+          type: "object",
+          properties: {
+            records: {
+              type: "array",
+              minItems: 1,
+              maxItems: 50,
+              items: {
+                type: "object",
+                description: "A single record. Keys must exactly match the provided columns.",
+                additionalProperties: { type: "string" }
+              }
+            }
+          },
+          required: ["records"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "generate_records" },
+      messages: [{
+        role: "user",
+        content: `Generate ${count} realistic ${objectType} records.\n\nContext: ${prompt}\n\nColumns to fill: ${columns.join(", ")}\n\nRules:\n- Every record must have a "name" field\n- Use realistic values appropriate for the object type and context\n- For currency/number columns use numeric strings (no symbols)\n- For date columns use YYYY-MM-DD format\n- For checkbox columns use "true" or "false"\n- For select columns pick a realistic category value\n- Leave optional fields empty string if not applicable\n- Make records varied and realistic, not just placeholders`
+      }]
+    });
+
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse?.input?.records) return c.json({ error: "No records generated" }, 500);
+    return c.json({ records: toolUse.input.records });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 export { router as generateRouter };
