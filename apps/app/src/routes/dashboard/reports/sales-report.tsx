@@ -312,7 +312,8 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
 }
 
 // ─── AI Forecast Card ─────────────────────────────────────────────────────────
-interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"low"; headline: string; narrative: string; risks: string }
+interface ForecastAction { action: string; impact: "high"|"medium"|"low"; why: string }
+interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"low"; headline: string; narrative: string; risks: string; actions?: ForecastAction[] }
 
 const CONFIDENCE_STYLE: Record<string, string> = {
   high:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
@@ -374,6 +375,7 @@ p{font-size:13px;color:#374151;line-height:1.6}
 <div class="section"><div class="section-title">Headline</div><p><em>${result.headline}</em></p></div>
 <div class="section"><div class="section-title">Analysis</div><p>${result.narrative}</p></div>
 ${result.risks && result.risks !== "None identified" ? `<div class="risk"><strong>Risk:</strong> ${result.risks}</div>` : ""}
+${result.actions && result.actions.length > 0 ? `<div class="section" style="margin-top:24px"><div class="section-title">What to do now</div><div style="display:flex;flex-direction:column;gap:8px">${result.actions.map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px"><span style="font-size:9px;font-weight:700;border-radius:99px;border:1px solid;padding:2px 8px;white-space:nowrap;${a.impact==="high"?"border-color:#6ee7b7;color:#059669;background:#ecfdf5":a.impact==="medium"?"border-color:#fcd34d;color:#d97706;background:#fffbeb":"border-color:#d1d5db;color:#6b7280;background:#f9fafb"}">${a.impact}</span><div><div style="font-size:13px;font-weight:600;color:#111;margin-bottom:2px">${a.action}</div><div style="font-size:11px;color:#6b7280">${a.why}</div></div></div>`).join("")}</div></div>` : ""}
 <div class="footer"><span>Mondaily AI · AI Forecast</span><span>${new Date().toLocaleDateString()}</span></div>
 <script>window.onload=()=>window.print()<\/script></body></html>`;
     const w = window.open("","_blank"); if(w){w.document.write(html);w.document.close();}
@@ -447,6 +449,27 @@ ${result.risks && result.risks !== "None identified" ? `<div class="risk"><stron
               </div>
             </div>
           )}
+          {/* Actions */}
+          {result.actions && result.actions.length > 0 && (
+            <div className="px-6 py-4 border-t border-white/[.05]">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-3">What to do now</p>
+              <div className="space-y-2">
+                {result.actions.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3">
+                    <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                      a.impact === "high"   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
+                      a.impact === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-400" :
+                                              "border-slate-500/30 bg-slate-500/10 text-slate-400"
+                    }`}>{a.impact}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium">{a.action}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{a.why}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="px-6 py-3 flex items-center justify-between border-t border-white/[.05]">
             <span className="text-[10px] text-slate-700">Powered by Mondaily AI</span>
             <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
@@ -457,7 +480,7 @@ ${result.risks && result.risks !== "None identified" ? `<div class="risk"><stron
   );
 }
 
-interface AIInsight { title: string; value: string; trend?: "up"|"down"|"neutral"; description: string; category: "performance"|"risk"|"opportunity"|"summary" }
+interface AIInsight { title: string; value: string; trend?: "up"|"down"|"neutral"; description: string; category: "performance"|"risk"|"opportunity"|"summary"; action?: string }
 
 function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objectType: string }) {
   const [loading, setLoading]   = useState(false);
@@ -499,6 +522,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
         <div style="font-size:11px;color:#6b7280;margin-bottom:2px">${ins.title}</div>
         <div style="font-size:22px;font-weight:800;color:#111;margin-bottom:6px">${ins.value}</div>
         <div style="font-size:12px;color:#374151;line-height:1.5">${ins.description}</div>
+        ${ins.action ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280"><span style="color:#9ca3af;margin-right:4px">→</span>${ins.action}</div>` : ""}
       </div>`;
     }).join("");
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>AI Insights</title>
@@ -569,6 +593,12 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                     <p className="text-2xl font-bold text-white leading-tight">{ins.value}</p>
                   </div>
                   <p className="text-[11px] text-slate-400 leading-relaxed">{ins.description}</p>
+                  {ins.action && (
+                    <div className="flex items-start gap-1.5 mt-1 pt-2 border-t border-white/[.06]">
+                      <span className="text-[10px] shrink-0 text-slate-600 mt-0.5">→</span>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">{ins.action}</p>
+                    </div>
+                  )}
                 </div>
               );
             })}

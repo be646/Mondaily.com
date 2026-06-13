@@ -335,7 +335,7 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
   try {
     const data = await callAnthropic({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
+      max_tokens: 2048,
       tools: [{
         name: "generate_insights",
         description: "Analyze records and return business insights",
@@ -351,9 +351,10 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
                   value: { type: "string", description: "The headline metric or finding" },
                   trend: { type: "string", enum: ["up","down","neutral"] },
                   description: { type: "string", description: "1-2 sentence explanation" },
-                  category: { type: "string", enum: ["performance","risk","opportunity","summary"] }
+                  category: { type: "string", enum: ["performance","risk","opportunity","summary"] },
+                  action: { type: "string", description: "One specific, concrete action the user should take based on this insight. Start with a verb. E.g. 'Re-engage the 3 deals that haven\\'t moved in 14+ days' or 'Increase outreach to companies in the Technology sector which shows 40% higher conversion'" }
                 },
-                required: ["title","value","description","category"]
+                required: ["title","value","description","category","action"]
               },
               minItems: 3,
               maxItems: 6
@@ -365,7 +366,7 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
       tool_choice: { type: "tool", name: "generate_insights" },
       messages: [{
         role: "user",
-        content: `Analyze these ${records.length} ${objectType} records and generate 4-6 business insights.\n\nSample records:\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks. Be specific with numbers where possible.`
+        content: `Analyze these ${records.length} ${objectType} records and generate 4-6 business insights.\n\nSample records:\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks. Be specific with numbers where possible.\n\nFor each insight, also provide a concrete, specific action the user should take right now based on that finding. Actions must start with a verb and be immediately actionable, not generic advice.`
       }]
     });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
@@ -637,7 +638,7 @@ Based on this data, generate a realistic forecast. Consider:
   try {
     const data = await callAnthropic({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
+      max_tokens: 2048,
       tools: [{
         name: "generate_forecast",
         description: "Generate a business forecast with projected value and narrative analysis",
@@ -654,8 +655,23 @@ Based on this data, generate a realistic forecast. Consider:
             headline: { type: "string", description: "One short sentence headline, e.g. 'On track for a strong month' or 'Pipeline looks thin — expect a slower close'" },
             narrative: { type: "string", description: "2-3 sentences explaining the forecast. Be specific with numbers. Mention trend, win rate, and pipeline." },
             risks: { type: "string", description: "One sentence about the key risk to this forecast, or 'None identified' if data looks healthy." },
+            actions: {
+              type: "array",
+              description: "3-5 specific, concrete actions the user should take right now to hit or exceed the forecast. Each should be actionable today, not generic advice.",
+              items: {
+                type: "object",
+                properties: {
+                  action: { type: "string", description: "Short imperative action, e.g. 'Follow up with 4 open deals in Proposal stage'" },
+                  impact: { type: "string", enum: ["high", "medium", "low"], description: "Expected impact on hitting the forecast" },
+                  why: { type: "string", description: "One sentence explaining why this action matters now" }
+                },
+                required: ["action", "impact", "why"]
+              },
+              minItems: 3,
+              maxItems: 5
+            }
           },
-          required: ["projectedValue", "confidence", "headline", "narrative", "risks"]
+          required: ["projectedValue", "confidence", "headline", "narrative", "risks", "actions"]
         }
       }],
       tool_choice: { type: "tool", name: "generate_forecast" },
