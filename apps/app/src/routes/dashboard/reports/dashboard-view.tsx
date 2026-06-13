@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GripVertical, Plus, Save, Trash2, BarChart2, LineChart as LineChartIcon,
-  Loader2, X, Zap, FileBarChart,
+  Loader2, X, Zap, FileBarChart, Settings2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
@@ -244,13 +244,109 @@ function ReportWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }:
 }
 
 // ─── Add widget modal ─────────────────────────────────────────────────────────
+function CustomChartTab({ objects, onAdd, onClose }: {
+  objects: ObjectType[];
+  onAdd: (widget: AnyWidget) => void;
+  onClose: () => void;
+}) {
+  const [name,      setName]      = useState("Custom chart");
+  const [slug,      setSlug]      = useState(objects[0]?.slug ?? "");
+  const [metric,    setMetric]    = useState<"count"|"sum"|"average">("count");
+  const [field,     setField]     = useState("value");
+  const [groupBy,   setGroupBy]   = useState<"day"|"week"|"month"|"quarter">("month");
+  const [chartType, setChartType] = useState<"line"|"bar">("bar");
+  const [creating,  setCreating]  = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+
+  async function handleAdd() {
+    if (!slug) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const report = await apiClient.post<{ id: string }>("/reports", {
+        name,
+        type: "insight",
+        config: { object_type: slug, metric, field, group_by: groupBy, chart_type: chartType, compare: false, stage_field: "stage", stages: [], range: "90d" },
+      });
+      onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: name, chart_type: chartType });
+      onClose();
+    } catch {
+      setError("Could not create chart. Please try again.");
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 p-4">
+      <p className="text-[11px] text-slate-500 mb-1">Configure a custom chart — re-runs live every time the dashboard loads.</p>
+      <label className="block">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 mb-1 block">Widget name</span>
+        <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-red-500/50"/>
+      </label>
+      <label className="block">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 mb-1 block">Object</span>
+        <select value={slug} onChange={e => setSlug(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-[#0b0d10] px-3 py-2 text-sm text-white outline-none">
+          {objects.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)}
+        </select>
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 mb-1 block">Metric</span>
+          <select value={metric} onChange={e => setMetric(e.target.value as "count"|"sum"|"average")} className="w-full rounded-lg border border-white/[.08] bg-[#0b0d10] px-3 py-2 text-sm text-white outline-none">
+            <option value="count">Count of records</option>
+            <option value="sum">Sum of field</option>
+            <option value="average">Average of field</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 mb-1 block">Group by</span>
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value as "day"|"week"|"month"|"quarter")} className="w-full rounded-lg border border-white/[.08] bg-[#0b0d10] px-3 py-2 text-sm text-white outline-none">
+            <option value="day">Day</option>
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+            <option value="quarter">Quarter</option>
+          </select>
+        </label>
+      </div>
+      {metric !== "count" && (
+        <label className="block">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 mb-1 block">Numeric field name</span>
+          <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. value, amount, revenue" className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-red-500/50"/>
+        </label>
+      )}
+      <label className="block">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600 mb-1 block">Chart type</span>
+        <div className="flex gap-2">
+          {(["bar","line"] as const).map(t => (
+            <button key={t} onClick={() => setChartType(t)}
+              className={`flex-1 rounded-md border py-2 text-xs capitalize transition-colors ${chartType === t ? "border-red-500 bg-red-500/10 text-white" : "border-white/10 text-slate-400"}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+      </label>
+      {error && <p className="text-xs text-red-400">{error}</p>}
+      <button onClick={handleAdd} disabled={creating || !slug}
+        className="w-full rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+        {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : "Add chart to dashboard"}
+      </button>
+    </div>
+  );
+}
+
 function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   objects: ObjectType[];
   reports: ReportOption[];
   onAdd: (widget: AnyWidget) => void;
   onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"live"|"report">("live");
+  const [tab, setTab] = useState<"live"|"report"|"custom">("live");
+
+  const TABS = [
+    { id: "live"   as const, label: "Live Object",   icon: <Zap size={11}/>,         accent: "border-emerald-500" },
+    { id: "report" as const, label: "Saved Report",  icon: <FileBarChart size={11}/>, accent: "border-red-500"     },
+    { id: "custom" as const, label: "Custom Chart",  icon: <Settings2 size={11}/>,    accent: "border-blue-500"    },
+  ];
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
@@ -261,64 +357,70 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
         </div>
 
         <div className="flex border-b border-white/[.06]">
-          {(["live","report"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${tab === t ? `border-b-2 text-white ${t === "live" ? "border-emerald-500" : "border-red-500"}` : "text-slate-500 hover:text-slate-300"}`}>
-              {t === "live" ? <><Zap size={11}/> Live Object</> : <><FileBarChart size={11}/> Saved Report</>}
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? `border-b-2 text-white ${t.accent}` : "text-slate-500 hover:text-slate-300"}`}>
+              {t.icon} {t.label}
             </button>
           ))}
         </div>
 
-        <div className="p-4 max-h-96 overflow-y-auto">
+        <div className="max-h-[28rem] overflow-y-auto">
           {tab === "live" ? (
-            objects.length === 0 ? (
-              <p className="py-8 text-center text-xs text-slate-600">No object types found in this workspace.</p>
-            ) : (
-              <div className="space-y-2">
-                <p className="mb-3 text-[11px] text-slate-500">Always shows live data — auto-detects value and trend columns.</p>
-                {objects.map(obj => (
-                  <button key={obj.slug}
-                    onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
-                    className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400">
-                      <BarChart2 size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{obj.name_plural}</p>
-                      <p className="text-[11px] text-slate-500">KPIs + 6-month trend</p>
-                    </div>
-                    <Plus size={14} className="shrink-0 text-slate-600" />
-                  </button>
-                ))}
-              </div>
-            )
+            <div className="p-4">
+              {objects.length === 0 ? (
+                <p className="py-8 text-center text-xs text-slate-600">No object types found in this workspace.</p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="mb-3 text-[11px] text-slate-500">Always shows live data — auto-detects value and trend columns.</p>
+                  {objects.map(obj => (
+                    <button key={obj.slug}
+                      onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
+                      className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400">
+                        <BarChart2 size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white">{obj.name_plural}</p>
+                        <p className="text-[11px] text-slate-500">KPIs + 6-month trend</p>
+                      </div>
+                      <Plus size={14} className="shrink-0 text-slate-600" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : tab === "report" ? (
+            <div className="p-4">
+              {reports.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-xs text-slate-500 mb-3">No saved reports yet.</p>
+                  <Link to="/reports" onClick={onClose} className="text-xs text-red-400 hover:text-red-300">
+                    Go to Reports →
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="mb-3 text-[11px] text-slate-500">Data re-runs fresh each time the dashboard loads.</p>
+                  {reports.map(report => (
+                    <button key={report.id}
+                      onClick={() => { onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: report.name }); onClose(); }}
+                      className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500/10 text-red-400">
+                        <LineChartIcon size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{report.name}</p>
+                        <p className="text-[11px] text-slate-500 capitalize">{report.type?.replace(/_/g," ") ?? "report"}</p>
+                      </div>
+                      <Plus size={14} className="shrink-0 text-slate-600" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
-            reports.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-xs text-slate-500 mb-3">No saved reports yet.</p>
-                <Link to="/reports" onClick={onClose} className="text-xs text-red-400 hover:text-red-300">
-                  Create a report first →
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="mb-3 text-[11px] text-slate-500">Data re-runs fresh each time the dashboard loads.</p>
-                {reports.map(report => (
-                  <button key={report.id}
-                    onClick={() => { onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: report.name }); onClose(); }}
-                    className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500/10 text-red-400">
-                      <LineChartIcon size={14} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{report.name}</p>
-                      <p className="text-[11px] text-slate-500 capitalize">{report.type?.replace(/_/g," ") ?? "report"}</p>
-                    </div>
-                    <Plus size={14} className="shrink-0 text-slate-600" />
-                  </button>
-                ))}
-              </div>
-            )
+            <CustomChartTab objects={objects} onAdd={onAdd} onClose={onClose}/>
           )}
         </div>
       </div>

@@ -3,8 +3,11 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList,
 } from "recharts";
-import { useState, useMemo } from "react";
-import { Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import {
+  Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
+  Download, Target, Sparkles, X, ChevronRight, Filter,
+} from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 
@@ -17,7 +20,6 @@ function detectValueCol(records: NodeRecord[]): string | null {
   const candidates = ["deal_value","value","amount","price","revenue","arr","budget","salary","cost","total","fee","rate"];
   const keys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
   for (const c of candidates) if (keys.includes(c)) return c;
-  // Fall back to first column that looks numeric
   return keys.find(k => records.some(r => r.data[k] != null && !isNaN(Number(r.data[k])) && Number(r.data[k]) > 0)) ?? null;
 }
 function detectStageCol(records: NodeRecord[]): string | null {
@@ -33,7 +35,7 @@ function detectNameCol(records: NodeRecord[]): string {
   return keys[0] ?? "name";
 }
 
-// ─── Stage classification (works for any object with status/stage) ────────────
+// ─── Stage classification ──────────────────────────────────────────────────────
 const WON_KEYWORDS  = ["won","closed won","win","closed","completed","converted","success","done","delivered","paid","approved","active"];
 const LOST_KEYWORDS = ["lost","closed lost","rejected","declined","dead","churned","cancelled","failed","expired"];
 function isWon(stage: string)  { return WON_KEYWORDS.some(k  => stage.toLowerCase().includes(k)); }
@@ -56,6 +58,13 @@ function periodStart(p: Period): Date {
   d.setMonth(0,1); d.setHours(0,0,0,0); return d;
 }
 
+function prevPeriodRange(p: Period): { start: Date; end: Date } {
+  const currStart = periodStart(p);
+  const now = new Date();
+  const durationMs = now.getTime() - currStart.getTime();
+  return { start: new Date(currStart.getTime() - durationMs), end: currStart };
+}
+
 function bucketLabel(date: Date, p: Period): string {
   if (p === "today")   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (p === "week")    return date.toLocaleDateString([], { weekday: "short" });
@@ -68,7 +77,7 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
   const start = periodStart(period);
   const buckets: Map<string, { revenue: number; count: number }> = new Map();
   for (const r of records) {
-    const raw = r.updated_at ?? r.created_at ?? (r.data as any).created_at ?? (r.data as any).updated_at;
+    const raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).created_at ?? (r.data as Record<string,unknown>).updated_at;
     if (!raw) continue;
     const d = new Date(raw as string);
     if (d < start) continue;
@@ -84,33 +93,102 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
     .map(([label,{revenue,count}]) => ({ label, revenue, count }));
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-function KpiCard({ label, value, sub, color, trend }: {
-  label: string; value: string; sub?: string; color: string; trend?: "up"|"down"|"neutral";
-}) {
+function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, rangeOverride?: { start: Date; end: Date }) {
+  const start = rangeOverride ? rangeOverride.start : periodStart(period);
+  const end   = rangeOverride ? rangeOverride.end   : new Date();
+  const inPeriod = records.filter(r => {
+    const raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).updated_at ?? (r.data as Record<string,unknown>).created_at;
+    if (!raw) return !rangeOverride;
+    const d = new Date(raw as string);
+    return d >= start && d <= end;
+  });
+  const getVal   = (r: NodeRecord) => { const v = valueCol ? r.data[valueCol] : undefined; const n = Number(v ?? 0); return isNaN(n) ? 0 : n; };
+  const getStage = (r: NodeRecord) => stageCol ? String(r.data[stageCol] ?? "") : "";
+
+  const wonRecs  = stageCol ? inPeriod.filter(r => isWon(getStage(r)))  : inPeriod;
+  const lostRecs = stageCol ? inPeriod.filter(r => isLost(getStage(r))) : [];
+  const openRecs = stageCol ? inPeriod.filter(r => isOpen(getStage(r))) : [];
+
+  const totalValue   = inPeriod.reduce((s,r) => s + getVal(r), 0);
+  const wonValue     = wonRecs.reduce((s,r) => s + getVal(r), 0);
+  const openValue    = openRecs.reduce((s,r) => s + getVal(r), 0);
+  const completionRate = (wonRecs.length + lostRecs.length) > 0
+    ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : 0;
+  const avgVal = wonRecs.length ? Math.round(wonValue / wonRecs.length) : (inPeriod.length ? Math.round(totalValue / inPeriod.length) : 0);
+
+  return { totalValue, wonValue, openValue, completionRate, avgVal, wonCount: wonRecs.length, openCount: openRecs.length, totalCount: inPeriod.length };
+}
+
+function pctDelta(curr: number, prev: number): number | null {
+  if (prev === 0) return null;
+  return Math.round((curr - prev) / prev * 100);
+}
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+function DeltaBadge({ delta }: { delta: number | null | undefined }) {
+  if (delta == null) return null;
+  const up = delta >= 0;
   return (
-    <div className={`relative overflow-hidden rounded-xl border p-5 print:border-gray-200 ${color}`}>
-      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl print:hidden" style={{ background:"currentColor" }}/>
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-white leading-none print:text-black">{value}</p>
-      {sub && (
-        <div className="mt-2 flex items-center gap-1 text-[11px] text-white/50 print:text-gray-500">
-          {trend === "up"      && <TrendingUp  size={11} className="text-emerald-400"/>}
-          {trend === "down"    && <TrendingDown size={11} className="text-red-400"/>}
-          {trend === "neutral" && <Minus size={11}/>}
-          {sub}
-        </div>
-      )}
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+      {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
+      {up ? "+" : ""}{delta}%
+    </span>
+  );
+}
+
+function GoalBar({ value, goal }: { value: number; goal: number }) {
+  const pct = Math.min(100, Math.round(value / goal * 100));
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between text-[10px] text-white/40 mb-1">
+        <span>{pct}% of goal</span>
+        <span>{fmtMoney(goal)}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10">
+        <div className="h-1.5 rounded-full bg-current transition-all" style={{ width: `${pct}%` }}/>
+      </div>
     </div>
   );
 }
 
-function ChartTooltip({ active, payload, label }: any) {
+function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSetGoal }: {
+  label: string; value: string; sub?: string; color: string; trend?: "up"|"down"|"neutral";
+  delta?: number | null; goal?: number | null; goalValue?: number; onSetGoal?: () => void;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl border p-5 print:border-gray-200 ${color}`}>
+      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl print:hidden" style={{ background:"currentColor" }}/>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{label}</p>
+        {onSetGoal && (
+          <button onClick={onSetGoal} title="Set goal" className="text-current opacity-30 hover:opacity-60 transition-opacity print:hidden">
+            <Target size={12}/>
+          </button>
+        )}
+      </div>
+      <p className="mt-2 text-3xl font-bold text-white leading-none print:text-black">{value}</p>
+      <div className="mt-2 flex items-center gap-2 flex-wrap">
+        {delta != null && <DeltaBadge delta={delta}/>}
+        {sub && (
+          <div className="flex items-center gap-1 text-[11px] text-white/50 print:text-gray-500">
+            {trend === "up"      && <TrendingUp  size={11} className="text-emerald-400"/>}
+            {trend === "down"    && <TrendingDown size={11} className="text-red-400"/>}
+            {trend === "neutral" && <Minus size={11}/>}
+            {sub}
+          </div>
+        )}
+      </div>
+      {goal != null && goalValue != null && <GoalBar value={goalValue} goal={goal}/>}
+    </div>
+  );
+}
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-lg border border-white/10 bg-[#1a1d24] px-3 py-2 text-xs shadow-xl">
       <p className="mb-1 font-medium text-slate-300">{label}</p>
-      {payload.map((p: any) => (
+      {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }}>
           {p.name}: {typeof p.value === "number" && p.value > 100 ? fmtMoney(p.value) : p.value}
         </p>
@@ -119,10 +197,6 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
-const STAGE_COLORS  = ["#6366f1","#8b5cf6","#a855f7","#d946ef","#ec4899","#f43f5e","#f97316","#eab308"];
-const PERIOD_LABELS: Record<Period,string> = { today:"Today", week:"This Week", month:"This Month", quarter:"This Quarter", year:"This Year" };
-
-// ─── Object picker dropdown ───────────────────────────────────────────────────
 function ObjectPicker({ objects, value, onChange }: {
   objects: Array<{ slug: string; name_plural: string }>;
   value: string;
@@ -159,25 +233,147 @@ function ObjectPicker({ objects, value, onChange }: {
   );
 }
 
-// ─── Determine report vocabulary based on detected columns ────────────────────
+function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol: string; onClose: () => void }) {
+  const name = String(record.data[nameCol] ?? "Record");
+  const fields = Object.entries(record.data).filter(([,v]) => v != null && v !== "");
+  return (
+    <div className="fixed inset-0 z-50 flex" onClick={onClose}>
+      <div className="flex-1 bg-black/40" />
+      <div className="w-full max-w-md overflow-y-auto bg-[#13151a] border-l border-white/[.08] p-6" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-semibold text-white truncate">{name}</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+            <X size={16}/>
+          </button>
+        </div>
+        <div className="space-y-3">
+          {fields.map(([key, val]) => (
+            <div key={key} className="flex items-start gap-3">
+              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-slate-600 pt-0.5">{key}</span>
+              <span className="text-sm text-slate-300 break-all">{String(val)}</span>
+            </div>
+          ))}
+          <div className="pt-3 border-t border-white/[.06]">
+            <div className="flex items-start gap-3">
+              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-slate-600 pt-0.5">Created</span>
+              <span className="text-sm text-slate-300">{record.created_at ? new Date(record.created_at).toLocaleString() : "—"}</span>
+            </div>
+            <div className="flex items-start gap-3 mt-2">
+              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-slate-600 pt-0.5">Updated</span>
+              <span className="text-sm text-slate-300">{record.updated_at ? new Date(record.updated_at).toLocaleString() : "—"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface AIInsight { title: string; value: string; trend?: "up"|"down"|"neutral"; description: string; category: "performance"|"risk"|"opportunity"|"summary" }
+
+const INSIGHT_COLORS: Record<string, string> = {
+  performance: "border-emerald-500/20 bg-emerald-500/[.05] text-emerald-400",
+  opportunity: "border-blue-500/20 bg-blue-500/[.05] text-blue-400",
+  risk:        "border-red-500/20 bg-red-500/[.05] text-red-400",
+  summary:     "border-violet-500/20 bg-violet-500/[.05] text-violet-400",
+};
+
+function AIInsightsPanel({ records, objectType }: {
+  records: NodeRecord[];
+  objectType: string;
+}) {
+  const [open, setOpen]         = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [insights, setInsights] = useState<AIInsight[] | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+
+  async function runInsight() {
+    if (insights) { setOpen(o => !o); return; }
+    setOpen(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.post<{ insights: AIInsight[] }>("/generate/insights", {
+        objectType,
+        records: records.slice(0, 50),
+      });
+      setInsights(res.insights ?? []);
+    } catch {
+      setError("Could not load AI insights. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-violet-500/20 bg-violet-500/[.04] overflow-hidden print:hidden">
+      <button
+        onClick={runInsight}
+        className="flex w-full items-center gap-3 px-5 py-4 hover:bg-white/[.02] transition-colors"
+      >
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/20 border border-violet-500/20">
+          <Sparkles size={13} className="text-violet-400"/>
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-white">AI Insights</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">{insights ? "Analysis complete · click to toggle" : "Analyse your data with Claude"}</p>
+        </div>
+        <ChevronRight size={14} className={`text-slate-600 transition-transform ${open ? "rotate-90" : ""}`}/>
+      </button>
+
+      {open && (
+        <div className="border-t border-white/[.06] px-5 py-5">
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400/30 border-t-violet-400"/>
+              Analysing {records.length} records…
+            </div>
+          ) : error ? (
+            <p className="text-sm text-red-400">{error}</p>
+          ) : insights ? (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {insights.map((ins, i) => (
+                <div key={i} className={`rounded-xl border p-4 ${INSIGHT_COLORS[ins.category] ?? INSIGHT_COLORS.summary}`}>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{ins.title}</p>
+                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
+                    {ins.trend === "down" && <TrendingDown size={12} className="text-red-400 shrink-0"/>}
+                  </div>
+                  <p className="text-lg font-bold text-white mb-1">{ins.value}</p>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">{ins.description}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const STAGE_COLORS  = ["#6366f1","#8b5cf6","#a855f7","#d946ef","#ec4899","#f43f5e","#f97316","#eab308"];
+const PERIOD_LABELS: Record<Period,string> = { today:"Today", week:"This Week", month:"This Month", quarter:"This Quarter", year:"This Year" };
+
 function getReportVocab(valueCol: string | null, stageCol: string | null) {
   const hasValue = !!valueCol;
   const hasStage = !!stageCol;
   return {
-    kpi1Label:   hasValue ? "Total Value"   : "Total Records",
-    kpi2Label:   hasStage ? "In Progress"   : "This Period",
-    kpi3Label:   hasStage ? "Completion Rate" : "Active",
-    kpi4Label:   hasValue ? `Avg ${valueCol ?? "value"}` : "Avg per period",
-    trendLabel:  hasValue ? "Value Trend"   : "Activity Trend",
+    kpi1Label:   hasValue ? "Total Won Value"   : "Total Records",
+    trendLabel:  hasValue ? "Value Trend"       : "Activity Trend",
     tableLabel:  hasValue ? `Top by ${valueCol ?? "value"}` : "All Records",
-    stageLabel:  hasStage ? `By ${stageCol}` : "Distribution",
+    stageLabel:  hasStage ? `By ${stageCol}`   : "Distribution",
   };
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function SalesReportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [period, setPeriod] = useState<Period>("month");
+  const [period, setPeriod]             = useState<Period>("month");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [goal, setGoal]                 = useState<number | null>(null);
+  const [goalInput, setGoalInput]       = useState("");
+  const [editingGoal, setEditingGoal]   = useState(false);
+  const [drillRecord, setDrillRecord]   = useState<NodeRecord | null>(null);
 
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],
@@ -186,22 +382,22 @@ export function SalesReportPage() {
   });
   const objects = objectsQ.data ?? [];
 
-  // Object slug: prefer URL param → first sales-like object → first object
-  const urlSlug = searchParams.get("object");
+  const urlSlug    = searchParams.get("object");
   const defaultSlug = useMemo(() => {
     if (urlSlug && objects.find(o => o.slug === urlSlug)) return urlSlug;
     return objects.find(o => ["deals","deal","sales","opportunities","pipeline"].includes(o.slug))?.slug
-      ?? objects[0]?.slug
-      ?? "deals";
+      ?? objects[0]?.slug ?? "deals";
   }, [objects, urlSlug]);
 
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const activeSlug = selectedSlug || defaultSlug;
 
-  const handleObjectChange = (slug: string) => {
+  const handleObjectChange = useCallback((slug: string) => {
     setSelectedSlug(slug);
     setSearchParams({ object: slug });
-  };
+    setActiveFilters({});
+    setGoal(null);
+  }, [setSearchParams]);
 
   const recordsQ = useQuery({
     queryKey: ["records", activeSlug],
@@ -209,42 +405,39 @@ export function SalesReportPage() {
     staleTime: 30_000,
     enabled: !!activeSlug,
   });
-
   const records  = recordsQ.data ?? [];
+
   const valueCol = useMemo(() => detectValueCol(records), [records]);
   const stageCol = useMemo(() => detectStageCol(records), [records]);
   const nameCol  = useMemo(() => detectNameCol(records),  [records]);
   const vocab    = useMemo(() => getReportVocab(valueCol, stageCol), [valueCol, stageCol]);
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
-  const stats = useMemo(() => {
-    const start = periodStart(period);
-    const inPeriod = records.filter(r => {
-      const raw = r.updated_at ?? r.created_at ?? (r.data as any).updated_at ?? (r.data as any).created_at;
-      return raw ? new Date(raw as string) >= start : true;
+  // Filterable columns (2–15 unique string values, not the name/value col)
+  const filterableCols = useMemo(() => {
+    const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
+    return allKeys.filter(k => {
+      if (k === nameCol || k === valueCol) return false;
+      const vals = [...new Set(records.map(r => String(r.data[k] ?? "")).filter(Boolean))];
+      return vals.length >= 2 && vals.length <= 15;
     });
-    const getVal   = (r: NodeRecord) => { const v = valueCol ? r.data[valueCol] : undefined; const n = Number(v ?? 0); return isNaN(n) ? 0 : n; };
-    const getStage = (r: NodeRecord) => stageCol ? String(r.data[stageCol] ?? "") : "";
+  }, [records, nameCol, valueCol]);
 
-    const wonRecs  = stageCol ? inPeriod.filter(r => isWon(getStage(r)))  : inPeriod;
-    const lostRecs = stageCol ? inPeriod.filter(r => isLost(getStage(r))) : [];
-    const openRecs = stageCol ? inPeriod.filter(r => isOpen(getStage(r))) : [];
+  const filteredRecords = useMemo(() =>
+    records.filter(r =>
+      Object.entries(activeFilters).every(([k, v]) => !v || String(r.data[k] ?? "") === v)
+    ),
+  [records, activeFilters]);
 
-    const totalValue   = inPeriod.reduce((s,r) => s + getVal(r), 0);
-    const wonValue     = wonRecs.reduce((s,r) => s + getVal(r), 0);
-    const openValue    = openRecs.reduce((s,r) => s + getVal(r), 0);
-    const completionRate = (wonRecs.length + lostRecs.length) > 0
-      ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : 0;
-    const avgVal = wonRecs.length ? Math.round(wonValue / wonRecs.length) : (inPeriod.length ? Math.round(totalValue / inPeriod.length) : 0);
+  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period), [filteredRecords, period, valueCol, stageCol]);
+  const prevStats = useMemo(() => {
+    const range = prevPeriodRange(period);
+    return computeStats(filteredRecords, valueCol, stageCol, period, range);
+  }, [filteredRecords, period, valueCol, stageCol]);
 
-    return { totalValue, wonValue, openValue, completionRate, avgVal, wonCount: wonRecs.length, openCount: openRecs.length, totalCount: inPeriod.length };
-  }, [records, period, valueCol, stageCol]);
-
-  // ── Stage breakdown ────────────────────────────────────────────────────────
   const stageData = useMemo(() => {
     if (!stageCol) return [];
     const counts: Record<string, { count: number; value: number }> = {};
-    for (const r of records) {
+    for (const r of filteredRecords) {
       const s = String(r.data[stageCol] ?? "Unknown");
       const v = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
       counts[s] = counts[s] ?? { count: 0, value: 0 };
@@ -255,23 +448,58 @@ export function SalesReportPage() {
       .map(([label,{count,value}]) => ({ label, count, value }))
       .sort((a,b) => b.count - a.count)
       .slice(0, 8);
-  }, [records, stageCol, valueCol]);
+  }, [filteredRecords, stageCol, valueCol]);
 
-  const trendData = useMemo(() => buildTrend(records, valueCol, stageCol, period), [records, valueCol, stageCol, period]);
+  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period), [filteredRecords, valueCol, stageCol, period]);
+
+  // Smart forecast (month-period only)
+  const forecast = useMemo(() => {
+    if (period !== "month" || trendData.length < 2) return null;
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const dayOfMonth  = now.getDate();
+    if (dayOfMonth >= daysInMonth) return null;
+    const soFar     = trendData.reduce((s, d) => s + (valueCol ? d.revenue : d.count), 0);
+    const projected = Math.round((soFar / dayOfMonth) * daysInMonth);
+    const daysLeft  = daysInMonth - dayOfMonth;
+    return { soFar, projected, daysLeft };
+  }, [period, trendData, valueCol]);
 
   const topRecords = useMemo(() => {
-    if (!valueCol) return records.slice(0, 8);
-    return [...records]
+    if (!valueCol) return filteredRecords.slice(0, 10);
+    return [...filteredRecords]
       .filter(r => r.data[valueCol] != null)
       .sort((a,b) => Number(b.data[valueCol] ?? 0) - Number(a.data[valueCol] ?? 0))
-      .slice(0, 8);
-  }, [records, valueCol]);
+      .slice(0, 10);
+  }, [filteredRecords, valueCol]);
 
   const selectedObj = objects.find(o => o.slug === activeSlug);
   const objLabel    = selectedObj?.name_plural ?? activeSlug;
   const now         = new Date().toLocaleDateString([], { year:"numeric", month:"long", day:"numeric" });
   const hasValue    = !!valueCol;
   const hasStage    = !!stageCol;
+  const hasFilters  = filterableCols.length > 0;
+  const filtersActive = Object.values(activeFilters).some(Boolean);
+
+  function exportCSV() {
+    const cols = [nameCol, stageCol, valueCol, ...filterableCols.filter(c => c !== stageCol)].filter((c): c is string => !!c);
+    const header = cols.join(",");
+    const rows   = filteredRecords.map(r =>
+      cols.map(c => `"${String(r.data[c] ?? "").replace(/"/g, '""')}"`).join(",")
+    );
+    const csv  = [header, ...rows].join("\n");
+    const url  = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a    = Object.assign(document.createElement("a"), { href: url, download: `${activeSlug}.csv` });
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function saveGoal() {
+    const n = parseFloat(goalInput.replace(/[^0-9.]/g, ""));
+    if (!isNaN(n) && n > 0) setGoal(n);
+    setEditingGoal(false);
+    setGoalInput("");
+  }
 
   return (
     <div className="min-h-full bg-[#0d0f13] print:bg-white text-white print:text-black">
@@ -289,7 +517,7 @@ export function SalesReportPage() {
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:px-8">
         {/* Screen header */}
-        <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
+        <div className="mb-4 flex flex-wrap items-center gap-3 print:hidden">
           <Link to="/reports" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-white transition-colors">
             <ArrowLeft size={14}/> Reports
           </Link>
@@ -302,12 +530,12 @@ export function SalesReportPage() {
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               {records.length} records
+              {filteredRecords.length !== records.length && ` · ${filteredRecords.length} after filters`}
               {valueCol && ` · value from "${valueCol}"`}
               {stageCol && ` · status from "${stageCol}"`}
             </p>
           </div>
 
-          {/* Period picker */}
           <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[.03] p-1">
             {(["today","week","month","quarter","year"] as Period[]).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
@@ -316,11 +544,44 @@ export function SalesReportPage() {
               </button>
             ))}
           </div>
+
+          <button onClick={exportCSV}
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors">
+            <Download size={13}/> CSV
+          </button>
           <button onClick={() => window.print()}
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors">
             <Printer size={13}/> Print
           </button>
         </div>
+
+        {/* Filter bar */}
+        {hasFilters && (
+          <div className={`mb-4 flex flex-wrap items-center gap-2 print:hidden rounded-lg border px-3 py-2 transition-colors ${filtersActive ? "border-blue-500/30 bg-blue-500/[.04]" : "border-white/[.06] bg-white/[.02]"}`}>
+            <Filter size={12} className="text-slate-600 shrink-0"/>
+            <span className="text-[11px] font-medium text-slate-600 mr-1">Filter</span>
+            {filterableCols.map(col => {
+              const uniqueVals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
+              return (
+                <div key={col} className="flex items-center gap-1">
+                  <select
+                    value={activeFilters[col] ?? ""}
+                    onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
+                    className="h-6 rounded-md border border-white/[.08] bg-[#13151a] px-2 text-[11px] text-slate-300 focus:outline-none focus:border-blue-500/50"
+                  >
+                    <option value="">All {col}</option>
+                    {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                </div>
+              );
+            })}
+            {filtersActive && (
+              <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-white transition-colors">
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Print period */}
         <div className="hidden print:block mb-6">
@@ -343,14 +604,40 @@ export function SalesReportPage() {
           </div>
         ) : (
           <>
+            {/* Goal dialog */}
+            {editingGoal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="w-72 rounded-xl border border-white/10 bg-[#13151a] p-5 shadow-2xl">
+                  <h3 className="mb-3 text-sm font-semibold text-white">Set a goal for {vocab.kpi1Label}</h3>
+                  <input
+                    autoFocus
+                    value={goalInput}
+                    onChange={e => setGoalInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") saveGoal(); if (e.key === "Escape") setEditingGoal(false); }}
+                    placeholder={hasValue ? "e.g. 100000" : "e.g. 500"}
+                    className="w-full rounded-lg border border-white/10 bg-white/[.04] px-3 py-2 text-sm text-white placeholder-slate-600 outline-none focus:border-red-500/50 mb-3"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={saveGoal} className="flex-1 rounded-md bg-red-600 py-2 text-xs font-medium text-white hover:bg-red-500">Set goal</button>
+                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-400 hover:text-white">Cancel</button>
+                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-600 hover:text-slate-400">Clear</button>}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* KPI Grid */}
-            <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
+            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
               <KpiCard
-                label={hasValue ? (hasStage ? "Total Won Value" : "Total Value") : "Total Records"}
+                label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
                 value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue) : fmtNum(stats.totalCount)}
                 sub={hasStage ? `${stats.wonCount} completed` : `${stats.totalCount} total`}
                 color="border-emerald-500/20 bg-emerald-500/[.06] text-emerald-400"
                 trend="up"
+                delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
+                goal={goal}
+                goalValue={hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount}
+                onSetGoal={() => setEditingGoal(true)}
               />
               <KpiCard
                 label={hasStage ? "In Progress" : "This Period"}
@@ -358,37 +645,50 @@ export function SalesReportPage() {
                 sub={hasStage ? `${stats.openCount} open` : "active records"}
                 color="border-blue-500/20 bg-blue-500/[.06] text-blue-400"
                 trend="neutral"
+                delta={pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
               />
               <KpiCard
                 label={hasStage ? "Completion Rate" : "Total This Period"}
                 value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
-                sub={hasStage ? "completed vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
+                sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
                 color="border-violet-500/20 bg-violet-500/[.06] text-violet-400"
                 trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
+                delta={pctDelta(stats.completionRate, prevStats.completionRate)}
               />
               <KpiCard
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}
                 value={hasValue ? fmtMoney(stats.avgVal) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
                 sub="per record"
                 color="border-amber-500/20 bg-amber-500/[.06] text-amber-400"
+                delta={pctDelta(stats.avgVal, prevStats.avgVal)}
               />
               <KpiCard
                 label="Total Records"
                 value={fmtNum(stats.totalCount)}
                 sub="in this period"
                 color="border-rose-500/20 bg-rose-500/[.06] text-rose-400"
+                delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
-              <KpiCard
-                label={hasStage ? "Open / Active" : "All Time"}
-                value={fmtNum(hasStage ? stats.openCount : records.length)}
-                sub={hasStage ? "in pipeline" : "records total"}
-                color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
-              />
+              {forecast ? (
+                <KpiCard
+                  label="Month Forecast"
+                  value={hasValue ? fmtMoney(forecast.projected) : fmtNum(forecast.projected)}
+                  sub={`${forecast.daysLeft}d left · at current pace`}
+                  color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
+                  trend={forecast.projected >= (hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount) ? "up" : "neutral"}
+                />
+              ) : (
+                <KpiCard
+                  label={hasStage ? "Open / Active" : "All Time"}
+                  value={fmtNum(hasStage ? stats.openCount : records.length)}
+                  sub={hasStage ? "in pipeline" : "records total"}
+                  color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
+                />
+              )}
             </div>
 
             {/* Charts */}
-            <div className="mb-8 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
-              {/* Trend over time */}
+            <div className="mb-6 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.trendLabel}</h3>
                 {trendData.length === 0 ? (
@@ -407,7 +707,6 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              {/* Stage / status breakdown */}
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.stageLabel}</h3>
                 {stageData.length === 0 ? (
@@ -429,7 +728,6 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              {/* Count over time */}
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">Activity Over Time</h3>
                 {trendData.length === 0 ? (
@@ -447,18 +745,13 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              {/* Value funnel — only if we have both value and stage */}
               {hasValue && hasStage && (
                 <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">Value by {stageCol}</h3>
                   <ResponsiveContainer width="100%" height={220}>
                     <FunnelChart>
                       <Tooltip content={<ChartTooltip/>}/>
-                      <Funnel
-                        dataKey="value"
-                        data={stageData.map((d,i) => ({ ...d, fill: STAGE_COLORS[i % STAGE_COLORS.length] }))}
-                        isAnimationActive
-                      >
+                      <Funnel dataKey="value" data={stageData.map((d,i) => ({ ...d, fill: STAGE_COLORS[i % STAGE_COLORS.length] }))} isAnimationActive>
                         <LabelList position="center" dataKey="label" style={{ fill:"#fff", fontSize:11 }}/>
                       </Funnel>
                     </FunnelChart>
@@ -466,7 +759,6 @@ export function SalesReportPage() {
                 </div>
               )}
 
-              {/* Value only — bar chart when no stage */}
               {hasValue && !hasStage && (
                 <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">{valueCol} Distribution</h3>
@@ -484,7 +776,7 @@ export function SalesReportPage() {
             </div>
 
             {/* Top Records Table */}
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
+            <div className="mb-6 rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
               <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.tableLabel}</h3>
               <table className="w-full text-sm">
                 <thead>
@@ -492,6 +784,7 @@ export function SalesReportPage() {
                     <th className="pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-gray-500">Name</th>
                     {hasStage && <th className="pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-gray-500">{stageCol}</th>}
                     {hasValue && <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-gray-500">{valueCol}</th>}
+                    <th className="pb-2.5 w-6 print:hidden"/>
                   </tr>
                 </thead>
                 <tbody>
@@ -501,7 +794,11 @@ export function SalesReportPage() {
                     const won   = hasStage && isWon(stage);
                     const lost  = hasStage && isLost(stage);
                     return (
-                      <tr key={r.id} className={`border-b border-white/[.03] print:border-gray-100 ${i%2===0?"":"bg-white/[.01] print:bg-gray-50"}`}>
+                      <tr
+                        key={r.id}
+                        onClick={() => setDrillRecord(r)}
+                        className={`group cursor-pointer border-b border-white/[.03] print:border-gray-100 hover:bg-white/[.02] transition-colors ${i%2===0?"":"bg-white/[.01] print:bg-gray-50"}`}
+                      >
                         <td className="py-2.5 pr-4">
                           <span className="font-medium text-white print:text-black">{String(r.data[nameCol] ?? "—")}</span>
                         </td>
@@ -517,6 +814,9 @@ export function SalesReportPage() {
                             {fmtMoney(isNaN(val) ? 0 : val)}
                           </td>
                         )}
+                        <td className="py-2.5 pl-2 print:hidden">
+                          <ChevronRight size={12} className="text-slate-700 group-hover:text-slate-400 transition-colors"/>
+                        </td>
                       </tr>
                     );
                   })}
@@ -530,11 +830,15 @@ export function SalesReportPage() {
                       <td className="pt-3 text-right font-mono font-semibold text-white print:text-black">
                         {fmtMoney(topRecords.reduce((s,r) => s + (isNaN(Number(r.data[valueCol!]??0)) ? 0 : Number(r.data[valueCol!]??0)), 0))}
                       </td>
+                      <td className="print:hidden"/>
                     </tr>
                   </tfoot>
                 )}
               </table>
             </div>
+
+            {/* AI Insights */}
+            <AIInsightsPanel records={filteredRecords} objectType={activeSlug}/>
           </>
         )}
       </div>
@@ -544,6 +848,11 @@ export function SalesReportPage() {
         <span>Mondaily — Live Report ({objLabel})</span>
         <span>{now}</span>
       </div>
+
+      {/* Drill-down panel */}
+      {drillRecord && (
+        <DrillPanel record={drillRecord} nameCol={nameCol} onClose={() => setDrillRecord(null)}/>
+      )}
     </div>
   );
 }
