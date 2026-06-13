@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Users, CheckSquare, FileText, Mail, Phone, BarChart2, Zap, Settings, Search, Bell, Building2, TrendingUp, X } from "lucide-react";
+import { Home, Users, CheckSquare, FileText, Mail, Phone, BarChart2, Settings, Search, Building2, TrendingUp, X, Plus } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -16,7 +16,6 @@ interface Action {
 }
 
 const ACTIONS: Action[] = [
-  // Navigation
   { label: "Home", icon: Home, type: "navigate", to: "/home" },
   { label: "Tasks", icon: CheckSquare, type: "navigate", to: "/tasks" },
   { label: "Notes", icon: FileText, type: "navigate", to: "/notes" },
@@ -27,7 +26,6 @@ const ACTIONS: Action[] = [
   { label: "Calls", icon: Phone, type: "navigate", to: "/calls" },
   { label: "Reports", icon: BarChart2, type: "navigate", to: "/reports" },
   { label: "Settings", icon: Settings, type: "navigate", to: "/settings/account" },
-  // Create actions
   { label: "New Task", description: "Create a task without leaving this page", icon: CheckSquare, type: "create_task", shortcut: "T" },
   { label: "New Note", description: "Add a note instantly", icon: FileText, type: "create_note", shortcut: "N" },
   { label: "New Contact", description: "Add a person to your CRM", icon: Users, type: "create_contact", shortcut: "C" },
@@ -112,22 +110,19 @@ export function QuickActions() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const navigate = useNavigate();
 
+  // Only Escape closes this panel — Cmd+K is reserved for CommandPalette
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setOpen(o => !o);
-        setQuery("");
-        setActiveCreate(null);
-        setSelectedIdx(0);
-      }
       if (e.key === "Escape") { setOpen(false); setActiveCreate(null); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const filtered = ACTIONS.filter(a => a.label.toLowerCase().includes(query.toLowerCase()) || (a.description?.toLowerCase().includes(query.toLowerCase())));
+  const filtered = ACTIONS.filter(a =>
+    a.label.toLowerCase().includes(query.toLowerCase()) ||
+    (a.description?.toLowerCase().includes(query.toLowerCase()))
+  );
 
   const handleAction = (action: Action) => {
     if (action.type === "navigate") {
@@ -149,81 +144,91 @@ export function QuickActions() {
     return () => window.removeEventListener("keydown", handler);
   }, [open, filtered, selectedIdx, activeCreate]);
 
-  if (!open) return null;
-
   const createType = activeCreate?.replace("create_", "") as any;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
-      <div className="fixed inset-0 bg-black/60" onClick={() => { setOpen(false); setActiveCreate(null); }}/>
-      <div className="relative w-full max-w-lg rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md overflow-hidden">
-        {!activeCreate ? (
-          <>
-            <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-              <Search size={15} className="text-slate-400 shrink-0"/>
-              <input
-                autoFocus
-                value={query}
-                onChange={e => { setQuery(e.target.value); setSelectedIdx(0); }}
-                placeholder="Search actions, navigate, or create..."
-                className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
-              />
-              <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs text-slate-500">esc</kbd>
-            </div>
-            <div className="max-h-80 overflow-auto p-2">
-              {/* Create section */}
-              {query === "" && (
-                <div className="mb-1">
-                  <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Create</p>
-                  {ACTIONS.filter(a => a.type !== "navigate").map((action, idx) => (
-                    <button key={action.label} onClick={() => handleAction(action)}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/[.06] hover:text-white transition-colors">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 shrink-0">
-                        <action.icon size={13} className="text-red-400"/>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="text-sm">{action.label}</div>
-                        {action.description && <div className="text-xs text-slate-600">{action.description}</div>}
-                      </div>
-                      {action.shortcut && <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs text-slate-600">{action.shortcut}</kbd>}
-                    </button>
-                  ))}
+    <>
+      {/* Floating + button — click to open quick actions */}
+      <button
+        onClick={() => { setOpen(true); setQuery(""); setActiveCreate(null); setSelectedIdx(0); }}
+        className="fixed bottom-20 right-4 z-40 md:bottom-6 flex h-11 w-11 items-center justify-center rounded-full bg-red-600 shadow-lg shadow-red-900/30 hover:bg-red-500 transition-colors print:hidden"
+        title="Quick actions"
+      >
+        <Plus size={20} className="text-white"/>
+      </button>
+
+      {/* Modal — only rendered when open */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+          <div className="fixed inset-0 bg-black/60" onClick={() => { setOpen(false); setActiveCreate(null); }}/>
+          <div className="relative w-full max-w-lg rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md overflow-hidden">
+            {!activeCreate ? (
+              <>
+                <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                  <Search size={15} className="text-slate-400 shrink-0"/>
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={e => { setQuery(e.target.value); setSelectedIdx(0); }}
+                    placeholder="Search actions, navigate, or create..."
+                    className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+                  />
+                  <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs text-slate-500">esc</kbd>
                 </div>
-              )}
-              {/* Navigate section */}
-              <div>
-                {query === "" && <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Navigate</p>}
-                {(query === "" ? ACTIONS.filter(a => a.type === "navigate") : filtered).map((action, idx) => (
-                  <button key={action.label} onClick={() => handleAction(action)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selectedIdx === idx && query !== "" ? "bg-white/[.08] text-white" : "text-slate-300 hover:bg-white/[.06] hover:text-white"}`}>
-                    <action.icon size={15} className="text-slate-500 shrink-0"/>
-                    <span>{action.label}</span>
+                <div className="max-h-80 overflow-auto p-2">
+                  {query === "" && (
+                    <div className="mb-1">
+                      <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Create</p>
+                      {ACTIONS.filter(a => a.type !== "navigate").map(action => (
+                        <button key={action.label} onClick={() => handleAction(action)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/[.06] hover:text-white transition-colors">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 shrink-0">
+                            <action.icon size={13} className="text-red-400"/>
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="text-sm">{action.label}</div>
+                            {action.description && <div className="text-xs text-slate-600">{action.description}</div>}
+                          </div>
+                          {action.shortcut && <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs text-slate-600">{action.shortcut}</kbd>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div>
+                    {query === "" && <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Navigate</p>}
+                    {(query === "" ? ACTIONS.filter(a => a.type === "navigate") : filtered).map((action, idx) => (
+                      <button key={action.label} onClick={() => handleAction(action)}
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selectedIdx === idx && query !== "" ? "bg-white/[.08] text-white" : "text-slate-300 hover:bg-white/[.06] hover:text-white"}`}>
+                        <action.icon size={15} className="text-slate-500 shrink-0"/>
+                        <span>{action.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">No results for "{query}"</div>}
+                </div>
+                <div className="border-t border-white/10 px-4 py-2 text-xs text-slate-600 flex items-center gap-3">
+                  <span><kbd className="rounded border border-white/10 px-1 py-0.5">↑↓</kbd> navigate</span>
+                  <span><kbd className="rounded border border-white/10 px-1 py-0.5">↵</kbd> select</span>
+                  <span><kbd className="rounded border border-white/10 px-1 py-0.5">esc</kbd> close</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                  <button onClick={() => setActiveCreate(null)} className="text-slate-400 hover:text-white">
+                    <X size={15}/>
                   </button>
-                ))}
-              </div>
-              {filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">No results for "{query}"</div>}
-            </div>
-            <div className="border-t border-white/10 px-4 py-2 text-xs text-slate-600 flex items-center gap-3">
-              <span><kbd className="rounded border border-white/10 px-1 py-0.5">↑↓</kbd> navigate</span>
-              <span><kbd className="rounded border border-white/10 px-1 py-0.5">↵</kbd> select</span>
-              <span><kbd className="rounded border border-white/10 px-1 py-0.5">⌘K</kbd> toggle</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-              <button onClick={() => setActiveCreate(null)} className="text-slate-400 hover:text-white">
-                <X size={15}/>
-              </button>
-              <span className="text-sm text-white">Quick Create</span>
-            </div>
-            {createType === "task" && <QuickCreateTask onClose={() => { setActiveCreate(null); setOpen(false); }}/>}
-            {(createType === "contact" || createType === "company" || createType === "deal" || createType === "note") && (
-              <QuickCreateRecord type={createType} onClose={() => { setActiveCreate(null); setOpen(false); }}/>
+                  <span className="text-sm text-white">Quick Create</span>
+                </div>
+                {createType === "task" && <QuickCreateTask onClose={() => { setActiveCreate(null); setOpen(false); }}/>}
+                {(createType === "contact" || createType === "company" || createType === "deal" || createType === "note") && (
+                  <QuickCreateRecord type={createType} onClose={() => { setActiveCreate(null); setOpen(false); }}/>
+                )}
+              </>
             )}
-          </>
-        )}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
