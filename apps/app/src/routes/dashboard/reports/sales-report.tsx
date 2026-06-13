@@ -6,7 +6,7 @@ import {
 import { useState, useMemo, useCallback } from "react";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
-  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, MessageSquare, Check,
+  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, MessageSquare, Check, Bookmark,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
@@ -685,6 +685,8 @@ export function SalesReportPage() {
   const [drillRecord, setDrillRecord]   = useState<NodeRecord | null>(null);
   const [annotating, setAnnotating]     = useState<string | null>(null); // bucket label being annotated
   const [annotationText, setAnnotationText] = useState("");
+  const [savingPreset, setSavingPreset] = useState(false);
+  const [presetName, setPresetName]     = useState("");
 
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],
@@ -709,6 +711,38 @@ export function SalesReportPage() {
     setActiveFilters({});
     setGoal(null);
   }, [setSearchParams]);
+
+  // ── Filter presets (localStorage per object slug) ──────────────────────────
+  type FilterPreset = { id: string; name: string; filters: Record<string, string> };
+  const presetsKey = `mondaily_filter_presets_${activeSlug}`;
+
+  const [presets, setPresets] = useState<FilterPreset[]>(() => {
+    try { return JSON.parse(localStorage.getItem(presetsKey) ?? "[]"); } catch { return []; }
+  });
+
+  // Re-load presets when slug changes
+  useMemo(() => {
+    try { setPresets(JSON.parse(localStorage.getItem(`mondaily_filter_presets_${activeSlug}`) ?? "[]")); } catch { setPresets([]); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSlug]);
+
+  function savePreset(name: string) {
+    const next: FilterPreset[] = [...presets, { id: crypto.randomUUID(), name, filters: activeFilters }];
+    setPresets(next);
+    localStorage.setItem(presetsKey, JSON.stringify(next));
+    setSavingPreset(false);
+    setPresetName("");
+  }
+
+  function deletePreset(id: string) {
+    const next = presets.filter(p => p.id !== id);
+    setPresets(next);
+    localStorage.setItem(presetsKey, JSON.stringify(next));
+  }
+
+  function applyPreset(preset: FilterPreset) {
+    setActiveFilters(preset.filters);
+  }
 
   const recordsQ = useQuery({
     queryKey: ["records", activeSlug],
@@ -901,6 +935,51 @@ export function SalesReportPage() {
 
         {/* Digest scheduler */}
         <DigestPanel objectType={activeSlug} objects={objects}/>
+
+        {/* Filter presets row */}
+        {(hasFilters && (presets.length > 0 || filtersActive)) && (
+          <div className="mb-2 flex flex-wrap items-center gap-1.5 print:hidden">
+            <Bookmark size={11} className="text-slate-600 shrink-0"/>
+            <span className="text-[10px] font-medium text-slate-600 mr-0.5">Presets</span>
+            {presets.map(p => {
+              const active = JSON.stringify(activeFilters) === JSON.stringify(p.filters);
+              return (
+                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:text-white hover:border-white/20"}`}
+                  onClick={() => applyPreset(p)}>
+                  {p.name}
+                  <button onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
+                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-slate-600 hover:text-red-400 transition-all">
+                    <X size={9}/>
+                  </button>
+                </span>
+              );
+            })}
+            {filtersActive && !savingPreset && (
+              <button onClick={() => setSavingPreset(true)}
+                className="flex items-center gap-1 rounded-full border border-dashed border-white/[.12] px-2 py-0.5 text-[11px] text-slate-600 hover:text-white hover:border-white/30 transition-colors">
+                <Plus size={9}/> Save current
+              </button>
+            )}
+            {savingPreset && (
+              <div className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  value={presetName}
+                  onChange={e => setPresetName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && presetName.trim()) savePreset(presetName.trim()); if (e.key === "Escape") { setSavingPreset(false); setPresetName(""); } }}
+                  placeholder="Preset name…"
+                  className="h-6 rounded-md border border-blue-500/30 bg-[#13151a] px-2 text-[11px] text-white placeholder-slate-600 outline-none focus:border-blue-500/50 w-36"
+                />
+                <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
+                  disabled={!presetName.trim()}
+                  className="h-6 rounded-md bg-blue-600 px-2 text-[10px] text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                  Save
+                </button>
+                <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-slate-600 hover:text-white transition-colors"><X size={11}/></button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filter bar */}
         {hasFilters && (
