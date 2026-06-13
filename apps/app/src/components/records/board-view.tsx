@@ -364,7 +364,7 @@ export function BoardView({ objectType }: { objectType: string }) {
 
   const recordsQuery = useQuery({
     queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${objectType}&limit=300`),
+    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
   });
   const membersQuery = useQuery({
     queryKey: ["members"],
