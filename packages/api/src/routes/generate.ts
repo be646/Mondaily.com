@@ -375,6 +375,93 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
   }
 });
 
+// ─── AI sequence generator ────────────────────────────────────────────────────
+router.post("/sequence", requireAuth, zValidator("json", z.object({
+  prompt: z.string().min(1),
+  steps: z.number().int().min(2).max(8).default(4),
+})), async (c) => {
+  const { prompt, steps } = c.req.valid("json");
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 3000,
+      tools: [{
+        name: "create_sequence",
+        description: "Create an email outreach sequence with steps",
+        input_schema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Short descriptive sequence name" },
+            steps: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: { type: "string", enum: ["email"] },
+                  subject: { type: "string", description: "Email subject line" },
+                  body: { type: "string", description: "Email body in plain text. Use {first_name}, {company} as personalization tokens." },
+                  delay_value: { type: "number", description: "Delay amount before sending this step" },
+                  delay_unit: { type: "string", enum: ["hours","days"] },
+                  send_as: { type: "string", enum: ["new","reply"], description: "Send as new thread or reply to previous" },
+                },
+                required: ["type","subject","body","delay_value","delay_unit","send_as"]
+              },
+              minItems: 2,
+              maxItems: 8
+            }
+          },
+          required: ["name","steps"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "create_sequence" },
+      messages: [{
+        role: "user",
+        content: `Create a ${steps}-step email outreach sequence for: "${prompt}"\n\nGuidelines:\n- Step 1: delay_value=0 (send immediately), send_as="new"\n- Subsequent steps: reply to the thread (send_as="reply"), space them 2-5 days apart\n- Write conversational, personalized emails using {first_name} and {company} tokens\n- Keep emails short (3-5 sentences). Each email should have a clear purpose and single CTA\n- Last step should be a "closing the loop" breakup email`
+      }]
+    });
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse?.input) return c.json({ error: "No sequence generated" }, 500);
+    return c.json(toolUse.input);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
+// ─── AI list name + object type picker ───────────────────────────────────────
+router.post("/list-name", requireAuth, zValidator("json", z.object({
+  prompt: z.string().min(1),
+  objectTypes: z.array(z.string()),
+})), async (c) => {
+  const { prompt, objectTypes } = c.req.valid("json");
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 256,
+      tools: [{
+        name: "name_list",
+        description: "Generate a list name and pick the most appropriate object type",
+        input_schema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Short, descriptive list name (3-6 words)" },
+            object_type: { type: "string", description: `The object type slug that best fits. Must be one of: ${objectTypes.join(", ")}` },
+          },
+          required: ["name","object_type"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "name_list" },
+      messages: [{
+        role: "user",
+        content: `Generate a short list name and pick the best object type for: "${prompt}"\n\nAvailable object types: ${objectTypes.join(", ")}`
+      }]
+    });
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    return c.json(toolUse?.input ?? { name: "New List", object_type: objectTypes[0] ?? "companies" });
+  } catch {
+    return c.json({ name: "New List", object_type: objectTypes[0] ?? "companies" });
+  }
+});
+
 // ─── AI list-entry selector ───────────────────────────────────────────────────
 router.post("/list-entries", requireAuth, zValidator("json", z.object({
   prompt: z.string().min(1),
