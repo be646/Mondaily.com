@@ -1,7 +1,6 @@
 import { useParams } from "react-router-dom";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, X, Sparkles, Check, Search } from "lucide-react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, X, Sparkles, Check } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
@@ -190,9 +189,6 @@ export function ObjectIndexPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [headerSearch, setHeaderSearch] = useState("");
-  const [searchExpanded, setSearchExpanded] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   // Track enrichment state: { [recordId]: { name, done } }
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
@@ -227,59 +223,30 @@ export function ObjectIndexPage() {
     }
   }, [objectType, queryClient]);
 
-  // Portal action buttons + search into the navbar slot
-  const actionsSlot = typeof document !== "undefined" ? document.getElementById("mondaily-page-actions") : null;
-
-  const navbarActions = (
-    <div className="flex items-center gap-1.5">
-      {/* Compact expanding search — expands leftward from right */}
-      <div className={`flex items-center transition-all duration-200 ${searchExpanded ? "w-44" : "w-7"}`}>
-        <button
-          onClick={() => { setSearchExpanded(true); setTimeout(() => searchRef.current?.focus(), 50); }}
-          className={`flex items-center justify-center h-7 w-7 rounded-md border border-dashed border-zinc-800/80 bg-zinc-900/20 text-zinc-500 hover:text-zinc-200 hover:border-zinc-700/60 transition-all shrink-0 ${searchExpanded ? "pointer-events-none opacity-0 w-0" : ""}`}
-        >
-          <Search size={12}/>
-        </button>
-        <div className={`flex items-center gap-1.5 rounded-md border bg-zinc-900/30 px-2 transition-all duration-200 ${searchExpanded ? "border-zinc-700/60 opacity-100 w-44" : "border-transparent opacity-0 w-0 pointer-events-none overflow-hidden"}`}>
-          <Search size={11} className="text-zinc-600 shrink-0"/>
-          <input
-            ref={searchRef}
-            value={headerSearch}
-            onChange={e => setHeaderSearch(e.target.value)}
-            onBlur={() => { if (!headerSearch) setSearchExpanded(false); }}
-            onKeyDown={e => { if (e.key === "Escape") { setHeaderSearch(""); setSearchExpanded(false); } }}
-            placeholder={`Search…`}
-            className="flex-1 bg-transparent py-1 text-xs text-white placeholder-zinc-600 outline-none min-w-0"
-          />
-          {headerSearch && (
-            <button onClick={() => { setHeaderSearch(""); setSearchExpanded(false); }} className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0">
-              <X size={11}/>
-            </button>
-          )}
-        </div>
-      </div>
-
-      <button
-        onClick={() => setImportOpen(p => !p)}
-        className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-600/60 bg-zinc-800/50 text-zinc-200" : "border-zinc-800/80 bg-zinc-900/20 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"}`}
-      >
-        <Plus size={11}/> Import CSV
-      </button>
-      <button
-        onClick={() => setShowCreate(true)}
-        className="flex items-center gap-1.5 rounded-md border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
-      >
-        <Plus size={11}/> New record
-      </button>
-    </div>
-  );
-
   return (
     <>
-      {/* Portal action buttons into the navbar #mondaily-page-actions slot */}
-      {actionsSlot && createPortal(navbarActions, actionsSlot)}
-
       <div className="flex h-full flex-col overflow-hidden">
+
+      {/* Page header — title + actions */}
+      <div className="flex items-center justify-between border-b border-zinc-800/40 px-6 py-2.5 shrink-0">
+        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-zinc-500 select-none">
+          {objectType.replace(/[-_]/g, " ")}
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setImportOpen(p => !p)}
+            className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-600/60 bg-zinc-800/50 text-zinc-200" : "border-zinc-800/80 bg-zinc-900/20 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"}`}
+          >
+            <Plus size={11}/> Import CSV
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 rounded-md border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+          >
+            <Plus size={11}/> New record
+          </button>
+        </div>
+      </div>
 
       {/* Enrichment banners */}
       {Object.entries(enriching).length > 0 && (
@@ -298,7 +265,7 @@ export function ObjectIndexPage() {
       )}
 
       <div className="flex-1 min-h-0 overflow-hidden">
-        <RecordTable objectType={objectType} enrichedIds={enrichedIds} filterQuery={headerSearch}/>
+        <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
       </div>
 
       {showCreate && (
