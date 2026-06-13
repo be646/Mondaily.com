@@ -107,7 +107,7 @@ function AIInsightsPanel() {
           {insights.length > 0 && (
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {insights.map((ins, i) => {
-                const style = CATEGORY_STYLE[ins.category] ?? CATEGORY_STYLE.summary;
+                const style = CATEGORY_STYLE[ins.category] ?? CATEGORY_STYLE["summary"]!;
                 const numVal = parseFloat(ins.value.replace(/[^0-9.]/g, ""));
                 return (
                   <div key={i} className={`rounded-xl border p-4 ${style.card}`}>
