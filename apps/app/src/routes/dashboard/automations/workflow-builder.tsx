@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft, Plus, Play, GitBranch, Mail, Bell, Tag, UserPlus,
-  Zap, CheckSquare, ChevronDown, X, Clock, Filter
+  Zap, CheckSquare, ChevronDown, X, Clock, Filter, Sparkles, Loader2
 } from "lucide-react";
+import { apiClient } from "../../../lib/api-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type NodeKind = "trigger" | "condition" | "action";
@@ -155,6 +156,108 @@ function NodePicker({ onPick, onClose }: {
   );
 }
 
+// ── AI Workflow Generator Modal ───────────────────────────────────────────────
+function AIWorkflowModal({ onClose, onApply }: {
+  onClose: () => void;
+  onApply: (name: string, nodes: WFNode[]) => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [preview, setPreview] = useState<{ name: string; nodes: Array<{ kind: NodeKind; type: string; label: string }> } | null>(null);
+
+  const generate = async () => {
+    if (!prompt.trim()) return;
+    setLoading(true); setError(""); setPreview(null);
+    try {
+      const res = await apiClient.post<{ name: string; nodes: Array<{ kind: NodeKind; type: string; label: string }> }>("/generate/workflow", { prompt });
+      setPreview(res);
+    } catch (e: any) { setError(e.message || "Failed to generate"); }
+    finally { setLoading(false); }
+  };
+
+  const apply = () => {
+    if (!preview) return;
+    const wfNodes: WFNode[] = preview.nodes.map(n => ({
+      id: crypto.randomUUID(),
+      kind: n.kind,
+      type: n.type,
+      label: n.label,
+      config: {},
+      children: [],
+    }));
+    // Ensure first node is a trigger; if not, prepend default
+    if (wfNodes[0]?.kind !== "trigger") {
+      wfNodes.unshift({ id: "trigger-1", kind: "trigger", type: "record_created", label: "Record created", config: {}, children: [] });
+    } else {
+      wfNodes[0].id = "trigger-1";
+    }
+    onApply(preview.name, wfNodes);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+      <div className={`w-full rounded-xl border border-white/10 bg-[#111419] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
+        <div className="flex items-center justify-between p-5 border-b border-white/[.06]">
+          <div className="flex items-center gap-2">
+            <Sparkles size={15} className="text-violet-400"/>
+            <h2 className="font-semibold text-white">Generate workflow with AI</h2>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16}/></button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <textarea
+            autoFocus
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            rows={3}
+            placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
+            className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40"
+          />
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        </div>
+
+        {preview && (
+          <div className="border-t border-white/[.06] px-5 pb-4">
+            <p className="py-3 text-xs font-semibold text-slate-400">"{preview.name}"</p>
+            <div className="space-y-1.5">
+              {preview.nodes.map((n, i) => {
+                const s = KIND_STYLES[n.kind];
+                return (
+                  <div key={i} className={`flex items-center gap-3 rounded-lg border ${s.border} ${s.bg} px-3 py-2`}>
+                    <span className={`text-[9px] font-bold uppercase tracking-widest w-16 shrink-0 ${s.text}`}>{n.kind}</span>
+                    <span className="text-xs text-slate-300">{n.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between p-5 border-t border-white/[.06]">
+          <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300">Cancel</button>
+          {!preview ? (
+            <button onClick={generate} disabled={loading || !prompt.trim()}
+              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
+              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button onClick={generate} disabled={loading} className="text-sm text-slate-500 hover:text-slate-300">Regenerate</button>
+              <button onClick={apply}
+                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+                <Sparkles size={13}/> Apply to builder
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const DEFAULT_NODES: WFNode[] = [
   {
@@ -174,6 +277,7 @@ export function WorkflowBuilderPage() {
   const [status, setStatus] = useState<"draft" | "active">("draft");
   const [name, setName] = useState(id === "new" ? "New Workflow" : "Workflow");
   const [nameEdit, setNameEdit] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const addNode = (afterId: string, kind: NodeKind, type: string, label: string) => {
     const newNode: WFNode = {
@@ -228,6 +332,11 @@ export function WorkflowBuilderPage() {
         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-slate-600/30 bg-slate-700/50 text-slate-400"}`}>
           {status}
         </span>
+
+        <button onClick={() => setAiOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/30 transition-colors">
+          <Sparkles size={12}/> Generate with AI
+        </button>
 
         <button
           onClick={() => setStatus(s => s === "active" ? "draft" : "active")}
@@ -296,6 +405,14 @@ export function WorkflowBuilderPage() {
         <NodePicker
           onPick={(kind, type, label) => { addNode(picking, kind, type, label); setPicking(null); }}
           onClose={() => setPicking(null)}
+        />
+      )}
+
+      {/* AI workflow generator */}
+      {aiOpen && (
+        <AIWorkflowModal
+          onClose={() => setAiOpen(false)}
+          onApply={(newName, newNodes) => { setName(newName); setNodes(newNodes); }}
         />
       )}
     </div>

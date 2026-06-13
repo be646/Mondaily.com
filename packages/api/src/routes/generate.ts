@@ -504,4 +504,79 @@ router.post("/list-entries", requireAuth, zValidator("json", z.object({
   }
 });
 
+// ─── AI workflow generator ────────────────────────────────────────────────────
+router.post("/workflow", requireAuth, zValidator("json", z.object({
+  prompt: z.string().min(1),
+})), async (c) => {
+  const { prompt } = c.req.valid("json");
+  const TRIGGER_TYPES = ["record_created","record_updated","deal_stage_change","email_received","form_submitted"];
+  const CONDITION_TYPES = ["field_equals","field_contains","field_changed","time_elapsed"];
+  const ACTION_TYPES = ["send_email","create_task","assign_owner","add_to_sequence","send_notification","update_field"];
+
+  const TRIGGER_LABELS: Record<string,string> = {
+    record_created: "Record created", record_updated: "Record updated",
+    deal_stage_change: "Deal stage changed", email_received: "Email received", form_submitted: "Form submitted"
+  };
+  const CONDITION_LABELS: Record<string,string> = {
+    field_equals: "Field equals", field_contains: "Field contains",
+    field_changed: "Field changed", time_elapsed: "Time elapsed"
+  };
+  const ACTION_LABELS: Record<string,string> = {
+    send_email: "Send email", create_task: "Create task", assign_owner: "Assign owner",
+    add_to_sequence: "Add to sequence", send_notification: "Send notification", update_field: "Update field"
+  };
+
+  try {
+    const data = await callAnthropic({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      tools: [{
+        name: "create_workflow",
+        description: "Create a workflow automation with trigger, optional conditions, and actions",
+        input_schema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Short descriptive workflow name (3-5 words)" },
+            nodes: {
+              type: "array",
+              description: "Workflow nodes in order: first must be a trigger, then optional conditions, then actions",
+              items: {
+                type: "object",
+                properties: {
+                  kind: { type: "string", enum: ["trigger","condition","action"] },
+                  type: {
+                    type: "string",
+                    description: `Trigger types: ${TRIGGER_TYPES.join(", ")}. Condition types: ${CONDITION_TYPES.join(", ")}. Action types: ${ACTION_TYPES.join(", ")}`
+                  },
+                  label: { type: "string", description: "Human-readable label for this node" }
+                },
+                required: ["kind","type","label"]
+              },
+              minItems: 2,
+              maxItems: 8
+            }
+          },
+          required: ["name","nodes"]
+        }
+      }],
+      tool_choice: { type: "tool", name: "create_workflow" },
+      messages: [{
+        role: "user",
+        content: `Design a workflow automation for: "${prompt}"\n\nRules:\n- First node must be a trigger (kind=trigger)\n- Then optional conditions (kind=condition)\n- Then actions (kind=action) — at least one action\n- Pick the most appropriate types from the available options\n- Use clear, descriptive labels\n\nExample: Deal stage changed → Field equals "Won" → Send email, Create task`
+      }]
+    });
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
+    if (!toolUse?.input) return c.json({ error: "No workflow generated" }, 500);
+
+    // Normalize labels using our label maps
+    const nodes = (toolUse.input.nodes as any[]).map((n: any) => {
+      const labelMap = n.kind === "trigger" ? TRIGGER_LABELS : n.kind === "condition" ? CONDITION_LABELS : ACTION_LABELS;
+      return { kind: n.kind, type: n.type, label: n.label || labelMap[n.type] || n.type };
+    });
+    return c.json({ name: toolUse.input.name, nodes });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500);
+  }
+});
+
 export { router as generateRouter };

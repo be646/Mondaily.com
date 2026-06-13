@@ -29,7 +29,8 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!preview) return;
     setCreating(true);
     try {
-      const seq = await apiClient.post<{ id: string }>("/sequences/new", {
+      // API uses PATCH /sequences/new to create (id="new" triggers an INSERT)
+      const seq = await apiClient.patch<{ id: string }>("/sequences/new", {
         name: preview.name,
         stop_on_reply: true,
         sending_days: ["Mon","Tue","Wed","Thu","Fri"],
@@ -38,21 +39,18 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
         daily_limit: 50,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         unsubscribe: true,
-      });
-      // Add steps
-      for (let i = 0; i < preview.steps.length; i++) {
-        const s = preview.steps[i];
-        await apiClient.post(`/sequences/${seq.id}/steps`, {
+        steps: preview.steps.map((s, i) => ({
+          id: crypto.randomUUID(),
           type: s.type ?? "email",
           label: `Step ${i + 1}`,
           position: i,
           delay_value: s.delay_value ?? (i === 0 ? 0 : 3),
           delay_unit: s.delay_unit ?? "days",
-          subject: s.subject,
-          body: s.body,
+          subject: s.subject ?? "",
+          body: s.body ?? "",
           send_as: s.send_as ?? (i === 0 ? "new" : "reply"),
-        });
-      }
+        })),
+      });
       onCreated(seq.id);
     } catch (e: any) { setError(e.message || "Failed to create"); setCreating(false); }
   };
@@ -169,7 +167,7 @@ export function AutomationsPage() {
   const workflows  = items.filter(i => (i.data as any)?.type === "workflow" || i.type === "workflow");
 
   const createSequence = useMutation({
-    mutationFn: () => apiClient.post<{ id: string }>("/sequences/new", {
+    mutationFn: () => apiClient.patch<{ id: string }>("/sequences/new", {
       name: "New Sequence",
       stop_on_reply: true,
       sending_days: ["Mon","Tue","Wed","Thu","Fri"],
