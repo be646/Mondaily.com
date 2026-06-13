@@ -272,267 +272,314 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
   );
 }
 
+// ─── AI Modal shell ───────────────────────────────────────────────────────────
+function AIModal({ title, onClose, onPrint, children }: { title: string; onClose: () => void; onPrint?: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"/>
+      <div
+        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Modal header */}
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[.07] shrink-0">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15 ring-1 ring-violet-500/20">
+            <Sparkles size={13} className="text-violet-400"/>
+          </div>
+          <span className="flex-1 text-sm font-semibold text-white">{title}</span>
+          {onPrint && (
+            <button onClick={onPrint}
+              className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-[11px] text-slate-400 hover:text-white transition-colors">
+              <Printer size={11}/> Export
+            </button>
+          )}
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-600 hover:text-white transition-colors">
+            <X size={14}/>
+          </button>
+        </div>
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── AI Forecast Card ─────────────────────────────────────────────────────────
 interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"low"; headline: string; narrative: string; risks: string }
 
 const CONFIDENCE_STYLE: Record<string, string> = {
-  high:   "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
-  medium: "border-amber-500/20 bg-amber-500/10 text-amber-400",
-  low:    "border-red-500/20 bg-red-500/10 text-red-400",
+  high:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+  medium: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  low:    "border-red-500/30 bg-red-500/10 text-red-400",
 };
 
 function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData }: {
-  objectType: string;
-  valueCol: string | null;
-  stageCol: string | null;
-  period: Period;
-  stats: ReturnType<typeof computeStats>;
-  prevStats: ReturnType<typeof computeStats>;
+  objectType: string; valueCol: string | null; stageCol: string | null; period: Period;
+  stats: ReturnType<typeof computeStats>; prevStats: ReturnType<typeof computeStats>;
   trendData: { label: string; revenue: number; count: number }[];
 }) {
   const [result, setResult]   = useState<ForecastResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
-
+  const [modalOpen, setModalOpen] = useState(false);
   const hasValue = !!valueCol;
 
   async function runForecast() {
-    if (result) { setResult(null); return; }
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null); setModalOpen(true);
     try {
       const res = await apiClient.post<ForecastResult>("/generate/forecast", {
         objectType, valueCol, stageCol, period,
-        stats: {
-          wonValue:       stats.wonValue,
-          openValue:      stats.openValue,
-          wonCount:       stats.wonCount,
-          openCount:      stats.openCount,
-          totalCount:     stats.totalCount,
-          completionRate: stats.completionRate,
-          avgVal:         stats.avgVal,
-        },
-        prevStats: {
-          wonValue:       prevStats.wonValue,
-          wonCount:       prevStats.wonCount,
-          completionRate: prevStats.completionRate,
-        },
+        stats: { wonValue: stats.wonValue, openValue: stats.openValue, wonCount: stats.wonCount, openCount: stats.openCount, totalCount: stats.totalCount, completionRate: stats.completionRate, avgVal: stats.avgVal },
+        prevStats: { wonValue: prevStats.wonValue, wonCount: prevStats.wonCount, completionRate: prevStats.completionRate },
         trendData,
       });
       setResult(res);
     } catch (e: any) {
       let msg = e?.message ?? "Forecast unavailable.";
       try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
+      setError(msg); setModalOpen(false);
+    } finally { setLoading(false); }
+  }
+
+  function printForecast() {
+    if (!result) return;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>AI Forecast</title>
+<style>body{font-family:-apple-system,sans-serif;color:#111;max-width:640px;margin:48px auto;padding:0 32px}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.meta{font-size:12px;color:#6b7280;margin-bottom:32px}
+.big{font-size:36px;font-weight:800;color:#111;margin:20px 0 4px}
+.label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af}
+.badge{display:inline-block;border-radius:99px;border:1px solid;padding:2px 10px;font-size:11px;font-weight:600;margin-bottom:20px}
+.high{border-color:#6ee7b7;color:#059669;background:#ecfdf5}
+.medium{border-color:#fcd34d;color:#d97706;background:#fffbeb}
+.low{border-color:#fca5a5;color:#dc2626;background:#fef2f2}
+.section{margin-bottom:20px}
+.section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px}
+p{font-size:13px;color:#374151;line-height:1.6}
+.risk{background:#fffbeb;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:4px;font-size:12px;color:#92400e}
+.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
+</style></head><body>
+<h1>AI Forecast</h1>
+<p class="meta">${objectType} · ${PERIOD_LABELS[period]} · Generated ${new Date().toLocaleDateString([], {year:"numeric",month:"long",day:"numeric"})}</p>
+<div class="label">Projected ${hasValue ? "Revenue" : "Completions"}</div>
+<div class="big">${hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</div>
+<span class="badge ${result.confidence}">${result.confidence.charAt(0).toUpperCase()+result.confidence.slice(1)} Confidence</span>
+<div class="section"><div class="section-title">Headline</div><p><em>${result.headline}</em></p></div>
+<div class="section"><div class="section-title">Analysis</div><p>${result.narrative}</p></div>
+${result.risks && result.risks !== "None identified" ? `<div class="risk"><strong>Risk:</strong> ${result.risks}</div>` : ""}
+<div class="footer"><span>Mondaily AI · AI Forecast</span><span>${new Date().toLocaleDateString()}</span></div>
+<script>window.onload=()=>window.print()<\/script></body></html>`;
+    const w = window.open("","_blank"); if(w){w.document.write(html);w.document.close();}
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-violet-500/20 bg-[#0d0f13] flex flex-col" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(59,130,246,0.04) 100%)" }}>
-      {/* Header row — always visible */}
-      <div className="flex items-center gap-4 px-5 py-4">
+    <>
+      {/* Compact trigger card — never stretches */}
+      <div className="rounded-2xl border border-violet-500/20 bg-[#0d0f13] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
           <Sparkles size={16} className="text-violet-400"/>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white leading-tight">AI Forecast</p>
+          <p className="text-sm font-semibold text-white">AI Forecast</p>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            {result
-              ? <span className="italic text-slate-400">{result.headline}</span>
-              : `Mondaily AI analyses your pipeline & trend to project ${hasValue ? "revenue" : "completions"}`}
+            {result ? <span className="text-violet-300 italic">{result.headline}</span>
+                    : `Project ${hasValue?"revenue":"completions"} with Mondaily AI`}
           </p>
         </div>
-        {!result && !loading && !error && (
-          <button onClick={runForecast}
-            className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
+        {loading ? (
+          <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
+        ) : error ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-red-400 max-w-[160px] truncate">{error}</span>
+            <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-slate-500 hover:text-white">Retry</button>
+          </div>
+        ) : result ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-right mr-1">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Projected</p>
+              <p className="text-base font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+            </div>
+            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 transition-colors">View</button>
+            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-slate-500 hover:text-white transition-colors">↺</button>
+          </div>
+        ) : (
+          <button onClick={runForecast} className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
             Generate
           </button>
         )}
-        {result && (
-          <div className="shrink-0 text-right">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Projected {hasValue ? "revenue" : "completions"}</p>
-            <p className="text-xl font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
-          </div>
-        )}
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center gap-3 border-t border-white/[.05] px-5 py-4">
-          <Loader2 size={14} className="animate-spin text-violet-400 shrink-0"/>
-          <p className="text-xs text-slate-400">Analysing {trendData.length} trend data points…</p>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-3 border-t border-white/[.05] px-5 py-3">
-          <AlertCircle size={14} className="text-red-400 shrink-0"/>
-          <p className="text-xs text-slate-400 flex-1">{error}</p>
-          <button onClick={() => setError(null)} className="text-[11px] text-slate-600 hover:text-white transition-colors">Dismiss</button>
-        </div>
-      )}
-
-      {/* Result body */}
-      {result && (
-        <div className="border-t border-white/[.05]">
-          <div className="grid gap-px bg-white/[.04] sm:grid-cols-3">
-            <div className="bg-[#0d0f13] px-5 py-3.5" style={{ background: "rgba(13,15,19,0.9)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1">Confidence</p>
-              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence]}`}>
-                {result.confidence}
-              </span>
-            </div>
-            <div className="sm:col-span-2 px-5 py-3.5" style={{ background: "rgba(13,15,19,0.9)" }}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1">Analysis</p>
-              <p className="text-xs text-slate-300 leading-relaxed">{result.narrative}</p>
-            </div>
+      {/* Result modal */}
+      {modalOpen && result && (
+        <AIModal title="AI Forecast" onClose={() => setModalOpen(false)} onPrint={printForecast}>
+          {/* Projected value hero */}
+          <div className="px-6 py-6 border-b border-white/[.06]" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(59,130,246,0.04) 100%)"}}>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
+            <p className="text-4xl font-bold text-white mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+            <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>
+              {result.confidence} confidence
+            </span>
           </div>
+          {/* Headline */}
+          <div className="px-6 py-4 border-b border-white/[.05]">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">Headline</p>
+            <p className="text-sm text-slate-300 italic leading-relaxed">{result.headline}</p>
+          </div>
+          {/* Narrative */}
+          <div className="px-6 py-4 border-b border-white/[.05]">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">Analysis</p>
+            <p className="text-sm text-slate-300 leading-relaxed">{result.narrative}</p>
+          </div>
+          {/* Risk */}
           {result.risks && result.risks !== "None identified" && (
-            <div className="border-t border-amber-500/10 bg-amber-500/[.04] px-5 py-3 flex items-start gap-2">
-              <AlertCircle size={12} className="text-amber-400 shrink-0 mt-0.5"/>
-              <p className="text-[11px] text-amber-300/80 leading-relaxed"><span className="font-semibold">Risk: </span>{result.risks}</p>
+            <div className="mx-6 my-4 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[.06] px-4 py-3">
+              <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5"/>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-500 mb-0.5">Risk</p>
+                <p className="text-sm text-amber-300/80 leading-relaxed">{result.risks}</p>
+              </div>
             </div>
           )}
-          <div className="border-t border-white/[.05] px-5 py-2 flex justify-end" style={{ background: "rgba(13,15,19,0.9)" }}>
-            <button onClick={() => setResult(null)} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">
-              ↺ Regenerate
-            </button>
+          <div className="px-6 py-3 flex items-center justify-between border-t border-white/[.05]">
+            <span className="text-[10px] text-slate-700">Powered by Mondaily AI</span>
+            <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
           </div>
-        </div>
+        </AIModal>
       )}
-    </div>
+    </>
   );
 }
 
 interface AIInsight { title: string; value: string; trend?: "up"|"down"|"neutral"; description: string; category: "performance"|"risk"|"opportunity"|"summary" }
 
-const INSIGHT_COLORS: Record<string, string> = {
-  performance: "border-emerald-500/20 bg-emerald-500/[.05] text-emerald-400",
-  opportunity: "border-blue-500/20 bg-blue-500/[.05] text-blue-400",
-  risk:        "border-red-500/20 bg-red-500/[.05] text-red-400",
-  summary:     "border-violet-500/20 bg-violet-500/[.05] text-violet-400",
-};
-
-function AIInsightsPanel({ records, objectType }: {
-  records: NodeRecord[];
-  objectType: string;
-}) {
-  const [open, setOpen]         = useState(false);
+function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objectType: string }) {
   const [loading, setLoading]   = useState(false);
   const [insights, setInsights] = useState<AIInsight[] | null>(null);
   const [error, setError]       = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  async function runInsight() {
-    if (insights) { setOpen(o => !o); return; }
-    setOpen(true);
-    setLoading(true);
-    setError(null);
+  const CATEGORY_META = {
+    performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/[.06]", text: "text-emerald-400" },
+    opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/25",    bg: "bg-blue-500/[.06]",    text: "text-blue-400"    },
+    risk:        { label: "Risk",        dot: "bg-red-400",     border: "border-red-500/25",     bg: "bg-red-500/[.06]",     text: "text-red-400"     },
+    summary:     { label: "Summary",     dot: "bg-violet-400",  border: "border-violet-500/25",  bg: "bg-violet-500/[.06]",  text: "text-violet-400"  },
+  } as const;
+  type Cat = keyof typeof CATEGORY_META;
+  const fallbackMeta = CATEGORY_META.summary;
+
+  async function run() {
+    if (insights) { setModalOpen(true); return; }
+    setLoading(true); setError(null);
     try {
-      const res = await apiClient.post<{ insights: AIInsight[] }>("/generate/insights", {
-        objectType,
-        records: records.slice(0, 50),
-      });
+      const res = await apiClient.post<{ insights: AIInsight[] }>("/generate/insights", { objectType, records: records.slice(0, 50) });
       setInsights(res.insights ?? []);
+      setModalOpen(true);
     } catch (e: any) {
       let msg = e?.message ?? "Could not load AI insights.";
       try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
       setError(msg);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  const CATEGORY_META: Record<string, { label: string; dot: string; border: string; bg: string; text: string }> = {
-    performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/20", bg: "bg-emerald-500/[.05]", text: "text-emerald-400" },
-    opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/20",    bg: "bg-blue-500/[.05]",    text: "text-blue-400"    },
-    risk:        { label: "Risk",        dot: "bg-red-400",     border: "border-red-500/20",     bg: "bg-red-500/[.05]",     text: "text-red-400"     },
-    summary:     { label: "Summary",     dot: "bg-violet-400",  border: "border-violet-500/20",  bg: "bg-violet-500/[.05]",  text: "text-violet-400"  },
-  };
+  function printInsights() {
+    if (!insights) return;
+    const cards = insights.map(ins => {
+      const cat = ins.category as Cat;
+      const colors: Record<Cat, string> = { performance:"#059669", opportunity:"#2563eb", risk:"#dc2626", summary:"#7c3aed" };
+      const c = colors[cat] ?? colors.summary;
+      return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;break-inside:avoid">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${c};margin-bottom:4px">${ins.category}</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:2px">${ins.title}</div>
+        <div style="font-size:22px;font-weight:800;color:#111;margin-bottom:6px">${ins.value}</div>
+        <div style="font-size:12px;color:#374151;line-height:1.5">${ins.description}</div>
+      </div>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>AI Insights</title>
+<style>body{font-family:-apple-system,sans-serif;color:#111;max-width:700px;margin:48px auto;padding:0 32px}
+h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#6b7280;margin-bottom:28px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
+</style></head><body>
+<h1>AI Insights</h1>
+<p class="meta">${objectType} · ${records.length} records analysed · ${new Date().toLocaleDateString([], {year:"numeric",month:"long",day:"numeric"})}</p>
+<div class="grid">${cards}</div>
+<div class="footer"><span>Mondaily AI · Insights Report</span><span>${new Date().toLocaleDateString()}</span></div>
+<script>window.onload=()=>window.print()<\/script></body></html>`;
+    const w = window.open("","_blank"); if(w){w.document.write(html);w.document.close();}
+  }
 
   return (
-    <div className="rounded-2xl border border-white/[.07] bg-[#0d0f13] overflow-hidden flex flex-col print:hidden">
-      {/* Header */}
-      <div className="flex items-center gap-4 px-5 py-4 border-b border-white/[.05]">
+    <>
+      {/* Compact trigger card */}
+      <div className="rounded-2xl border border-white/[.08] bg-[#0d0f13] p-5 flex items-center gap-4 print:hidden">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
           <Sparkles size={16} className="text-violet-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Insights</p>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            {insights ? `${insights.length} insights from ${records.length} records` : "Let Mondaily AI analyse your data and surface what matters"}
+            {insights ? `${insights.length} insights ready` : "Surface patterns in your data with Mondaily AI"}
           </p>
         </div>
-        {!insights && !loading && (
-          <button onClick={runInsight}
-            className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
+        {loading ? (
+          <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
+        ) : error ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-red-400 max-w-[160px] truncate">{error}</span>
+            <button onClick={() => { setError(null); run(); }} className="text-[11px] text-slate-500 hover:text-white">Retry</button>
+          </div>
+        ) : insights ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 transition-colors">View</button>
+            <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-slate-500 hover:text-white transition-colors">↺</button>
+          </div>
+        ) : (
+          <button onClick={run} className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
             Analyse
-          </button>
-        )}
-        {insights && (
-          <button onClick={() => setOpen(o => !o)}
-            className="shrink-0 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
-            {open ? "Hide" : "Show"}
           </button>
         )}
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center gap-3 px-5 py-5">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400/30 border-t-violet-400 shrink-0"/>
-          <p className="text-xs text-slate-400">Analysing {records.length} records…</p>
-        </div>
-      )}
-
-      {/* Error */}
-      {error && !loading && (
-        <div className="flex items-center gap-3 px-5 py-4">
-          <AlertCircle size={14} className="text-red-400 shrink-0"/>
-          <p className="text-xs text-slate-400 flex-1">{error}</p>
-          <button onClick={() => { setError(null); setOpen(false); }} className="text-[11px] text-slate-600 hover:text-white transition-colors">Dismiss</button>
-        </div>
-      )}
-
-      {/* Insights grid */}
-      {open && insights && (
-        <div className="p-4 grid gap-3 sm:grid-cols-2">
-          {insights.map((ins, i) => {
-            const fallback = { label: "Summary", dot: "bg-violet-400", border: "border-violet-500/20", bg: "bg-violet-500/[.05]", text: "text-violet-400" };
-            const m = CATEGORY_META[ins.category] ?? fallback;
-            return (
-              <div key={i} className={`rounded-xl border ${m.border} ${m.bg} p-4 flex flex-col gap-2`}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
-                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
+      {/* Results modal */}
+      {modalOpen && insights && (
+        <AIModal title="AI Insights" onClose={() => setModalOpen(false)} onPrint={printInsights}>
+          <div className="p-5 grid gap-3 sm:grid-cols-2">
+            {insights.map((ins, i) => {
+              const cat = ins.category as Cat;
+              const m = CATEGORY_META[cat] ?? fallbackMeta;
+              return (
+                <div key={i} className={`rounded-xl border ${m.border} ${m.bg} p-4 flex flex-col gap-2`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
+                      <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
+                    </div>
+                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
+                    {ins.trend === "down" && <TrendingDown size={12} className="text-red-400 shrink-0"/>}
                   </div>
-                  {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
-                  {ins.trend === "down" && <TrendingDown size={12} className="text-red-400 shrink-0"/>}
+                  <div>
+                    <p className="text-[11px] text-slate-500 mb-0.5">{ins.title}</p>
+                    <p className="text-2xl font-bold text-white leading-tight">{ins.value}</p>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">{ins.description}</p>
                 </div>
-                <div>
-                  <p className="text-[11px] font-medium text-slate-400 mb-0.5">{ins.title}</p>
-                  <p className="text-xl font-bold text-white leading-tight">{ins.value}</p>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">{ins.description}</p>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+          <div className="px-5 py-3 flex items-center justify-between border-t border-white/[.05]">
+            <span className="text-[10px] text-slate-700">Powered by Mondaily AI · {records.length} records</span>
+            <button onClick={() => { setInsights(null); setModalOpen(false); run(); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
+          </div>
+        </AIModal>
       )}
-
-      {/* Footer */}
-      {insights && open && (
-        <div className="border-t border-white/[.05] px-5 py-2.5 flex items-center justify-between">
-          <span className="text-[10px] text-slate-700">Powered by Mondaily AI</span>
-          <button onClick={() => { setInsights(null); setOpen(false); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">
-            ↺ Regenerate
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
