@@ -609,11 +609,32 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   ];
   const [placeholder] = useState(() => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
 
-  const apply = useCallback(() => {
+  const apply = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed) return;
     setStatus("thinking");
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem("mondaily_session_token");
+      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
+      const res = await fetch(`${apiUrl}/api/v1/generate/nlp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+        },
+        body: JSON.stringify({ query: trimmed, columns }),
+      });
+      if (!res.ok) throw new Error();
+      const parsed = await res.json() as any;
+      if (parsed.error) throw new Error();
+      onApply(parsed.filterText ?? "", parsed.sortCol ?? null, parsed.sortDir ?? "asc", parsed.calcOps ?? {});
+      setLastApplied(trimmed);
+      setStatus("applied");
+      setTimeout(() => setStatus("idle"), 2500);
+    } catch {
+      // Fallback to regex parser
       const parsed = parseNLPCommand(trimmed, columns);
       if (parsed.confidence === 0) {
         setStatus("error");
@@ -624,7 +645,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
       setLastApplied(trimmed);
       setStatus("applied");
       setTimeout(() => setStatus("idle"), 2500);
-    }, 600);
+    }
   }, [value, columns, onApply]);
 
   useEffect(() => {

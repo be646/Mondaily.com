@@ -49,34 +49,63 @@ export interface EnrichmentResult {
   source: "known" | "generated";
 }
 
-/** Simulate async enrichment with a realistic delay. */
+function authHeaders() {
+  const token = localStorage.getItem("mondaily_session_token");
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  return {
+    url: apiUrl,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+    },
+  };
+}
+
+/** Real enrichment via Tavily web search + Claude (falls back to mock if API unavailable) */
 export async function enrichCompany(name: string): Promise<EnrichmentResult> {
-  const delay = 1500 + Math.random() * 1000;
-  await new Promise(r => setTimeout(r, delay));
-
-  const key = normalise(name);
-  const exact = DB[key];
-  if (exact) return { fields: exact, source: "known" };
-
-  const partial = Object.keys(DB).find(k => k.includes(key) || key.includes(k));
-  if (partial) return { fields: DB[partial]!, source: "known" };
-
-  return { fields: generateMock(name), source: "generated" };
+  const { url, headers } = authHeaders();
+  try {
+    const res = await fetch(`${url}/api/v1/generate/enrich/company`, {
+      method: "POST", headers, body: JSON.stringify({ name }),
+    });
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json() as any;
+    if (data.error) throw new Error(data.error);
+    return { fields: data.fields, source: data.source ?? "ai" };
+  } catch {
+    // Fallback to mock DB for known companies
+    const key = normalise(name);
+    const exact = DB[key];
+    if (exact) return { fields: exact, source: "known" };
+    const partial = Object.keys(DB).find(k => k.includes(key) || key.includes(k));
+    if (partial) return { fields: DB[partial]!, source: "known" };
+    return { fields: generateMock(name), source: "generated" };
+  }
 }
 
 export async function enrichPerson(email: string): Promise<EnrichmentResult> {
-  const delay = 1200 + Math.random() * 800;
-  await new Promise(r => setTimeout(r, delay));
-
-  const domain = email.split("@")[1]?.split(".")[0] ?? "";
-  const companyData = DB[normalise(domain)];
-  return {
-    fields: {
-      company: domain ? domain.charAt(0).toUpperCase() + domain.slice(1) : undefined,
-      ...(companyData ? { linkedin: `linkedin.com/company/${domain}` } : {}),
-    },
-    source: companyData ? "known" : "generated",
-  };
+  const { url, headers } = authHeaders();
+  try {
+    const res = await fetch(`${url}/api/v1/generate/enrich/person`, {
+      method: "POST", headers, body: JSON.stringify({ email }),
+    });
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json() as any;
+    if (data.error) throw new Error(data.error);
+    return { fields: data.fields, source: data.source ?? "ai" };
+  } catch {
+    const domain = email.split("@")[1]?.split(".")[0] ?? "";
+    const companyData = DB[normalise(domain)];
+    return {
+      fields: {
+        company: domain ? domain.charAt(0).toUpperCase() + domain.slice(1) : undefined,
+        ...(companyData ? { linkedin: `linkedin.com/company/${domain}` } : {}),
+      },
+      source: companyData ? "known" : "generated",
+    };
+  }
 }
 
 // ── NLP command parser ────────────────────────────────────────────────────────

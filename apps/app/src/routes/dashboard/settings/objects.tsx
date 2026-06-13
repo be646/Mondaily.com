@@ -41,88 +41,27 @@ const EXAMPLES = [
   "Sales leads with source, score and qualification",
 ];
 
-// ─── Call AI to generate schema ───────────────────────────────────────────────
+// ─── Call dedicated schema endpoint (uses Anthropic tool_use = guaranteed JSON) ─
 async function generateSchema(prompt: string): Promise<GeneratedSchema> {
   const token = localStorage.getItem("mondaily_session_token");
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
   const apiUrl = import.meta.env.VITE_API_URL || "";
 
-  const systemPrompt = `You are a database schema designer for Mondaily, a business CRM platform.
-The user will describe a type of record list or sheet they want to track.
-You must respond ONLY with valid JSON — no markdown, no explanation, just JSON.
-
-Schema format:
-{
-  "singular": "Invoice",
-  "plural": "Invoices",
-  "vertical": "finance",
-  "color": "emerald",
-  "description": "One line description",
-  "attributes": [
-    { "name": "Invoice Number", "type": "text" },
-    { "name": "Amount", "type": "currency" },
-    { "name": "Due Date", "type": "date" },
-    { "name": "Status", "type": "select" },
-    { "name": "Paid", "type": "checkbox" }
-  ]
-}
-
-Vertical must be one of: sales, finance, hr, realestate, investments, shared
-Color must be one of: red, orange, amber, emerald, cyan, blue, violet, pink
-Attribute types: text, long_text, number, currency, percentage, date, datetime, checkbox, select, multi_select, url, email, phone
-Generate 6-12 attributes that are genuinely useful for the described purpose. Use currency for money, date for dates, checkbox for yes/no, select for status fields, number for quantities/counts.`;
-
-  const res = await fetch(`${apiUrl}/api/v1/ask`, {
+  const res = await fetch(`${apiUrl}/api/v1/generate/schema`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
     },
-    body: JSON.stringify({
-      message: `Generate a Mondaily object schema for: ${prompt}\n\nRespond ONLY with the JSON schema, no other text.`,
-      model: "smart",
-      _system_override: systemPrompt,
-    }),
+    body: JSON.stringify({ prompt }),
   });
 
   const data = await res.json() as any;
-  const raw = (data.reply || "").trim();
-
-  // Extract the first well-formed JSON object using brace-depth tracking
-  // (more reliable than regex which can grab too much)
-  function extractFirstObject(text: string): string | null {
-    const start = text.indexOf("{");
-    if (start === -1) return null;
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < text.length; i++) {
-      const ch = text[i];
-      if (escape) { escape = false; continue; }
-      if (ch === "\\") { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === "{") depth++;
-      else if (ch === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
-    }
-    return null;
-  }
-
-  const jsonStr = extractFirstObject(raw);
-  if (!jsonStr) throw new Error("AI did not return a schema. Try rephrasing your prompt.");
-
-  let parsed: GeneratedSchema;
-  try {
-    parsed = JSON.parse(jsonStr) as GeneratedSchema;
-  } catch {
-    throw new Error("AI returned malformed JSON. Please try again.");
-  }
-
-  // Validate and clamp
-  if (!parsed.plural || !Array.isArray(parsed.attributes)) throw new Error("Invalid schema — missing object name or attributes.");
-  parsed.attributes = parsed.attributes.slice(0, 16);
-  return parsed;
+  if (data.error) throw new Error(data.error);
+  if (!data.plural || !Array.isArray(data.attributes)) throw new Error("Invalid schema returned. Please try again.");
+  data.attributes = (data.attributes as GeneratedSchema["attributes"]).slice(0, 16);
+  return data as GeneratedSchema;
 }
 
 // ─── AI Generate panel ────────────────────────────────────────────────────────
