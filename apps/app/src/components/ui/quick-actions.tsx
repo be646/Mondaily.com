@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, CheckSquare, FileText, Building2, TrendingUp, X, Plus } from "lucide-react";
+import { Users, CheckSquare, FileText, Building2, TrendingUp, X } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -103,25 +103,21 @@ export function QuickActions() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") { setOpen(false); setActiveCreate(null); }
     };
+    const opener = () => { setOpen(o => !o); setActiveCreate(null); };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("mondaily:open-quick-actions", opener);
+    return () => {
+      window.removeEventListener("keydown", handler);
+      window.removeEventListener("mondaily:open-quick-actions", opener);
+    };
   }, []);
 
   const createType = activeCreate?.replace("create_", "") as any;
 
   return (
     <>
-      {/* Floating + button */}
-      <button
-        onClick={() => { setOpen(true); setActiveCreate(null); }}
-        className="fixed bottom-20 right-4 z-40 md:bottom-6 flex h-11 w-11 items-center justify-center rounded-full bg-red-600 shadow-lg shadow-red-900/30 hover:bg-red-500 transition-colors print:hidden"
-        title="Quick create"
-      >
-        <Plus size={20} className="text-white"/>
-      </button>
-
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-end p-4 md:items-start md:justify-end md:pt-20 md:pr-6">
+        <div className="fixed inset-0 z-50 flex items-end justify-start p-4 md:items-end md:justify-start md:pb-6 md:pl-4">
           <div className="fixed inset-0 bg-black/50" onClick={() => { setOpen(false); setActiveCreate(null); }}/>
           <div className="relative w-72 rounded-2xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.6)] overflow-hidden">
             {!activeCreate ? (
