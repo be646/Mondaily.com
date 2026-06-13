@@ -1295,67 +1295,108 @@ export function SalesReportPage() {
               )}
             </div>
 
-            {/* Top Records Table */}
-            <div className="mb-6 rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
-              <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.tableLabel}</h3>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/[.06] print:border-gray-200">
-                    <th className="pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-gray-500">Name</th>
-                    {hasStage && <th className="pb-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-gray-500">{stageCol}</th>}
-                    {hasValue && <th className="pb-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500 print:text-gray-500">{valueCol}</th>}
-                    <th className="pb-2.5 w-6 print:hidden"/>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topRecords.map((r,i) => {
-                    const stage = hasStage ? String(r.data[stageCol!] ?? "—") : "";
-                    const val   = hasValue ? Number(r.data[valueCol!] ?? 0) : 0;
-                    const won   = hasStage && isWon(stage);
-                    const lost  = hasStage && isLost(stage);
-                    return (
-                      <tr
-                        key={r.id}
-                        onClick={() => setDrillRecord(r)}
-                        className={`group cursor-pointer border-b border-white/[.03] print:border-gray-100 hover:bg-white/[.02] transition-colors ${i%2===0?"":"bg-white/[.01] print:bg-gray-50"}`}
-                      >
-                        <td className="py-2.5 pr-4">
-                          <span className="font-medium text-white print:text-black">{String(r.data[nameCol] ?? "—")}</span>
-                        </td>
-                        {hasStage && (
-                          <td className="py-2.5 pr-4">
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20"} print:bg-transparent print:text-gray-600 print:border-gray-300`}>
-                              {stage}
+            {/* Top Records List */}
+            {(() => {
+              const maxVal = hasValue
+                ? Math.max(...topRecords.map(r => Number(r.data[valueCol!] ?? 0)).filter(v => !isNaN(v)), 1)
+                : 1;
+              const total = hasValue
+                ? topRecords.reduce((s, r) => s + (isNaN(Number(r.data[valueCol!] ?? 0)) ? 0 : Number(r.data[valueCol!] ?? 0)), 0)
+                : 0;
+              const ROW_COLORS = [
+                { bar: "from-violet-500 to-purple-400", badge: "bg-violet-500/15 text-violet-300 border-violet-500/20" },
+                { bar: "from-blue-500 to-cyan-400",     badge: "bg-blue-500/15 text-blue-300 border-blue-500/20" },
+                { bar: "from-emerald-500 to-teal-400",  badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20" },
+                { bar: "from-amber-500 to-yellow-400",  badge: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
+                { bar: "from-rose-500 to-pink-400",     badge: "bg-rose-500/15 text-rose-300 border-rose-500/20" },
+                { bar: "from-indigo-500 to-blue-400",   badge: "bg-indigo-500/15 text-indigo-300 border-indigo-500/20" },
+                { bar: "from-teal-500 to-emerald-400",  badge: "bg-teal-500/15 text-teal-300 border-teal-500/20" },
+                { bar: "from-orange-500 to-amber-400",  badge: "bg-orange-500/15 text-orange-300 border-orange-500/20" },
+                { bar: "from-cyan-500 to-sky-400",      badge: "bg-cyan-500/15 text-cyan-300 border-cyan-500/20" },
+                { bar: "from-fuchsia-500 to-purple-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
+              ];
+              return (
+                <div className="mb-6 rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden print:border-gray-200 print:bg-white">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[.06]">
+                    <h3 className="text-sm font-semibold text-white print:text-black">{vocab.tableLabel}</h3>
+                    {hasValue && (
+                      <span className="text-xs text-slate-500">
+                        Total <span className="font-semibold text-slate-300 ml-1">{fmtMoney(total)}</span>
+                      </span>
+                    )}
+                  </div>
+                  {/* Column labels */}
+                  <div className="grid px-5 py-2 border-b border-white/[.04]" style={{ gridTemplateColumns: hasValue ? "2rem 1fr auto auto" : "2rem 1fr auto" }}>
+                    <span/>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Name</span>
+                    {hasStage && <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mr-4">{stageCol?.replace(/_/g," ")}</span>}
+                    {hasValue && <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-right">{valueCol?.replace(/_/g," ")}</span>}
+                  </div>
+                  {/* Rows */}
+                  <div className="divide-y divide-white/[.03]">
+                    {topRecords.map((r, i) => {
+                      const stage   = hasStage ? String(r.data[stageCol!] ?? "—") : "";
+                      const val     = hasValue ? Number(r.data[valueCol!] ?? 0) : 0;
+                      const pct     = hasValue && !isNaN(val) ? Math.max(4, Math.round((val / maxVal) * 100)) : 0;
+                      const won     = hasStage && isWon(stage);
+                      const lost    = hasStage && isLost(stage);
+                      const color   = ROW_COLORS[i % ROW_COLORS.length]!;
+                      const rankColors = ["text-amber-400","text-slate-400","text-orange-600"];
+                      return (
+                        <div
+                          key={r.id}
+                          onClick={() => setDrillRecord(r)}
+                          className="group relative cursor-pointer px-5 py-3 hover:bg-white/[.025] transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Rank */}
+                            <span className={`w-7 shrink-0 text-center text-xs font-bold tabular-nums ${i < 3 ? rankColors[i] : "text-slate-600"}`}>
+                              {i + 1}
                             </span>
-                          </td>
-                        )}
-                        {hasValue && (
-                          <td className="py-2.5 text-right font-mono font-semibold text-white print:text-black">
-                            {fmtMoney(isNaN(val) ? 0 : val)}
-                          </td>
-                        )}
-                        <td className="py-2.5 pl-2 print:hidden">
-                          <ChevronRight size={12} className="text-slate-700 group-hover:text-slate-400 transition-colors"/>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                {hasValue && (
-                  <tfoot>
-                    <tr className="border-t border-white/10 print:border-gray-300">
-                      <td colSpan={hasStage ? 2 : 1} className="pt-3 text-xs text-slate-500 print:text-gray-500">
-                        Total (top {topRecords.length})
-                      </td>
-                      <td className="pt-3 text-right font-mono font-semibold text-white print:text-black">
-                        {fmtMoney(topRecords.reduce((s,r) => s + (isNaN(Number(r.data[valueCol!]??0)) ? 0 : Number(r.data[valueCol!]??0)), 0))}
-                      </td>
-                      <td className="print:hidden"/>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
+                            {/* Name + bar */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-sm font-medium text-white truncate print:text-black">
+                                  {String(r.data[nameCol] ?? "—")}
+                                </span>
+                                {hasValue && (
+                                  <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-white print:text-black">
+                                    {fmtMoney(isNaN(val) ? 0 : val)}
+                                  </span>
+                                )}
+                              </div>
+                              {hasValue && (
+                                <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full bg-gradient-to-r ${color.bar} transition-all duration-500`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            {/* Stage badge */}
+                            {hasStage && (
+                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-red-500/10 text-red-400 border-red-500/20" : color.badge} print:bg-transparent print:text-gray-600 print:border-gray-300`}>
+                                {stage}
+                              </span>
+                            )}
+                            <ChevronRight size={12} className="shrink-0 text-slate-700 group-hover:text-slate-400 transition-colors print:hidden"/>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Footer total */}
+                  {hasValue && (
+                    <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3 print:border-gray-200">
+                      <span className="text-xs text-slate-500">Top {topRecords.length} records</span>
+                      <span className="font-mono text-sm font-bold text-white print:text-black">{fmtMoney(total)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* AI Insights */}
             <AIInsightsPanel records={filteredRecords} objectType={activeSlug}/>
