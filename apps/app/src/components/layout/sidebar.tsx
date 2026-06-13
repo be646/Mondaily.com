@@ -19,13 +19,42 @@ const navItems = [
 ];
 
 function Logo({ size = 28 }: { size?: number }) {
+  const lineCount = 14;
+  const lineH = size / lineCount;
+  const radius = Math.max(2, size * 0.1);
+  const dotSize = Math.max(4, size * 0.16);
   return (
-    <svg width={size} height={size} viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="18" cy="22" r="13" fill="none" stroke="#ef4444" strokeWidth="2.5"/>
-      <circle cx="26" cy="22" r="13" fill="none" stroke="white" strokeWidth="2" opacity="0.55"/>
-      <circle cx="22" cy="22" r="3.5" fill="#ef4444"/>
-      <circle cx="22" cy="22" r="6" fill="#ef4444" opacity="0.12"/>
-    </svg>
+    <div
+      className="relative overflow-hidden bg-black border border-white/20 shrink-0"
+      style={{ width: size, height: size, borderRadius: radius }}
+    >
+      {/* Scanning grid lines */}
+      <div
+        className="logo-scan absolute inset-x-0 top-0 will-change-transform"
+        style={{ height: "200%" }}
+      >
+        {Array.from({ length: lineCount * 2 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              height: lineH,
+              borderBottom: `1px solid rgba(255,255,255,${i % 5 === 0 ? 0.22 : i % 2 === 0 ? 0.07 : 0.03})`,
+            }}
+          />
+        ))}
+      </div>
+      {/* Accent dot */}
+      <div
+        className="logo-dot absolute rounded-full bg-white"
+        style={{
+          width: dotSize,
+          height: dotSize,
+          top: Math.max(3, size * 0.12),
+          right: Math.max(3, size * 0.12),
+          boxShadow: "0 0 5px rgba(255,255,255,0.9)",
+        }}
+      />
+    </div>
   );
 }
 

@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Mondaily logo scan animation ── */
+@keyframes scanUp {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+.logo-scan {
+  animation: scanUp 1.6s linear infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.logo-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
 body {
   margin: 0;
   background: #0d0f13;

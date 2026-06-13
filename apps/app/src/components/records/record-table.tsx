@@ -85,7 +85,7 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, cb: () => voi
 
 function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const initials = String(name).split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const colors = ["bg-red-500/20 text-red-400","bg-blue-500/20 text-blue-400","bg-emerald-500/20 text-emerald-400","bg-purple-500/20 text-purple-400","bg-amber-500/20 text-amber-400"];
+  const colors = ["bg-zinc-800/70 text-zinc-300","bg-zinc-700/50 text-zinc-200","bg-zinc-800/50 text-zinc-400","bg-zinc-900/60 text-zinc-300","bg-zinc-800/60 text-zinc-400"];
   const color = colors[(initials.charCodeAt(0) || 0) % colors.length];
   return (
     <div className="relative shrink-0">
@@ -93,8 +93,8 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
         {initials || "?"}
       </div>
       {enriched && (
-        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-1 ring-[#0d0f13] flex items-center justify-center">
-          <Sparkles size={5} className="text-white"/>
+        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-white ring-1 ring-[#0d0f13] flex items-center justify-center">
+          <Sparkles size={5} className="text-black"/>
         </div>
       )}
     </div>
@@ -103,18 +103,18 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
 
 function StagePill({ value }: { value: string }) {
   const map: Record<string, string> = {
-    "Lead":        "bg-slate-900/80 text-slate-300 border border-slate-700/60",
-    "Qualified":   "bg-blue-950/60 text-blue-300 border border-blue-800/50",
-    "In Progress": "bg-violet-950/60 text-violet-300 border border-violet-800/50",
-    "Proposal":    "bg-amber-950/60 text-amber-300 border border-amber-800/50",
-    "Negotiation": "bg-orange-950/60 text-orange-300 border border-orange-800/50",
-    "Closed Won":  "bg-emerald-950/50 text-emerald-400 border border-emerald-800/60",
-    "Closed Lost": "bg-rose-950/50 text-rose-400 border border-rose-800/60",
+    "Lead":        "bg-zinc-900/60 text-zinc-400 border border-zinc-700/50",
+    "Qualified":   "bg-zinc-800/50 text-zinc-300 border border-zinc-700/60",
+    "In Progress": "bg-zinc-800/60 text-zinc-200 border border-zinc-600/50",
+    "Proposal":    "bg-zinc-800/40 text-zinc-300 border border-zinc-700/50",
+    "Negotiation": "bg-zinc-700/40 text-zinc-200 border border-zinc-600/60",
+    "Closed Won":  "bg-zinc-800/50 text-white border border-zinc-600/70",
+    "Closed Lost": "bg-zinc-900/50 text-zinc-500 border border-zinc-800/60",
   };
   const dot: Record<string, string> = {
-    "Lead": "bg-slate-500", "Qualified": "bg-blue-400", "In Progress": "bg-violet-400",
-    "Proposal": "bg-amber-400", "Negotiation": "bg-orange-400",
-    "Closed Won": "bg-emerald-400", "Closed Lost": "bg-rose-500",
+    "Lead": "bg-zinc-600", "Qualified": "bg-zinc-400", "In Progress": "bg-zinc-300",
+    "Proposal": "bg-zinc-500", "Negotiation": "bg-zinc-300",
+    "Closed Won": "bg-white", "Closed Lost": "bg-zinc-700",
   };
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium ${map[value] ?? "bg-slate-900/80 text-slate-300 border border-slate-700/60"}`}>
@@ -360,7 +360,7 @@ function OwnerCell({ value, members, onSelect }: {
       >
         {assigned ? (
           <>
-            <div className="h-5 w-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-[9px] font-semibold shrink-0">
+            <div className="h-5 w-5 rounded-full bg-zinc-700/60 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
               {initials(assigned.name || assigned.email)}
             </div>
             <span className="text-xs text-slate-300 truncate max-w-[80px]">{assigned.name || assigned.email}</span>
@@ -381,7 +381,7 @@ function OwnerCell({ value, members, onSelect }: {
           {members.map(m => (
             <button key={m.id} onClick={() => { onSelect(m.name || m.email); setOpen(false); }}
               className={`dropdown-item w-full gap-2 ${(m.name === value || m.email === value) ? "dropdown-item-active" : ""}`}>
-              <div className="h-5 w-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[9px] font-semibold shrink-0">
+              <div className="h-5 w-5 rounded-full bg-zinc-700/50 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
                 {initials(m.name || m.email)}
               </div>
               <span className="truncate">{m.name || m.email}</span>
@@ -443,7 +443,7 @@ function AddColumnDropdown({ onAdd, onClose }: {
       <div className="grid grid-cols-2 gap-1">
         {COLUMN_TYPES.map(({ type: t, label, icon: Icon }) => (
           <button key={t} onClick={() => setType(t)}
-            className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${type === t ? "border-red-500/40 bg-red-500/[.08] text-white" : "border-white/[.06] text-slate-500 hover:text-slate-300"}`}>
+            className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${type === t ? "border-zinc-600/60 bg-zinc-800/60 text-white" : "border-white/[.06] text-slate-500 hover:text-slate-300"}`}>
             <Icon size={11}/>{label}
           </button>
         ))}
@@ -502,12 +502,12 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const statusColors = { idle: "border-white/[.06] bg-white/[.02]", thinking: "border-purple-500/30 bg-purple-500/[.04]", applied: "border-emerald-500/30 bg-emerald-500/[.04]", error: "border-red-500/30 bg-red-500/[.04]" };
+  const statusColors = { idle: "border-zinc-800/50 bg-zinc-900/20", thinking: "border-zinc-700/50 bg-zinc-800/30", applied: "border-zinc-600/50 bg-zinc-800/40", error: "border-zinc-700/40 bg-zinc-900/30" };
 
   return (
     <div className={`rounded-lg border px-3 py-2 transition-all duration-300 ${statusColors[status]}`}>
       <div className="flex items-center gap-2">
-        <Sparkles size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-purple-400 animate-pulse" : status === "applied" ? "text-emerald-400" : "text-slate-600"}`}/>
+        <Sparkles size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-zinc-400 animate-pulse" : status === "applied" ? "text-zinc-300" : "text-slate-600"}`}/>
         <input ref={inputRef} value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") apply(); if (e.key === "Escape") { setValue(""); onClear(); setStatus("idle"); } }}
@@ -523,14 +523,14 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
           </button>
         </div>
       </div>
-      {status === "applied" && lastApplied && <p className="mt-1.5 text-[10px] text-emerald-500/80 flex items-center gap-1"><Check size={9}/> Applied: {lastApplied}</p>}
+      {status === "applied" && lastApplied && <p className="mt-1.5 text-[10px] text-zinc-400/80 flex items-center gap-1"><Check size={9}/> Applied: {lastApplied}</p>}
       {status === "error" && <p className="mt-1.5 text-[10px] text-red-400/80">Couldn't parse — try "sort by ARR desc" or "filter by USA"</p>}
     </div>
   );
 }
 
 // ─── Main table ───────────────────────────────────────────────────────────────
-export function RecordTable({ objectType, enrichedIds = [] }: { objectType: string; enrichedIds?: string[] }) {
+export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: { objectType: string; enrichedIds?: string[]; filterQuery?: string }) {
   const query = useQuery({
     queryKey: ["records", objectType],
     queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
@@ -605,10 +605,15 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
 
   // ── Filter → sort pipeline ──
   const filtered = useMemo(() => {
-    if (!filterText.trim()) return records;
-    const q = filterText.toLowerCase();
-    return records.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q)));
-  }, [records, filterText]);
+    let base = records;
+    if (filterQuery.trim()) {
+      const q = filterQuery.toLowerCase();
+      base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q)));
+    }
+    if (!filterText.trim()) return base;
+    const q2 = filterText.toLowerCase();
+    return base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
+  }, [records, filterText, filterQuery]);
 
   const sorted = useMemo(() => {
     // Stacked sort rules take priority over quick sort
@@ -683,7 +688,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
         <RowLogo name={display(val)} enriched={isEnriched}/>
         <span className="truncate">{display(val)}</span>
         {isEnriched && (
-          <span className="ml-1 inline-flex items-center gap-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400 shrink-0">
+          <span className="ml-1 inline-flex items-center gap-0.5 rounded-sm bg-zinc-800/60 border border-zinc-700/50 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400 shrink-0">
             <Sparkles size={8}/> AI
           </span>
         )}
@@ -706,11 +711,6 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
 
   return (
     <section className="flex flex-col gap-2">
-      {/* ── NLP command bar ── */}
-      <div className="px-6 pt-3">
-        <NLPCommandBar columns={allColumnsWithCustom} onApply={handleNLPApply} onClear={() => { setFilterText(""); setQuickSortCol(null); setNlpActive(false); }} hasActive={nlpActive || !!filterText || !!quickSortCol}/>
-      </div>
-
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 px-6">
         {/* Filter */}
@@ -730,7 +730,7 @@ export function RecordTable({ objectType, enrichedIds = [] }: { objectType: stri
           <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
-          <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-2 py-1 text-[10px] text-purple-400">
+          <span className="flex items-center gap-1 rounded-md border border-zinc-700/60 bg-zinc-800/40 px-2 py-1 text-[10px] text-zinc-400">
             <Sparkles size={9}/> AI active
           </span>
         )}

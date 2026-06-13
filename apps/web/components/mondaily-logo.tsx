@@ -16,11 +16,11 @@ export function MondailyLogo({ className = "", size = 36, showWordmark = false }
         className="relative overflow-hidden border border-white/20 bg-black"
         style={{ width: size, height: size, borderRadius: Math.max(2, size * 0.08) }}
       >
-        {/* Scrolling horizontal accent lines */}
+        {/* Scanning grid lines */}
         <motion.div
           animate={{ y: ["0%", "-50%"] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-x-0 top-0"
+          transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-x-0 top-0 will-change-transform"
           style={{ height: "200%" }}
         >
           {Array.from({ length: lineCount * 2 }).map((_, i) => (
@@ -29,23 +29,23 @@ export function MondailyLogo({ className = "", size = 36, showWordmark = false }
               style={{
                 height: size / lineCount,
                 borderBottom: `1px solid rgba(255,255,255,${
-                  i % 5 === 0 ? 0.18 : i % 2 === 0 ? 0.06 : 0.03
+                  i % 5 === 0 ? 0.24 : i % 2 === 0 ? 0.07 : 0.03
                 })`,
               }}
             />
           ))}
         </motion.div>
-        {/* Color-accented indicator dot */}
+        {/* Stark white micro-dot accent */}
         <motion.div
-          animate={{ opacity: [1, 0.5, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" as const }}
-          className="absolute rounded-full bg-indigo-500"
+          animate={{ opacity: [1, 0.35, 1] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" as const }}
+          className="absolute rounded-full bg-white"
           style={{
-            width: Math.max(4, size * 0.13),
-            height: Math.max(4, size * 0.13),
-            top: Math.max(3, size * 0.1),
-            right: Math.max(3, size * 0.1),
-            boxShadow: "0 0 6px rgba(99,102,241,0.8)",
+            width: Math.max(4, size * 0.14),
+            height: Math.max(4, size * 0.14),
+            top: Math.max(3, size * 0.11),
+            right: Math.max(3, size * 0.11),
+            boxShadow: "0 0 8px rgba(255,255,255,0.95)",
           }}
         />
       </div>

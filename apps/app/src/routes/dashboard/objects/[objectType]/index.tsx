@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, X, Sparkles, Check } from "lucide-react";
+import { Plus, X, Sparkles, Check, Search } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
@@ -28,10 +28,10 @@ function EnrichBanner({ name, done }: { name: string; done: boolean }) {
   return (
     <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all duration-500 ${
       done
-        ? "border-emerald-500/30 bg-emerald-500/[.06] text-emerald-400"
-        : "border-purple-500/20 bg-purple-500/[.04] text-purple-400"
+        ? "border-zinc-600/50 bg-zinc-800/40 text-zinc-300"
+        : "border-zinc-700/40 bg-zinc-900/30 text-zinc-500"
     }`}>
-      <Sparkles size={12} className={done ? "" : "animate-pulse"}/>
+      <Sparkles size={12} className={done ? "text-zinc-300" : "animate-pulse text-zinc-600"}/>
       {done
         ? `AI enriched "${name}" — fields auto-populated`
         : `Enriching "${name}" in background…`}
@@ -119,7 +119,7 @@ function CreateRecordModal({
               New {objectType.replace(/[-_]/g, " ")}
             </span>
             {(objectType.toLowerCase() === "companies" || objectType.toLowerCase().includes("compan") || objectType.toLowerCase() === "people") && (
-              <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-1.5 py-0.5 text-[9px] text-purple-400">
+              <span className="flex items-center gap-1 rounded-md border border-zinc-700/50 bg-zinc-800/40 px-1.5 py-0.5 text-[9px] text-zinc-500">
                 <Sparkles size={8}/> AI enrichment
               </span>
             )}
@@ -186,6 +186,9 @@ export function ObjectIndexPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [headerSearch, setHeaderSearch] = useState("");
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   // Track enrichment state: { [recordId]: { name, done } }
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
@@ -223,13 +226,41 @@ export function ObjectIndexPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-zinc-800/50 px-6 py-2.5 shrink-0">
-        <h1 className="flex-1 text-[13px] font-semibold capitalize text-white tracking-tight">
+        <h1 className="text-[13px] font-semibold capitalize text-white tracking-tight shrink-0">
           {objectType.replace(/[-_]/g, " ")}
         </h1>
-        <div className="flex items-center gap-1.5">
+
+        {/* ── Compact expanding AI search ── */}
+        <div className={`relative flex items-center transition-all duration-200 ${searchExpanded ? "flex-1 max-w-xs" : "w-7"}`}>
+          <button
+            onClick={() => { setSearchExpanded(true); setTimeout(() => searchRef.current?.focus(), 50); }}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-md border border-zinc-800/60 bg-zinc-900/40 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60 transition-all z-10 ${searchExpanded ? "pointer-events-none opacity-0" : ""}`}
+          >
+            <Search size={12}/>
+          </button>
+          <div className={`flex items-center gap-1.5 w-full rounded-md border bg-zinc-900/40 px-2.5 transition-all duration-200 ${searchExpanded ? "border-zinc-700/70 opacity-100" : "border-transparent opacity-0 pointer-events-none"}`}>
+            <Search size={11} className="text-zinc-600 shrink-0"/>
+            <input
+              ref={searchRef}
+              value={headerSearch}
+              onChange={e => setHeaderSearch(e.target.value)}
+              onBlur={() => { if (!headerSearch) setSearchExpanded(false); }}
+              onKeyDown={e => { if (e.key === "Escape") { setHeaderSearch(""); setSearchExpanded(false); } }}
+              placeholder={`Search ${objectType}…`}
+              className="flex-1 bg-transparent py-1.5 text-xs text-white placeholder-zinc-600 outline-none min-w-0"
+            />
+            {headerSearch && (
+              <button onClick={() => { setHeaderSearch(""); setSearchExpanded(false); }} className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0">
+                <X size={11}/>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-1.5">
           <button
             onClick={() => setImportOpen(p => !p)}
-            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-indigo-500/40 bg-indigo-500/[.08] text-indigo-300" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"}`}
+            className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-600/60 bg-zinc-800/60 text-zinc-200" : "border-zinc-800/80 bg-zinc-900/40 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"}`}
           >
             <Plus size={11}/> Import CSV
           </button>
@@ -259,7 +290,7 @@ export function ObjectIndexPage() {
       )}
 
       <div className="flex-1 min-h-0 overflow-auto pb-4">
-        <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
+        <RecordTable objectType={objectType} enrichedIds={enrichedIds} filterQuery={headerSearch}/>
       </div>
 
       {showCreate && (
