@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList, Legend,
@@ -6,7 +6,7 @@ import {
 import { useState, useMemo, useCallback } from "react";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
-  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle,
+  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
@@ -476,6 +476,188 @@ function AIInsightsPanel({ records, objectType }: {
   );
 }
 
+// ─── Digest Schedule ──────────────────────────────────────────────────────────
+interface DigestConfig { id: string; object_type: string; period: string; frequency: string; recipients: string[]; label?: string; day_of_week?: number; hour: number }
+
+const FREQ_LABELS: Record<string, string> = { daily:"Daily", weekly:"Weekly", monthly:"Monthly" };
+const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+function DigestPanel({ objectType, objects }: { objectType: string; objects: Array<{ slug: string; name_plural: string }> }) {
+  const qc = useQueryClient();
+  const [open, setOpen]     = useState(false);
+  const [email, setEmail]   = useState("");
+  const [emails, setEmails] = useState<string[]>([]);
+  const [freq, setFreq]     = useState<"daily"|"weekly"|"monthly">("weekly");
+  const [dayOfWeek, setDayOfWeek] = useState(1);
+  const [hour, setHour]     = useState(8);
+  const [period, setPeriodD] = useState<"today"|"week"|"month"|"quarter"|"year">("month");
+  const [sending, setSending] = useState<string | null>(null);
+  const [sentMsg, setSentMsg] = useState<string | null>(null);
+
+  const digestsQ = useQuery({
+    queryKey: ["digests", objectType],
+    queryFn: () => apiClient.get<DigestConfig[]>("/digests"),
+    select: (d) => d.filter(x => x.object_type === objectType),
+  });
+  const digests = digestsQ.data ?? [];
+
+  const create = useMutation({
+    mutationFn: (body: object) => apiClient.post<DigestConfig>("/digests", body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["digests", objectType] }); setOpen(false); setEmails([]); setEmail(""); },
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/digests/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["digests", objectType] }),
+  });
+
+  async function sendNow(id: string) {
+    setSending(id); setSentMsg(null);
+    try {
+      await apiClient.post(`/digests/${id}/send`, {});
+      setSentMsg("Sent!");
+    } catch {
+      setSentMsg("Failed — check RESEND_API_KEY");
+    } finally {
+      setSending(null);
+      setTimeout(() => setSentMsg(null), 4000);
+    }
+  }
+
+  function addEmail() {
+    const v = email.trim();
+    if (v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && !emails.includes(v)) {
+      setEmails(e => [...e, v]);
+      setEmail("");
+    }
+  }
+
+  const objName = objects.find(o => o.slug === objectType)?.name_plural ?? objectType;
+
+  return (
+    <div className="mb-6 print:hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors"
+      >
+        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
+      </button>
+
+      {open && (
+        <div className="mt-3 rounded-xl border border-white/[.08] bg-[#13151a] overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[.06]">
+            <h3 className="text-sm font-semibold text-white mb-1">Scheduled email digests</h3>
+            <p className="text-[11px] text-slate-500">Receive a KPI snapshot for <strong className="text-slate-400">{objName}</strong> on a schedule.</p>
+          </div>
+
+          {/* Existing digests */}
+          {digests.length > 0 && (
+            <div className="px-5 py-3 space-y-2 border-b border-white/[.06]">
+              {digests.map(d => (
+                <div key={d.id} className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5">
+                  <Mail size={12} className="text-red-400 shrink-0"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white truncate">{FREQ_LABELS[d.frequency]} · {d.period} view</p>
+                    <p className="text-[10px] text-slate-500 truncate">{d.recipients.join(", ")}</p>
+                  </div>
+                  {sentMsg && sending === null && d.id === digests[0]?.id && (
+                    <span className="text-[10px] text-emerald-400">{sentMsg}</span>
+                  )}
+                  <button
+                    onClick={() => sendNow(d.id)}
+                    disabled={sending === d.id}
+                    className="text-[11px] text-slate-500 hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    {sending === d.id ? <Loader2 size={11} className="animate-spin"/> : "Send now"}
+                  </button>
+                  <button onClick={() => remove.mutate(d.id)} className="text-slate-600 hover:text-red-400 transition-colors">
+                    <Trash2 size={12}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Create form */}
+          <div className="px-5 py-4 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">New schedule</p>
+
+            <div className="grid grid-cols-3 gap-2">
+              {(["daily","weekly","monthly"] as const).map(f => (
+                <button key={f} onClick={() => setFreq(f)}
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[.08] text-slate-500 hover:text-white"}`}>
+                  {FREQ_LABELS[f]}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {freq === "weekly" && (
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-600 mb-1">Day</label>
+                  <select value={dayOfWeek} onChange={e => setDayOfWeek(Number(e.target.value))}
+                    className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 focus:outline-none">
+                    {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-[10px] font-medium text-slate-600 mb-1">Hour (24h)</label>
+                <select value={hour} onChange={e => setHour(Number(e.target.value))}
+                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 focus:outline-none">
+                  {Array.from({length:24},(_,i) => <option key={i} value={i}>{String(i).padStart(2,"0")}:00</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium text-slate-600 mb-1">Period view</label>
+                <select value={period} onChange={e => setPeriodD(e.target.value as typeof period)}
+                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 focus:outline-none">
+                  {(["today","week","month","quarter","year"] as const).map(p => (
+                    <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-medium text-slate-600 mb-1">Recipients</label>
+              <div className="flex gap-1.5">
+                <input
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); } }}
+                  placeholder="email@example.com"
+                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 placeholder-slate-700 focus:outline-none focus:border-red-500/40"
+                />
+                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/[.08] text-slate-500 hover:text-white transition-colors">
+                  <Plus size={12}/>
+                </button>
+              </div>
+              {emails.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {emails.map(e => (
+                    <span key={e} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2 py-0.5 text-[10px] text-slate-400">
+                      {e}
+                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-slate-600 hover:text-red-400"><X size={9}/></button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => create.mutate({ object_type: objectType, period, frequency: freq, day_of_week: freq === "weekly" ? dayOfWeek : undefined, hour, recipients: emails })}
+              disabled={emails.length === 0 || create.isPending}
+              className="w-full rounded-lg bg-red-600 py-2.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors"
+            >
+              {create.isPending ? "Creating…" : "Create digest"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const STAGE_COLORS  = ["#6366f1","#8b5cf6","#a855f7","#d946ef","#ec4899","#f43f5e","#f97316","#eab308"];
 const PERIOD_LABELS: Record<Period,string> = { today:"Today", week:"This Week", month:"This Month", quarter:"This Quarter", year:"This Year", custom:"Custom" };
 
@@ -695,6 +877,9 @@ export function SalesReportPage() {
             <Printer size={13}/> Print
           </button>
         </div>
+
+        {/* Digest scheduler */}
+        <DigestPanel objectType={activeSlug} objects={objects}/>
 
         {/* Filter bar */}
         {hasFilters && (
