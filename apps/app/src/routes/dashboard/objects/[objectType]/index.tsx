@@ -1,7 +1,8 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, X, Sparkles, Check, Loader2, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, X, Sparkles, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
+import { BoardView } from "../../../../components/records/board-view";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
 import { apiClient } from "../../../../lib/api-client";
@@ -363,6 +364,10 @@ function CreateRecordModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ObjectIndexPage() {
   const { objectType = "records" } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = (searchParams.get("view") ?? "table") as "table" | "board";
+  const setView = (v: "table" | "board") => setSearchParams(v === "table" ? {} : { view: v }, { replace: true });
+
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -405,11 +410,30 @@ export function ObjectIndexPage() {
     <>
       <div className="flex h-full flex-col overflow-hidden">
 
-      {/* Page header — title + actions */}
+      {/* Page header — title + view toggle + actions */}
       <div className="flex items-center justify-between border-b border-zinc-800/40 px-6 py-2.5 shrink-0">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-zinc-500 select-none">
-          {objectType.replace(/[-_]/g, " ")}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-zinc-500 select-none">
+            {objectType.replace(/[-_]/g, " ")}
+          </span>
+          {/* View toggle */}
+          <div className="flex items-center rounded-md border border-white/[.06] bg-white/[.02] p-0.5 gap-0.5">
+            <button
+              onClick={() => setView("table")}
+              title="Table view"
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white/[.08] text-white" : "text-zinc-600 hover:text-zinc-300"}`}
+            >
+              <LayoutList size={11}/> Table
+            </button>
+            <button
+              onClick={() => setView("board")}
+              title="Board view"
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white/[.08] text-white" : "text-zinc-600 hover:text-zinc-300"}`}
+            >
+              <Kanban size={11}/> Board
+            </button>
+          </div>
+        </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setImportOpen(p => !p)}
@@ -442,8 +466,11 @@ export function ObjectIndexPage() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {view === "board"
+          ? <BoardView objectType={objectType}/>
+          : <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
+        }
       </div>
 
       {showCreate && (

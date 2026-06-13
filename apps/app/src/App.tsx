@@ -81,7 +81,7 @@ export function App() {
         <Route path="ask/:threadId?" element={<AskPage />} />
         <Route path="objects/:objectType" element={<ObjectIndexPage />} />
         <Route path="objects/:objectType/:recordId" element={<RecordDetailPage />} />
-        <Route path="pipeline" element={<PipelinePage />} />
+        <Route path="pipeline" element={<Navigate to="/objects/deals?view=board" replace />} />
         <Route path="lists/:listId" element={<ListPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="settings" element={<SettingsLayout />}>
