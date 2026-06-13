@@ -689,15 +689,10 @@ export function ObjectIndexPage() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative">
-        {view === "board"
-          ? <BoardView objectType={objectType}/>
-          : <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
-        }
-
-        {/* Empty state — shown when sheet has no records yet */}
-        {isEmpty && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-[#0d0f12]/80 backdrop-blur-[1px]">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {isEmpty ? (
+          /* Empty state — shown when the sheet has no records yet */
+          <div className="flex flex-1 flex-col items-center justify-center gap-6">
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
@@ -732,6 +727,10 @@ export function ObjectIndexPage() {
               </button>
             </div>
           </div>
+        ) : view === "board" ? (
+          <BoardView objectType={objectType}/>
+        ) : (
+          <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
         )}
       </div>
 
