@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GripVertical, Plus, Save, Trash2, BarChart2, LineChart as LineChartIcon,
   Loader2, X, Zap, FileBarChart, Settings2, AlertTriangle, ArrowLeft,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
@@ -13,9 +14,9 @@ import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string }
-interface ReportWidget { id: string; type: "report"; report_id: string; title?: string; chart_type?: "line"|"bar" }
-interface LegacyWidget { id: string; type?: undefined; report_id?: string; title?: string; chart_type?: "line"|"bar"; data?: { label: string; value: number }[] }
+interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string; size?: "small"|"large" }
+interface ReportWidget { id: string; type: "report"; report_id: string; title?: string; chart_type?: "line"|"bar"; size?: "small"|"large" }
+interface LegacyWidget { id: string; type?: undefined; report_id?: string; title?: string; chart_type?: "line"|"bar"; data?: { label: string; value: number }[]; size?: "small"|"large" }
 type AnyWidget = LiveWidget | ReportWidget | LegacyWidget;
 
 interface Dashboard { id: string; name?: string; access?: "private"|"workspace"; widgets?: AnyWidget[]; updated_at?: string }
@@ -28,9 +29,11 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 // ─── Shared widget shell ──────────────────────────────────────────────────────
-function WidgetShell({ title, icon, link, linkLabel, onRemove, onDragStart, onDragOver, onDrop, children }: {
+function WidgetShell({ title, icon, link, linkLabel, size, onRemove, onResize, onDragStart, onDragOver, onDrop, children }: {
   title: string; icon: React.ReactNode; link?: string; linkLabel?: string;
-  onRemove: () => void;
+  size?: "small"|"large";
+  onRemove:    () => void;
+  onResize:    () => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver:  (e: React.DragEvent) => void;
   onDrop:      (e: React.DragEvent) => void;
@@ -51,6 +54,13 @@ function WidgetShell({ title, icon, link, linkLabel, onRemove, onDragStart, onDr
           </Link>
         )}
         <button
+          onClick={onResize}
+          title={size === "large" ? "Shrink to half width" : "Expand to full width"}
+          className="shrink-0 rounded-md border border-transparent p-1 text-slate-600 hover:border-white/10 hover:text-slate-300 transition-all"
+        >
+          {size === "large" ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
+        </button>
+        <button
           onClick={onRemove}
           title="Remove widget"
           className="shrink-0 flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[11px] text-slate-500 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 transition-all"
@@ -64,8 +74,8 @@ function WidgetShell({ title, icon, link, linkLabel, onRemove, onDragStart, onDr
 }
 
 // ─── Broken widget (no type, no report_id, no data) ──────────────────────────
-function BrokenWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
-  widget: AnyWidget; onRemove: () => void;
+function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, onDrop }: {
+  widget: AnyWidget; onRemove: () => void; onResize: () => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver:  (e: React.DragEvent) => void;
   onDrop:      (e: React.DragEvent) => void;
@@ -74,7 +84,7 @@ function BrokenWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }:
     <WidgetShell
       title={widget.title || "Broken widget"}
       icon={<AlertTriangle size={13} className="text-amber-400" />}
-      onRemove={onRemove} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+      size={widget.size} onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
       <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-amber-500/10 bg-amber-500/[.04]">
         <AlertTriangle size={22} className="text-amber-500/60" />
@@ -91,8 +101,8 @@ function BrokenWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }:
 }
 
 // ─── Live widget ──────────────────────────────────────────────────────────────
-function LiveWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
-  widget: LiveWidget; onRemove: () => void;
+function LiveWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, onDrop }: {
+  widget: LiveWidget; onRemove: () => void; onResize: () => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver:  (e: React.DragEvent) => void;
   onDrop:      (e: React.DragEvent) => void;
@@ -143,7 +153,7 @@ function LiveWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
   return (
     <WidgetShell title={title} icon={<Zap size={13} className="text-emerald-400"/>}
       link={`/reports/sales?object=${slug}`} linkLabel="Full report →"
-      onRemove={onRemove} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+      size={widget.size} onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
       {recordsQ.isLoading ? (
         <div className="flex h-48 items-center justify-center"><Loader2 size={16} className="animate-spin text-slate-500"/></div>
@@ -182,8 +192,8 @@ function LiveWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
 }
 
 // ─── Report widget ────────────────────────────────────────────────────────────
-function ReportWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
-  widget: ReportWidget | LegacyWidget; onRemove: () => void;
+function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, onDrop }: {
+  widget: ReportWidget | LegacyWidget; onRemove: () => void; onResize: () => void;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver:  (e: React.DragEvent) => void;
   onDrop:      (e: React.DragEvent) => void;
@@ -207,7 +217,7 @@ function ReportWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }:
   return (
     <WidgetShell title={title} icon={<FileBarChart size={13} className="text-red-400"/>}
       link={reportId ? `/reports/${reportId}` : undefined} linkLabel="Edit →"
-      onRemove={onRemove} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
+      size={widget.size} onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
       {isLoading ? (
         <div className="flex h-48 items-center justify-center"><Loader2 size={16} className="animate-spin text-slate-500"/></div>
@@ -477,6 +487,14 @@ export function DashboardViewPage() {
     save.mutate(updated);
   }
 
+  function resizeWidget(wid: string) {
+    if (!dashboard) return;
+    const newWidgets = widgets.map(w => w.id === wid ? { ...w, size: w.size === "large" ? "small" as const : "large" as const } : w);
+    const updated = { ...dashboard, widgets: newWidgets };
+    setDashboard(updated);
+    save.mutate(updated);
+  }
+
   function addWidget(w: AnyWidget) {
     if (!dashboard) return;
     setDashboard({ ...dashboard, widgets: [...widgets, w] });
@@ -556,9 +574,10 @@ export function DashboardViewPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           {widgets.map(w => {
             const handlers = dh(w.id);
-            if (isBroken(w)) return <BrokenWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} {...handlers}/>;
-            if (w.type === "live") return <LiveWidgetCard key={w.id} widget={w} onRemove={() => removeWidget(w.id)} {...handlers}/>;
-            return <ReportWidgetCard key={w.id} widget={w as ReportWidget | LegacyWidget} onRemove={() => removeWidget(w.id)} {...handlers}/>;
+            const colSpan = w.size === "large" ? "lg:col-span-2" : "";
+            if (isBroken(w)) return <div key={w.id} className={colSpan}><BrokenWidgetCard widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/></div>;
+            if (w.type === "live") return <div key={w.id} className={colSpan}><LiveWidgetCard widget={w} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/></div>;
+            return <div key={w.id} className={colSpan}><ReportWidgetCard widget={w as ReportWidget | LegacyWidget} onRemove={() => removeWidget(w.id)} onResize={() => resizeWidget(w.id)} {...handlers}/></div>;
           })}
         </div>
       )}
