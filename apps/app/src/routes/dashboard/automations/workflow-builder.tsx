@@ -282,6 +282,7 @@ export function WorkflowBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [currentId, setCurrentId] = useState<string | undefined>(id === "new" ? undefined : id);
+  const [triggerType, setTriggerType] = useState("record_created");
 
   // Load existing workflow
   useEffect(() => {
@@ -290,7 +291,11 @@ export function WorkflowBuilderPage() {
       .then(wf => {
         setName(wf.name);
         setStatus(wf.status as "draft" | "active");
-        if (Array.isArray(wf.nodes) && wf.nodes.length > 0) setNodes(wf.nodes);
+        if (Array.isArray(wf.nodes) && wf.nodes.length > 0) {
+      setNodes(wf.nodes);
+      const trigger = wf.nodes.find((n: WFNode) => n.kind === "trigger");
+      if (trigger) setTriggerType(trigger.type);
+    }
       })
       .catch(() => {});
   }, [id]);
@@ -403,7 +408,13 @@ export function WorkflowBuilderPage() {
               <div className="border-t border-white/[.06] px-4 py-2.5">
                 <select
                   className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500/30"
-                  defaultValue="record_created"
+                  value={triggerType}
+                  onChange={e => {
+                    const type = e.target.value;
+                    const def = TRIGGERS.find(t => t.type === type) ?? TRIGGERS[0]!;
+                    setTriggerType(type);
+                    setNodes(prev => prev.map(n => n.kind === "trigger" ? { ...n, type, label: def.label } : n));
+                  }}
                 >
                   {TRIGGERS.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
                 </select>

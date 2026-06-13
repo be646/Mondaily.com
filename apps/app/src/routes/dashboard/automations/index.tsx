@@ -191,6 +191,31 @@ export function AutomationsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["automations"] }); setMenuOpen(null); },
   });
 
+  const duplicateItem = useMutation({
+    mutationFn: async ({ item, type }: { item: Automation; type: "sequence"|"workflow" }) => {
+      const name = `${item.name} (copy)`;
+      if (type === "workflow") {
+        return apiClient.patch<{ id: string }>("/workflows/new", { name, status: "draft", nodes: (item.data as any)?.nodes ?? [] });
+      }
+      return apiClient.patch<{ id: string }>("/sequences/new", {
+        name,
+        stop_on_reply: (item.data as any)?.stop_on_reply ?? true,
+        sending_days: (item.data as any)?.sending_days ?? ["Mon","Tue","Wed","Thu","Fri"],
+        send_start: (item.data as any)?.send_start ?? "09:00",
+        send_end: (item.data as any)?.send_end ?? "17:00",
+        daily_limit: (item.data as any)?.daily_limit ?? 50,
+        timezone: (item.data as any)?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+        unsubscribe: (item.data as any)?.unsubscribe ?? true,
+        steps: (item.data as any)?.steps ?? [],
+      });
+    },
+    onSuccess: (res, { type }) => {
+      qc.invalidateQueries({ queryKey: ["automations"] });
+      setMenuOpen(null);
+      navigate(type === "workflow" ? `/automations/workflows/${res.id}` : `/automations/sequences/${res.id}`);
+    },
+  });
+
   function formatDate(s: string) {
     if (!s) return "—";
     return new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -271,6 +296,12 @@ export function AutomationsPage() {
                         <Link to={href} className="flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white">
                           <Play size={11}/> Open
                         </Link>
+                        <button
+                          onClick={() => duplicateItem.mutate({ item, type: title.toLowerCase().includes("sequence") ? "sequence" : "workflow" })}
+                          disabled={duplicateItem.isPending}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white disabled:opacity-50">
+                          <Copy size={11}/> Duplicate
+                        </button>
                         <button
                           onClick={() => deleteItem.mutate({ id: item.id, type: title.toLowerCase().includes("sequence") ? "sequence" : "workflow" })}
                           disabled={deleteItem.isPending}
