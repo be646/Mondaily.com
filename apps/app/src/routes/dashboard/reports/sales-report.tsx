@@ -320,15 +320,17 @@ function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevSta
         trendData,
       });
       setResult(res);
-    } catch {
-      setError("Forecast unavailable. Check your API connection and try again.");
+    } catch (e: any) {
+      let msg = e?.message ?? "Forecast unavailable.";
+      try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
+      setError(msg);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-violet-500/20 bg-[#0d0f13] print:hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(59,130,246,0.04) 100%)" }}>
+    <div className="overflow-hidden rounded-2xl border border-violet-500/20 bg-[#0d0f13] flex flex-col" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(59,130,246,0.04) 100%)" }}>
       {/* Header row — always visible */}
       <div className="flex items-center gap-4 px-5 py-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
@@ -434,8 +436,10 @@ function AIInsightsPanel({ records, objectType }: {
         records: records.slice(0, 50),
       });
       setInsights(res.insights ?? []);
-    } catch {
-      setError("Could not load AI insights. Please try again.");
+    } catch (e: any) {
+      let msg = e?.message ?? "Could not load AI insights.";
+      try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -449,7 +453,7 @@ function AIInsightsPanel({ records, objectType }: {
   };
 
   return (
-    <div className="rounded-2xl border border-white/[.07] bg-[#0d0f13] overflow-hidden print:hidden">
+    <div className="rounded-2xl border border-white/[.07] bg-[#0d0f13] overflow-hidden flex flex-col print:hidden">
       {/* Header */}
       <div className="flex items-center gap-4 px-5 py-4 border-b border-white/[.05]">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
@@ -494,7 +498,7 @@ function AIInsightsPanel({ records, objectType }: {
 
       {/* Insights grid */}
       {open && insights && (
-        <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="p-4 grid gap-3 sm:grid-cols-2">
           {insights.map((ins, i) => {
             const fallback = { label: "Summary", dot: "bg-violet-400", border: "border-violet-500/20", bg: "bg-violet-500/[.05]", text: "text-violet-400" };
             const m = CATEGORY_META[ins.category] ?? fallback;
@@ -1167,16 +1171,19 @@ export function SalesReportPage() {
               />
             </div>
 
-            {/* AI Forecast */}
-            <AIForecastCard
-              objectType={activeSlug}
-              valueCol={valueCol}
-              stageCol={stageCol}
-              period={period}
-              stats={stats}
-              prevStats={prevStats}
-              trendData={trendData}
-            />
+            {/* AI Panels — side by side */}
+            <div className="mb-6 grid gap-4 lg:grid-cols-2 print:hidden">
+              <AIForecastCard
+                objectType={activeSlug}
+                valueCol={valueCol}
+                stageCol={stageCol}
+                period={period}
+                stats={stats}
+                prevStats={prevStats}
+                trendData={trendData}
+              />
+              <AIInsightsPanel records={filteredRecords} objectType={activeSlug}/>
+            </div>
 
             {/* Charts */}
             <div className="mb-6 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
@@ -1454,8 +1461,6 @@ export function SalesReportPage() {
               );
             })()}
 
-            {/* AI Insights */}
-            <AIInsightsPanel records={filteredRecords} objectType={activeSlug}/>
           </>
         )}
       </div>
