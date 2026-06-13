@@ -2,7 +2,11 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Settings, LogOut, User, X, Send, Share2, HelpCircle, MoreHorizontal, Copy, Check, Loader2, Sparkles, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  MessageCircle, Settings, LogOut, User, X, Send, Share2,
+  HelpCircle, MoreHorizontal, Copy, Check, Loader2, Sparkles,
+  ThumbsUp, ThumbsDown,
+} from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 
@@ -12,15 +16,26 @@ async function callAsk(message: string): Promise<string> {
   const apiUrl = import.meta.env.VITE_API_URL || "";
   const res = await fetch(`${apiUrl}/api/v1/ask`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
-    body: JSON.stringify({ message, model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })(), web_search: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").webSearch === "allow"; } catch { return false; } })() })
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+    },
+    body: JSON.stringify({
+      message,
+      model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })(),
+      web_search: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").webSearch === "allow"; } catch { return false; } })(),
+    }),
   });
   const data = await res.json() as any;
   return data.reply || "No response.";
 }
 
+// ─── Ask side panel ───────────────────────────────────────────────────────────
 function AskPanel({ onClose }: { onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([{ role: "assistant", content: "Hi! I'm Mondaily AI. Ask me anything about your business." }]);
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: "assistant", content: "Hi! I'm Mondaily AI. Ask me anything about your business." },
+  ]);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,7 +43,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) => {
+  async function sendFeedback(userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) {
     setFeedbackGiven(prev => ({ ...prev, [idx]: rating }));
     try {
       const token = localStorage.getItem("mondaily_session_token");
@@ -36,15 +51,19 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       const apiUrl = import.meta.env.VITE_API_URL || "";
       await fetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
-        body: JSON.stringify({ message: userMsg, response: aiMsg, rating })
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+        },
+        body: JSON.stringify({ message: userMsg, response: aiMsg, rating }),
       });
     } catch {}
-  };
+  }
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
-  const send = async () => {
+  async function send() {
     const text = input.trim();
     if (!text || loading) return;
     setInput("");
@@ -69,42 +88,91 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       setMessages([...withUser, { role: "assistant", content: `Error: ${err.message}` }]);
     }
     setLoading(false);
-  };
+  }
 
   return (
-    <div className="flex h-full w-80 shrink-0 flex-col border-l border-white/10 bg-[#0d0f13]">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <div className="flex h-full w-[300px] shrink-0 flex-col border-l border-white/[.06] bg-[#0d0f13]">
+      {/* Panel header */}
+      <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
-          <MessageCircle size={14} className="text-red-400"/>
-          <span className="text-sm font-medium text-white">Ask Mondaily</span>
+          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-red-500/15">
+            <Sparkles size={10} className="text-red-400"/>
+          </div>
+          <span className="text-[13px] font-semibold text-white">Ask Mondaily</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white"><MoreHorizontal size={14}/></button>
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="rounded-md p-1.5 text-zinc-500 hover:bg-white/[.05] hover:text-white transition-colors"
+            >
+              <MoreHorizontal size={13}/>
+            </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}/>
-                <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/10 bg-[#161820] shadow-xl p-1">
-                  <Link to="/ask/new" onClick={() => { setMenuOpen(false); onClose(); }} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white"><Share2 size={13}/> Open in full page</Link>
-                  <Link to="/settings/ask-mondaily" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white"><Settings size={13}/> Ask Mondaily settings</Link>
+                <div className="dropdown-panel absolute right-0 top-full z-50 w-52">
+                  <Link
+                    to="/ask/new"
+                    onClick={() => { setMenuOpen(false); onClose(); }}
+                    className="dropdown-item"
+                  >
+                    <Share2 size={12}/> Open full page
+                  </Link>
+                  <Link
+                    to="/settings/ask-mondaily"
+                    onClick={() => setMenuOpen(false)}
+                    className="dropdown-item"
+                  >
+                    <Settings size={12}/> Ask Mondaily settings
+                  </Link>
                 </div>
               </>
             )}
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[.06] hover:text-white"><X size={14}/></button>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-zinc-500 hover:bg-white/[.05] hover:text-white transition-colors"
+          >
+            <X size={13}/>
+          </button>
         </div>
       </div>
+
+      {/* Messages */}
       <div className="flex-1 overflow-auto p-3 space-y-3">
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            {m.role === "assistant" && <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5"><Sparkles size={11} className="text-red-400"/></div>}
-            <div className="flex flex-col gap-1">
-              <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${m.role === "user" ? "bg-red-500/20 text-white" : "bg-white/[.06] text-slate-300"}`}>{m.content}</div>
+            {m.role === "assistant" && (
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
+                <Sparkles size={9} className="text-red-400"/>
+              </div>
+            )}
+            <div className="flex flex-col gap-1 max-w-[85%]">
+              <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed whitespace-pre-wrap ${
+                m.role === "user"
+                  ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm"
+                  : "text-slate-300"
+              }`}>
+                {m.content}
+              </div>
               {m.role === "assistant" && i > 0 && (
                 <div className="flex items-center gap-1 ml-1">
-                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} className={`rounded p-1 transition-colors ${feedbackGiven[i] === 1 ? "text-green-400" : "text-slate-600 hover:text-green-400"}`}><ThumbsUp size={11}/></button>
-                  <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} className={`rounded p-1 transition-colors ${feedbackGiven[i] === -1 ? "text-red-400" : "text-slate-600 hover:text-red-400"}`}><ThumbsDown size={11}/></button>
-                  {feedbackGiven[i] && <span className="text-xs text-slate-600">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
+                  <button
+                    onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, 1, i)}
+                    className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-zinc-700 hover:text-emerald-400"}`}
+                  >
+                    <ThumbsUp size={10}/>
+                  </button>
+                  <button
+                    onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
+                    className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-red-400" : "text-zinc-700 hover:text-red-400"}`}
+                  >
+                    <ThumbsDown size={10}/>
+                  </button>
+                  {feedbackGiven[i] && (
+                    <span className="text-[10px] text-zinc-700">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
+                  )}
                 </div>
               )}
             </div>
@@ -112,37 +180,77 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         ))}
         {loading && (
           <div className="flex gap-2 justify-start">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5"><Sparkles size={11} className="text-red-400"/></div>
-            <div className="rounded-xl bg-white/[.06] px-3 py-2"><Loader2 size={13} className="animate-spin text-slate-400"/></div>
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
+              <Sparkles size={9} className="text-red-400"/>
+            </div>
+            <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:0ms]"/>
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:150ms]"/>
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:300ms]"/>
+            </div>
           </div>
         )}
         <div ref={bottomRef}/>
       </div>
-      <div className="border-t border-white/10 p-3">
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Ask anything..." className="flex-1 bg-transparent text-sm text-white placeholder-slate-500 outline-none"/>
-          <button onClick={send} disabled={loading || !input.trim()} className="text-slate-500 hover:text-red-400 disabled:opacity-40">{loading ? <Loader2 size={13} className="animate-spin"/> : <Send size={13}/>}</button>
+
+      {/* Input */}
+      <div className="border-t border-white/[.06] p-3 shrink-0">
+        <div className="flex items-center gap-2 rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 focus-within:border-white/[.14] transition-colors">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && send()}
+            placeholder="Ask anything…"
+            className="flex-1 bg-transparent text-[12px] text-white placeholder-zinc-600 outline-none"
+          />
+          <button
+            onClick={send}
+            disabled={loading || !input.trim()}
+            className="text-zinc-600 hover:text-red-400 disabled:opacity-30 transition-colors"
+          >
+            {loading ? <Loader2 size={12} className="animate-spin"/> : <Send size={12}/>}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+// ─── Share modal ──────────────────────────────────────────────────────────────
 function ShareModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const url = window.location.href;
-  const copy = () => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  function copy() {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#161820] p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between"><div className="text-sm font-medium text-white">Share this view</div><button onClick={onClose} className="text-slate-400 hover:text-white"><X size={15}/></button></div>
-        <div className="mb-3 text-xs text-slate-500">Anyone with this link can view this page if they have access to this workspace.</div>
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2">
-          <span className="flex-1 truncate text-xs text-slate-400">{url}</span>
-          <button onClick={copy} className="shrink-0 text-slate-400 hover:text-white">{copied ? <Check size={14} className="text-green-400"/> : <Copy size={14}/>}</button>
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
+      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Share2 size={14} className="text-zinc-400"/>
+            <span className="text-[13px] font-semibold text-white">Share this view</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1 text-zinc-500 hover:bg-white/[.05] hover:text-white transition-colors"
+          >
+            <X size={13}/>
+          </button>
         </div>
-        {copied && <div className="mt-2 text-xs text-green-400 text-center">Link copied!</div>}
+        <p className="mb-3 text-[11px] text-zinc-600 leading-relaxed">
+          Anyone with this link can view this page if they have access to this workspace.
+        </p>
+        <div className="flex items-center gap-2 rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2.5">
+          <span className="flex-1 truncate text-[11px] text-zinc-500">{url}</span>
+          <button onClick={copy} className="shrink-0 text-zinc-500 hover:text-white transition-colors">
+            {copied ? <Check size={13} className="text-emerald-400"/> : <Copy size={13}/>}
+          </button>
+        </div>
+        {copied && <p className="mt-2 text-center text-[11px] text-emerald-400">Link copied!</p>}
       </div>
     </>
   );
@@ -150,6 +258,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
 
 const SHARE_PATHS = ["/objects/", "/lists/", "/search"];
 
+// ─── Top bar ──────────────────────────────────────────────────────────────────
 export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}) {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -166,43 +275,100 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
 
   return (
     <>
-      <div className="relative flex items-center justify-between border-b border-white/10 bg-[#0d0f13] px-4 py-2">
+      {/* Top bar */}
+      <div className="relative flex items-center justify-between border-b border-white/[.06] bg-[#0d0f13] px-4 py-1.5 shrink-0">
+        {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
-          {leftSlot ?? <span className="text-xs text-slate-700">AI status: idle</span>}
+          {leftSlot ?? <span className="text-xs text-zinc-700">AI status: idle</span>}
         </div>
-        <div className="flex items-center gap-1.5">
+
+        {/* Right actions */}
+        <div className="flex items-center gap-1">
           {showShare && (
-            <button onClick={() => setShareOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+            <button
+              onClick={() => setShareOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/[.07] px-2.5 py-1.5 text-[11px] text-zinc-500 hover:bg-white/[.04] hover:text-white transition-colors"
+            >
               <Share2 size={12}/> Share
             </button>
           )}
-          <button className="rounded-lg p-1.5 text-slate-500 hover:bg-white/[.04] hover:text-slate-300 transition-colors"><HelpCircle size={15}/></button>
-          <NotificationsBell/>
-          <button onClick={() => setAskOpen(!askOpen)} className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-all ${askOpen ? "border-red-500/40 bg-red-500/10 text-white" : "border-white/10 text-slate-400 hover:border-red-500/30 hover:bg-red-500/5 hover:text-white"}`}>
-            <MessageCircle size={13} className="text-red-400"/> Ask Mondaily
+
+          <button
+            className="rounded-lg p-1.5 text-zinc-600 hover:bg-white/[.04] hover:text-zinc-300 transition-colors"
+            title="Help"
+          >
+            <HelpCircle size={14}/>
           </button>
-          <div className="relative">
-            <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-xs font-medium text-red-400 hover:ring-2 hover:ring-red-500/30 transition-all">
-              {avatarUrl ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/> : initials}
+
+          <NotificationsBell/>
+
+          {/* Ask Mondaily toggle */}
+          <button
+            onClick={() => setAskOpen(o => !o)}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
+              askOpen
+                ? "border-red-500/40 bg-red-500/10 text-white"
+                : "border-white/[.07] text-zinc-500 hover:border-red-500/25 hover:bg-red-500/[.05] hover:text-white"
+            }`}
+          >
+            <MessageCircle size={12} className="text-red-400"/>
+            Ask AI
+          </button>
+
+          {/* User avatar */}
+          <div className="relative ml-0.5">
+            <button
+              onClick={() => setUserMenuOpen(o => !o)}
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-[11px] font-semibold text-red-400 hover:ring-2 hover:ring-red-500/25 transition-all"
+            >
+              {avatarUrl
+                ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
+                : initials}
             </button>
+
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}/>
-                <div className="dropdown-panel absolute right-0 top-full mt-2 w-56">
-                  <div className="flex items-center gap-3 border-b border-zinc-800/50 px-3 py-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-sm font-medium text-red-400 shrink-0">{avatarUrl ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/> : initials}</div>
-                    <div className="min-w-0"><div className="text-[12px] font-medium text-white truncate">{fullName}</div><div className="text-[11px] text-zinc-500 truncate">{user?.emailAddresses?.[0]?.emailAddress}</div></div>
+                <div className="dropdown-panel absolute right-0 top-full mt-2 w-56 z-50">
+                  {/* User info header */}
+                  <div className="flex items-center gap-2.5 border-b border-white/[.06] px-3 py-2.5">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-[11px] font-semibold text-red-400">
+                      {avatarUrl
+                        ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
+                        : initials}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-[12px] font-medium text-white">{fullName}</div>
+                      <div className="truncate text-[10px] text-zinc-600">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                    </div>
                   </div>
-                  <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="dropdown-item"><User size={13}/> Account settings</Link>
-                  <Link to="/settings/workspace" onClick={() => setUserMenuOpen(false)} className="dropdown-item"><Settings size={13}/> Workspace settings</Link>
-                  <button onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-red-400 hover:text-red-300"><LogOut size={13}/> Sign out</button>
+                  <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="dropdown-item">
+                    <User size={12}/> Account settings
+                  </Link>
+                  <Link to="/settings/workspace" onClick={() => setUserMenuOpen(false)} className="dropdown-item">
+                    <Settings size={12}/> Workspace settings
+                  </Link>
+                  <div className="mx-2 my-1 border-t border-white/[.05]"/>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }}
+                    className="dropdown-item text-red-400 hover:text-red-300"
+                  >
+                    <LogOut size={12}/> Sign out
+                  </button>
                 </div>
               </>
             )}
           </div>
         </div>
       </div>
-      {askOpen && <div className="fixed right-0 top-0 bottom-0 z-30 flex"><AskPanel onClose={() => setAskOpen(false)}/></div>}
+
+      {/* Ask side panel */}
+      {askOpen && (
+        <div className="fixed right-0 top-0 bottom-0 z-30 flex shadow-[−8px_0_32px_rgba(0,0,0,0.4)]">
+          <AskPanel onClose={() => setAskOpen(false)}/>
+        </div>
+      )}
+
       {shareOpen && <ShareModal onClose={() => setShareOpen(false)}/>}
     </>
   );
