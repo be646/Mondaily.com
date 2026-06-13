@@ -89,13 +89,38 @@ Generate 6-12 attributes that are genuinely useful for the described purpose. Us
   const data = await res.json() as any;
   const raw = (data.reply || "").trim();
 
-  // Extract JSON from response (handle if AI wraps it in markdown)
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI returned unexpected format");
-  const parsed = JSON.parse(jsonMatch[0]) as GeneratedSchema;
+  // Extract the first well-formed JSON object using brace-depth tracking
+  // (more reliable than regex which can grab too much)
+  function extractFirstObject(text: string): string | null {
+    const start = text.indexOf("{");
+    if (start === -1) return null;
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === "{") depth++;
+      else if (ch === "}") { depth--; if (depth === 0) return text.slice(start, i + 1); }
+    }
+    return null;
+  }
+
+  const jsonStr = extractFirstObject(raw);
+  if (!jsonStr) throw new Error("AI did not return a schema. Try rephrasing your prompt.");
+
+  let parsed: GeneratedSchema;
+  try {
+    parsed = JSON.parse(jsonStr) as GeneratedSchema;
+  } catch {
+    throw new Error("AI returned malformed JSON. Please try again.");
+  }
 
   // Validate and clamp
-  if (!parsed.plural || !Array.isArray(parsed.attributes)) throw new Error("Invalid schema structure");
+  if (!parsed.plural || !Array.isArray(parsed.attributes)) throw new Error("Invalid schema — missing object name or attributes.");
   parsed.attributes = parsed.attributes.slice(0, 16);
   return parsed;
 }
