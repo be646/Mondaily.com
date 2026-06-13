@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 import { SidebarObjects } from "./sidebar-records";
+import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
 
 const navItems = [
@@ -193,6 +194,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </Link>
           ))}
           {!collapsed && <SidebarObjects />}
+          {!collapsed && <SidebarLists />}
           {!collapsed && <SidebarAsk />}
         </nav>
 
