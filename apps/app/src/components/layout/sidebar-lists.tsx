@@ -116,34 +116,37 @@ export function SidebarLists() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#111419]">
+        <>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={resetModal}/>
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             {/* Header with tab switcher */}
             <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
-              <div className="flex items-center gap-1 rounded-md border border-white/[.07] bg-white/[.03] p-0.5">
+              <div className="flex items-center gap-0.5 rounded-lg border border-white/[.07] bg-white/[.02] p-0.5">
                 <button onClick={() => setTab("manual")}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${tab === "manual" ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${tab === "manual" ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
                   Manual
                 </button>
                 <button onClick={() => setTab("ai")}
-                  className={`flex items-center gap-1 px-3 py-1 rounded text-xs font-medium transition-colors ${tab === "ai" ? "bg-violet-500/20 text-violet-300" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-violet-500/20 text-violet-300" : "text-slate-500 hover:text-slate-300"}`}>
                   <Sparkles size={10}/> AI
                 </button>
               </div>
-              <button onClick={resetModal} className="text-slate-500 hover:text-white"><X size={15}/></button>
+              <button onClick={resetModal} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+                <X size={13}/>
+              </button>
             </div>
 
             {tab === "manual" ? (
-              <form onSubmit={e => { e.preventDefault(); if (name.trim()) create.mutate(); }} className="p-5 space-y-4">
+              <form onSubmit={e => { e.preventDefault(); if (name.trim()) create.mutate(); }} className="p-5 space-y-3.5">
                 <div>
-                  <label className="text-xs text-slate-500 mb-1 block">Name</label>
+                  <label className="text-[11px] text-zinc-600 mb-1.5 block uppercase tracking-wide">Name</label>
                   <input autoFocus value={name} onChange={e => setName(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-transparent px-3 text-sm text-white outline-none focus:border-white/20"/>
+                    className="key-input w-full"/>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 mb-1 block">Object type</label>
+                  <label className="text-[11px] text-zinc-600 mb-1.5 block uppercase tracking-wide">Object type</label>
                   <select value={objectType || defaultObjectType} onChange={e => setObjectType(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-[#0b0d10] px-3 text-sm text-white outline-none">
+                    className="key-input w-full">
                     {objectTypes.length > 0
                       ? objectTypes.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)
                       : <>
@@ -154,30 +157,30 @@ export function SidebarLists() {
                   </select>
                 </div>
                 <button type="submit" disabled={!name.trim() || create.isPending}
-                  className="h-10 w-full rounded-lg bg-red-600 text-sm font-medium text-white disabled:opacity-50 hover:bg-red-500">
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-red-400 transition-colors">
                   {create.isPending ? "Creating…" : "Create list"}
                 </button>
               </form>
             ) : (
-              <div className="p-5 space-y-4">
-                <p className="text-xs text-slate-500">Describe the list you want. AI will name it, pick the right object type, and populate it with matching records from your database.</p>
+              <div className="p-5 space-y-3.5">
+                <p className="text-[11px] text-zinc-600">Describe the list you want. AI will name it, pick the right object type, and populate it with matching records.</p>
                 <textarea
                   autoFocus
                   value={aiPrompt}
                   onChange={e => setAiPrompt(e.target.value)}
                   rows={4}
-                  placeholder={`e.g. "High-value companies in fintech with over 100 employees" or "Leads who came from a referral and haven't been contacted yet"`}
-                  className="w-full rounded-lg border border-white/10 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40"
+                  placeholder={`e.g. "High-value fintech companies" or "Leads from referrals not yet contacted"`}
+                  className="w-full rounded-xl border border-white/[.08] bg-white/[.02] px-3 py-2.5 text-[12px] text-white placeholder-zinc-700 resize-none outline-none focus:border-violet-500/40 transition-colors"
                 />
-                {aiError && <p className="text-xs text-red-400">{aiError}</p>}
+                {aiError && <p className="text-[11px] text-red-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-violet-600 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500 transition-colors">
-                  {aiLoading ? <><Loader2 size={14} className="animate-spin"/> Creating list…</> : <><Sparkles size={14}/> Create with AI</>}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-violet-500 transition-colors">
+                  {aiLoading ? <><Loader2 size={13} className="animate-spin"/> Creating list…</> : <><Sparkles size={13}/> Create with AI</>}
                 </button>
               </div>
             )}
           </div>
-        </div>
+        </>
       )}
     </section>
   );
