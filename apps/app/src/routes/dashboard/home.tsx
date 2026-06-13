@@ -452,35 +452,46 @@ export function HomePage() {
       {/* ── Ask Mondaily AI ── */}
       <section className="mb-8">
         {isChatting && (
-          <div className="mb-4 max-h-[420px] overflow-y-auto space-y-5 pr-1 scroll-smooth rounded-2xl border border-white/[.06] bg-white/[.02] p-5" style={{ scrollbarWidth: "none" }}>
-            {messages.map((m, i) => {
-              const isStreaming = streamingMsgIdx === i;
-              const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
-              return (
-                <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
-                  {m.role === "assistant" && (
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5 ring-1 ring-red-500/20">
-                      <Sparkles size={11} className="text-red-400"/>
-                    </div>
-                  )}
-                  {m.role === "user" ? (
-                    <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-white/[.07] border border-white/[.08] px-3.5 py-2.5 text-sm text-slate-200 leading-relaxed">
-                      {m.content}
-                    </div>
-                  ) : (
-                    <div className="flex-1 min-w-0 text-sm space-y-0.5">
-                      {renderMarkdown(displayText)}
-                      {isStreaming && <span className="inline-block w-0.5 h-4 bg-red-400 animate-pulse ml-0.5 align-middle"/>}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="mb-6 max-h-[480px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
+            {(() => {
+              // Colour palette that cycles per AI reply
+              const ACCENTS = [
+                { border: "border-l-violet-500/50", dot: "bg-violet-400", userBorder: "border-violet-500/30", userText: "text-violet-200" },
+                { border: "border-l-blue-500/50",   dot: "bg-blue-400",   userBorder: "border-blue-500/30",   userText: "text-blue-200"   },
+                { border: "border-l-emerald-500/50",dot: "bg-emerald-400",userBorder: "border-emerald-500/30",userText: "text-emerald-200"},
+                { border: "border-l-rose-500/50",   dot: "bg-rose-400",   userBorder: "border-rose-500/30",   userText: "text-rose-200"   },
+                { border: "border-l-amber-500/50",  dot: "bg-amber-400",  userBorder: "border-amber-500/30",  userText: "text-amber-200"  },
+              ];
+              // Count which AI reply index we're on to pick the colour
+              let aiIdx = -1;
+              return messages.map((m, i) => {
+                if (m.role === "assistant") aiIdx++;
+                const accent = ACCENTS[aiIdx % ACCENTS.length] ?? ACCENTS[0]!;
+                const isStreaming = streamingMsgIdx === i;
+                const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
+                return (
+                  <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
+                    {m.role === "assistant" && (
+                      <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${accent.dot}`}/>
+                    )}
+                    {m.role === "user" ? (
+                      <div className={`max-w-[72%] rounded-2xl rounded-tr-sm border bg-transparent px-3.5 py-2.5 text-sm leading-relaxed ${accent.userBorder} ${accent.userText}`}>
+                        {m.content}
+                      </div>
+                    ) : (
+                      <div className={`flex-1 min-w-0 border-l-2 pl-4 text-sm space-y-0.5 ${accent.border}`}>
+                        {renderMarkdown(displayText)}
+                        {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
             {loading && (
-              <div className="flex gap-3 items-center">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500/15 ring-1 ring-red-500/20">
-                  <Sparkles size={11} className="text-red-400"/>
-                </div>
+              <div className="flex items-center gap-2.5 pl-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-slate-600"/>
+                <span className="text-sm text-slate-500 italic">Thinking</span>
                 <span className="flex gap-1 items-end h-3">
                   <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "0ms" }}/>
                   <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "150ms" }}/>
