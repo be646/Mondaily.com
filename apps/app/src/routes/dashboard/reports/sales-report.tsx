@@ -898,15 +898,6 @@ export function SalesReportPage() {
                 </button>
               ))}
             </div>
-            {period === "custom" && (
-              <div className="flex items-center gap-1">
-                <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                  className="h-7 rounded-md border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none"/>
-                <span className="text-xs text-slate-600">–</span>
-                <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                  className="h-7 rounded-md border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none"/>
-              </div>
-            )}
             <button onClick={exportCSV}
               className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
               <Download size={12}/> CSV
@@ -917,6 +908,25 @@ export function SalesReportPage() {
             </button>
           </div>
         </div>
+
+        {/* Custom date range row — only shown when Custom period is active */}
+        {period === "custom" && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-2.5 print:hidden">
+            <span className="text-[11px] font-medium text-slate-500 shrink-0">Date range</span>
+            <div className="flex items-center gap-2 ml-2">
+              <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                className="h-7 rounded-md border border-white/10 bg-[#13151a] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+              <span className="text-xs text-slate-600">→</span>
+              <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                className="h-7 rounded-md border border-white/10 bg-[#13151a] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+            </div>
+            {customStart && customEnd && (
+              <span className="ml-auto text-[11px] text-slate-600">
+                {new Date(customStart).toLocaleDateString(undefined,{month:"short",day:"numeric"})} – {new Date(customEnd).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Digest scheduler */}
         <DigestPanel objectType={activeSlug} objects={objects}/>
@@ -970,30 +980,32 @@ export function SalesReportPage() {
         {hasFilters && (
           <div className={`mb-4 print:hidden rounded-xl border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-white/[.06] bg-white/[.02]"}`}>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.05]">
-              <Filter size={11} className="text-slate-600 shrink-0"/>
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Filters</span>
-              {filtersActive && (
+              <Filter size={11} className="text-slate-500 shrink-0"/>
+              <span className="text-[11px] font-medium text-slate-500">Filters</span>
+              {filtersActive ? (
                 <>
-                  <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5">
-                    {Object.values(activeFilters).filter(Boolean).length} active
+                  <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 ml-0.5">
+                    {Object.values(activeFilters).filter(Boolean).length}
                   </span>
                   <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-red-400 transition-colors">
-                    Clear all
+                    Clear
                   </button>
                 </>
+              ) : (
+                <span className="text-[11px] text-slate-700 ml-1">— select to narrow results</span>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 p-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2.5 p-3">
               {filterableCols.map(col => {
                 const uniqueVals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
                 const active = !!activeFilters[col];
                 return (
-                  <div key={col} className="flex flex-col gap-1">
-                    <label className="text-[10px] font-medium uppercase tracking-wider text-slate-600 truncate">{col.replace(/_/g," ")}</label>
+                  <div key={col} className="flex flex-col gap-1 min-w-0">
+                    <label className="text-[10px] font-medium uppercase tracking-widest text-slate-600 truncate">{col.replace(/_/g," ")}</label>
                     <select
                       value={activeFilters[col] ?? ""}
                       onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#13151a] text-slate-300 focus:border-blue-500/40"}`}
+                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#13151a] text-slate-300 focus:border-blue-500/40"}`}
                     >
                       <option value="">All</option>
                       {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
