@@ -341,7 +341,7 @@ function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevSta
           <p className="text-[11px] text-slate-500 mt-0.5">
             {result
               ? <span className="italic text-slate-400">{result.headline}</span>
-              : `Claude analyses your pipeline & trend to project ${hasValue ? "revenue" : "completions"}`}
+              : `Mondaily AI analyses your pipeline & trend to project ${hasValue ? "revenue" : "completions"}`}
           </p>
         </div>
         {!result && !loading && !error && (
@@ -462,7 +462,7 @@ function AIInsightsPanel({ records, objectType }: {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Insights</p>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            {insights ? `${insights.length} insights from ${records.length} records` : "Let Claude analyse your data and surface what matters"}
+            {insights ? `${insights.length} insights from ${records.length} records` : "Let Mondaily AI analyse your data and surface what matters"}
           </p>
         </div>
         {!insights && !loading && (
@@ -483,7 +483,7 @@ function AIInsightsPanel({ records, objectType }: {
       {loading && (
         <div className="flex items-center gap-3 px-5 py-5">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400/30 border-t-violet-400 shrink-0"/>
-          <p className="text-xs text-slate-400">Analysing {records.length} records with Claude…</p>
+          <p className="text-xs text-slate-400">Analysing {records.length} records…</p>
         </div>
       )}
 
@@ -526,7 +526,7 @@ function AIInsightsPanel({ records, objectType }: {
       {/* Footer */}
       {insights && open && (
         <div className="border-t border-white/[.05] px-5 py-2.5 flex items-center justify-between">
-          <span className="text-[10px] text-slate-700">Powered by Claude</span>
+          <span className="text-[10px] text-slate-700">Powered by Mondaily AI</span>
           <button onClick={() => { setInsights(null); setOpen(false); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">
             ↺ Regenerate
           </button>
@@ -893,6 +893,145 @@ export function SalesReportPage() {
       .slice(0, 10);
   }, [filteredRecords, valueCol]);
 
+  function generateReport() {
+    const periodLabel = period === "custom" && customStart && customEnd
+      ? `${customStart} – ${customEnd}`
+      : PERIOD_LABELS[period];
+    const totalValue = hasValue
+      ? topRecords.reduce((s, r) => s + (isNaN(Number(r.data[valueCol!] ?? 0)) ? 0 : Number(r.data[valueCol!] ?? 0)), 0)
+      : 0;
+    const maxVal = hasValue ? Math.max(...topRecords.map(r => Number(r.data[valueCol!] ?? 0)).filter(v => !isNaN(v)), 1) : 1;
+
+    const rows = topRecords.map((r, i) => {
+      const name  = String(r.data[nameCol] ?? "—");
+      const stage = hasStage ? String(r.data[stageCol!] ?? "—") : "";
+      const val   = hasValue ? Number(r.data[valueCol!] ?? 0) : 0;
+      const pct   = hasValue && !isNaN(val) ? Math.round((val / maxVal) * 100) : 0;
+      return `
+        <tr>
+          <td class="rank">${i + 1}</td>
+          <td class="name">${name}</td>
+          ${hasStage ? `<td class="stage">${stage}</td>` : ""}
+          ${hasValue ? `<td class="value">${fmtMoney(isNaN(val) ? 0 : val)}</td>` : ""}
+          ${hasValue ? `<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td>` : ""}
+        </tr>`;
+    }).join("");
+
+    const trendRows = trendData.map(d => `
+      <tr>
+        <td>${d.label}</td>
+        ${hasValue ? `<td class="num">${fmtMoney(d.revenue)}</td>` : ""}
+        <td class="num">${d.count}</td>
+      </tr>`).join("");
+
+    const kpis = [
+      { label: hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records", value: hasValue ? fmtMoney(stats.wonValue || stats.totalValue) : fmtNum(stats.totalCount) },
+      { label: hasStage ? "In Progress" : "This Period", value: hasValue ? fmtMoney(stats.openValue) : fmtNum(stats.openCount || stats.totalCount) },
+      { label: hasStage ? "Completion Rate" : "Total Records", value: hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount) },
+      { label: hasValue ? `Avg ${valueCol}` : "Avg / Bucket", value: hasValue ? fmtMoney(stats.avgVal) : fmtNum(stats.avgVal) },
+    ];
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>${objLabel} Report — ${periodLabel}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1a1a2e; background: #fff; font-size: 12px; }
+    .page { max-width: 900px; margin: 0 auto; padding: 48px 48px 64px; }
+    /* Header */
+    .header { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 20px; border-bottom: 2px solid #e5e7eb; margin-bottom: 28px; }
+    .header-brand { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #6b7280; }
+    .header-title { font-size: 22px; font-weight: 700; color: #111; margin-top: 4px; }
+    .header-meta { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+    .header-right { text-align: right; }
+    .header-period { font-size: 13px; font-weight: 600; color: #374151; }
+    /* KPI grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+    .kpi { border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
+    .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: #9ca3af; margin-bottom: 4px; }
+    .kpi-value { font-size: 20px; font-weight: 700; color: #111; }
+    /* Table */
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #6b7280; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+    th { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #9ca3af; text-align: left; padding: 6px 10px; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .rank { font-size: 11px; font-weight: 700; color: #d1d5db; width: 28px; }
+    tr:nth-child(1) .rank { color: #f59e0b; }
+    tr:nth-child(2) .rank { color: #9ca3af; }
+    tr:nth-child(3) .rank { color: #cd7c43; }
+    .name { font-weight: 600; color: #111; }
+    .stage { font-size: 11px; color: #6b7280; }
+    .value { font-weight: 700; color: #111; text-align: right; font-variant-numeric: tabular-nums; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .bar-cell { width: 100px; }
+    .bar-track { height: 5px; background: #f3f4f6; border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #4f46e5); border-radius: 99px; }
+    .tfoot td { font-weight: 700; font-size: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb; border-bottom: none; }
+    /* Trend table */
+    .trend-table th, .trend-table td { padding: 7px 10px; }
+    /* Footer */
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 10px; color: #9ca3af; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { padding: 24px 32px 40px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="header-brand">Mondaily</div>
+      <div class="header-title">${objLabel} Report</div>
+      <div class="header-meta">Generated ${now} · ${filteredRecords.length} records</div>
+    </div>
+    <div class="header-right">
+      <div class="header-period">${periodLabel}</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    ${kpis.map(k => `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div></div>`).join("")}
+  </div>
+
+  <div class="section-title">Top ${objLabel}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        ${hasStage ? `<th>${stageCol}</th>` : ""}
+        ${hasValue ? `<th style="text-align:right">${valueCol}</th>` : ""}
+        ${hasValue ? `<th></th>` : ""}
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    ${hasValue ? `<tfoot><tr><td colspan="${1 + (hasStage ? 1 : 0) + 1}" class="tfoot">Total</td><td class="tfoot value">${fmtMoney(totalValue)}</td><td></td></tr></tfoot>` : ""}
+  </table>
+
+  ${trendData.length > 0 ? `
+  <div class="section-title">Trend — ${periodLabel}</div>
+  <table class="trend-table">
+    <thead><tr><th>Period</th>${hasValue ? `<th style="text-align:right">${valueCol}</th>` : ""}<th style="text-align:right">Records</th></tr></thead>
+    <tbody>${trendRows}</tbody>
+  </table>` : ""}
+
+  <div class="footer">
+    <span>Mondaily · ${objLabel} Report</span>
+    <span>${now}</span>
+  </div>
+</div>
+<script>window.onload = () => { window.print(); }<\/script>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (win) { win.document.write(html); win.document.close(); }
+  }
+
   const selectedObj = objects.find(o => o.slug === activeSlug);
   const objLabel    = selectedObj?.name_plural ?? activeSlug;
   const now         = new Date().toLocaleDateString([], { year:"numeric", month:"long", day:"numeric" });
@@ -962,9 +1101,9 @@ export function SalesReportPage() {
               className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
               <Download size={12}/> CSV
             </button>
-            <button onClick={() => window.print()}
+            <button onClick={generateReport}
               className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
-              <Printer size={12}/> Print
+              <Printer size={12}/> Export
             </button>
           </div>
         </div>
