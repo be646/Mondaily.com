@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight } from "lucide-react";
+import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
@@ -17,9 +18,41 @@ const OBJECT_ACCENTS: Record<string, { border: string; bg: string; icon: string;
 };
 const DEFAULT_ACCENT = { border: "border-slate-500/20", bg: "from-slate-500/[.07] to-slate-700/[.04]", icon: "bg-slate-700/50 border-slate-600/30 text-slate-400", arrow: "text-slate-400" };
 
+function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) => void; onClose: () => void }) {
+  const [name, setName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-xl border border-white/[.08] bg-[#13151a] p-5 shadow-2xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-white">New dashboard</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={14}/></button>
+        </div>
+        <input
+          ref={inputRef}
+          autoFocus
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && name.trim()) onCreate(name.trim()); if (e.key === "Escape") onClose(); }}
+          placeholder="e.g. Sales overview, Q2 metrics…"
+          className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-red-500/50 mb-3"
+        />
+        <button
+          onClick={() => { if (name.trim()) onCreate(name.trim()); }}
+          disabled={!name.trim()}
+          className="w-full rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors"
+        >
+          Create dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ReportsPage() {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
+  const [creating, setCreating] = useState(false);
 
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],
@@ -34,7 +67,7 @@ export function ReportsPage() {
   });
 
   const createDashboard = useMutation({
-    mutationFn: () => apiClient.post<DashboardItem>("/dashboards", { name: "Untitled dashboard" }),
+    mutationFn: (name: string) => apiClient.post<DashboardItem>("/dashboards", { name }),
     onSuccess:  item => { qc.invalidateQueries({ queryKey: ["dashboards"] }); navigate(`/reports/dashboards/${item.id}`); },
   });
 
@@ -45,7 +78,7 @@ export function ReportsPage() {
         description="Live analytics built directly from your records."
         action={
           <button
-            onClick={() => createDashboard.mutate()}
+            onClick={() => setCreating(true)}
             className="flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-slate-300 hover:text-white transition-colors"
           >
             <Plus size={14} /> New dashboard
@@ -103,7 +136,7 @@ export function ReportsPage() {
             </span>
           </div>
           <button
-            onClick={() => createDashboard.mutate()}
+            onClick={() => setCreating(true)}
             disabled={createDashboard.isPending}
             className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors disabled:opacity-50"
           >
@@ -134,7 +167,7 @@ export function ReportsPage() {
                     <LayoutDashboard size={13} className="text-red-400 shrink-0" />
                     <h3 className="text-sm font-medium text-white truncate">{dashboard.name || "Untitled dashboard"}</h3>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-slate-600">
+                  <p className="mt-1.5 text-[11px] text-slate-500">
                     Updated {new Date(dashboard.updated_at).toLocaleDateString()} ·{" "}
                     {Array.isArray(dashboard.widgets) ? dashboard.widgets.length : 0} widgets
                   </p>
@@ -148,13 +181,20 @@ export function ReportsPage() {
             title="No dashboards yet"
             description="Create a dashboard to pin live object widgets and custom charts side by side."
             action={
-              <button onClick={() => createDashboard.mutate()} className="rounded-md bg-red-600 px-3 py-2 text-sm text-white">
+              <button onClick={() => setCreating(true)} className="rounded-md bg-red-600 px-3 py-2 text-sm text-white">
                 Create dashboard
               </button>
             }
           />
         )}
       </section>
+
+      {creating && (
+        <NewDashboardDialog
+          onCreate={name => { setCreating(false); createDashboard.mutate(name); }}
+          onClose={() => setCreating(false)}
+        />
+      )}
     </div>
   );
 }

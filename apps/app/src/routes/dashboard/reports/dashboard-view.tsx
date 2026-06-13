@@ -135,8 +135,9 @@ function LiveWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }: {
           <Loader2 size={16} className="animate-spin text-slate-600" />
         </div>
       ) : records.length === 0 ? (
-        <div className="flex h-48 items-center justify-center">
-          <p className="text-xs text-slate-600">No records found for {title}</p>
+        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
+          <Zap size={20} className="text-slate-600"/>
+          <p className="text-xs text-slate-400">No records found for {slug}.</p>
         </div>
       ) : (
         <>
@@ -207,11 +208,24 @@ function ReportWidgetCard({ widget, onRemove, onDragStart, onDragOver, onDrop }:
     >
       {isLoading ? (
         <div className="flex h-48 items-center justify-center">
-          <Loader2 size={16} className="animate-spin text-slate-600" />
+          <Loader2 size={16} className="animate-spin text-slate-500" />
+        </div>
+      ) : runQ.isError ? (
+        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
+          <FileBarChart size={20} className="text-slate-600" />
+          <p className="text-xs text-slate-400">Report not found or failed to load.</p>
+          <button onClick={onRemove} className="text-xs text-red-400 hover:text-red-300 mt-1">Remove widget</button>
+        </div>
+      ) : !reportId && !hasLegacyData ? (
+        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
+          <FileBarChart size={20} className="text-slate-600" />
+          <p className="text-xs text-slate-400">Widget has no linked report.</p>
+          <button onClick={onRemove} className="text-xs text-red-400 hover:text-red-300 mt-1">Remove widget</button>
         </div>
       ) : !data.length ? (
-        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center">
-          <p className="text-xs text-slate-600">No data for this report.</p>
+        <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
+          <BarChart2 size={20} className="text-slate-600" />
+          <p className="text-xs text-slate-400">No data yet for this report.</p>
           {reportId && (
             <Link to={`/reports/${reportId}`} className="text-xs text-red-400 hover:text-red-300">
               Configure report →
