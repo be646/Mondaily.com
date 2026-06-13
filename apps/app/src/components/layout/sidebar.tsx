@@ -172,38 +172,34 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col flex-1 min-h-0 p-2">
+        <nav className="flex-1 overflow-y-auto p-2">
           {/* Quick actions */}
           {!collapsed && (
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
-              className="key-button mb-2 flex w-full items-center justify-between px-3 py-2 text-xs shrink-0"
+              className="key-button mb-2 flex w-full items-center justify-between px-3 py-2 text-xs"
             >
               <div className="flex items-center gap-2"><Search size={13}/> Quick actions</div>
               <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs opacity-50">⌘K</kbd>
             </button>
           )}
-          {/* Fixed nav items (never scroll away) */}
-          <div className="shrink-0">
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                title={collapsed ? label : undefined}
-                className={`mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${location.pathname.startsWith(to) ? "bg-red-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"} ${collapsed ? "justify-center" : ""}`}
-              >
-                <Icon size={15} />
-                {!collapsed && label}
-              </Link>
-            ))}
-          </div>
-          {/* Scrollable records + lists section */}
+          {navItems.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              title={collapsed ? label : undefined}
+              className={`mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${location.pathname.startsWith(to) ? "bg-red-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"} ${collapsed ? "justify-center" : ""}`}
+            >
+              <Icon size={15} />
+              {!collapsed && label}
+            </Link>
+          ))}
           {!collapsed && (
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <>
               <SidebarObjects />
               <SidebarLists />
               <SidebarAsk />
-            </div>
+            </>
           )}
         </nav>
 
