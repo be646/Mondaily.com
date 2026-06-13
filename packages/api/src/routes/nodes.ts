@@ -61,4 +61,9 @@ router.patch("/:id", requireAuth, zValidator("json", z.object({
   return c.json(node);
 });
 
+router.delete("/:id", requireAuth, async (c) => {
+  await ubc.deleteNode(c.req.param("id"));
+  return c.json({ ok: true });
+});
+
 export { router as nodesRouter };

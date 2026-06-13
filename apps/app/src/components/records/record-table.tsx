@@ -3,7 +3,7 @@ import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
-  UserCircle2, Type, ToggleLeft, ChevronRight,
+  UserCircle2, Type, ToggleLeft, ChevronRight, Trash2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -815,6 +815,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   const members = membersQuery.data ?? [];
 
+  function deleteRow(record: NodeRecord) {
+    // Optimistic remove
+    qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => r.id !== record.id));
+    apiClient.delete(`/nodes/${record.id}`).catch(() => {
+      qc.invalidateQueries({ queryKey: ["records", objectType] });
+    });
+  }
+
   function saveCell(record: NodeRecord, col: string, newVal: string) {
     const newData = { ...record.data, [col]: newVal };
     qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
@@ -1074,7 +1082,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <td className="whitespace-nowrap px-3 py-[6px] text-[11px] text-zinc-600 tabular-nums border-b border-b-zinc-800/30">
                     {fmtDate(record.updated_at)}
                   </td>
-                  <td className="border-b border-b-zinc-800/30 border-l border-l-zinc-800/20 w-8"/>
+                  <td className="border-b border-b-zinc-800/30 border-l border-l-zinc-800/20 w-8 px-1">
+                    <button
+                      onClick={() => deleteRow(record)}
+                      className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-5 w-5 rounded text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      title="Delete row"
+                    >
+                      <Trash2 size={11}/>
+                    </button>
+                  </td>
                 </tr>
               ))
             )}

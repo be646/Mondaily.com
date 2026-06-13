@@ -362,6 +362,18 @@ router.post("/settings/objects/:id/attributes", zValidator("json", z.object({
   const { data, error } = await supabase.from("object_definitions").update({ attributes }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data, 201);
 });
+router.delete("/settings/objects/:id", async (c) => {
+  const id = c.req.param("id");
+  const wid = c.get("workspaceId");
+  // Get the slug so we can delete all nodes of that object_type
+  const { data: obj } = await supabase.from("object_definitions").select("slug").eq("workspace_id", wid).eq("id", id).single();
+  if (!obj) return c.json({ error: "Object not found" }, 404);
+  // Delete all nodes of this type, then the definition
+  await supabase.from("nodes").delete().eq("workspace_id", wid).eq("object_type", obj.slug);
+  const { error } = await supabase.from("object_definitions").delete().eq("workspace_id", wid).eq("id", id);
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+
 router.get("/settings/integrations", async (c) => {
   const workspaceId = c.get("workspaceId");
   const settings = await workspaceSettings(workspaceId);

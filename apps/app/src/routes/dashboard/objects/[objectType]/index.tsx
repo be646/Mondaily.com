@@ -1,4 +1,4 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, X, Sparkles, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
@@ -569,9 +569,74 @@ function AIFillModal({
   );
 }
 
+// ─── Delete sheet confirmation modal ─────────────────────────────────────────
+function DeleteSheetModal({ objectType, onClose, onDeleted }: {
+  objectType: string; onClose: () => void; onDeleted: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+  const cleanName = objectType.replace(/[-_]/g, " ");
+
+  const confirm = async () => {
+    setDeleting(true); setError("");
+    try {
+      // Find the object definition id
+      const defs = queryClient.getQueryData<Array<{ id: string; slug: string }>>(["sidebar-objects"]);
+      const def = defs?.find(d => d.slug === objectType);
+      if (!def) throw new Error("Object definition not found");
+      await apiClient.delete(`/settings/objects/${def.id}`);
+      queryClient.invalidateQueries({ queryKey: ["sidebar-objects"] });
+      queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+      onDeleted();
+    } catch (e: any) { setError(e.message || "Failed to delete"); setDeleting(false); }
+  };
+
+  useEffect(() => {
+    function h(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]" onClick={onClose}/>
+      <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-500/20 bg-[#13151a] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
+        <div className="px-6 py-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
+              <Trash2 size={15} className="text-red-400"/>
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-white capitalize">Delete "{cleanName}"?</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-red-500/15 bg-red-500/5 px-4 py-3 mb-4">
+            <p className="text-[11px] text-red-300 leading-relaxed">
+              ⚠️ This action cannot be undone. All records in <strong className="capitalize">{cleanName}</strong> will be permanently deleted along with the object definition.
+            </p>
+          </div>
+          {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
+          <div className="flex items-center gap-2 justify-end">
+            <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-zinc-400 hover:text-white transition-all">
+              Cancel
+            </button>
+            <button onClick={confirm} disabled={deleting}
+              className="flex items-center gap-2 rounded-lg border border-red-600/60 bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50 transition-all">
+              {deleting ? "Deleting…" : "Yes, delete sheet"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function ObjectIndexPage() {
   const { objectType = "records" } = useParams();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const view = (searchParams.get("view") ?? "table") as "table" | "board";
   const setView = (v: "table" | "board") => setSearchParams(v === "table" ? {} : { view: v }, { replace: true });
@@ -579,6 +644,7 @@ export function ObjectIndexPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [showAIFill, setShowAIFill] = useState(false);
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState<string[]>([]);
 
@@ -652,6 +718,13 @@ export function ObjectIndexPage() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowDeleteSheet(true)}
+            className="flex items-center gap-1.5 rounded-md border border-zinc-800/60 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400"
+            title="Delete this sheet"
+          >
+            <Trash2 size={11}/>
+          </button>
           <button
             onClick={() => setShowAIFill(true)}
             className="flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/8 px-2.5 py-1.5 text-[11px] font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/15 hover:text-red-300"
@@ -747,6 +820,13 @@ export function ObjectIndexPage() {
           objectType={objectType}
           tableColumns={tableColumns}
           onClose={() => setShowAIFill(false)}
+        />
+      )}
+      {showDeleteSheet && (
+        <DeleteSheetModal
+          objectType={objectType}
+          onClose={() => setShowDeleteSheet(false)}
+          onDeleted={() => navigate("/objects/companies")}
         />
       )}
     </div>
