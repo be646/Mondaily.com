@@ -328,68 +328,79 @@ function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevSta
   }
 
   return (
-    <div className="mb-6 overflow-hidden rounded-xl border border-violet-500/20 bg-gradient-to-r from-violet-500/[.06] to-blue-500/[.04] print:hidden">
-      {!result && !loading ? (
-        <button onClick={runForecast} className="flex w-full items-center gap-4 px-5 py-4 hover:bg-white/[.02] transition-colors">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/20">
-            <Sparkles size={15} className="text-violet-400"/>
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-semibold text-white">AI Forecast</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Claude analyses your pipeline, win rate &amp; trend to project {period === "month" ? "end-of-month" : "end-of-period"} {hasValue ? "revenue" : "completions"}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-[11px] font-medium text-violet-400">
-            Generate →
-          </span>
-        </button>
-      ) : loading ? (
-        <div className="flex items-center gap-3 px-5 py-4">
-          <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
-          <p className="text-sm text-slate-400">Analysing pipeline, win rate &amp; {trendData.length} trend data points…</p>
+    <div className="mb-6 overflow-hidden rounded-2xl border border-violet-500/20 bg-[#0d0f13] print:hidden" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.06) 0%, rgba(59,130,246,0.04) 100%)" }}>
+      {/* Header row — always visible */}
+      <div className="flex items-center gap-4 px-5 py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
+          <Sparkles size={16} className="text-violet-400"/>
         </div>
-      ) : error ? (
-        <div className="flex items-center gap-3 px-5 py-4">
-          <AlertCircle size={15} className="text-red-400 shrink-0"/>
-          <p className="text-sm text-slate-400">{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-xs text-slate-600 hover:text-white">Dismiss</button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white leading-tight">AI Forecast</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            {result
+              ? <span className="italic text-slate-400">{result.headline}</span>
+              : `Claude analyses your pipeline & trend to project ${hasValue ? "revenue" : "completions"}`}
+          </p>
         </div>
-      ) : result ? (
-        <div>
-          <div className="flex items-start gap-4 px-5 pt-4 pb-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/20">
-              <Sparkles size={15} className="text-violet-400"/>
+        {!result && !loading && !error && (
+          <button onClick={runForecast}
+            className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
+            Generate
+          </button>
+        )}
+        {result && (
+          <div className="shrink-0 text-right">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Projected {hasValue ? "revenue" : "completions"}</p>
+            <p className="text-xl font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center gap-3 border-t border-white/[.05] px-5 py-4">
+          <Loader2 size={14} className="animate-spin text-violet-400 shrink-0"/>
+          <p className="text-xs text-slate-400">Analysing {trendData.length} trend data points…</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-3 border-t border-white/[.05] px-5 py-3">
+          <AlertCircle size={14} className="text-red-400 shrink-0"/>
+          <p className="text-xs text-slate-400 flex-1">{error}</p>
+          <button onClick={() => setError(null)} className="text-[11px] text-slate-600 hover:text-white transition-colors">Dismiss</button>
+        </div>
+      )}
+
+      {/* Result body */}
+      {result && (
+        <div className="border-t border-white/[.05]">
+          <div className="grid gap-px bg-white/[.04] sm:grid-cols-3">
+            <div className="bg-[#0d0f13] px-5 py-3.5" style={{ background: "rgba(13,15,19,0.9)" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1">Confidence</p>
+              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence]}`}>
+                {result.confidence}
+              </span>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <p className="text-sm font-semibold text-white">AI Forecast</p>
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence]}`}>
-                  {result.confidence} confidence
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 italic">{result.headline}</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Projected {hasValue ? "revenue" : "completions"}</p>
-              <p className="text-2xl font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+            <div className="sm:col-span-2 px-5 py-3.5" style={{ background: "rgba(13,15,19,0.9)" }}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1">Analysis</p>
+              <p className="text-xs text-slate-300 leading-relaxed">{result.narrative}</p>
             </div>
           </div>
-          <div className="border-t border-white/[.05] px-5 py-3 space-y-1.5">
-            <p className="text-xs text-slate-300 leading-relaxed">{result.narrative}</p>
-            {result.risks && result.risks !== "None identified" && (
-              <p className="text-[11px] text-amber-400/80 leading-relaxed">
-                <span className="font-medium">Risk: </span>{result.risks}
-              </p>
-            )}
-          </div>
-          <div className="border-t border-white/[.05] px-5 py-2 flex justify-end">
-            <button onClick={() => setResult(null)} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
-              Regenerate
+          {result.risks && result.risks !== "None identified" && (
+            <div className="border-t border-amber-500/10 bg-amber-500/[.04] px-5 py-3 flex items-start gap-2">
+              <AlertCircle size={12} className="text-amber-400 shrink-0 mt-0.5"/>
+              <p className="text-[11px] text-amber-300/80 leading-relaxed"><span className="font-semibold">Risk: </span>{result.risks}</p>
+            </div>
+          )}
+          <div className="border-t border-white/[.05] px-5 py-2 flex justify-end" style={{ background: "rgba(13,15,19,0.9)" }}>
+            <button onClick={() => setResult(null)} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">
+              ↺ Regenerate
             </button>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -430,46 +441,90 @@ function AIInsightsPanel({ records, objectType }: {
     }
   }
 
-  return (
-    <div className="rounded-xl border border-violet-500/20 bg-violet-500/[.04] overflow-hidden print:hidden">
-      <button
-        onClick={runInsight}
-        className="flex w-full items-center gap-3 px-5 py-4 hover:bg-white/[.02] transition-colors"
-      >
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/20 border border-violet-500/20">
-          <Sparkles size={13} className="text-violet-400"/>
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-sm font-semibold text-white">AI Insights</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">{insights ? "Analysis complete · click to toggle" : "Analyse your data with Claude"}</p>
-        </div>
-        <ChevronRight size={14} className={`text-slate-600 transition-transform ${open ? "rotate-90" : ""}`}/>
-      </button>
+  const CATEGORY_META: Record<string, { label: string; dot: string; border: string; bg: string; text: string }> = {
+    performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/20", bg: "bg-emerald-500/[.05]", text: "text-emerald-400" },
+    opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/20",    bg: "bg-blue-500/[.05]",    text: "text-blue-400"    },
+    risk:        { label: "Risk",        dot: "bg-red-400",     border: "border-red-500/20",     bg: "bg-red-500/[.05]",     text: "text-red-400"     },
+    summary:     { label: "Summary",     dot: "bg-violet-400",  border: "border-violet-500/20",  bg: "bg-violet-500/[.05]",  text: "text-violet-400"  },
+  };
 
-      {open && (
-        <div className="border-t border-white/[.06] px-5 py-5">
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400/30 border-t-violet-400"/>
-              Analysing {records.length} records…
-            </div>
-          ) : error ? (
-            <p className="text-sm text-red-400">{error}</p>
-          ) : insights ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {insights.map((ins, i) => (
-                <div key={i} className={`rounded-xl border p-4 ${INSIGHT_COLORS[ins.category] ?? INSIGHT_COLORS.summary}`}>
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{ins.title}</p>
-                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
-                    {ins.trend === "down" && <TrendingDown size={12} className="text-red-400 shrink-0"/>}
+  return (
+    <div className="rounded-2xl border border-white/[.07] bg-[#0d0f13] overflow-hidden print:hidden">
+      {/* Header */}
+      <div className="flex items-center gap-4 px-5 py-4 border-b border-white/[.05]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
+          <Sparkles size={16} className="text-violet-400"/>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white">AI Insights</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            {insights ? `${insights.length} insights from ${records.length} records` : "Let Claude analyse your data and surface what matters"}
+          </p>
+        </div>
+        {!insights && !loading && (
+          <button onClick={runInsight}
+            className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
+            Analyse
+          </button>
+        )}
+        {insights && (
+          <button onClick={() => setOpen(o => !o)}
+            className="shrink-0 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+            {open ? "Hide" : "Show"}
+          </button>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center gap-3 px-5 py-5">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400/30 border-t-violet-400 shrink-0"/>
+          <p className="text-xs text-slate-400">Analysing {records.length} records with Claude…</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !loading && (
+        <div className="flex items-center gap-3 px-5 py-4">
+          <AlertCircle size={14} className="text-red-400 shrink-0"/>
+          <p className="text-xs text-slate-400 flex-1">{error}</p>
+          <button onClick={() => { setError(null); setOpen(false); }} className="text-[11px] text-slate-600 hover:text-white transition-colors">Dismiss</button>
+        </div>
+      )}
+
+      {/* Insights grid */}
+      {open && insights && (
+        <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {insights.map((ins, i) => {
+            const m = CATEGORY_META[ins.category] ?? CATEGORY_META.summary;
+            return (
+              <div key={i} className={`rounded-xl border ${m.border} ${m.bg} p-4 flex flex-col gap-2`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
+                    <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
                   </div>
-                  <p className="text-lg font-bold text-white mb-1">{ins.value}</p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{ins.description}</p>
+                  {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
+                  {ins.trend === "down" && <TrendingDown size={12} className="text-red-400 shrink-0"/>}
                 </div>
-              ))}
-            </div>
-          ) : null}
+                <div>
+                  <p className="text-[11px] font-medium text-slate-400 mb-0.5">{ins.title}</p>
+                  <p className="text-xl font-bold text-white leading-tight">{ins.value}</p>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">{ins.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer */}
+      {insights && open && (
+        <div className="border-t border-white/[.05] px-5 py-2.5 flex items-center justify-between">
+          <span className="text-[10px] text-slate-700">Powered by Claude</span>
+          <button onClick={() => { setInsights(null); setOpen(false); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">
+            ↺ Regenerate
+          </button>
         </div>
       )}
     </div>
