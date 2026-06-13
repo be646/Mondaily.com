@@ -177,7 +177,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           {!collapsed && (
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
-              className="key-button mb-2 flex w-full items-center justify-between px-3 py-2 text-xs"
+              className="key-button sticky top-0 z-10 mb-2 flex w-full items-center justify-between bg-[#0d0f13] px-3 py-2 text-xs"
             >
               <div className="flex items-center gap-2"><Search size={13}/> Quick actions</div>
               <kbd className="rounded border border-white/10 px-1.5 py-0.5 text-xs opacity-50">⌘K</kbd>
