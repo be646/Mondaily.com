@@ -188,18 +188,14 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             {userMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}/>
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-white/10 bg-[#161820] shadow-2xl">
-                  <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                <div className="dropdown-panel absolute right-0 top-full mt-2 w-56">
+                  <div className="flex items-center gap-3 border-b border-zinc-800/50 px-3 py-2.5">
                     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-sm font-medium text-red-400 shrink-0">{avatarUrl ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/> : initials}</div>
-                    <div className="min-w-0"><div className="text-sm font-medium text-white truncate">{fullName}</div><div className="text-xs text-slate-500 truncate">{user?.emailAddresses?.[0]?.emailAddress}</div></div>
+                    <div className="min-w-0"><div className="text-[12px] font-medium text-white truncate">{fullName}</div><div className="text-[11px] text-zinc-500 truncate">{user?.emailAddresses?.[0]?.emailAddress}</div></div>
                   </div>
-                  <div className="p-2">
-                    <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"><User size={14}/> Account settings</Link>
-                    <Link to="/settings/workspace" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"><Settings size={14}/> Workspace settings</Link>
-                  </div>
-                  <div className="border-t border-white/10 p-2">
-                    <button onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400 transition-colors"><LogOut size={14}/> Sign out</button>
-                  </div>
+                  <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="dropdown-item"><User size={13}/> Account settings</Link>
+                  <Link to="/settings/workspace" onClick={() => setUserMenuOpen(false)} className="dropdown-item"><Settings size={13}/> Workspace settings</Link>
+                  <button onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-red-400 hover:text-red-300"><LogOut size={13}/> Sign out</button>
                 </div>
               </>
             )}

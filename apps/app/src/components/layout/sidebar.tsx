@@ -134,44 +134,37 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           {workspaceOpen && !collapsed && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setWorkspaceOpen(false)}/>
-              <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-lg border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] backdrop-blur-md">
-                <div className="p-2">
-                  <div className="mb-1 px-2 py-1 text-xs text-slate-500 uppercase tracking-wider">Workspaces</div>
-                  <div className="flex items-center gap-2.5 rounded-lg bg-white/[.06] px-3 py-2">
-                    {workspaceLogo ? (
-                      <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover"/>
-                    ) : (
-                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-sm text-white">{workspaceName}</div>
-                      <div className="text-xs text-slate-500">Pro</div>
-                    </div>
-                    <div className="h-2 w-2 rounded-full bg-green-400"/>
+              <div className="dropdown-panel absolute left-2 right-2 top-full">
+                <div className="flex items-center gap-2.5 border-b border-zinc-800/50 px-3 py-2.5">
+                  {workspaceLogo ? (
+                    <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover shrink-0"/>
+                  ) : (
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-red-500/20 text-xs font-semibold text-red-400">{workspaceInitial}</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-[12px] font-medium text-white">{workspaceName}</div>
+                    <div className="text-[11px] text-zinc-500">Pro</div>
                   </div>
+                  <div className="h-2 w-2 rounded-full bg-green-400 shrink-0"/>
                 </div>
-                <div className="border-t border-white/10 p-2">
-                  <button
-                    onClick={() => { setWorkspaceOpen(false); setNewWorkspaceOpen(true); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
-                  >
-                    <Plus size={14}/> Create new workspace
-                  </button>
-                </div>
-                <div className="border-t border-white/10 p-2">
-                  <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
-                    <Users size={14}/> Invite members
-                  </Link>
-                  <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
-                    <Settings size={14}/> Workspace settings
-                  </Link>
-                  <button
-                    onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-red-400 transition-colors"
-                  >
-                    <LogOut size={14}/> Sign out
-                  </button>
-                </div>
+                <button
+                  onClick={() => { setWorkspaceOpen(false); setNewWorkspaceOpen(true); }}
+                  className="dropdown-item"
+                >
+                  <Plus size={13}/> Create new workspace
+                </button>
+                <Link to="/settings/members" onClick={() => setWorkspaceOpen(false)} className="dropdown-item">
+                  <Users size={13}/> Invite members
+                </Link>
+                <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="dropdown-item">
+                  <Settings size={13}/> Workspace settings
+                </Link>
+                <button
+                  onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }}
+                  className="dropdown-item text-red-400 hover:text-red-300"
+                >
+                  <LogOut size={13}/> Sign out
+                </button>
               </div>
             </>
           )}
