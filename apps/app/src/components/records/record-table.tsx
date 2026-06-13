@@ -704,7 +704,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [nlpActive, setNlpActive] = useState(false);
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|"addcol"|null>(null);
 
   // ── Toolbar trigger refs (for portal positioning) ──
   const viewWrapRef   = useRef<HTMLDivElement>(null);

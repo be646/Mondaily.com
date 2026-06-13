@@ -61,6 +61,7 @@ function CreateRecordModal({
     return ["name","email"];
   })();
 
+  const queryClient = useQueryClient();
   const [values, setValues]     = useState<Record<string, string>>(() => Object.fromEntries(fieldKeys.map(k => [k, ""])));
   const [selectedCats, setCats] = useState<{ name: string; color: string }[]>([]);
   const [saving, setSaving]     = useState(false);
