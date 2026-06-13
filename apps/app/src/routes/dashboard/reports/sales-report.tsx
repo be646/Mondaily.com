@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList,
+  Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList, Legend,
 } from "recharts";
 import { useState, useMemo, useCallback } from "react";
 import {
@@ -13,7 +13,7 @@ import { apiClient } from "../../../lib/api-client";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
-type Period = "today" | "week" | "month" | "quarter" | "year";
+type Period = "today" | "week" | "month" | "quarter" | "year" | "custom";
 
 // ─── Auto-detect column semantics ─────────────────────────────────────────────
 function detectValueCol(records: NodeRecord[]): string | null {
@@ -55,10 +55,11 @@ function periodStart(p: Period): Date {
   if (p === "week")    { d.setDate(d.getDate() - d.getDay()); d.setHours(0,0,0,0); return d; }
   if (p === "month")   { d.setDate(1); d.setHours(0,0,0,0); return d; }
   if (p === "quarter") { d.setMonth(Math.floor(d.getMonth()/3)*3, 1); d.setHours(0,0,0,0); return d; }
+  if (p === "custom")  return new Date(0);
   d.setMonth(0,1); d.setHours(0,0,0,0); return d;
 }
 
-function prevPeriodRange(p: Period): { start: Date; end: Date } {
+function prevPeriodRange(p: Exclude<Period, "custom">): { start: Date; end: Date } {
   const currStart = periodStart(p);
   const now = new Date();
   const durationMs = now.getTime() - currStart.getTime();
@@ -70,17 +71,19 @@ function bucketLabel(date: Date, p: Period): string {
   if (p === "week")    return date.toLocaleDateString([], { weekday: "short" });
   if (p === "month")   return date.toLocaleDateString([], { month: "short", day: "numeric" });
   if (p === "quarter") return `${date.toLocaleDateString([], { month: "short" })} W${Math.ceil(date.getDate()/7)}`;
+  if (p === "custom")  return date.toLocaleDateString([], { month: "short", day: "numeric" });
   return date.toLocaleDateString([], { month: "short" });
 }
 
-function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period) {
-  const start = periodStart(period);
+function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, customRange?: { start: Date; end: Date }) {
+  const start = customRange ? customRange.start : (period === "custom" ? new Date(0) : periodStart(period));
   const buckets: Map<string, { revenue: number; count: number }> = new Map();
   for (const r of records) {
     const raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).created_at ?? (r.data as Record<string,unknown>).updated_at;
     if (!raw) continue;
     const d = new Date(raw as string);
     if (d < start) continue;
+    if (customRange && d > customRange.end) continue;
     const stage = stageCol ? String(r.data[stageCol] ?? "") : "";
     const val   = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
     const label = bucketLabel(d, period);
@@ -474,7 +477,7 @@ function AIInsightsPanel({ records, objectType }: {
 }
 
 const STAGE_COLORS  = ["#6366f1","#8b5cf6","#a855f7","#d946ef","#ec4899","#f43f5e","#f97316","#eab308"];
-const PERIOD_LABELS: Record<Period,string> = { today:"Today", week:"This Week", month:"This Month", quarter:"This Quarter", year:"This Year" };
+const PERIOD_LABELS: Record<Period,string> = { today:"Today", week:"This Week", month:"This Month", quarter:"This Quarter", year:"This Year", custom:"Custom" };
 
 function getReportVocab(valueCol: string | null, stageCol: string | null) {
   const hasValue = !!valueCol;
@@ -491,6 +494,8 @@ function getReportVocab(valueCol: string | null, stageCol: string | null) {
 export function SalesReportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [period, setPeriod]             = useState<Period>("month");
+  const [customStart, setCustomStart]   = useState("");
+  const [customEnd, setCustomEnd]       = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [goal, setGoal]                 = useState<number | null>(null);
   const [goalInput, setGoalInput]       = useState("");
@@ -550,11 +555,20 @@ export function SalesReportPage() {
     ),
   [records, activeFilters]);
 
-  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period), [filteredRecords, period, valueCol, stageCol]);
+  const customRange = useMemo(() => {
+    if (period !== "custom" || !customStart || !customEnd) return undefined;
+    return { start: new Date(customStart), end: new Date(customEnd + "T23:59:59") };
+  }, [period, customStart, customEnd]);
+
+  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period, customRange), [filteredRecords, period, valueCol, stageCol, customRange]);
   const prevStats = useMemo(() => {
-    const range = prevPeriodRange(period);
+    if (period === "custom" && customRange) {
+      const dur = customRange.end.getTime() - customRange.start.getTime();
+      return computeStats(filteredRecords, valueCol, stageCol, period, { start: new Date(customRange.start.getTime() - dur), end: customRange.start });
+    }
+    const range = prevPeriodRange(period as Exclude<Period, "custom">);
     return computeStats(filteredRecords, valueCol, stageCol, period, range);
-  }, [filteredRecords, period, valueCol, stageCol]);
+  }, [filteredRecords, period, valueCol, stageCol, customRange]);
 
   const stageData = useMemo(() => {
     if (!stageCol) return [];
@@ -572,7 +586,7 @@ export function SalesReportPage() {
       .slice(0, 8);
   }, [filteredRecords, stageCol, valueCol]);
 
-  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period), [filteredRecords, valueCol, stageCol, period]);
+  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period, customRange), [filteredRecords, valueCol, stageCol, period, customRange]);
 
 
   const topRecords = useMemo(() => {
@@ -646,14 +660,31 @@ export function SalesReportPage() {
             </p>
           </div>
 
-          <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[.03] p-1">
-            {(["today","week","month","quarter","year"] as Period[]).map(p => (
+          <div className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-white/[.03] p-1">
+            {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
               <button key={p} onClick={() => setPeriod(p)}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
                 {PERIOD_LABELS[p]}
               </button>
             ))}
           </div>
+          {period === "custom" && (
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"
+              />
+              <span className="text-xs text-slate-600">–</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+                className="h-8 rounded-lg border border-white/10 bg-white/[.03] px-2 text-xs text-slate-300 [color-scheme:dark] focus:outline-none focus:border-white/20"
+              />
+            </div>
+          )}
 
           <button onClick={exportCSV}
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors">
@@ -695,7 +726,7 @@ export function SalesReportPage() {
 
         {/* Print period */}
         <div className="hidden print:block mb-6">
-          <p className="text-sm font-semibold text-gray-700">{objLabel} — {PERIOD_LABELS[period]}</p>
+          <p className="text-sm font-semibold text-gray-700">{objLabel} — {period === "custom" && customStart && customEnd ? `${customStart} – ${customEnd}` : PERIOD_LABELS[period]}</p>
         </div>
 
         {recordsQ.isLoading ? (
@@ -809,10 +840,18 @@ export function SalesReportPage() {
                     <LineChart data={trendData}>
                       <CartesianGrid stroke="#22262d" strokeDasharray="3 3"/>
                       <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }}/>
-                      <YAxis stroke="#475569" tick={{ fontSize: 10 }} tickFormatter={v => hasValue ? fmtMoney(v) : String(v)}/>
+                      {hasValue ? (
+                        <>
+                          <YAxis yAxisId="left"  stroke="#10b981" tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={55}/>
+                          <YAxis yAxisId="right" orientation="right" stroke="#6366f1" tick={{ fontSize: 10 }} width={35}/>
+                        </>
+                      ) : (
+                        <YAxis stroke="#475569" tick={{ fontSize: 10 }}/>
+                      )}
                       <Tooltip content={<ChartTooltip/>}/>
-                      {hasValue && <Line type="monotone" dataKey="revenue" name={valueCol ?? "value"} stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r:4, fill:"#10b981" }}/>}
-                      <Line type="monotone" dataKey="count" name="Records" stroke="#6366f1" strokeWidth={hasValue ? 1.5 : 2.5} dot={false} strokeDasharray={hasValue ? "4 4" : undefined}/>
+                      <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }}/>
+                      {hasValue && <Line yAxisId="left"  type="monotone" dataKey="revenue" name={valueCol ?? "value"} stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r:4, fill:"#10b981" }}/>}
+                      <Line yAxisId={hasValue ? "right" : undefined} type="monotone" dataKey="count" name="Records" stroke="#6366f1" strokeWidth={2.5} dot={false}/>
                     </LineChart>
                   </ResponsiveContainer>
                 )}
