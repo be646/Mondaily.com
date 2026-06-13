@@ -85,7 +85,7 @@ export function NotificationsPage() {
       {/* Filter bar */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         {/* Read/unread toggle */}
-        <div className="flex rounded-lg border border-white/[.07] bg-white/[.02] p-0.5">
+        <div className="flex rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
           {(["all", "unread"] as const).map(f => (
             <button
               key={f}
