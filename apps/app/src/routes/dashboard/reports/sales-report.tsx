@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList, Legend,
+  Tooltip, ResponsiveContainer, Cell, FunnelChart, Funnel, LabelList, Legend, ReferenceLine,
 } from "recharts";
 import { useState, useMemo, useCallback } from "react";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
-  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2,
+  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, MessageSquare, Check,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
@@ -683,6 +683,8 @@ export function SalesReportPage() {
   const [goalInput, setGoalInput]       = useState("");
   const [editingGoal, setEditingGoal]   = useState(false);
   const [drillRecord, setDrillRecord]   = useState<NodeRecord | null>(null);
+  const [annotating, setAnnotating]     = useState<string | null>(null); // bucket label being annotated
+  const [annotationText, setAnnotationText] = useState("");
 
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],
@@ -715,6 +717,25 @@ export function SalesReportPage() {
     enabled: !!activeSlug,
   });
   const records  = recordsQ.data ?? [];
+
+  const qc = useQueryClient();
+  const annotationsQ = useQuery({
+    queryKey: ["annotations", activeSlug],
+    queryFn: () => apiClient.get<Array<{ id: string; source_object: string; bucket_label: string; text: string; color: string }>>(`/annotations?object_type=${encodeURIComponent(activeSlug)}`),
+    staleTime: 30_000,
+    enabled: !!activeSlug,
+  });
+  const annotations = annotationsQ.data ?? [];
+
+  const createAnnotation = useMutation({
+    mutationFn: (body: { source_object: string; bucket_label: string; text: string; color: string }) =>
+      apiClient.post("/annotations", body),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["annotations", activeSlug] }); setAnnotating(null); setAnnotationText(""); },
+  });
+  const deleteAnnotation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/annotations/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["annotations", activeSlug] }),
+  });
 
   const valueCol = useMemo(() => detectValueCol(records), [records]);
   const stageCol = useMemo(() => detectStageCol(records), [records]);
@@ -1017,28 +1038,105 @@ export function SalesReportPage() {
             {/* Charts */}
             <div className="mb-6 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
-                <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.trendLabel}</h3>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold print:text-black">{vocab.trendLabel}</h3>
+                  <span className="text-[10px] text-slate-600 print:hidden">Click any bar to annotate</span>
+                </div>
                 {trendData.length === 0 ? (
                   <div className="flex h-48 items-center justify-center text-xs text-slate-600">No data for this period</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={trendData}>
-                      <CartesianGrid stroke="#22262d" strokeDasharray="3 3"/>
-                      <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }}/>
-                      {hasValue ? (
-                        <>
-                          <YAxis yAxisId="left"  stroke="#10b981" tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={55}/>
-                          <YAxis yAxisId="right" orientation="right" stroke="#6366f1" tick={{ fontSize: 10 }} width={35}/>
-                        </>
-                      ) : (
-                        <YAxis stroke="#475569" tick={{ fontSize: 10 }}/>
-                      )}
-                      <Tooltip content={<ChartTooltip/>}/>
-                      <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }}/>
-                      {hasValue && <Line yAxisId="left"  type="monotone" dataKey="revenue" name={valueCol ?? "value"} stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r:4, fill:"#10b981" }}/>}
-                      <Line yAxisId={hasValue ? "right" : undefined} type="monotone" dataKey="count" name="Records" stroke="#6366f1" strokeWidth={2.5} dot={false}/>
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div className="relative">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart
+                        data={trendData}
+                        onClick={e => {
+                          if (e?.activeLabel) {
+                            setAnnotating(e.activeLabel as string);
+                            setAnnotationText("");
+                          }
+                        }}
+                        style={{ cursor: "crosshair" }}
+                      >
+                        <CartesianGrid stroke="#22262d" strokeDasharray="3 3"/>
+                        <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }}/>
+                        {hasValue ? (
+                          <>
+                            <YAxis yAxisId="left"  stroke="#10b981" tick={{ fontSize: 10 }} tickFormatter={v => fmtMoney(v)} width={55}/>
+                            <YAxis yAxisId="right" orientation="right" stroke="#6366f1" tick={{ fontSize: 10 }} width={35}/>
+                          </>
+                        ) : (
+                          <YAxis stroke="#475569" tick={{ fontSize: 10 }}/>
+                        )}
+                        <Tooltip content={<ChartTooltip/>}/>
+                        <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }}/>
+                        {/* Annotation reference lines */}
+                        {annotations.map(a => (
+                          <ReferenceLine
+                            key={a.id}
+                            x={a.bucket_label}
+                            yAxisId={hasValue ? "left" : undefined}
+                            stroke={a.color}
+                            strokeDasharray="4 3"
+                            strokeWidth={1.5}
+                            label={{ value: a.text, position: "insideTopRight", fontSize: 9, fill: a.color, offset: 4 }}
+                          />
+                        ))}
+                        {hasValue && <Line yAxisId="left"  type="monotone" dataKey="revenue" name={valueCol ?? "value"} stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r:4, fill:"#10b981" }}/>}
+                        <Line yAxisId={hasValue ? "right" : undefined} type="monotone" dataKey="count" name="Records" stroke="#6366f1" strokeWidth={2.5} dot={false}/>
+                      </LineChart>
+                    </ResponsiveContainer>
+
+                    {/* Annotation input popover */}
+                    {annotating && (
+                      <div className="absolute left-1/2 top-2 -translate-x-1/2 z-20 w-72 rounded-xl border border-amber-500/30 bg-[#13151a] shadow-2xl p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 mb-2">
+                          <MessageSquare size={9} className="inline mr-1"/>Annotate · {annotating}
+                        </p>
+                        <input
+                          autoFocus
+                          value={annotationText}
+                          onChange={e => setAnnotationText(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter" && annotationText.trim()) {
+                              createAnnotation.mutate({ source_object: activeSlug, bucket_label: annotating, text: annotationText.trim(), color: "#f59e0b" });
+                            }
+                            if (e.key === "Escape") { setAnnotating(null); setAnnotationText(""); }
+                          }}
+                          placeholder="e.g. Campaign launched, Price change…"
+                          className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs text-white placeholder-slate-600 outline-none focus:border-amber-500/40 mb-2"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { if (annotationText.trim()) createAnnotation.mutate({ source_object: activeSlug, bucket_label: annotating, text: annotationText.trim(), color: "#f59e0b" }); }}
+                            disabled={!annotationText.trim() || createAnnotation.isPending}
+                            className="flex items-center gap-1 rounded-md bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 text-xs text-amber-400 hover:bg-amber-500/30 disabled:opacity-40 transition-colors"
+                          >
+                            <Check size={10}/> Add
+                          </button>
+                          <button onClick={() => { setAnnotating(null); setAnnotationText(""); }} className="rounded-md border border-white/[.08] px-3 py-1.5 text-xs text-slate-500 hover:text-white transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Annotation list */}
+                {annotations.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5 print:hidden">
+                    {annotations.map(a => (
+                      <span key={a.id} className="group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]"
+                        style={{ borderColor: a.color + "40", color: a.color, background: a.color + "10" }}>
+                        <span style={{ color: a.color }}>◆</span>
+                        <span className="text-slate-400">{a.bucket_label}:</span>
+                        {a.text}
+                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all">
+                          <X size={9}/>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 
