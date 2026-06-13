@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { Sidebar } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";

@@ -496,7 +496,8 @@ function AIInsightsPanel({ records, objectType }: {
       {open && insights && (
         <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {insights.map((ins, i) => {
-            const m = CATEGORY_META[ins.category] ?? CATEGORY_META.summary;
+            const fallback = { label: "Summary", dot: "bg-violet-400", border: "border-violet-500/20", bg: "bg-violet-500/[.05]", text: "text-violet-400" };
+            const m = CATEGORY_META[ins.category] ?? fallback;
             return (
               <div key={i} className={`rounded-xl border ${m.border} ${m.bg} p-4 flex flex-col gap-2`}>
                 <div className="flex items-center justify-between gap-2">
