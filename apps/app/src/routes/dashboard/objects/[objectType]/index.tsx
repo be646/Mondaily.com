@@ -42,21 +42,17 @@ function EnrichBanner({ name, done }: { name: string; done: boolean }) {
 // ─── Create record modal ──────────────────────────────────────────────────────
 function CreateRecordModal({
   objectType,
+  tableColumns,
   onClose,
   onEnrichStart,
 }: {
   objectType: string;
+  tableColumns: string[];
   onClose: () => void;
   onEnrichStart: (recordId: string, name: string) => void;
 }) {
-  const queryClient = useQueryClient();
-  const cachedRecords = (queryClient.getQueryData<Array<{ data: Record<string, unknown> }>>(["records", objectType])) ?? [];
-  const AUTO_FIELDS = new Set(["updated_at", "created_at", "workspace_id", "id"]);
-  const liveColumns = Array.from(new Set(cachedRecords.flatMap(r => Object.keys(r.data))))
-    .filter(k => !AUTO_FIELDS.has(k))
-    .slice(0, 8);
-
-  const fieldKeys = liveColumns.length > 0 ? liveColumns : (() => {
+  // Use the exact columns currently visible in the table (passed from RecordTable via onColumnsChange)
+  const fieldKeys = tableColumns.length > 0 ? tableColumns : (() => {
     const t = objectType.toLowerCase();
     if (t === "companies") return ["name","description","arr","funding_raised","employee_range","country"];
     if (t === "people")    return ["name","email","job_title","twitter_followers","linkedin"];
@@ -189,6 +185,7 @@ export function ObjectIndexPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [tableColumns, setTableColumns] = useState<string[]>([]);
 
   // Track enrichment state: { [recordId]: { name, done } }
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
@@ -265,12 +262,13 @@ export function ObjectIndexPage() {
       )}
 
       <div className="flex-1 min-h-0 overflow-hidden">
-        <RecordTable objectType={objectType} enrichedIds={enrichedIds}/>
+        <RecordTable objectType={objectType} enrichedIds={enrichedIds} onColumnsChange={setTableColumns}/>
       </div>
 
       {showCreate && (
         <CreateRecordModal
           objectType={objectType}
+          tableColumns={tableColumns}
           onClose={() => setShowCreate(false)}
           onEnrichStart={handleEnrichStart}
         />

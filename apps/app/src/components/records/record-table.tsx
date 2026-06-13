@@ -548,7 +548,7 @@ const COLUMN_TYPES = [
 function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
   onAdd: (name: string, type: string) => void;
   onClose: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
+  triggerRef: React.RefObject<HTMLElement | HTMLTableCellElement | null>;
 }) {
   const [name, setName] = useState("");
   const [type, setType] = useState("text");
@@ -663,7 +663,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
 }
 
 // ─── Main table ───────────────────────────────────────────────────────────────
-export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: { objectType: string; enrichedIds?: string[]; filterQuery?: string }) {
+export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", onColumnsChange }: { objectType: string; enrichedIds?: string[]; filterQuery?: string; onColumnsChange?: (cols: string[]) => void }) {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["records", objectType],
@@ -704,13 +704,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
   const [nlpActive, setNlpActive] = useState(false);
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|"addcol"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|null>(null);
 
   // ── Toolbar trigger refs (for portal positioning) ──
   const viewWrapRef   = useRef<HTMLDivElement>(null);
   const sortWrapRef   = useRef<HTMLDivElement>(null);
   const exportWrapRef = useRef<HTMLDivElement>(null);
-  const addColWrapRef = useRef<HTMLDivElement>(null);
+  // Add column lives in the table header now
+  const addColHeaderRef = useRef<HTMLTableCellElement>(null);
 
   // ── Calc footer trigger refs (dynamic columns) ──
   const calcWrapRefs = useRef(new Map<string, HTMLDivElement>());
@@ -719,6 +720,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
   const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>([]);
   const allColumnsWithCustom = useMemo(() => [...allColumns, ...customCols.map(c => c.key)], [allColumns, customCols]);
   const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
+
+  useEffect(() => { onColumnsChange?.(columns); }, [columns]);
 
   // ── Owner cell state: recordId → owner name ──
   const [owners, setOwners] = useState<Record<string, string>>({});
@@ -952,24 +955,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
             )}
           </div>
 
-          {/* Add column */}
-          <div ref={addColWrapRef}>
-            <button
-              onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-              className={openPanel === "addcol" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <Plus size={12}/>
-              <span className="hidden sm:inline">Column</span>
-            </button>
-            {openPanel === "addcol" && (
-              <AddColumnDropdown
-                onAdd={(key, type) => setCustomCols(prev => [...prev, { key, type }])}
-                onClose={() => setOpenPanel(null)}
-                triggerRef={addColWrapRef}
-              />
-            )}
-          </div>
-
           {/* Export */}
           <div ref={exportWrapRef}>
             <button
@@ -1021,6 +1006,26 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                   <SortIcon col="__updated_at"/>
                 </button>
               </th>
+              {/* Add column — inline last header cell */}
+              <th
+                ref={addColHeaderRef}
+                className="w-8 px-2 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70 border-l border-l-zinc-800/20 relative"
+              >
+                <button
+                  onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
+                  className="flex h-5 w-5 items-center justify-center rounded text-zinc-700 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
+                  title="Add column"
+                >
+                  <Plus size={12}/>
+                </button>
+                {openPanel === "addcol" && (
+                  <AddColumnDropdown
+                    onAdd={(key, type) => { setCustomCols(prev => [...prev, { key, type }]); setOpenPanel(null); }}
+                    onClose={() => setOpenPanel(null)}
+                    triggerRef={addColHeaderRef}
+                  />
+                )}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -1048,6 +1053,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                   <td className="whitespace-nowrap px-3 py-[6px] text-[11px] text-zinc-600 tabular-nums border-b border-b-zinc-800/30">
                     {fmtDate(record.updated_at)}
                   </td>
+                  <td className="border-b border-b-zinc-800/30 border-l border-l-zinc-800/20 w-8"/>
                 </tr>
               ))
             )}
@@ -1088,6 +1094,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "" }: 
                 </td>
               ))}
               <td className="px-3 py-[6px] text-[11px] text-zinc-700 tabular-nums bg-[#0d0f13] border-t border-t-zinc-800/60">{sorted.length} rows</td>
+              <td className="bg-[#0d0f13] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
             </tr>
           </tfoot>
         </table>
