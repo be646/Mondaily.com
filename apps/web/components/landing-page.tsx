@@ -1,394 +1,654 @@
 "use client";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MondailyLogo } from "./mondaily-logo";
-import { CrmGridDemo } from "./crm-grid-demo";
-import { PipelineDemo } from "./pipeline-demo";
-import { WorkflowDemo } from "./workflow-demo";
-import { HeroChat } from "./hero-chat";
 
-// ── SVG icons ────────────────────────────────────────────────────────────────
-function ArrowRight({ size = 14 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>;
+// ── Inline SVG icons ──────────────────────────────────────────────────────────
+function SearchIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
 }
-function ChevronRight({ size = 12 }: { size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+function PlusIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
 }
-function CheckIcon({ size = 13 }: { size?: number }) {
+function ChevronDownIcon({ size = 10 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>;
+}
+function ChevronRightIcon({ size = 10 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>;
+}
+function XIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+}
+function FilterIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+}
+function ColumnsIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>;
+}
+function BriefcaseIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
+}
+function UsersIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+}
+function ListIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>;
+}
+function ZapIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>;
+}
+function CheckIcon({ size = 11 }: { size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
 }
-
-const fadeUp = {
-  hidden: { opacity: 0 as number, y: 32 as number },
-  show:   { opacity: 1 as number, y: 0 as number },
-};
-const FADE_TRANSITION = { duration: 0.6, ease: "easeOut" as const };
-const stagger = { show: { transition: { staggerChildren: 0.1 } } };
-
-// ── Nav ───────────────────────────────────────────────────────────────────────
-function Nav() {
-  return (
-    <motion.header
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-white/[.05] bg-[#060608]/75 px-6 backdrop-blur-xl"
-    >
-      <MondailyLogo size={32} showWordmark />
-      <nav className="hidden items-center gap-7 md:flex">
-        {[["#features","Features"],["#pipeline","Pipeline"],["#automations","Automations"]].map(([h, l]) => (
-          <a key={l} href={h} className="text-[13px] text-slate-500 transition-colors hover:text-white">{l}</a>
-        ))}
-      </nav>
-      <div className="flex items-center gap-3">
-        <Link href="/sign-in" className="text-[13px] font-medium text-slate-400 transition-colors hover:text-white">
-          Sign in
-        </Link>
-        <Link
-          href="/sign-up"
-          className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-1.5 text-[13px] font-semibold text-black transition-all hover:bg-slate-100 active:scale-[.97]"
-        >
-          Get started <ChevronRight size={12}/>
-        </Link>
-      </div>
-    </motion.header>
-  );
+function GlobeIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>;
+}
+function MailIcon({ size = 12 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
+}
+function SparklesIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>;
+}
+function SettingsIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
 }
 
-// ── Stat badge ────────────────────────────────────────────────────────────────
-function StatBadge({ value, label }: { value: string; label: string }) {
-  return (
-    <motion.div variants={fadeUp} transition={FADE_TRANSITION} className="flex flex-col items-center gap-1">
-      <span className="text-2xl font-bold text-white tracking-tight">{value}</span>
-      <span className="text-xs text-slate-600">{label}</span>
-    </motion.div>
-  );
+// ── Preloader ─────────────────────────────────────────────────────────────────
+const LOG_LINES = [
+  { tag: "[MONDAILY-AI]", msg: "Bootstrapping cluster nodes..." },
+  { tag: "[DB]", msg: "Connected to Supabase relational network graph (edges_v2 matched)" },
+  { tag: "[AI]", msg: "Engine status: ACTIVE" },
+  { tag: "[DATA]", msg: "Hydrating 42 records from CSV cache..." },
+  { tag: "[TAVILY]", msg: 'Scraped "Vercel Inc." revenue profiles (ARR: $42M) [SUCCESS]' },
+  { tag: "[ENRICH]", msg: "12 records enriched with live web data — 0 errors" },
+  { tag: "[PIPELINE]", msg: "3 deals auto-advanced to next stage" },
+  { tag: "[WS]", msg: "Workspace ready — loading interface..." },
+];
+
+function nowStamp() {
+  const d = new Date();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  const yr = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `[${mo}-${da}-${yr} ${hh}:${mm}:${ss}]`;
 }
 
-// ── Feature row ───────────────────────────────────────────────────────────────
-function FeatureRow({ items }: { items: string[] }) {
+function Preloader({ onDone }: { onDone: () => void }) {
+  const [lines, setLines] = useState<Array<{ tag: string; msg: string; ts: string }>>([]);
+  const [exiting, setExiting] = useState(false);
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    let i = 0;
+    const step = () => {
+      if (i >= LOG_LINES.length) {
+        setTimeout(() => {
+          if (!doneRef.current) { doneRef.current = true; setExiting(true); }
+        }, 500);
+        return;
+      }
+      const item = LOG_LINES[i]!;
+      setLines(prev => [...prev, { ...item, ts: nowStamp() }]);
+      i++;
+      setTimeout(step, 260 + Math.random() * 160);
+    };
+    const t = setTimeout(step, 350);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
-      {items.map(item => (
-        <div key={item} className="flex items-center gap-1.5 text-[12px] text-slate-500">
-          <CheckIcon size={11}/>
-          {item}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Section heading ───────────────────────────────────────────────────────────
-function SectionHead({ tag, tagColor, title, sub }: {
-  tag: string; tagColor: string; title: string; sub: string;
-}) {
-  return (
-    <motion.div
-      variants={fadeUp}
-      transition={FADE_TRANSITION}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.3 }}
-      className="mx-auto max-w-xl text-center space-y-3"
-    >
-      <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${tagColor}`}>
-        {tag}
-      </span>
-      <h3 className="text-[1.75rem] font-bold tracking-tight text-white leading-snug">{title}</h3>
-      <p className="text-slate-500 leading-relaxed text-[15px]">{sub}</p>
-    </motion.div>
-  );
-}
-
-// ── Bento card ────────────────────────────────────────────────────────────────
-function BentoCard({ title, sub, icon, accent, children }: {
-  title: string; sub: string; icon: string; accent: string; children?: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      variants={fadeUp}
-      transition={FADE_TRANSITION}
-      className={`relative overflow-hidden rounded-2xl border border-white/[.07] bg-[#0b0d14] p-5 ${children ? "" : "flex flex-col justify-between"}`}
-    >
-      <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl border text-lg ${accent}`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-[14px] font-semibold text-white">{title}</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-slate-500">{sub}</p>
-      </div>
-      {children && <div className="mt-4">{children}</div>}
-      {/* Corner glow */}
-      <div className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl opacity-20 ${accent.includes('indigo') ? 'bg-indigo-500' : accent.includes('emerald') ? 'bg-emerald-500' : accent.includes('blue') ? 'bg-blue-500' : 'bg-purple-500'}`}/>
-    </motion.div>
-  );
-}
-
-// ── Scroll parallax demo wrapper ──────────────────────────────────────────────
-function ParallaxDemo({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], [30, -30]);
-  return (
-    <div ref={ref} className="w-full">
-      <motion.div style={{ y }}>
-        {children}
-      </motion.div>
-    </div>
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
-export function LandingPage() {
-  return (
-    <div className="min-h-screen bg-[#060608] text-zinc-100 antialiased overflow-x-hidden">
-      <Nav />
-
-      {/* ╔═ HERO ════════════════════════════════════════════════════════════╗ */}
-      <section className="relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 pb-16 pt-24">
-        {/* Grid background */}
-        <div className="pointer-events-none absolute inset-0 opacity-[0.022]"
-          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)", backgroundSize: "44px 44px" }}
-        />
-        {/* Ambient glows */}
-        <div className="pointer-events-none absolute left-1/2 top-0 h-[900px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/[.06] blur-[160px]"/>
-        <div className="pointer-events-none absolute -left-32 bottom-0 h-[500px] w-[500px] rounded-full bg-violet-700/[.04] blur-[120px]"/>
-        <div className="pointer-events-none absolute -right-32 top-1/2 h-[400px] w-[400px] rounded-full bg-blue-700/[.04] blur-[100px]"/>
-
-        {/* Badge */}
+    <AnimatePresence onExitComplete={onDone}>
+      {!exiting && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-4 py-1.5 text-[11px] font-medium text-indigo-300"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0, scale: 0.99 }}
+          transition={{ duration: 0.55, ease: "easeInOut" as const }}
+          className="fixed inset-0 z-50 flex flex-col bg-[#0a0a0c] font-mono text-[11px] leading-relaxed"
         >
-          <motion.span
-            className="h-1.5 w-1.5 rounded-full bg-indigo-400"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.8, repeat: Infinity }}
-          />
-          Powered by AI · Autonomous by default
-          <ArrowRight size={11}/>
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.18, ease: "easeOut" }}
-          className="mb-5 max-w-3xl text-center text-[clamp(2.5rem,6vw,4.4rem)] font-bold leading-[1.06] tracking-[-0.035em] text-white"
-        >
-          Your entire business
-          <br/>
-          <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-pink-400 bg-clip-text text-transparent">
-            run by AI
-          </span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mb-10 max-w-lg text-center text-[1.0625rem] leading-relaxed text-slate-500"
-        >
-          CRM, pipeline, sequences, and automations — all running autonomously.
-          Ask the AI anything and watch it work in real time.
-        </motion.p>
-
-        {/* ── HERO CHAT ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 28, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.42, ease: "easeOut" }}
-          className="w-full"
-        >
-          <HeroChat />
-        </motion.div>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.65 }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-3"
-        >
-          <Link
-            href="/sign-up"
-            className="flex items-center gap-2 rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-black transition-all hover:bg-slate-100 active:scale-[.97] shadow-lg shadow-white/5"
-          >
-            Start for free <ArrowRight size={14}/>
-          </Link>
-          <Link
-            href="/sign-in"
-            className="flex items-center gap-2 rounded-xl border border-white/[.10] bg-white/[.03] px-6 py-2.5 text-sm font-medium text-slate-300 transition-all hover:bg-white/[.07] hover:text-white"
-          >
-            Sign in
-          </Link>
-        </motion.div>
-
-        {/* Feature checklist */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.85 }}
-          className="mt-8"
-        >
-          <FeatureRow items={["AI CRM enrichment","Sales pipeline","Email sequences","Workflow automation","CSV import","Team collaboration"]}/>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 7, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="flex h-8 w-5 items-start justify-center rounded-full border border-white/[.09] pt-1.5"
-          >
-            <div className="h-1.5 w-0.5 rounded-full bg-white/20"/>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ╔═ STATS STRIP ═════════════════════════════════════════════════════╗ */}
-      <section className="border-y border-white/[.04] bg-white/[.01] px-6 py-10">
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mx-auto grid max-w-3xl grid-cols-2 gap-8 md:grid-cols-4"
-        >
-          <StatBadge value="10×" label="Faster data entry with AI"/>
-          <StatBadge value="100%" label="Autonomous enrichment"/>
-          <StatBadge value="∞" label="Custom object types"/>
-          <StatBadge value="0" label="Manual workflow steps"/>
-        </motion.div>
-      </section>
-
-      {/* ╔═ BENTO FEATURES ══════════════════════════════════════════════════╗ */}
-      <section id="features" className="mx-auto max-w-5xl px-6 py-24">
-        <SectionHead
-          tag="Platform"
-          tagColor="border-indigo-500/20 bg-indigo-500/[.06] text-indigo-400"
-          title="Everything your team needs. Nothing it doesn't."
-          sub="Mondaily replaces five separate tools with one AI-native workspace that operates itself."
-        />
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.1 }}
-          className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          <BentoCard icon="🧠" accent="border-indigo-500/20 bg-indigo-500/[.08] text-indigo-300" title="AI Web Enrichment" sub="Add a company name — Mondaily fetches ARR, headcount, funding, and 20+ fields from the web automatically."/>
-          <BentoCard icon="📊" accent="border-purple-500/20 bg-purple-500/[.08] text-purple-300" title="Relational CRM Tables" sub="Spreadsheet-style views with linked objects, formula columns, sticky math, and real-time collaborative editing."/>
-          <BentoCard icon="🔀" accent="border-blue-500/20 bg-blue-500/[.08] text-blue-300" title="Sales Pipeline" sub="Kanban deal stages with auto-updating totals. Deals move when signals fire — no drag and drop required."/>
-          <BentoCard icon="📧" accent="border-pink-500/20 bg-pink-500/[.08] text-pink-300" title="Email Sequences" sub="Multi-step outreach sequences with send-window controls, reply detection, and per-contact personalization."/>
-          <BentoCard icon="⚡" accent="border-yellow-500/20 bg-yellow-500/[.08] text-yellow-300" title="Workflow Automation" sub="Visual trigger → condition → action builder. No code. Runs on every deal, contact, or data change."/>
-          <BentoCard icon="📁" accent="border-emerald-500/20 bg-emerald-500/[.08] text-emerald-300" title="CSV Ingestion" sub="Drop a spreadsheet and Mondaily AI infers every column type, bulk-inserts all rows, and backfills missing fields."/>
-        </motion.div>
-      </section>
-
-      {/* ╔═ CRM DEMO ════════════════════════════════════════════════════════╗ */}
-      <section className="border-t border-white/[.04] px-6 py-24">
-        <div className="mx-auto max-w-5xl space-y-12">
-          <SectionHead
-            tag="CRM Engine"
-            tagColor="border-purple-500/20 bg-purple-500/[.06] text-purple-400"
-            title="Records that fill themselves"
-            sub="Drop a company name. Watch every field populate in real time — ARR, employees, funding stage, and country pulled from the web by AI agents."
-          />
-          <ParallaxDemo><CrmGridDemo /></ParallaxDemo>
-        </div>
-      </section>
-
-      {/* ╔═ PIPELINE DEMO ═══════════════════════════════════════════════════╗ */}
-      <section id="pipeline" className="border-t border-white/[.04] bg-white/[.005] px-6 py-24">
-        <div className="mx-auto max-w-5xl space-y-12">
-          <SectionHead
-            tag="Sales Pipeline"
-            tagColor="border-emerald-500/20 bg-emerald-500/[.06] text-emerald-400"
-            title="Live deal tracking with AI context"
-            sub="Every deal stage transition is logged, every owner is auto-assigned, and aggregate totals update the moment anything moves."
-          />
-          <ParallaxDemo><PipelineDemo /></ParallaxDemo>
-        </div>
-      </section>
-
-      {/* ╔═ WORKFLOW DEMO ════════════════════════════════════════════════════╗ */}
-      <section id="automations" className="border-t border-white/[.04] px-6 py-24">
-        <div className="mx-auto max-w-5xl space-y-12">
-          <SectionHead
-            tag="Automation Engine"
-            tagColor="border-blue-500/20 bg-blue-500/[.06] text-blue-400"
-            title="Events trigger everything"
-            sub="Build workflows visually — trigger on any record change, apply conditions, fire actions. It runs 24/7 without you."
-          />
-          <div className="mx-auto max-w-md">
-            <ParallaxDemo><WorkflowDemo /></ParallaxDemo>
+          {/* Top bar */}
+          <div className="flex h-9 shrink-0 items-center gap-2 border-b border-white/[.05] px-5">
+            <MondailyLogo size={20} showWordmark />
+            <span className="ml-auto text-zinc-700 text-[10px]">system boot · v2.0.0</span>
           </div>
-        </div>
-      </section>
 
-      {/* ╔═ CTA ══════════════════════════════════════════════════════════════╗ */}
-      <section className="relative overflow-hidden border-t border-white/[.05] px-6 py-28">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-indigo-600/[.04] via-transparent to-transparent"/>
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/[.05] blur-[120px]"/>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="relative mx-auto max-w-2xl text-center space-y-6"
-        >
-          <motion.div variants={fadeUp} transition={FADE_TRANSITION} className="flex justify-center">
-            <MondailyLogo size={56} />
-          </motion.div>
-          <motion.h2 variants={fadeUp} transition={FADE_TRANSITION} className="text-3xl font-bold tracking-tight text-white">
-            Ready to run your business on autopilot?
-          </motion.h2>
-          <motion.p variants={fadeUp} transition={FADE_TRANSITION} className="text-slate-500 text-[15px] leading-relaxed">
-            Join teams that replaced manual CRM work, spreadsheet maintenance, and repetitive
-            outreach with one autonomous AI workspace.
-          </motion.p>
-          <motion.div variants={fadeUp} transition={FADE_TRANSITION} className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link
-              href="/sign-up"
-              className="flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:bg-slate-100 active:scale-[.97] shadow-xl shadow-white/5"
-            >
-              Start for free <ArrowRight size={14}/>
-            </Link>
-            <Link
-              href="/sign-in"
-              className="flex items-center gap-2 rounded-xl border border-white/[.10] bg-white/[.03] px-7 py-3 text-sm font-medium text-slate-300 transition-all hover:bg-white/[.07] hover:text-white"
-            >
-              Sign in
-            </Link>
-          </motion.div>
-          <motion.div variants={fadeUp} transition={FADE_TRANSITION}>
-            <FeatureRow items={["Free to start","No credit card","Cancel anytime"]}/>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ╔═ FOOTER ═══════════════════════════════════════════════════════════╗ */}
-      <footer className="border-t border-white/[.04] px-6 py-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <MondailyLogo size={28} showWordmark />
-          <p className="text-[11px] text-slate-700">© 2026 Mondaily · Built with AI</p>
-          <div className="flex items-center gap-5">
-            {["Privacy","Terms","Docs"].map(l => (
-              <a key={l} href="#" className="text-[11px] text-slate-700 hover:text-slate-400 transition-colors">{l}</a>
+          {/* Log output */}
+          <div className="flex-1 overflow-hidden px-5 py-5 space-y-1.5">
+            {lines.map((line, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" as const }}
+                className="flex items-start gap-3"
+              >
+                <span className="shrink-0 text-zinc-700">{String(idx + 1).padStart(2, "0")}</span>
+                <span className="shrink-0 text-zinc-600">➜</span>
+                <span className={`shrink-0 ${
+                  line.tag === "[AI]" ? "text-indigo-400" :
+                  line.tag === "[DB]" ? "text-emerald-500" :
+                  line.tag === "[TAVILY]" ? "text-amber-400" :
+                  "text-zinc-500"
+                }`}>{line.tag}</span>
+                <span className={idx === lines.length - 1 ? "text-zinc-300" : "text-zinc-600"}>
+                  {line.msg}
+                </span>
+                <span className="ml-auto shrink-0 text-zinc-800">{line.ts}</span>
+              </motion.div>
             ))}
+            {/* Blinking cursor */}
+            {lines.length > 0 && lines.length < LOG_LINES.length && (
+              <div className="flex items-center gap-3 pl-8">
+                <span className="text-zinc-700">➜</span>
+                <motion.span
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ duration: 0.7, repeat: Infinity }}
+                  className="inline-block h-3 w-1.5 bg-zinc-400"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom status bar */}
+          <div className="flex h-7 items-center gap-4 border-t border-white/[.04] px-5 text-[10px] text-zinc-800">
+            <span>MONDAILY WORKSPACE</span>
+            <div className="h-px flex-1 bg-zinc-900"/>
+            <motion.span
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.4, repeat: Infinity }}
+              className="text-indigo-600"
+            >● BOOTING</motion.span>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ── CRM Data ──────────────────────────────────────────────────────────────────
+type RowStatus = "Active" | "In Progress" | "Closed Won" | "Lost" | "Enriching";
+
+interface CRMRow {
+  id: number;
+  name: string;
+  domain: string;
+  status: RowStatus;
+  arr: string;
+  arrNum: number;
+  country: string;
+  stage: string;
+  owner: string;
+  ownerBg: string;
+  enriching?: boolean;
+  justAdded?: boolean;
+}
+
+const SEED: CRMRow[] = [
+  { id: 1, name: "Stripe",  domain: "stripe.com",  status: "Active",      arr: "$4.2M",  arrNum: 4200000, country: "🇺🇸 US", stage: "Customer",    owner: "AK", ownerBg: "bg-violet-600" },
+  { id: 2, name: "Vercel",  domain: "vercel.com",  status: "In Progress", arr: "$1.8M",  arrNum: 1800000, country: "🇺🇸 US", stage: "Negotiation", owner: "MR", ownerBg: "bg-blue-600"   },
+  { id: 3, name: "Linear",  domain: "linear.app",  status: "Active",      arr: "$840K",  arrNum:  840000, country: "🇺🇸 US", stage: "Customer",    owner: "DK", ownerBg: "bg-emerald-600"},
+  { id: 4, name: "Figma",   domain: "figma.com",   status: "Active",      arr: "$2.1M",  arrNum: 2100000, country: "🇸🇬 SG", stage: "Customer",    owner: "AK", ownerBg: "bg-violet-600" },
+  { id: 5, name: "Notion",  domain: "notion.so",   status: "In Progress", arr: "$620K",  arrNum:  620000, country: "🇺🇸 US", stage: "Proposal",    owner: "JS", ownerBg: "bg-amber-600"  },
+];
+
+const NEW_ROW_SEED: Omit<CRMRow, "id"> = {
+  name: "Resend", domain: "resend.com", status: "Enriching",
+  arr: "—", arrNum: 0, country: "—", stage: "—", owner: "AI", ownerBg: "bg-indigo-600",
+  enriching: true, justAdded: true,
+};
+
+const ENRICHED_PATCH: Partial<CRMRow> = {
+  status: "Active", arr: "$380K", arrNum: 380000, country: "🇺🇸 US", stage: "Discovery", enriching: false, justAdded: false,
+};
+
+const STATUS_COLORS: Record<RowStatus, string> = {
+  "Active":      "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  "In Progress": "bg-amber-500/15  text-amber-400  border-amber-500/20",
+  "Closed Won":  "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
+  "Lost":        "bg-red-500/15    text-red-400    border-red-500/20",
+  "Enriching":   "bg-violet-500/15 text-violet-400 border-violet-500/20",
+};
+
+function fmtArr(n: number) {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `$${Math.round(n / 1000)}K`;
+  return `$${n}`;
+}
+
+// ── Status pill ───────────────────────────────────────────────────────────────
+function StatusPill({ status }: { status: RowStatus }) {
+  return (
+    <motion.span
+      key={status}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.25, ease: "easeOut" as const }}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[status]}`}
+    >
+      {status === "Enriching" && (
+        <motion.span
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 0.9, repeat: Infinity }}
+          className="h-1 w-1 rounded-full bg-violet-400"
+        />
+      )}
+      {status}
+    </motion.span>
+  );
+}
+
+// ── Inspector sidebar ─────────────────────────────────────────────────────────
+function Inspector({ row, onClose }: { row: CRMRow; onClose: () => void }) {
+  const [tasks, setTasks] = useState([
+    { id: 1, label: "Send NDA draft", done: true },
+    { id: 2, label: "Follow up on pricing", done: false },
+    { id: 3, label: "Schedule demo call", done: false },
+  ]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setTasks(prev => prev.map((t, i) => i === 1 ? { ...t, done: true } : t));
+    }, 1800);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ x: "100%", opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: "100%", opacity: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] as const }}
+      className="absolute right-0 top-0 z-20 flex h-full w-72 flex-col border-l border-white/[.07] bg-[#0d0f14] shadow-2xl"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2.5 border-b border-white/[.06] px-4 py-3">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[.06] text-[11px] font-bold text-white">
+          {row.name[0]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="truncate text-[13px] font-semibold text-white">{row.name}</p>
+          <p className="text-[10px] text-zinc-600">{row.domain}</p>
+        </div>
+        <button onClick={onClose} className="rounded p-1 text-zinc-600 hover:text-zinc-300 transition-colors">
+          <XIcon size={12}/>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto space-y-4 px-4 py-4 text-[12px]">
+        {/* Key fields */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Details</p>
+          {[
+            { label: "ARR",     value: row.arr,     icon: <ZapIcon size={11}/> },
+            { label: "Stage",   value: row.stage,   icon: <BriefcaseIcon size={11}/> },
+            { label: "Country", value: row.country, icon: <GlobeIcon size={11}/> },
+          ].map(({ label, value, icon }) => (
+            <div key={label} className="flex items-center gap-2.5 rounded-lg border border-white/[.05] bg-white/[.02] px-3 py-2">
+              <span className="text-zinc-600">{icon}</span>
+              <span className="text-zinc-500 w-14 shrink-0">{label}</span>
+              <span className="font-medium text-zinc-300">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Relations */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Contacts</p>
+          {[
+            { name: "Sarah Chen",   title: "VP Sales",   color: "bg-pink-600"   },
+            { name: "Marcus Reid",  title: "Eng Lead",   color: "bg-blue-600"   },
+          ].map(c => (
+            <div key={c.name} className="flex items-center gap-2.5 rounded-lg border border-white/[.05] bg-white/[.02] px-3 py-2">
+              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white ${c.color}`}>
+                {c.name.split(" ").map(n => n[0]).join("")}
+              </div>
+              <div>
+                <p className="font-medium text-zinc-300">{c.name}</p>
+                <p className="text-[10px] text-zinc-600">{c.title}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tasks */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Tasks</p>
+          {tasks.map(task => (
+            <motion.div
+              key={task.id}
+              animate={task.done ? { backgroundColor: "rgba(16,185,129,0.04)" } : {}}
+              className="flex items-center gap-2.5 rounded-lg border border-white/[.05] bg-white/[.02] px-3 py-2"
+            >
+              <motion.div
+                animate={task.done
+                  ? { backgroundColor: "rgb(16,185,129)", borderColor: "rgb(16,185,129)" }
+                  : { backgroundColor: "transparent", borderColor: "rgba(255,255,255,0.12)" }
+                }
+                transition={{ duration: 0.3 }}
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded border"
+              >
+                {task.done && <CheckIcon size={9}/>}
+              </motion.div>
+              <span className={task.done ? "text-zinc-600 line-through" : "text-zinc-300"}>{task.label}</span>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Activity */}
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Activity</p>
+          {[
+            { icon: <MailIcon size={10}/>, text: "Email sent · 2h ago", color: "text-blue-400" },
+            { icon: <SparklesIcon size={10}/>, text: "AI enriched record · 4h ago", color: "text-indigo-400" },
+          ].map((a, i) => (
+            <div key={i} className="flex items-center gap-2 text-[11px] text-zinc-600">
+              <span className={a.color}>{a.icon}</span>
+              {a.text}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+const SIDEBAR_LISTS = ["All Companies", "My Accounts", "Enterprise Tier", "High Intent"];
+const SIDEBAR_PIPES = ["Sales Pipeline", "Partnerships", "Renewals"];
+const SIDEBAR_MEMBERS = [
+  { init: "AK", bg: "bg-violet-600" },
+  { init: "MR", bg: "bg-blue-600"   },
+  { init: "JS", bg: "bg-amber-600"  },
+  { init: "DK", bg: "bg-emerald-600"},
+];
+
+function Sidebar() {
+  const [activeList, setActiveList] = useState(0);
+  return (
+    <div className="flex w-48 shrink-0 flex-col border-r border-white/[.06] bg-[#0a0c10] text-[12px]">
+      {/* Logo area */}
+      <div className="flex h-10 items-center gap-2.5 border-b border-white/[.05] px-3.5">
+        <MondailyLogo size={20} showWordmark />
+      </div>
+
+      <div className="flex-1 overflow-y-auto py-3 space-y-4 px-2">
+        {/* Search */}
+        <div className="flex items-center gap-2 rounded-lg border border-white/[.06] bg-white/[.03] px-2.5 py-1.5 text-zinc-600">
+          <SearchIcon size={11}/>
+          <span className="text-[11px]">Search…</span>
+        </div>
+
+        {/* Lists */}
+        <div>
+          <p className="mb-1.5 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Lists</p>
+          {SIDEBAR_LISTS.map((l, i) => (
+            <button
+              key={l}
+              onClick={() => setActiveList(i)}
+              className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors ${
+                activeList === i ? "bg-white/[.06] text-white" : "text-zinc-500 hover:bg-white/[.03] hover:text-zinc-300"
+              }`}
+            >
+              <ListIcon size={11}/>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {/* Pipelines */}
+        <div>
+          <p className="mb-1.5 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Pipelines</p>
+          {SIDEBAR_PIPES.map(p => (
+            <button key={p} className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-zinc-500 hover:bg-white/[.03] hover:text-zinc-300 transition-colors">
+              <BriefcaseIcon size={11}/>
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* Members */}
+        <div>
+          <p className="mb-2 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-700">Members</p>
+          <div className="flex flex-wrap gap-1.5 px-1.5">
+            {SIDEBAR_MEMBERS.map(m => (
+              <div key={m.init} className={`flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white ${m.bg}`}>
+                {m.init}
+              </div>
+            ))}
+            <button className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.1] text-zinc-600 hover:text-zinc-300 transition-colors">
+              <PlusIcon size={9}/>
+            </button>
           </div>
         </div>
-      </footer>
+      </div>
+
+      {/* Bottom settings */}
+      <div className="border-t border-white/[.05] px-3.5 py-3 flex items-center gap-2 text-zinc-700">
+        <SettingsIcon size={12}/>
+        <span className="text-[11px]">Settings</span>
+      </div>
     </div>
+  );
+}
+
+// ── Main Canvas ───────────────────────────────────────────────────────────────
+const COLS = [
+  { key: "status",  label: "Status",  w: "w-28" },
+  { key: "arr",     label: "ARR",     w: "w-24" },
+  { key: "country", label: "Country", w: "w-20" },
+  { key: "stage",   label: "Stage",   w: "w-28" },
+  { key: "owner",   label: "Owner",   w: "w-20" },
+];
+
+export function LandingPage() {
+  const [ready, setReady] = useState(false);
+  const [rows, setRows] = useState<CRMRow[]>(SEED);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [totalArr, setTotalArr] = useState(() => SEED.reduce((s, r) => s + r.arrNum, 0));
+  const [arrPulse, setArrPulse] = useState(false);
+  const cycleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const selectedRow = rows.find(r => r.id === selectedId) ?? null;
+
+  const calcTotal = useCallback((rs: CRMRow[]) =>
+    rs.reduce((s, r) => s + r.arrNum, 0), []);
+
+  // Animation cycle
+  useEffect(() => {
+    if (!ready) return;
+
+    const runCycle = () => {
+      // Reset
+      setRows(SEED);
+      setSelectedId(null);
+      setTotalArr(calcTotal(SEED));
+
+      // t=1.2s: add empty-then-enriching row
+      cycleRef.current = setTimeout(() => {
+        const newRow: CRMRow = { ...NEW_ROW_SEED, id: 99 };
+        setRows(prev => [...prev, newRow]);
+      }, 1200);
+
+      // t=3.2s: populate enriched row
+      cycleRef.current = setTimeout(() => {
+        setRows(prev => prev.map(r =>
+          r.id === 99 ? { ...r, ...ENRICHED_PATCH } : r
+        ));
+        const enrichedTotal = calcTotal([...SEED, { ...NEW_ROW_SEED, id: 99, ...ENRICHED_PATCH } as CRMRow]);
+        setTotalArr(enrichedTotal);
+        setArrPulse(true);
+        setTimeout(() => setArrPulse(false), 600);
+      }, 3200);
+
+      // t=5s: status mutation on Vercel row (In Progress → Closed Won)
+      cycleRef.current = setTimeout(() => {
+        setRows(prev => prev.map(r =>
+          r.id === 2 ? { ...r, status: "Closed Won" as RowStatus } : r
+        ));
+      }, 5000);
+
+      // t=6.5s: select Stripe row, open inspector
+      cycleRef.current = setTimeout(() => {
+        setSelectedId(1);
+      }, 6500);
+
+      // t=10s: close inspector, loop
+      cycleRef.current = setTimeout(() => {
+        setSelectedId(null);
+        setTimeout(runCycle, 800);
+      }, 10000);
+    };
+
+    runCycle();
+    return () => { if (cycleRef.current) clearTimeout(cycleRef.current); };
+  }, [ready, calcTotal]);
+
+  return (
+    <>
+      <Preloader onDone={() => setReady(true)} />
+
+      <AnimatePresence>
+        {ready && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" as const }}
+            className="flex h-screen w-screen overflow-hidden bg-[#0d0f13] text-zinc-300"
+          >
+            <Sidebar />
+
+            {/* Main panel */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+              {/* Top bar */}
+              <div className="flex h-10 shrink-0 items-center gap-3 border-b border-white/[.06] px-4">
+                <div className="flex items-center gap-1 text-[12px] text-zinc-500">
+                  <UsersIcon size={12}/>
+                  <span className="ml-1.5 font-medium text-zinc-300">Companies</span>
+                  <ChevronRightIcon size={10}/>
+                  <span>All Companies</span>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <button className="flex items-center gap-1.5 rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                    <FilterIcon size={10}/> Filter
+                  </button>
+                  <button className="flex items-center gap-1.5 rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                    <ColumnsIcon size={10}/> Columns
+                  </button>
+                  <button className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-indigo-500 transition-colors">
+                    <PlusIcon size={10}/> Add record
+                  </button>
+                </div>
+              </div>
+
+              {/* Table + inspector wrapper */}
+              <div className="relative flex-1 overflow-hidden">
+                {/* Scrollable table area */}
+                <div className="h-full overflow-auto">
+                  <table className="w-full border-collapse text-[12px]">
+                    <thead>
+                      <tr className="border-b border-white/[.06]">
+                        {/* Frozen Name column */}
+                        <th className="sticky left-0 z-10 bg-[#0d0f13] py-2.5 pl-4 pr-3 text-left">
+                          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                            Name <ChevronDownIcon size={9}/>
+                          </div>
+                        </th>
+                        {COLS.map(c => (
+                          <th key={c.key} className={`${c.w} py-2.5 px-3 text-left`}>
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{c.label}</span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <AnimatePresence>
+                        {rows.map(row => (
+                          <motion.tr
+                            key={row.id}
+                            initial={row.justAdded ? { opacity: 0, y: -8 } : false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeOut" as const }}
+                            onClick={() => setSelectedId(row.id === selectedId ? null : row.id)}
+                            className={`group cursor-pointer border-b border-white/[.04] transition-colors ${
+                              selectedId === row.id
+                                ? "bg-indigo-500/[.08]"
+                                : "hover:bg-white/[.025]"
+                            } ${row.enriching ? "animate-pulse" : ""}`}
+                          >
+                            {/* Frozen Name cell */}
+                            <td className="sticky left-0 z-10 bg-[#0d0f13] py-2.5 pl-4 pr-3 group-hover:bg-[#111420]">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-white/[.08] bg-white/[.04] text-[9px] font-bold text-zinc-400">
+                                  {row.name[0]}
+                                </div>
+                                <span className="font-medium text-zinc-200">{row.name}</span>
+                                {row.enriching && (
+                                  <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-2 py-0.5 text-[9px] text-violet-400">
+                                    <SparklesIcon size={9}/> AI
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="w-28 py-2.5 px-3"><StatusPill status={row.status}/></td>
+                            <td className="w-24 py-2.5 px-3 font-mono text-zinc-300">{row.arr}</td>
+                            <td className="w-20 py-2.5 px-3 text-zinc-500">{row.country}</td>
+                            <td className="w-28 py-2.5 px-3 text-zinc-500">{row.stage}</td>
+                            <td className="w-20 py-2.5 px-3">
+                              <div className="flex items-center gap-1.5">
+                                <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white ${row.ownerBg}`}>
+                                  {row.owner}
+                                </div>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </AnimatePresence>
+                    </tbody>
+                  </table>
+
+                  {/* ── Sticky calculate footer ─────────────────────────────── */}
+                  <div className="sticky bottom-0 left-0 right-0 flex items-center border-t border-white/[.08] bg-[#0d0f13]/95 backdrop-blur-sm px-4 py-2.5 text-[11px]">
+                    <div className="sticky left-4 flex items-center gap-2 text-zinc-600">
+                      <PlusIcon size={10}/>
+                      <span>Calculate</span>
+                      <span className="mx-2 text-zinc-800">·</span>
+                      <span className="text-zinc-700">{rows.length} records</span>
+                    </div>
+                    <div className="ml-auto flex items-center gap-2">
+                      <span className="text-zinc-600">Total ARR</span>
+                      <motion.span
+                        key={totalArr}
+                        animate={arrPulse
+                          ? { scale: [1, 1.08, 1], color: ["#a5b4fc", "#6366f1", "#e2e8f0"] }
+                          : { scale: 1 }}
+                        transition={{ duration: 0.5, ease: "easeOut" as const }}
+                        className="font-mono font-semibold text-zinc-200"
+                      >
+                        {fmtArr(totalArr)}
+                      </motion.span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Inspector */}
+                <AnimatePresence>
+                  {selectedRow && (
+                    <Inspector
+                      key={selectedRow.id}
+                      row={selectedRow}
+                      onClose={() => setSelectedId(null)}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
