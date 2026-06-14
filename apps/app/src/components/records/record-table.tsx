@@ -518,7 +518,8 @@ function OwnerCell({ value, members, onSelect }: {
                   {initials(label)}
                 </div>
                 <span className="truncate">{label}</span>
-                {isActive && <Check size={11} className="ml-auto text-red-400 shrink-0"/>}
+                {m.role && <span className="ml-auto text-[9px] text-slate-500 capitalize shrink-0">{m.role}</span>}
+                {isActive && <Check size={11} className="ml-1 text-red-400 shrink-0"/>}
               </button>
             );
           })}

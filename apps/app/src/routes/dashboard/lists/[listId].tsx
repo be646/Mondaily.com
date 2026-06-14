@@ -288,7 +288,8 @@ export function ListPage() {
                             <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold transition-colors ${isShared ? "bg-blue-500/20" : "bg-white/[.10]"}`}>
                               {memberInitials(m)}
                             </span>
-                            {memberLabel(m)}
+                            <span className="truncate">{memberLabel(m)}</span>
+                            {m.role && <span className="text-[9px] text-slate-500 capitalize">{m.role}</span>}
                             {isShared && <span className="ml-auto text-[10px] text-blue-500">shared</span>}
                           </button>
                         );
