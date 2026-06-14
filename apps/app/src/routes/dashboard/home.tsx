@@ -178,6 +178,11 @@ export function HomePage() {
   const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications", "risk"],
+    queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string }[]>("/notifications?limit=50"),
+    staleTime: 60_000,
+  });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -411,6 +416,8 @@ export function HomePage() {
   const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
+  // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
+  const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
@@ -429,21 +436,21 @@ export function HomePage() {
             </Link>
           )}
           {overdueCount > 0 && (
-            <Link to="/tasks" className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/[.07] px-3 py-1 text-xs text-red-400 hover:bg-red-500/[.12] transition-colors">
+            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/[.07] px-3 py-1 text-xs text-red-400 hover:bg-red-500/[.12] transition-colors">
               <Clock size={11}/>
               {overdueCount} overdue
             </Link>
           )}
           {urgentCount > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/[.07] px-3 py-1 text-xs text-amber-400">
+            <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/[.07] px-3 py-1 text-xs text-amber-400 hover:bg-amber-500/[.12] transition-colors">
               <Flag size={11}/>
               {urgentCount} urgent
-            </span>
+            </Link>
           )}
-          {riskBanner !== null && (
+          {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
             <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/[.08] px-3 py-1 text-xs text-amber-300 hover:bg-amber-500/[.14] transition-colors">
               <BellDot size={11}/>
-              {riskBanner} AI risk alert{riskBanner > 1 ? "s" : ""}
+              {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
             </Link>
           )}
         </div>

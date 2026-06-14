@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet, Sparkles, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useUser } from "@clerk/react";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
@@ -376,10 +377,12 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 export function TasksPage() {
   const qc = useQueryClient();
   const { user } = useUser();
+  const location = useLocation();
 
   useEffect(() => { apiClient.post("/tasks/check-overdue", {}).catch(() => {}); }, []);
 
-  const [filter, setFilter]               = useState("mine");
+  const navState = (location.state ?? {}) as { filter?: string; priority?: string };
+  const [filter, setFilter] = useState<string>(navState.filter ?? "mine");
   const [showCreate, setShowCreate]       = useState(false);
   const [showAISuggest, setShowAISuggest] = useState(false);
   const [expandedId, setExpandedId]       = useState<string | null>(null);
@@ -387,7 +390,7 @@ export function TasksPage() {
   const [detailTask, setDetailTask]       = useState<Task | null>(null);
   const [showDone, setShowDone]           = useState(false);
   const [labelFilter, setLabelFilter]     = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState(navState.priority ?? "");
   const [priorityOpen, setPriorityOpen]   = useState(false);
   const [sortBy, setSortBy]               = useState("created_at");
   const [sortDir, setSortDir]             = useState<"asc" | "desc">("desc");
