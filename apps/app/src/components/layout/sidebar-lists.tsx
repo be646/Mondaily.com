@@ -12,7 +12,7 @@ interface ListItem {
   entry_count: number;
   owner_id: string;
   assignee_id: string | null;
-  shared_with: string[];
+  shared_with: string[] | null | undefined;
 }
 interface Member { id: string; user_id: string; name: string; email: string }
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown> }
@@ -131,7 +131,7 @@ export function SidebarLists() {
 
   function renderList(list: ListItem) {
     const assignee = members.find(m => m.user_id === list.assignee_id);
-    const sharedCount = list.shared_with.length;
+    const sharedCount = (list.shared_with ?? []).length;
     return (
       <div key={list.id} className="group flex items-center">
         <Link
