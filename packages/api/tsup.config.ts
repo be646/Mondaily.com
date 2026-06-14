@@ -14,4 +14,5 @@ export default defineConfig({
   esbuildOptions(options) {
     options.platform = 'node'
   },
+  footer: { js: 'module.exports = exports.default;' },
 })
