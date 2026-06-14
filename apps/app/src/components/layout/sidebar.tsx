@@ -51,7 +51,8 @@ const navGroups: NavGroup[] = [
   {
     label: "Automation",
     items: [
-      { to: "/automations", label: "Workflows", icon: GitBranch },
+      { to: "/automations", label: "Workflows",  icon: GitBranch },
+      { to: "/sequences",   label: "Sequences",  icon: Activity },
     ],
   },
 ];
