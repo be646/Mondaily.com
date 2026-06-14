@@ -36,17 +36,22 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: "Sales",
+    items: [
+      { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
+      { to: "/reports",  label: "Reports",  icon: BarChart2 },
+    ],
+  },
+  {
     label: "Finance",
     items: [
       { to: "/finance/invoices", label: "Invoices", icon: Receipt },
-      { to: "/reports",          label: "Reports",  icon: BarChart2 },
     ],
   },
   {
     label: "Automation",
     items: [
-      { to: "/automations", label: "Workflows",  icon: GitBranch },
-      { to: "/pipeline",    label: "Pipeline",   icon: Activity },
+      { to: "/automations", label: "Workflows", icon: GitBranch },
     ],
   },
 ];
