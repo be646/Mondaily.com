@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search, Receipt } from "lucide-react";
+import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp, GitBranch, Activity, Inbox } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
@@ -7,17 +7,48 @@ import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
 
-const navItems = [
-  { to: "/home",          label: "Home",          icon: Home },
-  { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/tasks",         label: "Tasks",         icon: CheckSquare },
-  { to: "/notes",         label: "Notes",         icon: FileText },
-  { to: "/search",        label: "Search",        icon: Search },
-  { to: "/emails",        label: "Emails",        icon: Mail },
-  { to: "/calls",         label: "Calls",         icon: Phone },
-  { to: "/reports",       label: "Reports",       icon: BarChart2 },
-  { to: "/automations",   label: "Automations",   icon: Zap },
-  { to: "/finance/invoices", label: "Invoices",   icon: Receipt },
+type NavGroup = {
+  label: string;
+  items: { to: string; label: string; icon: React.ElementType }[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Workspace",
+    items: [
+      { to: "/home",          label: "Home",          icon: Home },
+      { to: "/notifications", label: "Notifications", icon: Bell },
+      { to: "/search",        label: "Search",        icon: Search },
+    ],
+  },
+  {
+    label: "Work",
+    items: [
+      { to: "/tasks",  label: "Tasks",  icon: CheckSquare },
+      { to: "/notes",  label: "Notes",  icon: FileText },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      { to: "/emails", label: "Emails", icon: Mail },
+      { to: "/calls",  label: "Calls",  icon: Phone },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { to: "/finance/invoices", label: "Invoices", icon: Receipt },
+      { to: "/reports",          label: "Reports",  icon: BarChart2 },
+    ],
+  },
+  {
+    label: "Automation",
+    items: [
+      { to: "/automations", label: "Workflows",  icon: GitBranch },
+      { to: "/pipeline",    label: "Pipeline",   icon: Activity },
+    ],
+  },
 ];
 
 function Logo({ size = 28 }: { size?: number }) {
@@ -57,6 +88,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const { signOut } = useClerk();
   const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Workspace: true, Work: true, Communication: false, Finance: false, Automation: false });
+  const toggleGroup = (label: string) => setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
 
   useEffect(() => {
     const email = user?.primaryEmailAddress?.emailAddress;
@@ -180,7 +213,25 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </button>
           )}
 
-          {navItems.map(item => <NavItem key={item.to} {...item}/>)}
+          {collapsed
+            ? navGroups.flatMap(g => g.items).map(item => <NavItem key={item.to} {...item}/>)
+            : navGroups.map(group => {
+                const isOpen = openGroups[group.label] ?? true;
+                const anyActive = group.items.some(i => location.pathname.startsWith(i.to));
+                return (
+                  <div key={group.label} className="mb-0.5">
+                    <button
+                      onClick={() => toggleGroup(group.label)}
+                      className={`flex w-full items-center justify-between px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${anyActive ? "text-slate-400" : "text-slate-600 hover:text-slate-400"}`}
+                    >
+                      {group.label}
+                      <ChevronDown size={10} className={`transition-transform ${isOpen ? "rotate-180" : ""}`}/>
+                    </button>
+                    {isOpen && group.items.map(item => <NavItem key={item.to} {...item}/>)}
+                  </div>
+                );
+              })
+          }
 
           {!collapsed && (
             <>
