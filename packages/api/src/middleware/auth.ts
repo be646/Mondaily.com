@@ -12,32 +12,34 @@ export const requireAuth = createMiddleware<{
   if (!token) throw new HTTPException(401, { message: "Unauthorized" });
   if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
 
+  let userId: string;
   try {
-    // Verify JWT signature cryptographically using Clerk's JWKS
     const verified = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
+      publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
     });
-    const userId = verified.sub;
-    if (!userId) throw new HTTPException(401, { message: "Invalid token" });
-
-    // Verify the user is actually a member of the claimed workspace and get their real role
-    const { data: membership } = await supabase
-      .from("workspace_members")
-      .select("role")
-      .eq("workspace_id", workspaceId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!membership) throw new HTTPException(403, { message: "Not a member of this workspace" });
-
-    c.set("userId", userId);
-    c.set("workspaceId", workspaceId);
-    c.set("role", membership.role);
-    await next();
+    userId = verified.sub;
+    if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
   } catch (e) {
     if (e instanceof HTTPException) throw e;
-    throw new HTTPException(401, { message: "Invalid token" });
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new HTTPException(401, { message: `JWT verification failed: ${msg}` });
   }
+
+  const { data: membership, error: dbError } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (dbError) throw new HTTPException(500, { message: `DB error: ${dbError.message}` });
+  if (!membership) throw new HTTPException(403, { message: `User ${userId} not in workspace ${workspaceId}` });
+
+  c.set("userId", userId);
+  c.set("workspaceId", workspaceId);
+  c.set("role", membership.role);
+  await next();
 });
 
 // Use on routes where only admins/owners can act
