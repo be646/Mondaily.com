@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import app from './src/app'
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  try {
   const host = req.headers['host'] || 'localhost'
   const url = new URL(req.url || '/', `https://${host}`)
 
@@ -31,4 +32,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   const responseBody = await webResponse.arrayBuffer()
   res.end(Buffer.from(responseBody))
+  } catch (err: any) {
+    res.statusCode = 500
+    res.setHeader('content-type', 'application/json')
+    res.end(JSON.stringify({ error: err?.message, stack: err?.stack }))
+  }
 }
