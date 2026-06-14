@@ -4,35 +4,19 @@
 
 /* ── Theme tokens ──────────────────────────────────────────────────────────── */
 :root {
-  /* dark (default) */
   --md-bg:          #0d0f13;
   --md-bg-panel:    #0f1114;
-  --md-bg-input:    rgba(255,255,255,0.04);
-  --md-bg-hover:    rgba(255,255,255,0.04);
   --md-border:      rgba(255,255,255,0.07);
-  --md-border-hi:   rgba(255,255,255,0.12);
   --md-text:        #f1f5f9;
   --md-text-muted:  #64748b;
-  --md-text-faint:  #334155;
-  --md-scrollbar:   rgba(255,255,255,0.08);
 }
 
 html[data-theme="light"] {
   --md-bg:          #f4f5f8;
   --md-bg-panel:    #ffffff;
-  --md-bg-input:    rgba(0,0,0,0.04);
-  --md-bg-hover:    rgba(0,0,0,0.04);
   --md-border:      rgba(0,0,0,0.09);
-  --md-border-hi:   rgba(0,0,0,0.16);
   --md-text:        #0f172a;
   --md-text-muted:  #475569;
-  --md-text-faint:  #94a3b8;
-  --md-scrollbar:   rgba(0,0,0,0.10);
-}
-
-body {
-  background: var(--md-bg) !important;
-  color: var(--md-text) !important;
 }
 
 /* ── Mondaily logo scan animation ── */
@@ -62,13 +46,17 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Light mode — override body background and text */
+html[data-theme="light"] body {
+  background: #f4f5f8;
+  color: #0f172a;
+}
+
 /* Excel-grid dropdown system */
 @layer components {
-  /* Panel: sharp corners, no padding — items fill edge-to-edge with grid lines */
   .dropdown-panel {
     @apply absolute z-50 mt-1 overflow-hidden rounded border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm;
   }
-  /* Item: full-width row with bottom grid line, tight height like table rows */
   .dropdown-item {
     @apply flex w-full items-center gap-2 px-3 py-[6px] text-[12px] text-zinc-400
            border-b border-b-zinc-800/40 last:border-b-0
@@ -92,79 +80,72 @@ body {
 
 /* Tactile Minimalist — global border & radius tokens */
 @layer base {
-  /* Ultra-thin borders throughout */
   *[class*="border-white/"] {
     border-width: 1px;
   }
 
-  /* Sharpen rounded corners to 6–8px range */
-  .rounded-xl { border-radius: 8px; }
+  .rounded-xl  { border-radius: 8px; }
   .rounded-2xl { border-radius: 10px; }
   .rounded-3xl { border-radius: 12px; }
 
-  /* Tighter tracking on headings */
   h1, h2, h3, h4 {
     letter-spacing: -0.02em;
   }
 
-  /* Crisp small text */
   .text-xs, .text-\[10px\], .text-\[11px\], .text-\[12px\] {
     letter-spacing: 0.01em;
   }
 }
 
-/* ── Light-theme structural overrides ───────────────────────────────────────
-   We can't change every Tailwind class in every component, so we selectively
-   override the key structural surfaces that the layout / settings pages use.  */
-html[data-theme="light"] .key-input {
-  @apply border-black/[.12] border-b-black/[.20] bg-black/[.04] text-slate-800 placeholder-slate-400;
-  @apply focus:border-x-black/[.18] focus:border-t-black/[.18] focus:border-b-red-500/50 focus:bg-black/[.06];
+/* ── Styled toggle switch ────────────────────────────────────────────────── */
+.md-toggle {
+  position: relative;
+  display: inline-flex;
+  height: 1.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  transition: background-color 0.2s;
 }
-html[data-theme="light"] .key-button {
-  @apply border-black/[.10] border-b-black/[.18] bg-black/[.03] text-slate-600;
-  @apply hover:bg-black/[.06] hover:text-slate-900;
+.md-toggle-thumb {
+  pointer-events: none;
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  transform: translateX(0);
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease-in-out;
 }
-html[data-theme="light"] .dropdown-panel {
-  @apply border-black/20 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)];
-}
-html[data-theme="light"] .dropdown-item {
-  @apply border-b-black/[.06] text-slate-600 hover:bg-black/[.04] hover:text-slate-900;
-}
+.md-toggle[aria-checked="true"]  { background-color: #ef4444; }
+.md-toggle[aria-checked="false"] { background-color: rgba(255,255,255,0.12); }
+.md-toggle[aria-checked="true"]  .md-toggle-thumb { transform: translateX(1rem); }
+.md-toggle[aria-checked="false"] .md-toggle-thumb { transform: translateX(0); }
 
-/* ── Styled toggle switch (used in settings) ─────────────────────────────── */
-@layer components {
-  .md-toggle {
-    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200;
-  }
-  .md-toggle-thumb {
-    @apply pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out;
-  }
-  .md-toggle[aria-checked="true"]  { @apply bg-red-500; }
-  .md-toggle[aria-checked="false"] { @apply bg-white/[.12]; }
-  html[data-theme="light"] .md-toggle[aria-checked="false"] { @apply bg-black/[.14]; }
-  .md-toggle[aria-checked="true"]  .md-toggle-thumb { @apply translate-x-4; }
-  .md-toggle[aria-checked="false"] .md-toggle-thumb { @apply translate-x-0; }
+/* ── Settings page shared layout classes ─────────────────────────────────── */
+.settings-section {
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.015);
+  overflow: hidden;
 }
-
-/* ── Settings page shared styles ─────────────────────────────────────────── */
-@layer components {
-  .settings-section {
-    @apply rounded-xl border border-white/[.07] bg-white/[.015] overflow-hidden;
-  }
-  html[data-theme="light"] .settings-section {
-    @apply border-black/[.09] bg-white;
-  }
-  .settings-section-header {
-    @apply flex items-center justify-between border-b border-white/[.06] px-5 py-3.5;
-  }
-  html[data-theme="light"] .settings-section-header {
-    @apply border-black/[.07];
-  }
-  .settings-row {
-    @apply flex items-center justify-between gap-4 border-b border-white/[.05] px-5 py-4 last:border-0;
-  }
-  html[data-theme="light"] .settings-row {
-    @apply border-black/[.06];
-  }
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 0.875rem 1.25rem;
 }
-
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 1rem 1.25rem;
+}
+.settings-row:last-child { border-bottom: none; }
