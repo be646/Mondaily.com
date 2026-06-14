@@ -497,6 +497,13 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   type Cat = keyof typeof CATEGORY_META;
   const fallbackMeta = CATEGORY_META.summary;
 
+  // Reset when the object type the panel is analysing changes
+  useEffect(() => {
+    setInsights(null);
+    setError(null);
+    setModalOpen(false);
+  }, [objectType]);
+
   async function run() {
     if (insights) { setModalOpen(true); return; }
     setLoading(true); setError(null);
