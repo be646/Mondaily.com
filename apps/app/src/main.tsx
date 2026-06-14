@@ -26,7 +26,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
     getToken().then((token) => {
       if (token) localStorage.setItem("mondaily_session_token", token);
-      localStorage.setItem("mondaily_workspace_id", organization?.id || "8ccef088-6493-4cd9-a0cf-3214098f59a1");
+      localStorage.setItem("mondaily_workspace_id", "8ccef088-6493-4cd9-a0cf-3214098f59a1");
       setReady(true);
     });
   }, [isLoaded, isSignedIn]);
@@ -40,12 +40,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }, 55_000);
     return () => clearInterval(interval);
   }, [isSignedIn, isLoaded]);
-
-  useEffect(() => {
-    if (organization?.id) {
-      localStorage.setItem("mondaily_workspace_id", organization.id);
-    }
-  }, [organization?.id]);
 
   if (!ready) return null;
   return <>{children}</>;
