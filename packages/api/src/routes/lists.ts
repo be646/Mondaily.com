@@ -9,24 +9,37 @@ const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
 
 router.get("/", async (c) => {
-  const { data, error } = await supabase.from("lists").select("id,name,object_type,access_level,owner_id,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).order("created_at");
+  const userId = c.get("userId");
+  const role = c.get("role");
+  let query = supabase
+    .from("lists")
+    .select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)")
+    .eq("workspace_id", c.get("workspaceId"))
+    .order("created_at");
+
+  // owners and admins see everything; others filtered by visibility
+  if (!["owner", "admin"].includes(role)) {
+    query = query.or(`visibility.eq.workspace,owner_id.eq.${userId},shared_with.cs.{"${userId}"}`);
+  }
+
+  const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 400);
   return c.json((data ?? []).map((list) => ({ ...list, entry_count: Array.isArray(list.list_entries) ? Number(list.list_entries[0]?.count ?? 0) : 0 })));
 });
 
 router.post("/", zValidator("json", z.object({ name: z.string().min(1), object_type: z.string().min(1) })), async (c) => {
   const body = c.req.valid("json");
-  const { data, error } = await supabase.from("lists").insert({ workspace_id: c.get("workspaceId"), owner_id: c.get("userId"), access_level: "workspace", ...body }).select().single();
+  const { data, error } = await supabase.from("lists").insert({ workspace_id: c.get("workspaceId"), owner_id: c.get("userId"), visibility: "workspace", access_level: "workspace", ...body }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json({ ...data, entry_count: 0 }, 201);
 });
 
 router.get("/:id", async (c) => {
-  const { data } = await supabase.from("lists").select("id,name,object_type,access_level,owner_id,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  const { data } = await supabase.from("lists").select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
   return data ? c.json({ ...data, entry_count: Array.isArray(data.list_entries) ? Number(data.list_entries[0]?.count ?? 0) : 0 }) : c.json({ error: "List not found" }, 404);
 });
 
 router.patch("/:id", async (c) => {
-  const body = await c.req.json<{ name?: string; access_level?: "private" | "workspace" | "team"; filters?: unknown[]; views?: unknown[] }>();
+  const body = await c.req.json<{ name?: string; visibility?: "private" | "workspace" | "shared"; access_level?: string; filters?: unknown[]; views?: unknown[]; shared_with?: string[] }>();
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data);
 });

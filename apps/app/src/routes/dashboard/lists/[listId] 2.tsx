@@ -10,7 +10,7 @@ import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
-interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined }
+interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] }
 interface Member { id: string; user_id: string; name: string; email: string }
 
 function display(value: unknown) {
@@ -216,9 +216,9 @@ export function ListPage() {
               ? (members.find(m => m.user_id === list.data!.assignee_id)?.name?.split(" ")[0]
                   ?? (list.data.assignee_id === userId ? "Me" : "Assigned"))
               : "Assign"}
-            {(list.data.shared_with ?? []).length > 0 && (
+            {list.data.shared_with.length > 0 && (
               <span className="ml-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] text-blue-400">
-                +{(list.data.shared_with ?? []).length}
+                +{list.data.shared_with.length}
               </span>
             )}
           </button>
@@ -273,25 +273,13 @@ export function ListPage() {
                   </div>
                 )}
 
-                {/* Visibility */}
-                <div className="my-2 border-t border-white/[.06]" />
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Visibility</p>
-                <div className="flex gap-1 mb-2">
-                  {(["workspace", "shared", "private"] as const).map(v => (
-                    <button key={v} onClick={() => apiClient.patch(`/lists/${list.data!.id}`, { visibility: v }).then(() => list.refetch())}
-                      className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium capitalize transition-colors ${(list.data!.visibility ?? "workspace") === v ? "bg-red-500/20 text-red-300" : "bg-white/[.04] text-slate-500 hover:text-slate-300"}`}>
-                      {v}
-                    </button>
-                  ))}
-                </div>
-
                 {members.length > 0 && (
                   <>
                     <div className="my-2 border-t border-white/[.06]" />
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Share with</p>
                     <div className="space-y-1">
                       {members.filter(m => m.user_id !== list.data!.assignee_id).map(m => {
-                        const isShared = (list.data!.shared_with ?? []).includes(m.user_id);
+                        const isShared = list.data!.shared_with.includes(m.user_id);
                         return (
                           <button key={m.user_id}
                             onClick={() => toggleShared(m.user_id)}
@@ -300,8 +288,7 @@ export function ListPage() {
                             <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold transition-colors ${isShared ? "bg-blue-500/20" : "bg-white/[.10]"}`}>
                               {memberInitials(m)}
                             </span>
-                            <span className="truncate">{memberLabel(m)}</span>
-                            {m.role && <span className="text-[9px] text-slate-500 capitalize">{m.role}</span>}
+                            {memberLabel(m)}
                             {isShared && <span className="ml-auto text-[10px] text-blue-500">shared</span>}
                           </button>
                         );

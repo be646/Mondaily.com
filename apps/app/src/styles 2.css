@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme tokens ──────────────────────────────────────────────────────────── */
+:root {
+  --md-bg:          #0d0f13;
+  --md-bg-panel:    #0f1114;
+  --md-border:      rgba(255,255,255,0.07);
+  --md-text:        #f1f5f9;
+  --md-text-muted:  #64748b;
+}
+
+html[data-theme="light"] {
+  --md-bg:          #f4f5f8;
+  --md-bg-panel:    #ffffff;
+  --md-border:      rgba(0,0,0,0.09);
+  --md-text:        #0f172a;
+  --md-text-muted:  #475569;
+}
+
+/* ── Mondaily logo scan animation ── */
+@keyframes scanUp {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+.logo-scan {
+  animation: scanUp 1.6s linear infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.logo-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+body {
+  margin: 0;
+  background: #0d0f13;
+  color: #f8fafc;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+/* Light mode — override body background and text */
+html[data-theme="light"] body {
+  background: #f4f5f8;
+  color: #0f172a;
+}
+
+/* Excel-grid dropdown system */
+@layer components {
+  .dropdown-panel {
+    @apply absolute z-50 mt-1 overflow-hidden rounded border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm;
+  }
+  .dropdown-item {
+    @apply flex w-full items-center gap-2 px-3 py-[6px] text-[12px] text-zinc-400
+           border-b border-b-zinc-800/40 last:border-b-0
+           transition-colors duration-100
+           hover:bg-zinc-800/40 hover:text-zinc-100;
+  }
+  .dropdown-item-active {
+    @apply bg-zinc-800/30 text-zinc-100;
+  }
+}
+
+/* Tactile Minimalist — keyboard key style inputs */
+@layer components {
+  .key-input {
+    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-x-white/[.15] focus:border-t-white/[.15] focus:border-b-red-500/40 focus:bg-white/[.06];
+  }
+  .key-button {
+    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-400 transition-all hover:bg-white/[.06] hover:text-white active:translate-y-[1px] active:border-b active:border-b-white/[.10];
+  }
+}
+
+/* Tactile Minimalist — global border & radius tokens */
+@layer base {
+  *[class*="border-white/"] {
+    border-width: 1px;
+  }
+
+  .rounded-xl  { border-radius: 8px; }
+  .rounded-2xl { border-radius: 10px; }
+  .rounded-3xl { border-radius: 12px; }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+
+  .text-xs, .text-\[10px\], .text-\[11px\], .text-\[12px\] {
+    letter-spacing: 0.01em;
+  }
+}
+
+/* ── Styled toggle switch ────────────────────────────────────────────────── */
+.md-toggle {
+  position: relative;
+  display: inline-flex;
+  height: 1.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  transition: background-color 0.2s;
+}
+.md-toggle-thumb {
+  pointer-events: none;
+  display: inline-block;
+  height: 1rem;
+  width: 1rem;
+  transform: translateX(0);
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease-in-out;
+}
+.md-toggle[aria-checked="true"]  { background-color: #ef4444; }
+.md-toggle[aria-checked="false"] { background-color: rgba(255,255,255,0.12); }
+.md-toggle[aria-checked="true"]  .md-toggle-thumb { transform: translateX(1rem); }
+.md-toggle[aria-checked="false"] .md-toggle-thumb { transform: translateX(0); }
+
+/* ── Settings page shared layout classes ─────────────────────────────────── */
+.settings-section {
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.015);
+  overflow: hidden;
+}
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 0.875rem 1.25rem;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 1rem 1.25rem;
+}
+.settings-row:last-child { border-bottom: none; }

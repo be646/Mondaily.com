@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { requireAuth, requireJwt } from "../middleware/auth";
+import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
@@ -10,34 +10,15 @@ router.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const { data, error } = await supabase
     .from("workspace_members")
-    .select("id, user_id, email, name, role, position, avatar_url")
+    .select("id, user_id, email, name, role, avatar_url")
     .eq("workspace_id", workspaceId)
     .order("name");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
 
-// PATCH /members/:userId - update role or position (admin/owner only)
-router.patch("/:userId", async (c) => {
-  const requesterRole = c.get("role");
-  if (!["owner", "admin"].includes(requesterRole)) {
-    return c.json({ error: "Only owners and admins can update member roles" }, 403);
-  }
-  const body = await c.req.json<{ role?: string; position?: string; name?: string }>();
-  const { data, error } = await supabase
-    .from("workspace_members")
-    .update(body)
-    .eq("workspace_id", c.get("workspaceId"))
-    .eq("user_id", c.req.param("userId"))
-    .select()
-    .single();
-  if (error) return c.json({ error: error.message }, 500);
-  return c.json(data);
-});
-
 // POST /members/sync - upsert current user, fetch info from Clerk if missing
-// Uses JWT-only auth so new users can bootstrap themselves into a workspace
-router.post("/sync", requireJwt, async (c) => {
+router.post("/sync", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
 
@@ -63,12 +44,6 @@ router.post("/sync", requireJwt, async (c) => {
     } catch {}
   }
 
-  // Ensure workspace exists
-  const { error: wsError } = await supabase
-    .from("workspaces")
-    .upsert({ id: workspaceId, name: name || email || "My Workspace" }, { onConflict: "id", ignoreDuplicates: true });
-  if (wsError) return c.json({ error: `workspace upsert: ${wsError.message}` }, 500);
-
   const { data, error } = await supabase
     .from("workspace_members")
     .upsert({
@@ -77,7 +52,7 @@ router.post("/sync", requireJwt, async (c) => {
       email: email || userId,
       name: name || email || userId,
       avatar_url,
-      role: "owner"
+      role: "member"
     }, { onConflict: "workspace_id,user_id" })
     .select()
     .single();
