@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import * as ubc from "@mondaily/db/ubc";
+import { inngest } from "../lib/inngest";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -48,6 +49,19 @@ router.post("/", requireAuth, zValidator("json", z.object({
   const body = c.req.valid("json");
   const node = await ubc.createNode({ workspace_id: c.get("workspaceId"), created_by: c.get("userId"), ...body });
   await ubc.logActivity(node.id!, c.get("workspaceId"), "human", c.get("userId"), "created", undefined, `Created ${body.object_type}`);
+
+  // Fire background enrichment (non-blocking — never fails the request)
+  inngest.send({
+    name: "crm/record.created",
+    data: {
+      workspaceId: c.get("workspaceId"),
+      nodeId: node.id!,
+      objectType: body.object_type,
+      vertical: body.vertical,
+      recordData: body.data,
+    },
+  }).catch(() => {/* enrichment is best-effort */});
+
   return c.json(node, 201);
 });
 
