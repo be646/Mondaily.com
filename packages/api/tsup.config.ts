@@ -9,7 +9,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: false,
   clean: false,
-  noExternal: [/@mondaily\/.*/],
+  noExternal: [/./],
   outExtension: () => ({ js: '.js' }),
   esbuildOptions(options) {
     options.platform = 'node'
