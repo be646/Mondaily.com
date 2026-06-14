@@ -4,6 +4,7 @@ export default defineConfig({
   entry: { index: 'api/index.ts' },
   outDir: 'api/dist',
   format: ['cjs'],
+  outExtension: () => ({ js: '.js' }),
   target: 'node20',
   bundle: true,
   splitting: false,
