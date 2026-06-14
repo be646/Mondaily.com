@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: { handler: 'handler.ts' },
+  entry: { handler: 'handler.ts', inngest: 'inngest-handler.ts' },
   outDir: 'api',
   format: ['cjs'],
   target: 'node20',
