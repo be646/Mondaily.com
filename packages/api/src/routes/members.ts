@@ -9,7 +9,7 @@ router.get("/", requireAuth, async (c) => {
   const workspaceId = c.get("workspaceId");
   const { data, error } = await supabase
     .from("workspace_members")
-    .select("id, user_id, email, name, role, avatar_url")
+    .select("id, user_id, email, name, role, position, avatar_url")
     .eq("workspace_id", workspaceId)
     .order("name");
   if (error) return c.json({ error: error.message }, 500);
