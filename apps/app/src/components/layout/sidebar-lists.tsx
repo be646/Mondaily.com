@@ -186,7 +186,7 @@ export function SidebarLists() {
           <button onClick={() => setTeamOpen(v => !v)}
             className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700 hover:text-slate-500 transition-colors">
             {teamOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-            <Users size={9} /> Team
+            <Users size={9} /> Shared
           </button>
           {teamOpen && teamLists.map(renderList)}
         </div>
