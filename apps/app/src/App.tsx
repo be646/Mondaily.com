@@ -28,6 +28,7 @@ import { AutomationsPage } from "./routes/dashboard/automations";
 import { WorkflowBuilderPage } from "./routes/dashboard/automations/workflow-builder";
 import { SequenceBuilderPage } from "./routes/dashboard/automations/sequence-builder";
 import { AskPage } from "./routes/dashboard/ask/[threadId]";
+import CanvasPage from "./routes/dashboard/canvas";
 import { ObjectIndexPage } from "./routes/dashboard/objects/[objectType]/index";
 import { PipelinePage } from "./routes/dashboard/pipeline";
 import { RecordDetailPage } from "./routes/dashboard/objects/[objectType]/[recordId]";
@@ -86,6 +87,7 @@ export function App() {
         <Route path="objects/:objectType" element={<ObjectIndexPage />} />
         <Route path="objects/:objectType/:recordId" element={<RecordDetailPage />} />
         <Route path="pipeline" element={<Navigate to="/objects/deals?view=board" replace />} />
+        <Route path="canvas" element={<CanvasPage />} />
         <Route path="lists/:listId" element={<ListPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="finance/invoices" element={<InvoicesPage />} />

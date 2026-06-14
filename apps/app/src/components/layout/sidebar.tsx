@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp, GitBranch, Activity, Inbox } from "lucide-react";
+import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp, GitBranch, Activity, Layers } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
@@ -55,6 +55,12 @@ const navGroups: NavGroup[] = [
       { to: "/sequences",   label: "Sequences",  icon: Activity },
     ],
   },
+  {
+    label: "Strategy",
+    items: [
+      { to: "/canvas", label: "Canvas", icon: Layers },
+    ],
+  },
 ];
 
 function Logo({ size = 28 }: { size?: number }) {
@@ -94,7 +100,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const { signOut } = useClerk();
   const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Workspace: true, Work: true, Communication: false, Finance: false, Automation: false });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Workspace: true, Work: true, Communication: false, Finance: false, Automation: false, Strategy: false });
   const toggleGroup = (label: string) => setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
 
   useEffect(() => {
