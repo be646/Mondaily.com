@@ -16,7 +16,7 @@ export const requireAuth = createMiddleware<{
   try {
     const verified = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY!,
-      publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+      skipJwksCache: true,
     });
     userId = verified.sub;
     if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
