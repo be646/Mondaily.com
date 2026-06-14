@@ -1,4 +1,3 @@
 {
-  "buildCommand": "npx tsup",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/handler" }]
+  "buildCommand": "node build.mjs"
 }
