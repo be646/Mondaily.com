@@ -126,7 +126,7 @@ export function SidebarLists() {
   );
   // Team lists: shared with me but not assigned to me, or workspace lists
   const teamLists = lists.filter(l =>
-    l.assignee_id !== userId && (l.shared_with.includes(userId ?? "") || (!l.assignee_id && l.owner_id !== userId))
+    l.assignee_id !== userId && ((l.shared_with ?? []).includes(userId ?? "") || (!l.assignee_id && l.owner_id !== userId))
   );
 
   function renderList(list: ListItem) {
