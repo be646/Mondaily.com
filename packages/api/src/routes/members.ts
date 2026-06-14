@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
@@ -18,7 +18,8 @@ router.get("/", async (c) => {
 });
 
 // POST /members/sync - upsert current user, fetch info from Clerk if missing
-router.post("/sync", async (c) => {
+// Uses JWT-only auth so new users can bootstrap themselves into a workspace
+router.post("/sync", requireJwt, async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
 
@@ -44,6 +45,12 @@ router.post("/sync", async (c) => {
     } catch {}
   }
 
+  // Ensure workspace exists
+  const { error: wsError } = await supabase
+    .from("workspaces")
+    .upsert({ id: workspaceId, name: name || email || "My Workspace" }, { onConflict: "id", ignoreDuplicates: true });
+  if (wsError) return c.json({ error: `workspace upsert: ${wsError.message}` }, 500);
+
   const { data, error } = await supabase
     .from("workspace_members")
     .upsert({
@@ -52,7 +59,7 @@ router.post("/sync", async (c) => {
       email: email || userId,
       name: name || email || userId,
       avatar_url,
-      role: "member"
+      role: "owner"
     }, { onConflict: "workspace_id,user_id" })
     .select()
     .single();

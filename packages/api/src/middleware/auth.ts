@@ -43,6 +43,33 @@ export const requireAuth = createMiddleware<{
   await next();
 });
 
+// JWT-only auth — verifies token but does NOT check workspace membership.
+// Use for onboarding endpoints where the user may not have a workspace yet.
+export const requireJwt = createMiddleware<{
+  Variables: { userId: string; workspaceId: string; role: string };
+}>(async (c, next) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
+
+  try {
+    const verified = await verifyToken(token, {
+      jwtKey: process.env.CLERK_JWT_KEY,
+      secretKey: process.env.CLERK_JWT_KEY ? undefined : process.env.CLERK_SECRET_KEY!,
+      skipJwksCache: true,
+    });
+    const userId = verified.sub;
+    if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
+    c.set("userId", userId);
+    c.set("workspaceId", c.req.header("X-Workspace-Id") ?? "");
+    c.set("role", "member");
+  } catch (e) {
+    if (e instanceof HTTPException) throw e;
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new HTTPException(401, { message: `JWT verification failed: ${msg}` });
+  }
+  await next();
+});
+
 // Use on routes where only admins/owners can act
 export const requireAdmin = createMiddleware<{
   Variables: { userId: string; workspaceId: string; role: string };
