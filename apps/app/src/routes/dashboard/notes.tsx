@@ -440,7 +440,7 @@ export function NotesPage() {
   const { userId } = useAuth();
   const qc = useQueryClient();
 
-  const [view, setView] = useState<ViewMode>("list");
+  const view: ViewMode = "list";
   const [filter, setFilter] = useState<"all" | "mine" | "ai">("all");
   const [sort, setSort] = useState<"newest" | "oldest" | "updated">("newest");
   const [search, setSearch] = useState("");
@@ -523,21 +523,6 @@ export function NotesPage() {
           )}
         </p>
         <div className="flex items-center gap-2">
-          {/* View switcher */}
-          <div className="flex gap-0.5 rounded-xl border border-white/[.07] bg-white/[.02] p-0.5">
-            <button onClick={() => setView("list")} title="Cards"
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${view === "list" ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
-              <LayoutGrid size={12} /> Cards
-            </button>
-            <button onClick={() => setView("board")} title="Board"
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${view === "board" ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
-              <Kanban size={12} /> Board
-            </button>
-            <button onClick={() => setView("timeline")} title="Timeline"
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${view === "timeline" ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
-              <GitCommitHorizontal size={12} /> Timeline
-            </button>
-          </div>
           <button onClick={() => setModalOpen(true)}
             className="flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 transition-colors">
             <Plus size={13} /> New Note
