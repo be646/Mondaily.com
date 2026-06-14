@@ -48,7 +48,7 @@ export function EmailSettings() {
   }, [query.data]);
 
   const save = useMutation({
-    mutationFn: () => apiClient.patch("/settings/account", { email_settings: data }),
+    mutationFn: () => apiClient.patch("/settings/email", data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["email-settings"] })
   });
 
@@ -96,5 +96,12 @@ function SignatureEditor({ content, onChange }: { content: string; onChange: (co
   return <div className="overflow-hidden rounded-md border border-white/[.06]"><div className="flex gap-1 border-b border-white/[.06] p-2"><button onClick={() => editor?.chain().focus().toggleBold().run()} className="grid h-7 w-7 place-items-center rounded hover:bg-white/10"><Bold size={13} /></button><button onClick={() => editor?.chain().focus().toggleItalic().run()} className="grid h-7 w-7 place-items-center rounded hover:bg-white/10"><Italic size={13} /></button></div><EditorContent editor={editor} className="min-h-28 p-3 text-sm [&_.ProseMirror]:min-h-24 [&_.ProseMirror]:outline-none" /></div>;
 }
 function Toggle({ label, checked, change }: { label: string; checked: boolean; change: (value: boolean) => void }) {
-  return <label className="flex items-center justify-between text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={(event) => change(event.target.checked)} /></label>;
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-slate-300">{label}</span>
+      <button type="button" role="switch" aria-checked={checked} onClick={() => change(!checked)} className="md-toggle">
+        <span className="md-toggle-thumb" />
+      </button>
+    </div>
+  );
 }
