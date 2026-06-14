@@ -11,18 +11,11 @@ router.use("*", requireAuth);
 router.get("/", async (c) => {
   const userId = c.get("userId");
   const role = c.get("role");
-  let query = supabase
+  const { data, error } = await supabase
     .from("lists")
-    .select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)")
+    .select("id,name,object_type,access_level,owner_id,created_at,list_entries(count)")
     .eq("workspace_id", c.get("workspaceId"))
     .order("created_at");
-
-  // owners and admins see everything; others filtered by visibility
-  if (!["owner", "admin"].includes(role)) {
-    query = query.or(`visibility.eq.workspace,owner_id.eq.${userId},shared_with.cs.{${userId}}`);
-  }
-
-  const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 400);
   return c.json((data ?? []).map((list) => ({ ...list, entry_count: Array.isArray(list.list_entries) ? Number(list.list_entries[0]?.count ?? 0) : 0 })));
 });
