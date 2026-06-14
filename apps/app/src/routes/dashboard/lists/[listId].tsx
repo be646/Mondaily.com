@@ -10,7 +10,7 @@ import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
-interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] }
+interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined }
 interface Member { id: string; user_id: string; name: string; email: string }
 
 function display(value: unknown) {
@@ -216,9 +216,9 @@ export function ListPage() {
               ? (members.find(m => m.user_id === list.data!.assignee_id)?.name?.split(" ")[0]
                   ?? (list.data.assignee_id === userId ? "Me" : "Assigned"))
               : "Assign"}
-            {list.data.shared_with.length > 0 && (
+            {(list.data.shared_with ?? []).length > 0 && (
               <span className="ml-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] text-blue-400">
-                +{list.data.shared_with.length}
+                +{(list.data.shared_with ?? []).length}
               </span>
             )}
           </button>
@@ -279,7 +279,7 @@ export function ListPage() {
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Share with</p>
                     <div className="space-y-1">
                       {members.filter(m => m.user_id !== list.data!.assignee_id).map(m => {
-                        const isShared = list.data!.shared_with.includes(m.user_id);
+                        const isShared = (list.data!.shared_with ?? []).includes(m.user_id);
                         return (
                           <button key={m.user_id}
                             onClick={() => toggleShared(m.user_id)}
