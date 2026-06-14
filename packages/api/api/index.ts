@@ -21,7 +21,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const webRequest = new Request(url.toString(), {
     method: req.method || 'GET',
     headers,
-    body: body?.length ? body : undefined,
+    body: body?.length ? new Uint8Array(body) : undefined,
   })
 
   const webResponse = await app.fetch(webRequest)
