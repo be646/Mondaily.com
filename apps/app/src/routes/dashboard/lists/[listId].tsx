@@ -1,15 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@clerk/react";
 import {
   Download, Grid2X2, ListPlus, Loader2,
-  MoreHorizontal, Plus, Search, Sparkles, Table2, Trash2, X,
+  MoreHorizontal, Plus, Search, Sparkles, Table2, Trash2, UserCheck, Users, X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
-interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number }
+interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] }
+interface Member { id: string; user_id: string; name: string; email: string }
 
 function display(value: unknown) {
   return value == null ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value);
@@ -33,17 +35,25 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
   );
 }
 
+function memberInitials(m: Member) {
+  return (m.name || m.email).split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+}
+function memberLabel(m: Member) { return m.name || m.email; }
+
 export function ListPage() {
   const { listId = "" } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { userId } = useAuth();
 
   const [view, setView] = useState<"table" | "board">("table");
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const assignRef = useRef<HTMLDivElement>(null);
 
   // AI modal state
   const [aiPrompt, setAiPrompt] = useState("");
@@ -57,6 +67,12 @@ export function ListPage() {
     queryKey: ["list", listId],
     queryFn: () => apiClient.get<ListData>(`/lists/${listId}`),
   });
+  const membersQuery = useQuery({
+    queryKey: ["members"],
+    queryFn: () => apiClient.get<Member[]>("/members"),
+    enabled: assignOpen,
+  });
+  const members = membersQuery.data ?? [];
   const entries = useQuery({
     queryKey: ["list-entries", listId],
     queryFn: () => apiClient.get<NodeRecord[]>(`/lists/${listId}/entries`),
@@ -149,6 +165,15 @@ export function ListPage() {
     setAiSelected(new Set());
   }
 
+  function setAssignee(uid: string | null) {
+    update.mutate({ assignee_id: uid });
+  }
+  function toggleShared(uid: string) {
+    const current = list.data?.shared_with ?? [];
+    const next = current.includes(uid) ? current.filter(x => x !== uid) : [...current, uid];
+    update.mutate({ shared_with: next });
+  }
+
   function openAi() {
     setAiMatched(null);
     setAiPrompt("");
@@ -175,6 +200,107 @@ export function ListPage() {
         <span className="rounded-full border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-[11px] capitalize text-slate-500">
           {list.data.object_type}
         </span>
+
+        {/* ── Assignment chip + popover ── */}
+        <div className="relative" ref={assignRef}>
+          <button
+            onClick={() => setAssignOpen(o => !o)}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] transition-colors ${
+              list.data.assignee_id
+                ? "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15"
+                : "border-white/[.08] bg-white/[.02] text-slate-500 hover:text-white hover:border-white/[.15]"
+            }`}
+          >
+            {list.data.assignee_id ? <UserCheck size={11} /> : <Users size={11} />}
+            {list.data.assignee_id
+              ? (members.find(m => m.user_id === list.data!.assignee_id)?.name?.split(" ")[0]
+                  ?? (list.data.assignee_id === userId ? "Me" : "Assigned"))
+              : "Assign"}
+            {list.data.shared_with.length > 0 && (
+              <span className="ml-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] text-blue-400">
+                +{list.data.shared_with.length}
+              </span>
+            )}
+          </button>
+
+          {assignOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setAssignOpen(false)} />
+              <div className="absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-3 shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Assign to</p>
+                {membersQuery.isLoading ? (
+                  <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-slate-600" /></div>
+                ) : (
+                  <div className="space-y-1">
+                    {/* "Unassigned" option */}
+                    <button
+                      onClick={() => setAssignee(null)}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${!list.data!.assignee_id ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                    >
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-white/[.10] bg-white/[.04] text-[9px] text-slate-600">—</span>
+                      Unassigned
+                    </button>
+                    {/* Me first */}
+                    {userId && (() => {
+                      const me = members.find(m => m.user_id === userId);
+                      const isAssigned = list.data!.assignee_id === userId;
+                      return (
+                        <button
+                          onClick={() => setAssignee(isAssigned ? null : userId)}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-red-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                        >
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[.10] text-[9px] font-bold">
+                            {me ? memberInitials(me) : "Me"}
+                          </span>
+                          {me ? memberLabel(me) : "Me"} <span className="ml-auto text-[10px] text-slate-700">me</span>
+                        </button>
+                      );
+                    })()}
+                    {members.filter(m => m.user_id !== userId).map(m => {
+                      const isAssigned = list.data!.assignee_id === m.user_id;
+                      return (
+                        <button key={m.user_id}
+                          onClick={() => setAssignee(isAssigned ? null : m.user_id)}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-red-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                        >
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[.10] text-[9px] font-bold">
+                            {memberInitials(m)}
+                          </span>
+                          {memberLabel(m)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {members.length > 0 && (
+                  <>
+                    <div className="my-2 border-t border-white/[.06]" />
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Share with</p>
+                    <div className="space-y-1">
+                      {members.filter(m => m.user_id !== list.data!.assignee_id).map(m => {
+                        const isShared = list.data!.shared_with.includes(m.user_id);
+                        return (
+                          <button key={m.user_id}
+                            onClick={() => toggleShared(m.user_id)}
+                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isShared ? "bg-blue-500/10 text-blue-300" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                          >
+                            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold transition-colors ${isShared ? "bg-blue-500/20" : "bg-white/[.10]"}`}>
+                              {memberInitials(m)}
+                            </span>
+                            {memberLabel(m)}
+                            {isShared && <span className="ml-auto text-[10px] text-blue-500">shared</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
         {/* View toggle */}
         <div className="flex items-center rounded-lg border border-white/[.08] bg-white/[.02] p-0.5 gap-0.5">
           <button
