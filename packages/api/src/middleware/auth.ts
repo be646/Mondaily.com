@@ -1,41 +1,52 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { createClerkClient } from "@clerk/backend";
+import { supabase } from "@mondaily/db/client";
 
-const CLERK_TO_WORKSPACE: Record<string, string> = {
-  "org_3Eq2xXHigy4Fz7fhjWYoeyfrQT0": "8ccef088-6493-4cd9-a0cf-3214098f59a1"
-};
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
 
 export const requireAuth = createMiddleware<{
   Variables: { userId: string; workspaceId: string; role: string };
 }>(async (c, next) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
-  const rawWorkspaceId = c.req.header("X-Workspace-Id") || "8ccef088-6493-4cd9-a0cf-3214098f59a1";
-  const workspaceId = CLERK_TO_WORKSPACE[rawWorkspaceId] || rawWorkspaceId;
+  const workspaceId = c.req.header("X-Workspace-Id");
 
-  if (!token) {
-    throw new HTTPException(401, { message: "Unauthorized" });
-  }
-
-  // Allow demo token for landing-page sales chat
-  if (token === "demo") {
-    c.set("userId", "user_3Eol27O1lcD8afwiHfV1FgfQZg");
-    c.set("workspaceId", workspaceId);
-    c.set("role", "owner");
-    await next();
-    return;
-  }
+  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
+  if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
 
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) throw new Error("Invalid token");
-    const payload = JSON.parse(atob(parts[1]!.replace(/-/g, "+").replace(/_/g, "/")));
-    const userId = payload.sub;
-    if (!userId) throw new Error("No user ID");
+    // Verify JWT signature cryptographically using Clerk's JWKS
+    const verified = await clerk.verifyToken(token);
+    const userId = verified.sub;
+    if (!userId) throw new HTTPException(401, { message: "Invalid token" });
+
+    // Verify the user is actually a member of the claimed workspace and get their real role
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!membership) throw new HTTPException(403, { message: "Not a member of this workspace" });
+
     c.set("userId", userId);
     c.set("workspaceId", workspaceId);
-    c.set("role", "owner");
+    c.set("role", membership.role);
     await next();
-  } catch {
+  } catch (e) {
+    if (e instanceof HTTPException) throw e;
     throw new HTTPException(401, { message: "Invalid token" });
   }
+});
+
+// Use on routes where only admins/owners can act
+export const requireAdmin = createMiddleware<{
+  Variables: { userId: string; workspaceId: string; role: string };
+}>(async (c, next) => {
+  const role = c.get("role");
+  if (!["owner", "admin"].includes(role)) {
+    throw new HTTPException(403, { message: "Admin access required" });
+  }
+  await next();
 });

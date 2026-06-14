@@ -983,6 +983,46 @@ NEXT_PUBLIC_APP_DOMAIN=app.mondaily.com
 
 ---
 
+## Security Rules — Multi-Tenant Isolation (NEVER violate these)
+
+These rules are permanent. Every new table, route, and feature must follow them.
+
+### Authentication
+- **ALWAYS verify JWT signatures** using `clerk.verifyToken(token)` from `@clerk/backend`
+- **NEVER** base64-decode a JWT and trust it without cryptographic verification
+- **NEVER** add demo tokens, backdoor strings, or hardcoded user IDs in auth middleware
+- The `requireAuth` middleware in `packages/api/src/middleware/auth.ts` handles this — use it on every router with `router.use("*", requireAuth)`
+
+### Workspace Isolation (Client A vs Client B)
+- After verifying the JWT, **always verify workspace membership** by querying `workspace_members` with `(workspace_id, user_id)`
+- If the user is not in `workspace_members` for the claimed workspace → return 403
+- The `workspaceId` set on context comes from this verified query, never blindly from a header
+- At the database layer, RLS on every table enforces this as a second line of defence
+- **Every new table MUST have RLS enabled** — run `ALTER TABLE x ENABLE ROW LEVEL SECURITY` and create appropriate policies in a new migration file before the table is used
+
+### Role-Based Access Control (Member vs Admin)
+- The user's `role` is read from `workspace_members.role` — never hardcoded
+- Roles: `owner` > `admin` > `member` > `viewer`
+- Use `requireAdmin` middleware (also in `auth.ts`) on any route that destroys data, manages members, or changes workspace settings
+- Members can only see their own tasks/assignments — API routes must filter by `assignee_id = userId` or `created_by = userId` when `role = 'member'`
+- Admins and owners see all records in the workspace
+
+### New Table Checklist (run this every time)
+When adding a new database table, you MUST:
+1. Add `workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE` as a column
+2. In a migration: `ALTER TABLE new_table ENABLE ROW LEVEL SECURITY`
+3. Add a policy: `CREATE POLICY new_table_workspace ON new_table FOR ALL USING (workspace_id = ANY(get_user_workspace_ids()))`
+4. If the table is user-personal (like notifications), also add `AND user_id = auth.jwt() ->> 'sub'`
+5. If delete should be admin-only, split into separate SELECT/INSERT/UPDATE/DELETE policies
+
+### Encryption in Transit
+- All API calls go through HTTPS — Vercel enforces this, never allow HTTP in production
+- Supabase connection always uses the `https://` URL — never the direct Postgres connection string on the client side
+- `SUPABASE_SERVICE_KEY` is server-only — never expose it to the browser or commit it to git
+- All secrets live in Vercel environment variables — never in code or `.env` files committed to the repo
+
+---
+
 ## First Build Sequence for Codex
 
 Give these tasks to Claude Code in this exact order:
