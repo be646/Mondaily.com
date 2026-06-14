@@ -16,6 +16,15 @@ export const requireAuth = createMiddleware<{
     throw new HTTPException(401, { message: "Unauthorized" });
   }
 
+  // Allow demo token for landing-page sales chat
+  if (token === "demo") {
+    c.set("userId", "user_3Eol27O1lcD8afwiHfV1FgfQZg");
+    c.set("workspaceId", workspaceId);
+    c.set("role", "owner");
+    await next();
+    return;
+  }
+
   try {
     const parts = token.split(".");
     if (parts.length !== 3) throw new Error("Invalid token");
