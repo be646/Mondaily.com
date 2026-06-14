@@ -19,7 +19,7 @@ router.get("/", async (c) => {
 
   // owners and admins see everything; others filtered by visibility
   if (!["owner", "admin"].includes(role)) {
-    query = query.or(`visibility.eq.workspace,owner_id.eq.${userId},shared_with.cs.{"${userId}"}`);
+    query = query.or(`visibility.eq.workspace,owner_id.eq.${userId},shared_with.cs.{${userId}}`);
   }
 
   const { data, error } = await query;

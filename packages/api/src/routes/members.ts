@@ -3,10 +3,9 @@ import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
-router.use("*", requireAuth);
 
 // GET /members - list all members in workspace
-router.get("/", async (c) => {
+router.get("/", requireAuth, async (c) => {
   const workspaceId = c.get("workspaceId");
   const { data, error } = await supabase
     .from("workspace_members")
@@ -18,7 +17,7 @@ router.get("/", async (c) => {
 });
 
 // PATCH /members/:userId - update role or position (admin/owner only)
-router.patch("/:userId", async (c) => {
+router.patch("/:userId", requireAuth, async (c) => {
   const requesterRole = c.get("role");
   if (!["owner", "admin"].includes(requesterRole)) {
     return c.json({ error: "Only owners and admins can update member roles" }, 403);
@@ -35,8 +34,7 @@ router.patch("/:userId", async (c) => {
   return c.json(data);
 });
 
-// POST /members/sync - upsert current user, fetch info from Clerk if missing
-// Uses JWT-only auth so new users can bootstrap themselves into a workspace
+// POST /members/sync - JWT-only, bootstraps new users into the workspace
 router.post("/sync", requireJwt, async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
@@ -48,7 +46,6 @@ router.post("/sync", requireJwt, async (c) => {
   let name = body.name || "";
   let avatar_url = body.avatar_url || null;
 
-  // If email missing, fetch from Clerk API
   if (!email && process.env.CLERK_SECRET_KEY) {
     try {
       const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
@@ -63,11 +60,18 @@ router.post("/sync", requireJwt, async (c) => {
     } catch {}
   }
 
-  // Ensure workspace exists
   const { error: wsError } = await supabase
     .from("workspaces")
-    .upsert({ id: workspaceId, name: name || email || "My Workspace" }, { onConflict: "id", ignoreDuplicates: true });
+    .upsert({ id: workspaceId, name: name || email || "My Workspace", slug: workspaceId }, { onConflict: "id", ignoreDuplicates: true });
   if (wsError) return c.json({ error: `workspace upsert: ${wsError.message}` }, 500);
+
+  // Check if already a member — preserve existing role
+  const { data: existing } = await supabase
+    .from("workspace_members")
+    .select("role")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
 
   const { data, error } = await supabase
     .from("workspace_members")
@@ -77,7 +81,7 @@ router.post("/sync", requireJwt, async (c) => {
       email: email || userId,
       name: name || email || userId,
       avatar_url,
-      role: "owner"
+      role: existing?.role ?? "owner",
     }, { onConflict: "workspace_id,user_id" })
     .select()
     .single();
