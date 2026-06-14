@@ -6,13 +6,19 @@ import { supabase } from "@mondaily/db/client";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
-You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, or search records — use the appropriate tool. After using a tool, summarize what you did in plain language.
+You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, or build a custom object type — use the appropriate tool. After using a tool, summarize what you did in plain language.
+
+Key tool-chaining patterns:
+- "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
+- "Add X to my Y list" → use list_lists to find the list ID, then search_records to find the record, then add_to_list.
+- "Create a new object for tracking X" → use create_object_type with a clear description so fields are generated well.
+- For multi-step operations, execute all steps and report the full outcome.
 
 Never mention Claude, Anthropic, OpenAI, or any underlying AI technology. You are simply Mondaily AI.
 
 After every response, append a follow-ups block with 3 short suggested next actions the user might want to take, directly relevant to what you just did or said. Format exactly as:
 <followups>["Action one", "Action two", "Action three"]</followups>
-Keep each suggestion under 8 words. Make them specific, actionable, and varied — e.g. create tasks, draft content, set reminders, review items, search records. Never repeat the user's original request.`;
+Keep each suggestion under 8 words. Make them specific, actionable, and varied — e.g. create tasks, add records to a list, build a new object, set reminders, review items. Never repeat the user's original request.`;
 
 const TOOLS = [
   {
@@ -120,6 +126,57 @@ const TOOLS = [
         unread_only: { type: "boolean", description: "Only return unread notifications" }
       },
       required: []
+    }
+  },
+  {
+    name: "create_list",
+    description: "Create a new named list for grouping and saving records. Use when the user says 'create a list of X', 'make a list called Y', 'build a list for Z contacts/deals/companies'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "List name, e.g. 'Enterprise Accounts', 'Hot Leads Q2', 'Investors to Contact'" },
+        object_type: { type: "string", description: "Record type this list holds: contacts, companies, deals, or any custom object slug" }
+      },
+      required: ["name", "object_type"]
+    }
+  },
+  {
+    name: "list_lists",
+    description: "List all saved lists in the workspace. Use when the user asks 'show my lists', or before calling add_to_list so you can match the correct list by name.",
+    input_schema: {
+      type: "object",
+      properties: {
+        object_type: { type: "string", description: "Optional: filter to lists of a specific record type" }
+      },
+      required: []
+    }
+  },
+  {
+    name: "add_to_list",
+    description: "Add one or more records to an existing list by list name. Use search_records first to get record IDs, then call this tool. Use when user says 'add X to my Y list', 'put these records in list Z'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        list_name: { type: "string", description: "Name of the target list (partial match is fine)" },
+        node_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of record IDs to add to the list"
+        }
+      },
+      required: ["list_name", "node_ids"]
+    }
+  },
+  {
+    name: "create_object_type",
+    description: "Create a brand-new custom object type with AI-generated fields. Use when user says 'create an object for X', 'I need a custom table for Y', 'build me a new object type called Z', 'make a schema for tracking investor meetings / properties / support tickets'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Human-readable singular name, e.g. 'Investor Meeting', 'Property', 'Support Ticket'" },
+        description: { type: "string", description: "What this object tracks — used to auto-generate relevant fields, e.g. 'Track VC investor meetings including fund size, stage preference, and follow-up status'" }
+      },
+      required: ["name", "description"]
     }
   }
 ];
@@ -298,6 +355,169 @@ async function executeTool(
           `- [${n.type}] ${n.title}: ${n.body}${n.is_read ? "" : " (unread)"} — ${new Date(n.created_at).toLocaleDateString()}`
         ).join("\n");
         return `${unread.length} notification(s):\n${list}`;
+      }
+
+      case "create_list": {
+        const { data, error } = await supabase
+          .from("lists")
+          .insert({
+            workspace_id: workspaceId,
+            owner_id: userId,
+            access_level: "workspace",
+            name: input.name,
+            object_type: input.object_type,
+          })
+          .select()
+          .single();
+        if (error) return `Error creating list: ${error.message}`;
+        return `List "${data.name}" created (ID: ${data.id}) for ${data.object_type} records. Use add_to_list to populate it, or the user can open it in the Lists section.`;
+      }
+
+      case "list_lists": {
+        let q = supabase
+          .from("lists")
+          .select("id, name, object_type")
+          .eq("workspace_id", workspaceId)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if (input.object_type) q = q.eq("object_type", input.object_type);
+        const { data, error } = await q;
+        if (error) return `Error fetching lists: ${error.message}`;
+        if (!data?.length) return "No lists found in this workspace.";
+        return `Lists (${data.length}):\n${data.map((l: any) => `- [${l.id}] "${l.name}" (${l.object_type})`).join("\n")}`;
+      }
+
+      case "add_to_list": {
+        const { data: lists } = await supabase
+          .from("lists")
+          .select("id, name, object_type")
+          .eq("workspace_id", workspaceId);
+        const needle = (input.list_name as string).toLowerCase();
+        const list = (lists ?? []).find((l: any) => l.name.toLowerCase().includes(needle));
+        if (!list) return `No list found matching "${input.list_name}". Use list_lists to see available lists.`;
+
+        const results: string[] = [];
+        for (const nodeId of (input.node_ids as string[])) {
+          const { data: node } = await supabase
+            .from("nodes")
+            .select("id, object_type, data")
+            .eq("workspace_id", workspaceId)
+            .eq("id", nodeId)
+            .maybeSingle();
+          if (!node) { results.push(`❌ Record ${nodeId} not found`); continue; }
+          if (node.object_type !== list.object_type) {
+            results.push(`❌ "${(node.data as any).name ?? nodeId}" is type "${node.object_type}", but list "${list.name}" expects "${list.object_type}"`);
+            continue;
+          }
+          const { count } = await supabase
+            .from("list_entries")
+            .select("*", { count: "exact", head: true })
+            .eq("list_id", list.id);
+          const { error } = await supabase
+            .from("list_entries")
+            .upsert({ list_id: list.id, node_id: nodeId, position: (count ?? 0) + 1 });
+          if (error) results.push(`❌ Failed to add "${(node.data as any).name ?? nodeId}": ${error.message}`);
+          else results.push(`✅ Added "${(node.data as any).name ?? nodeId}"`);
+        }
+        return `Results for list "${list.name}":\n${results.join("\n")}`;
+      }
+
+      case "create_object_type": {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return "Cannot create object type: AI service not configured.";
+
+        // Generate slug from name
+        const slug = (input.name as string)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_|_$/g, "");
+
+        // Check it doesn't already exist
+        const { data: existing } = await supabase
+          .from("object_definitions")
+          .select("id")
+          .eq("workspace_id", workspaceId)
+          .eq("slug", slug)
+          .maybeSingle();
+        if (existing) return `An object type with slug "${slug}" already exists.`;
+
+        // Use Claude to generate a smart attribute list
+        let attributes: Array<{ id: string; name: string; type: string }> = [];
+        try {
+          const schemaRes = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model: "claude-haiku-4-5-20251001",
+              max_tokens: 1024,
+              tools: [{
+                name: "define_attributes",
+                description: "Define the fields for a custom object type",
+                input_schema: {
+                  type: "object",
+                  properties: {
+                    attributes: {
+                      type: "array",
+                      minItems: 4,
+                      maxItems: 12,
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string", description: "Field name in snake_case, e.g. fund_size, meeting_date, follow_up_status" },
+                          type: {
+                            type: "string",
+                            enum: ["text", "long_text", "number", "currency", "percentage", "date", "datetime", "checkbox", "select", "url", "email", "phone"],
+                          },
+                        },
+                        required: ["name", "type"],
+                      },
+                    },
+                  },
+                  required: ["attributes"],
+                },
+              }],
+              tool_choice: { type: "tool", name: "define_attributes" },
+              messages: [{
+                role: "user",
+                content: `Generate 5-10 useful fields for a "${input.name}" object. Context: ${input.description}. Use snake_case names, appropriate types (currency for money, date for dates, select for status fields, checkbox for yes/no). Always include a status or stage select field.`,
+              }],
+            }),
+          });
+          if (schemaRes.ok) {
+            const schemaData = await schemaRes.json() as any;
+            const toolUse = (schemaData.content ?? []).find((b: any) => b.type === "tool_use");
+            if (toolUse?.input?.attributes) {
+              attributes = (toolUse.input.attributes as any[]).map((a: any) => ({
+                id: crypto.randomUUID(),
+                name: a.name,
+                type: a.type,
+              }));
+            }
+          }
+        } catch (_) { /* fallback: create with no attributes, user can add later */ }
+
+        const plural = `${input.name}s`;
+        const { data, error } = await supabase
+          .from("object_definitions")
+          .insert({
+            workspace_id: workspaceId,
+            vertical: "shared",
+            slug,
+            name_singular: input.name,
+            name_plural: plural,
+            attributes,
+          })
+          .select()
+          .single();
+        if (error) return `Error creating object type: ${error.message}`;
+        const fieldSummary = attributes.length
+          ? attributes.map((a) => `${a.name} (${a.type})`).join(", ")
+          : "no fields yet — the user can add them in Settings → Objects";
+        return `Object type "${input.name}" created (slug: ${data.slug}, ID: ${data.id}) with ${attributes.length} field(s): ${fieldSummary}. It now appears under Objects in the sidebar.`;
       }
 
       default:
