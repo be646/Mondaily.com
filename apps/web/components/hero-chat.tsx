@@ -26,20 +26,50 @@ function SendIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>;
 }
 
-function AIAvatar() {
+function AIAvatar({ thinking = false }: { thinking?: boolean }) {
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 border border-indigo-500/20">
-      <svg width="13" height="13" viewBox="0 0 40 40" fill="none">
-        {[0,1,2,3,4,5].map(i => {
-          const a = (i * Math.PI * 2) / 6 - Math.PI / 2;
-          const nx = 20 + 12 * Math.cos(a), ny = 20 + 12 * Math.sin(a);
-          return <line key={i} x1="20" y1="20" x2={nx} y2={ny} stroke="#818cf8" strokeWidth="2" strokeLinecap="round"/>;
-        })}
-        <circle cx="20" cy="20" r="3.5" fill="#c4b5fd"/>
-        {[0,1,2,3,4,5].map(i => {
-          const a = (i * Math.PI * 2) / 6 - Math.PI / 2;
-          return <circle key={i} cx={20 + 12 * Math.cos(a)} cy={20 + 12 * Math.sin(a)} r="2.2" fill="#818cf8" opacity="0.8"/>;
-        })}
+    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${thinking ? "border-white/20 bg-white/[.06]" : "border-white/10 bg-white/[.04]"}`}>
+      <style>{`
+        @keyframes hc-pulse-outer { 0%,100%{opacity:1;stroke-width:2.5} 50%{opacity:0.4;stroke-width:1.5} }
+        @keyframes hc-pulse-mid   { 0%,100%{opacity:1;stroke-width:2}   50%{opacity:0.55;stroke-width:1.2} }
+        @keyframes hc-blink       { 0%,45%,55%,100%{opacity:1} 48%,52%{opacity:0} }
+        @keyframes hc-scan        { 0%{stroke-dashoffset:60} 100%{stroke-dashoffset:-60} }
+        @keyframes hc-glint       { 0%,80%,100%{opacity:0} 85%,92%{opacity:0.9} }
+        @keyframes hc-notch       { 0%,100%{opacity:0.3} 50%{opacity:1} }
+        .hc-hex-outer { animation: hc-pulse-outer var(--hc-pd,4s) ease-in-out infinite; }
+        .hc-hex-mid   { animation: hc-pulse-mid   var(--hc-pd,4s) ease-in-out infinite 0.4s; }
+        .hc-eye-group { animation: hc-blink var(--hc-bd,6s) ease-in-out infinite; }
+        .hc-scan-line { animation: hc-scan  var(--hc-sd,3s)  linear infinite; }
+        .hc-glint     { animation: hc-glint var(--hc-bd,6s) ease-in-out infinite; }
+        .hc-notch     { animation: hc-notch var(--hc-pd,4s) ease-in-out infinite; }
+      `}</style>
+      <svg
+        width="18" height="18" viewBox="0 0 160 160"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{
+          color: "rgba(255,255,255,0.75)",
+          ["--hc-pd" as string]: thinking ? "1.6s" : "4s",
+          ["--hc-bd" as string]: thinking ? "1.4s" : "6s",
+          ["--hc-sd" as string]: thinking ? "0.9s" : "3s",
+        }}
+      >
+        <defs>
+          <clipPath id="hc-hex-clip">
+            <polygon points="80,12 138,44 138,108 80,140 22,108 22,44"/>
+          </clipPath>
+        </defs>
+        <polygon className="hc-hex-outer" points="80,12 138,44 138,108 80,140 22,108 22,44" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" opacity="0.85"/>
+        <line className="hc-notch" x1="80" y1="12" x2="80" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+        <line className="hc-notch" x1="22" y1="62" x2="29" y2="66" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" style={{animationDelay:"0.3s"}}/>
+        <line className="hc-notch" x1="138" y1="62" x2="131" y2="66" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.7" style={{animationDelay:"0.9s"}}/>
+        <polygon className="hc-hex-mid" points="80,28 122,52 122,100 80,124 38,100 38,52" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" opacity="0.4"/>
+        <g className="hc-eye-group">
+          <path d="M52,76 Q80,52 108,76 Q80,100 52,76Z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/>
+          <circle cx="80" cy="76" r="13" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.6"/>
+          <circle cx="80" cy="76" r="5" fill="currentColor"/>
+          <path className="hc-glint" d="M85,70 Q89,67 88,71" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+        </g>
+        <line className="hc-scan-line" x1="52" y1="76" x2="108" y2="76" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" strokeDasharray="8 6" clipPath="url(#hc-hex-clip)" opacity="0.5"/>
       </svg>
     </div>
   );
@@ -135,18 +165,10 @@ export function HeroChat() {
             <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]"/>
           </div>
           <div className="flex-1 flex items-center justify-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 40 40" fill="none">
-              {[0,1,2,3,4,5].map(i => {
-                const a = (i * Math.PI * 2) / 6 - Math.PI / 2;
-                return <line key={i} x1="20" y1="20" x2={20 + 12 * Math.cos(a)} y2={20 + 12 * Math.sin(a)} stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round"/>;
-              })}
-              <circle cx="20" cy="20" r="3.5" fill="#c4b5fd"/>
-              {[0,1,2,3,4,5].map(i => {
-                const a = (i * Math.PI * 2) / 6 - Math.PI / 2;
-                return <circle key={i} cx={20 + 12 * Math.cos(a)} cy={20 + 12 * Math.sin(a)} r="2.2" fill="#818cf8" opacity="0.9"/>;
-              })}
-            </svg>
-            <span className="text-[11px] font-medium text-slate-500">Ask Mondaily AI</span>
+            <AIAvatar thinking={loading} />
+            <span className="text-[11px] font-medium text-slate-400" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 300, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              MONDAILY
+            </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5">
             <motion.span
@@ -201,21 +223,10 @@ export function HeroChat() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3"
+              className="flex items-center gap-3"
             >
-              <AIAvatar />
-              <div className="rounded-2xl rounded-tl-sm bg-white/[.05] px-4 py-3">
-                <div className="flex gap-1">
-                  {[0,1,2].map(i => (
-                    <motion.span
-                      key={i}
-                      className="h-1.5 w-1.5 rounded-full bg-slate-500"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
-                    />
-                  ))}
-                </div>
-              </div>
+              <AIAvatar thinking />
+              <span className="text-[12px] text-slate-500 italic tracking-wide">Thinking…</span>
             </motion.div>
           )}
 

@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
+import { MondailyLogo } from "../../components/ai/mondaily-logo";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -496,14 +497,9 @@ export function HomePage() {
               });
             })()}
             {loading && (
-              <div className="flex items-center gap-2.5 pl-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-slate-600"/>
-                <span className="text-sm text-slate-500 italic">Thinking</span>
-                <span className="flex gap-1 items-end h-3">
-                  <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "0ms" }}/>
-                  <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "150ms" }}/>
-                  <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "300ms" }}/>
-                </span>
+              <div className="flex items-center gap-3 pl-1 text-slate-400">
+                <MondailyLogo size={22} thinking />
+                <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
               </div>
             )}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
@@ -742,13 +738,9 @@ export function HomePage() {
             </div>
             <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1">
               {scanLoading ? (
-                <div className="flex items-center gap-2 text-slate-500 py-4">
-                  <span className="italic text-sm">Thinking</span>
-                  <span className="flex gap-1 items-end h-3">
-                    <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "0ms" }}/>
-                    <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "150ms" }}/>
-                    <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "300ms" }}/>
-                  </span>
+                <div className="flex items-center gap-3 text-slate-400 py-4">
+                  <MondailyLogo size={22} thinking />
+                  <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
                 </div>
               ) : scanReport ? renderMarkdown(scanReport) : null}
             </div>

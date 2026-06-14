@@ -1,4 +1,5 @@
-import { Sparkles, Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks } from "lucide-react";
+import { MondailyLogo } from "./mondaily-logo";
 import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
@@ -283,9 +284,12 @@ export function AskMondaily() {
 
       {/* ── Header ── */}
       <div className="shrink-0 flex items-center justify-between border-b border-white/[.06] px-6 py-4">
-        <div>
-          <h1 className="text-base font-semibold text-white">Ask Mondaily</h1>
-          <p className="text-xs text-slate-500">Your AI business assistant</p>
+        <div className="flex items-center gap-3 text-white">
+          <MondailyLogo size={28} thinking={loading} />
+          <div>
+            <h1 className="text-sm font-semibold text-white tracking-wide">Ask Mondaily</h1>
+            <p className="text-[11px] text-slate-500">{loading ? "Thinking…" : "Your AI business assistant"}</p>
+          </div>
         </div>
         {isChatting && (
           <div className="flex items-center gap-3">
@@ -307,8 +311,8 @@ export function AskMondaily() {
         {!isChatting && (
           <div className="flex h-full items-center justify-center">
             <div className="w-full max-w-md text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
-                <Sparkles size={20} className="text-red-400"/>
+              <div className="mx-auto mb-5 flex items-center justify-center text-white/80">
+                <MondailyLogo size={52} showWordmark />
               </div>
               <p className="text-sm font-medium text-white mb-1">How can I help you today?</p>
               <p className="text-xs text-slate-500 mb-6">Ask about your pipeline, contacts, tasks, or anything business-related.</p>
@@ -374,14 +378,9 @@ export function AskMondaily() {
 
         {/* Thinking */}
         {loading && (
-          <div className="flex items-center gap-2.5 pl-1">
-            <div className="h-1.5 w-1.5 rounded-full bg-slate-600"/>
-            <span className="text-sm text-slate-500 italic">Thinking</span>
-            <span className="flex gap-1 items-end h-3">
-              <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "0ms" }}/>
-              <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "150ms" }}/>
-              <span className="w-1 h-1 rounded-full bg-slate-600 animate-bounce" style={{ animationDelay: "300ms" }}/>
-            </span>
+          <div className="flex items-center gap-3 pl-1 text-slate-400">
+            <MondailyLogo size={22} thinking />
+            <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
           </div>
         )}
 
