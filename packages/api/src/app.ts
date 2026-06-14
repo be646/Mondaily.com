@@ -69,4 +69,26 @@ app.route("/api/v1", appDataRouter);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
 
+app.get("/api/debug-auth", async (c) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  const clerkKey = process.env.CLERK_SECRET_KEY;
+  const info: Record<string, string> = {
+    clerk_key_set: clerkKey ? "yes" : "no",
+    clerk_key_prefix: clerkKey?.substring(0, 12) ?? "NOT SET",
+    token_received: token ? "yes" : "no",
+    token_prefix: token?.substring(0, 20) ?? "none",
+  };
+  if (token && clerkKey) {
+    try {
+      const { verifyToken } = await import("@clerk/backend");
+      const verified = await verifyToken(token, { secretKey: clerkKey, skipJwksCache: true });
+      info.verify_result = "ok";
+      info.sub = verified.sub;
+    } catch (e: any) {
+      info.verify_error = e?.message ?? String(e);
+    }
+  }
+  return c.json(info);
+});
+
 export default app;
