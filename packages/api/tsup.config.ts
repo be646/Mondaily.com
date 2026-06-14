@@ -1,16 +1,16 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: { index: 'api/index.ts' },
-  outDir: 'api/dist',
+  entry: { index: 'handler.ts' },
+  outDir: 'api',
   format: ['cjs'],
-  outExtension: () => ({ js: '.js' }),
   target: 'node20',
   bundle: true,
   splitting: false,
   sourcemap: false,
-  clean: true,
+  clean: false,
   noExternal: [/@mondaily\/.*/],
+  outExtension: () => ({ js: '.js' }),
   esbuildOptions(options) {
     options.platform = 'node'
   },
