@@ -15,7 +15,8 @@ export const requireAuth = createMiddleware<{
   let userId: string;
   try {
     const verified = await verifyToken(token, {
-      secretKey: process.env.CLERK_SECRET_KEY!,
+      jwtKey: process.env.CLERK_JWT_KEY,
+      secretKey: process.env.CLERK_JWT_KEY ? undefined : process.env.CLERK_SECRET_KEY!,
       skipJwksCache: true,
     });
     userId = verified.sub;
