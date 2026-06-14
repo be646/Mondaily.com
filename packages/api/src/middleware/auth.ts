@@ -1,9 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { createClerkClient } from "@clerk/backend";
+import { verifyToken } from "@clerk/backend";
 import { supabase } from "@mondaily/db/client";
-
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
 
 export const requireAuth = createMiddleware<{
   Variables: { userId: string; workspaceId: string; role: string };
@@ -16,7 +14,9 @@ export const requireAuth = createMiddleware<{
 
   try {
     // Verify JWT signature cryptographically using Clerk's JWKS
-    const verified = await clerk.verifyToken(token);
+    const verified = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY!,
+    });
     const userId = verified.sub;
     if (!userId) throw new HTTPException(401, { message: "Invalid token" });
 
