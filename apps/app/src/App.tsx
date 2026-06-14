@@ -43,6 +43,8 @@ import { SecuritySettings } from "./routes/dashboard/settings/security";
 import { AskMondailySettings } from "./routes/dashboard/settings/ask-mondaily";
 import { ListPage } from "./routes/dashboard/lists/[listId]";
 import { SearchPage } from "./routes/dashboard/search";
+import { InvoicesPage } from "./routes/dashboard/finance/invoices";
+import { InvoiceDetailPage } from "./routes/dashboard/finance/[invoiceId]";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
@@ -86,6 +88,8 @@ export function App() {
         <Route path="pipeline" element={<Navigate to="/objects/deals?view=board" replace />} />
         <Route path="lists/:listId" element={<ListPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="finance/invoices" element={<InvoicesPage />} />
+        <Route path="finance/invoices/:invoiceId" element={<InvoiceDetailPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="account" replace />} />
           <Route path="account" element={<AccountSettings />} />

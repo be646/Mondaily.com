@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search } from "lucide-react";
+import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search, Receipt } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
@@ -17,6 +17,7 @@ const navItems = [
   { to: "/calls",         label: "Calls",         icon: Phone },
   { to: "/reports",       label: "Reports",       icon: BarChart2 },
   { to: "/automations",   label: "Automations",   icon: Zap },
+  { to: "/finance/invoices", label: "Invoices",   icon: Receipt },
 ];
 
 function Logo({ size = 28 }: { size?: number }) {
