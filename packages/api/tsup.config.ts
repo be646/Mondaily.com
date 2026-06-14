@@ -9,6 +9,8 @@ export default defineConfig({
   splitting: false,
   sourcemap: false,
   clean: true,
-  external: [],
   noExternal: [/@mondaily\/.*/],
+  esbuildOptions(options) {
+    options.platform = 'node'
+  },
 })

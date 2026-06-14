@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsc --noEmit",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext ts"
   },
