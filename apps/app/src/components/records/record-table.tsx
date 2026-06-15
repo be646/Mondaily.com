@@ -685,16 +685,35 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
   date:      "",
 };
 
-function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
+// Types where only one instance makes sense
+const SINGLETON_TYPES = new Set(["assignee","owner","status","stage","record_id","country"]);
+
+function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingCustomTypes }: {
   onAdd: (name: string, type: string) => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | HTMLTableCellElement | null>;
+  existingCols: string[];
+  existingCustomTypes: string[];
 }) {
   const [name, setName] = useState("");
-  const [type, setType] = useState<ColPresetType>("status");
+  const [type, setType] = useState<ColPresetType>("text");
   const [hovered, setHovered] = useState<ColPresetType | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Determine which types are already covered so we can block adding duplicates
+  function isTypeTaken(t: ColPresetType): boolean {
+    if (!SINGLETON_TYPES.has(t)) return false;
+    if (existingCustomTypes.includes(t)) return true;
+    const cols = existingCols.map(c => c.toLowerCase());
+    if (t === "assignee" && cols.some(c => c.includes("assign"))) return true;
+    if (t === "owner" && cols.some(c => c.includes("owner"))) return true;
+    if (t === "status" && cols.some(c => c === "status" || c === "deal_status")) return true;
+    if (t === "stage" && cols.some(c => c.includes("stage"))) return true;
+    if (t === "country" && cols.some(c => c.includes("country"))) return true;
+    if (t === "record_id" && existingCustomTypes.includes("record_id")) return true;
+    return false;
+  }
 
   function pickType(t: ColPresetType) {
     setType(t);
@@ -726,15 +745,20 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
         />
       </div>
       <div className="py-1">
-        {COLUMN_TYPE_PRESETS.map(({ type: t, label, icon: Icon, color }) => (
-          <button key={t} onClick={() => pickType(t)}
-            onMouseEnter={() => setHovered(t)} onMouseLeave={() => setHovered(null)}
-            className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${type === t ? "bg-white/[.05] text-white" : "text-slate-400 hover:bg-white/[.03] hover:text-white"}`}>
-            <Icon size={13} className={color}/>
-            <span className="font-medium">{label}</span>
-            {type === t && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
-          </button>
-        ))}
+        {COLUMN_TYPE_PRESETS.map(({ type: t, label, icon: Icon, color }) => {
+          const taken = isTypeTaken(t);
+          return (
+            <button key={t} onClick={() => !taken && pickType(t)}
+              onMouseEnter={() => setHovered(t)} onMouseLeave={() => setHovered(null)}
+              disabled={taken}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${taken ? "opacity-30 cursor-not-allowed" : type === t ? "bg-white/[.05] text-white" : "text-slate-400 hover:bg-white/[.03] hover:text-white"}`}>
+              <Icon size={13} className={taken ? "text-white/20" : color}/>
+              <span className="font-medium">{label}</span>
+              {taken && <span className="ml-auto text-[9px] text-white/20">already added</span>}
+              {!taken && type === t && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+            </button>
+          );
+        })}
       </div>
       {activePreset && (
         <div className="px-3 py-2 border-t border-white/[.04] text-[10px] text-slate-600">
@@ -2196,6 +2220,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     onAdd={(key, type) => { saveCustomCols([...customCols, { key, type }]); setOpenPanel(null); }}
                     onClose={() => setOpenPanel(null)}
                     triggerRef={addColHeaderRef}
+                    existingCols={allColumnsWithCustom}
+                    existingCustomTypes={customCols.map(c => c.type)}
                   />
                 )}
               </th>
