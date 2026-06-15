@@ -1162,7 +1162,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <button onClick={() => handleHeaderSort(col)}
                     className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
-                    <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-normal leading-tight">{col.replaceAll("_", " ")}</span>
+                    <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
                     <SortIcon col={col}/>
                   </button>
                 </th>
