@@ -1250,7 +1250,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03]`}
                 >
                   {/* Row checkbox */}
-                  <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 group-hover:bg-[#0f1115] ${selected.has(record.id) ? "bg-red-500/[.06]" : "bg-[#0b0d10]"}`}>
+                  <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
                     <div
                       onClick={() => toggleSelectRow(record.id)}
                       className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
@@ -1261,7 +1261,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {columns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-red-500/[.06] group-hover:bg-red-500/[.08]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
                     >
                       <CellTooltip text={display(record.data[col])}>
                         {renderCell(col, record)}
