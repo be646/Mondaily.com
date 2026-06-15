@@ -979,7 +979,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
     }
     if (quickFilters.length) {
-      base = base.filter(r => quickFilters.every(f => String(r.data[f.col] ?? "").toLowerCase() === f.value.toLowerCase()));
+      base = base.filter(r => quickFilters.every(f => {
+        if (f.col.endsWith("__from")) {
+          const col = f.col.replace("__from", "");
+          const v = String(r.data[col] ?? r.updated_at ?? "");
+          return v >= f.value;
+        }
+        if (f.col.endsWith("__to")) {
+          const col = f.col.replace("__to", "");
+          const v = String(r.data[col] ?? r.updated_at ?? "");
+          return v <= f.value;
+        }
+        return String(r.data[f.col] ?? "").toLowerCase() === f.value.toLowerCase();
+      }));
     }
     return base;
   }, [records, filterText, filterQuery, quickFilters]);
@@ -1329,17 +1341,59 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   )}
                 </div>
                 {(() => {
-                  const skipCols = new Set(["name","email","phone","website","linkedin","twitter","domain","description","bio","notes","summary","address","logo_url","avatar_url","image_url","lead_score","updated_at","created_at"]);
+                  // Only show columns that are meaningful to filter: status/stage, assignee/owner, date
                   const filterableCols = orderedColumns.filter(c => {
-                    if (skipCols.has(c) || c.toLowerCase().includes("url") || c.toLowerCase().includes("email") || c.toLowerCase().includes("phone")) return false;
-                    const uniqueVals = new Set(records.map(r => String(r.data[c] ?? "")).filter(Boolean));
-                    return uniqueVals.size >= 1 && uniqueVals.size <= 15;
+                    const l = c.toLowerCase();
+                    return (
+                      l.includes("stage") || l === "status" || l === "deal_status" ||
+                      l.includes("assignee") || l.includes("assigned") ||
+                      l.includes("owner") ||
+                      l.includes("date") || l.includes("_at") || l === "close_date" || l === "due_date" || l === "start_date"
+                    );
                   });
-                  if (!filterableCols.length) return <p className="px-3 py-3 text-[11px] text-slate-600">No filterable columns found.</p>;
+                  if (!filterableCols.length) return <p className="px-3 py-3 text-[11px] text-slate-600">No filterable columns found. Add a Status, Stage, or Assignee column.</p>;
                   return filterableCols.map(col => {
-                    const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 12);
+                    const l = col.toLowerCase();
+                    const isDate = l.includes("date") || l.includes("_at");
+                    const isStage = l.includes("stage") || col === "status" || col === "deal_status";
+                    const isOwner = l.includes("owner") || l.includes("assignee") || l.includes("assigned");
+
+                    if (isDate) {
+                      const dateFrom = quickFilters.find(f => f.col === col + "__from")?.value ?? "";
+                      const dateTo   = quickFilters.find(f => f.col === col + "__to")?.value ?? "";
+                      return (
+                        <div key={col} className="border-b border-white/[.04] last:border-0 px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">{col.replaceAll("_", " ")}</p>
+                          <div className="flex items-center gap-2">
+                            <input type="date" value={dateFrom}
+                              onChange={e => {
+                                setQuickFilters(prev => {
+                                  const out = prev.filter(f => f.col !== col + "__from");
+                                  return e.target.value ? [...out, { col: col + "__from", value: e.target.value }] : out;
+                                });
+                              }}
+                              className="flex-1 rounded border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-red-500/30"
+                            />
+                            <span className="text-slate-600 text-[10px]">→</span>
+                            <input type="date" value={dateTo}
+                              onChange={e => {
+                                setQuickFilters(prev => {
+                                  const out = prev.filter(f => f.col !== col + "__to");
+                                  return e.target.value ? [...out, { col: col + "__to", value: e.target.value }] : out;
+                                });
+                              }}
+                              className="flex-1 rounded border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-red-500/30"
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const vals = isStage
+                      ? [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])]
+                      : [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
+
                     if (!vals.length) return null;
-                    const isStage = col.toLowerCase().includes("stage") || col === "status" || col === "deal_status";
                     return (
                       <div key={col} className="border-b border-white/[.04] last:border-0">
                         <div className="px-3 py-1.5">
@@ -1349,20 +1403,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                               const active = quickFilters.some(f => f.col === col && f.value === val);
                               const s = isStage ? stageStyle(val) : null;
                               return (
-                                <button
-                                  key={val}
-                                  onClick={() => toggleQuickFilter(col, val)}
+                                <button key={val} onClick={() => toggleQuickFilter(col, val)}
                                   className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all ${
-                                    active
-                                      ? "border-red-500/50 bg-red-500/15 text-red-300"
-                                      : s
-                                        ? `${s.pill} hover:opacity-100 opacity-70`
-                                        : "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-slate-200"
+                                    active ? "border-red-500/50 bg-red-500/15 text-red-300"
+                                    : s ? `${s.pill} hover:opacity-100 opacity-70`
+                                    : isOwner ? "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-white"
+                                    : "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-slate-200"
                                   }`}
                                 >
                                   {s && <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-red-400" : s.dot}`}/>}
-                                  {val}
-                                  {active && <X size={8}/>}
+                                  {val}{active && <X size={8}/>}
                                 </button>
                               );
                             })}
