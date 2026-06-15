@@ -25,7 +25,7 @@ const STICKY_PALETTES: Record<string, { bg: string; accent: string; text: string
 
 function StickyNode({ data, selected }: NodeProps) {
   const [editing, setEditing] = useState(false);
-  const p = STICKY_PALETTES[(data.color as string) || "lemon"];
+  const p = STICKY_PALETTES[(data.color as string) || "lemon"] ?? STICKY_PALETTES["lemon"]!;
 
   return (
     <div

@@ -124,9 +124,9 @@ export function DedupPanel({
   async function mergeAll() {
     setMerging(true);
     for (let i = 0; i < groups.length; i++) {
-      const group = groups[i];
+      const group = groups[i]!;
       const keepIdx = keepMap[i] ?? group.keepIndex;
-      const keeper = group.records[keepIdx];
+      const keeper = group.records[keepIdx]!;
       const dupes = group.records.filter((_, j) => j !== keepIdx);
 
       // Merge all fields from dupes into keeper (non-destructively)

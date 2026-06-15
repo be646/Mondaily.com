@@ -1793,8 +1793,8 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             </div>
 
             {/* Lead score */}
-            {(record as Record<string,unknown>).lead_score != null && (
-              <LeadScoreBadge score={(record as Record<string,unknown>).lead_score as number} size="md"/>
+            {(record as unknown as Record<string,unknown>).lead_score != null && (
+              <LeadScoreBadge score={(record as unknown as Record<string,unknown>).lead_score as number} size="md"/>
             )}
 
             {/* Action row: Email + Add to list */}

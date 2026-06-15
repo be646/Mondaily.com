@@ -21,6 +21,9 @@ interface Step {
   assignee_id?: string;
   from_account?: string;
   send_as?: "new" | "reply";
+  sent_count?: number;
+  opened_count?: number;
+  clicked_count?: number;
 }
 
 interface Enrollment {
@@ -28,9 +31,12 @@ interface Enrollment {
   node_id: string;
   contact_name: string;
   company?: string;
-  status: "active" | "paused" | "unsubscribed";
+  status: "active" | "paused" | "unsubscribed" | "replied";
   current_step: number;
   enrolled_at: string;
+  opened_at?: string;
+  clicked_at?: string;
+  replied_at?: string;
 }
 
 interface Sequence {
@@ -319,9 +325,9 @@ export function SequenceBuilderPage() {
 
   const enrollments = seq.enrollments;
   const totalEnrolled = enrollments.length;
-  const totalOpened = enrollments.filter((e: Enrollment) => (e as Record<string,unknown>).opened_at).length;
-  const totalClicked = enrollments.filter((e: Enrollment) => (e as Record<string,unknown>).clicked_at).length;
-  const totalReplied = enrollments.filter((e: Enrollment) => e.status === "replied" || (e as Record<string,unknown>).replied_at).length;
+  const totalOpened = enrollments.filter((e: Enrollment) => e.opened_at).length;
+  const totalClicked = enrollments.filter((e: Enrollment) => e.clicked_at).length;
+  const totalReplied = enrollments.filter((e: Enrollment) => e.status === "replied" || e.replied_at).length;
   const totalUnsubscribed = enrollments.filter((e: Enrollment) => e.status === "unsubscribed").length;
   const openRate = totalEnrolled > 0 ? Math.round((totalOpened / totalEnrolled) * 100) : 0;
   const clickRate = totalEnrolled > 0 ? Math.round((totalClicked / totalEnrolled) * 100) : 0;
@@ -513,17 +519,16 @@ export function SequenceBuilderPage() {
                 </div>
                 <div className="divide-y divide-white/[.04]">
                   {seq.steps.map((step, i) => {
-                    const s = step as Record<string, unknown>;
-                    const sent = Number(s.sent_count ?? 0);
-                    const opened = Number(s.opened_count ?? 0);
-                    const clicked = Number(s.clicked_count ?? 0);
+                    const sent = Number(step.sent_count ?? 0);
+                    const opened = Number(step.opened_count ?? 0);
+                    const clicked = Number(step.clicked_count ?? 0);
                     const pct = sent > 0 ? Math.round((opened / sent) * 100) : 0;
                     return (
                       <div key={i} className="flex items-center gap-4 px-4 py-3">
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[.06] text-[10px] font-bold text-slate-400">{i + 1}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-white truncate">{String(s.label ?? s.subject ?? `Step ${i + 1}`)}</p>
-                          <p className="text-[10px] text-slate-600 capitalize">{String(s.type ?? "email")}</p>
+                          <p className="text-xs font-medium text-white truncate">{String(step.label ?? step.subject ?? `Step ${i + 1}`)}</p>
+                          <p className="text-[10px] text-slate-600 capitalize">{String(step.type ?? "email")}</p>
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
                           <p className="text-xs text-slate-400">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>

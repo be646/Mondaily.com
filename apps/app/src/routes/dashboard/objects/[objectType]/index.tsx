@@ -679,7 +679,7 @@ export function ObjectIndexPage() {
 
   const recordsQuery = useQuery({
     queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<{ id: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
+    queryFn: () => apiClient.get<{ id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
     staleTime: 30_000,
     refetchInterval: hasActiveEnrichment ? 3000 : false,
   });

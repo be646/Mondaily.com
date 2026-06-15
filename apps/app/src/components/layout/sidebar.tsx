@@ -144,7 +144,7 @@ function GettingStarted() {
     queryKey: ["onboarding-status"],
     queryFn: async () => {
       const res = await apiClient.get("/onboarding/status");
-      return res.data as Record<string, boolean>;
+      return (res as { data: Record<string, boolean> }).data;
     },
     staleTime: 60_000,
     refetchOnWindowFocus: true,

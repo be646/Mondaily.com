@@ -10,8 +10,8 @@ import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
-interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined }
-interface Member { id: string; user_id: string; name: string; email: string }
+interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
+interface Member { id: string; user_id: string; name: string; email: string; role?: string }
 
 function display(value: unknown) {
   return value == null ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value);

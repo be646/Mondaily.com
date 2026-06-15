@@ -440,7 +440,7 @@ export function NotesPage() {
   const { userId } = useAuth();
   const qc = useQueryClient();
 
-  const view: ViewMode = "list";
+  const [view, _setView] = useState<ViewMode>("list");
   const [filter, setFilter] = useState<"all" | "mine" | "ai">("all");
   const [sort, setSort] = useState<"newest" | "oldest" | "updated">("newest");
   const [search, setSearch] = useState("");
