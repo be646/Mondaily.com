@@ -130,9 +130,8 @@ const CHECKLIST = [
 function GettingStarted() {
   const [open, setOpen] = useState(false);
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("gs_dismissed"));
 
-  // Extension is the only thing we can't detect server-side —
-  // the extension sets this flag via localStorage when installed.
   const extensionInstalled = useMemo(() => !!localStorage.getItem("mondaily_extension_installed"), []);
 
   const { data: status } = useQuery({
@@ -155,81 +154,106 @@ function GettingStarted() {
   const doneCount = done.size;
   const total = CHECKLIST.length;
   const pct = Math.round((doneCount / total) * 100);
-  const allDone = doneCount === total;
 
-  if (allDone) return null;
+  function dismiss() {
+    localStorage.setItem("gs_dismissed", "1");
+    setDismissed(true);
+  }
+
+  if (dismissed || doneCount === total) return null;
 
   return (
-    <div className="border-t border-white/[.05]">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-2.5 px-3 py-2.5 hover:bg-white/[.03] transition-colors"
-      >
-        {/* Ring progress */}
-        <div className="relative shrink-0 h-6 w-6">
-          <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
-            <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5"/>
-            <circle
-              cx="12" cy="12" r="9" fill="none"
-              stroke="#ef4444" strokeWidth="2.5"
-              strokeDasharray={`${2 * Math.PI * 9}`}
-              strokeDashoffset={`${2 * Math.PI * 9 * (1 - pct / 100)}`}
-              strokeLinecap="round"
-              style={{ transition: "stroke-dashoffset 0.4s ease" }}
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-slate-400">{doneCount}</span>
+    <div className="px-2 pb-2">
+      {/* Card — visually distinct from nav, gradient border */}
+      <div className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.04) 100%)", border: "1px solid rgba(239,68,68,0.18)" }}>
+
+        {/* Header row */}
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex w-full items-center gap-2.5 px-3 pt-3 pb-2.5"
+        >
+          {/* Ring */}
+          <div className="relative shrink-0 h-7 w-7">
+            <svg viewBox="0 0 28 28" className="h-7 w-7 -rotate-90">
+              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(239,68,68,0.15)" strokeWidth="2.5"/>
+              <circle cx="14" cy="14" r="11" fill="none" stroke="#ef4444" strokeWidth="2.5"
+                strokeDasharray={`${2 * Math.PI * 11}`}
+                strokeDashoffset={`${2 * Math.PI * 11 * (1 - pct / 100)}`}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dashoffset 0.5s ease" }}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-red-400">{doneCount}</span>
+          </div>
+
+          <div className="flex-1 text-left min-w-0">
+            <div className="text-[12px] font-semibold text-white/90">Getting started</div>
+            <div className="text-[10px] text-white/30">{doneCount} of {total} steps done</div>
+          </div>
+          <ChevronDown size={11} className={`text-white/20 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
+        </button>
+
+        {/* Progress bar */}
+        <div className="mx-3 mb-2.5 h-[3px] rounded-full bg-white/[.06] overflow-hidden">
+          <div className="h-full rounded-full bg-red-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
         </div>
-        <div className="flex-1 text-left min-w-0">
-          <div className="text-[12px] font-medium text-slate-300">Getting started</div>
-          <div className="text-[10px] text-slate-600">{doneCount} of {total} complete</div>
-        </div>
-        <ChevronDown size={11} className={`text-slate-700 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
-      </button>
 
-      {open && (
-        <div className="px-2 pb-2 space-y-0.5">
-          {CHECKLIST.map(item => {
-            const checked = done.has(item.id);
-            const hovered = hoverId === item.id;
-            return (
-              <div
-                key={item.id}
-                className="relative"
-                onMouseEnter={() => setHoverId(item.id)}
-                onMouseLeave={() => setHoverId(null)}
-              >
-                <div className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors ${checked ? "opacity-40" : hovered ? "bg-white/[.04]" : ""}`}>
-                  {/* Status dot — auto-filled, not clickable */}
-                  <div className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-slate-700"}`}>
-                    {checked && <Check size={8} className="text-white" strokeWidth={3}/>}
-                  </div>
-
-                  {/* Label — links to the page where the action happens */}
-                  <Link to={item.to} className="flex-1 min-w-0">
-                    <span className={`text-[12px] leading-tight ${checked ? "line-through text-slate-600" : "text-slate-300"}`}>
-                      {item.label}
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Hover tooltip — pops out to the right */}
-                {hovered && !checked && (
-                  <div className="absolute left-full top-0 z-[200] ml-2 w-56 pointer-events-none">
-                    {/* Arrow */}
-                    <div className="absolute -left-1.5 top-3 h-3 w-3 rotate-45 rounded-sm border-l border-t border-white/[.08] bg-[#161920]"/>
-                    <div className="rounded-xl border border-white/[.08] bg-[#161920] px-3 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
-                      <div className="text-[12px] font-semibold text-white mb-1">{item.label}</div>
-                      <div className="text-[11px] text-slate-400 leading-relaxed">{item.hint}</div>
-                      <div className="mt-2 text-[10px] text-red-400 font-medium">→ Go there</div>
+        {/* Checklist */}
+        {open && (
+          <>
+            <div className="px-2 pb-1 space-y-px">
+              {CHECKLIST.map(item => {
+                const checked = done.has(item.id);
+                const hovered = hoverId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    className="relative"
+                    onMouseEnter={() => setHoverId(item.id)}
+                    onMouseLeave={() => setHoverId(null)}
+                  >
+                    <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.04]" : ""}`}>
+                      <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-white/20"}`}>
+                        {checked && <Check size={7} className="text-white" strokeWidth={3.5}/>}
+                      </div>
+                      <Link to={item.to} className="flex-1 min-w-0">
+                        <span className={`text-[11px] leading-tight ${checked ? "line-through text-white/20" : "text-white/60"}`}>
+                          {item.label}
+                        </span>
+                      </Link>
                     </div>
+
+                    {/* Tooltip */}
+                    {hovered && !checked && (
+                      <div className="absolute left-full top-0 z-[200] ml-2.5 w-56 pointer-events-none">
+                        <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-red-500/20 bg-[#1a1118]"/>
+                        <div className="rounded-xl border border-red-500/20 bg-[#1a1118] px-3 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
+                          <div className="text-[12px] font-semibold text-white mb-1.5">{item.label}</div>
+                          <div className="text-[11px] text-white/40 leading-relaxed">{item.hint}</div>
+                          <div className="mt-2.5 flex items-center gap-1 text-[10px] font-semibold text-red-400">
+                            <span>Go there</span><span>→</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                );
+              })}
+            </div>
+
+            {/* Dismiss row */}
+            <div className="border-t border-white/[.06] mx-0 px-3 py-2 flex items-center justify-between">
+              <span className="text-[10px] text-white/20">Auto-detected from your workspace</span>
+              <button
+                onClick={dismiss}
+                className="text-[10px] font-semibold text-white/30 hover:text-red-400 transition-colors"
+              >
+                Mark all done
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -421,12 +445,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <SidebarObjects />
               <SidebarLists />
               <SidebarAsk />
+              <div className="mt-3">
+                <GettingStarted />
+              </div>
             </>
           )}
         </nav>
-
-        {/* Getting started checklist — shown above bottom bar when not collapsed */}
-        {!collapsed && <GettingStarted />}
 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-white/[.05] p-2">
