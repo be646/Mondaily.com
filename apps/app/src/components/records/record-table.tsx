@@ -1321,6 +1321,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setSelected(new Set());
   }
 
+  const [filterSearchOpen, setFilterSearchOpen] = useState(false);
+  const filterSearchRef = useRef<HTMLInputElement>(null);
   const [listPickerOpen, setListPickerOpen] = useState(false);
   const [assignPickerOpen, setAssignPickerOpen] = useState(false);
   const [assignSearch, setAssignSearch] = useState("");
@@ -1765,18 +1767,34 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
         return (
           <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-            {/* Search — always in filter bar */}
-            <div className="relative shrink-0">
-              <Search size={11} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-600"/>
-              <input
-                value={filterText}
-                onChange={e => setFilterText(e.target.value)}
-                placeholder="Search name, email, phone, ID…"
-                className="key-input w-48 py-1 pl-6 pr-6 text-xs"
-              />
-              {filterText && (
-                <button onClick={() => setFilterText("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
-                  <X size={10}/>
+            {/* Search — icon that expands on click */}
+            <div className="flex items-center shrink-0">
+              {filterSearchOpen ? (
+                <div className="relative flex items-center">
+                  <Search size={11} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500"/>
+                  <input
+                    ref={filterSearchRef}
+                    autoFocus
+                    value={filterText}
+                    onChange={e => setFilterText(e.target.value)}
+                    onBlur={() => { if (!filterText) setFilterSearchOpen(false); }}
+                    onKeyDown={e => { if (e.key === "Escape") { setFilterText(""); setFilterSearchOpen(false); } }}
+                    placeholder="Search…"
+                    className="key-input w-44 py-1 pl-6 pr-6 text-xs"
+                  />
+                  {filterText && (
+                    <button onClick={() => { setFilterText(""); setFilterSearchOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                      <X size={10}/>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setFilterSearchOpen(true)}
+                  className={`flex items-center justify-center h-6 w-6 rounded-md transition-colors ${filterText ? "text-white bg-white/[.08]" : "text-white/30 hover:text-white/70 hover:bg-white/[.04]"}`}
+                  title="Search records"
+                >
+                  <Search size={12}/>
                 </button>
               )}
             </div>
