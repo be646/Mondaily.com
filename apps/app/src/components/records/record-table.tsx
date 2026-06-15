@@ -297,7 +297,7 @@ function StagePill({ value, options, onSelect }: {
 
   if (!onSelect) {
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${pill}`}>
+      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${pill}`}>
         <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`}/>
         {value}
       </span>
@@ -309,7 +309,7 @@ function StagePill({ value, options, onSelect }: {
       <button
         ref={ref}
         onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-opacity hover:opacity-80 ${pill}`}
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap transition-opacity hover:opacity-80 ${pill}`}
       >
         <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`}/>
         {value}
