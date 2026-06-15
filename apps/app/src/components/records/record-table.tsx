@@ -622,7 +622,10 @@ function OwnerCell({ value, members, onSelect }: {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assign to</p>
           </div>
           {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members yet</p>}
-          {members.map(m => {
+          {members.filter(m => {
+            const label = m.name || m.email;
+            return label && typeof label === "string" && isNaN(Number(label)) && label.trim().length > 0;
+          }).map(m => {
             const ml = m.name || m.email || "Unknown";
             const isActive = m.name === value || m.email === value;
             return (
@@ -1018,9 +1021,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Toolbar dropdown open state ──
   const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|null>(null);
-  const [filterSearchOpen, setFilterSearchOpen] = useState(false);
-  const filterSearchRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (filterSearchOpen) filterSearchRef.current?.focus(); }, [filterSearchOpen]);
 
   // ── Toolbar trigger refs (for portal positioning) ──
   const viewWrapRef   = useRef<HTMLDivElement>(null);
@@ -1444,21 +1444,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     <section className="flex flex-col h-full">
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 px-6 py-2 shrink-0">
-        {/* Search — always visible, searches name/email/phone/id/all fields */}
-        <div className="relative w-56">
-          <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600"/>
-          <input
-            value={filterText}
-            onChange={e => setFilterText(e.target.value)}
-            placeholder="Search name, email, phone, ID…"
-            className="key-input w-full py-1.5 pl-7 pr-7 text-xs"
-          />
-          {filterText && (
-            <button onClick={() => setFilterText("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
-              <X size={11}/>
-            </button>
-          )}
-        </div>
         {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
           <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
         )}
@@ -1565,6 +1550,21 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
         return (
           <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+            {/* Search — always in filter bar */}
+            <div className="relative shrink-0">
+              <Search size={11} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-600"/>
+              <input
+                value={filterText}
+                onChange={e => setFilterText(e.target.value)}
+                placeholder="Search name, email, phone, ID…"
+                className="key-input w-48 py-1 pl-6 pr-6 text-xs"
+              />
+              {filterText && (
+                <button onClick={() => setFilterText("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                  <X size={10}/>
+                </button>
+              )}
+            </div>
             {allFilterCols.length > 0 && <div className="h-3 w-px bg-white/[.08] shrink-0"/>}
 
             {allFilterCols.length === 0 && (
@@ -1635,7 +1635,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 Clear all
               </button>
             )}
-            <button onClick={() => { setOpenPanel(null); setFilterSearchOpen(false); }} className="ml-auto text-white/20 hover:text-white/50 shrink-0 transition-colors pl-2">
+            <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 transition-colors pl-2">
               <X size={13}/>
             </button>
           </div>
@@ -1700,7 +1700,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                               <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
                             </button>
                           ))}
-                          {isOwner && members.map(m => {
+                          {isOwner && members.filter(m => {
+                            const lb = m.name || m.email;
+                            return lb && typeof lb === "string" && isNaN(Number(lb)) && lb.trim().length > 0;
+                          }).map(m => {
                             const label = m.name || m.email || "?";
                             return (
                               <button key={m.id} onClick={() => applyBulkEdit(col, label)}
