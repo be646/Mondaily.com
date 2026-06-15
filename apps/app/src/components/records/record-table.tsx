@@ -232,6 +232,42 @@ function fmtDate(iso: string | null | undefined): string {
 // Columns to always hide from the data grid (shown separately or internal)
 const HIDDEN_DATA_COLS = new Set(["updated_at", "created_at", "workspace_id", "id"]);
 
+// ─── Short record ID derived from UUID ───────────────────────────────────────
+// Deterministic, human-readable, 6-char alphanumeric. No backend change needed.
+function shortId(uuid: string): string {
+  // Take first 6 hex chars and uppercase — always consistent for the same record
+  return uuid.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+function RecordIdCell({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false);
+  const sid = shortId(id);
+  function copy(e: React.MouseEvent) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(sid).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
+  return (
+    <div className="flex items-center gap-1.5 group/id">
+      <span className="font-mono text-[10px] text-white/25 tracking-wider select-all group-hover/id:text-white/50 transition-colors">
+        {sid}
+      </span>
+      <button
+        onClick={copy}
+        className="opacity-0 group-hover/id:opacity-100 transition-opacity text-white/30 hover:text-white/70"
+        title="Copy ID"
+      >
+        {copied
+          ? <Check size={9} className="text-emerald-400"/>
+          : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        }
+      </button>
+    </div>
+  );
+}
+
 function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const initials = String(name).split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   const colors = [
@@ -1587,7 +1623,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
           <thead className="sticky top-0 z-20">
             <tr>
-              {/* Checkbox column — tight fit around the 16px checkbox */}
+              {/* Checkbox column */}
               <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
@@ -1597,13 +1633,17 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
                 </div>
               </th>
+              {/* Record ID column — locked, non-sortable */}
+              <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-8 z-30">
+                <span className="text-[10px] font-semibold tracking-widest uppercase text-white/20">ID</span>
+              </th>
               {orderedColumns.map((col, colIdx) => {
                 const w = colWidths[col];
                 return (
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-[112px] z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -1700,10 +1740,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
                     </div>
                   </td>
+                  {/* Record ID cell */}
+                  <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
+                    <RecordIdCell id={record.id}/>
+                  </td>
                   {orderedColumns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-[112px] z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
                       onMouseEnter={(e) => {
                         const td = e.currentTarget;
                         if (td.scrollWidth > td.clientWidth + 2) {
@@ -1735,12 +1779,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </tbody>
           <tfoot className="sticky bottom-0 z-20">
             <tr>
-              {/* Blank checkbox placeholder so name column aligns with body */}
               <td className="w-8 min-w-[32px] max-w-[32px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-0 z-30" />
+              <td className="w-20 min-w-[80px] max-w-[80px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-8 z-30" />
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? "sticky left-[112px] z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
