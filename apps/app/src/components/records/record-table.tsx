@@ -19,6 +19,46 @@ type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
 type SortDir = "asc" | "desc";
 interface SortRule { col: string; dir: SortDir }
 
+// ─── Cell overflow tooltip ────────────────────────────────────────────────────
+// Wraps any <td> content. On hover it checks if the inner text is clipped
+// (scrollWidth > clientWidth) and if so renders a floating card via portal.
+function CellTooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
+
+  function handleEnter(e: React.MouseEvent) {
+    const el = ref.current;
+    if (!el) return;
+    const overflows = el.scrollWidth > el.clientWidth + 2 || el.scrollHeight > el.clientHeight + 2;
+    if (!overflows || !text || text === "—") return;
+    setTip({ x: e.clientX, y: e.clientY });
+  }
+
+  function handleMove(e: React.MouseEvent) {
+    if (tip) setTip({ x: e.clientX, y: e.clientY });
+  }
+
+  return (
+    <div ref={ref} className="truncate" onMouseEnter={handleEnter} onMouseMove={handleMove} onMouseLeave={() => setTip(null)}>
+      {children}
+      {tip && createPortal(
+        <div
+          className="pointer-events-none fixed z-[9999]"
+          style={{ left: tip.x + 14, top: tip.y + 14 }}
+        >
+          <div
+            className="max-w-xs rounded-lg px-3 py-2 text-[12px] text-white/90 leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+            style={{ background: "rgba(15,17,22,0.92)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(8px)" }}
+          >
+            {text}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function display(value: unknown): string {
   if (value == null) return "—";
@@ -937,7 +977,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const isLong = col === "description" || col === "bio" || col === "notes" || col === "summary" || col === "address";
     if (isLong && typeof val === "string" && val.length > 60) {
       return (
-        <span title={val} className="block max-w-[220px] truncate text-white/40 text-[11px] cursor-help">
+        <span className="block truncate text-white/40 text-[11px]">
           {val}
         </span>
       );
@@ -1223,11 +1263,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       key={col}
                       className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-red-500/[.06] group-hover:bg-red-500/[.08]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
                     >
-                      {renderCell(col, record)}
+                      <CellTooltip text={display(record.data[col])}>
+                        {renderCell(col, record)}
+                      </CellTooltip>
                     </td>
                   ))}
-                  <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04]">
-                    {fmtDate(record.updated_at)}
+                  <td className="px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04] max-w-[120px] overflow-hidden">
+                    <CellTooltip text={record.updated_at}>
+                      {fmtDate(record.updated_at)}
+                    </CellTooltip>
                   </td>
                   <td className="border-b border-b-white/[.04] w-10 px-2">
                     <button
