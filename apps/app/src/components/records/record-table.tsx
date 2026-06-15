@@ -20,42 +20,22 @@ type SortDir = "asc" | "desc";
 interface SortRule { col: string; dir: SortDir }
 
 // ─── Cell overflow tooltip ────────────────────────────────────────────────────
-// Wraps any <td> content. On hover it checks if the inner text is clipped
-// (scrollWidth > clientWidth) and if so renders a floating card via portal.
-function CellTooltip({ text, children }: { text: string; children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
-
-  function handleEnter(e: React.MouseEvent) {
-    const el = ref.current;
-    if (!el) return;
-    const overflows = el.scrollWidth > el.clientWidth + 2 || el.scrollHeight > el.clientHeight + 2;
-    if (!overflows || !text || text === "—") return;
-    setTip({ x: e.clientX, y: e.clientY });
-  }
-
-  function handleMove(e: React.MouseEvent) {
-    if (tip) setTip({ x: e.clientX, y: e.clientY });
-  }
-
-  return (
-    <div ref={ref} className="truncate" onMouseEnter={handleEnter} onMouseMove={handleMove} onMouseLeave={() => setTip(null)}>
-      {children}
-      {tip && createPortal(
-        <div
-          className="pointer-events-none fixed z-[9999]"
-          style={{ left: tip.x + 14, top: tip.y + 14 }}
-        >
-          <div
-            className="max-w-xs rounded-lg px-3 py-2 text-[12px] text-white/90 leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
-            style={{ background: "rgba(15,17,22,0.92)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(8px)" }}
-          >
-            {text}
-          </div>
-        </div>,
-        document.body,
-      )}
-    </div>
+// Used directly on <td> via onMouseEnter/Move/Leave props.
+// Detects real overflow by comparing td.scrollWidth vs td.clientWidth.
+function CellTipPortal({ text, x, y }: { text: string; x: number; y: number }) {
+  return createPortal(
+    <div
+      className="pointer-events-none fixed z-[9999]"
+      style={{ left: x + 14, top: y + 14 }}
+    >
+      <div
+        className="max-w-sm rounded-lg px-3 py-2 text-[12px] text-white/90 leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
+        style={{ background: "rgba(13,15,19,0.96)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(10px)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+      >
+        {text}
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -859,6 +839,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Bulk selection ──
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [cellTip, setCellTip] = useState<{ text: string; x: number; y: number } | null>(null);
   const allSelected = sorted.length > 0 && sorted.every(r => selected.has(r.id));
   const someSelected = selected.size > 0;
 
@@ -1262,16 +1243,21 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     <td
                       key={col}
                       className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+                      onMouseEnter={(e) => {
+                        const td = e.currentTarget;
+                        if (td.scrollWidth > td.clientWidth + 2) {
+                          const text = display(record.data[col]);
+                          if (text && text !== "—") setCellTip({ text, x: e.clientX, y: e.clientY });
+                        }
+                      }}
+                      onMouseMove={(e) => cellTip && setCellTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                      onMouseLeave={() => setCellTip(null)}
                     >
-                      <CellTooltip text={display(record.data[col])}>
-                        {renderCell(col, record)}
-                      </CellTooltip>
+                      {renderCell(col, record)}
                     </td>
                   ))}
-                  <td className="px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04] max-w-[120px] overflow-hidden">
-                    <CellTooltip text={record.updated_at}>
-                      {fmtDate(record.updated_at)}
-                    </CellTooltip>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04]">
+                    {fmtDate(record.updated_at)}
                   </td>
                   <td className="border-b border-b-white/[.04] w-10 px-2">
                     <button
@@ -1331,6 +1317,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     </section>
 
     {/* Undo delete toast */}
+    {cellTip && <CellTipPortal text={cellTip.text} x={cellTip.x} y={cellTip.y}/>}
+
     {undoToast && (
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-white/10 bg-[#1a1d24] px-4 py-3 shadow-2xl">
         <span className="text-sm text-white/70">Record deleted</span>
