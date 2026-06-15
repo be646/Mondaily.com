@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { ClerkProvider, useAuth, useOrganization } from "@clerk/react";
 import { App } from "./App";
+import { setTokenProvider } from "./lib/api-client";
 import "./styles.css";
 
 const queryClient = new QueryClient({
@@ -21,25 +22,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!isLoaded) return;
     if (!isSignedIn) {
       localStorage.removeItem("mondaily_session_token");
+      setTokenProvider(() => Promise.resolve(null));
       setReady(true);
       return;
     }
-    getToken().then((token) => {
-      if (token) localStorage.setItem("mondaily_session_token", token);
-      localStorage.setItem("mondaily_workspace_id", "8ccef088-6493-4cd9-a0cf-3214098f59a1");
-      setReady(true);
-    });
-  }, [isLoaded, isSignedIn]);
-
-  useEffect(() => {
-    if (!isSignedIn || !isLoaded) return;
-    const interval = setInterval(() => {
-      getToken().then((token) => {
-        if (token) localStorage.setItem("mondaily_session_token", token);
-      });
-    }, 55_000);
-    return () => clearInterval(interval);
-  }, [isSignedIn, isLoaded]);
+    // Wire api-client to always call getToken() fresh — Clerk caches internally
+    // and only network-fetches when < 10s remain, so this is fast but never stale.
+    setTokenProvider(() => getToken());
+    localStorage.setItem("mondaily_workspace_id", "8ccef088-6493-4cd9-a0cf-3214098f59a1");
+    setReady(true);
+  }, [isLoaded, isSignedIn, getToken]);
 
   if (!ready) return null;
   return <>{children}</>;

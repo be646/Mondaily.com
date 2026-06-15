@@ -1,8 +1,18 @@
 const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_URL = `${BASE_URL}/api/v1`;
 
+// Clerk's getToken function — set once by AuthGate on mount so the api client
+// can fetch a fresh token on every request without needing React context.
+let _getToken: (() => Promise<string | null>) | null = null;
+
+export function setTokenProvider(fn: () => Promise<string | null>) {
+  _getToken = fn;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("mondaily_session_token");
+  // Always fetch a fresh token — Clerk caches internally and only round-trips
+  // when < 10s remain, so this is fast on hot paths and avoids stale-token errors.
+  const token = _getToken ? await _getToken() : localStorage.getItem("mondaily_session_token");
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
 
   const response = await fetch(`${API_URL}${path}`, {

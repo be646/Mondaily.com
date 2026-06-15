@@ -306,13 +306,18 @@ router.delete("/settings/account/connections/:id", async (c) => {
   return c.json({ ok: true });
 });
 router.get("/settings/workspace", async (c) => {
-  const { data } = await supabase.from("workspaces").select("name, settings, onboarded, timezone, logo_url").eq("id", c.get("workspaceId")).single();
+  const workspaceId = c.get("workspaceId");
+  const [{ data }, { count: memberCount }] = await Promise.all([
+    supabase.from("workspaces").select("name, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
+    supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+  ]);
   const settings = (data?.settings ?? {}) as Record<string, unknown>;
   return c.json({
     name: data?.name ?? "",
     timezone: (data as Record<string, unknown> | null)?.timezone ?? settings.timezone ?? "UTC",
     logo_url: (data as Record<string, unknown> | null)?.logo_url ?? null,
     onboarded: (data as Record<string, unknown> | null)?.onboarded ?? false,
+    member_count: memberCount ?? 1,
     modules: (settings.modules as string[] | undefined) ?? ["crm"],
   });
 });

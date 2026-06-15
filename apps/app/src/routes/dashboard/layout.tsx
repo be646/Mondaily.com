@@ -85,14 +85,17 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const { data: wsSettings } = useQuery<{ onboarded?: boolean }>({
+  const { data: wsSettings } = useQuery<{ onboarded?: boolean; member_count?: number }>({
     queryKey: ["workspace-settings"],
     queryFn: () => apiClient.get("/settings/workspace"),
     staleTime: 300_000,
   });
 
   useEffect(() => {
-    if (wsSettings && wsSettings.onboarded === false) {
+    // Only redirect to onboarding for genuinely new workspaces (onboarded=false
+    // AND only 1 member — the owner). This prevents existing workspaces from
+    // being redirected after the onboarded column was added with DEFAULT false.
+    if (wsSettings && wsSettings.onboarded === false && (wsSettings.member_count ?? 2) <= 1) {
       navigate("/onboarding-setup", { replace: true });
     }
   }, [wsSettings, navigate]);
