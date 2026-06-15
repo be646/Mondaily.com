@@ -1394,99 +1394,100 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             l.includes("date") || l === "close_date" || l === "due_date" || l === "start_date"
           );
         });
+        // Also include custom stage/status/owner/assignee cols
+        const customFilterCols = customCols
+          .filter(c => ["stage","status","assignee","owner"].includes(c.type))
+          .map(c => c.key)
+          .filter(k => !filterableCols.includes(k));
+        const allFilterCols = [...filterableCols, ...customFilterCols];
+
         return (
-          <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-            {/* Search — icon toggles input */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                onClick={() => { setFilterSearchOpen(o => !o); if (filterSearchOpen) setFilterText(""); }}
-                className={`flex items-center justify-center h-6 w-6 rounded-lg border transition-colors ${filterText ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-white/[.08] bg-white/[.03] text-white/30 hover:text-white/70"}`}
-                title="Search"
-              >
-                <Search size={11}/>
-              </button>
-              {filterSearchOpen && (
-                <input
-                  ref={filterSearchRef}
-                  value={filterText}
-                  onChange={e => setFilterText(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Escape") { setFilterText(""); setFilterSearchOpen(false); } }}
-                  placeholder={`Search ${objectType}…`}
-                  className="w-40 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30 transition-all"
-                />
-              )}
-              {filterText && !filterSearchOpen && (
-                <span className="text-[10px] text-red-300 truncate max-w-[80px]">"{filterText}"</span>
-              )}
-            </div>
-            <div className="h-3 w-px bg-white/[.08] shrink-0"/>
-            {filterableCols.length === 0 && (
-              <span className="text-xs text-slate-600">Add a Status, Stage, Assignee, or Date column to filter.</span>
+          <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+            {/* Search icon → expands input */}
+            <button
+              onClick={() => { setFilterSearchOpen(o => !o); if (filterSearchOpen) setFilterText(""); }}
+              className={`flex items-center justify-center h-6 w-6 rounded-lg border transition-colors shrink-0 ${filterText ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-white/[.08] bg-white/[.03] text-white/30 hover:text-white/70"}`}
+            >
+              <Search size={11}/>
+            </button>
+            {filterSearchOpen && (
+              <input
+                ref={filterSearchRef}
+                value={filterText}
+                onChange={e => setFilterText(e.target.value)}
+                onKeyDown={e => { if (e.key === "Escape") { setFilterText(""); setFilterSearchOpen(false); } }}
+                placeholder={`Search…`}
+                className="w-36 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30 shrink-0"
+              />
             )}
-            {filterableCols.map(col => {
+
+            {allFilterCols.length > 0 && <div className="h-3 w-px bg-white/[.08] shrink-0"/>}
+
+            {allFilterCols.length === 0 && (
+              <span className="text-xs text-slate-600">Add a Stage, Status, or Assignee column to enable filters.</span>
+            )}
+
+            {allFilterCols.map(col => {
               const l = col.toLowerCase();
+              const customDef = customCols.find(c => c.key === col);
               const isDate = l.includes("date");
-              const isStage = l.includes("stage") || col === "status" || col === "deal_status";
-              const isOwner = l.includes("owner") || l.includes("assignee") || l.includes("assigned");
+              const isStage = l.includes("stage") || col === "deal_status" || customDef?.type === "stage";
+              const isStatus = col === "status" || customDef?.type === "status";
 
               if (isDate) {
                 const dateFrom = quickFilters.find(f => f.col === col + "__from")?.value ?? "";
                 const dateTo   = quickFilters.find(f => f.col === col + "__to")?.value ?? "";
+                const hasDate  = dateFrom || dateTo;
                 return (
                   <div key={col} className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">{col.replaceAll("_", " ")}</span>
+                    <span className={`text-[10px] font-semibold uppercase tracking-widest shrink-0 ${hasDate ? "text-red-300" : "text-slate-600"}`}>{col.replaceAll("_"," ")}</span>
                     <input type="date" value={dateFrom}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__from"); return e.target.value ? [...o,{col:col+"__from",value:e.target.value}] : o; })}
                       className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-red-500/30"
                     />
-                    <span className="text-slate-600 text-[10px]">→</span>
+                    <span className="text-slate-700 text-[10px]">→</span>
                     <input type="date" value={dateTo}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__to"); return e.target.value ? [...o,{col:col+"__to",value:e.target.value}] : o; })}
                       className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-red-500/30"
                     />
+                    <div className="h-3 w-px bg-white/[.08] shrink-0"/>
                   </div>
                 );
               }
 
-              const vals = isStage
-                ? [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])]
-                : [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
+              // Options: use full defaults for stage/status, real member names for owner/assignee, data values for others
+              let vals: string[];
+              if (isStage) {
+                vals = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+              } else if (isStatus) {
+                vals = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+              } else {
+                vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
+              }
 
               if (!vals.length) return null;
+              const active = quickFilters.find(f => f.col === col);
 
               return (
-                <div key={col} className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 shrink-0">{col.replaceAll("_", " ")}</span>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {vals.map(val => {
-                      const active = quickFilters.some(f => f.col === col && f.value === val);
-                      const s = isStage ? stageStyle(val) : null;
-                      return (
-                        <button key={val} onClick={() => toggleQuickFilter(col, val)}
-                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all whitespace-nowrap ${
-                            active ? "border-red-500/50 bg-red-500/15 text-red-300"
-                            : s ? `${s.pill} opacity-60 hover:opacity-100`
-                            : isOwner ? "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-white"
-                            : "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-slate-200"
-                          }`}
-                        >
-                          {s && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${active ? "bg-red-400" : s.dot}`}/>}
-                          {val}
-                          {active && <X size={8}/>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="h-3 w-px bg-white/[.08] shrink-0 ml-1"/>
+                <div key={col} className="flex items-center gap-2 shrink-0">
+                  <FilterColDropdown
+                    col={col}
+                    vals={vals}
+                    activeValue={active?.value ?? null}
+                    isStage={isStage || isStatus}
+                    onSelect={val => toggleQuickFilter(col, val)}
+                  />
+                  <div className="h-3 w-px bg-white/[.08] shrink-0"/>
                 </div>
               );
             })}
+
             {quickFilters.length > 0 && (
-              <button onClick={() => setQuickFilters([])} className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors shrink-0 whitespace-nowrap">
-                Clear ({quickFilters.length})
+              <button onClick={() => { setQuickFilters([]); setFilterText(""); }} className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors shrink-0 whitespace-nowrap">
+                Clear all
               </button>
             )}
-            <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/60 shrink-0 transition-colors">
+            <button onClick={() => { setOpenPanel(null); setFilterSearchOpen(false); }} className="ml-auto text-white/20 hover:text-white/50 shrink-0 transition-colors pl-2">
               <X size={13}/>
             </button>
           </div>
