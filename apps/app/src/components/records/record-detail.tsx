@@ -1097,22 +1097,21 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 )}
               </div>
             </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setTagOpen(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
-                >
-                  <Tag size={12}/> Tags
-                </button>
-                <button
-                  onClick={() => setTimelineOpen(true)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
-                >
-                  <Clock size={12}/> Activity
-                </button>
-              </div>
-              <TagBadges nodeId={recordId} />
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setTagOpen(true)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+              >
+                <Tag size={12}/> Tags
+              </button>
+              <button
+                onClick={() => setTimelineOpen(true)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+              >
+                <Clock size={12}/> Activity
+              </button>
             </div>
+            <div className="mt-2"><TagBadges nodeId={recordId} /></div>
           </div>
 
           {/* Assignee */}
