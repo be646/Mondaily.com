@@ -1116,7 +1116,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
             <tr>
               {/* Checkbox column */}
-              <th className="w-10 px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30" style={{ transform: "translateZ(0)" }}>
+              <th className="w-6 px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30" style={{ transform: "translateZ(0)" }}>
                 <div
                   onClick={toggleSelectAll}
                   className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-red-500 border-red-500" : someSelected ? "border-white/30 bg-white/[.06]" : "border-white/[.10] hover:border-white/30"}`}
@@ -1128,7 +1128,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {columns.map((col, colIdx) => (
                 <th
                   key={col}
-                  className={`px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-10 z-30" : ""}`}
+                  className={`px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-6 z-30" : ""}`}
                   style={colIdx === 0 ? { transform: "translateZ(0)" } : undefined}
                 >
                   <button onClick={() => handleHeaderSort(col)}
@@ -1182,7 +1182,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03]`}
                 >
                   {/* Row checkbox */}
-                  <td className="w-10 px-3 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 bg-inherit">
+                  <td className="w-6 px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 bg-inherit">
                     <div
                       onClick={() => toggleSelectRow(record.id)}
                       className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
