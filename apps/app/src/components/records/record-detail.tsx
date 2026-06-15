@@ -6,7 +6,8 @@ import {
   DollarSign, Users2, Mail, Phone, Tag, Clock, Plus,
   ChevronDown, Sparkles, MapPin, TrendingUp, Square,
   CheckSquare, FileText, X, Link2, Search, UserCheck,
-  Camera, ExternalLink,
+  Camera, ExternalLink, Briefcase, Percent, Receipt,
+  CreditCard, Star, List,
 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
@@ -62,8 +63,18 @@ const STAGE_DOT: Record<string, string> = {
   "Lead": "bg-slate-400", "Qualified": "bg-blue-400", "In Progress": "bg-violet-400",
   "Proposal": "bg-amber-400", "Negotiation": "bg-orange-400",
 };
-const TABS = ["Overview","Activity","Emails","Calls","Company","Notes","Tasks","Files"] as const;
-type Tab = typeof TABS[number];
+function getTabsForType(type: string): string[] {
+  const t = type.toLowerCase();
+  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Notes","Tasks","Files"];
+  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Notes","Tasks"];
+  if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Notes","Tasks"];
+  if (t.includes("invest")) return ["Overview","Notes","Tasks"];
+  if (t.includes("tax") || t.includes("cost")) return ["Overview","Notes","Files"];
+  if (t === "tasks" || t.includes("task")) return ["Overview","Notes"];
+  if (t.includes("visit") || t.includes("payment")) return ["Overview","Notes","Files"];
+  if (t.includes("expense")) return ["Overview","Notes","Files"];
+  return ["Overview","Notes","Tasks","Files"];
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function initials(name: string) {
@@ -621,6 +632,71 @@ function DealHighlights({ data, onSave }: { data: Record<string, unknown>; onSav
   );
 }
 
+function InvestmentHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <HighlightCard icon={DollarSign} label="Amount"       value={data.amount ?? data.investment_amount ?? "—"}       accent="emerald" onSave={v => onSave("amount", v)} numeric/>
+      <HighlightCard icon={TrendingUp} label="Round"        value={data.round ?? data.investment_round ?? "—"}         accent="blue"    onSave={v => onSave("round", v)}/>
+      <HighlightCard icon={Briefcase}  label="Investor"     value={data.investor ?? data.investor_name ?? "—"}         accent="purple"  onSave={v => onSave("investor", v)}/>
+      <HighlightCard icon={Calendar}   label="Date"         value={data.date ?? data.investment_date ?? "—"}           accent="slate"   onSave={v => onSave("date", v)}/>
+      <HighlightCard icon={Percent}    label="IRR / Return" value={data.irr ?? data.return_rate ?? "—"}                accent="amber"   onSave={v => onSave("irr", v)}/>
+      <HighlightCard icon={Building2}  label="Valuation"    value={data.valuation ?? "—"}                              accent="red"     onSave={v => onSave("valuation", v)} numeric/>
+    </div>
+  );
+}
+
+function ExpenseHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <HighlightCard icon={DollarSign}  label="Amount"       value={data.amount ?? "—"}                              accent="red"     onSave={v => onSave("amount", v)} numeric/>
+      <HighlightCard icon={Calendar}    label="Date"         value={data.date ?? data.expense_date ?? "—"}           accent="slate"   onSave={v => onSave("date", v)}/>
+      <HighlightCard icon={Tag}         label="Category"     value={data.category ?? "—"}                            accent="blue"    onSave={v => onSave("category", v)}/>
+      <HighlightCard icon={CreditCard}  label="Reimbursed"   value={data.reimbursed ? "Yes" : "Pending"}             accent="emerald"/>
+      <HighlightCard icon={Users}       label="Submitted by" value={data.submitted_by ?? data.owner ?? "—"}          accent="purple"/>
+      <HighlightCard icon={Building2}   label="Vendor"       value={data.vendor ?? data.merchant ?? "—"}             accent="amber"   onSave={v => onSave("vendor", v)}/>
+    </div>
+  );
+}
+
+function TaxHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <HighlightCard icon={DollarSign} label="Amount"    value={data.amount ?? data.cost ?? "—"}             accent="red"     onSave={v => onSave("amount", v)} numeric/>
+      <HighlightCard icon={Calendar}   label="Tax Year"  value={data.tax_year ?? data.year ?? "—"}           accent="slate"   onSave={v => onSave("tax_year", v)}/>
+      <HighlightCard icon={Receipt}    label="Type"      value={data.type ?? data.entry_type ?? "—"}         accent="blue"    onSave={v => onSave("type", v)}/>
+      <HighlightCard icon={Star}       label="Status"    value={data.status ?? "—"}                          accent="amber"   onSave={v => onSave("status", v)}/>
+      <HighlightCard icon={Calendar}   label="Due Date"  value={data.due_date ?? "—"}                        accent="purple"  onSave={v => onSave("due_date", v)}/>
+      <HighlightCard icon={Building2}  label="Entity"    value={data.entity ?? data.company ?? "—"}          accent="emerald" onSave={v => onSave("entity", v)}/>
+    </div>
+  );
+}
+
+function TaskHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <HighlightCard icon={Calendar}   label="Due Date"  value={data.due_date ?? "—"}                                   accent="red"     onSave={v => onSave("due_date", v)}/>
+      <HighlightCard icon={Star}       label="Priority"  value={data.priority ?? "Normal"}                              accent="amber"   onSave={v => onSave("priority", v)}/>
+      <HighlightCard icon={CheckSquare} label="Status"   value={data.done ? "Done ✓" : (String(data.status ?? "Open"))} accent="emerald"/>
+      <HighlightCard icon={Users}      label="Assignee"  value={data.assignee ?? data.assigned_to ?? "—"}               accent="blue"/>
+      <HighlightCard icon={Building2}  label="Project"   value={data.project ?? "—"}                                    accent="purple"  onSave={v => onSave("project", v)}/>
+      <HighlightCard icon={Clock}      label="Est. Time" value={data.estimated_time ?? "—"}                             accent="slate"   onSave={v => onSave("estimated_time", v)}/>
+    </div>
+  );
+}
+
+function VisitPaymentHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <HighlightCard icon={DollarSign} label="Amount"   value={data.amount ?? data.payment_amount ?? "—"}        accent="emerald" onSave={v => onSave("amount", v)} numeric/>
+      <HighlightCard icon={Calendar}   label="Date"     value={data.date ?? data.visit_date ?? data.payment_date ?? "—"} accent="blue" onSave={v => onSave("date", v)}/>
+      <HighlightCard icon={Star}       label="Status"   value={data.status ?? "—"}                               accent="amber"   onSave={v => onSave("status", v)}/>
+      <HighlightCard icon={MapPin}     label="Location" value={data.location ?? "—"}                             accent="purple"  onSave={v => onSave("location", v)}/>
+      <HighlightCard icon={Users}      label="Contact"  value={data.contact ?? data.customer ?? "—"}             accent="red"/>
+      <HighlightCard icon={Tag}        label="Type"     value={data.type ?? data.visit_type ?? "—"}              accent="slate"   onSave={v => onSave("type", v)}/>
+    </div>
+  );
+}
+
 // ─── Inline notes panel (embedded in Overview) ────────────────────────────────
 function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: string }) {
   const qc = useQueryClient();
@@ -992,7 +1068,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
 // ─── Main component ───────────────────────────────────────────────────────────
 export function RecordDetail({ recordId, objectType }: { recordId: string; objectType: string }) {
   const qc = useQueryClient();
-  const [tab, setTab]           = useState<Tab>("Overview");
+  const [tab, setTab]           = useState<string>("Overview");
   const [listOpen, setListOpen] = useState(false);
   const [tagOpen, setTagOpen]   = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -1087,10 +1163,16 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   const record = query.data;
   const data   = record.data;
   const name   = fmt(data.name ?? data.title ?? record.id);
-  const type   = objectType.toLowerCase();
-  const isCompany = type === "companies" || type.includes("compan");
-  const isPeople  = type === "people"    || type.includes("person") || type.includes("contact");
-  const isDeals   = type === "deals"     || type.includes("deal");
+  const type          = objectType.toLowerCase();
+  const isCompany     = type === "companies"  || type.includes("compan");
+  const isPeople      = type === "people"     || type.includes("person")  || type.includes("contact");
+  const isDeals       = type === "deals"      || type.includes("deal");
+  const isInvestment  = type.includes("invest");
+  const isExpense     = type.includes("expense");
+  const isTax         = type.includes("tax")  || type.includes("cost entr");
+  const isTaskType    = type === "tasks"      || (type.includes("task") && !type.includes("tasks"));
+  const isVisitPayment= type.includes("visit") || type.includes("payment");
+  const tabs          = getTabsForType(objectType);
 
   const email      = String(data.email ?? "");
   const logoUrl    = data.logo_url ? String(data.logo_url) : undefined;
@@ -1118,6 +1200,12 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   }
   const companyTabLabel = isCompany ? "People" : isPeople ? "Company" : "Related";
 
+  // Last contacted — most recent human activity
+  const lastContact = (record?.activities ?? [])
+    .filter(a => a.actor_type === "human")
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  const lastContactLabel = lastContact ? relativeTime(lastContact.created_at) : null;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Breadcrumb */}
@@ -1139,45 +1227,60 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Left panel ── */}
-        <aside className="flex w-[272px] shrink-0 flex-col border-r border-zinc-800/50 overflow-auto">
+        <aside className="flex w-[260px] shrink-0 flex-col border-r border-zinc-800/50 overflow-y-auto">
 
-          <div className="px-5 pt-5 pb-4 border-b border-zinc-800/50">
-            {/* Entity header — horizontal layout */}
+          {/* ── Header block ── */}
+          <div className="px-4 pt-5 pb-4 border-b border-zinc-800/50 space-y-3">
+
+            {/* Avatar + name */}
             <div className="flex items-center gap-3">
               <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo} wrapClass="shrink-0"/>
               <div className="flex-1 min-w-0">
                 <h1 className="text-[13px] font-bold text-white tracking-wide leading-snug uppercase truncate">{name}</h1>
-                <p className="mt-0.5 text-[11px] text-zinc-500 truncate">
+                <p className="text-[11px] text-zinc-500 truncate mt-0.5">
                   {fmt((data.domain ?? data.website ?? "") as string) !== "—"
                     ? fmt((data.domain ?? data.website ?? "") as string)
                     : record.object_type}
                 </p>
+                {lastContactLabel && (
+                  <p className="text-[10px] text-slate-600 mt-1 flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"/>
+                    {lastContactLabel}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="mt-4 space-y-2">
+            {/* Lead score */}
+            {(record as Record<string,unknown>).lead_score != null && (
+              <LeadScoreBadge score={(record as Record<string,unknown>).lead_score as number} size="md"/>
+            )}
+
+            {/* Action row: Email + Add to list */}
+            <div className="grid grid-cols-2 gap-2">
               <a
                 href={email ? `mailto:${email}` : undefined}
                 onClick={e => { if (!email) e.preventDefault(); }}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium transition-colors ${email ? "text-slate-300 hover:text-white hover:bg-white/[.06] cursor-pointer" : "text-slate-600 cursor-not-allowed"}`}
+                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-white/[.08] bg-white/[.03] text-slate-300 hover:text-white hover:bg-white/[.06] cursor-pointer" : "border-white/[.04] bg-white/[.01] text-slate-700 cursor-not-allowed"}`}
               >
-                <Mail size={12}/>Compose email
+                <Mail size={12}/> Email
               </a>
               <div ref={listRef} className="relative">
-                <button onClick={() => setListOpen(o => !o)} className="flex w-full items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors">
-                  <Users size={12}/>Add to list
-                  <ChevronDown size={11} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>
+                <button
+                  onClick={() => setListOpen(o => !o)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+                >
+                  <List size={12}/> Lists
+                  <ChevronDown size={10} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>
                 </button>
                 {listOpen && (
                   <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 max-h-52 overflow-y-auto">
                     {listsQuery.isLoading && <p className="px-3 py-2 text-xs text-slate-600">Loading…</p>}
-                    {(listsQuery.data ?? []).length === 0 && !listsQuery.isLoading && (
-                      <p className="px-3 py-2 text-xs text-slate-600">No lists yet — create one in Lists</p>
+                    {!listsQuery.isLoading && (listsQuery.data ?? []).length === 0 && (
+                      <p className="px-3 py-2 text-xs text-slate-600">No lists yet</p>
                     )}
                     {(listsQuery.data ?? []).map(list => (
-                      <button key={list.id}
-                        onClick={() => { addToList.mutate(list.id); setListOpen(false); }}
-                        className="dropdown-item w-full">
+                      <button key={list.id} onClick={() => { addToList.mutate(list.id); setListOpen(false); }} className="dropdown-item w-full">
                         {list.name}
                       </button>
                     ))}
@@ -1185,47 +1288,46 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 )}
               </div>
             </div>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => setTagOpen(true)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
-              >
-                <Tag size={12}/> Tags
-              </button>
-              <button
-                onClick={() => setTimelineOpen(true)}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
-              >
-                <Clock size={12}/> Activity
-              </button>
+
+            {/* Assignee — single inline row */}
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assigned to</p>
+              <MemberPickerField
+                label=""
+                currentName={(() => {
+                  const m = members.find(m => m.id === assignedTo || m.name === assignedTo);
+                  return m?.name ?? assignedTo ?? "";
+                })()}
+                members={members}
+                onSelect={name => {
+                  const m = members.find(m => m.name === name);
+                  assignMember(m?.id ?? name ?? null);
+                }}
+              />
             </div>
-            <div className="mt-2"><TagBadges nodeId={recordId} onOpenPicker={() => setTagOpen(true)}/></div>
+
+            {/* Tags — inline chips, click opens picker */}
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Tags</p>
+              <TagBadges nodeId={recordId} onOpenPicker={() => setTagOpen(true)}/>
+            </div>
+
+            {/* Categories — only relevant for Company / People */}
+            {(isCompany || isPeople) && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Industry</p>
+                <CategoryPills categories={categories} onUpdate={saveCategories}/>
+              </div>
+            )}
           </div>
 
-          {/* Assignee */}
-          <AssigneesSection assignedTo={assignedTo} onAssign={assignMember}/>
-
-          {/* Lead score */}
-          {(record as Record<string,unknown>).lead_score != null && (
-            <div className="px-4 py-3 border-b border-zinc-800/50">
-              <LeadScoreBadge score={(record as Record<string,unknown>).lead_score as number} size="md" />
-            </div>
-          )}
-
-          {/* Categories (industry taxonomy) */}
-          <div className="px-4 py-3 border-b border-zinc-800/50">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Categories</p>
-            <CategoryPills categories={categories} onUpdate={saveCategories}/>
-          </div>
-
-          {/* Record details */}
+          {/* ── Record Details ── */}
           <div className="flex-1 overflow-auto px-4 py-3">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Record Details</p>
             {leftFields.map(([key, val]) => {
               const customDef = customCols.find(c => c.key === key);
               const customType = customDef?.type;
 
-              // Stage/status from custom column definitions
               if (customType === "stage" || customType === "status") {
                 const defaults = customType === "stage" ? DEFAULT_STAGE_OPTIONS : DEFAULT_STATUS_OPTIONS;
                 const shown = String(val ?? "");
@@ -1239,8 +1341,6 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                   </div>
                 );
               }
-
-              // Stage/status detected by key name (built-in columns)
               if (isStageKey(key)) {
                 const shown = String(val ?? "");
                 return (
@@ -1265,8 +1365,6 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                   </div>
                 );
               }
-
-              // Owner/assignee fields — member picker dropdown
               if (isOwnerKey(key) || customType === "owner" || customType === "assignee") {
                 const currentVal = String(val ?? "");
                 const matched = members.find(m => m.id === currentVal || m.name === currentVal);
@@ -1277,21 +1375,20 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                     onSelect={v => save(key, v)}/>
                 );
               }
-
-              // Everything else
               return <InlineField key={key} label={key.replace(/_/g, " ")} value={val} numeric={typeof val === "number"} onSave={v => save(key, v)}/>;
             })}
-            {leftFields.length === 0 && <p className="text-xs text-slate-600 py-2">No attributes</p>}
+            {leftFields.length === 0 && <p className="text-xs text-slate-600 py-2">No attributes yet</p>}
           </div>
         </aside>
 
         {/* ── Right panel ── */}
         <main className="flex flex-1 min-w-0 flex-col overflow-hidden">
           <div className="flex border-b border-zinc-800/50 shrink-0 overflow-x-auto">
-            {TABS.map(t => {
+            {tabs.map(t => {
               const label = t === "Company" ? companyTabLabel : t;
               return (
-                <button key={t} onClick={() => setTab(t)} className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-white" : "text-slate-500 hover:text-slate-300"}`}>
                   {label}
                   {tab === t && <span className="absolute bottom-0 left-0 right-0 h-px bg-red-500"/>}
                 </button>
@@ -1303,20 +1400,27 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {tab === "Overview" && (
               <div className="space-y-7 max-w-3xl">
-                {/* Highlights */}
+                {/* Type-specific highlights */}
                 <div>
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Highlights</p>
-                  {isCompany && <CompanyHighlights data={data} onSave={save}/>}
-                  {isPeople  && <PeopleHighlights  data={data} onSave={save}/>}
-                  {isDeals   && <DealHighlights    data={data} onSave={save}/>}
-                  {!isCompany && !isPeople && !isDeals && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <HighlightCard icon={Clock} label="Updated" value={new Date(record.updated_at).toLocaleDateString()} accent="slate"/>
+                  {isCompany     && <CompanyHighlights      data={data} onSave={save}/>}
+                  {isPeople      && <PeopleHighlights       data={data} onSave={save}/>}
+                  {isDeals       && <DealHighlights         data={data} onSave={save}/>}
+                  {isInvestment  && <InvestmentHighlights   data={data} onSave={save}/>}
+                  {isExpense     && <ExpenseHighlights      data={data} onSave={save}/>}
+                  {isTax         && <TaxHighlights          data={data} onSave={save}/>}
+                  {isTaskType    && <TaskHighlights         data={data} onSave={save}/>}
+                  {isVisitPayment && <VisitPaymentHighlights data={data} onSave={save}/>}
+                  {!isCompany && !isPeople && !isDeals && !isInvestment && !isExpense && !isTax && !isTaskType && !isVisitPayment && (
+                    <div className="grid grid-cols-3 gap-3">
+                      <HighlightCard icon={Clock}  label="Updated"    value={new Date(record.updated_at).toLocaleDateString()} accent="slate"/>
+                      <HighlightCard icon={Star}   label="Object"     value={record.object_type} accent="blue"/>
+                      <HighlightCard icon={Users}  label="Vertical"   value={record.vertical}    accent="purple"/>
                     </div>
                   )}
                 </div>
 
-                {/* Embedded Notes + Tasks side-by-side */}
+                {/* Notes + Tasks side-by-side */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/20 p-4">
                     <InlineNotesPanel recordId={recordId} vertical={record.vertical}/>
@@ -1326,31 +1430,38 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                   </div>
                 </div>
 
-                {/* Activity */}
+                {/* Activity feed */}
                 <div>
-                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Recent Activity</p>
+                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Activity</p>
                   <ActivityFeed activities={record.activities} createdAt={record.updated_at}/>
                 </div>
               </div>
             )}
 
-            {tab === "Activity" && (
-              <div className="max-w-xl">
-                <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Full Activity</p>
-                <ActivityFeed activities={record.activities} createdAt={record.updated_at}/>
+            {tab === "Notes"   && <NotesTab    recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Tasks"   && <TasksTab    recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Files"   && (
+              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+                <FileText size={20} className="mb-2 text-slate-700"/>
+                <p className="text-sm font-medium text-slate-400">Files</p>
+                <p className="mt-1 text-xs text-slate-600">No files attached to this record yet.</p>
               </div>
             )}
-
-            {tab === "Notes"   && <NotesTab recordId={recordId} vertical={record.vertical}/>}
-            {tab === "Tasks"   && <TasksTab recordId={recordId} vertical={record.vertical}/>}
-            {tab === "Company" && <RelatedTab recordId={recordId} tabLabel={companyTabLabel}/>}
-
-            {(tab === "Emails" || tab === "Calls" || tab === "Files") && (
+            {tab === "Emails"  && (
               <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
-                <Plus size={20} className="mb-2 text-slate-700"/>
-                <p className="text-sm font-medium text-slate-400">{tab}</p>
-                <p className="mt-1 text-xs text-slate-600">No {tab.toLowerCase()} yet for this record.</p>
+                <Mail size={20} className="mb-2 text-slate-700"/>
+                <p className="text-sm font-medium text-slate-400">Emails</p>
+                <p className="mt-1 text-xs text-slate-600">No emails linked yet.</p>
               </div>
+            )}
+            {/* Related / Company / People / Deals / Contact tabs all use RelatedTab */}
+            {(tab === "Company" || tab === "People" || tab === "Deals" || tab === "Contact") && (
+              <RelatedTab recordId={recordId} tabLabel={
+                tab === "Company" ? companyTabLabel :
+                tab === "People"  ? "People"  :
+                tab === "Deals"   ? "Deals"   :
+                "Contact"
+              }/>
             )}
           </div>
         </main>
