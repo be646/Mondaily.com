@@ -464,61 +464,54 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | null>;
 }) {
-
   function addRule() {
     const unused = columns.find(c => !rules.some(r => r.col === c));
     if (unused) onChange([...rules, { col: unused, dir: "asc" }]);
   }
-
   function updateRule(i: number, patch: Partial<SortRule>) {
-    const next = rules.map((r, idx) => idx === i ? { ...r, ...patch } : r);
-    onChange(next);
-  }
-
-  function removeRule(i: number) {
-    onChange(rules.filter((_, idx) => idx !== i));
+    onChange(rules.map((r, idx) => idx === i ? { ...r, ...patch } : r));
   }
 
   return (
-    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="left" className="w-72">
-      <div className="px-3 py-2 border-b border-white/[.06]">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Sort rules</p>
-      </div>
-      <div className="py-1.5 space-y-1 px-2">
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
+      <div className="px-3 pt-3 pb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-2">Sort by</p>
         {rules.length === 0 && (
-          <p className="px-1 py-2 text-xs text-slate-600">No sort rules. Click '+ Add sort' below.</p>
+          <p className="text-xs text-slate-700 pb-1">No sorts applied</p>
         )}
-        {rules.map((rule, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <GripVertical size={12} className="text-slate-700 shrink-0"/>
-            <select
-              value={rule.col}
-              onChange={e => updateRule(i, { col: e.target.value })}
-              className="flex-1 min-w-0 rounded-md border border-white/[.08] bg-[#13151a] px-2 py-1 text-xs text-white outline-none focus:border-red-500/30"
-            >
-              {columns.map(c => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}
-            </select>
-            <button
-              onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
-              className="flex items-center gap-1 rounded-md border border-white/[.08] bg-white/[.03] px-2 py-1 text-[11px] text-slate-400 hover:text-white transition-colors whitespace-nowrap"
-            >
-              {rule.dir === "asc" ? <ChevronUp size={11}/> : <ChevronDown size={11}/>}
-              {rule.dir === "asc" ? "Asc" : "Desc"}
-            </button>
-            <button onClick={() => removeRule(i)} className="text-slate-600 hover:text-red-400 transition-colors shrink-0">
-              <X size={13}/>
-            </button>
-          </div>
-        ))}
+        <div className="space-y-1.5">
+          {rules.map((rule, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-lg border border-white/[.06] bg-white/[.02] px-2 py-1.5">
+              <div className="flex-1 min-w-0">
+                <select
+                  value={rule.col}
+                  onChange={e => updateRule(i, { col: e.target.value })}
+                  className="w-full bg-transparent text-xs text-white/80 outline-none capitalize"
+                >
+                  {columns.map(c => <option key={c} value={c} className="bg-[#13151a]">{c.replace(/_/g, " ")}</option>)}
+                </select>
+              </div>
+              <button
+                onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
+                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400 border border-sky-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}
+              >
+                {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
+              </button>
+              <button onClick={() => onChange(rules.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-red-400 transition-colors shrink-0">
+                <X size={12}/>
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between gap-2">
+      <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between">
         <button onClick={addRule} disabled={rules.length >= columns.length}
-          className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-white transition-colors disabled:opacity-30">
+          className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-white transition-colors disabled:opacity-20">
           <Plus size={11}/> Add sort
         </button>
         {rules.length > 0 && (
-          <button onClick={() => onChange([])} className="text-[11px] text-slate-600 hover:text-red-400 transition-colors">
-            Clear all
+          <button onClick={() => onChange([])} className="text-[11px] text-red-400/50 hover:text-red-400 transition-colors">
+            Clear
           </button>
         )}
       </div>
@@ -654,29 +647,38 @@ function OwnerCell({ value, members, onSelect }: {
   );
 }
 
+// ─── World countries list ─────────────────────────────────────────────────────
+const WORLD_COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
 // ─── Add column dropdown ───────────────────────────────────────────────────────
 // Column type presets — each maps to a clear semantic meaning
 const COLUMN_TYPE_PRESETS = [
-  { type: "status",   label: "Status",   hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft, color: "text-sky-400"     },
-  { type: "stage",    label: "Stage",    hint: "Pipeline stage (Lead, Proposal, Closed…)",   icon: ChevronRight, color: "text-violet-400" },
-  { type: "assignee", label: "Assignee", hint: "Team member responsible for this record",    icon: UserCircle2, color: "text-emerald-400" },
-  { type: "owner",    label: "Owner",    hint: "Deal owner or account owner",                icon: User, color: "text-amber-400"        },
-  { type: "text",     label: "Text",     hint: "Free text field",                            icon: Type, color: "text-slate-400"        },
-  { type: "number",   label: "Number",   hint: "Numeric value, amount, count",               icon: Hash, color: "text-blue-400"         },
-  { type: "date",     label: "Date",     hint: "Date or deadline",                           icon: Calendar, color: "text-rose-400"     },
+  { type: "status",    label: "Status",     hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft,   color: "text-sky-400"     },
+  { type: "stage",     label: "Stage",      hint: "Pipeline stage (Lead, Proposal, Closed…)",  icon: ChevronRight, color: "text-violet-400"  },
+  { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-emerald-400" },
+  { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-amber-400"   },
+  { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-pink-400"    },
+  { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-teal-400"    },
+  { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-white/30"    },
+  { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-slate-400"   },
+  { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-blue-400"    },
+  { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-rose-400"    },
 ] as const;
 
 type ColPresetType = typeof COLUMN_TYPE_PRESETS[number]["type"];
 
 // Default column names per type
 const PRESET_DEFAULTS: Record<ColPresetType, string> = {
-  status:   "Status",
-  stage:    "Stage",
-  assignee: "Assigned To",
-  owner:    "Owner",
-  text:     "",
-  number:   "",
-  date:     "",
+  status:    "Status",
+  stage:     "Stage",
+  assignee:  "Assigned To",
+  owner:     "Owner",
+  tag:       "Tag",
+  country:   "Country",
+  record_id: "Record ID",
+  text:      "",
+  number:    "",
+  date:      "",
 };
 
 function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
@@ -836,6 +838,84 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
       {status === "applied" && lastApplied && <p className="mt-1.5 text-[10px] text-zinc-400/80 flex items-center gap-1"><Check size={9}/> Applied: {lastApplied}</p>}
       {status === "error" && <p className="mt-1.5 text-[10px] text-red-400/80">Couldn't parse — try "sort by ARR desc" or "filter by USA"</p>}
     </div>
+  );
+}
+
+// ─── Country cell ─────────────────────────────────────────────────────────────
+function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const filtered = WORLD_COUNTRIES.filter(c => c.toLowerCase().includes(search.toLowerCase()));
+
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50); }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors">
+        {value ? <><Globe size={11} className="text-teal-400/60 shrink-0"/>{value}</> : <span className="text-slate-700 hover:text-slate-500">— select country</span>}
+      </button>
+      {open && (
+        <PortalDropdown triggerRef={ref} onClose={() => { setOpen(false); setSearch(""); }} align="left" className="w-52">
+          <div className="px-2 py-1.5 border-b border-white/[.06]">
+            <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search country…"
+              className="w-full bg-transparent text-xs text-white placeholder-slate-700 outline-none"/>
+          </div>
+          <div className="max-h-48 overflow-y-auto py-1">
+            {value && <button onClick={() => { onSelect(""); setOpen(false); setSearch(""); }} className="dropdown-item w-full text-slate-500 text-xs">Clear</button>}
+            {filtered.slice(0, 80).map(c => (
+              <button key={c} onClick={() => { onSelect(c); setOpen(false); setSearch(""); }}
+                className={`dropdown-item w-full text-xs ${c === value ? "dropdown-item-active" : ""}`}>
+                {c}{c === value && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+              </button>
+            ))}
+            {filtered.length > 80 && <p className="px-3 py-1 text-[10px] text-slate-700">Type to narrow…</p>}
+          </div>
+        </PortalDropdown>
+      )}
+    </div>
+  );
+}
+
+// ─── Tag cell ─────────────────────────────────────────────────────────────────
+const TAG_COLORS = [
+  { bg: "bg-sky-500/15 border-sky-500/30 text-sky-300", dot: "bg-sky-400" },
+  { bg: "bg-violet-500/15 border-violet-500/30 text-violet-300", dot: "bg-violet-400" },
+  { bg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300", dot: "bg-emerald-400" },
+  { bg: "bg-amber-500/15 border-amber-500/30 text-amber-300", dot: "bg-amber-400" },
+  { bg: "bg-rose-500/15 border-rose-500/30 text-rose-300", dot: "bg-rose-400" },
+  { bg: "bg-pink-500/15 border-pink-500/30 text-pink-300", dot: "bg-pink-400" },
+];
+function tagColor(val: string) {
+  let h = 0; for (let i = 0; i < val.length; i++) h = (h * 31 + val.charCodeAt(i)) & 0xffffffff;
+  return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]!;
+}
+
+function TagCell({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  if (editing) {
+    return (
+      <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)}
+        onBlur={() => { onSave(draft.trim()); setEditing(false); }}
+        onKeyDown={e => { if (e.key === "Enter") { onSave(draft.trim()); setEditing(false); } if (e.key === "Escape") setEditing(false); }}
+        className="w-full bg-transparent text-xs text-white outline-none border-b border-white/20 pb-0.5"/>
+    );
+  }
+  if (!value) return <button onClick={() => { setDraft(""); setEditing(true); }} className="text-slate-700 text-xs hover:text-slate-500 transition-colors">— add tag</button>;
+  const c = tagColor(value);
+  return (
+    <button onClick={() => { setDraft(value); setEditing(true); }}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${c.bg}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`}/>
+      {value}
+    </button>
   );
 }
 
@@ -1213,6 +1293,22 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         />
       );
     }
+    // Record ID column — show the short ID, locked
+    if (customDef?.type === "record_id") {
+      return <RecordIdCell id={record.id}/>;
+    }
+
+    // Country column — searchable dropdown
+    if (customDef?.type === "country") {
+      return <CountryCell value={String(val ?? "")} onSelect={v => saveCell(record, col, v)}/>;
+    }
+
+    // Tag column — simple colored label
+    if (customDef?.type === "tag") {
+      const tagVal = String(val ?? "");
+      return <TagCell value={tagVal} onSave={v => saveCell(record, col, v)}/>;
+    }
+
     if (customDef?.type === "stage" || customDef?.type === "status") {
       const shown = String(val ?? "");
       const defaults = customDef.type === "stage" ? DEFAULT_STAGE_OPTIONS : DEFAULT_STATUS_OPTIONS;
@@ -1427,12 +1523,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           return (
             l.includes("stage") || l === "status" || l === "deal_status" ||
             l.includes("assignee") || l.includes("assigned") || l.includes("owner") ||
-            l.includes("date") || l === "close_date" || l === "due_date" || l === "start_date"
+            l.includes("date") || l === "close_date" || l === "due_date" || l === "start_date" ||
+            l === "country" || l.includes("country")
           );
         });
-        // Also include custom stage/status/owner/assignee cols
+        // Also include custom stage/status/owner/assignee/country cols
         const customFilterCols = customCols
-          .filter(c => ["stage","status","assignee","owner"].includes(c.type))
+          .filter(c => ["stage","status","assignee","owner","country"].includes(c.type))
           .map(c => c.key)
           .filter(k => !filterableCols.includes(k));
         const allFilterCols = [...filterableCols, ...customFilterCols];
@@ -1492,11 +1589,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               }
 
               // Options: use full defaults for stage/status, real member names for owner/assignee, data values for others
+              const isCountry = l.includes("country") || customDef?.type === "country";
               let vals: string[];
               if (isStage) {
                 vals = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
               } else if (isStatus) {
                 vals = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+              } else if (isCountry) {
+                // Only show countries that actually exist in the data (not all 195)
+                vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
               } else {
                 vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
               }
@@ -1633,17 +1734,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
                 </div>
               </th>
-              {/* Record ID column — locked, non-sortable */}
-              <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-8 z-30">
-                <span className="text-[10px] font-semibold tracking-widest uppercase text-white/20">ID</span>
-              </th>
               {orderedColumns.map((col, colIdx) => {
                 const w = colWidths[col];
                 return (
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-[112px] z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -1740,14 +1837,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
                     </div>
                   </td>
-                  {/* Record ID cell */}
-                  <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
-                    <RecordIdCell id={record.id}/>
-                  </td>
                   {orderedColumns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-[112px] z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
                       onMouseEnter={(e) => {
                         const td = e.currentTarget;
                         if (td.scrollWidth > td.clientWidth + 2) {
@@ -1780,11 +1873,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tfoot className="sticky bottom-0 z-20">
             <tr>
               <td className="w-8 min-w-[32px] max-w-[32px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-0 z-30" />
-              <td className="w-20 min-w-[80px] max-w-[80px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-8 z-30" />
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? "sticky left-[112px] z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
