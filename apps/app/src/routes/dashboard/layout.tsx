@@ -1,9 +1,11 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
 import { CommandPalette } from "../../components/ui/command-palette";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../../lib/api-client";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -80,7 +82,20 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
 
 export function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { data: wsSettings } = useQuery<{ onboarded?: boolean }>({
+    queryKey: ["workspace-settings"],
+    queryFn: () => apiClient.get("/settings/workspace"),
+    staleTime: 300_000,
+  });
+
+  useEffect(() => {
+    if (wsSettings && wsSettings.onboarded === false) {
+      navigate("/onboarding-setup", { replace: true });
+    }
+  }, [wsSettings, navigate]);
 
   const { label: pageLabel, Icon: PageIcon, color: pageColor } = getPageMeta(location.pathname);
 

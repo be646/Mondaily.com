@@ -306,11 +306,13 @@ router.delete("/settings/account/connections/:id", async (c) => {
   return c.json({ ok: true });
 });
 router.get("/settings/workspace", async (c) => {
-  const { data } = await supabase.from("workspaces").select("name, settings").eq("id", c.get("workspaceId")).single();
+  const { data } = await supabase.from("workspaces").select("name, settings, onboarded, timezone, logo_url").eq("id", c.get("workspaceId")).single();
   const settings = (data?.settings ?? {}) as Record<string, unknown>;
   return c.json({
     name: data?.name ?? "",
-    timezone: settings.timezone ?? "UTC",
+    timezone: (data as Record<string, unknown> | null)?.timezone ?? settings.timezone ?? "UTC",
+    logo_url: (data as Record<string, unknown> | null)?.logo_url ?? null,
+    onboarded: (data as Record<string, unknown> | null)?.onboarded ?? false,
     modules: (settings.modules as string[] | undefined) ?? ["crm"],
   });
 });
@@ -504,6 +506,48 @@ router.get("/workspace/members", async (c) => {
   );
 });
 
+// ─── Workspace role: change a member's role (admin/owner only) ───────────────
+router.patch("/workspace/members/:userId/role", requireAuth, async (c) => {
+  const callerRole = c.get("role");
+  if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
+  const { role } = await c.req.json<{ role: string }>();
+  const valid = ["admin","member","viewer","guest"];
+  if (!valid.includes(role)) return c.json({ error: "Invalid role" }, 422);
+  // Prevent demoting the last owner
+  if (callerRole === "owner" && role !== "owner") {
+    const { count } = await supabase.from("workspace_members").select("id", { count: "exact", head: true })
+      .eq("workspace_id", c.get("workspaceId")).eq("role", "owner");
+    if ((count ?? 0) <= 1 && c.req.param("userId") === c.get("userId")) {
+      return c.json({ error: "Cannot demote the last owner." }, 422);
+    }
+  }
+  const { error } = await supabase.from("workspace_members")
+    .update({ role })
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("user_id", c.req.param("userId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
+// ─── Remove a member (admin/owner only, can't remove last owner) ──────────────
+router.delete("/workspace/members/:userId", requireAuth, async (c) => {
+  const callerRole = c.get("role");
+  if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
+  const targetId = c.req.param("userId");
+  // Check not last owner
+  const { data: target } = await supabase.from("workspace_members").select("role")
+    .eq("workspace_id", c.get("workspaceId")).eq("user_id", targetId).maybeSingle();
+  if (target?.role === "owner") {
+    const { count } = await supabase.from("workspace_members").select("id", { count: "exact", head: true })
+      .eq("workspace_id", c.get("workspaceId")).eq("role", "owner");
+    if ((count ?? 0) <= 1) return c.json({ error: "Cannot remove the last owner." }, 422);
+  }
+  const { error } = await supabase.from("workspace_members")
+    .delete().eq("workspace_id", c.get("workspaceId")).eq("user_id", targetId);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
 // ─── Finance role: set for a member (admin/owner only) ────────────────────────
 router.patch("/workspace/members/:userId/finance-role", async (c) => {
   const role = c.get("role");
@@ -516,6 +560,30 @@ router.patch("/workspace/members/:userId/finance-role", async (c) => {
     .update({ finance_role } as Record<string, unknown>)
     .eq("workspace_id", c.get("workspaceId"))
     .eq("user_id", c.req.param("userId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
+// ─── Complete onboarding ──────────────────────────────────────────────────────
+router.post("/settings/complete-onboarding", requireAuth, async (c) => {
+  const { error } = await supabase
+    .from("workspaces")
+    .update({ onboarded: true })
+    .eq("id", c.get("workspaceId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
+// ─── General workspace settings (name, logo_url, timezone) ───────────────────
+router.patch("/settings/general", requireAuth, async (c) => {
+  const callerRole = c.get("role");
+  if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
+  const body = await c.req.json<{ name?: string; logo_url?: string; timezone?: string }>();
+  const updates: Record<string, unknown> = {};
+  if (body.name) updates.name = body.name;
+  if (body.logo_url !== undefined) updates.logo_url = body.logo_url;
+  if (body.timezone) updates.timezone = body.timezone;
+  const { error } = await supabase.from("workspaces").update(updates).eq("id", c.get("workspaceId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });

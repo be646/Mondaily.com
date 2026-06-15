@@ -12,6 +12,7 @@ import { StepConnectEmail } from "./routes/onboarding/step-connect-email";
 import { StepInvite } from "./routes/onboarding/step-invite";
 import { StepImport } from "./routes/onboarding/step-import";
 import { StepPlan } from "./routes/onboarding/step-plan";
+import { OnboardingPage } from "./routes/onboarding";
 import { DashboardLayout } from "./routes/dashboard/layout";
 import { HomePage } from "./routes/dashboard/home";
 import { NotificationsPage } from "./routes/dashboard/notifications";
@@ -64,6 +65,7 @@ export function App() {
       <Route path="/sign-up/*" element={<SignUpPage />} />
       <Route path="/workspaces" element={<WorkspaceSelectPage />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
+      <Route path="/onboarding-setup" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="profile" replace />} />
         <Route path="profile" element={<StepProfile />} />
