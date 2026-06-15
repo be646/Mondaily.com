@@ -3,7 +3,7 @@ import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
-  UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw,
+  UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -816,6 +816,38 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   const members = membersQuery.data ?? [];
 
+  // ── Bulk selection ──
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allSelected = sorted.length > 0 && sorted.every(r => selected.has(r.id));
+  const someSelected = selected.size > 0;
+
+  function toggleSelectAll() {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(sorted.map(r => r.id)));
+  }
+  function toggleSelectRow(id: string) {
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  async function bulkDelete() {
+    const ids = [...selected];
+    setSelected(new Set());
+    qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => !ids.includes(r.id)));
+    await Promise.all(ids.map(id => apiClient.delete(`/nodes/${id}`).catch(() => {})));
+  }
+
+  async function bulkAddToList(listId: string) {
+    await Promise.all([...selected].map(id => apiClient.post(`/lists/${listId}/entries`, { node_id: id }).catch(() => {})));
+    setSelected(new Set());
+  }
+
+  const [listPickerOpen, setListPickerOpen] = useState(false);
+  const listsQuery = useQuery({
+    queryKey: ["lists"],
+    queryFn: () => apiClient.get<{ id: string; name: string }[]>("/lists"),
+    enabled: listPickerOpen,
+  });
+
   const [undoToast, setUndoToast] = useState<{ record: NodeRecord; timer: ReturnType<typeof setTimeout> } | null>(null);
 
   function deleteRow(record: NodeRecord) {
@@ -1031,10 +1063,61 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             KEY: border-separate + border-spacing-0 prevents the sticky-element
             shaking bug that border-collapse causes in Chromium. Separators are
             handled per-cell so they composite correctly with the GPU layers.   */}
+      {/* Bulk action bar */}
+      {someSelected && (
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-red-500/[.04] shrink-0">
+          <span className="text-xs font-semibold text-red-400">{selected.size} selected</span>
+          <div className="h-3 w-px bg-white/10" />
+          {/* Add to list */}
+          <div className="relative">
+            <button
+              onClick={() => setListPickerOpen(o => !o)}
+              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors"
+            >
+              <List size={12} /> Add to list
+            </button>
+            {listPickerOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-white/[.08] bg-[#0f1117] p-1 shadow-xl">
+                  {(listsQuery.data ?? []).length === 0 && <p className="px-3 py-2 text-xs text-white/30">No lists yet</p>}
+                  {(listsQuery.data ?? []).map(l => (
+                    <button key={l.id} onClick={() => { bulkAddToList(l.id); setListPickerOpen(false); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                      {l.name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          {/* Bulk delete */}
+          <button
+            onClick={bulkDelete}
+            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-red-400 transition-colors ml-auto"
+          >
+            <Trash2 size={12} /> Delete {selected.size}
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-white/30 hover:text-white/60">
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto [contain:strict]">
         <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
           <thead className="sticky top-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
             <tr>
+              {/* Checkbox column */}
+              <th className="w-8 px-2 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70 sticky left-0 z-30" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+                <button
+                  onClick={toggleSelectAll}
+                  className={`h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors ${allSelected ? "bg-red-500 border-red-500" : "border-zinc-700 hover:border-zinc-500"}`}
+                >
+                  {allSelected && <Check size={9} className="text-white" />}
+                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-zinc-500" />}
+                </button>
+              </th>
               {columns.map((col, colIdx) => (
                 <th
                   key={col}
@@ -1089,8 +1172,17 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               sorted.map((record, rowIdx) => (
                 <tr
                   key={record.id}
-                  className={`group hover:bg-zinc-800/25 transition-colors ${rowIdx % 2 === 1 ? "bg-white/[.012]" : ""}`}
+                  className={`group hover:bg-zinc-800/25 transition-colors ${rowIdx % 2 === 1 ? "bg-white/[.012]" : ""} ${selected.has(record.id) ? "bg-red-500/[.04]" : ""}`}
                 >
+                  {/* Row checkbox */}
+                  <td className="w-8 px-2 py-[6px] border-b border-b-zinc-800/30 sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#101215]" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+                    <button
+                      onClick={() => toggleSelectRow(record.id)}
+                      className={`h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-zinc-700 opacity-0 group-hover:opacity-100"}`}
+                    >
+                      {selected.has(record.id) && <Check size={9} className="text-white" />}
+                    </button>
+                  </td>
                   {columns.map((col, colIdx) => (
                     <td
                       key={col}
