@@ -9,7 +9,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useClerk, useUser } from "@clerk/react";
-import { apiClient } from "../../lib/api-client";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -279,8 +278,8 @@ function Logo({ size = 24 }: { size?: number }) {
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
 function NavItem({
-  to, label, icon: Icon, collapsed,
-}: { to: string; label: string; icon: React.ElementType; collapsed: boolean }) {
+  to, label, icon: Icon, collapsed, badge,
+}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number }) {
   const location = useLocation();
   const active = location.pathname.startsWith(to);
 
@@ -289,9 +288,10 @@ function NavItem({
       <Link
         to={to}
         title={label}
-        className={`mb-0.5 flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
+        className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
       >
         <Icon size={14}/>
+        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-red-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
       </Link>
     );
   }
@@ -302,6 +302,7 @@ function NavItem({
     >
       <Icon size={13} className={active ? "text-red-400" : "text-slate-600"}/>
       {label}
+      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-red-500 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none">{badge > 99 ? "99+" : badge}</span>}
     </Link>
   );
 }
@@ -337,6 +338,14 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const workspaceName    = org?.name || (user?.firstName ? `${user.firstName}'s Workspace` : "My Workspace");
   const workspaceLogo    = (org as any)?.imageUrl as string | null || null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
+
+  const { data: notifications = [] } = useQuery<{ read_at: string | null }[]>({
+    queryKey: ["notifications"],
+    queryFn: () => apiClient.get("/notifications"),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const unreadCount = notifications.filter(n => !n.read_at).length;
 
   return (
     <>
@@ -425,12 +434,16 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
 
           {collapsed
             ? NAV.flatMap(g => g.items).map(item => (
-                <NavItem key={item.to} {...item} collapsed={true}/>
+                <NavItem key={item.to} {...item} collapsed={true}
+                  badge={item.to === "/notifications" ? unreadCount : undefined}/>
               ))
             : NAV.map(group => (
                 <div key={group.label || "__top"}>
                   <SectionLabel label={group.label}/>
-                  {group.items.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
+                  {group.items.map(item => (
+                    <NavItem key={item.to} {...item} collapsed={false}
+                      badge={item.to === "/notifications" ? unreadCount : undefined}/>
+                  ))}
                 </div>
               ))
           }

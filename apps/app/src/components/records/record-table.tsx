@@ -4,7 +4,7 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
   UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
-  Rows3, BookmarkCheck, LayoutGrid, Percent,
+  Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
   Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone,
 } from "lucide-react";
@@ -767,6 +767,7 @@ const COLUMN_TYPE_PRESETS = [
   { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-slate-400"   },
   { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-blue-400"    },
   { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-rose-400"    },
+  { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-blue-400"    },
 ] as const;
 
 type ColPresetType = typeof COLUMN_TYPE_PRESETS[number]["type"];
@@ -784,13 +785,14 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
   text:      "",
   number:    "",
   date:      "",
+  relation:  "Linked Record",
 };
 
 // Types where only one instance makes sense
 const SINGLETON_TYPES = new Set(["assignee","owner","status","stage","record_id","country"]);
 
 function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingCustomTypes }: {
-  onAdd: (name: string, type: string) => void;
+  onAdd: (name: string, type: string, meta?: Record<string, string>) => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | HTMLTableCellElement | null>;
   existingCols: string[];
@@ -799,8 +801,16 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
   const [name, setName] = useState("");
   const [type, setType] = useState<ColPresetType>("text");
   const [hovered, setHovered] = useState<ColPresetType | null>(null);
+  const [relatedTarget, setRelatedTarget] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const { data: objectDefs = [] } = useQuery<{ id: string; slug: string; label: string }[]>({
+    queryKey: ["object-defs"],
+    queryFn: () => apiClient.get("/objects"),
+    staleTime: 60_000,
+    enabled: type === "relation",
+  });
 
   // Determine which types are already covered so we can block adding duplicates
   function isTypeTaken(t: ColPresetType): boolean {
@@ -826,7 +836,8 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
 
   function submit() {
     const slug = (name.trim() || PRESET_DEFAULTS[type] || type).toLowerCase().replace(/\s+/g, "_");
-    onAdd(slug, type);
+    const meta = type === "relation" && relatedTarget ? { relatedObjectType: relatedTarget } : undefined;
+    onAdd(slug, type, meta);
     onClose();
   }
 
@@ -864,6 +875,22 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       {activePreset && (
         <div className="px-3 py-2 border-t border-white/[.04] text-[10px] text-slate-600">
           {activePreset.hint}
+        </div>
+      )}
+      {type === "relation" && (
+        <div className="px-3 py-2 border-t border-white/[.06]">
+          <p className="text-[10px] font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Link to object</p>
+          <div className="flex flex-col gap-1">
+            {objectDefs.map(obj => (
+              <button key={obj.slug} onClick={() => setRelatedTarget(obj.slug)}
+                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-blue-500/15 text-blue-300 border border-blue-500/30" : "text-slate-400 hover:bg-white/[.04] hover:text-white border border-transparent"}`}>
+                <Link2 size={11} className={relatedTarget === obj.slug ? "text-blue-400" : "text-slate-600"}/>
+                {obj.label || obj.slug}
+                {relatedTarget === obj.slug && <Check size={10} className="ml-auto text-blue-400"/>}
+              </button>
+            ))}
+            {objectDefs.length === 0 && <p className="text-[10px] text-white/20">No other objects</p>}
+          </div>
         </div>
       )}
       <div className="px-3 pb-3 pt-2 border-t border-white/[.06]">
@@ -1190,6 +1217,109 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
   );
 }
 
+// ─── Relation cell — link a record to another object record ──────────────────
+type RelationValue = { id: string; label: string } | null;
+
+function RelationCell({ value, relatedObjectType, onSave }: {
+  value: unknown;
+  relatedObjectType?: string;
+  onSave: (v: RelationValue) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  const current: RelationValue = value && typeof value === "object" && !Array.isArray(value)
+    ? (value as RelationValue)
+    : null;
+
+  const { data: objectDefs = [] } = useQuery<{ id: string; slug: string; label: string }[]>({
+    queryKey: ["object-defs"],
+    queryFn: () => apiClient.get("/objects"),
+    staleTime: 60_000,
+  });
+
+  const targetSlug = relatedObjectType || objectDefs[0]?.slug || "";
+  const { data: targetRecords = [] } = useQuery<{ id: string; data: Record<string, unknown> }[]>({
+    queryKey: ["relation-records", targetSlug],
+    queryFn: () => apiClient.get(`/nodes?object_type=${targetSlug}`),
+    enabled: open && !!targetSlug,
+    staleTime: 30_000,
+  });
+
+  function getLabel(r: { id: string; data: Record<string, unknown> }) {
+    return String(r.data["name"] ?? r.data["title"] ?? r.data["company_name"] ?? r.id.slice(0, 8));
+  }
+
+  const filtered = targetRecords.filter(r =>
+    getLabel(r).toLowerCase().includes(search.toLowerCase())
+  );
+
+  function openDropdown() {
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (rect) setPos({ top: rect.bottom + 4, left: rect.left });
+    setOpen(true);
+    setSearch("");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button ref={btnRef} onClick={openDropdown}
+        className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors max-w-[140px] truncate">
+        {current
+          ? <><Link2 size={10} className="text-blue-400 shrink-0"/><span className="truncate">{current.label}</span></>
+          : <span className="text-slate-700">— link record</span>
+        }
+      </button>
+      {open && createPortal(
+        <div ref={ref} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
+          className="w-56 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl py-1">
+          <div className="px-2 pb-1 pt-1">
+            <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+              placeholder={`Search ${targetSlug || "records"}…`}
+              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500/40 placeholder:text-white/20"/>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {current && (
+              <button onClick={() => { onSave(null); setOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-400/70 hover:bg-white/[.04] hover:text-red-400 transition-colors">
+                <X size={10}/> Remove link
+              </button>
+            )}
+            {filtered.map(r => {
+              const lbl = getLabel(r);
+              const isActive = current?.id === r.id;
+              return (
+                <button key={r.id} onClick={() => { onSave({ id: r.id, label: lbl }); setOpen(false); }}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-white/[.04] ${isActive ? "text-blue-400" : "text-white/70"}`}>
+                  <Link2 size={10} className={isActive ? "text-blue-400" : "text-slate-600"}/>
+                  <span className="truncate flex-1 text-left">{lbl}</span>
+                  {isActive && <Check size={10} className="text-blue-400 shrink-0"/>}
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <p className="text-xs text-white/20 text-center py-3">No records found</p>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 // ─── Filter column dropdown (inline bar style) ───────────────────────────────
 function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
   col: string;
@@ -1298,7 +1428,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Custom columns — persisted to localStorage per objectType ──
   const customColsKey = `mondaily_custom_cols_${objectType}`;
-  const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>(() => {
+  const [customCols, setCustomCols] = useState<{ key: string; type: string; meta?: Record<string, string> }[]>(() => {
     try { return JSON.parse(localStorage.getItem(customColsKey) ?? "[]"); } catch { return []; }
   });
   // Reload when objectType changes (navigating between People/Deals/etc.)
@@ -1307,7 +1437,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     catch { setCustomCols([]); }
   }, [objectType]);
 
-  function saveCustomCols(next: { key: string; type: string }[]) {
+  function saveCustomCols(next: { key: string; type: string; meta?: Record<string, string> }[]) {
     setCustomCols(next);
     localStorage.setItem(`mondaily_custom_cols_${objectType}`, JSON.stringify(next));
   }
@@ -1691,6 +1821,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         </button>
       );
       return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
+    }
+
+    // Relation column — link to a record in another object
+    if (customDef?.type === "relation") {
+      return <RelationCell value={val} relatedObjectType={customDef.meta?.relatedObjectType} onSave={v => saveCell(record, col, v as object)}/>;
     }
 
     // Custom column — empty by default
@@ -2512,7 +2647,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 </button>
                 {openPanel === "addcol" && (
                   <AddColumnDropdown
-                    onAdd={(key, type) => { saveCustomCols([...customCols, { key, type }]); setOpenPanel(null); }}
+                    onAdd={(key, type, meta) => { saveCustomCols([...customCols, { key, type, ...(meta ? { meta } : {}) }]); setOpenPanel(null); }}
                     onClose={() => setOpenPanel(null)}
                     triggerRef={addColHeaderRef}
                     existingCols={allColumnsWithCustom}
