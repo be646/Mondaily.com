@@ -1140,8 +1140,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
-        <table className="w-full border-separate border-spacing-0 text-left text-[12px]">
+      <div className="record-scroll flex-1 min-h-0 overflow-x-auto overflow-y-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Checkbox column — tight fit around the 16px checkbox */}
