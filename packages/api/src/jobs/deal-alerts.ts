@@ -9,7 +9,7 @@ export const dealAlerts = inngest.createFunction(
     const jobId = await startJob({
       workspace_id: "system",
       agent_name: "deal_alerts",
-      trigger_type: "schedule",
+      trigger_type: "scheduled",
       input: {},
       node_ids: [],
     });
