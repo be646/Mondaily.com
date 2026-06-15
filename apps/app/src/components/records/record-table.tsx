@@ -256,26 +256,81 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   );
 }
 
-function StagePill({ value }: { value: string }) {
-  const map: Record<string, string> = {
-    "Lead":        "bg-zinc-900/60 text-zinc-400 border border-zinc-700/50",
-    "Qualified":   "bg-amber-950/30 text-amber-400 border border-amber-900/40",
-    "In Progress": "bg-amber-950/30 text-amber-400 border border-amber-900/40",
-    "Proposal":    "bg-amber-950/30 text-amber-400 border border-amber-900/40",
-    "Negotiation": "bg-amber-950/30 text-amber-400 border border-amber-900/40",
-    "Closed Won":  "bg-emerald-950/40 text-emerald-400 border border-emerald-900/50",
-    "Closed Lost": "bg-rose-950/40 text-rose-400 border border-rose-900/50",
-  };
-  const dot: Record<string, string> = {
-    "Lead": "bg-zinc-500", "Qualified": "bg-amber-400", "In Progress": "bg-amber-400",
-    "Proposal": "bg-amber-400", "Negotiation": "bg-amber-400",
-    "Closed Won": "bg-emerald-400", "Closed Lost": "bg-rose-400",
-  };
+// ─── Stage / Status colours ───────────────────────────────────────────────────
+const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
+  "Lead":         { pill: "bg-zinc-900/60 text-zinc-400 border-zinc-700/50",       dot: "bg-zinc-500" },
+  "New":          { pill: "bg-zinc-900/60 text-zinc-400 border-zinc-700/50",       dot: "bg-zinc-500" },
+  "Qualified":    { pill: "bg-sky-950/40 text-sky-400 border-sky-900/40",          dot: "bg-sky-400" },
+  "In Progress":  { pill: "bg-amber-950/30 text-amber-400 border-amber-900/40",    dot: "bg-amber-400" },
+  "Not Started":  { pill: "bg-zinc-900/60 text-zinc-500 border-zinc-700/50",       dot: "bg-zinc-600" },
+  "Completed":    { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
+  "Complete":     { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
+  "Proposal":     { pill: "bg-violet-950/40 text-violet-400 border-violet-900/40", dot: "bg-violet-400" },
+  "Negotiation":  { pill: "bg-orange-950/40 text-orange-400 border-orange-900/40", dot: "bg-orange-400" },
+  "Closed Won":   { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
+  "Closed Lost":  { pill: "bg-rose-950/40 text-rose-400 border-rose-900/50",       dot: "bg-rose-400" },
+  "On Hold":      { pill: "bg-yellow-950/40 text-yellow-400 border-yellow-900/40", dot: "bg-yellow-400" },
+  "Cancelled":    { pill: "bg-rose-950/30 text-rose-400 border-rose-900/40",       dot: "bg-rose-400" },
+  "Active":       { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
+  "Churned":      { pill: "bg-rose-950/30 text-rose-400 border-rose-900/40",       dot: "bg-rose-400" },
+};
+
+const DEFAULT_STAGE_OPTIONS = [
+  "Lead","Qualified","Proposal","Negotiation","Closed Won","Closed Lost",
+  "In Progress","Not Started","Completed","On Hold","Cancelled",
+];
+
+function stageStyle(value: string) {
+  return STAGE_STYLES[value] ?? { pill: "bg-slate-900/60 text-slate-400 border-slate-700/50", dot: "bg-slate-500" };
+}
+
+// Clickable stage pill — opens a dropdown to change the value inline
+function StagePill({ value, options, onSelect }: {
+  value: string;
+  options?: string[];
+  onSelect?: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLButtonElement>(null);
+  const { pill, dot } = stageStyle(value);
+  const opts = options?.length ? options : DEFAULT_STAGE_OPTIONS;
+
+  if (!onSelect) {
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium ${pill}`}>
+        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`}/>
+        {value}
+      </span>
+    );
+  }
+
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium ${map[value] ?? "bg-slate-900/80 text-slate-300 border border-slate-700/60"}`}>
-      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot[value] ?? "bg-slate-500"}`}/>
-      {value}
-    </span>
+    <div className="relative inline-flex">
+      <button
+        ref={ref}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+        className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-opacity hover:opacity-80 ${pill}`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`}/>
+        {value}
+        <ChevronDown size={9} className="opacity-50 ml-0.5"/>
+      </button>
+      {open && (
+        <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-40">
+          {opts.map(opt => {
+            const s = stageStyle(opt);
+            return (
+              <button key={opt} onClick={() => { onSelect(opt); setOpen(false); }}
+                className={`dropdown-item w-full gap-2 ${opt === value ? "dropdown-item-active" : ""}`}>
+                <span className={`h-2 w-2 rounded-full shrink-0 ${s.dot}`}/>
+                {opt}
+                {opt === value && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+              </button>
+            );
+          })}
+        </PortalDropdown>
+      )}
+    </div>
   );
 }
 
@@ -488,6 +543,22 @@ function ExportDropdown({ records, columns, objectType, onClose, triggerRef }: {
 // ─── Owner cell ───────────────────────────────────────────────────────────────
 interface Member { id: string; name: string; email: string; avatar_url?: string }
 
+// Deterministic avatar colour from name string
+function avatarColor(name: string) {
+  const colors = ["bg-red-500","bg-orange-500","bg-amber-500","bg-emerald-500","bg-sky-500","bg-violet-500","bg-pink-500","bg-teal-500"];
+  let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return colors[Math.abs(h) % colors.length];
+}
+
+function MemberAvatar({ name, size = 5 }: { name: string; size?: number }) {
+  const initials = name.split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
+  return (
+    <div className={`h-${size} w-${size} rounded-full ${avatarColor(name)} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}>
+      {initials}
+    </div>
+  );
+}
+
 function OwnerCell({ value, members, onSelect }: {
   value: string;
   members: Member[];
@@ -495,63 +566,50 @@ function OwnerCell({ value, members, onSelect }: {
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  function initials(name: string | null | undefined) {
-    if (!name) return "?";
-    return name.split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
-  }
-
   const assigned = members.find(m => m.name === value || m.email === value);
+  const label = assigned ? (assigned.name || assigned.email || "?") : "";
 
   return (
     <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 group/owner"
-      >
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-white/[.05] transition-colors">
         {assigned ? (
           <>
-            <div className="h-5 w-5 rounded-full bg-zinc-700/60 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
-              {initials(assigned.name || assigned.email || "")}
-            </div>
-            <span className="text-xs text-slate-300 truncate max-w-[80px]">{assigned.name || assigned.email || "?"}</span>
+            <MemberAvatar name={label} size={5}/>
+            <span className="text-[11px] text-slate-300 truncate max-w-[72px]">{label}</span>
           </>
         ) : (
-          <div className="flex items-center gap-1 text-slate-700 hover:text-slate-400 transition-colors">
-            <UserCircle2 size={14}/>
-            <span className="text-[11px]">Assign</span>
-          </div>
+          <span className="flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-400 transition-colors">
+            <UserCircle2 size={13}/>
+            <span>Assign</span>
+          </span>
         )}
       </button>
+
       {open && (
-        <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-44">
-          <div className="px-3 py-1.5 border-b border-white/[.06]">
+        <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-48">
+          <div className="px-3 py-2 border-b border-white/[.06]">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Assign to</p>
           </div>
           {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members yet</p>}
           {members.map(m => {
-            const label = m.name || m.email || "Unknown";
+            const ml = m.name || m.email || "Unknown";
             const isActive = m.name === value || m.email === value;
             return (
-              <button key={m.id} onClick={() => { onSelect(label); setOpen(false); }}
+              <button key={m.id} onClick={() => { onSelect(ml); setOpen(false); }}
                 className={`dropdown-item w-full gap-2 ${isActive ? "dropdown-item-active" : ""}`}>
-                <div className="h-5 w-5 rounded-full bg-zinc-700/50 text-zinc-300 flex items-center justify-center text-[9px] font-semibold shrink-0">
-                  {initials(label)}
-                </div>
-                <span className="truncate">{label}</span>
-                {m.role && <span className="ml-auto text-[9px] text-slate-500 capitalize shrink-0">{m.role}</span>}
-                {isActive && <Check size={11} className="ml-1 text-red-400 shrink-0"/>}
+                <MemberAvatar name={ml} size={5}/>
+                <span className="truncate flex-1">{ml}</span>
+                {m.role && <span className="text-[9px] text-slate-600 capitalize shrink-0">{m.role}</span>}
+                {isActive && <Check size={10} className="text-red-400 shrink-0"/>}
               </button>
             );
           })}
-          {value && (
-            <>
-              <div className="mx-2 my-1 border-t border-white/[.06]"/>
-              <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full text-slate-500">
-                Clear
-              </button>
-            </>
-          )}
+          {value && <>
+            <div className="mx-2 my-1 border-t border-white/[.06]"/>
+            <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full text-slate-500">
+              Unassign
+            </button>
+          </>}
         </PortalDropdown>
       )}
     </div>
@@ -742,6 +800,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Filter ──
   const [filterText, setFilterText] = useState("");
+  // Quick filter chips: { col, value } pairs, AND-ed together
+  const [quickFilters, setQuickFilters] = useState<{ col: string; value: string }[]>([]);
+
+  function toggleQuickFilter(col: string, value: string) {
+    setQuickFilters(prev => {
+      const exists = prev.some(f => f.col === col && f.value === value);
+      return exists ? prev.filter(f => !(f.col === col && f.value === value)) : [...prev, { col, value }];
+    });
+  }
 
   // ── NLP ──
   const [nlpActive, setNlpActive] = useState(false);
@@ -800,10 +867,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       const q = filterQuery.toLowerCase();
       base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q)));
     }
-    if (!filterText.trim()) return base;
-    const q2 = filterText.toLowerCase();
-    return base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
-  }, [records, filterText, filterQuery]);
+    if (filterText.trim()) {
+      const q2 = filterText.toLowerCase();
+      base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
+    }
+    if (quickFilters.length) {
+      base = base.filter(r => quickFilters.every(f => String(r.data[f.col] ?? "").toLowerCase() === f.value.toLowerCase()));
+    }
+    return base;
+  }, [records, filterText, filterQuery, quickFilters]);
 
   const sorted = useMemo(() => {
     // Stacked sort rules take priority over quick sort
@@ -944,7 +1016,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     if (col === "lead_score" && val != null) return <LeadScoreBadge score={Number(val)} size="sm"/>;
 
     // Stage pill
-    if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
+    if ((col.toLowerCase().includes("stage") || col === "status" || col === "deal_status") && typeof val === "string") {
+      const existingOptions = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))];
+      return <StagePill value={val} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
+    }
 
     // Logo URL — render as image, skip base64
     if ((col === "logo_url" || col === "avatar_url" || col === "image_url") && typeof val === "string" && val.startsWith("http")) {
@@ -1113,10 +1188,51 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         </div>
       </div>
 
-      {/* ── Table — edge-to-edge, flex-fills remaining height ─────────────────
-            KEY: border-separate + border-spacing-0 prevents the sticky-element
-            shaking bug that border-collapse causes in Chromium. Separators are
-            handled per-cell so they composite correctly with the GPU layers.   */}
+      {/* ── Quick filter chips ── */}
+      {(() => {
+        // Detect stage/status/owner columns that have values worth filtering
+        const chipCols = columns.filter(c =>
+          c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
+          c === "assigned_to" || c === "deal_owner" || c === "owner"
+        );
+        if (!chipCols.length) return null;
+        return (
+          <div className="flex items-center gap-1.5 px-6 pb-2 flex-wrap shrink-0">
+            {chipCols.map(col => {
+              const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].slice(0, 8);
+              if (!vals.length) return null;
+              return vals.map(val => {
+                const active = quickFilters.some(f => f.col === col && f.value === val);
+                const isStage = col.toLowerCase().includes("stage") || col === "status";
+                const s = isStage ? stageStyle(val) : null;
+                return (
+                  <button
+                    key={`${col}:${val}`}
+                    onClick={() => toggleQuickFilter(col, val)}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-all ${
+                      active
+                        ? "border-red-500/40 bg-red-500/10 text-red-300"
+                        : s
+                          ? `${s.pill} opacity-60 hover:opacity-100`
+                          : "border-white/[.07] bg-white/[.03] text-slate-500 hover:border-white/[.12] hover:text-slate-300"
+                    }`}
+                  >
+                    {s && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${active ? "bg-red-400" : s.dot}`}/>}
+                    {val}
+                    {active && <X size={9} className="ml-0.5"/>}
+                  </button>
+                );
+              });
+            })}
+            {quickFilters.length > 0 && (
+              <button onClick={() => setQuickFilters([])} className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors ml-1">
+                Clear filters
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Bulk action bar */}
       {someSelected && (
         <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
