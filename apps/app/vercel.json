@@ -1,5 +1,3 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
-  "installCommand": "cd ../.. && npm install -g pnpm && pnpm install",
-  "buildCommand": "cd ../.. && pnpm --filter @mondaily/app build"
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

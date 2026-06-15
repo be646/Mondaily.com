@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import * as ubc from "@mondaily/db/ubc";
+import { inngest } from "../lib/inngest";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -96,7 +97,18 @@ Reply with ONLY a JSON object mapping each header to its type. Example: {"name":
     }
   }
 
-  return c.json({ ok: true, created: created.length, errors, column_types: columnTypes }, 201);
+  // Auto-enrich enrichable record types after import (non-blocking)
+  const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
+  if (ENRICHABLE.some(t => safeType.toLowerCase().includes(t))) {
+    for (const nodeId of created) {
+      inngest.send({
+        name: "crm/record.created",
+        data: { workspaceId, nodeId, objectType: safeType, vertical, recordData: {} },
+      }).catch(() => {});
+    }
+  }
+
+  return c.json({ ok: true, created: created.length, errors, column_types: columnTypes, auto_enriching: ENRICHABLE.some(t => safeType.toLowerCase().includes(t)) }, 201);
 });
 
 export { router as importRouter };

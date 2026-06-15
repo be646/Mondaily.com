@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/react";
 import {
   Download, Grid2X2, ListPlus, Loader2,
-  MoreHorizontal, Plus, Search, Sparkles, Table2, Trash2, UserCheck, Users, X, Mail,
+  MoreHorizontal, Plus, Search, Sparkles, Table2, Trash2, UserCheck, Users, X, Mail, Wand2,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -53,6 +53,8 @@ export function ListPage() {
   const [assignOpen, setAssignOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [enrichingAll, setEnrichingAll] = useState(false);
+  const [enrichAllDone, setEnrichAllDone] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enrollStep, setEnrollStep] = useState<"pick" | "confirm" | "done">("pick");
   const [enrollSeqId, setEnrollSeqId] = useState("");
@@ -142,6 +144,17 @@ export function ListPage() {
     a.download = `${list.data?.name || "list"}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  async function enrichAll() {
+    setEnrichingAll(true);
+    try {
+      await apiClient.post(`/lists/${listId}/enrich`, {});
+      setEnrichAllDone(true);
+      setTimeout(() => setEnrichAllDone(false), 4000);
+    } finally {
+      setEnrichingAll(false);
+    }
   }
 
   async function enrollInSequence() {
@@ -358,12 +371,22 @@ export function ListPage() {
         </div>
         {/* Actions */}
         {records.length > 0 && (
-          <button
-            onClick={() => { setEnrollOpen(true); setEnrollStep("pick"); setEnrollSeqId(""); setEnrollSeqName(""); }}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-600/20 transition-colors"
-          >
-            <Mail size={13}/> Enroll in Sequence
-          </button>
+          <>
+            <button
+              onClick={enrichAll}
+              disabled={enrichingAll}
+              className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-600/10 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/20 transition-colors disabled:opacity-50"
+            >
+              {enrichingAll ? <Loader2 size={13} className="animate-spin"/> : enrichAllDone ? <Sparkles size={13}/> : <Wand2 size={13}/>}
+              {enrichAllDone ? "Enriching…" : "Enrich All"}
+            </button>
+            <button
+              onClick={() => { setEnrollOpen(true); setEnrollStep("pick"); setEnrollSeqId(""); setEnrollSeqName(""); }}
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-600/20 transition-colors"
+            >
+              <Mail size={13}/> Enroll in Sequence
+            </button>
+          </>
         )}
         <button
           onClick={() => setAddOpen(true)}

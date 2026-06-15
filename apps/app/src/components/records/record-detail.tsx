@@ -11,6 +11,8 @@ import {
 import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
+import { TagPicker, TagBadges } from "./tag-picker";
+import { ActivityTimeline } from "./activity-timeline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -945,6 +947,8 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   const qc = useQueryClient();
   const [tab, setTab]           = useState<Tab>("Overview");
   const [listOpen, setListOpen] = useState(false);
+  const [tagOpen, setTagOpen]   = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1094,6 +1098,24 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             </div>
           </div>
 
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setTagOpen(true)}
+                className="flex flex-1 items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+              >
+                <Tag size={12}/> Tags
+              </button>
+              <button
+                onClick={() => setTimelineOpen(true)}
+                className="flex flex-1 items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+              >
+                <Clock size={12}/> Activity
+              </button>
+            </div>
+            <div className="mt-2">
+              <TagBadges nodeId={recordId} />
+            </div>
+
           {/* Assignee */}
           <AssigneesSection assignedTo={assignedTo} onAssign={assignMember}/>
 
@@ -1183,6 +1205,9 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
           </div>
         </main>
       </div>
+
+      {tagOpen && <TagPicker nodeId={recordId} onClose={() => setTagOpen(false)} />}
+      {timelineOpen && <ActivityTimeline nodeId={recordId} onClose={() => setTimelineOpen(false)} />}
     </div>
   );
 }

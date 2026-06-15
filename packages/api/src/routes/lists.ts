@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { inngest } from "../lib/inngest";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -71,6 +72,41 @@ router.delete("/:id/entries/:nodeId", async (c) => {
   if (!list) return c.json({ error: "List not found" }, 404);
   const { error } = await supabase.from("list_entries").delete().eq("list_id", list.id).eq("node_id", c.req.param("nodeId"));
   return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+
+// Batch enrich all records in a list
+router.post("/:id/enrich", async (c) => {
+  const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  if (!list) return c.json({ error: "List not found" }, 404);
+
+  const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
+  if (!ENRICHABLE.some(t => list.object_type.toLowerCase().includes(t))) {
+    return c.json({ error: "This list type is not enrichable" }, 400);
+  }
+
+  const { data: entries } = await supabase
+    .from("list_entries")
+    .select("node_id, nodes(id, data, object_type)")
+    .eq("list_id", list.id);
+
+  let queued = 0;
+  for (const entry of entries ?? []) {
+    const node = (entry as Record<string, unknown>).nodes as { id: string; data: Record<string, unknown>; object_type: string } | null;
+    if (!node) continue;
+    inngest.send({
+      name: "crm/record.created",
+      data: {
+        workspaceId: c.get("workspaceId"),
+        nodeId: node.id,
+        objectType: node.object_type,
+        vertical: "sales",
+        recordData: node.data,
+      },
+    }).catch(() => {});
+    queued++;
+  }
+
+  return c.json({ ok: true, queued });
 });
 
 export { router as listsRouter };

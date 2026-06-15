@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
-import { enrichRecord, invoiceChaser, relationshipHealth } from "./jobs/index";
+import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts } from "./jobs/index";
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { askRouter } from "./routes/ask";
@@ -32,6 +32,7 @@ import { digestsRouter } from "./routes/digests";
 import { annotationsRouter } from "./routes/annotations";
 import { workflowsRouter } from "./routes/workflows";
 import { invoicesRouter } from "./routes/invoices";
+import { tagsRouter } from "./routes/tags";
 
 const app = new Hono();
 
@@ -68,9 +69,10 @@ app.route("/api/v1/digests", digestsRouter);
 app.route("/api/v1/annotations", annotationsRouter);
 app.route("/api/v1/workflows", workflowsRouter);
 app.route("/api/v1/invoices", invoicesRouter);
+app.route("/api/v1/tags", tagsRouter);
 app.route("/api/v1", appDataRouter);
 
-const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth] });
+const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts] });
 app.all("/api/inngest", inngestHandler);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
