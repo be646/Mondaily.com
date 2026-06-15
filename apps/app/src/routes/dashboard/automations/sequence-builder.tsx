@@ -226,7 +226,7 @@ function StepCard({
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
-type Tab = "steps" | "enrollments" | "settings";
+type Tab = "steps" | "enrollments" | "analytics" | "settings";
 
 export function SequenceBuilderPage() {
   const { id } = useParams<{ id: string }>();
@@ -317,9 +317,20 @@ export function SequenceBuilderPage() {
 
   if (!seq) return <div className="p-8 text-sm text-slate-500">Sequence not found.</div>;
 
+  const enrollments = seq.enrollments;
+  const totalEnrolled = enrollments.length;
+  const totalOpened = enrollments.filter((e: Enrollment) => (e as Record<string,unknown>).opened_at).length;
+  const totalClicked = enrollments.filter((e: Enrollment) => (e as Record<string,unknown>).clicked_at).length;
+  const totalReplied = enrollments.filter((e: Enrollment) => e.status === "replied" || (e as Record<string,unknown>).replied_at).length;
+  const totalUnsubscribed = enrollments.filter((e: Enrollment) => e.status === "unsubscribed").length;
+  const openRate = totalEnrolled > 0 ? Math.round((totalOpened / totalEnrolled) * 100) : 0;
+  const clickRate = totalEnrolled > 0 ? Math.round((totalClicked / totalEnrolled) * 100) : 0;
+  const replyRate = totalEnrolled > 0 ? Math.round((totalReplied / totalEnrolled) * 100) : 0;
+
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "steps", label: "Steps", count: seq.steps.length },
     { key: "enrollments", label: "Enrolled", count: seq.enrollments.length },
+    { key: "analytics", label: "Analytics" },
     { key: "settings", label: "Settings" },
   ];
 
@@ -472,6 +483,73 @@ export function SequenceBuilderPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Analytics ── */}
+        {tab === "analytics" && (
+          <div className="max-w-2xl mx-auto space-y-5">
+            {/* KPI cards */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: "Enrolled", value: totalEnrolled, color: "text-white" },
+                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-slate-400" },
+                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-slate-400" },
+                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-slate-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-xl border border-white/[.07] bg-white/[.02] px-4 py-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">{label}</p>
+                  <p className={`mt-1.5 text-2xl font-bold ${color}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Step-by-step funnel */}
+            {seq.steps.length > 0 && (
+              <div className="rounded-xl border border-white/[.07] bg-white/[.02] overflow-hidden">
+                <div className="border-b border-white/[.06] px-4 py-3">
+                  <p className="text-xs font-semibold text-white">Step performance</p>
+                </div>
+                <div className="divide-y divide-white/[.04]">
+                  {seq.steps.map((step, i) => {
+                    const s = step as Record<string, unknown>;
+                    const sent = Number(s.sent_count ?? 0);
+                    const opened = Number(s.opened_count ?? 0);
+                    const clicked = Number(s.clicked_count ?? 0);
+                    const pct = sent > 0 ? Math.round((opened / sent) * 100) : 0;
+                    return (
+                      <div key={i} className="flex items-center gap-4 px-4 py-3">
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[.06] text-[10px] font-bold text-slate-400">{i + 1}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-white truncate">{String(s.label ?? s.subject ?? `Step ${i + 1}`)}</p>
+                          <p className="text-[10px] text-slate-600 capitalize">{String(s.type ?? "email")}</p>
+                        </div>
+                        <div className="text-right shrink-0 space-y-0.5">
+                          <p className="text-xs text-slate-400">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>
+                          {sent > 0 && <p className="text-[10px] text-white/30">{opened} opened · {clicked} clicked · {pct}%</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Unsubscribes */}
+            <div className="rounded-xl border border-white/[.07] bg-white/[.02] px-4 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-white">Unsubscribes</p>
+                <p className="text-[11px] text-slate-600 mt-0.5">Contacts who opted out</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xl font-bold text-red-400">{totalUnsubscribed}</p>
+                <p className="text-[10px] text-slate-600">{totalEnrolled > 0 ? Math.round((totalUnsubscribed / totalEnrolled) * 100) : 0}% rate</p>
+              </div>
+            </div>
+
+            {totalEnrolled === 0 && (
+              <p className="text-center text-xs text-white/20 py-4">Enroll contacts to start tracking analytics</p>
             )}
           </div>
         )}

@@ -12,6 +12,7 @@ import { apiClient } from "../../lib/api-client";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
+import { LeadScoreBadge } from "./lead-score-badge";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
@@ -917,6 +918,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         />
       );
     }
+
+    // Lead score badge
+    if (col === "lead_score" && val != null) return <LeadScoreBadge score={Number(val)} size="sm"/>;
 
     // Stage pill (still editable via dropdown in the pill itself)
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;

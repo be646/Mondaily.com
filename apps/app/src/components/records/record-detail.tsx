@@ -13,6 +13,7 @@ import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
 import { TagPicker, TagBadges } from "./tag-picker";
 import { ActivityTimeline } from "./activity-timeline";
+import { LeadScoreBadge } from "./lead-score-badge";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -1118,6 +1119,13 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
           {/* Assignee */}
           <AssigneesSection assignedTo={assignedTo} onAssign={assignMember}/>
+
+          {/* Lead score */}
+          {(record as Record<string,unknown>).lead_score != null && (
+            <div className="px-4 py-3 border-b border-zinc-800/50">
+              <LeadScoreBadge score={(record as Record<string,unknown>).lead_score as number} size="md" />
+            </div>
+          )}
 
           {/* Categories (industry taxonomy) */}
           <div className="px-4 py-3 border-b border-zinc-800/50">
