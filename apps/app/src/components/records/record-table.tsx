@@ -835,7 +835,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   useEffect(() => { onColumnsChange?.(columns); }, [columns]);
 
   // ── Owner cell state: recordId → owner name ──
-  const [owners, setOwners] = useState<Record<string, string>>({});
+  // owners[recordId][col] — separate tracker per column so Deal Owner ≠ Assigned To
+  const [owners, setOwners] = useState<Record<string, Record<string, string>>>({});
+  function getOwner(recordId: string, col: string, fallback: unknown) {
+    return owners[recordId]?.[col] ?? String(fallback ?? "");
+  }
+  function setOwner(recordId: string, col: string, name: string) {
+    setOwners(prev => ({ ...prev, [recordId]: { ...prev[recordId], [col]: name } }));
+  }
 
   // ── Members for owner picker ──
   const membersQuery = useQuery({
@@ -907,8 +914,60 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   const nameCol = columns[0];
-
   const members = membersQuery.data ?? [];
+
+  // ── Column widths (resizable) ──
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
+  const resizingRef = useRef<{ col: string; startX: number; startW: number } | null>(null);
+
+  function startResize(col: string, e: React.MouseEvent, currentW: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = { col, startX: e.clientX, startW: currentW };
+    function onMove(ev: MouseEvent) {
+      if (!resizingRef.current) return;
+      const delta = ev.clientX - resizingRef.current.startX;
+      const newW = Math.max(80, resizingRef.current.startW + delta);
+      setColWidths(prev => ({ ...prev, [resizingRef.current!.col]: newW }));
+    }
+    function onUp() {
+      resizingRef.current = null;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
+  // ── Conditional row colour by stage/status ──
+  function rowAccent(record: NodeRecord): string {
+    const stageCol = columns.find(c => c.toLowerCase().includes("stage") || c === "status" || c === "deal_status");
+    if (!stageCol) return "";
+    const val = String(record.data[stageCol] ?? "");
+    if (val === "Closed Won" || val === "Complete" || val === "Completed" || val === "Active") return "border-l-2 border-l-emerald-500/40";
+    if (val === "Closed Lost" || val === "Cancelled" || val === "Churned") return "border-l-2 border-l-rose-500/30";
+    if (val === "In Progress" || val === "Negotiation") return "border-l-2 border-l-amber-500/30";
+    return "";
+  }
+
+  // ── Bulk edit ──
+  const [bulkEditField, setBulkEditField] = useState<string | null>(null);
+  const bulkEditRef = useRef<HTMLDivElement>(null);
+
+  function applyBulkEdit(col: string, value: string) {
+    const ids = [...selected];
+    ids.forEach(id => {
+      const record = records.find(r => r.id === id);
+      if (record) saveCell(record, col, value);
+    });
+    setBulkEditField(null);
+  }
+
+  // Columns suitable for bulk edit
+  const bulkEditCols = columns.filter(c =>
+    c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
+    c === "assigned_to" || c === "deal_owner" || c.toLowerCase().includes("owner") || c.toLowerCase().includes("assignee")
+  );
 
   // ── Bulk selection ──
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -989,9 +1048,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     if (customDef?.type === "owner" || col === "owner" || col === "assignee") {
       return (
         <OwnerCell
-          value={String(owners[record.id] ?? val ?? "")}
+          value={getOwner(record.id, col, val)}
           members={members}
-          onSelect={name => setOwners(prev => ({ ...prev, [record.id]: name }))}
+          onSelect={name => { setOwner(record.id, col, name); saveCell(record, col, name); }}
         />
       );
     }
@@ -1002,13 +1061,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Categories
     if (col === "categories") return <CategoryBadges value={val}/>;
 
-    // Owner/assigned_to columns
-    if (col === "assigned_to" || col === "deal_owner") {
+    // Owner/assigned_to columns — each col tracked independently
+    if (col === "assigned_to" || col === "deal_owner" || col.toLowerCase().includes("owner") || col.toLowerCase().includes("assignee")) {
       return (
         <OwnerCell
-          value={String(owners[record.id] ?? val ?? "")}
+          value={getOwner(record.id, col, val)}
           members={members}
-          onSelect={name => setOwners(prev => ({ ...prev, [record.id]: name }))}
+          onSelect={name => { setOwner(record.id, col, name); saveCell(record, col, name); }}
         />
       );
     }
@@ -1284,6 +1343,51 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               </>
             )}
           </div>
+          {/* Bulk edit field */}
+          {bulkEditCols.length > 0 && (
+            <div ref={bulkEditRef} className="relative">
+              <button
+                onClick={() => setBulkEditField(f => f ? null : bulkEditCols[0])}
+                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+              >
+                <Check size={12}/> Edit field
+              </button>
+              {bulkEditField && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
+                  <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-white/[.08] bg-[#0f1117] p-2 shadow-xl">
+                    <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Edit {selected.size} records</p>
+                    {bulkEditCols.map(col => {
+                      const isStage = col.toLowerCase().includes("stage") || col === "status";
+                      const isOwner = col.toLowerCase().includes("owner") || col.toLowerCase().includes("assign");
+                      const stageVals = isStage ? [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))] : [];
+                      return (
+                        <div key={col} className="mb-1">
+                          <p className="px-2 py-1 text-[10px] text-slate-600 uppercase tracking-wide">{col.replaceAll("_", " ")}</p>
+                          {isStage && stageVals.map(v => (
+                            <button key={v} onClick={() => applyBulkEdit(col, v)}
+                              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
+                            </button>
+                          ))}
+                          {isOwner && members.map(m => {
+                            const label = m.name || m.email || "?";
+                            return (
+                              <button key={m.id} onClick={() => applyBulkEdit(col, label)}
+                                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                                <MemberAvatar name={label} size={4}/>{label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Bulk delete */}
           <button
             onClick={bulkDelete}
@@ -1311,19 +1415,30 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
                 </div>
               </th>
-              {columns.map((col, colIdx) => (
-                <th
-                  key={col}
-                  className={`px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
-                >
-                  <button onClick={() => handleHeaderSort(col)}
-                    className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 ${isNumeric(col) ? "ml-auto" : ""}`}>
-                    {getColumnIcon(col)}
-                    <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
-                    <SortIcon col={col}/>
-                  </button>
-                </th>
-              ))}
+              {columns.map((col, colIdx) => {
+                const w = colWidths[col];
+                return (
+                  <th
+                    key={col}
+                    style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
+                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
+                  >
+                    <button onClick={() => handleHeaderSort(col)}
+                      className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 w-full ${isNumeric(col) ? "ml-auto" : ""}`}>
+                      {getColumnIcon(col)}
+                      <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
+                      <SortIcon col={col}/>
+                    </button>
+                    {/* Resize handle */}
+                    <div
+                      onMouseDown={e => startResize(col, e, w ?? (e.currentTarget.parentElement?.offsetWidth ?? 160))}
+                      className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/resize z-10"
+                    >
+                      <div className="w-px h-4 bg-white/[.06] group-hover/resize:bg-red-400/50 transition-colors"/>
+                    </div>
+                  </th>
+                );
+              })}
               <th className="px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06]">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors">
                   <Calendar size={11}/>
@@ -1364,7 +1479,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               sorted.map((record, rowIdx) => (
                 <tr
                   key={record.id}
-                  className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03]`}
+                  className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03] ${rowAccent(record)}`}
                 >
                   {/* Row checkbox */}
                   <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
