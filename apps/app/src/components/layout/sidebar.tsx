@@ -5,7 +5,9 @@ import {
   ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "../../lib/api-client";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 import { SidebarObjects } from "./sidebar-records";
@@ -128,18 +130,27 @@ const CHECKLIST = [
 function GettingStarted() {
   const [open, setOpen] = useState(false);
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const [done, setDone] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem("gs_done") || "[]")); } catch { return new Set(["workspace"]); }
+
+  // Extension is the only thing we can't detect server-side —
+  // the extension sets this flag via localStorage when installed.
+  const extensionInstalled = useMemo(() => !!localStorage.getItem("mondaily_extension_installed"), []);
+
+  const { data: status } = useQuery({
+    queryKey: ["onboarding-status"],
+    queryFn: async () => {
+      const res = await apiClient.get("/onboarding/status");
+      return res.data as Record<string, boolean>;
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
 
-  function toggle(id: string) {
-    setDone(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      localStorage.setItem("gs_done", JSON.stringify([...next]));
-      return next;
-    });
-  }
+  const done = useMemo<Set<string>>(() => {
+    if (!status) return new Set(["workspace"]);
+    const s = new Set<string>(Object.entries(status).filter(([, v]) => v).map(([k]) => k));
+    if (extensionInstalled) s.add("extension");
+    return s;
+  }, [status, extensionInstalled]);
 
   const doneCount = done.size;
   const total = CHECKLIST.length;
@@ -188,16 +199,13 @@ function GettingStarted() {
                 onMouseEnter={() => setHoverId(item.id)}
                 onMouseLeave={() => setHoverId(null)}
               >
-                <div className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.04]" : ""}`}>
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggle(item.id)}
-                    className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-slate-700 hover:border-red-400"}`}
-                  >
+                <div className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors ${checked ? "opacity-40" : hovered ? "bg-white/[.04]" : ""}`}>
+                  {/* Status dot — auto-filled, not clickable */}
+                  <div className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-slate-700"}`}>
                     {checked && <Check size={8} className="text-white" strokeWidth={3}/>}
-                  </button>
+                  </div>
 
-                  {/* Label + link */}
+                  {/* Label — links to the page where the action happens */}
                   <Link to={item.to} className="flex-1 min-w-0">
                     <span className={`text-[12px] leading-tight ${checked ? "line-through text-slate-600" : "text-slate-300"}`}>
                       {item.label}
