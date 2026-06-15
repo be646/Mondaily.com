@@ -1038,11 +1038,23 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>(() => {
     try { return JSON.parse(localStorage.getItem(customColsKey) ?? "[]"); } catch { return []; }
   });
+  // Reload when objectType changes (navigating between People/Deals/etc.)
+  useEffect(() => {
+    try { setCustomCols(JSON.parse(localStorage.getItem(`mondaily_custom_cols_${objectType}`) ?? "[]")); }
+    catch { setCustomCols([]); }
+  }, [objectType]);
+
   function saveCustomCols(next: { key: string; type: string }[]) {
     setCustomCols(next);
-    localStorage.setItem(customColsKey, JSON.stringify(next));
+    localStorage.setItem(`mondaily_custom_cols_${objectType}`, JSON.stringify(next));
   }
-  const allColumnsWithCustom = useMemo(() => [...allColumns, ...customCols.map(c => c.key)], [allColumns, customCols]);
+
+  // Record-ID column is handled separately (locked between checkbox and name)
+  const hasRecordIdCol = customCols.some(c => c.type === "record_id");
+  // Non-ID custom cols go into the regular column flow
+  const regularCustomCols = customCols.filter(c => c.type !== "record_id");
+
+  const allColumnsWithCustom = useMemo(() => [...allColumns, ...regularCustomCols.map(c => c.key)], [allColumns, regularCustomCols]);
   const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
 
   // ── Column reorder ──
@@ -1154,6 +1166,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   const nameCol = columns[0];
   const members = membersQuery.data ?? [];
+  // Name column sticky offset changes when the Record ID locked column is present
+  const nameLeft = hasRecordIdCol ? "left-[112px]" : "left-8";
 
   // ── Column widths (resizable) ──
   const [colWidths, setColWidths] = useState<Record<string, number>>({});
@@ -1430,6 +1444,21 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     <section className="flex flex-col h-full">
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 px-6 py-2 shrink-0">
+        {/* Search — always visible, searches name/email/phone/id/all fields */}
+        <div className="relative w-56">
+          <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600"/>
+          <input
+            value={filterText}
+            onChange={e => setFilterText(e.target.value)}
+            placeholder="Search name, email, phone, ID…"
+            className="key-input w-full py-1.5 pl-7 pr-7 text-xs"
+          />
+          {filterText && (
+            <button onClick={() => setFilterText("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+              <X size={11}/>
+            </button>
+          )}
+        </div>
         {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
           <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
         )}
@@ -1536,24 +1565,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
         return (
           <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-            {/* Search icon → expands input */}
-            <button
-              onClick={() => { setFilterSearchOpen(o => !o); if (filterSearchOpen) setFilterText(""); }}
-              className={`flex items-center justify-center h-6 w-6 rounded-lg border transition-colors shrink-0 ${filterText ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-white/[.08] bg-white/[.03] text-white/30 hover:text-white/70"}`}
-            >
-              <Search size={11}/>
-            </button>
-            {filterSearchOpen && (
-              <input
-                ref={filterSearchRef}
-                value={filterText}
-                onChange={e => setFilterText(e.target.value)}
-                onKeyDown={e => { if (e.key === "Escape") { setFilterText(""); setFilterSearchOpen(false); } }}
-                placeholder={`Search…`}
-                className="w-36 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30 shrink-0"
-              />
-            )}
-
             {allFilterCols.length > 0 && <div className="h-3 w-px bg-white/[.08] shrink-0"/>}
 
             {allFilterCols.length === 0 && (
@@ -1734,13 +1745,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
                 </div>
               </th>
+              {/* Record ID locked column — only when added via Add Column */}
+              {hasRecordIdCol && (
+                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-8 z-30">
+                  <span className="text-[10px] font-semibold tracking-widest uppercase text-white/20">ID</span>
+                </th>
+              )}
               {orderedColumns.map((col, colIdx) => {
                 const w = colWidths[col];
                 return (
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -1837,10 +1854,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
                     </div>
                   </td>
+                  {/* Record ID cell — locked between checkbox and name */}
+                  {hasRecordIdCol && (
+                    <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
+                      <RecordIdCell id={record.id}/>
+                    </td>
+                  )}
                   {orderedColumns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 ` + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
                       onMouseEnter={(e) => {
                         const td = e.currentTarget;
                         if (td.scrollWidth > td.clientWidth + 2) {
@@ -1873,10 +1896,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tfoot className="sticky bottom-0 z-20">
             <tr>
               <td className="w-8 min-w-[32px] max-w-[32px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-0 z-30" />
+              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-8 z-30"/>}
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
