@@ -498,6 +498,51 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
   );
 }
 
+// ─── Inline member picker for owner/assignee fields in Record Details ─────────
+function MemberPickerField({ label, currentName, members, onSelect }: {
+  label: string;
+  currentName: string;
+  members: Member[];
+  onSelect: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  return (
+    <div ref={ref} className="mb-3 relative">
+      <p className="mb-1 text-[10px] text-slate-600 capitalize">{label}</p>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-900/20 px-2.5 py-1.5 text-xs hover:bg-zinc-800/30 transition-colors">
+        {currentName
+          ? <><div className="h-5 w-5 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[9px] font-bold text-red-300 shrink-0">{initials(currentName)}</div><span className="text-slate-300 truncate">{currentName}</span></>
+          : <><UserCheck size={12} className="text-slate-600 shrink-0"/><span className="text-slate-600">Unassigned</span></>
+        }
+        <ChevronDown size={10} className="ml-auto text-slate-600 shrink-0"/>
+      </button>
+      {open && (
+        <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 max-h-44 overflow-y-auto">
+          <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full">
+            <UserCheck size={12} className="text-slate-600"/>Unassigned
+          </button>
+          {members.map(m => (
+            <button key={m.id} onClick={() => { onSelect(m.name); setOpen(false); }} className="dropdown-item w-full">
+              <div className="h-5 w-5 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[9px] font-bold text-red-300 shrink-0">{initials(m.name)}</div>
+              <span className="truncate">{m.name}</span>
+              {currentName === m.name && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+            </button>
+          ))}
+          {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Activity feed ────────────────────────────────────────────────────────────
 function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
   const cls = type === "create" ? "bg-emerald-500" : type === "update" ? "bg-blue-500" : "bg-slate-600";
@@ -959,6 +1004,23 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  // Real lists from API
+  const listsQuery = useQuery({
+    queryKey: ["lists"],
+    queryFn: () => apiClient.get<{ id: string; name: string }[]>("/lists"),
+    enabled: listOpen,
+  });
+  const addToList = useMutation({
+    mutationFn: (listId: string) => apiClient.post(`/lists/${listId}/entries`, { node_id: recordId }),
+  });
+
+  // Members for owner/assignee fields in Record Details
+  const { data: members = [] } = useQuery({
+    queryKey: ["members"],
+    queryFn: () => apiClient.get<Member[]>("/members"),
+    staleTime: 60_000,
+  });
+
   const query = useQuery({
     queryKey: ["record", recordId],
     queryFn: () => apiClient.get<RecordData>(`/nodes/${recordId}`),
@@ -1107,9 +1169,17 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                   <ChevronDown size={11} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>
                 </button>
                 {listOpen && (
-                  <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50">
-                    {["Newsletter","Hot leads","VIP customers","Demo queue"].map(list => (
-                      <button key={list} onClick={() => setListOpen(false)} className="dropdown-item w-full">{list}</button>
+                  <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 max-h-52 overflow-y-auto">
+                    {listsQuery.isLoading && <p className="px-3 py-2 text-xs text-slate-600">Loading…</p>}
+                    {(listsQuery.data ?? []).length === 0 && !listsQuery.isLoading && (
+                      <p className="px-3 py-2 text-xs text-slate-600">No lists yet — create one in Lists</p>
+                    )}
+                    {(listsQuery.data ?? []).map(list => (
+                      <button key={list.id}
+                        onClick={() => { addToList.mutate(list.id); setListOpen(false); }}
+                        className="dropdown-item w-full">
+                        {list.name}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -1196,9 +1266,16 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 );
               }
 
-              // Owner/assignee fields — plain editable for now (members picker not available here without query)
-              if (isOwnerKey(key) && customType !== "owner" && customType !== "assignee") {
-                return <InlineField key={key} label={key.replace(/_/g, " ")} value={val} onSave={v => save(key, v)}/>;
+              // Owner/assignee fields — member picker dropdown
+              if (isOwnerKey(key) || customType === "owner" || customType === "assignee") {
+                const currentVal = String(val ?? "");
+                const matched = members.find(m => m.id === currentVal || m.name === currentVal);
+                return (
+                  <MemberPickerField key={key} label={key.replace(/_/g, " ")}
+                    currentName={matched?.name ?? currentVal}
+                    members={members}
+                    onSelect={v => save(key, v)}/>
+                );
               }
 
               // Everything else

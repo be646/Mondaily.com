@@ -66,8 +66,15 @@ function CreateRecordModal({
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"manual"|"ai">("manual");
 
-  // ── Manual tab state ──
-  const [values, setValues]     = useState<Record<string, string>>(() => Object.fromEntries(fieldKeys.map(k => [k, ""])));
+  // Read colMeta (defaults + required) from localStorage — same key as RecordTable
+  const colMeta: Record<string, { defaultValue?: string; required?: boolean }> = (() => {
+    try { return JSON.parse(localStorage.getItem(`mondaily_colmeta_${objectType}`) ?? "{}"); } catch { return {}; }
+  })();
+
+  // ── Manual tab state — pre-fill defaults ──
+  const [values, setValues]     = useState<Record<string, string>>(() =>
+    Object.fromEntries(fieldKeys.map(k => [k, colMeta[k]?.defaultValue ?? ""]))
+  );
   const [selectedCats, setCats] = useState<{ name: string; color: string }[]>([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState("");
@@ -84,7 +91,10 @@ function CreateRecordModal({
   const [aiSaveProgress, setAiSaveProgress] = useState(0);
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const resetForm = () => { setValues(Object.fromEntries(fieldKeys.map(k => [k, ""]))); setCats([]); };
+  const resetForm = () => {
+    setValues(Object.fromEntries(fieldKeys.map(k => [k, colMeta[k]?.defaultValue ?? ""])));
+    setCats([]);
+  };
   const label = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
   // ── Manual save ──
@@ -94,6 +104,9 @@ function CreateRecordModal({
       if (k.trim()) data[k.trim().toLowerCase().replace(/\s+/g, "_")] = v;
     }
     if (!data.name) { setError("Name is required"); return; }
+    // Enforce required fields
+    const missing = fieldKeys.filter(k => colMeta[k]?.required && !data[k]?.trim());
+    if (missing.length) { setError(`Required: ${missing.map(k => label(k)).join(", ")}`); return; }
     setSaving(true); setError("");
     try {
       const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
@@ -215,17 +228,25 @@ function CreateRecordModal({
         {tab === "manual" && (
           <>
             <div className="max-h-[400px] overflow-auto px-5 py-4 space-y-0.5">
-              {fieldKeys.map(k => (
-                <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-white/[.04] last:border-0">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-600 select-none truncate">{label(k)}</span>
-                  <input
-                    value={values[k] ?? ""}
-                    onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
-                    placeholder="—"
-                    className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-slate-700 outline-none transition-colors focus:border-red-500/30 focus:bg-white/[.05]"
-                  />
-                </div>
-              ))}
+              {fieldKeys.map(k => {
+                const isRequired = colMeta[k]?.required;
+                const hasDefault = !!colMeta[k]?.defaultValue;
+                const isEmpty = !(values[k] ?? "").trim();
+                return (
+                  <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-white/[.04] last:border-0">
+                    <span className={`text-[11px] font-medium uppercase tracking-wide select-none truncate flex items-center gap-1 ${isRequired ? "text-slate-400" : "text-slate-600"}`}>
+                      {label(k)}
+                      {isRequired && <span className="text-red-400 text-[10px]">*</span>}
+                    </span>
+                    <input
+                      value={values[k] ?? ""}
+                      onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
+                      placeholder={hasDefault && isEmpty ? `Default: ${colMeta[k]!.defaultValue}` : "—"}
+                      className={`w-full rounded-md border bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-slate-700 outline-none transition-colors focus:bg-white/[.05] ${isRequired && isEmpty ? "border-red-500/20 focus:border-red-500/40" : "border-white/[.07] focus:border-red-500/30"}`}
+                    />
+                  </div>
+                );
+              })}
               <div className="py-2 border-b border-white/[.04]">
                 <div className="grid grid-cols-[130px_1fr] items-start gap-3">
                   <span className="text-[11px] font-medium uppercase tracking-wide text-slate-600 select-none pt-1">Categories</span>

@@ -2477,6 +2477,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
                         <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
+                        {colMeta[col]?.required && <span className="text-red-400/70 text-[10px] leading-none">*</span>}
                         <SortIcon col={col}/>
                       </button>
                     </div>
@@ -2654,6 +2655,37 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           >
             <X size={12}/> Hide column
           </button>
+          <div className="border-t border-white/[.06] mt-1 pt-1">
+            <button
+              onClick={() => {
+                const col = colCtxMenu.col;
+                const cur = colMeta[col]?.required;
+                saveColMeta({ ...colMeta, [col]: { ...colMeta[col], required: !cur } });
+                setColCtxMenu(null);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
+            >
+              {colMeta[colCtxMenu.col]?.required
+                ? <><Check size={12} className="text-red-400"/> Required (click to remove)</>
+                : <><Plus size={12}/> Mark as required</>
+              }
+            </button>
+            <button
+              onClick={() => {
+                const col = colCtxMenu.col;
+                const current = colMeta[col]?.defaultValue ?? "";
+                const val = window.prompt(`Default value for "${col.replace(/_/g," ")}"`, current);
+                if (val !== null) saveColMeta({ ...colMeta, [col]: { ...colMeta[col], defaultValue: val } });
+                setColCtxMenu(null);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
+            >
+              <Hash size={12}/> Set default value
+              {colMeta[colCtxMenu.col]?.defaultValue && (
+                <span className="ml-auto text-[10px] text-white/25 truncate max-w-[70px]">{colMeta[colCtxMenu.col]!.defaultValue}</span>
+              )}
+            </button>
+          </div>
         </div>
       </>,
       document.body
