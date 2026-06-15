@@ -163,45 +163,17 @@ function GettingStarted() {
   if (dismissed || doneCount === total) return null;
 
   return (
-    <div className="px-2 pb-2">
-      {/* Card — visually distinct from nav, gradient border */}
-      <div className="rounded-xl overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.04) 100%)", border: "1px solid rgba(239,68,68,0.18)" }}>
-
-        {/* Header row */}
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="flex w-full items-center gap-2.5 px-3 pt-3 pb-2.5"
-        >
-          {/* Ring */}
-          <div className="relative shrink-0 h-7 w-7">
-            <svg viewBox="0 0 28 28" className="h-7 w-7 -rotate-90">
-              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(239,68,68,0.15)" strokeWidth="2.5"/>
-              <circle cx="14" cy="14" r="11" fill="none" stroke="#ef4444" strokeWidth="2.5"
-                strokeDasharray={`${2 * Math.PI * 11}`}
-                strokeDashoffset={`${2 * Math.PI * 11 * (1 - pct / 100)}`}
-                strokeLinecap="round"
-                style={{ transition: "stroke-dashoffset 0.5s ease" }}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-red-400">{doneCount}</span>
-          </div>
-
-          <div className="flex-1 text-left min-w-0">
-            <div className="text-[12px] font-semibold text-white/90">Getting started</div>
-            <div className="text-[10px] text-white/30">{doneCount} of {total} steps done</div>
-          </div>
-          <ChevronDown size={11} className={`text-white/20 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
-        </button>
-
-        {/* Progress bar */}
-        <div className="mx-3 mb-2.5 h-[3px] rounded-full bg-white/[.06] overflow-hidden">
-          <div className="h-full rounded-full bg-red-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
-        </div>
-
-        {/* Checklist */}
-        {open && (
-          <>
-            <div className="px-2 pb-1 space-y-px">
+    <div className="relative shrink-0 px-2 pb-2">
+      {/* Expanded checklist — floats upward as an overlay, zero layout impact */}
+      {open && (
+        <>
+          {/* Click-outside backdrop */}
+          <div className="fixed inset-0 z-[190]" onClick={() => setOpen(false)}/>
+          <div
+            className="absolute bottom-full left-0 right-0 z-[200] mb-1.5 mx-0 rounded-xl overflow-hidden shadow-[0_-8px_40px_rgba(0,0,0,0.7)]"
+            style={{ background: "#111318", border: "1px solid rgba(239,68,68,0.18)" }}
+          >
+            <div className="px-2 py-1.5 max-h-[360px] overflow-y-auto sidebar-scroll space-y-px">
               {CHECKLIST.map(item => {
                 const checked = done.has(item.id);
                 const hovered = hoverId === item.id;
@@ -212,11 +184,11 @@ function GettingStarted() {
                     onMouseEnter={() => setHoverId(item.id)}
                     onMouseLeave={() => setHoverId(null)}
                   >
-                    <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.04]" : ""}`}>
+                    <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.05]" : ""}`}>
                       <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-white/20"}`}>
                         {checked && <Check size={7} className="text-white" strokeWidth={3.5}/>}
                       </div>
-                      <Link to={item.to} className="flex-1 min-w-0">
+                      <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
                         <span className={`text-[11px] leading-tight ${checked ? "line-through text-white/20" : "text-white/60"}`}>
                           {item.label}
                         </span>
@@ -225,7 +197,7 @@ function GettingStarted() {
 
                     {/* Tooltip */}
                     {hovered && !checked && (
-                      <div className="absolute left-full top-0 z-[200] ml-2.5 w-56 pointer-events-none">
+                      <div className="absolute left-full top-0 z-[210] ml-2.5 w-56 pointer-events-none">
                         <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-red-500/20 bg-[#1a1118]"/>
                         <div className="rounded-xl border border-red-500/20 bg-[#1a1118] px-3 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
                           <div className="text-[12px] font-semibold text-white mb-1.5">{item.label}</div>
@@ -240,19 +212,46 @@ function GettingStarted() {
                 );
               })}
             </div>
-
-            {/* Dismiss row */}
-            <div className="border-t border-white/[.06] mx-0 px-3 py-2 flex items-center justify-between">
-              <span className="text-[10px] text-white/20">Auto-detected from your workspace</span>
-              <button
-                onClick={dismiss}
-                className="text-[10px] font-semibold text-white/30 hover:text-red-400 transition-colors"
-              >
+            <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between">
+              <span className="text-[10px] text-white/20">Auto-detected · updates live</span>
+              <button onClick={dismiss} className="text-[10px] font-semibold text-white/30 hover:text-red-400 transition-colors">
                 Mark all done
               </button>
             </div>
-          </>
-        )}
+          </div>
+        </>
+      )}
+
+      {/* Card trigger — always fixed, never moves */}
+      <div
+        className="rounded-xl cursor-pointer"
+        style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.10) 0%, rgba(239,68,68,0.03) 100%)", border: "1px solid rgba(239,68,68,0.16)" }}
+        onClick={() => setOpen(o => !o)}
+      >
+        <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-2">
+          {/* Ring */}
+          <div className="relative shrink-0 h-7 w-7">
+            <svg viewBox="0 0 28 28" className="h-7 w-7 -rotate-90">
+              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(239,68,68,0.15)" strokeWidth="2.5"/>
+              <circle cx="14" cy="14" r="11" fill="none" stroke="#ef4444" strokeWidth="2.5"
+                strokeDasharray={`${2 * Math.PI * 11}`}
+                strokeDashoffset={`${2 * Math.PI * 11 * (1 - pct / 100)}`}
+                strokeLinecap="round"
+                style={{ transition: "stroke-dashoffset 0.5s ease" }}
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-red-400">{doneCount}</span>
+          </div>
+          <div className="flex-1 text-left min-w-0">
+            <div className="text-[12px] font-semibold text-white/80">Getting started</div>
+            <div className="text-[10px] text-white/25">{doneCount} of {total} done</div>
+          </div>
+          <ChevronDown size={11} className={`text-white/20 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
+        </div>
+        {/* Progress bar */}
+        <div className="mx-3 mb-2.5 h-[3px] rounded-full bg-white/[.06] overflow-hidden">
+          <div className="h-full rounded-full bg-red-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
+        </div>
       </div>
     </div>
   );
@@ -445,12 +444,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <SidebarObjects />
               <SidebarLists />
               <SidebarAsk />
-              <div className="mt-3">
-                <GettingStarted />
-              </div>
             </>
           )}
         </nav>
+
+        {/* Getting started — frozen above bottom bar, expands upward as overlay */}
+        {!collapsed && <GettingStarted />}
 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-white/[.05] p-2">
