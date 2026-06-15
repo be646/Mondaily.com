@@ -1,9 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone,
-  Settings, Zap, ChevronLeft, ChevronRight, LogOut, Users,
+  Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp,
-  GitBranch, Activity, Layers,
+  GitBranch, Activity, Layers, Check,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
@@ -48,6 +48,92 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Elem
     ],
   },
 ];
+
+// ─── Getting Started checklist ────────────────────────────────────────────────
+const CHECKLIST = [
+  { id: "workspace",  label: "Create your workspace",   hint: "Name and logo are set",                    to: "/settings/workspace" },
+  { id: "contact",    label: "Add your first contact",  hint: "Add a person or company",                  to: "/objects/people" },
+  { id: "email",      label: "Connect your email",      hint: "Sync inbox and send from the CRM",         to: "/settings/email" },
+  { id: "import",     label: "Import your contacts",    hint: "Bulk upload via CSV",                      to: "/objects/people" },
+  { id: "deal",       label: "Create your first deal",  hint: "Start your pipeline",                      to: "/pipeline" },
+  { id: "member",     label: "Invite a team member",    hint: "Bring your team into the workspace",       to: "/settings/members" },
+  { id: "ai",         label: "Try Ask Mondaily",        hint: "Run your first AI query",                  to: "/ask/new" },
+];
+
+function GettingStarted() {
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("gs_done") || "[]")); } catch { return new Set(["workspace"]); }
+  });
+
+  function toggle(id: string) {
+    setDone(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem("gs_done", JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  const doneCount = done.size;
+  const total = CHECKLIST.length;
+  const pct = Math.round((doneCount / total) * 100);
+  const allDone = doneCount === total;
+
+  if (allDone) return null;
+
+  return (
+    <div className="border-t border-white/[.05]">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 hover:bg-white/[.03] transition-colors"
+      >
+        {/* Ring progress */}
+        <div className="relative shrink-0 h-6 w-6">
+          <svg viewBox="0 0 24 24" className="h-6 w-6 -rotate-90">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5"/>
+            <circle
+              cx="12" cy="12" r="9" fill="none"
+              stroke="#ef4444" strokeWidth="2.5"
+              strokeDasharray={`${2 * Math.PI * 9}`}
+              strokeDashoffset={`${2 * Math.PI * 9 * (1 - pct / 100)}`}
+              strokeLinecap="round"
+              style={{ transition: "stroke-dashoffset 0.4s ease" }}
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-slate-400">{doneCount}</span>
+        </div>
+        <div className="flex-1 text-left min-w-0">
+          <div className="text-[12px] font-medium text-slate-300">Getting started</div>
+          <div className="text-[10px] text-slate-600">{doneCount} of {total} complete</div>
+        </div>
+        <ChevronDown size={11} className={`text-slate-700 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
+      </button>
+
+      {open && (
+        <div className="px-2 pb-2 space-y-0.5">
+          {CHECKLIST.map(item => {
+            const checked = done.has(item.id);
+            return (
+              <div key={item.id} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 group transition-colors ${checked ? "opacity-40" : "hover:bg-white/[.03]"}`}>
+                <button
+                  onClick={() => toggle(item.id)}
+                  className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-slate-700 hover:border-red-400"}`}
+                >
+                  {checked && <Check size={8} className="text-white" strokeWidth={3}/>}
+                </button>
+                <Link to={item.to} className="flex-1 min-w-0">
+                  <div className={`text-[12px] leading-tight ${checked ? "line-through text-slate-600" : "text-slate-300"}`}>{item.label}</div>
+                  {!checked && <div className="text-[10px] text-slate-700 mt-0.5">{item.hint}</div>}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 function Logo({ size = 24 }: { size?: number }) {
@@ -239,6 +325,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </>
           )}
         </nav>
+
+        {/* Getting started checklist — shown above bottom bar when not collapsed */}
+        {!collapsed && <GettingStarted />}
 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-white/[.05] p-2">
