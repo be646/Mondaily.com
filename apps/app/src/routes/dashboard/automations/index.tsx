@@ -158,11 +158,14 @@ export function AutomationsPage() {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
 
-  const query = useQuery({
-    queryKey: ["automations"],
-    queryFn: () => apiClient.get<Automation[]>("/automations"),
+  const seqQuery = useQuery({
+    queryKey: ["automations", "sequences"],
+    queryFn: async () => {
+      const nodes = await apiClient.get<{ id: string; data: Record<string, unknown> }[]>("/nodes?object_type=automation&vertical=shared");
+      return nodes.map(n => ({ id: n.id, ...n.data })) as Automation[];
+    },
   });
-  const items = query.data ?? [];
+  const items = seqQuery.data ?? [];
   const sequences = items.filter(i => (i as any).type === "sequence" || !(i as any).type);
   const workflows  = items.filter(i => (i as any).type === "workflow");
 
@@ -188,7 +191,7 @@ export function AutomationsPage() {
   const deleteItem = useMutation({
     mutationFn: ({ id, type }: { id: string; type: "sequence"|"workflow" }) =>
       type === "workflow" ? apiClient.delete(`/workflows/${id}`) : apiClient.delete(`/sequences/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["automations"] }); setMenuOpen(null); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["automations", "sequences"] }); setMenuOpen(null); },
   });
 
   const duplicateItem = useMutation({
@@ -210,7 +213,7 @@ export function AutomationsPage() {
       });
     },
     onSuccess: (res, { type }) => {
-      qc.invalidateQueries({ queryKey: ["automations"] });
+      qc.invalidateQueries({ queryKey: ["automations", "sequences"] });
       setMenuOpen(null);
       navigate(type === "workflow" ? `/automations/workflows/${res.id}` : `/automations/sequences/${res.id}`);
     },
@@ -339,7 +342,7 @@ export function AutomationsPage() {
         </button>
       </div>
 
-      {query.isLoading ? (
+      {seqQuery.isLoading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-500/30 border-t-red-500"/>
         </div>
