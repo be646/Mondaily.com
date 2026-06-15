@@ -4,7 +4,7 @@ import { verifyToken } from "@clerk/backend";
 import { supabase } from "@mondaily/db/client";
 
 export const requireAuth = createMiddleware<{
-  Variables: { userId: string; workspaceId: string; role: string };
+  Variables: { userId: string; workspaceId: string; role: string; financeRole: string };
 }>(async (c, next) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
   const workspaceId = c.req.header("X-Workspace-Id");
@@ -29,7 +29,7 @@ export const requireAuth = createMiddleware<{
 
   const { data: membership, error: dbError } = await supabase
     .from("workspace_members")
-    .select("role")
+    .select("role, finance_role")
     .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -40,13 +40,14 @@ export const requireAuth = createMiddleware<{
   c.set("userId", userId);
   c.set("workspaceId", workspaceId);
   c.set("role", membership.role);
+  c.set("financeRole", (membership as Record<string, unknown>).finance_role as string ?? "none");
   await next();
 });
 
 // JWT-only auth — verifies token but does NOT check workspace membership.
 // Use for onboarding endpoints where the user may not have a workspace yet.
 export const requireJwt = createMiddleware<{
-  Variables: { userId: string; workspaceId: string; role: string };
+  Variables: { userId: string; workspaceId: string; role: string; financeRole: string };
 }>(async (c, next) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
   if (!token) throw new HTTPException(401, { message: "Unauthorized" });
@@ -62,6 +63,7 @@ export const requireJwt = createMiddleware<{
     c.set("userId", userId);
     c.set("workspaceId", c.req.header("X-Workspace-Id") ?? "");
     c.set("role", "member");
+    c.set("financeRole", "none");
   } catch (e) {
     if (e instanceof HTTPException) throw e;
     const msg = e instanceof Error ? e.message : String(e);
@@ -72,7 +74,7 @@ export const requireJwt = createMiddleware<{
 
 // Use on routes where only admins/owners can act
 export const requireAdmin = createMiddleware<{
-  Variables: { userId: string; workspaceId: string; role: string };
+  Variables: { userId: string; workspaceId: string; role: string; financeRole: string };
 }>(async (c, next) => {
   const role = c.get("role");
   if (!["owner", "admin"].includes(role)) {

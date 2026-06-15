@@ -6,26 +6,31 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 
-type Variables = { userId: string; workspaceId: string; role: string };
+type Variables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
 
 // ─── State machine ────────────────────────────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft:            ["pending_review", "void"],
-  pending_review:   ["manager_approved", "void"],
-  manager_approved: ["executed", "void"],
-  executed:         [],
-  void:             [],
+  draft:          ["pending_review", "void"],
+  pending_review: ["verified", "rejected", "void"],
+  verified:       ["executed", "rejected", "void"],
+  rejected:       ["pending_review", "void"],
+  executed:       [],
+  void:           [],
 };
 
-const ADMIN_ONLY_TRANSITIONS = new Set(["manager_approved", "executed", "void"]);
+// Stage 2: pending_review → verified needs reviewer+
+const REVIEWER_TRANSITIONS = new Set(["verified"]);
+// Stage 3+: needs approver or admin/owner
+const APPROVER_TRANSITIONS = new Set(["executed", "void"]);
 
 const creditNoteSchema = z.object({
   amount_cents:  z.number().int().positive(),
   currency:      z.string().default("GBP"),
   credit_reason: z.enum(["refund", "billing_error", "goodwill", "contract_discount"]),
-  status:        z.enum(["draft", "pending_review", "manager_approved", "executed", "void"]).default("draft"),
+  status:        z.enum(["draft", "pending_review", "verified", "rejected", "executed", "void"]).default("draft"),
+  note:          z.string().optional(),
   invoice_id:    z.string().uuid().optional(),
   reviewer_id:   z.string().optional(),
   ai_summary:    z.string().optional(),
@@ -47,6 +52,25 @@ async function notifyAdmins(workspaceId: string, title: string, body: string) {
     admins.map(a => ({
       workspace_id: workspaceId,
       user_id: a.user_id,
+      title,
+      body,
+      type: "credit_note",
+      is_read: false,
+    }))
+  );
+}
+
+async function notifyReviewers(workspaceId: string, title: string, body: string) {
+  const { data: reviewers } = await supabase
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", workspaceId)
+    .in("finance_role" as never, ["reviewer", "approver"]);
+  if (!reviewers?.length) return;
+  await supabase.from("notifications").insert(
+    reviewers.map((r) => ({
+      workspace_id: workspaceId,
+      user_id: r.user_id,
       title,
       body,
       type: "credit_note",
@@ -203,7 +227,10 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
   const node = await getCreditNote(workspaceId, c.req.param("id"));
   const current = node.data as Record<string, unknown>;
   const body = c.req.valid("json");
-  const role = c.get("role");
+  const wsRole = c.get("role");
+  const financeRole = c.get("financeRole") as string;
+
+  let updatedData: Record<string, unknown> = { ...current, ...body };
 
   // State machine enforcement
   if (body.status && body.status !== current.status) {
@@ -211,12 +238,29 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
     if (!allowed.includes(body.status)) {
       return c.json({ error: `Cannot transition from '${current.status}' to '${body.status}'` }, 422);
     }
-    if (ADMIN_ONLY_TRANSITIONS.has(body.status) && !["admin", "owner"].includes(role)) {
-      throw new HTTPException(403, { message: "Only admins or owners can perform this transition." });
+
+    const isAdminOrOwner = ["admin", "owner"].includes(wsRole);
+    const isApprover = isAdminOrOwner || financeRole === "approver";
+    const isReviewer = isApprover || financeRole === "reviewer";
+
+    if (APPROVER_TRANSITIONS.has(body.status) && !isApprover) {
+      return c.json({ error: "Only finance approvers or admins can perform this action." }, 403);
     }
+    if (REVIEWER_TRANSITIONS.has(body.status) && !isReviewer) {
+      return c.json({ error: "Only finance reviewers or above can perform this action." }, 403);
+    }
+
+    // Append approval audit entry
+    const approvalEntry = {
+      user_id: c.get("userId"),
+      action: body.status,
+      note: (body as Record<string, unknown>).note as string | undefined ?? null,
+      at: new Date().toISOString(),
+    };
+    const existingApprovals = Array.isArray(current.approvals) ? current.approvals as unknown[] : [];
+    updatedData = { ...current, ...body, approvals: [...existingApprovals, approvalEntry] };
   }
 
-  const updatedData = { ...current, ...body };
   const { data, error } = await supabase
     .from("nodes")
     .update({ data: updatedData, updated_at: new Date().toISOString() })
@@ -233,6 +277,24 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
   }
   if (body.status === "pending_review") {
     await notifyAdmins(workspaceId, "Credit note pending review", `A credit note has been submitted for your approval.`);
+    await notifyReviewers(workspaceId, "Credit note pending review", `A credit note requires reviewer sign-off.`);
+  }
+  if (body.status === "verified") {
+    await notifyAdmins(workspaceId, "Credit note verified", `A credit note has been verified and is awaiting final execution.`);
+  }
+  if (body.status === "rejected") {
+    // Notify the creator
+    const creatorId = node.created_by;
+    if (creatorId) {
+      await supabase.from("notifications").insert({
+        workspace_id: workspaceId,
+        user_id: creatorId,
+        title: "Credit note rejected",
+        body: `Your credit note has been rejected.`,
+        type: "credit_note",
+        is_read: false,
+      });
+    }
   }
 
   return c.json({ id: data.id, ...(data.data as object), updated_at: data.updated_at });

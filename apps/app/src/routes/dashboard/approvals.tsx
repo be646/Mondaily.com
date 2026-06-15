@@ -4,11 +4,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import {
   ShieldCheck, Clock, CheckCircle2, XCircle, Sparkles,
-  ReceiptText, ChevronRight, AlertTriangle,
+  ReceiptText, ChevronRight, AlertTriangle, UserCircle2,
 } from "lucide-react";
 
-type CreditStatus = "draft" | "pending_review" | "manager_approved" | "executed" | "void";
+type CreditStatus = "draft" | "pending_review" | "verified" | "rejected" | "executed" | "void";
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
+
+interface ApprovalEntry {
+  user_id: string;
+  action: string;
+  note: string | null;
+  at: string;
+}
 
 interface CreditNote {
   id: string;
@@ -19,8 +26,10 @@ interface CreditNote {
   client_name?: string;
   ai_summary?: string;
   notes?: string;
+  approvals?: ApprovalEntry[];
   created_at: string;
   updated_at: string;
+  created_by?: string;
 }
 
 const REASON_LABELS: Record<CreditReason, string> = {
@@ -41,15 +50,47 @@ function relativeTime(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 }
 
-function CreditNoteCard({ cn, onTransition, busy }: {
+function ApprovalTrail({ approvals }: { approvals?: ApprovalEntry[] }) {
+  if (!approvals?.length) return null;
+  return (
+    <div className="mb-3 space-y-1.5">
+      {approvals.map((entry, i) => (
+        <div key={i} className="flex items-start gap-2 text-[11px] text-zinc-500">
+          <UserCircle2 size={12} className="mt-0.5 shrink-0 text-zinc-600" />
+          <span>
+            <span className="text-zinc-400">{entry.user_id.slice(0, 8)}</span>
+            {" "}
+            <span className={
+              entry.action === "verified" ? "text-blue-400" :
+              entry.action === "executed" ? "text-emerald-400" :
+              entry.action === "rejected" ? "text-red-400" :
+              "text-zinc-500"
+            }>{entry.action}</span>
+            {" · "}{relativeTime(entry.at)}
+            {entry.note && <span className="block pl-3.5 text-zinc-600 italic">"{entry.note}"</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type TabKey = "pending_review" | "verified" | "rejected";
+
+function CreditNoteCard({ cn, tab, onTransition, busy }: {
   cn: CreditNote;
-  onTransition: (id: string, status: CreditStatus) => void;
+  tab: TabKey;
+  onTransition: (id: string, status: CreditStatus, note?: string) => void;
   busy: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
 
-  const isPending  = cn.status === "pending_review";
-  const isApproved = cn.status === "manager_approved";
+  function doTransition(status: CreditStatus, note?: string) {
+    setError(null);
+    onTransition(cn.id, status, note);
+  }
 
   return (
     <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 hover:border-white/[.09] transition-colors">
@@ -64,14 +105,19 @@ function CreditNoteCard({ cn, onTransition, busy }: {
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          {isPending && (
+          {cn.status === "pending_review" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 text-[10px] font-medium text-amber-400">
-              <Clock size={9}/> Pending
+              <Clock size={9}/> Needs Review
             </span>
           )}
-          {isApproved && (
+          {cn.status === "verified" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-400/10 border border-blue-400/20 px-2.5 py-0.5 text-[10px] font-medium text-blue-400">
-              <CheckCircle2 size={9}/> Approved
+              <CheckCircle2 size={9}/> Verified
+            </span>
+          )}
+          {cn.status === "rejected" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-400/10 border border-red-400/20 px-2.5 py-0.5 text-[10px] font-medium text-red-400">
+              <XCircle size={9}/> Rejected
             </span>
           )}
           <span className="text-[10px] text-zinc-700">{relativeTime(cn.created_at)}</span>
@@ -88,44 +134,81 @@ function CreditNoteCard({ cn, onTransition, busy }: {
         <p className="text-[11px] text-zinc-500 mb-3 leading-relaxed line-clamp-2">{cn.notes}</p>
       )}
 
+      <ApprovalTrail approvals={cn.approvals} />
+
       {error && (
         <div className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/[.05] px-3 py-2 text-[11px] text-red-400 mb-3">
           <AlertTriangle size={10} className="shrink-0"/>{error}
         </div>
       )}
 
+      {rejectOpen && (
+        <div className="mb-3">
+          <textarea
+            value={rejectNote}
+            onChange={e => setRejectNote(e.target.value)}
+            placeholder="Reason for rejection (optional)"
+            rows={2}
+            className="key-input w-full resize-none px-3 py-2 text-[12px]"
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => { doTransition("rejected", rejectNote || undefined); setRejectOpen(false); }}
+              disabled={busy}
+              className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[12px] text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40">
+              Confirm Reject
+            </button>
+            <button onClick={() => setRejectOpen(false)} className="rounded-lg border border-white/[.06] px-3 py-1.5 text-[12px] text-zinc-500 hover:text-zinc-300 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
-        {isPending && (
+        {tab === "pending_review" && (
           <>
             <button
-              onClick={() => { setError(null); onTransition(cn.id, "manager_approved"); }}
+              onClick={() => doTransition("verified")}
               disabled={busy}
               className="flex-1 rounded-lg border border-blue-400/20 bg-blue-400/10 px-3 py-2 text-[12px] font-medium text-blue-300 hover:bg-blue-400/20 transition-colors disabled:opacity-40">
-              {busy ? "Processing…" : "Approve"}
+              {busy ? "Processing…" : "Approve → Verified"}
             </button>
-            <button
-              onClick={() => { setError(null); onTransition(cn.id, "void"); }}
-              disabled={busy}
-              className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2 text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[.04] transition-colors disabled:opacity-40">
-              Void
-            </button>
+            {!rejectOpen && (
+              <button
+                onClick={() => setRejectOpen(true)}
+                disabled={busy}
+                className="rounded-lg border border-red-500/20 bg-red-500/[.05] px-3 py-2 text-[12px] text-red-400 hover:bg-red-500/[.1] transition-colors disabled:opacity-40">
+                Reject
+              </button>
+            )}
           </>
         )}
-        {isApproved && (
+        {tab === "verified" && (
           <>
             <button
-              onClick={() => { setError(null); onTransition(cn.id, "executed"); }}
+              onClick={() => doTransition("executed")}
               disabled={busy}
               className="flex-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-[12px] font-medium text-emerald-300 hover:bg-emerald-400/20 transition-colors disabled:opacity-40">
               {busy ? "Processing…" : "Execute credit"}
             </button>
-            <button
-              onClick={() => { setError(null); onTransition(cn.id, "void"); }}
-              disabled={busy}
-              className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2 text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[.04] transition-colors disabled:opacity-40">
-              Void
-            </button>
+            {!rejectOpen && (
+              <button
+                onClick={() => setRejectOpen(true)}
+                disabled={busy}
+                className="rounded-lg border border-red-500/20 bg-red-500/[.05] px-3 py-2 text-[12px] text-red-400 hover:bg-red-500/[.1] transition-colors disabled:opacity-40">
+                Reject
+              </button>
+            )}
           </>
+        )}
+        {tab === "rejected" && (
+          <button
+            onClick={() => doTransition("pending_review")}
+            disabled={busy}
+            className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2 text-[12px] text-zinc-400 hover:text-zinc-200 hover:bg-white/[.04] transition-colors disabled:opacity-40">
+            {busy ? "Processing…" : "Resubmit"}
+          </button>
         )}
         <Link to={`/finance/credit-notes/${cn.id}`}
           className="ml-auto flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-300 transition-colors">
@@ -136,10 +219,16 @@ function CreditNoteCard({ cn, onTransition, busy }: {
   );
 }
 
+const TABS: { key: TabKey; label: string; desc: string }[] = [
+  { key: "pending_review", label: "Needs Review",   desc: "Awaiting reviewer sign-off" },
+  { key: "verified",       label: "Needs Approval", desc: "Awaiting final execution" },
+  { key: "rejected",       label: "Rejected",       desc: "Bounced back for revision" },
+];
+
 export function ApprovalsPage() {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"pending" | "approved">("pending");
+  const [tab, setTab] = useState<TabKey>("pending_review");
 
   const { data: allNotes = [], isLoading } = useQuery<CreditNote[]>({
     queryKey: ["approvals"],
@@ -148,12 +237,13 @@ export function ApprovalsPage() {
   });
 
   const pending  = allNotes.filter(n => n.status === "pending_review");
-  const approved = allNotes.filter(n => n.status === "manager_approved");
+  const verified = allNotes.filter(n => n.status === "verified");
+  const rejected = allNotes.filter(n => n.status === "rejected");
   const executed = allNotes.filter(n => n.status === "executed");
 
   const transitionMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: CreditStatus }) =>
-      apiClient.patch<CreditNote>(`/credit-notes/${id}`, { status }),
+    mutationFn: ({ id, status, note }: { id: string; status: CreditStatus; note?: string }) =>
+      apiClient.patch<CreditNote>(`/credit-notes/${id}`, { status, ...(note ? { note } : {}) }),
     onMutate: ({ id }) => setBusyId(id),
     onSettled: () => setBusyId(null),
     onSuccess: () => {
@@ -163,10 +253,10 @@ export function ApprovalsPage() {
     },
   });
 
-  const shown = tab === "pending" ? pending : approved;
+  const shown = tab === "pending_review" ? pending : tab === "verified" ? verified : rejected;
   const currency = allNotes[0]?.currency ?? "GBP";
   const totalPending  = pending.reduce((s, n) => s + n.amount_cents, 0);
-  const totalApproved = approved.reduce((s, n) => s + n.amount_cents, 0);
+  const totalVerified = verified.reduce((s, n) => s + n.amount_cents, 0);
   const totalExecuted = executed.reduce((s, n) => s + n.amount_cents, 0);
 
   return (
@@ -186,14 +276,14 @@ export function ApprovalsPage() {
         {/* Summary row */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-zinc-500">Awaiting approval</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-zinc-500">Needs review</span></div>
             <div className="text-[17px] font-semibold text-amber-400">{fmt(totalPending, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
           <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Approved, not executed</span></div>
-            <div className="text-[17px] font-semibold text-blue-400">{fmt(totalApproved, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{approved.length} note{approved.length !== 1 ? "s" : ""}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Verified, not executed</span></div>
+            <div className="text-[17px] font-semibold text-blue-400">{fmt(totalVerified, currency)}</div>
+            <div className="text-[10px] text-zinc-700 mt-0.5">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Executed this period</span></div>
@@ -204,25 +294,31 @@ export function ApprovalsPage() {
 
         {/* Tab strip */}
         <div className="flex items-center gap-1 border-b border-white/[.04] -mb-4">
-          {([["pending", `Pending (${pending.length})`], ["approved", `Approved (${approved.length})`]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}>
-              {label}
-              {tab === key && <span className="absolute bottom-0 left-0 right-0 h-px bg-red-500"/>}
-            </button>
-          ))}
+          {TABS.map(({ key, label }) => {
+            const count = key === "pending_review" ? pending.length : key === "verified" ? verified.length : rejected.length;
+            return (
+              <button key={key} onClick={() => setTab(key)}
+                className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+                {label} ({count})
+                {tab === key && <span className="absolute bottom-0 left-0 right-0 h-px bg-red-500"/>}
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* Tab description */}
+      <div className="px-6 pt-3 pb-1 shrink-0">
+        <p className="text-[11px] text-zinc-600">{TABS.find(t => t.key === tab)?.desc}</p>
+      </div>
+
       {/* Cards */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6 pt-3">
         {isLoading && <div className="flex h-40 items-center justify-center text-[12px] text-zinc-600">Loading…</div>}
         {!isLoading && shown.length === 0 && (
           <div className="flex h-56 flex-col items-center justify-center gap-3">
-            {tab === "pending"
-              ? <><Clock size={32} className="text-zinc-700"/><div className="text-[13px] text-zinc-500">No credit notes pending approval</div></>
-              : <><CheckCircle2 size={32} className="text-zinc-700"/><div className="text-[13px] text-zinc-500">No approved credit notes awaiting execution</div></>
-            }
+            <Clock size={32} className="text-zinc-700"/>
+            <div className="text-[13px] text-zinc-500">Nothing in this queue</div>
             <Link to="/finance/credit-notes" className="text-[12px] text-red-400 hover:text-red-300 transition-colors">View all credit notes →</Link>
           </div>
         )}
@@ -231,8 +327,9 @@ export function ApprovalsPage() {
             <CreditNoteCard
               key={cn.id}
               cn={cn}
+              tab={tab}
               busy={busyId === cn.id}
-              onTransition={(id, status) => transitionMutation.mutate({ id, status })}
+              onTransition={(id, status, note) => transitionMutation.mutate({ id, status, note })}
             />
           ))}
         </div>

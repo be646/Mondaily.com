@@ -4,7 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 
-type AppVariables = { userId: string; workspaceId: string; role: string };
+type AppVariables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: AppVariables }>();
 router.use("*", requireAuth);
 
@@ -488,4 +488,36 @@ router.post("/invites", async (c) => {
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c.get("workspaceId"), vertical: "shared", object_type: "workspace_invitation", data: invitation, created_by: c.get("userId") }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json({ id: data.id, ...invitation }, 201);
 });
+// ─── Finance role: list members with finance_role ─────────────────────────────
+router.get("/workspace/members", async (c) => {
+  const { data, error } = await supabase
+    .from("workspace_members")
+    .select("user_id, role, finance_role")
+    .eq("workspace_id", c.get("workspaceId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(
+    (data ?? []).map((m) => ({
+      user_id: m.user_id,
+      role: m.role,
+      finance_role: (m as Record<string, unknown>).finance_role ?? "none",
+    }))
+  );
+});
+
+// ─── Finance role: set for a member (admin/owner only) ────────────────────────
+router.patch("/workspace/members/:userId/finance-role", async (c) => {
+  const role = c.get("role");
+  if (!["admin", "owner"].includes(role)) return c.json({ error: "Forbidden" }, 403);
+  const { finance_role } = await c.req.json<{ finance_role: string }>();
+  const valid = ["none", "viewer", "member", "reviewer", "approver"];
+  if (!valid.includes(finance_role)) return c.json({ error: "Invalid finance_role" }, 422);
+  const { error } = await supabase
+    .from("workspace_members")
+    .update({ finance_role } as Record<string, unknown>)
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("user_id", c.req.param("userId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+
 export { router as appDataRouter };

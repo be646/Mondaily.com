@@ -16,3 +16,26 @@ export function useModules() {
     modules,
   };
 }
+
+export interface WorkspaceMember {
+  user_id: string;
+  role: string;
+  finance_role: string;
+}
+
+export function useWorkspaceMembers() {
+  return useQuery<WorkspaceMember[]>({
+    queryKey: ["workspace-members"],
+    queryFn: () => apiClient.get<WorkspaceMember[]>("/workspace/members"),
+    staleTime: 60_000,
+  });
+}
+
+export function useFinanceRole(currentUserId?: string) {
+  const { data: members = [] } = useWorkspaceMembers();
+  const me = members.find((m) => m.user_id === currentUserId);
+  if (!me) return "none";
+  // admin/owner automatically acts as approver
+  if (["admin", "owner"].includes(me.role)) return "approver";
+  return me.finance_role ?? "none";
+}

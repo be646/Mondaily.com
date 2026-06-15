@@ -4,6 +4,7 @@ import { Check, Download, ImagePlus, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { useWorkspaceMembers, type WorkspaceMember } from "../../../hooks/useModules";
 
 interface WorkspaceData {
   name: string;
@@ -26,6 +27,90 @@ const timezones = [
   "Asia/Dubai", "Asia/Singapore", "Asia/Tokyo", "Australia/Sydney",
 ];
 const currencies = ["USD", "GBP", "EUR", "CAD", "AUD", "PLN", "AED", "SGD", "JPY"];
+
+const FINANCE_ROLE_OPTIONS: { value: WorkspaceMember["finance_role"]; label: string }[] = [
+  { value: "none",     label: "None" },
+  { value: "viewer",   label: "Viewer" },
+  { value: "member",   label: "Member" },
+  { value: "reviewer", label: "Reviewer" },
+  { value: "approver", label: "Approver" },
+];
+
+function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
+  const qc = useQueryClient();
+  const { data: members = [], isLoading } = useWorkspaceMembers();
+  const [saving, setSaving] = useState<string | null>(null);
+
+  async function setFinanceRole(userId: string, finance_role: string) {
+    setSaving(userId);
+    try {
+      await apiClient.patch(`/workspace/members/${userId}/finance-role`, { finance_role });
+      qc.invalidateQueries({ queryKey: ["workspace-members"] });
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (!hasFinance) return null;
+
+  return (
+    <section className="settings-section">
+      <div className="settings-section-header">
+        <h2 className="text-sm font-semibold text-white">Finance Access</h2>
+        <p className="text-xs text-slate-600 mt-0.5">Control each member's access to Finance &amp; Billing features.</p>
+      </div>
+      <div className="p-5">
+        {isLoading && <div className="text-xs text-zinc-600 py-4">Loading members…</div>}
+        {!isLoading && (
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-white/[.04]">
+                <th className="pb-2 text-left text-[11px] font-medium uppercase tracking-wide text-zinc-600">Member</th>
+                <th className="pb-2 text-left text-[11px] font-medium uppercase tracking-wide text-zinc-600">Workspace Role</th>
+                <th className="pb-2 text-left text-[11px] font-medium uppercase tracking-wide text-zinc-600">Finance Role</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[.03]">
+              {members.map((m) => (
+                <tr key={m.user_id} className="hover:bg-white/[.01]">
+                  <td className="py-2.5 pr-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-full bg-white/[.06] flex items-center justify-center text-[11px] font-semibold text-zinc-400">
+                        {m.user_id.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="text-zinc-300 font-mono text-[11px]">{m.user_id.slice(0, 12)}…</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 pr-4">
+                    <span className="inline-flex items-center rounded-full bg-white/[.05] border border-white/[.06] px-2 py-0.5 text-[11px] text-zinc-400 capitalize">
+                      {m.role}
+                    </span>
+                  </td>
+                  <td className="py-2.5">
+                    {["admin", "owner"].includes(m.role) ? (
+                      <span className="text-[11px] text-zinc-600 italic">auto (approver)</span>
+                    ) : (
+                      <select
+                        value={m.finance_role ?? "none"}
+                        disabled={saving === m.user_id}
+                        onChange={e => setFinanceRole(m.user_id, e.target.value)}
+                        className="key-input h-8 px-2 text-[12px] disabled:opacity-50"
+                      >
+                        {FINANCE_ROLE_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export function WorkspaceSettings() {
   const { organization } = useOrganization();
@@ -204,6 +289,9 @@ export function WorkspaceSettings() {
           </div>
         </div>
       </section>
+
+      {/* ── Finance Access ── */}
+      <FinanceAccessSection hasFinance={(form.modules ?? ["crm"]).includes("finance")} />
 
       {/* ── Danger zone ── */}
       <section className="settings-section border-red-500/[.15]">
