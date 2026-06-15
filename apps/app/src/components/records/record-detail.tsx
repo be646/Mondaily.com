@@ -12,6 +12,7 @@ import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
 import { TagPicker, TagBadges } from "./tag-picker";
+import { StagePill, DEFAULT_STAGE_OPTIONS, DEFAULT_STATUS_OPTIONS } from "./record-table";
 import { ActivityTimeline } from "./activity-timeline";
 import { LeadScoreBadge } from "./lead-score-badge";
 
@@ -1036,6 +1037,23 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   const leftFields = Object.entries(data).filter(([k]) =>
     !["name","categories","assigned_to","logo_url"].includes(k)
   );
+
+  // Custom column definitions from localStorage (same key the table uses)
+  const customCols: { key: string; type: string }[] = (() => {
+    try { return JSON.parse(localStorage.getItem(`mondaily_custom_cols_${objectType}`) ?? "[]"); } catch { return []; }
+  })();
+
+  function isStageKey(key: string) {
+    const l = key.toLowerCase();
+    return l.includes("stage") || l === "deal_status";
+  }
+  function isStatusKey(key: string) {
+    return key === "status";
+  }
+  function isOwnerKey(key: string) {
+    const l = key.toLowerCase();
+    return l.includes("owner") || l.includes("assign");
+  }
   const companyTabLabel = isCompany ? "People" : isPeople ? "Company" : "Related";
 
   return (
@@ -1133,9 +1151,59 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
           {/* Record details */}
           <div className="flex-1 overflow-auto px-4 py-3">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Record Details</p>
-            {leftFields.map(([key, val]) => (
-              <InlineField key={key} label={key.replace(/_/g, " ")} value={val} numeric={typeof val === "number"} onSave={v => save(key, v)}/>
-            ))}
+            {leftFields.map(([key, val]) => {
+              const customDef = customCols.find(c => c.key === key);
+              const customType = customDef?.type;
+
+              // Stage/status from custom column definitions
+              if (customType === "stage" || customType === "status") {
+                const defaults = customType === "stage" ? DEFAULT_STAGE_OPTIONS : DEFAULT_STATUS_OPTIONS;
+                const shown = String(val ?? "");
+                return (
+                  <div key={key} className="mb-3">
+                    <p className="mb-1 text-[10px] text-slate-600 capitalize">{key.replace(/_/g, " ")}</p>
+                    {shown
+                      ? <StagePill value={shown} options={defaults} onSelect={v => save(key, v)}/>
+                      : <button onClick={() => save(key, defaults[0]!)} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">— set {customType}</button>
+                    }
+                  </div>
+                );
+              }
+
+              // Stage/status detected by key name (built-in columns)
+              if (isStageKey(key)) {
+                const shown = String(val ?? "");
+                return (
+                  <div key={key} className="mb-3">
+                    <p className="mb-1 text-[10px] text-slate-600 capitalize">{key.replace(/_/g, " ")}</p>
+                    {shown
+                      ? <StagePill value={shown} options={DEFAULT_STAGE_OPTIONS} onSelect={v => save(key, v)}/>
+                      : <button onClick={() => save(key, DEFAULT_STAGE_OPTIONS[0]!)} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">— set stage</button>
+                    }
+                  </div>
+                );
+              }
+              if (isStatusKey(key)) {
+                const shown = String(val ?? "");
+                return (
+                  <div key={key} className="mb-3">
+                    <p className="mb-1 text-[10px] text-slate-600 capitalize">{key.replace(/_/g, " ")}</p>
+                    {shown
+                      ? <StagePill value={shown} options={DEFAULT_STATUS_OPTIONS} onSelect={v => save(key, v)}/>
+                      : <button onClick={() => save(key, DEFAULT_STATUS_OPTIONS[0]!)} className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors">— set status</button>
+                    }
+                  </div>
+                );
+              }
+
+              // Owner/assignee fields — plain editable for now (members picker not available here without query)
+              if (isOwnerKey(key) && customType !== "owner" && customType !== "assignee") {
+                return <InlineField key={key} label={key.replace(/_/g, " ")} value={val} onSave={v => save(key, v)}/>;
+              }
+
+              // Everything else
+              return <InlineField key={key} label={key.replace(/_/g, " ")} value={val} numeric={typeof val === "number"} onSave={v => save(key, v)}/>;
+            })}
             {leftFields.length === 0 && <p className="text-xs text-slate-600 py-2">No attributes</p>}
           </div>
         </aside>

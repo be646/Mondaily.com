@@ -411,19 +411,19 @@ const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
   "Churned":      { pill: "bg-rose-950/30 text-rose-400 border-rose-900/40",       dot: "bg-rose-400" },
 };
 
-const DEFAULT_STAGE_OPTIONS = [
+export const DEFAULT_STAGE_OPTIONS = [
   "Lead","Qualified","Proposal","Negotiation","Closed Won","Closed Lost","On Hold",
 ];
-const DEFAULT_STATUS_OPTIONS = [
+export const DEFAULT_STATUS_OPTIONS = [
   "Not Started","In Progress","Completed","On Hold","Cancelled",
 ];
 
-function stageStyle(value: string) {
+export function stageStyle(value: string) {
   return STAGE_STYLES[value] ?? { pill: "bg-slate-900/60 text-slate-400 border-slate-700/50", dot: "bg-slate-500" };
 }
 
 // Clickable stage pill — opens a dropdown to change the value inline
-function StagePill({ value, options, onSelect }: {
+export function StagePill({ value, options, onSelect }: {
   value: string;
   options?: string[];
   onSelect?: (v: string) => void;
@@ -1713,12 +1713,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Lead score badge
     if (col === "lead_score" && val != null) return <LeadScoreBadge score={Number(val)} size="sm"/>;
 
-    // Stage / Status pill
-    if ((col.toLowerCase().includes("stage") || col === "status" || col === "deal_status") && typeof val === "string") {
+    // Stage / Status pill — handles empty/null values too (no longer falls through to text box)
+    if (col.toLowerCase().includes("stage") || col === "status" || col === "deal_status") {
       const isStatusCol = col === "status" && !col.toLowerCase().includes("stage");
       const defaults = isStatusCol ? DEFAULT_STATUS_OPTIONS : DEFAULT_STAGE_OPTIONS;
       const existingOptions = [...new Set([...defaults, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
-      return <StagePill value={val} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
+      const shown = String(val ?? "");
+      if (!shown) return (
+        <button className="text-slate-700 text-xs hover:text-slate-400 transition-colors"
+          onClick={() => saveCell(record, col, defaults[0]!)}>
+          — set {isStatusCol ? "status" : "stage"}
+        </button>
+      );
+      return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
     }
 
     // Logo URL — render as image, skip base64
