@@ -51,17 +51,83 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Elem
 
 // ─── Getting Started checklist ────────────────────────────────────────────────
 const CHECKLIST = [
-  { id: "workspace",  label: "Create your workspace",   hint: "Name and logo are set",                    to: "/settings/workspace" },
-  { id: "contact",    label: "Add your first contact",  hint: "Add a person or company",                  to: "/objects/people" },
-  { id: "email",      label: "Connect your email",      hint: "Sync inbox and send from the CRM",         to: "/settings/email" },
-  { id: "import",     label: "Import your contacts",    hint: "Bulk upload via CSV",                      to: "/objects/people" },
-  { id: "deal",       label: "Create your first deal",  hint: "Start your pipeline",                      to: "/pipeline" },
-  { id: "member",     label: "Invite a team member",    hint: "Bring your team into the workspace",       to: "/settings/members" },
-  { id: "ai",         label: "Try Ask Mondaily",        hint: "Run your first AI query",                  to: "/ask/new" },
+  {
+    id: "workspace",
+    label: "Create your workspace",
+    hint: "Set your workspace name and logo so your team knows they're in the right place.",
+    to: "/settings/workspace",
+  },
+  {
+    id: "contact",
+    label: "Add your first contact",
+    hint: "Add a person or company. This is the foundation of your CRM — every deal, email, and task connects to a contact.",
+    to: "/objects/people",
+  },
+  {
+    id: "email",
+    label: "Sync email account",
+    hint: "Connect Gmail or Outlook so every email you send and receive is logged automatically against the right contact.",
+    to: "/settings/email",
+  },
+  {
+    id: "import",
+    label: "Import your contacts",
+    hint: "Upload a CSV to bulk-add your existing contacts. Mondaily will auto-enrich them with company info and social profiles.",
+    to: "/objects/people",
+  },
+  {
+    id: "deal",
+    label: "Create your first deal",
+    hint: "Deals track revenue opportunities through your pipeline stages — from first contact to closed won.",
+    to: "/pipeline",
+  },
+  {
+    id: "member",
+    label: "Invite a team member",
+    hint: "Sales is a team sport. Invite a colleague so you can assign contacts, share deals, and collaborate on tasks.",
+    to: "/settings/members",
+  },
+  {
+    id: "extension",
+    label: "Install our extension",
+    hint: "The Mondaily browser extension lets you capture contacts from LinkedIn, enrich records, and log emails — without leaving your browser.",
+    to: "/settings/integrations",
+  },
+  {
+    id: "report",
+    label: "Create a report",
+    hint: "Build a custom report to see your pipeline health, team activity, or revenue forecast at a glance.",
+    to: "/reports",
+  },
+  {
+    id: "workflow",
+    label: "Create a workflow",
+    hint: "Automate repetitive tasks — like assigning new leads, sending follow-up reminders, or updating deal stages automatically.",
+    to: "/automations",
+  },
+  {
+    id: "sequence",
+    label: "Create a sequence",
+    hint: "Set up a multi-step email drip campaign to nurture leads automatically over days or weeks.",
+    to: "/sequences",
+  },
+  {
+    id: "ai",
+    label: "Try Ask Mondaily",
+    hint: "Ask Mondaily anything about your data — 'which deals haven't moved in 2 weeks?' or 'summarise my week'. Your AI sales assistant.",
+    to: "/ask/new",
+  },
+  {
+    id: "apps",
+    label: "Explore our apps",
+    hint: "Connect Slack, Zapier, HubSpot, and more. Integrations keep Mondaily in sync with the tools your team already uses.",
+    to: "/settings/integrations",
+  },
 ];
 
 function GettingStarted() {
   const [open, setOpen] = useState(false);
+  const [hoverId, setHoverId] = useState<string | null>(null);
   const [done, setDone] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("gs_done") || "[]")); } catch { return new Set(["workspace"]); }
   });
@@ -114,18 +180,43 @@ function GettingStarted() {
         <div className="px-2 pb-2 space-y-0.5">
           {CHECKLIST.map(item => {
             const checked = done.has(item.id);
+            const hovered = hoverId === item.id;
             return (
-              <div key={item.id} className={`flex items-start gap-2.5 rounded-lg px-2.5 py-2 group transition-colors ${checked ? "opacity-40" : "hover:bg-white/[.03]"}`}>
-                <button
-                  onClick={() => toggle(item.id)}
-                  className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-slate-700 hover:border-red-400"}`}
-                >
-                  {checked && <Check size={8} className="text-white" strokeWidth={3}/>}
-                </button>
-                <Link to={item.to} className="flex-1 min-w-0">
-                  <div className={`text-[12px] leading-tight ${checked ? "line-through text-slate-600" : "text-slate-300"}`}>{item.label}</div>
-                  {!checked && <div className="text-[10px] text-slate-700 mt-0.5">{item.hint}</div>}
-                </Link>
+              <div
+                key={item.id}
+                className="relative"
+                onMouseEnter={() => setHoverId(item.id)}
+                onMouseLeave={() => setHoverId(null)}
+              >
+                <div className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.04]" : ""}`}>
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggle(item.id)}
+                    className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-slate-700 hover:border-red-400"}`}
+                  >
+                    {checked && <Check size={8} className="text-white" strokeWidth={3}/>}
+                  </button>
+
+                  {/* Label + link */}
+                  <Link to={item.to} className="flex-1 min-w-0">
+                    <span className={`text-[12px] leading-tight ${checked ? "line-through text-slate-600" : "text-slate-300"}`}>
+                      {item.label}
+                    </span>
+                  </Link>
+                </div>
+
+                {/* Hover tooltip — pops out to the right */}
+                {hovered && !checked && (
+                  <div className="absolute left-full top-0 z-[200] ml-2 w-56 pointer-events-none">
+                    {/* Arrow */}
+                    <div className="absolute -left-1.5 top-3 h-3 w-3 rotate-45 rounded-sm border-l border-t border-white/[.08] bg-[#161920]"/>
+                    <div className="rounded-xl border border-white/[.08] bg-[#161920] px-3 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]">
+                      <div className="text-[12px] font-semibold text-white mb-1">{item.label}</div>
+                      <div className="text-[11px] text-slate-400 leading-relaxed">{item.hint}</div>
+                      <div className="mt-2 text-[10px] text-red-400 font-medium">→ Go there</div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
