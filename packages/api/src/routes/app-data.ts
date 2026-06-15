@@ -162,16 +162,7 @@ async function bootstrapWorkspace(workspaceId: string, createdBy: string) {
     .select();
 
   if (defErr || !defs?.length) return; // silently skip on error
-
-  // Insert 20 seed nodes per object type
-  const nodeRows: Array<{ workspace_id: string; vertical: string; object_type: string; data: Record<string, unknown>; created_by: string }> = [];
-  for (const obj of BOOTSTRAP_OBJECTS) {
-    const rows = SEED_NODES[obj.slug] ?? [];
-    for (const row of rows) {
-      nodeRows.push({ workspace_id: workspaceId, vertical: "shared", object_type: obj.slug, data: row, created_by: createdBy });
-    }
-  }
-  await supabase.from("nodes").insert(nodeRows);
+  // New workspaces start empty — no demo seed data inserted.
 }
 
 router.get("/objects", async (c) => {
