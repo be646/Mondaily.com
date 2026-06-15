@@ -429,6 +429,25 @@ router.delete("/settings/integrations/webhooks/:id", async (c) => {
   await supabase.from("nodes").delete().eq("workspace_id", c.get("workspaceId")).eq("object_type", "webhook").eq("id", c.req.param("id"));
   return c.json({ ok: true });
 });
+router.get("/settings/tax-codes", requireAuth, async (c) => {
+  const settings = await workspaceSettings(c.get("workspaceId"));
+  const defaults = [
+    { id: "vat_20", name: "VAT 20%", rate: 20 },
+    { id: "vat_5",  name: "VAT 5%",  rate: 5  },
+    { id: "exempt", name: "Exempt",   rate: 0  },
+    { id: "zero",   name: "Zero rated", rate: 0 },
+  ];
+  const custom = (settings.tax_codes as { id: string; name: string; rate: number }[] | undefined) ?? [];
+  return c.json([...defaults, ...custom]);
+});
+router.post("/settings/tax-codes", requireAuth, async (c) => {
+  const body = await c.req.json<{ name: string; rate: number }>();
+  const settings = await workspaceSettings(c.get("workspaceId"));
+  const existing = (settings.tax_codes as { id: string; name: string; rate: number }[] | undefined) ?? [];
+  const newCode = { id: `custom_${Date.now()}`, name: body.name, rate: body.rate };
+  await supabase.from("workspaces").update({ settings: { ...settings, tax_codes: [...existing, newCode] } }).eq("id", c.get("workspaceId"));
+  return c.json(newCode, 201);
+});
 router.post("/settings/integrations/mcp-token", async (c) => {
   const token = `mcp_${crypto.randomUUID().replaceAll("-", "")}`;
   await mergeWorkspaceSettings(c.get("workspaceId"), { mcp_token: token });

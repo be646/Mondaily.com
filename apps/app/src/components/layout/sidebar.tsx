@@ -4,6 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
+  FileSignature, Wallet,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -38,9 +39,12 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Elem
     items: [
       { to: "/pipeline",        label: "Pipeline", icon: TrendingUp },
       { to: "/reports",         label: "Reports",  icon: BarChart2 },
-      { to: "/finance/invoices",       label: "Invoices",     icon: Receipt      },
-      { to: "/finance/credit-notes",   label: "Credit Notes", icon: ReceiptText  },
-      { to: "/approvals",              label: "Approvals",    icon: ShieldCheck  },
+      { to: "/finance/invoices",       label: "Invoices",         icon: Receipt        },
+      { to: "/finance/credit-notes",   label: "Credit Notes",     icon: ReceiptText    },
+      { to: "/finance/quotes",         label: "Quotes",           icon: FileSignature  },
+      { to: "/finance/expenses",       label: "Expenses",         icon: Wallet         },
+      { to: "/finance/reports",        label: "Finance Reports",  icon: TrendingUp     },
+      { to: "/approvals",              label: "Approvals",        icon: ShieldCheck    },
     ],
   },
   {
@@ -437,7 +441,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
           {(() => {
-            const FINANCE_ONLY = ["/finance/invoices", "/finance/credit-notes", "/approvals"];
+            const FINANCE_ONLY = ["/finance/invoices", "/finance/credit-notes", "/finance/quotes", "/finance/expenses", "/finance/reports", "/approvals"];
             const filteredNAV = NAV.map(group => {
               if (group.label === "Revenue") {
                 return { ...group, items: group.items.filter(item => hasFinance || !FINANCE_ONLY.includes(item.to)) };

@@ -43,4 +43,7 @@ export type Events = {
       currency?: string;
     };
   };
+  "finance/invoice.recurring.generated": {
+    data: { workspaceId: string; originalInvoiceId: string; newInvoiceId: string; };
+  };
 };

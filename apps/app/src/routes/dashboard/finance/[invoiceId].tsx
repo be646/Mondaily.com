@@ -208,6 +208,51 @@ function calcTotals(items: LineItem[]) {
   return { subtotal, tax_total, total: subtotal + tax_total };
 }
 
+function printInvoice(invoice: Invoice) {
+  const formatCurrency = (n: number) => n.toLocaleString("en-GB", { style: "currency", currency: invoice.currency });
+  const html = `<!DOCTYPE html><html><head><title>${invoice.number}</title><style>
+    body { font-family: -apple-system, sans-serif; color: #111; padding: 40px; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .meta { color: #666; font-size: 13px; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+    .label { font-size: 11px; text-transform: uppercase; color: #999; margin-bottom: 4px; letter-spacing: 0.05em; }
+    .value { font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    th { text-align: left; padding: 8px 12px; border-bottom: 2px solid #eee; font-size: 11px; text-transform: uppercase; color: #999; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .totals { float: right; width: 240px; }
+    .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+    .totals-row.total { border-top: 2px solid #111; font-weight: 700; font-size: 15px; padding-top: 10px; margin-top: 4px; }
+    .status { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #f0f0f0; }
+    @media print { body { padding: 20px; } }
+  </style></head><body>
+    <h1>${invoice.number}</h1>
+    <p class="meta">
+      <span class="status">${invoice.status.toUpperCase()}</span>
+      ${invoice.due_date ? ` &nbsp;·&nbsp; Due: ${new Date(invoice.due_date).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}` : ""}
+    </p>
+    <div class="grid">
+      <div><div class="label">Bill To</div><div class="value"><strong>${invoice.client_name}</strong>${invoice.client_email ? `<br>${invoice.client_email}` : ""}${invoice.client_address ? `<br>${invoice.client_address.replace(/\n/g, "<br>")}` : ""}</div></div>
+      <div><div class="label">Invoice Date</div><div class="value">${new Date(invoice.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Tax</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>
+        ${invoice.line_items.map(item => `<tr><td>${item.description}</td><td>${item.quantity}</td><td>${formatCurrency(item.unit_price)}</td><td>${item.tax_rate}%</td><td style="text-align:right">${formatCurrency(item.quantity * item.unit_price * (1 + item.tax_rate / 100))}</td></tr>`).join("")}
+      </tbody>
+    </table>
+    <div class="totals">
+      <div class="totals-row"><span>Subtotal</span><span>${formatCurrency(invoice.subtotal)}</span></div>
+      <div class="totals-row"><span>Tax</span><span>${formatCurrency(invoice.tax_total)}</span></div>
+      <div class="totals-row total"><span>Total</span><span>${formatCurrency(invoice.total)}</span></div>
+    </div>
+    ${invoice.notes ? `<div style="margin-top:64px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#666;">${invoice.notes}</div>` : ""}
+    <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }<\/script>
+  </body></html>`;
+  const w = window.open("", "_blank");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 export function InvoiceDetailPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
@@ -352,7 +397,7 @@ export function InvoiceDetailPage() {
             </button>
           )}
           <button
-            onClick={() => window.print()}
+            onClick={() => printInvoice(invoice)}
             className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[.03] transition-colors"
           >
             <Download size={12}/> PDF

@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
-import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler } from "./jobs/index";
+import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices } from "./jobs/index";
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { askRouter } from "./routes/ask";
@@ -33,6 +33,8 @@ import { annotationsRouter } from "./routes/annotations";
 import { workflowsRouter } from "./routes/workflows";
 import { invoicesRouter } from "./routes/invoices";
 import { creditNotesRouter } from "./routes/credit-notes";
+import { quotesRouter } from "./routes/quotes";
+import { expensesRouter } from "./routes/expenses";
 import { tagsRouter } from "./routes/tags";
 import { onboardingRouter } from "./routes/onboarding";
 
@@ -72,11 +74,13 @@ app.route("/api/v1/annotations", annotationsRouter);
 app.route("/api/v1/workflows", workflowsRouter);
 app.route("/api/v1/invoices", invoicesRouter);
 app.route("/api/v1/credit-notes", creditNotesRouter);
+app.route("/api/v1/quotes", quotesRouter);
+app.route("/api/v1/expenses", expensesRouter);
 app.route("/api/v1/tags", tagsRouter);
 app.route("/api/v1/onboarding", onboardingRouter);
 app.route("/api/v1", appDataRouter);
 
-const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler] });
+const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices] });
 app.all("/api/inngest", inngestHandler);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));

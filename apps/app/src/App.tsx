@@ -49,6 +49,9 @@ import { InvoiceDetailPage } from "./routes/dashboard/finance/[invoiceId]";
 import { CreditNotesPage } from "./routes/dashboard/finance/credit-notes";
 import { CreditNoteDetailPage } from "./routes/dashboard/finance/[creditNoteId]";
 import { ApprovalsPage } from "./routes/dashboard/approvals";
+import { FinanceReportsPage } from "./routes/dashboard/finance/reports";
+import { QuotesPage } from "./routes/dashboard/finance/quotes";
+import { ExpensesPage } from "./routes/dashboard/finance/expenses";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
@@ -97,6 +100,9 @@ export function App() {
         <Route path="finance/invoices/:invoiceId" element={<InvoiceDetailPage />} />
         <Route path="finance/credit-notes" element={<CreditNotesPage />} />
         <Route path="finance/credit-notes/:creditNoteId" element={<CreditNoteDetailPage />} />
+        <Route path="finance/reports" element={<FinanceReportsPage />} />
+        <Route path="finance/quotes" element={<QuotesPage />} />
+        <Route path="finance/expenses" element={<ExpensesPage />} />
         <Route path="approvals" element={<ApprovalsPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="account" replace />} />
