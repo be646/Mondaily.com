@@ -1077,8 +1077,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // ── Owner cell state: recordId → owner name ──
   // owners[recordId][col] — separate tracker per column so Deal Owner ≠ Assigned To
   const [owners, setOwners] = useState<Record<string, Record<string, string>>>({});
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function resolveOwner(raw: unknown): string {
+    const s = String(raw ?? "");
+    if (!UUID_RE.test(s)) return s;
+    // It's a UUID — try to find a matching member by id or user_id
+    const match = (membersQuery.data ?? []).find(m => m.id === s || (m as any).user_id === s);
+    return match ? (match.name || match.email || "") : "";
+  }
   function getOwner(recordId: string, col: string, fallback: unknown) {
-    return owners[recordId]?.[col] ?? String(fallback ?? "");
+    return owners[recordId]?.[col] ?? resolveOwner(fallback);
   }
   function setOwner(recordId: string, col: string, name: string) {
     setOwners(prev => ({ ...prev, [recordId]: { ...prev[recordId], [col]: name } }));
@@ -1842,7 +1850,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 vals = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
               } else if (isOwnerCol) {
                 // Use owners state (local display source) merged with data values, then fall back to member names
-                const fromOwners = records.map(r => owners[r.id]?.[col] ?? String(r.data[col] ?? "")).filter(Boolean);
+                const fromOwners = records.map(r => owners[r.id]?.[col] ?? resolveOwner(r.data[col])).filter(v => v && !UUID_RE.test(v));
                 const fromMembers = members.filter(m => { const lb = m.name || m.email; return lb && typeof lb === "string" && isNaN(Number(lb)); }).map(m => m.name || m.email || "");
                 vals = [...new Set([...fromOwners, ...fromMembers])].filter(Boolean).sort();
               } else if (isCountry) {
