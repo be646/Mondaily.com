@@ -2,7 +2,7 @@ import { inngest, type Events } from "../lib/inngest";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { supabase } from "@mondaily/db/client";
 
-const ENRICHABLE = ["contact", "person", "lead", "company", "account", "organization"];
+const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
 
 async function tavilySearch(query: string): Promise<string> {
   const key = process.env.TAVILY_API_KEY;
@@ -48,7 +48,7 @@ export const enrichRecord = inngest.createFunction(
   async ({ event }) => {
     const { workspaceId, nodeId, objectType, recordData } = event.data;
 
-    const normalizedType = objectType.toLowerCase().replace(/s$/, "");
+    const normalizedType = objectType.toLowerCase();
     if (!ENRICHABLE.some(t => normalizedType.includes(t))) {
       return { skipped: true, reason: "object_type not enrichable" };
     }
@@ -62,13 +62,15 @@ export const enrichRecord = inngest.createFunction(
     });
 
     try {
-      const isPerson = ["contact", "person", "lead"].some(t => normalizedType.includes(t));
+      const isPerson = ["contact", "person", "people", "lead"].some(t => normalizedType.includes(t));
       let fields: Record<string, unknown> = {};
 
       if (isPerson) {
         const email = (recordData.email ?? recordData.Email ?? "") as string;
         const name = (recordData.name ?? recordData.Name ?? "") as string;
-        const query = email ? `${email} linkedin job title company` : `${name} professional background`;
+        const query = email
+          ? `${email} linkedin job title company`
+          : `${name} linkedin job title company professional`;
 
         await logStep(jobId, { step: "tavily_search", query });
         const webContext = await tavilySearch(query);
