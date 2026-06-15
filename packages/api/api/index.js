@@ -1,8 +1,14054 @@
 "use strict";
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __commonJS = (cb, mod) => function __require2() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
 var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __reExport = (target, mod, secondTarget) => (__copyProps(target, mod, "default"), secondTarget && __copyProps(secondTarget, mod, "default"));
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// ../../node_modules/.pnpm/color-name@1.1.4/node_modules/color-name/index.js
+var require_color_name = __commonJS({
+  "../../node_modules/.pnpm/color-name@1.1.4/node_modules/color-name/index.js"(exports2, module2) {
+    "use strict";
+    module2.exports = {
+      "aliceblue": [240, 248, 255],
+      "antiquewhite": [250, 235, 215],
+      "aqua": [0, 255, 255],
+      "aquamarine": [127, 255, 212],
+      "azure": [240, 255, 255],
+      "beige": [245, 245, 220],
+      "bisque": [255, 228, 196],
+      "black": [0, 0, 0],
+      "blanchedalmond": [255, 235, 205],
+      "blue": [0, 0, 255],
+      "blueviolet": [138, 43, 226],
+      "brown": [165, 42, 42],
+      "burlywood": [222, 184, 135],
+      "cadetblue": [95, 158, 160],
+      "chartreuse": [127, 255, 0],
+      "chocolate": [210, 105, 30],
+      "coral": [255, 127, 80],
+      "cornflowerblue": [100, 149, 237],
+      "cornsilk": [255, 248, 220],
+      "crimson": [220, 20, 60],
+      "cyan": [0, 255, 255],
+      "darkblue": [0, 0, 139],
+      "darkcyan": [0, 139, 139],
+      "darkgoldenrod": [184, 134, 11],
+      "darkgray": [169, 169, 169],
+      "darkgreen": [0, 100, 0],
+      "darkgrey": [169, 169, 169],
+      "darkkhaki": [189, 183, 107],
+      "darkmagenta": [139, 0, 139],
+      "darkolivegreen": [85, 107, 47],
+      "darkorange": [255, 140, 0],
+      "darkorchid": [153, 50, 204],
+      "darkred": [139, 0, 0],
+      "darksalmon": [233, 150, 122],
+      "darkseagreen": [143, 188, 143],
+      "darkslateblue": [72, 61, 139],
+      "darkslategray": [47, 79, 79],
+      "darkslategrey": [47, 79, 79],
+      "darkturquoise": [0, 206, 209],
+      "darkviolet": [148, 0, 211],
+      "deeppink": [255, 20, 147],
+      "deepskyblue": [0, 191, 255],
+      "dimgray": [105, 105, 105],
+      "dimgrey": [105, 105, 105],
+      "dodgerblue": [30, 144, 255],
+      "firebrick": [178, 34, 34],
+      "floralwhite": [255, 250, 240],
+      "forestgreen": [34, 139, 34],
+      "fuchsia": [255, 0, 255],
+      "gainsboro": [220, 220, 220],
+      "ghostwhite": [248, 248, 255],
+      "gold": [255, 215, 0],
+      "goldenrod": [218, 165, 32],
+      "gray": [128, 128, 128],
+      "green": [0, 128, 0],
+      "greenyellow": [173, 255, 47],
+      "grey": [128, 128, 128],
+      "honeydew": [240, 255, 240],
+      "hotpink": [255, 105, 180],
+      "indianred": [205, 92, 92],
+      "indigo": [75, 0, 130],
+      "ivory": [255, 255, 240],
+      "khaki": [240, 230, 140],
+      "lavender": [230, 230, 250],
+      "lavenderblush": [255, 240, 245],
+      "lawngreen": [124, 252, 0],
+      "lemonchiffon": [255, 250, 205],
+      "lightblue": [173, 216, 230],
+      "lightcoral": [240, 128, 128],
+      "lightcyan": [224, 255, 255],
+      "lightgoldenrodyellow": [250, 250, 210],
+      "lightgray": [211, 211, 211],
+      "lightgreen": [144, 238, 144],
+      "lightgrey": [211, 211, 211],
+      "lightpink": [255, 182, 193],
+      "lightsalmon": [255, 160, 122],
+      "lightseagreen": [32, 178, 170],
+      "lightskyblue": [135, 206, 250],
+      "lightslategray": [119, 136, 153],
+      "lightslategrey": [119, 136, 153],
+      "lightsteelblue": [176, 196, 222],
+      "lightyellow": [255, 255, 224],
+      "lime": [0, 255, 0],
+      "limegreen": [50, 205, 50],
+      "linen": [250, 240, 230],
+      "magenta": [255, 0, 255],
+      "maroon": [128, 0, 0],
+      "mediumaquamarine": [102, 205, 170],
+      "mediumblue": [0, 0, 205],
+      "mediumorchid": [186, 85, 211],
+      "mediumpurple": [147, 112, 219],
+      "mediumseagreen": [60, 179, 113],
+      "mediumslateblue": [123, 104, 238],
+      "mediumspringgreen": [0, 250, 154],
+      "mediumturquoise": [72, 209, 204],
+      "mediumvioletred": [199, 21, 133],
+      "midnightblue": [25, 25, 112],
+      "mintcream": [245, 255, 250],
+      "mistyrose": [255, 228, 225],
+      "moccasin": [255, 228, 181],
+      "navajowhite": [255, 222, 173],
+      "navy": [0, 0, 128],
+      "oldlace": [253, 245, 230],
+      "olive": [128, 128, 0],
+      "olivedrab": [107, 142, 35],
+      "orange": [255, 165, 0],
+      "orangered": [255, 69, 0],
+      "orchid": [218, 112, 214],
+      "palegoldenrod": [238, 232, 170],
+      "palegreen": [152, 251, 152],
+      "paleturquoise": [175, 238, 238],
+      "palevioletred": [219, 112, 147],
+      "papayawhip": [255, 239, 213],
+      "peachpuff": [255, 218, 185],
+      "peru": [205, 133, 63],
+      "pink": [255, 192, 203],
+      "plum": [221, 160, 221],
+      "powderblue": [176, 224, 230],
+      "purple": [128, 0, 128],
+      "rebeccapurple": [102, 51, 153],
+      "red": [255, 0, 0],
+      "rosybrown": [188, 143, 143],
+      "royalblue": [65, 105, 225],
+      "saddlebrown": [139, 69, 19],
+      "salmon": [250, 128, 114],
+      "sandybrown": [244, 164, 96],
+      "seagreen": [46, 139, 87],
+      "seashell": [255, 245, 238],
+      "sienna": [160, 82, 45],
+      "silver": [192, 192, 192],
+      "skyblue": [135, 206, 235],
+      "slateblue": [106, 90, 205],
+      "slategray": [112, 128, 144],
+      "slategrey": [112, 128, 144],
+      "snow": [255, 250, 250],
+      "springgreen": [0, 255, 127],
+      "steelblue": [70, 130, 180],
+      "tan": [210, 180, 140],
+      "teal": [0, 128, 128],
+      "thistle": [216, 191, 216],
+      "tomato": [255, 99, 71],
+      "turquoise": [64, 224, 208],
+      "violet": [238, 130, 238],
+      "wheat": [245, 222, 179],
+      "white": [255, 255, 255],
+      "whitesmoke": [245, 245, 245],
+      "yellow": [255, 255, 0],
+      "yellowgreen": [154, 205, 50]
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert/conversions.js
+var require_conversions = __commonJS({
+  "../../node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert/conversions.js"(exports2, module2) {
+    "use strict";
+    var cssKeywords = require_color_name();
+    var reverseKeywords = {};
+    for (const key of Object.keys(cssKeywords)) {
+      reverseKeywords[cssKeywords[key]] = key;
+    }
+    var convert = {
+      rgb: { channels: 3, labels: "rgb" },
+      hsl: { channels: 3, labels: "hsl" },
+      hsv: { channels: 3, labels: "hsv" },
+      hwb: { channels: 3, labels: "hwb" },
+      cmyk: { channels: 4, labels: "cmyk" },
+      xyz: { channels: 3, labels: "xyz" },
+      lab: { channels: 3, labels: "lab" },
+      lch: { channels: 3, labels: "lch" },
+      hex: { channels: 1, labels: ["hex"] },
+      keyword: { channels: 1, labels: ["keyword"] },
+      ansi16: { channels: 1, labels: ["ansi16"] },
+      ansi256: { channels: 1, labels: ["ansi256"] },
+      hcg: { channels: 3, labels: ["h", "c", "g"] },
+      apple: { channels: 3, labels: ["r16", "g16", "b16"] },
+      gray: { channels: 1, labels: ["gray"] }
+    };
+    module2.exports = convert;
+    for (const model of Object.keys(convert)) {
+      if (!("channels" in convert[model])) {
+        throw new Error("missing channels property: " + model);
+      }
+      if (!("labels" in convert[model])) {
+        throw new Error("missing channel labels property: " + model);
+      }
+      if (convert[model].labels.length !== convert[model].channels) {
+        throw new Error("channel and label counts mismatch: " + model);
+      }
+      const { channels, labels } = convert[model];
+      delete convert[model].channels;
+      delete convert[model].labels;
+      Object.defineProperty(convert[model], "channels", { value: channels });
+      Object.defineProperty(convert[model], "labels", { value: labels });
+    }
+    convert.rgb.hsl = function(rgb) {
+      const r = rgb[0] / 255;
+      const g = rgb[1] / 255;
+      const b = rgb[2] / 255;
+      const min = Math.min(r, g, b);
+      const max = Math.max(r, g, b);
+      const delta = max - min;
+      let h;
+      let s2;
+      if (max === min) {
+        h = 0;
+      } else if (r === max) {
+        h = (g - b) / delta;
+      } else if (g === max) {
+        h = 2 + (b - r) / delta;
+      } else if (b === max) {
+        h = 4 + (r - g) / delta;
+      }
+      h = Math.min(h * 60, 360);
+      if (h < 0) {
+        h += 360;
+      }
+      const l = (min + max) / 2;
+      if (max === min) {
+        s2 = 0;
+      } else if (l <= 0.5) {
+        s2 = delta / (max + min);
+      } else {
+        s2 = delta / (2 - max - min);
+      }
+      return [h, s2 * 100, l * 100];
+    };
+    convert.rgb.hsv = function(rgb) {
+      let rdif;
+      let gdif;
+      let bdif;
+      let h;
+      let s2;
+      const r = rgb[0] / 255;
+      const g = rgb[1] / 255;
+      const b = rgb[2] / 255;
+      const v = Math.max(r, g, b);
+      const diff = v - Math.min(r, g, b);
+      const diffc = function(c) {
+        return (v - c) / 6 / diff + 1 / 2;
+      };
+      if (diff === 0) {
+        h = 0;
+        s2 = 0;
+      } else {
+        s2 = diff / v;
+        rdif = diffc(r);
+        gdif = diffc(g);
+        bdif = diffc(b);
+        if (r === v) {
+          h = bdif - gdif;
+        } else if (g === v) {
+          h = 1 / 3 + rdif - bdif;
+        } else if (b === v) {
+          h = 2 / 3 + gdif - rdif;
+        }
+        if (h < 0) {
+          h += 1;
+        } else if (h > 1) {
+          h -= 1;
+        }
+      }
+      return [
+        h * 360,
+        s2 * 100,
+        v * 100
+      ];
+    };
+    convert.rgb.hwb = function(rgb) {
+      const r = rgb[0];
+      const g = rgb[1];
+      let b = rgb[2];
+      const h = convert.rgb.hsl(rgb)[0];
+      const w = 1 / 255 * Math.min(r, Math.min(g, b));
+      b = 1 - 1 / 255 * Math.max(r, Math.max(g, b));
+      return [h, w * 100, b * 100];
+    };
+    convert.rgb.cmyk = function(rgb) {
+      const r = rgb[0] / 255;
+      const g = rgb[1] / 255;
+      const b = rgb[2] / 255;
+      const k = Math.min(1 - r, 1 - g, 1 - b);
+      const c = (1 - r - k) / (1 - k) || 0;
+      const m = (1 - g - k) / (1 - k) || 0;
+      const y = (1 - b - k) / (1 - k) || 0;
+      return [c * 100, m * 100, y * 100, k * 100];
+    };
+    function comparativeDistance(x, y) {
+      return (x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2;
+    }
+    convert.rgb.keyword = function(rgb) {
+      const reversed = reverseKeywords[rgb];
+      if (reversed) {
+        return reversed;
+      }
+      let currentClosestDistance = Infinity;
+      let currentClosestKeyword;
+      for (const keyword of Object.keys(cssKeywords)) {
+        const value = cssKeywords[keyword];
+        const distance = comparativeDistance(rgb, value);
+        if (distance < currentClosestDistance) {
+          currentClosestDistance = distance;
+          currentClosestKeyword = keyword;
+        }
+      }
+      return currentClosestKeyword;
+    };
+    convert.keyword.rgb = function(keyword) {
+      return cssKeywords[keyword];
+    };
+    convert.rgb.xyz = function(rgb) {
+      let r = rgb[0] / 255;
+      let g = rgb[1] / 255;
+      let b = rgb[2] / 255;
+      r = r > 0.04045 ? ((r + 0.055) / 1.055) ** 2.4 : r / 12.92;
+      g = g > 0.04045 ? ((g + 0.055) / 1.055) ** 2.4 : g / 12.92;
+      b = b > 0.04045 ? ((b + 0.055) / 1.055) ** 2.4 : b / 12.92;
+      const x = r * 0.4124 + g * 0.3576 + b * 0.1805;
+      const y = r * 0.2126 + g * 0.7152 + b * 0.0722;
+      const z = r * 0.0193 + g * 0.1192 + b * 0.9505;
+      return [x * 100, y * 100, z * 100];
+    };
+    convert.rgb.lab = function(rgb) {
+      const xyz = convert.rgb.xyz(rgb);
+      let x = xyz[0];
+      let y = xyz[1];
+      let z = xyz[2];
+      x /= 95.047;
+      y /= 100;
+      z /= 108.883;
+      x = x > 8856e-6 ? x ** (1 / 3) : 7.787 * x + 16 / 116;
+      y = y > 8856e-6 ? y ** (1 / 3) : 7.787 * y + 16 / 116;
+      z = z > 8856e-6 ? z ** (1 / 3) : 7.787 * z + 16 / 116;
+      const l = 116 * y - 16;
+      const a = 500 * (x - y);
+      const b = 200 * (y - z);
+      return [l, a, b];
+    };
+    convert.hsl.rgb = function(hsl) {
+      const h = hsl[0] / 360;
+      const s2 = hsl[1] / 100;
+      const l = hsl[2] / 100;
+      let t2;
+      let t3;
+      let val;
+      if (s2 === 0) {
+        val = l * 255;
+        return [val, val, val];
+      }
+      if (l < 0.5) {
+        t2 = l * (1 + s2);
+      } else {
+        t2 = l + s2 - l * s2;
+      }
+      const t1 = 2 * l - t2;
+      const rgb = [0, 0, 0];
+      for (let i = 0; i < 3; i++) {
+        t3 = h + 1 / 3 * -(i - 1);
+        if (t3 < 0) {
+          t3++;
+        }
+        if (t3 > 1) {
+          t3--;
+        }
+        if (6 * t3 < 1) {
+          val = t1 + (t2 - t1) * 6 * t3;
+        } else if (2 * t3 < 1) {
+          val = t2;
+        } else if (3 * t3 < 2) {
+          val = t1 + (t2 - t1) * (2 / 3 - t3) * 6;
+        } else {
+          val = t1;
+        }
+        rgb[i] = val * 255;
+      }
+      return rgb;
+    };
+    convert.hsl.hsv = function(hsl) {
+      const h = hsl[0];
+      let s2 = hsl[1] / 100;
+      let l = hsl[2] / 100;
+      let smin = s2;
+      const lmin = Math.max(l, 0.01);
+      l *= 2;
+      s2 *= l <= 1 ? l : 2 - l;
+      smin *= lmin <= 1 ? lmin : 2 - lmin;
+      const v = (l + s2) / 2;
+      const sv = l === 0 ? 2 * smin / (lmin + smin) : 2 * s2 / (l + s2);
+      return [h, sv * 100, v * 100];
+    };
+    convert.hsv.rgb = function(hsv) {
+      const h = hsv[0] / 60;
+      const s2 = hsv[1] / 100;
+      let v = hsv[2] / 100;
+      const hi = Math.floor(h) % 6;
+      const f = h - Math.floor(h);
+      const p = 255 * v * (1 - s2);
+      const q = 255 * v * (1 - s2 * f);
+      const t = 255 * v * (1 - s2 * (1 - f));
+      v *= 255;
+      switch (hi) {
+        case 0:
+          return [v, t, p];
+        case 1:
+          return [q, v, p];
+        case 2:
+          return [p, v, t];
+        case 3:
+          return [p, q, v];
+        case 4:
+          return [t, p, v];
+        case 5:
+          return [v, p, q];
+      }
+    };
+    convert.hsv.hsl = function(hsv) {
+      const h = hsv[0];
+      const s2 = hsv[1] / 100;
+      const v = hsv[2] / 100;
+      const vmin = Math.max(v, 0.01);
+      let sl;
+      let l;
+      l = (2 - s2) * v;
+      const lmin = (2 - s2) * vmin;
+      sl = s2 * vmin;
+      sl /= lmin <= 1 ? lmin : 2 - lmin;
+      sl = sl || 0;
+      l /= 2;
+      return [h, sl * 100, l * 100];
+    };
+    convert.hwb.rgb = function(hwb) {
+      const h = hwb[0] / 360;
+      let wh = hwb[1] / 100;
+      let bl = hwb[2] / 100;
+      const ratio = wh + bl;
+      let f;
+      if (ratio > 1) {
+        wh /= ratio;
+        bl /= ratio;
+      }
+      const i = Math.floor(6 * h);
+      const v = 1 - bl;
+      f = 6 * h - i;
+      if ((i & 1) !== 0) {
+        f = 1 - f;
+      }
+      const n = wh + f * (v - wh);
+      let r;
+      let g;
+      let b;
+      switch (i) {
+        default:
+        case 6:
+        case 0:
+          r = v;
+          g = n;
+          b = wh;
+          break;
+        case 1:
+          r = n;
+          g = v;
+          b = wh;
+          break;
+        case 2:
+          r = wh;
+          g = v;
+          b = n;
+          break;
+        case 3:
+          r = wh;
+          g = n;
+          b = v;
+          break;
+        case 4:
+          r = n;
+          g = wh;
+          b = v;
+          break;
+        case 5:
+          r = v;
+          g = wh;
+          b = n;
+          break;
+      }
+      return [r * 255, g * 255, b * 255];
+    };
+    convert.cmyk.rgb = function(cmyk) {
+      const c = cmyk[0] / 100;
+      const m = cmyk[1] / 100;
+      const y = cmyk[2] / 100;
+      const k = cmyk[3] / 100;
+      const r = 1 - Math.min(1, c * (1 - k) + k);
+      const g = 1 - Math.min(1, m * (1 - k) + k);
+      const b = 1 - Math.min(1, y * (1 - k) + k);
+      return [r * 255, g * 255, b * 255];
+    };
+    convert.xyz.rgb = function(xyz) {
+      const x = xyz[0] / 100;
+      const y = xyz[1] / 100;
+      const z = xyz[2] / 100;
+      let r;
+      let g;
+      let b;
+      r = x * 3.2406 + y * -1.5372 + z * -0.4986;
+      g = x * -0.9689 + y * 1.8758 + z * 0.0415;
+      b = x * 0.0557 + y * -0.204 + z * 1.057;
+      r = r > 31308e-7 ? 1.055 * r ** (1 / 2.4) - 0.055 : r * 12.92;
+      g = g > 31308e-7 ? 1.055 * g ** (1 / 2.4) - 0.055 : g * 12.92;
+      b = b > 31308e-7 ? 1.055 * b ** (1 / 2.4) - 0.055 : b * 12.92;
+      r = Math.min(Math.max(0, r), 1);
+      g = Math.min(Math.max(0, g), 1);
+      b = Math.min(Math.max(0, b), 1);
+      return [r * 255, g * 255, b * 255];
+    };
+    convert.xyz.lab = function(xyz) {
+      let x = xyz[0];
+      let y = xyz[1];
+      let z = xyz[2];
+      x /= 95.047;
+      y /= 100;
+      z /= 108.883;
+      x = x > 8856e-6 ? x ** (1 / 3) : 7.787 * x + 16 / 116;
+      y = y > 8856e-6 ? y ** (1 / 3) : 7.787 * y + 16 / 116;
+      z = z > 8856e-6 ? z ** (1 / 3) : 7.787 * z + 16 / 116;
+      const l = 116 * y - 16;
+      const a = 500 * (x - y);
+      const b = 200 * (y - z);
+      return [l, a, b];
+    };
+    convert.lab.xyz = function(lab) {
+      const l = lab[0];
+      const a = lab[1];
+      const b = lab[2];
+      let x;
+      let y;
+      let z;
+      y = (l + 16) / 116;
+      x = a / 500 + y;
+      z = y - b / 200;
+      const y2 = y ** 3;
+      const x2 = x ** 3;
+      const z2 = z ** 3;
+      y = y2 > 8856e-6 ? y2 : (y - 16 / 116) / 7.787;
+      x = x2 > 8856e-6 ? x2 : (x - 16 / 116) / 7.787;
+      z = z2 > 8856e-6 ? z2 : (z - 16 / 116) / 7.787;
+      x *= 95.047;
+      y *= 100;
+      z *= 108.883;
+      return [x, y, z];
+    };
+    convert.lab.lch = function(lab) {
+      const l = lab[0];
+      const a = lab[1];
+      const b = lab[2];
+      let h;
+      const hr = Math.atan2(b, a);
+      h = hr * 360 / 2 / Math.PI;
+      if (h < 0) {
+        h += 360;
+      }
+      const c = Math.sqrt(a * a + b * b);
+      return [l, c, h];
+    };
+    convert.lch.lab = function(lch) {
+      const l = lch[0];
+      const c = lch[1];
+      const h = lch[2];
+      const hr = h / 360 * 2 * Math.PI;
+      const a = c * Math.cos(hr);
+      const b = c * Math.sin(hr);
+      return [l, a, b];
+    };
+    convert.rgb.ansi16 = function(args, saturation = null) {
+      const [r, g, b] = args;
+      let value = saturation === null ? convert.rgb.hsv(args)[2] : saturation;
+      value = Math.round(value / 50);
+      if (value === 0) {
+        return 30;
+      }
+      let ansi = 30 + (Math.round(b / 255) << 2 | Math.round(g / 255) << 1 | Math.round(r / 255));
+      if (value === 2) {
+        ansi += 60;
+      }
+      return ansi;
+    };
+    convert.hsv.ansi16 = function(args) {
+      return convert.rgb.ansi16(convert.hsv.rgb(args), args[2]);
+    };
+    convert.rgb.ansi256 = function(args) {
+      const r = args[0];
+      const g = args[1];
+      const b = args[2];
+      if (r === g && g === b) {
+        if (r < 8) {
+          return 16;
+        }
+        if (r > 248) {
+          return 231;
+        }
+        return Math.round((r - 8) / 247 * 24) + 232;
+      }
+      const ansi = 16 + 36 * Math.round(r / 255 * 5) + 6 * Math.round(g / 255 * 5) + Math.round(b / 255 * 5);
+      return ansi;
+    };
+    convert.ansi16.rgb = function(args) {
+      let color = args % 10;
+      if (color === 0 || color === 7) {
+        if (args > 50) {
+          color += 3.5;
+        }
+        color = color / 10.5 * 255;
+        return [color, color, color];
+      }
+      const mult = (~~(args > 50) + 1) * 0.5;
+      const r = (color & 1) * mult * 255;
+      const g = (color >> 1 & 1) * mult * 255;
+      const b = (color >> 2 & 1) * mult * 255;
+      return [r, g, b];
+    };
+    convert.ansi256.rgb = function(args) {
+      if (args >= 232) {
+        const c = (args - 232) * 10 + 8;
+        return [c, c, c];
+      }
+      args -= 16;
+      let rem;
+      const r = Math.floor(args / 36) / 5 * 255;
+      const g = Math.floor((rem = args % 36) / 6) / 5 * 255;
+      const b = rem % 6 / 5 * 255;
+      return [r, g, b];
+    };
+    convert.rgb.hex = function(args) {
+      const integer = ((Math.round(args[0]) & 255) << 16) + ((Math.round(args[1]) & 255) << 8) + (Math.round(args[2]) & 255);
+      const string = integer.toString(16).toUpperCase();
+      return "000000".substring(string.length) + string;
+    };
+    convert.hex.rgb = function(args) {
+      const match3 = args.toString(16).match(/[a-f0-9]{6}|[a-f0-9]{3}/i);
+      if (!match3) {
+        return [0, 0, 0];
+      }
+      let colorString = match3[0];
+      if (match3[0].length === 3) {
+        colorString = colorString.split("").map((char) => {
+          return char + char;
+        }).join("");
+      }
+      const integer = parseInt(colorString, 16);
+      const r = integer >> 16 & 255;
+      const g = integer >> 8 & 255;
+      const b = integer & 255;
+      return [r, g, b];
+    };
+    convert.rgb.hcg = function(rgb) {
+      const r = rgb[0] / 255;
+      const g = rgb[1] / 255;
+      const b = rgb[2] / 255;
+      const max = Math.max(Math.max(r, g), b);
+      const min = Math.min(Math.min(r, g), b);
+      const chroma = max - min;
+      let grayscale;
+      let hue;
+      if (chroma < 1) {
+        grayscale = min / (1 - chroma);
+      } else {
+        grayscale = 0;
+      }
+      if (chroma <= 0) {
+        hue = 0;
+      } else if (max === r) {
+        hue = (g - b) / chroma % 6;
+      } else if (max === g) {
+        hue = 2 + (b - r) / chroma;
+      } else {
+        hue = 4 + (r - g) / chroma;
+      }
+      hue /= 6;
+      hue %= 1;
+      return [hue * 360, chroma * 100, grayscale * 100];
+    };
+    convert.hsl.hcg = function(hsl) {
+      const s2 = hsl[1] / 100;
+      const l = hsl[2] / 100;
+      const c = l < 0.5 ? 2 * s2 * l : 2 * s2 * (1 - l);
+      let f = 0;
+      if (c < 1) {
+        f = (l - 0.5 * c) / (1 - c);
+      }
+      return [hsl[0], c * 100, f * 100];
+    };
+    convert.hsv.hcg = function(hsv) {
+      const s2 = hsv[1] / 100;
+      const v = hsv[2] / 100;
+      const c = s2 * v;
+      let f = 0;
+      if (c < 1) {
+        f = (v - c) / (1 - c);
+      }
+      return [hsv[0], c * 100, f * 100];
+    };
+    convert.hcg.rgb = function(hcg) {
+      const h = hcg[0] / 360;
+      const c = hcg[1] / 100;
+      const g = hcg[2] / 100;
+      if (c === 0) {
+        return [g * 255, g * 255, g * 255];
+      }
+      const pure = [0, 0, 0];
+      const hi = h % 1 * 6;
+      const v = hi % 1;
+      const w = 1 - v;
+      let mg = 0;
+      switch (Math.floor(hi)) {
+        case 0:
+          pure[0] = 1;
+          pure[1] = v;
+          pure[2] = 0;
+          break;
+        case 1:
+          pure[0] = w;
+          pure[1] = 1;
+          pure[2] = 0;
+          break;
+        case 2:
+          pure[0] = 0;
+          pure[1] = 1;
+          pure[2] = v;
+          break;
+        case 3:
+          pure[0] = 0;
+          pure[1] = w;
+          pure[2] = 1;
+          break;
+        case 4:
+          pure[0] = v;
+          pure[1] = 0;
+          pure[2] = 1;
+          break;
+        default:
+          pure[0] = 1;
+          pure[1] = 0;
+          pure[2] = w;
+      }
+      mg = (1 - c) * g;
+      return [
+        (c * pure[0] + mg) * 255,
+        (c * pure[1] + mg) * 255,
+        (c * pure[2] + mg) * 255
+      ];
+    };
+    convert.hcg.hsv = function(hcg) {
+      const c = hcg[1] / 100;
+      const g = hcg[2] / 100;
+      const v = c + g * (1 - c);
+      let f = 0;
+      if (v > 0) {
+        f = c / v;
+      }
+      return [hcg[0], f * 100, v * 100];
+    };
+    convert.hcg.hsl = function(hcg) {
+      const c = hcg[1] / 100;
+      const g = hcg[2] / 100;
+      const l = g * (1 - c) + 0.5 * c;
+      let s2 = 0;
+      if (l > 0 && l < 0.5) {
+        s2 = c / (2 * l);
+      } else if (l >= 0.5 && l < 1) {
+        s2 = c / (2 * (1 - l));
+      }
+      return [hcg[0], s2 * 100, l * 100];
+    };
+    convert.hcg.hwb = function(hcg) {
+      const c = hcg[1] / 100;
+      const g = hcg[2] / 100;
+      const v = c + g * (1 - c);
+      return [hcg[0], (v - c) * 100, (1 - v) * 100];
+    };
+    convert.hwb.hcg = function(hwb) {
+      const w = hwb[1] / 100;
+      const b = hwb[2] / 100;
+      const v = 1 - b;
+      const c = v - w;
+      let g = 0;
+      if (c < 1) {
+        g = (v - c) / (1 - c);
+      }
+      return [hwb[0], c * 100, g * 100];
+    };
+    convert.apple.rgb = function(apple) {
+      return [apple[0] / 65535 * 255, apple[1] / 65535 * 255, apple[2] / 65535 * 255];
+    };
+    convert.rgb.apple = function(rgb) {
+      return [rgb[0] / 255 * 65535, rgb[1] / 255 * 65535, rgb[2] / 255 * 65535];
+    };
+    convert.gray.rgb = function(args) {
+      return [args[0] / 100 * 255, args[0] / 100 * 255, args[0] / 100 * 255];
+    };
+    convert.gray.hsl = function(args) {
+      return [0, 0, args[0]];
+    };
+    convert.gray.hsv = convert.gray.hsl;
+    convert.gray.hwb = function(gray) {
+      return [0, 100, gray[0]];
+    };
+    convert.gray.cmyk = function(gray) {
+      return [0, 0, 0, gray[0]];
+    };
+    convert.gray.lab = function(gray) {
+      return [gray[0], 0, 0];
+    };
+    convert.gray.hex = function(gray) {
+      const val = Math.round(gray[0] / 100 * 255) & 255;
+      const integer = (val << 16) + (val << 8) + val;
+      const string = integer.toString(16).toUpperCase();
+      return "000000".substring(string.length) + string;
+    };
+    convert.rgb.gray = function(rgb) {
+      const val = (rgb[0] + rgb[1] + rgb[2]) / 3;
+      return [val / 255 * 100];
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert/route.js
+var require_route = __commonJS({
+  "../../node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert/route.js"(exports2, module2) {
+    "use strict";
+    var conversions = require_conversions();
+    function buildGraph() {
+      const graph = {};
+      const models2 = Object.keys(conversions);
+      for (let len = models2.length, i = 0; i < len; i++) {
+        graph[models2[i]] = {
+          // http://jsperf.com/1-vs-infinity
+          // micro-opt, but this is simple.
+          distance: -1,
+          parent: null
+        };
+      }
+      return graph;
+    }
+    function deriveBFS(fromModel) {
+      const graph = buildGraph();
+      const queue = [fromModel];
+      graph[fromModel].distance = 0;
+      while (queue.length) {
+        const current = queue.pop();
+        const adjacents = Object.keys(conversions[current]);
+        for (let len = adjacents.length, i = 0; i < len; i++) {
+          const adjacent = adjacents[i];
+          const node = graph[adjacent];
+          if (node.distance === -1) {
+            node.distance = graph[current].distance + 1;
+            node.parent = current;
+            queue.unshift(adjacent);
+          }
+        }
+      }
+      return graph;
+    }
+    function link(from, to) {
+      return function(args) {
+        return to(from(args));
+      };
+    }
+    function wrapConversion(toModel, graph) {
+      const path = [graph[toModel].parent, toModel];
+      let fn = conversions[graph[toModel].parent][toModel];
+      let cur = graph[toModel].parent;
+      while (graph[cur].parent) {
+        path.unshift(graph[cur].parent);
+        fn = link(conversions[graph[cur].parent][cur], fn);
+        cur = graph[cur].parent;
+      }
+      fn.conversion = path;
+      return fn;
+    }
+    module2.exports = function(fromModel) {
+      const graph = deriveBFS(fromModel);
+      const conversion = {};
+      const models2 = Object.keys(graph);
+      for (let len = models2.length, i = 0; i < len; i++) {
+        const toModel = models2[i];
+        const node = graph[toModel];
+        if (node.parent === null) {
+          continue;
+        }
+        conversion[toModel] = wrapConversion(toModel, graph);
+      }
+      return conversion;
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert/index.js
+var require_color_convert = __commonJS({
+  "../../node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert/index.js"(exports2, module2) {
+    "use strict";
+    var conversions = require_conversions();
+    var route = require_route();
+    var convert = {};
+    var models2 = Object.keys(conversions);
+    function wrapRaw(fn) {
+      const wrappedFn = function(...args) {
+        const arg0 = args[0];
+        if (arg0 === void 0 || arg0 === null) {
+          return arg0;
+        }
+        if (arg0.length > 1) {
+          args = arg0;
+        }
+        return fn(args);
+      };
+      if ("conversion" in fn) {
+        wrappedFn.conversion = fn.conversion;
+      }
+      return wrappedFn;
+    }
+    function wrapRounded(fn) {
+      const wrappedFn = function(...args) {
+        const arg0 = args[0];
+        if (arg0 === void 0 || arg0 === null) {
+          return arg0;
+        }
+        if (arg0.length > 1) {
+          args = arg0;
+        }
+        const result = fn(args);
+        if (typeof result === "object") {
+          for (let len = result.length, i = 0; i < len; i++) {
+            result[i] = Math.round(result[i]);
+          }
+        }
+        return result;
+      };
+      if ("conversion" in fn) {
+        wrappedFn.conversion = fn.conversion;
+      }
+      return wrappedFn;
+    }
+    models2.forEach((fromModel) => {
+      convert[fromModel] = {};
+      Object.defineProperty(convert[fromModel], "channels", { value: conversions[fromModel].channels });
+      Object.defineProperty(convert[fromModel], "labels", { value: conversions[fromModel].labels });
+      const routes = route(fromModel);
+      const routeModels = Object.keys(routes);
+      routeModels.forEach((toModel) => {
+        const fn = routes[toModel];
+        convert[fromModel][toModel] = wrapRounded(fn);
+        convert[fromModel][toModel].raw = wrapRaw(fn);
+      });
+    });
+    module2.exports = convert;
+  }
+});
+
+// ../../node_modules/.pnpm/ansi-styles@4.3.0/node_modules/ansi-styles/index.js
+var require_ansi_styles = __commonJS({
+  "../../node_modules/.pnpm/ansi-styles@4.3.0/node_modules/ansi-styles/index.js"(exports2, module2) {
+    "use strict";
+    var wrapAnsi16 = (fn, offset) => (...args) => {
+      const code = fn(...args);
+      return `\x1B[${code + offset}m`;
+    };
+    var wrapAnsi256 = (fn, offset) => (...args) => {
+      const code = fn(...args);
+      return `\x1B[${38 + offset};5;${code}m`;
+    };
+    var wrapAnsi16m = (fn, offset) => (...args) => {
+      const rgb = fn(...args);
+      return `\x1B[${38 + offset};2;${rgb[0]};${rgb[1]};${rgb[2]}m`;
+    };
+    var ansi2ansi = (n) => n;
+    var rgb2rgb = (r, g, b) => [r, g, b];
+    var setLazyProperty = (object, property, get2) => {
+      Object.defineProperty(object, property, {
+        get: () => {
+          const value = get2();
+          Object.defineProperty(object, property, {
+            value,
+            enumerable: true,
+            configurable: true
+          });
+          return value;
+        },
+        enumerable: true,
+        configurable: true
+      });
+    };
+    var colorConvert;
+    var makeDynamicStyles = (wrap, targetSpace, identity, isBackground) => {
+      if (colorConvert === void 0) {
+        colorConvert = require_color_convert();
+      }
+      const offset = isBackground ? 10 : 0;
+      const styles = {};
+      for (const [sourceSpace, suite] of Object.entries(colorConvert)) {
+        const name = sourceSpace === "ansi16" ? "ansi" : sourceSpace;
+        if (sourceSpace === targetSpace) {
+          styles[name] = wrap(identity, offset);
+        } else if (typeof suite === "object") {
+          styles[name] = wrap(suite[targetSpace], offset);
+        }
+      }
+      return styles;
+    };
+    function assembleStyles() {
+      const codes = /* @__PURE__ */ new Map();
+      const styles = {
+        modifier: {
+          reset: [0, 0],
+          // 21 isn't widely supported and 22 does the same thing
+          bold: [1, 22],
+          dim: [2, 22],
+          italic: [3, 23],
+          underline: [4, 24],
+          inverse: [7, 27],
+          hidden: [8, 28],
+          strikethrough: [9, 29]
+        },
+        color: {
+          black: [30, 39],
+          red: [31, 39],
+          green: [32, 39],
+          yellow: [33, 39],
+          blue: [34, 39],
+          magenta: [35, 39],
+          cyan: [36, 39],
+          white: [37, 39],
+          // Bright color
+          blackBright: [90, 39],
+          redBright: [91, 39],
+          greenBright: [92, 39],
+          yellowBright: [93, 39],
+          blueBright: [94, 39],
+          magentaBright: [95, 39],
+          cyanBright: [96, 39],
+          whiteBright: [97, 39]
+        },
+        bgColor: {
+          bgBlack: [40, 49],
+          bgRed: [41, 49],
+          bgGreen: [42, 49],
+          bgYellow: [43, 49],
+          bgBlue: [44, 49],
+          bgMagenta: [45, 49],
+          bgCyan: [46, 49],
+          bgWhite: [47, 49],
+          // Bright color
+          bgBlackBright: [100, 49],
+          bgRedBright: [101, 49],
+          bgGreenBright: [102, 49],
+          bgYellowBright: [103, 49],
+          bgBlueBright: [104, 49],
+          bgMagentaBright: [105, 49],
+          bgCyanBright: [106, 49],
+          bgWhiteBright: [107, 49]
+        }
+      };
+      styles.color.gray = styles.color.blackBright;
+      styles.bgColor.bgGray = styles.bgColor.bgBlackBright;
+      styles.color.grey = styles.color.blackBright;
+      styles.bgColor.bgGrey = styles.bgColor.bgBlackBright;
+      for (const [groupName, group] of Object.entries(styles)) {
+        for (const [styleName, style] of Object.entries(group)) {
+          styles[styleName] = {
+            open: `\x1B[${style[0]}m`,
+            close: `\x1B[${style[1]}m`
+          };
+          group[styleName] = styles[styleName];
+          codes.set(style[0], style[1]);
+        }
+        Object.defineProperty(styles, groupName, {
+          value: group,
+          enumerable: false
+        });
+      }
+      Object.defineProperty(styles, "codes", {
+        value: codes,
+        enumerable: false
+      });
+      styles.color.close = "\x1B[39m";
+      styles.bgColor.close = "\x1B[49m";
+      setLazyProperty(styles.color, "ansi", () => makeDynamicStyles(wrapAnsi16, "ansi16", ansi2ansi, false));
+      setLazyProperty(styles.color, "ansi256", () => makeDynamicStyles(wrapAnsi256, "ansi256", ansi2ansi, false));
+      setLazyProperty(styles.color, "ansi16m", () => makeDynamicStyles(wrapAnsi16m, "rgb", rgb2rgb, false));
+      setLazyProperty(styles.bgColor, "ansi", () => makeDynamicStyles(wrapAnsi16, "ansi16", ansi2ansi, true));
+      setLazyProperty(styles.bgColor, "ansi256", () => makeDynamicStyles(wrapAnsi256, "ansi256", ansi2ansi, true));
+      setLazyProperty(styles.bgColor, "ansi16m", () => makeDynamicStyles(wrapAnsi16m, "rgb", rgb2rgb, true));
+      return styles;
+    }
+    Object.defineProperty(module2, "exports", {
+      enumerable: true,
+      get: assembleStyles
+    });
+  }
+});
+
+// ../../node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag/index.js
+var require_has_flag = __commonJS({
+  "../../node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag/index.js"(exports2, module2) {
+    "use strict";
+    module2.exports = (flag, argv = process.argv) => {
+      const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+      const position = argv.indexOf(prefix + flag);
+      const terminatorPosition = argv.indexOf("--");
+      return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/supports-color@7.2.0/node_modules/supports-color/index.js
+var require_supports_color = __commonJS({
+  "../../node_modules/.pnpm/supports-color@7.2.0/node_modules/supports-color/index.js"(exports2, module2) {
+    "use strict";
+    var os = require("os");
+    var tty = require("tty");
+    var hasFlag = require_has_flag();
+    var { env: env2 } = process;
+    var forceColor;
+    if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
+      forceColor = 0;
+    } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
+      forceColor = 1;
+    }
+    if ("FORCE_COLOR" in env2) {
+      if (env2.FORCE_COLOR === "true") {
+        forceColor = 1;
+      } else if (env2.FORCE_COLOR === "false") {
+        forceColor = 0;
+      } else {
+        forceColor = env2.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env2.FORCE_COLOR, 10), 3);
+      }
+    }
+    function translateLevel(level) {
+      if (level === 0) {
+        return false;
+      }
+      return {
+        level,
+        hasBasic: true,
+        has256: level >= 2,
+        has16m: level >= 3
+      };
+    }
+    function supportsColor(haveStream, streamIsTTY) {
+      if (forceColor === 0) {
+        return 0;
+      }
+      if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
+        return 3;
+      }
+      if (hasFlag("color=256")) {
+        return 2;
+      }
+      if (haveStream && !streamIsTTY && forceColor === void 0) {
+        return 0;
+      }
+      const min = forceColor || 0;
+      if (env2.TERM === "dumb") {
+        return min;
+      }
+      if (process.platform === "win32") {
+        const osRelease = os.release().split(".");
+        if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+          return Number(osRelease[2]) >= 14931 ? 3 : 2;
+        }
+        return 1;
+      }
+      if ("CI" in env2) {
+        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign) => sign in env2) || env2.CI_NAME === "codeship") {
+          return 1;
+        }
+        return min;
+      }
+      if ("TEAMCITY_VERSION" in env2) {
+        return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env2.TEAMCITY_VERSION) ? 1 : 0;
+      }
+      if (env2.COLORTERM === "truecolor") {
+        return 3;
+      }
+      if ("TERM_PROGRAM" in env2) {
+        const version6 = parseInt((env2.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+        switch (env2.TERM_PROGRAM) {
+          case "iTerm.app":
+            return version6 >= 3 ? 3 : 2;
+          case "Apple_Terminal":
+            return 2;
+        }
+      }
+      if (/-256(color)?$/i.test(env2.TERM)) {
+        return 2;
+      }
+      if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env2.TERM)) {
+        return 1;
+      }
+      if ("COLORTERM" in env2) {
+        return 1;
+      }
+      return min;
+    }
+    function getSupportLevel(stream) {
+      const level = supportsColor(stream, stream && stream.isTTY);
+      return translateLevel(level);
+    }
+    module2.exports = {
+      supportsColor: getSupportLevel,
+      stdout: translateLevel(supportsColor(true, tty.isatty(1))),
+      stderr: translateLevel(supportsColor(true, tty.isatty(2)))
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/chalk@4.1.2/node_modules/chalk/source/util.js
+var require_util = __commonJS({
+  "../../node_modules/.pnpm/chalk@4.1.2/node_modules/chalk/source/util.js"(exports2, module2) {
+    "use strict";
+    var stringReplaceAll = (string, substring, replacer) => {
+      let index = string.indexOf(substring);
+      if (index === -1) {
+        return string;
+      }
+      const substringLength = substring.length;
+      let endIndex = 0;
+      let returnValue = "";
+      do {
+        returnValue += string.substr(endIndex, index - endIndex) + substring + replacer;
+        endIndex = index + substringLength;
+        index = string.indexOf(substring, endIndex);
+      } while (index !== -1);
+      returnValue += string.substr(endIndex);
+      return returnValue;
+    };
+    var stringEncaseCRLFWithFirstIndex = (string, prefix, postfix, index) => {
+      let endIndex = 0;
+      let returnValue = "";
+      do {
+        const gotCR = string[index - 1] === "\r";
+        returnValue += string.substr(endIndex, (gotCR ? index - 1 : index) - endIndex) + prefix + (gotCR ? "\r\n" : "\n") + postfix;
+        endIndex = index + 1;
+        index = string.indexOf("\n", endIndex);
+      } while (index !== -1);
+      returnValue += string.substr(endIndex);
+      return returnValue;
+    };
+    module2.exports = {
+      stringReplaceAll,
+      stringEncaseCRLFWithFirstIndex
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/chalk@4.1.2/node_modules/chalk/source/templates.js
+var require_templates = __commonJS({
+  "../../node_modules/.pnpm/chalk@4.1.2/node_modules/chalk/source/templates.js"(exports2, module2) {
+    "use strict";
+    var TEMPLATE_REGEX = /(?:\\(u(?:[a-f\d]{4}|\{[a-f\d]{1,6}\})|x[a-f\d]{2}|.))|(?:\{(~)?(\w+(?:\([^)]*\))?(?:\.\w+(?:\([^)]*\))?)*)(?:[ \t]|(?=\r?\n)))|(\})|((?:.|[\r\n\f])+?)/gi;
+    var STYLE_REGEX = /(?:^|\.)(\w+)(?:\(([^)]*)\))?/g;
+    var STRING_REGEX = /^(['"])((?:\\.|(?!\1)[^\\])*)\1$/;
+    var ESCAPE_REGEX = /\\(u(?:[a-f\d]{4}|{[a-f\d]{1,6}})|x[a-f\d]{2}|.)|([^\\])/gi;
+    var ESCAPES = /* @__PURE__ */ new Map([
+      ["n", "\n"],
+      ["r", "\r"],
+      ["t", "	"],
+      ["b", "\b"],
+      ["f", "\f"],
+      ["v", "\v"],
+      ["0", "\0"],
+      ["\\", "\\"],
+      ["e", "\x1B"],
+      ["a", "\x07"]
+    ]);
+    function unescape(c) {
+      const u = c[0] === "u";
+      const bracket = c[1] === "{";
+      if (u && !bracket && c.length === 5 || c[0] === "x" && c.length === 3) {
+        return String.fromCharCode(parseInt(c.slice(1), 16));
+      }
+      if (u && bracket) {
+        return String.fromCodePoint(parseInt(c.slice(2, -1), 16));
+      }
+      return ESCAPES.get(c) || c;
+    }
+    function parseArguments(name, arguments_) {
+      const results = [];
+      const chunks = arguments_.trim().split(/\s*,\s*/g);
+      let matches2;
+      for (const chunk of chunks) {
+        const number = Number(chunk);
+        if (!Number.isNaN(number)) {
+          results.push(number);
+        } else if (matches2 = chunk.match(STRING_REGEX)) {
+          results.push(matches2[2].replace(ESCAPE_REGEX, (m, escape, character) => escape ? unescape(escape) : character));
+        } else {
+          throw new Error(`Invalid Chalk template style argument: ${chunk} (in style '${name}')`);
+        }
+      }
+      return results;
+    }
+    function parseStyle(style) {
+      STYLE_REGEX.lastIndex = 0;
+      const results = [];
+      let matches2;
+      while ((matches2 = STYLE_REGEX.exec(style)) !== null) {
+        const name = matches2[1];
+        if (matches2[2]) {
+          const args = parseArguments(name, matches2[2]);
+          results.push([name].concat(args));
+        } else {
+          results.push([name]);
+        }
+      }
+      return results;
+    }
+    function buildStyle(chalk3, styles) {
+      const enabled = {};
+      for (const layer of styles) {
+        for (const style of layer.styles) {
+          enabled[style[0]] = layer.inverse ? null : style.slice(1);
+        }
+      }
+      let current = chalk3;
+      for (const [styleName, styles2] of Object.entries(enabled)) {
+        if (!Array.isArray(styles2)) {
+          continue;
+        }
+        if (!(styleName in current)) {
+          throw new Error(`Unknown Chalk style: ${styleName}`);
+        }
+        current = styles2.length > 0 ? current[styleName](...styles2) : current[styleName];
+      }
+      return current;
+    }
+    module2.exports = (chalk3, temporary) => {
+      const styles = [];
+      const chunks = [];
+      let chunk = [];
+      temporary.replace(TEMPLATE_REGEX, (m, escapeCharacter, inverse, style, close, character) => {
+        if (escapeCharacter) {
+          chunk.push(unescape(escapeCharacter));
+        } else if (style) {
+          const string = chunk.join("");
+          chunk = [];
+          chunks.push(styles.length === 0 ? string : buildStyle(chalk3, styles)(string));
+          styles.push({ inverse, styles: parseStyle(style) });
+        } else if (close) {
+          if (styles.length === 0) {
+            throw new Error("Found extraneous } in Chalk template literal");
+          }
+          chunks.push(buildStyle(chalk3, styles)(chunk.join("")));
+          chunk = [];
+          styles.pop();
+        } else {
+          chunk.push(character);
+        }
+      });
+      chunks.push(chunk.join(""));
+      if (styles.length > 0) {
+        const errMessage = `Chalk template literal is missing ${styles.length} closing bracket${styles.length === 1 ? "" : "s"} (\`}\`)`;
+        throw new Error(errMessage);
+      }
+      return chunks.join("");
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/chalk@4.1.2/node_modules/chalk/source/index.js
+var require_source = __commonJS({
+  "../../node_modules/.pnpm/chalk@4.1.2/node_modules/chalk/source/index.js"(exports2, module2) {
+    "use strict";
+    var ansiStyles = require_ansi_styles();
+    var { stdout: stdoutColor, stderr: stderrColor } = require_supports_color();
+    var {
+      stringReplaceAll,
+      stringEncaseCRLFWithFirstIndex
+    } = require_util();
+    var { isArray } = Array;
+    var levelMapping = [
+      "ansi",
+      "ansi",
+      "ansi256",
+      "ansi16m"
+    ];
+    var styles = /* @__PURE__ */ Object.create(null);
+    var applyOptions = (object, options = {}) => {
+      if (options.level && !(Number.isInteger(options.level) && options.level >= 0 && options.level <= 3)) {
+        throw new Error("The `level` option should be an integer from 0 to 3");
+      }
+      const colorLevel = stdoutColor ? stdoutColor.level : 0;
+      object.level = options.level === void 0 ? colorLevel : options.level;
+    };
+    var ChalkClass = class {
+      constructor(options) {
+        return chalkFactory(options);
+      }
+    };
+    var chalkFactory = (options) => {
+      const chalk4 = {};
+      applyOptions(chalk4, options);
+      chalk4.template = (...arguments_) => chalkTag(chalk4.template, ...arguments_);
+      Object.setPrototypeOf(chalk4, Chalk.prototype);
+      Object.setPrototypeOf(chalk4.template, chalk4);
+      chalk4.template.constructor = () => {
+        throw new Error("`chalk.constructor()` is deprecated. Use `new chalk.Instance()` instead.");
+      };
+      chalk4.template.Instance = ChalkClass;
+      return chalk4.template;
+    };
+    function Chalk(options) {
+      return chalkFactory(options);
+    }
+    for (const [styleName, style] of Object.entries(ansiStyles)) {
+      styles[styleName] = {
+        get() {
+          const builder = createBuilder(this, createStyler(style.open, style.close, this._styler), this._isEmpty);
+          Object.defineProperty(this, styleName, { value: builder });
+          return builder;
+        }
+      };
+    }
+    styles.visible = {
+      get() {
+        const builder = createBuilder(this, this._styler, true);
+        Object.defineProperty(this, "visible", { value: builder });
+        return builder;
+      }
+    };
+    var usedModels = ["rgb", "hex", "keyword", "hsl", "hsv", "hwb", "ansi", "ansi256"];
+    for (const model of usedModels) {
+      styles[model] = {
+        get() {
+          const { level } = this;
+          return function(...arguments_) {
+            const styler = createStyler(ansiStyles.color[levelMapping[level]][model](...arguments_), ansiStyles.color.close, this._styler);
+            return createBuilder(this, styler, this._isEmpty);
+          };
+        }
+      };
+    }
+    for (const model of usedModels) {
+      const bgModel = "bg" + model[0].toUpperCase() + model.slice(1);
+      styles[bgModel] = {
+        get() {
+          const { level } = this;
+          return function(...arguments_) {
+            const styler = createStyler(ansiStyles.bgColor[levelMapping[level]][model](...arguments_), ansiStyles.bgColor.close, this._styler);
+            return createBuilder(this, styler, this._isEmpty);
+          };
+        }
+      };
+    }
+    var proto = Object.defineProperties(() => {
+    }, {
+      ...styles,
+      level: {
+        enumerable: true,
+        get() {
+          return this._generator.level;
+        },
+        set(level) {
+          this._generator.level = level;
+        }
+      }
+    });
+    var createStyler = (open, close, parent) => {
+      let openAll;
+      let closeAll;
+      if (parent === void 0) {
+        openAll = open;
+        closeAll = close;
+      } else {
+        openAll = parent.openAll + open;
+        closeAll = close + parent.closeAll;
+      }
+      return {
+        open,
+        close,
+        openAll,
+        closeAll,
+        parent
+      };
+    };
+    var createBuilder = (self2, _styler, _isEmpty) => {
+      const builder = (...arguments_) => {
+        if (isArray(arguments_[0]) && isArray(arguments_[0].raw)) {
+          return applyStyle(builder, chalkTag(builder, ...arguments_));
+        }
+        return applyStyle(builder, arguments_.length === 1 ? "" + arguments_[0] : arguments_.join(" "));
+      };
+      Object.setPrototypeOf(builder, proto);
+      builder._generator = self2;
+      builder._styler = _styler;
+      builder._isEmpty = _isEmpty;
+      return builder;
+    };
+    var applyStyle = (self2, string) => {
+      if (self2.level <= 0 || !string) {
+        return self2._isEmpty ? "" : string;
+      }
+      let styler = self2._styler;
+      if (styler === void 0) {
+        return string;
+      }
+      const { openAll, closeAll } = styler;
+      if (string.indexOf("\x1B") !== -1) {
+        while (styler !== void 0) {
+          string = stringReplaceAll(string, styler.close, styler.open);
+          styler = styler.parent;
+        }
+      }
+      const lfIndex = string.indexOf("\n");
+      if (lfIndex !== -1) {
+        string = stringEncaseCRLFWithFirstIndex(string, closeAll, openAll, lfIndex);
+      }
+      return openAll + string + closeAll;
+    };
+    var template;
+    var chalkTag = (chalk4, ...strings) => {
+      const [firstString] = strings;
+      if (!isArray(firstString) || !isArray(firstString.raw)) {
+        return strings.join(" ");
+      }
+      const arguments_ = strings.slice(1);
+      const parts = [firstString.raw[0]];
+      for (let i = 1; i < firstString.length; i++) {
+        parts.push(
+          String(arguments_[i - 1]).replace(/[{}\\]/g, "\\$&"),
+          String(firstString.raw[i])
+        );
+      }
+      if (template === void 0) {
+        template = require_templates();
+      }
+      return template(chalk4, parts.join(""));
+    };
+    Object.defineProperties(Chalk.prototype, styles);
+    var chalk3 = Chalk();
+    chalk3.supportsColor = stdoutColor;
+    chalk3.stderr = Chalk({ level: stderrColor ? stderrColor.level : 0 });
+    chalk3.stderr.supportsColor = stderrColor;
+    module2.exports = chalk3;
+  }
+});
+
+// ../../node_modules/.pnpm/minimalistic-assert@1.0.1/node_modules/minimalistic-assert/index.js
+var require_minimalistic_assert = __commonJS({
+  "../../node_modules/.pnpm/minimalistic-assert@1.0.1/node_modules/minimalistic-assert/index.js"(exports2, module2) {
+    "use strict";
+    module2.exports = assert;
+    function assert(val, msg) {
+      if (!val)
+        throw new Error(msg || "Assertion failed");
+    }
+    assert.equal = function assertEqual(l, r, msg) {
+      if (l != r)
+        throw new Error(msg || "Assertion failed: " + l + " != " + r);
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js
+var require_inherits_browser = __commonJS({
+  "../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits_browser.js"(exports2, module2) {
+    "use strict";
+    if (typeof Object.create === "function") {
+      module2.exports = function inherits(ctor, superCtor) {
+        if (superCtor) {
+          ctor.super_ = superCtor;
+          ctor.prototype = Object.create(superCtor.prototype, {
+            constructor: {
+              value: ctor,
+              enumerable: false,
+              writable: true,
+              configurable: true
+            }
+          });
+        }
+      };
+    } else {
+      module2.exports = function inherits(ctor, superCtor) {
+        if (superCtor) {
+          ctor.super_ = superCtor;
+          var TempCtor = function() {
+          };
+          TempCtor.prototype = superCtor.prototype;
+          ctor.prototype = new TempCtor();
+          ctor.prototype.constructor = ctor;
+        }
+      };
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js
+var require_inherits = __commonJS({
+  "../../node_modules/.pnpm/inherits@2.0.4/node_modules/inherits/inherits.js"(exports2, module2) {
+    "use strict";
+    try {
+      util2 = require("util");
+      if (typeof util2.inherits !== "function") throw "";
+      module2.exports = util2.inherits;
+    } catch (e) {
+      module2.exports = require_inherits_browser();
+    }
+    var util2;
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/utils.js
+var require_utils = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/utils.js"(exports2) {
+    "use strict";
+    var assert = require_minimalistic_assert();
+    var inherits = require_inherits();
+    exports2.inherits = inherits;
+    function isSurrogatePair(msg, i) {
+      if ((msg.charCodeAt(i) & 64512) !== 55296) {
+        return false;
+      }
+      if (i < 0 || i + 1 >= msg.length) {
+        return false;
+      }
+      return (msg.charCodeAt(i + 1) & 64512) === 56320;
+    }
+    function toArray2(msg, enc) {
+      if (Array.isArray(msg))
+        return msg.slice();
+      if (!msg)
+        return [];
+      var res = [];
+      if (typeof msg === "string") {
+        if (!enc) {
+          var p = 0;
+          for (var i = 0; i < msg.length; i++) {
+            var c = msg.charCodeAt(i);
+            if (c < 128) {
+              res[p++] = c;
+            } else if (c < 2048) {
+              res[p++] = c >> 6 | 192;
+              res[p++] = c & 63 | 128;
+            } else if (isSurrogatePair(msg, i)) {
+              c = 65536 + ((c & 1023) << 10) + (msg.charCodeAt(++i) & 1023);
+              res[p++] = c >> 18 | 240;
+              res[p++] = c >> 12 & 63 | 128;
+              res[p++] = c >> 6 & 63 | 128;
+              res[p++] = c & 63 | 128;
+            } else {
+              res[p++] = c >> 12 | 224;
+              res[p++] = c >> 6 & 63 | 128;
+              res[p++] = c & 63 | 128;
+            }
+          }
+        } else if (enc === "hex") {
+          msg = msg.replace(/[^a-z0-9]+/ig, "");
+          if (msg.length % 2 !== 0)
+            msg = "0" + msg;
+          for (i = 0; i < msg.length; i += 2)
+            res.push(parseInt(msg[i] + msg[i + 1], 16));
+        }
+      } else {
+        for (i = 0; i < msg.length; i++)
+          res[i] = msg[i] | 0;
+      }
+      return res;
+    }
+    exports2.toArray = toArray2;
+    function toHex2(msg) {
+      var res = "";
+      for (var i = 0; i < msg.length; i++)
+        res += zero2(msg[i].toString(16));
+      return res;
+    }
+    exports2.toHex = toHex2;
+    function htonl(w) {
+      var res = w >>> 24 | w >>> 8 & 65280 | w << 8 & 16711680 | (w & 255) << 24;
+      return res >>> 0;
+    }
+    exports2.htonl = htonl;
+    function toHex32(msg, endian) {
+      var res = "";
+      for (var i = 0; i < msg.length; i++) {
+        var w = msg[i];
+        if (endian === "little")
+          w = htonl(w);
+        res += zero8(w.toString(16));
+      }
+      return res;
+    }
+    exports2.toHex32 = toHex32;
+    function zero2(word) {
+      if (word.length === 1)
+        return "0" + word;
+      else
+        return word;
+    }
+    exports2.zero2 = zero2;
+    function zero8(word) {
+      if (word.length === 7)
+        return "0" + word;
+      else if (word.length === 6)
+        return "00" + word;
+      else if (word.length === 5)
+        return "000" + word;
+      else if (word.length === 4)
+        return "0000" + word;
+      else if (word.length === 3)
+        return "00000" + word;
+      else if (word.length === 2)
+        return "000000" + word;
+      else if (word.length === 1)
+        return "0000000" + word;
+      else
+        return word;
+    }
+    exports2.zero8 = zero8;
+    function join32(msg, start, end, endian) {
+      var len = end - start;
+      assert(len % 4 === 0);
+      var res = new Array(len / 4);
+      for (var i = 0, k = start; i < res.length; i++, k += 4) {
+        var w;
+        if (endian === "big")
+          w = msg[k] << 24 | msg[k + 1] << 16 | msg[k + 2] << 8 | msg[k + 3];
+        else
+          w = msg[k + 3] << 24 | msg[k + 2] << 16 | msg[k + 1] << 8 | msg[k];
+        res[i] = w >>> 0;
+      }
+      return res;
+    }
+    exports2.join32 = join32;
+    function split32(msg, endian) {
+      var res = new Array(msg.length * 4);
+      for (var i = 0, k = 0; i < msg.length; i++, k += 4) {
+        var m = msg[i];
+        if (endian === "big") {
+          res[k] = m >>> 24;
+          res[k + 1] = m >>> 16 & 255;
+          res[k + 2] = m >>> 8 & 255;
+          res[k + 3] = m & 255;
+        } else {
+          res[k + 3] = m >>> 24;
+          res[k + 2] = m >>> 16 & 255;
+          res[k + 1] = m >>> 8 & 255;
+          res[k] = m & 255;
+        }
+      }
+      return res;
+    }
+    exports2.split32 = split32;
+    function rotr32(w, b) {
+      return w >>> b | w << 32 - b;
+    }
+    exports2.rotr32 = rotr32;
+    function rotl32(w, b) {
+      return w << b | w >>> 32 - b;
+    }
+    exports2.rotl32 = rotl32;
+    function sum32(a, b) {
+      return a + b >>> 0;
+    }
+    exports2.sum32 = sum32;
+    function sum32_3(a, b, c) {
+      return a + b + c >>> 0;
+    }
+    exports2.sum32_3 = sum32_3;
+    function sum32_4(a, b, c, d) {
+      return a + b + c + d >>> 0;
+    }
+    exports2.sum32_4 = sum32_4;
+    function sum32_5(a, b, c, d, e) {
+      return a + b + c + d + e >>> 0;
+    }
+    exports2.sum32_5 = sum32_5;
+    function sum64(buf, pos, ah, al) {
+      var bh = buf[pos];
+      var bl = buf[pos + 1];
+      var lo = al + bl >>> 0;
+      var hi = (lo < al ? 1 : 0) + ah + bh;
+      buf[pos] = hi >>> 0;
+      buf[pos + 1] = lo;
+    }
+    exports2.sum64 = sum64;
+    function sum64_hi(ah, al, bh, bl) {
+      var lo = al + bl >>> 0;
+      var hi = (lo < al ? 1 : 0) + ah + bh;
+      return hi >>> 0;
+    }
+    exports2.sum64_hi = sum64_hi;
+    function sum64_lo(ah, al, bh, bl) {
+      var lo = al + bl;
+      return lo >>> 0;
+    }
+    exports2.sum64_lo = sum64_lo;
+    function sum64_4_hi(ah, al, bh, bl, ch, cl, dh, dl) {
+      var carry = 0;
+      var lo = al;
+      lo = lo + bl >>> 0;
+      carry += lo < al ? 1 : 0;
+      lo = lo + cl >>> 0;
+      carry += lo < cl ? 1 : 0;
+      lo = lo + dl >>> 0;
+      carry += lo < dl ? 1 : 0;
+      var hi = ah + bh + ch + dh + carry;
+      return hi >>> 0;
+    }
+    exports2.sum64_4_hi = sum64_4_hi;
+    function sum64_4_lo(ah, al, bh, bl, ch, cl, dh, dl) {
+      var lo = al + bl + cl + dl;
+      return lo >>> 0;
+    }
+    exports2.sum64_4_lo = sum64_4_lo;
+    function sum64_5_hi(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
+      var carry = 0;
+      var lo = al;
+      lo = lo + bl >>> 0;
+      carry += lo < al ? 1 : 0;
+      lo = lo + cl >>> 0;
+      carry += lo < cl ? 1 : 0;
+      lo = lo + dl >>> 0;
+      carry += lo < dl ? 1 : 0;
+      lo = lo + el >>> 0;
+      carry += lo < el ? 1 : 0;
+      var hi = ah + bh + ch + dh + eh + carry;
+      return hi >>> 0;
+    }
+    exports2.sum64_5_hi = sum64_5_hi;
+    function sum64_5_lo(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
+      var lo = al + bl + cl + dl + el;
+      return lo >>> 0;
+    }
+    exports2.sum64_5_lo = sum64_5_lo;
+    function rotr64_hi(ah, al, num) {
+      var r = al << 32 - num | ah >>> num;
+      return r >>> 0;
+    }
+    exports2.rotr64_hi = rotr64_hi;
+    function rotr64_lo(ah, al, num) {
+      var r = ah << 32 - num | al >>> num;
+      return r >>> 0;
+    }
+    exports2.rotr64_lo = rotr64_lo;
+    function shr64_hi(ah, al, num) {
+      return ah >>> num;
+    }
+    exports2.shr64_hi = shr64_hi;
+    function shr64_lo(ah, al, num) {
+      var r = ah << 32 - num | al >>> num;
+      return r >>> 0;
+    }
+    exports2.shr64_lo = shr64_lo;
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/common.js
+var require_common = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/common.js"(exports2) {
+    "use strict";
+    var utils = require_utils();
+    var assert = require_minimalistic_assert();
+    function BlockHash() {
+      this.pending = null;
+      this.pendingTotal = 0;
+      this.blockSize = this.constructor.blockSize;
+      this.outSize = this.constructor.outSize;
+      this.hmacStrength = this.constructor.hmacStrength;
+      this.padLength = this.constructor.padLength / 8;
+      this.endian = "big";
+      this._delta8 = this.blockSize / 8;
+      this._delta32 = this.blockSize / 32;
+    }
+    exports2.BlockHash = BlockHash;
+    BlockHash.prototype.update = function update(msg, enc) {
+      msg = utils.toArray(msg, enc);
+      if (!this.pending)
+        this.pending = msg;
+      else
+        this.pending = this.pending.concat(msg);
+      this.pendingTotal += msg.length;
+      if (this.pending.length >= this._delta8) {
+        msg = this.pending;
+        var r = msg.length % this._delta8;
+        this.pending = msg.slice(msg.length - r, msg.length);
+        if (this.pending.length === 0)
+          this.pending = null;
+        msg = utils.join32(msg, 0, msg.length - r, this.endian);
+        for (var i = 0; i < msg.length; i += this._delta32)
+          this._update(msg, i, i + this._delta32);
+      }
+      return this;
+    };
+    BlockHash.prototype.digest = function digest(enc) {
+      this.update(this._pad());
+      assert(this.pending === null);
+      return this._digest(enc);
+    };
+    BlockHash.prototype._pad = function pad() {
+      var len = this.pendingTotal;
+      var bytes = this._delta8;
+      var k = bytes - (len + this.padLength) % bytes;
+      var res = new Array(k + this.padLength);
+      res[0] = 128;
+      for (var i = 1; i < k; i++)
+        res[i] = 0;
+      len <<= 3;
+      if (this.endian === "big") {
+        for (var t = 8; t < this.padLength; t++)
+          res[i++] = 0;
+        res[i++] = 0;
+        res[i++] = 0;
+        res[i++] = 0;
+        res[i++] = 0;
+        res[i++] = len >>> 24 & 255;
+        res[i++] = len >>> 16 & 255;
+        res[i++] = len >>> 8 & 255;
+        res[i++] = len & 255;
+      } else {
+        res[i++] = len & 255;
+        res[i++] = len >>> 8 & 255;
+        res[i++] = len >>> 16 & 255;
+        res[i++] = len >>> 24 & 255;
+        res[i++] = 0;
+        res[i++] = 0;
+        res[i++] = 0;
+        res[i++] = 0;
+        for (t = 8; t < this.padLength; t++)
+          res[i++] = 0;
+      }
+      return res;
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/common.js
+var require_common2 = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/common.js"(exports2) {
+    "use strict";
+    var utils = require_utils();
+    var rotr32 = utils.rotr32;
+    function ft_1(s2, x, y, z) {
+      if (s2 === 0)
+        return ch32(x, y, z);
+      if (s2 === 1 || s2 === 3)
+        return p32(x, y, z);
+      if (s2 === 2)
+        return maj32(x, y, z);
+    }
+    exports2.ft_1 = ft_1;
+    function ch32(x, y, z) {
+      return x & y ^ ~x & z;
+    }
+    exports2.ch32 = ch32;
+    function maj32(x, y, z) {
+      return x & y ^ x & z ^ y & z;
+    }
+    exports2.maj32 = maj32;
+    function p32(x, y, z) {
+      return x ^ y ^ z;
+    }
+    exports2.p32 = p32;
+    function s0_256(x) {
+      return rotr32(x, 2) ^ rotr32(x, 13) ^ rotr32(x, 22);
+    }
+    exports2.s0_256 = s0_256;
+    function s1_256(x) {
+      return rotr32(x, 6) ^ rotr32(x, 11) ^ rotr32(x, 25);
+    }
+    exports2.s1_256 = s1_256;
+    function g0_256(x) {
+      return rotr32(x, 7) ^ rotr32(x, 18) ^ x >>> 3;
+    }
+    exports2.g0_256 = g0_256;
+    function g1_256(x) {
+      return rotr32(x, 17) ^ rotr32(x, 19) ^ x >>> 10;
+    }
+    exports2.g1_256 = g1_256;
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/1.js
+var require__ = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/1.js"(exports2, module2) {
+    "use strict";
+    var utils = require_utils();
+    var common = require_common();
+    var shaCommon = require_common2();
+    var rotl32 = utils.rotl32;
+    var sum32 = utils.sum32;
+    var sum32_5 = utils.sum32_5;
+    var ft_1 = shaCommon.ft_1;
+    var BlockHash = common.BlockHash;
+    var sha1_K = [
+      1518500249,
+      1859775393,
+      2400959708,
+      3395469782
+    ];
+    function SHA1() {
+      if (!(this instanceof SHA1))
+        return new SHA1();
+      BlockHash.call(this);
+      this.h = [
+        1732584193,
+        4023233417,
+        2562383102,
+        271733878,
+        3285377520
+      ];
+      this.W = new Array(80);
+    }
+    utils.inherits(SHA1, BlockHash);
+    module2.exports = SHA1;
+    SHA1.blockSize = 512;
+    SHA1.outSize = 160;
+    SHA1.hmacStrength = 80;
+    SHA1.padLength = 64;
+    SHA1.prototype._update = function _update(msg, start) {
+      var W2 = this.W;
+      for (var i = 0; i < 16; i++)
+        W2[i] = msg[start + i];
+      for (; i < W2.length; i++)
+        W2[i] = rotl32(W2[i - 3] ^ W2[i - 8] ^ W2[i - 14] ^ W2[i - 16], 1);
+      var a = this.h[0];
+      var b = this.h[1];
+      var c = this.h[2];
+      var d = this.h[3];
+      var e = this.h[4];
+      for (i = 0; i < W2.length; i++) {
+        var s2 = ~~(i / 20);
+        var t = sum32_5(rotl32(a, 5), ft_1(s2, b, c, d), e, W2[i], sha1_K[s2]);
+        e = d;
+        d = c;
+        c = rotl32(b, 30);
+        b = a;
+        a = t;
+      }
+      this.h[0] = sum32(this.h[0], a);
+      this.h[1] = sum32(this.h[1], b);
+      this.h[2] = sum32(this.h[2], c);
+      this.h[3] = sum32(this.h[3], d);
+      this.h[4] = sum32(this.h[4], e);
+    };
+    SHA1.prototype._digest = function digest(enc) {
+      if (enc === "hex")
+        return utils.toHex32(this.h, "big");
+      else
+        return utils.split32(this.h, "big");
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/256.js
+var require__2 = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/256.js"(exports2, module2) {
+    "use strict";
+    var utils = require_utils();
+    var common = require_common();
+    var shaCommon = require_common2();
+    var assert = require_minimalistic_assert();
+    var sum32 = utils.sum32;
+    var sum32_4 = utils.sum32_4;
+    var sum32_5 = utils.sum32_5;
+    var ch32 = shaCommon.ch32;
+    var maj32 = shaCommon.maj32;
+    var s0_256 = shaCommon.s0_256;
+    var s1_256 = shaCommon.s1_256;
+    var g0_256 = shaCommon.g0_256;
+    var g1_256 = shaCommon.g1_256;
+    var BlockHash = common.BlockHash;
+    var sha256_K = [
+      1116352408,
+      1899447441,
+      3049323471,
+      3921009573,
+      961987163,
+      1508970993,
+      2453635748,
+      2870763221,
+      3624381080,
+      310598401,
+      607225278,
+      1426881987,
+      1925078388,
+      2162078206,
+      2614888103,
+      3248222580,
+      3835390401,
+      4022224774,
+      264347078,
+      604807628,
+      770255983,
+      1249150122,
+      1555081692,
+      1996064986,
+      2554220882,
+      2821834349,
+      2952996808,
+      3210313671,
+      3336571891,
+      3584528711,
+      113926993,
+      338241895,
+      666307205,
+      773529912,
+      1294757372,
+      1396182291,
+      1695183700,
+      1986661051,
+      2177026350,
+      2456956037,
+      2730485921,
+      2820302411,
+      3259730800,
+      3345764771,
+      3516065817,
+      3600352804,
+      4094571909,
+      275423344,
+      430227734,
+      506948616,
+      659060556,
+      883997877,
+      958139571,
+      1322822218,
+      1537002063,
+      1747873779,
+      1955562222,
+      2024104815,
+      2227730452,
+      2361852424,
+      2428436474,
+      2756734187,
+      3204031479,
+      3329325298
+    ];
+    function SHA256() {
+      if (!(this instanceof SHA256))
+        return new SHA256();
+      BlockHash.call(this);
+      this.h = [
+        1779033703,
+        3144134277,
+        1013904242,
+        2773480762,
+        1359893119,
+        2600822924,
+        528734635,
+        1541459225
+      ];
+      this.k = sha256_K;
+      this.W = new Array(64);
+    }
+    utils.inherits(SHA256, BlockHash);
+    module2.exports = SHA256;
+    SHA256.blockSize = 512;
+    SHA256.outSize = 256;
+    SHA256.hmacStrength = 192;
+    SHA256.padLength = 64;
+    SHA256.prototype._update = function _update(msg, start) {
+      var W2 = this.W;
+      for (var i = 0; i < 16; i++)
+        W2[i] = msg[start + i];
+      for (; i < W2.length; i++)
+        W2[i] = sum32_4(g1_256(W2[i - 2]), W2[i - 7], g0_256(W2[i - 15]), W2[i - 16]);
+      var a = this.h[0];
+      var b = this.h[1];
+      var c = this.h[2];
+      var d = this.h[3];
+      var e = this.h[4];
+      var f = this.h[5];
+      var g = this.h[6];
+      var h = this.h[7];
+      assert(this.k.length === W2.length);
+      for (i = 0; i < W2.length; i++) {
+        var T1 = sum32_5(h, s1_256(e), ch32(e, f, g), this.k[i], W2[i]);
+        var T2 = sum32(s0_256(a), maj32(a, b, c));
+        h = g;
+        g = f;
+        f = e;
+        e = sum32(d, T1);
+        d = c;
+        c = b;
+        b = a;
+        a = sum32(T1, T2);
+      }
+      this.h[0] = sum32(this.h[0], a);
+      this.h[1] = sum32(this.h[1], b);
+      this.h[2] = sum32(this.h[2], c);
+      this.h[3] = sum32(this.h[3], d);
+      this.h[4] = sum32(this.h[4], e);
+      this.h[5] = sum32(this.h[5], f);
+      this.h[6] = sum32(this.h[6], g);
+      this.h[7] = sum32(this.h[7], h);
+    };
+    SHA256.prototype._digest = function digest(enc) {
+      if (enc === "hex")
+        return utils.toHex32(this.h, "big");
+      else
+        return utils.split32(this.h, "big");
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/224.js
+var require__3 = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/224.js"(exports2, module2) {
+    "use strict";
+    var utils = require_utils();
+    var SHA256 = require__2();
+    function SHA224() {
+      if (!(this instanceof SHA224))
+        return new SHA224();
+      SHA256.call(this);
+      this.h = [
+        3238371032,
+        914150663,
+        812702999,
+        4144912697,
+        4290775857,
+        1750603025,
+        1694076839,
+        3204075428
+      ];
+    }
+    utils.inherits(SHA224, SHA256);
+    module2.exports = SHA224;
+    SHA224.blockSize = 512;
+    SHA224.outSize = 224;
+    SHA224.hmacStrength = 192;
+    SHA224.padLength = 64;
+    SHA224.prototype._digest = function digest(enc) {
+      if (enc === "hex")
+        return utils.toHex32(this.h.slice(0, 7), "big");
+      else
+        return utils.split32(this.h.slice(0, 7), "big");
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/512.js
+var require__4 = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/512.js"(exports2, module2) {
+    "use strict";
+    var utils = require_utils();
+    var common = require_common();
+    var assert = require_minimalistic_assert();
+    var rotr64_hi = utils.rotr64_hi;
+    var rotr64_lo = utils.rotr64_lo;
+    var shr64_hi = utils.shr64_hi;
+    var shr64_lo = utils.shr64_lo;
+    var sum64 = utils.sum64;
+    var sum64_hi = utils.sum64_hi;
+    var sum64_lo = utils.sum64_lo;
+    var sum64_4_hi = utils.sum64_4_hi;
+    var sum64_4_lo = utils.sum64_4_lo;
+    var sum64_5_hi = utils.sum64_5_hi;
+    var sum64_5_lo = utils.sum64_5_lo;
+    var BlockHash = common.BlockHash;
+    var sha512_K = [
+      1116352408,
+      3609767458,
+      1899447441,
+      602891725,
+      3049323471,
+      3964484399,
+      3921009573,
+      2173295548,
+      961987163,
+      4081628472,
+      1508970993,
+      3053834265,
+      2453635748,
+      2937671579,
+      2870763221,
+      3664609560,
+      3624381080,
+      2734883394,
+      310598401,
+      1164996542,
+      607225278,
+      1323610764,
+      1426881987,
+      3590304994,
+      1925078388,
+      4068182383,
+      2162078206,
+      991336113,
+      2614888103,
+      633803317,
+      3248222580,
+      3479774868,
+      3835390401,
+      2666613458,
+      4022224774,
+      944711139,
+      264347078,
+      2341262773,
+      604807628,
+      2007800933,
+      770255983,
+      1495990901,
+      1249150122,
+      1856431235,
+      1555081692,
+      3175218132,
+      1996064986,
+      2198950837,
+      2554220882,
+      3999719339,
+      2821834349,
+      766784016,
+      2952996808,
+      2566594879,
+      3210313671,
+      3203337956,
+      3336571891,
+      1034457026,
+      3584528711,
+      2466948901,
+      113926993,
+      3758326383,
+      338241895,
+      168717936,
+      666307205,
+      1188179964,
+      773529912,
+      1546045734,
+      1294757372,
+      1522805485,
+      1396182291,
+      2643833823,
+      1695183700,
+      2343527390,
+      1986661051,
+      1014477480,
+      2177026350,
+      1206759142,
+      2456956037,
+      344077627,
+      2730485921,
+      1290863460,
+      2820302411,
+      3158454273,
+      3259730800,
+      3505952657,
+      3345764771,
+      106217008,
+      3516065817,
+      3606008344,
+      3600352804,
+      1432725776,
+      4094571909,
+      1467031594,
+      275423344,
+      851169720,
+      430227734,
+      3100823752,
+      506948616,
+      1363258195,
+      659060556,
+      3750685593,
+      883997877,
+      3785050280,
+      958139571,
+      3318307427,
+      1322822218,
+      3812723403,
+      1537002063,
+      2003034995,
+      1747873779,
+      3602036899,
+      1955562222,
+      1575990012,
+      2024104815,
+      1125592928,
+      2227730452,
+      2716904306,
+      2361852424,
+      442776044,
+      2428436474,
+      593698344,
+      2756734187,
+      3733110249,
+      3204031479,
+      2999351573,
+      3329325298,
+      3815920427,
+      3391569614,
+      3928383900,
+      3515267271,
+      566280711,
+      3940187606,
+      3454069534,
+      4118630271,
+      4000239992,
+      116418474,
+      1914138554,
+      174292421,
+      2731055270,
+      289380356,
+      3203993006,
+      460393269,
+      320620315,
+      685471733,
+      587496836,
+      852142971,
+      1086792851,
+      1017036298,
+      365543100,
+      1126000580,
+      2618297676,
+      1288033470,
+      3409855158,
+      1501505948,
+      4234509866,
+      1607167915,
+      987167468,
+      1816402316,
+      1246189591
+    ];
+    function SHA512() {
+      if (!(this instanceof SHA512))
+        return new SHA512();
+      BlockHash.call(this);
+      this.h = [
+        1779033703,
+        4089235720,
+        3144134277,
+        2227873595,
+        1013904242,
+        4271175723,
+        2773480762,
+        1595750129,
+        1359893119,
+        2917565137,
+        2600822924,
+        725511199,
+        528734635,
+        4215389547,
+        1541459225,
+        327033209
+      ];
+      this.k = sha512_K;
+      this.W = new Array(160);
+    }
+    utils.inherits(SHA512, BlockHash);
+    module2.exports = SHA512;
+    SHA512.blockSize = 1024;
+    SHA512.outSize = 512;
+    SHA512.hmacStrength = 192;
+    SHA512.padLength = 128;
+    SHA512.prototype._prepareBlock = function _prepareBlock(msg, start) {
+      var W2 = this.W;
+      for (var i = 0; i < 32; i++)
+        W2[i] = msg[start + i];
+      for (; i < W2.length; i += 2) {
+        var c0_hi = g1_512_hi(W2[i - 4], W2[i - 3]);
+        var c0_lo = g1_512_lo(W2[i - 4], W2[i - 3]);
+        var c1_hi = W2[i - 14];
+        var c1_lo = W2[i - 13];
+        var c2_hi = g0_512_hi(W2[i - 30], W2[i - 29]);
+        var c2_lo = g0_512_lo(W2[i - 30], W2[i - 29]);
+        var c3_hi = W2[i - 32];
+        var c3_lo = W2[i - 31];
+        W2[i] = sum64_4_hi(
+          c0_hi,
+          c0_lo,
+          c1_hi,
+          c1_lo,
+          c2_hi,
+          c2_lo,
+          c3_hi,
+          c3_lo
+        );
+        W2[i + 1] = sum64_4_lo(
+          c0_hi,
+          c0_lo,
+          c1_hi,
+          c1_lo,
+          c2_hi,
+          c2_lo,
+          c3_hi,
+          c3_lo
+        );
+      }
+    };
+    SHA512.prototype._update = function _update(msg, start) {
+      this._prepareBlock(msg, start);
+      var W2 = this.W;
+      var ah = this.h[0];
+      var al = this.h[1];
+      var bh = this.h[2];
+      var bl = this.h[3];
+      var ch = this.h[4];
+      var cl = this.h[5];
+      var dh = this.h[6];
+      var dl = this.h[7];
+      var eh = this.h[8];
+      var el = this.h[9];
+      var fh = this.h[10];
+      var fl = this.h[11];
+      var gh = this.h[12];
+      var gl = this.h[13];
+      var hh = this.h[14];
+      var hl = this.h[15];
+      assert(this.k.length === W2.length);
+      for (var i = 0; i < W2.length; i += 2) {
+        var c0_hi = hh;
+        var c0_lo = hl;
+        var c1_hi = s1_512_hi(eh, el);
+        var c1_lo = s1_512_lo(eh, el);
+        var c2_hi = ch64_hi(eh, el, fh, fl, gh, gl);
+        var c2_lo = ch64_lo(eh, el, fh, fl, gh, gl);
+        var c3_hi = this.k[i];
+        var c3_lo = this.k[i + 1];
+        var c4_hi = W2[i];
+        var c4_lo = W2[i + 1];
+        var T1_hi = sum64_5_hi(
+          c0_hi,
+          c0_lo,
+          c1_hi,
+          c1_lo,
+          c2_hi,
+          c2_lo,
+          c3_hi,
+          c3_lo,
+          c4_hi,
+          c4_lo
+        );
+        var T1_lo = sum64_5_lo(
+          c0_hi,
+          c0_lo,
+          c1_hi,
+          c1_lo,
+          c2_hi,
+          c2_lo,
+          c3_hi,
+          c3_lo,
+          c4_hi,
+          c4_lo
+        );
+        c0_hi = s0_512_hi(ah, al);
+        c0_lo = s0_512_lo(ah, al);
+        c1_hi = maj64_hi(ah, al, bh, bl, ch, cl);
+        c1_lo = maj64_lo(ah, al, bh, bl, ch, cl);
+        var T2_hi = sum64_hi(c0_hi, c0_lo, c1_hi, c1_lo);
+        var T2_lo = sum64_lo(c0_hi, c0_lo, c1_hi, c1_lo);
+        hh = gh;
+        hl = gl;
+        gh = fh;
+        gl = fl;
+        fh = eh;
+        fl = el;
+        eh = sum64_hi(dh, dl, T1_hi, T1_lo);
+        el = sum64_lo(dl, dl, T1_hi, T1_lo);
+        dh = ch;
+        dl = cl;
+        ch = bh;
+        cl = bl;
+        bh = ah;
+        bl = al;
+        ah = sum64_hi(T1_hi, T1_lo, T2_hi, T2_lo);
+        al = sum64_lo(T1_hi, T1_lo, T2_hi, T2_lo);
+      }
+      sum64(this.h, 0, ah, al);
+      sum64(this.h, 2, bh, bl);
+      sum64(this.h, 4, ch, cl);
+      sum64(this.h, 6, dh, dl);
+      sum64(this.h, 8, eh, el);
+      sum64(this.h, 10, fh, fl);
+      sum64(this.h, 12, gh, gl);
+      sum64(this.h, 14, hh, hl);
+    };
+    SHA512.prototype._digest = function digest(enc) {
+      if (enc === "hex")
+        return utils.toHex32(this.h, "big");
+      else
+        return utils.split32(this.h, "big");
+    };
+    function ch64_hi(xh, xl, yh, yl, zh) {
+      var r = xh & yh ^ ~xh & zh;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function ch64_lo(xh, xl, yh, yl, zh, zl) {
+      var r = xl & yl ^ ~xl & zl;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function maj64_hi(xh, xl, yh, yl, zh) {
+      var r = xh & yh ^ xh & zh ^ yh & zh;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function maj64_lo(xh, xl, yh, yl, zh, zl) {
+      var r = xl & yl ^ xl & zl ^ yl & zl;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function s0_512_hi(xh, xl) {
+      var c0_hi = rotr64_hi(xh, xl, 28);
+      var c1_hi = rotr64_hi(xl, xh, 2);
+      var c2_hi = rotr64_hi(xl, xh, 7);
+      var r = c0_hi ^ c1_hi ^ c2_hi;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function s0_512_lo(xh, xl) {
+      var c0_lo = rotr64_lo(xh, xl, 28);
+      var c1_lo = rotr64_lo(xl, xh, 2);
+      var c2_lo = rotr64_lo(xl, xh, 7);
+      var r = c0_lo ^ c1_lo ^ c2_lo;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function s1_512_hi(xh, xl) {
+      var c0_hi = rotr64_hi(xh, xl, 14);
+      var c1_hi = rotr64_hi(xh, xl, 18);
+      var c2_hi = rotr64_hi(xl, xh, 9);
+      var r = c0_hi ^ c1_hi ^ c2_hi;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function s1_512_lo(xh, xl) {
+      var c0_lo = rotr64_lo(xh, xl, 14);
+      var c1_lo = rotr64_lo(xh, xl, 18);
+      var c2_lo = rotr64_lo(xl, xh, 9);
+      var r = c0_lo ^ c1_lo ^ c2_lo;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function g0_512_hi(xh, xl) {
+      var c0_hi = rotr64_hi(xh, xl, 1);
+      var c1_hi = rotr64_hi(xh, xl, 8);
+      var c2_hi = shr64_hi(xh, xl, 7);
+      var r = c0_hi ^ c1_hi ^ c2_hi;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function g0_512_lo(xh, xl) {
+      var c0_lo = rotr64_lo(xh, xl, 1);
+      var c1_lo = rotr64_lo(xh, xl, 8);
+      var c2_lo = shr64_lo(xh, xl, 7);
+      var r = c0_lo ^ c1_lo ^ c2_lo;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function g1_512_hi(xh, xl) {
+      var c0_hi = rotr64_hi(xh, xl, 19);
+      var c1_hi = rotr64_hi(xl, xh, 29);
+      var c2_hi = shr64_hi(xh, xl, 6);
+      var r = c0_hi ^ c1_hi ^ c2_hi;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+    function g1_512_lo(xh, xl) {
+      var c0_lo = rotr64_lo(xh, xl, 19);
+      var c1_lo = rotr64_lo(xl, xh, 29);
+      var c2_lo = shr64_lo(xh, xl, 6);
+      var r = c0_lo ^ c1_lo ^ c2_lo;
+      if (r < 0)
+        r += 4294967296;
+      return r;
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/384.js
+var require__5 = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha/384.js"(exports2, module2) {
+    "use strict";
+    var utils = require_utils();
+    var SHA512 = require__4();
+    function SHA384() {
+      if (!(this instanceof SHA384))
+        return new SHA384();
+      SHA512.call(this);
+      this.h = [
+        3418070365,
+        3238371032,
+        1654270250,
+        914150663,
+        2438529370,
+        812702999,
+        355462360,
+        4144912697,
+        1731405415,
+        4290775857,
+        2394180231,
+        1750603025,
+        3675008525,
+        1694076839,
+        1203062813,
+        3204075428
+      ];
+    }
+    utils.inherits(SHA384, SHA512);
+    module2.exports = SHA384;
+    SHA384.blockSize = 1024;
+    SHA384.outSize = 384;
+    SHA384.hmacStrength = 192;
+    SHA384.padLength = 128;
+    SHA384.prototype._digest = function digest(enc) {
+      if (enc === "hex")
+        return utils.toHex32(this.h.slice(0, 12), "big");
+      else
+        return utils.split32(this.h.slice(0, 12), "big");
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha.js
+var require_sha = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/sha.js"(exports2) {
+    "use strict";
+    exports2.sha1 = require__();
+    exports2.sha224 = require__3();
+    exports2.sha256 = require__2();
+    exports2.sha384 = require__5();
+    exports2.sha512 = require__4();
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/ripemd.js
+var require_ripemd = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/ripemd.js"(exports2) {
+    "use strict";
+    var utils = require_utils();
+    var common = require_common();
+    var rotl32 = utils.rotl32;
+    var sum32 = utils.sum32;
+    var sum32_3 = utils.sum32_3;
+    var sum32_4 = utils.sum32_4;
+    var BlockHash = common.BlockHash;
+    function RIPEMD160() {
+      if (!(this instanceof RIPEMD160))
+        return new RIPEMD160();
+      BlockHash.call(this);
+      this.h = [1732584193, 4023233417, 2562383102, 271733878, 3285377520];
+      this.endian = "little";
+    }
+    utils.inherits(RIPEMD160, BlockHash);
+    exports2.ripemd160 = RIPEMD160;
+    RIPEMD160.blockSize = 512;
+    RIPEMD160.outSize = 160;
+    RIPEMD160.hmacStrength = 192;
+    RIPEMD160.padLength = 64;
+    RIPEMD160.prototype._update = function update(msg, start) {
+      var A = this.h[0];
+      var B = this.h[1];
+      var C = this.h[2];
+      var D2 = this.h[3];
+      var E = this.h[4];
+      var Ah = A;
+      var Bh = B;
+      var Ch = C;
+      var Dh = D2;
+      var Eh = E;
+      for (var j = 0; j < 80; j++) {
+        var T = sum32(
+          rotl32(
+            sum32_4(A, f(j, B, C, D2), msg[r[j] + start], K(j)),
+            s2[j]
+          ),
+          E
+        );
+        A = E;
+        E = D2;
+        D2 = rotl32(C, 10);
+        C = B;
+        B = T;
+        T = sum32(
+          rotl32(
+            sum32_4(Ah, f(79 - j, Bh, Ch, Dh), msg[rh[j] + start], Kh(j)),
+            sh[j]
+          ),
+          Eh
+        );
+        Ah = Eh;
+        Eh = Dh;
+        Dh = rotl32(Ch, 10);
+        Ch = Bh;
+        Bh = T;
+      }
+      T = sum32_3(this.h[1], C, Dh);
+      this.h[1] = sum32_3(this.h[2], D2, Eh);
+      this.h[2] = sum32_3(this.h[3], E, Ah);
+      this.h[3] = sum32_3(this.h[4], A, Bh);
+      this.h[4] = sum32_3(this.h[0], B, Ch);
+      this.h[0] = T;
+    };
+    RIPEMD160.prototype._digest = function digest(enc) {
+      if (enc === "hex")
+        return utils.toHex32(this.h, "little");
+      else
+        return utils.split32(this.h, "little");
+    };
+    function f(j, x, y, z) {
+      if (j <= 15)
+        return x ^ y ^ z;
+      else if (j <= 31)
+        return x & y | ~x & z;
+      else if (j <= 47)
+        return (x | ~y) ^ z;
+      else if (j <= 63)
+        return x & z | y & ~z;
+      else
+        return x ^ (y | ~z);
+    }
+    function K(j) {
+      if (j <= 15)
+        return 0;
+      else if (j <= 31)
+        return 1518500249;
+      else if (j <= 47)
+        return 1859775393;
+      else if (j <= 63)
+        return 2400959708;
+      else
+        return 2840853838;
+    }
+    function Kh(j) {
+      if (j <= 15)
+        return 1352829926;
+      else if (j <= 31)
+        return 1548603684;
+      else if (j <= 47)
+        return 1836072691;
+      else if (j <= 63)
+        return 2053994217;
+      else
+        return 0;
+    }
+    var r = [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      7,
+      4,
+      13,
+      1,
+      10,
+      6,
+      15,
+      3,
+      12,
+      0,
+      9,
+      5,
+      2,
+      14,
+      11,
+      8,
+      3,
+      10,
+      14,
+      4,
+      9,
+      15,
+      8,
+      1,
+      2,
+      7,
+      0,
+      6,
+      13,
+      11,
+      5,
+      12,
+      1,
+      9,
+      11,
+      10,
+      0,
+      8,
+      12,
+      4,
+      13,
+      3,
+      7,
+      15,
+      14,
+      5,
+      6,
+      2,
+      4,
+      0,
+      5,
+      9,
+      7,
+      12,
+      2,
+      10,
+      14,
+      1,
+      3,
+      8,
+      11,
+      6,
+      15,
+      13
+    ];
+    var rh = [
+      5,
+      14,
+      7,
+      0,
+      9,
+      2,
+      11,
+      4,
+      13,
+      6,
+      15,
+      8,
+      1,
+      10,
+      3,
+      12,
+      6,
+      11,
+      3,
+      7,
+      0,
+      13,
+      5,
+      10,
+      14,
+      15,
+      8,
+      12,
+      4,
+      9,
+      1,
+      2,
+      15,
+      5,
+      1,
+      3,
+      7,
+      14,
+      6,
+      9,
+      11,
+      8,
+      12,
+      2,
+      10,
+      0,
+      4,
+      13,
+      8,
+      6,
+      4,
+      1,
+      3,
+      11,
+      15,
+      0,
+      5,
+      12,
+      2,
+      13,
+      9,
+      7,
+      10,
+      14,
+      12,
+      15,
+      10,
+      4,
+      1,
+      5,
+      8,
+      7,
+      6,
+      2,
+      13,
+      14,
+      0,
+      3,
+      9,
+      11
+    ];
+    var s2 = [
+      11,
+      14,
+      15,
+      12,
+      5,
+      8,
+      7,
+      9,
+      11,
+      13,
+      14,
+      15,
+      6,
+      7,
+      9,
+      8,
+      7,
+      6,
+      8,
+      13,
+      11,
+      9,
+      7,
+      15,
+      7,
+      12,
+      15,
+      9,
+      11,
+      7,
+      13,
+      12,
+      11,
+      13,
+      6,
+      7,
+      14,
+      9,
+      13,
+      15,
+      14,
+      8,
+      13,
+      6,
+      5,
+      12,
+      7,
+      5,
+      11,
+      12,
+      14,
+      15,
+      14,
+      15,
+      9,
+      8,
+      9,
+      14,
+      5,
+      6,
+      8,
+      6,
+      5,
+      12,
+      9,
+      15,
+      5,
+      11,
+      6,
+      8,
+      13,
+      12,
+      5,
+      12,
+      13,
+      14,
+      11,
+      8,
+      5,
+      6
+    ];
+    var sh = [
+      8,
+      9,
+      9,
+      11,
+      13,
+      15,
+      15,
+      5,
+      7,
+      7,
+      8,
+      11,
+      14,
+      14,
+      12,
+      6,
+      9,
+      13,
+      15,
+      7,
+      12,
+      8,
+      9,
+      11,
+      7,
+      7,
+      12,
+      7,
+      6,
+      15,
+      13,
+      11,
+      9,
+      7,
+      15,
+      11,
+      8,
+      6,
+      6,
+      14,
+      12,
+      13,
+      5,
+      14,
+      13,
+      13,
+      7,
+      5,
+      15,
+      5,
+      8,
+      11,
+      14,
+      14,
+      6,
+      14,
+      6,
+      9,
+      12,
+      9,
+      12,
+      5,
+      15,
+      8,
+      8,
+      5,
+      12,
+      9,
+      12,
+      5,
+      14,
+      6,
+      8,
+      13,
+      6,
+      5,
+      15,
+      13,
+      11,
+      11
+    ];
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/hmac.js
+var require_hmac = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash/hmac.js"(exports2, module2) {
+    "use strict";
+    var utils = require_utils();
+    var assert = require_minimalistic_assert();
+    function Hmac(hash, key, enc) {
+      if (!(this instanceof Hmac))
+        return new Hmac(hash, key, enc);
+      this.Hash = hash;
+      this.blockSize = hash.blockSize / 8;
+      this.outSize = hash.outSize / 8;
+      this.inner = null;
+      this.outer = null;
+      this._init(utils.toArray(key, enc));
+    }
+    module2.exports = Hmac;
+    Hmac.prototype._init = function init(key) {
+      if (key.length > this.blockSize)
+        key = new this.Hash().update(key).digest();
+      assert(key.length <= this.blockSize);
+      for (var i = key.length; i < this.blockSize; i++)
+        key.push(0);
+      for (i = 0; i < key.length; i++)
+        key[i] ^= 54;
+      this.inner = new this.Hash().update(key);
+      for (i = 0; i < key.length; i++)
+        key[i] ^= 106;
+      this.outer = new this.Hash().update(key);
+    };
+    Hmac.prototype.update = function update(msg, enc) {
+      this.inner.update(msg, enc);
+      return this;
+    };
+    Hmac.prototype.digest = function digest(enc) {
+      this.outer.update(this.inner.digest());
+      return this.outer.digest(enc);
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash.js
+var require_hash = __commonJS({
+  "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash.js"(exports2) {
+    "use strict";
+    var hash = exports2;
+    hash.utils = require_utils();
+    hash.common = require_common();
+    hash.sha = require_sha();
+    hash.ripemd = require_ripemd();
+    hash.hmac = require_hmac();
+    hash.sha1 = hash.sha.sha1;
+    hash.sha256 = hash.sha.sha256;
+    hash.sha224 = hash.sha.sha224;
+    hash.sha384 = hash.sha.sha384;
+    hash.sha512 = hash.sha.sha512;
+    hash.ripemd160 = hash.ripemd.ripemd160;
+  }
+});
+
+// ../../node_modules/.pnpm/json-stringify-safe@5.0.1/node_modules/json-stringify-safe/stringify.js
+var require_stringify = __commonJS({
+  "../../node_modules/.pnpm/json-stringify-safe@5.0.1/node_modules/json-stringify-safe/stringify.js"(exports2, module2) {
+    "use strict";
+    exports2 = module2.exports = stringify4;
+    exports2.getSerialize = serializer;
+    function stringify4(obj, replacer, spaces, cycleReplacer) {
+      return JSON.stringify(obj, serializer(replacer, cycleReplacer), spaces);
+    }
+    function serializer(replacer, cycleReplacer) {
+      var stack = [], keys = [];
+      if (cycleReplacer == null) cycleReplacer = function(key, value) {
+        if (stack[0] === value) return "[Circular ~]";
+        return "[Circular ~." + keys.slice(0, stack.indexOf(value)).join(".") + "]";
+      };
+      return function(key, value) {
+        if (stack.length > 0) {
+          var thisPos = stack.indexOf(this);
+          ~thisPos ? stack.splice(thisPos + 1) : stack.push(this);
+          ~thisPos ? keys.splice(thisPos, Infinity, key) : keys.push(key);
+          if (~stack.indexOf(value)) value = cycleReplacer.call(this, key, value);
+        } else stack.push(value);
+        return replacer == null ? value : replacer.call(this, key, value);
+      };
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
+var require_ms = __commonJS({
+  "../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js"(exports2, module2) {
+    "use strict";
+    var s2 = 1e3;
+    var m = s2 * 60;
+    var h = m * 60;
+    var d = h * 24;
+    var w = d * 7;
+    var y = d * 365.25;
+    module2.exports = function(val, options) {
+      options = options || {};
+      var type = typeof val;
+      if (type === "string" && val.length > 0) {
+        return parse3(val);
+      } else if (type === "number" && isFinite(val)) {
+        return options.long ? fmtLong(val) : fmtShort(val);
+      }
+      throw new Error(
+        "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
+      );
+    };
+    function parse3(str) {
+      str = String(str);
+      if (str.length > 100) {
+        return;
+      }
+      var match3 = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+        str
+      );
+      if (!match3) {
+        return;
+      }
+      var n = parseFloat(match3[1]);
+      var type = (match3[2] || "ms").toLowerCase();
+      switch (type) {
+        case "years":
+        case "year":
+        case "yrs":
+        case "yr":
+        case "y":
+          return n * y;
+        case "weeks":
+        case "week":
+        case "w":
+          return n * w;
+        case "days":
+        case "day":
+        case "d":
+          return n * d;
+        case "hours":
+        case "hour":
+        case "hrs":
+        case "hr":
+        case "h":
+          return n * h;
+        case "minutes":
+        case "minute":
+        case "mins":
+        case "min":
+        case "m":
+          return n * m;
+        case "seconds":
+        case "second":
+        case "secs":
+        case "sec":
+        case "s":
+          return n * s2;
+        case "milliseconds":
+        case "millisecond":
+        case "msecs":
+        case "msec":
+        case "ms":
+          return n;
+        default:
+          return void 0;
+      }
+    }
+    function fmtShort(ms5) {
+      var msAbs = Math.abs(ms5);
+      if (msAbs >= d) {
+        return Math.round(ms5 / d) + "d";
+      }
+      if (msAbs >= h) {
+        return Math.round(ms5 / h) + "h";
+      }
+      if (msAbs >= m) {
+        return Math.round(ms5 / m) + "m";
+      }
+      if (msAbs >= s2) {
+        return Math.round(ms5 / s2) + "s";
+      }
+      return ms5 + "ms";
+    }
+    function fmtLong(ms5) {
+      var msAbs = Math.abs(ms5);
+      if (msAbs >= d) {
+        return plural(ms5, msAbs, d, "day");
+      }
+      if (msAbs >= h) {
+        return plural(ms5, msAbs, h, "hour");
+      }
+      if (msAbs >= m) {
+        return plural(ms5, msAbs, m, "minute");
+      }
+      if (msAbs >= s2) {
+        return plural(ms5, msAbs, s2, "second");
+      }
+      return ms5 + " ms";
+    }
+    function plural(ms5, msAbs, n, name) {
+      var isPlural = msAbs >= n * 1.5;
+      return Math.round(ms5 / n) + " " + name + (isPlural ? "s" : "");
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/serialize-error-cjs@0.1.4/node_modules/serialize-error-cjs/dist/constructors.js
+var require_constructors = __commonJS({
+  "../../node_modules/.pnpm/serialize-error-cjs@0.1.4/node_modules/serialize-error-cjs/dist/constructors.js"(exports2, module2) {
+    "use strict";
+    var __defProp3 = Object.defineProperty;
+    var __getOwnPropDesc3 = Object.getOwnPropertyDescriptor;
+    var __getOwnPropNames3 = Object.getOwnPropertyNames;
+    var __hasOwnProp3 = Object.prototype.hasOwnProperty;
+    var __export2 = (target, all) => {
+      for (var name in all)
+        __defProp3(target, name, { get: all[name], enumerable: true });
+    };
+    var __copyProps3 = (to, from, except, desc) => {
+      if (from && typeof from === "object" || typeof from === "function") {
+        for (let key of __getOwnPropNames3(from))
+          if (!__hasOwnProp3.call(to, key) && key !== except)
+            __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc3(from, key)) || desc.enumerable });
+      }
+      return to;
+    };
+    var __toCommonJS = (mod) => __copyProps3(__defProp3({}, "__esModule", { value: true }), mod);
+    var constructors_exports = {};
+    __export2(constructors_exports, {
+      errorConstructors: () => errorConstructors3
+    });
+    module2.exports = __toCommonJS(constructors_exports);
+    var list = [
+      Error,
+      EvalError,
+      RangeError,
+      ReferenceError,
+      SyntaxError,
+      TypeError,
+      URIError,
+      globalThis.DOMException,
+      globalThis.AssertionError,
+      globalThis.SystemError
+    ].filter(Boolean).map(
+      (constructor) => [constructor.name, constructor]
+    );
+    var errorConstructors3 = new Map(list);
+  }
+});
+
+// ../../node_modules/.pnpm/serialize-error-cjs@0.1.4/node_modules/serialize-error-cjs/dist/index.js
+var require_dist = __commonJS({
+  "../../node_modules/.pnpm/serialize-error-cjs@0.1.4/node_modules/serialize-error-cjs/dist/index.js"(exports2, module2) {
+    "use strict";
+    var __defProp3 = Object.defineProperty;
+    var __getOwnPropDesc3 = Object.getOwnPropertyDescriptor;
+    var __getOwnPropNames3 = Object.getOwnPropertyNames;
+    var __hasOwnProp3 = Object.prototype.hasOwnProperty;
+    var __export2 = (target, all) => {
+      for (var name in all)
+        __defProp3(target, name, { get: all[name], enumerable: true });
+    };
+    var __copyProps3 = (to, from, except, desc) => {
+      if (from && typeof from === "object" || typeof from === "function") {
+        for (let key of __getOwnPropNames3(from))
+          if (!__hasOwnProp3.call(to, key) && key !== except)
+            __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc3(from, key)) || desc.enumerable });
+      }
+      return to;
+    };
+    var __toCommonJS = (mod) => __copyProps3(__defProp3({}, "__esModule", { value: true }), mod);
+    var index_exports = {};
+    __export2(index_exports, {
+      deserializeError: () => deserializeError2,
+      errorConstructors: () => import_constructors.errorConstructors,
+      serializeError: () => serializeError2
+    });
+    module2.exports = __toCommonJS(index_exports);
+    var import_constructors = require_constructors();
+    var getErrorConstructor = (name) => {
+      var _a;
+      return (_a = import_constructors.errorConstructors.get(name)) != null ? _a : Error;
+    };
+    var commonProperties = [
+      {
+        property: "message",
+        enumerable: false
+      },
+      {
+        property: "stack",
+        enumerable: false
+      },
+      {
+        property: "code",
+        enumerable: true
+      },
+      {
+        property: "cause",
+        enumerable: false
+      }
+    ];
+    function serializeError2(subject) {
+      const data = {
+        name: "Error",
+        message: "",
+        stack: ""
+      };
+      for (const { property } of commonProperties) {
+        if (!(property in subject)) continue;
+        data[property] = subject[property];
+      }
+      if (globalThis.DOMException && subject instanceof globalThis.DOMException) {
+        data.name = "DOMException";
+      } else {
+        data.name = Object.getPrototypeOf(subject).name;
+      }
+      return data;
+    }
+    function deserializeError2(subject) {
+      const fn = getErrorConstructor(subject.name);
+      const output = new fn();
+      for (const { property, enumerable } of commonProperties) {
+        if (!(property in subject)) continue;
+        Object.defineProperty(output, property, {
+          value: subject[property],
+          enumerable,
+          configurable: true,
+          writable: true
+        });
+      }
+      return output;
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/ansi-regex@4.1.1/node_modules/ansi-regex/index.js
+var require_ansi_regex = __commonJS({
+  "../../node_modules/.pnpm/ansi-regex@4.1.1/node_modules/ansi-regex/index.js"(exports2, module2) {
+    "use strict";
+    module2.exports = (options) => {
+      options = Object.assign({
+        onlyFirst: false
+      }, options);
+      const pattern = [
+        "[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)",
+        "(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))"
+      ].join("|");
+      return new RegExp(pattern, options.onlyFirst ? void 0 : "g");
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/strip-ansi@5.2.0/node_modules/strip-ansi/index.js
+var require_strip_ansi = __commonJS({
+  "../../node_modules/.pnpm/strip-ansi@5.2.0/node_modules/strip-ansi/index.js"(exports2, module2) {
+    "use strict";
+    var ansiRegex = require_ansi_regex();
+    var stripAnsi2 = (string) => typeof string === "string" ? string.replace(ansiRegex(), "") : string;
+    module2.exports = stripAnsi2;
+    module2.exports.default = stripAnsi2;
+  }
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/common.js
+var require_common3 = __commonJS({
+  "../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/common.js"(exports2, module2) {
+    "use strict";
+    function setup(env2) {
+      createDebug2.debug = createDebug2;
+      createDebug2.default = createDebug2;
+      createDebug2.coerce = coerce2;
+      createDebug2.disable = disable;
+      createDebug2.enable = enable;
+      createDebug2.enabled = enabled;
+      createDebug2.humanize = require_ms();
+      createDebug2.destroy = destroy;
+      Object.keys(env2).forEach((key) => {
+        createDebug2[key] = env2[key];
+      });
+      createDebug2.names = [];
+      createDebug2.skips = [];
+      createDebug2.formatters = {};
+      function selectColor(namespace) {
+        let hash = 0;
+        for (let i = 0; i < namespace.length; i++) {
+          hash = (hash << 5) - hash + namespace.charCodeAt(i);
+          hash |= 0;
+        }
+        return createDebug2.colors[Math.abs(hash) % createDebug2.colors.length];
+      }
+      createDebug2.selectColor = selectColor;
+      function createDebug2(namespace) {
+        let prevTime;
+        let enableOverride = null;
+        let namespacesCache;
+        let enabledCache;
+        function debug4(...args) {
+          if (!debug4.enabled) {
+            return;
+          }
+          const self2 = debug4;
+          const curr = Number(/* @__PURE__ */ new Date());
+          const ms5 = curr - (prevTime || curr);
+          self2.diff = ms5;
+          self2.prev = prevTime;
+          self2.curr = curr;
+          prevTime = curr;
+          args[0] = createDebug2.coerce(args[0]);
+          if (typeof args[0] !== "string") {
+            args.unshift("%O");
+          }
+          let index = 0;
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match3, format) => {
+            if (match3 === "%%") {
+              return "%";
+            }
+            index++;
+            const formatter = createDebug2.formatters[format];
+            if (typeof formatter === "function") {
+              const val = args[index];
+              match3 = formatter.call(self2, val);
+              args.splice(index, 1);
+              index--;
+            }
+            return match3;
+          });
+          createDebug2.formatArgs.call(self2, args);
+          const logFn = self2.log || createDebug2.log;
+          logFn.apply(self2, args);
+        }
+        debug4.namespace = namespace;
+        debug4.useColors = createDebug2.useColors();
+        debug4.color = createDebug2.selectColor(namespace);
+        debug4.extend = extend;
+        debug4.destroy = createDebug2.destroy;
+        Object.defineProperty(debug4, "enabled", {
+          enumerable: true,
+          configurable: false,
+          get: () => {
+            if (enableOverride !== null) {
+              return enableOverride;
+            }
+            if (namespacesCache !== createDebug2.namespaces) {
+              namespacesCache = createDebug2.namespaces;
+              enabledCache = createDebug2.enabled(namespace);
+            }
+            return enabledCache;
+          },
+          set: (v) => {
+            enableOverride = v;
+          }
+        });
+        if (typeof createDebug2.init === "function") {
+          createDebug2.init(debug4);
+        }
+        return debug4;
+      }
+      function extend(namespace, delimiter) {
+        const newDebug = createDebug2(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+        newDebug.log = this.log;
+        return newDebug;
+      }
+      function enable(namespaces) {
+        createDebug2.save(namespaces);
+        createDebug2.namespaces = namespaces;
+        createDebug2.names = [];
+        createDebug2.skips = [];
+        const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+        for (const ns of split2) {
+          if (ns[0] === "-") {
+            createDebug2.skips.push(ns.slice(1));
+          } else {
+            createDebug2.names.push(ns);
+          }
+        }
+      }
+      function matchesTemplate(search, template) {
+        let searchIndex = 0;
+        let templateIndex = 0;
+        let starIndex = -1;
+        let matchIndex = 0;
+        while (searchIndex < search.length) {
+          if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
+            if (template[templateIndex] === "*") {
+              starIndex = templateIndex;
+              matchIndex = searchIndex;
+              templateIndex++;
+            } else {
+              searchIndex++;
+              templateIndex++;
+            }
+          } else if (starIndex !== -1) {
+            templateIndex = starIndex + 1;
+            matchIndex++;
+            searchIndex = matchIndex;
+          } else {
+            return false;
+          }
+        }
+        while (templateIndex < template.length && template[templateIndex] === "*") {
+          templateIndex++;
+        }
+        return templateIndex === template.length;
+      }
+      function disable() {
+        const namespaces = [
+          ...createDebug2.names,
+          ...createDebug2.skips.map((namespace) => "-" + namespace)
+        ].join(",");
+        createDebug2.enable("");
+        return namespaces;
+      }
+      function enabled(name) {
+        for (const skip of createDebug2.skips) {
+          if (matchesTemplate(name, skip)) {
+            return false;
+          }
+        }
+        for (const ns of createDebug2.names) {
+          if (matchesTemplate(name, ns)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      function coerce2(val) {
+        if (val instanceof Error) {
+          return val.stack || val.message;
+        }
+        return val;
+      }
+      function destroy() {
+        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+      }
+      createDebug2.enable(createDebug2.load());
+      return createDebug2;
+    }
+    module2.exports = setup;
+  }
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/browser.js
+var require_browser = __commonJS({
+  "../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/browser.js"(exports2, module2) {
+    "use strict";
+    exports2.formatArgs = formatArgs;
+    exports2.save = save;
+    exports2.load = load;
+    exports2.useColors = useColors;
+    exports2.storage = localstorage();
+    exports2.destroy = /* @__PURE__ */ (() => {
+      let warned = false;
+      return () => {
+        if (!warned) {
+          warned = true;
+          console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+        }
+      };
+    })();
+    exports2.colors = [
+      "#0000CC",
+      "#0000FF",
+      "#0033CC",
+      "#0033FF",
+      "#0066CC",
+      "#0066FF",
+      "#0099CC",
+      "#0099FF",
+      "#00CC00",
+      "#00CC33",
+      "#00CC66",
+      "#00CC99",
+      "#00CCCC",
+      "#00CCFF",
+      "#3300CC",
+      "#3300FF",
+      "#3333CC",
+      "#3333FF",
+      "#3366CC",
+      "#3366FF",
+      "#3399CC",
+      "#3399FF",
+      "#33CC00",
+      "#33CC33",
+      "#33CC66",
+      "#33CC99",
+      "#33CCCC",
+      "#33CCFF",
+      "#6600CC",
+      "#6600FF",
+      "#6633CC",
+      "#6633FF",
+      "#66CC00",
+      "#66CC33",
+      "#9900CC",
+      "#9900FF",
+      "#9933CC",
+      "#9933FF",
+      "#99CC00",
+      "#99CC33",
+      "#CC0000",
+      "#CC0033",
+      "#CC0066",
+      "#CC0099",
+      "#CC00CC",
+      "#CC00FF",
+      "#CC3300",
+      "#CC3333",
+      "#CC3366",
+      "#CC3399",
+      "#CC33CC",
+      "#CC33FF",
+      "#CC6600",
+      "#CC6633",
+      "#CC9900",
+      "#CC9933",
+      "#CCCC00",
+      "#CCCC33",
+      "#FF0000",
+      "#FF0033",
+      "#FF0066",
+      "#FF0099",
+      "#FF00CC",
+      "#FF00FF",
+      "#FF3300",
+      "#FF3333",
+      "#FF3366",
+      "#FF3399",
+      "#FF33CC",
+      "#FF33FF",
+      "#FF6600",
+      "#FF6633",
+      "#FF9900",
+      "#FF9933",
+      "#FFCC00",
+      "#FFCC33"
+    ];
+    function useColors() {
+      if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
+        return true;
+      }
+      if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+        return false;
+      }
+      let m;
+      return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // Is firebug? http://stackoverflow.com/a/398120/376773
+      typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || // Is firefox >= v31?
+      // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+      typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
+      typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+    }
+    function formatArgs(args) {
+      args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module2.exports.humanize(this.diff);
+      if (!this.useColors) {
+        return;
+      }
+      const c = "color: " + this.color;
+      args.splice(1, 0, c, "color: inherit");
+      let index = 0;
+      let lastC = 0;
+      args[0].replace(/%[a-zA-Z%]/g, (match3) => {
+        if (match3 === "%%") {
+          return;
+        }
+        index++;
+        if (match3 === "%c") {
+          lastC = index;
+        }
+      });
+      args.splice(lastC, 0, c);
+    }
+    exports2.log = console.debug || console.log || (() => {
+    });
+    function save(namespaces) {
+      try {
+        if (namespaces) {
+          exports2.storage.setItem("debug", namespaces);
+        } else {
+          exports2.storage.removeItem("debug");
+        }
+      } catch (error) {
+      }
+    }
+    function load() {
+      let r;
+      try {
+        r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
+      } catch (error) {
+      }
+      if (!r && typeof process !== "undefined" && "env" in process) {
+        r = process.env.DEBUG;
+      }
+      return r;
+    }
+    function localstorage() {
+      try {
+        return localStorage;
+      } catch (error) {
+      }
+    }
+    module2.exports = require_common3()(exports2);
+    var { formatters } = module2.exports;
+    formatters.j = function(v) {
+      try {
+        return JSON.stringify(v);
+      } catch (error) {
+        return "[UnexpectedJSONParseError]: " + error.message;
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/node.js
+var require_node = __commonJS({
+  "../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/node.js"(exports2, module2) {
+    "use strict";
+    var tty = require("tty");
+    var util2 = require("util");
+    exports2.init = init;
+    exports2.log = log2;
+    exports2.formatArgs = formatArgs;
+    exports2.save = save;
+    exports2.load = load;
+    exports2.useColors = useColors;
+    exports2.destroy = util2.deprecate(
+      () => {
+      },
+      "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`."
+    );
+    exports2.colors = [6, 2, 3, 4, 5, 1];
+    try {
+      const supportsColor = require_supports_color();
+      if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+        exports2.colors = [
+          20,
+          21,
+          26,
+          27,
+          32,
+          33,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          56,
+          57,
+          62,
+          63,
+          68,
+          69,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          92,
+          93,
+          98,
+          99,
+          112,
+          113,
+          128,
+          129,
+          134,
+          135,
+          148,
+          149,
+          160,
+          161,
+          162,
+          163,
+          164,
+          165,
+          166,
+          167,
+          168,
+          169,
+          170,
+          171,
+          172,
+          173,
+          178,
+          179,
+          184,
+          185,
+          196,
+          197,
+          198,
+          199,
+          200,
+          201,
+          202,
+          203,
+          204,
+          205,
+          206,
+          207,
+          208,
+          209,
+          214,
+          215,
+          220,
+          221
+        ];
+      }
+    } catch (error) {
+    }
+    exports2.inspectOpts = Object.keys(process.env).filter((key) => {
+      return /^debug_/i.test(key);
+    }).reduce((obj, key) => {
+      const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_2, k) => {
+        return k.toUpperCase();
+      });
+      let val = process.env[key];
+      if (/^(yes|on|true|enabled)$/i.test(val)) {
+        val = true;
+      } else if (/^(no|off|false|disabled)$/i.test(val)) {
+        val = false;
+      } else if (val === "null") {
+        val = null;
+      } else {
+        val = Number(val);
+      }
+      obj[prop] = val;
+      return obj;
+    }, {});
+    function useColors() {
+      return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+    }
+    function formatArgs(args) {
+      const { namespace: name, useColors: useColors2 } = this;
+      if (useColors2) {
+        const c = this.color;
+        const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
+        const prefix = `  ${colorCode};1m${name} \x1B[0m`;
+        args[0] = prefix + args[0].split("\n").join("\n" + prefix);
+        args.push(colorCode + "m+" + module2.exports.humanize(this.diff) + "\x1B[0m");
+      } else {
+        args[0] = getDate() + name + " " + args[0];
+      }
+    }
+    function getDate() {
+      if (exports2.inspectOpts.hideDate) {
+        return "";
+      }
+      return (/* @__PURE__ */ new Date()).toISOString() + " ";
+    }
+    function log2(...args) {
+      return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
+    }
+    function save(namespaces) {
+      if (namespaces) {
+        process.env.DEBUG = namespaces;
+      } else {
+        delete process.env.DEBUG;
+      }
+    }
+    function load() {
+      return process.env.DEBUG;
+    }
+    function init(debug4) {
+      debug4.inspectOpts = {};
+      const keys = Object.keys(exports2.inspectOpts);
+      for (let i = 0; i < keys.length; i++) {
+        debug4.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
+      }
+    }
+    module2.exports = require_common3()(exports2);
+    var { formatters } = module2.exports;
+    formatters.o = function(v) {
+      this.inspectOpts.colors = this.useColors;
+      return util2.inspect(v, this.inspectOpts).split("\n").map((str) => str.trim()).join(" ");
+    };
+    formatters.O = function(v) {
+      this.inspectOpts.colors = this.useColors;
+      return util2.inspect(v, this.inspectOpts);
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/index.js
+var require_src = __commonJS({
+  "../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/index.js"(exports2, module2) {
+    "use strict";
+    if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
+      module2.exports = require_browser();
+    } else {
+      module2.exports = require_node();
+    }
+  }
+});
+
+// ../../node_modules/.pnpm/canonicalize@1.0.8/node_modules/canonicalize/lib/canonicalize.js
+var require_canonicalize = __commonJS({
+  "../../node_modules/.pnpm/canonicalize@1.0.8/node_modules/canonicalize/lib/canonicalize.js"(exports2, module2) {
+    "use strict";
+    module2.exports = function serialize2(object) {
+      if (object === null || typeof object !== "object" || object.toJSON != null) {
+        return JSON.stringify(object);
+      }
+      if (Array.isArray(object)) {
+        return "[" + object.reduce((t, cv, ci) => {
+          const comma = ci === 0 ? "" : ",";
+          const value = cv === void 0 || typeof cv === "symbol" ? null : cv;
+          return t + comma + serialize2(value);
+        }, "") + "]";
+      }
+      return "{" + Object.keys(object).sort().reduce((t, cv, ci) => {
+        if (object[cv] === void 0 || typeof object[cv] === "symbol") {
+          return t;
+        }
+        const comma = t.length === 0 ? "" : ",";
+        return t + comma + serialize2(cv) + ":" + serialize2(object[cv]);
+      }, "") + "}";
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/anthropic.js
+var require_anthropic = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/anthropic.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/gemini.js
+var require_gemini = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/gemini.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.GeminiAiAdapter = void 0;
+    var GeminiAiAdapter;
+    (function(GeminiAiAdapter2) {
+      let HarmCategory;
+      (function(HarmCategory2) {
+        HarmCategory2["HARM_CATEGORY_UNSPECIFIED"] = "HARM_CATEGORY_UNSPECIFIED";
+        HarmCategory2["HARM_CATEGORY_HATE_SPEECH"] = "HARM_CATEGORY_HATE_SPEECH";
+        HarmCategory2["HARM_CATEGORY_SEXUALLY_EXPLICIT"] = "HARM_CATEGORY_SEXUALLY_EXPLICIT";
+        HarmCategory2["HARM_CATEGORY_DANGEROUS_CONTENT"] = "HARM_CATEGORY_DANGEROUS_CONTENT";
+        HarmCategory2["HARM_CATEGORY_HARASSMENT"] = "HARM_CATEGORY_HARASSMENT";
+        HarmCategory2["HARM_CATEGORY_CIVIC_INTEGRITY"] = "HARM_CATEGORY_CIVIC_INTEGRITY";
+      })(HarmCategory = GeminiAiAdapter2.HarmCategory || (GeminiAiAdapter2.HarmCategory = {}));
+      let HarmBlockThreshold;
+      (function(HarmBlockThreshold2) {
+        HarmBlockThreshold2["HARM_BLOCK_THRESHOLD_UNSPECIFIED"] = "HARM_BLOCK_THRESHOLD_UNSPECIFIED";
+        HarmBlockThreshold2["BLOCK_LOW_AND_ABOVE"] = "BLOCK_LOW_AND_ABOVE";
+        HarmBlockThreshold2["BLOCK_MEDIUM_AND_ABOVE"] = "BLOCK_MEDIUM_AND_ABOVE";
+        HarmBlockThreshold2["BLOCK_ONLY_HIGH"] = "BLOCK_ONLY_HIGH";
+        HarmBlockThreshold2["BLOCK_NONE"] = "BLOCK_NONE";
+        HarmBlockThreshold2["OFF"] = "OFF";
+      })(HarmBlockThreshold = GeminiAiAdapter2.HarmBlockThreshold || (GeminiAiAdapter2.HarmBlockThreshold = {}));
+    })(GeminiAiAdapter || (exports2.GeminiAiAdapter = GeminiAiAdapter = {}));
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/openai.js
+var require_openai = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/openai.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/azure-openai.js
+var require_azure_openai = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/azure-openai.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/grok.js
+var require_grok = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/grok.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/openai-responses.js
+var require_openai_responses = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/openai-responses.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/index.js
+var require_adapters = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/adapters/index.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    __exportStar(require_anthropic(), exports2);
+    __exportStar(require_gemini(), exports2);
+    __exportStar(require_openai(), exports2);
+    __exportStar(require_azure_openai(), exports2);
+    __exportStar(require_grok(), exports2);
+    __exportStar(require_openai_responses(), exports2);
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/env.js
+var require_env = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/env.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.envKeys = exports2.processEnv = exports2.allProcessEnv = void 0;
+    var allProcessEnv2 = () => {
+      try {
+        if (process.env) {
+          return process.env;
+        }
+      } catch (_err) {
+      }
+      try {
+        const env2 = Deno.env.toObject();
+        if (env2) {
+          return env2;
+        }
+      } catch (_err) {
+      }
+      try {
+        const env2 = Netlify.env.toObject();
+        if (env2) {
+          return env2;
+        }
+      } catch (_err) {
+      }
+      return {};
+    };
+    exports2.allProcessEnv = allProcessEnv2;
+    var processEnv2 = (key) => {
+      return (0, exports2.allProcessEnv)()[key];
+    };
+    exports2.processEnv = processEnv2;
+    var envKeys2;
+    (function(envKeys3) {
+      envKeys3["OpenAiApiKey"] = "OPENAI_API_KEY";
+      envKeys3["GeminiApiKey"] = "GEMINI_API_KEY";
+      envKeys3["AnthropicApiKey"] = "ANTHROPIC_API_KEY";
+      envKeys3["DeepSeekApiKey"] = "DEEPSEEK_API_KEY";
+      envKeys3["GrokApiKey"] = "XAI_API_KEY";
+      envKeys3["AzureOpenAiApiKey"] = "AZURE_OPENAI_API_KEY";
+    })(envKeys2 || (exports2.envKeys = envKeys2 = {}));
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/anthropic.js
+var require_anthropic2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/anthropic.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.anthropic = void 0;
+    var env_1 = require_env();
+    var anthropic = (options) => {
+      var _a, _b;
+      const authKey = options.apiKey || (0, env_1.processEnv)(env_1.envKeys.AnthropicApiKey) || "";
+      let baseUrl = options.baseUrl || "https://api.anthropic.com/v1/";
+      if (!baseUrl.endsWith("/")) {
+        baseUrl += "/";
+      }
+      const url = new URL("messages", baseUrl);
+      const headers = {
+        "anthropic-version": "2023-06-01"
+      };
+      if ((((_a = options.betaHeaders) === null || _a === void 0 ? void 0 : _a.length) || 0) > 0) {
+        headers["anthropic-beta"] = ((_b = options.betaHeaders) === null || _b === void 0 ? void 0 : _b.join(",")) || "";
+      }
+      return {
+        url: url.href,
+        authKey,
+        format: "anthropic",
+        onCall(_2, body) {
+          Object.assign(body, options.defaultParameters);
+          body.model || (body.model = options.model);
+        },
+        headers,
+        options
+      };
+    };
+    exports2.anthropic = anthropic;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/gemini.js
+var require_gemini2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/gemini.js"(exports2) {
+    "use strict";
+    var __rest2 = exports2 && exports2.__rest || function(s2, e) {
+      var t = {};
+      for (var p in s2) if (Object.prototype.hasOwnProperty.call(s2, p) && e.indexOf(p) < 0)
+        t[p] = s2[p];
+      if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s2); i < p.length; i++) {
+          if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p[i]))
+            t[p[i]] = s2[p[i]];
+        }
+      return t;
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.gemini = void 0;
+    var env_1 = require_env();
+    var gemini = (options) => {
+      const authKey = options.apiKey || (0, env_1.processEnv)(env_1.envKeys.GeminiApiKey) || "";
+      let baseUrl = options.baseUrl || "https://generativelanguage.googleapis.com/v1beta/";
+      if (!baseUrl.endsWith("/")) {
+        baseUrl += "/";
+      }
+      const url = new URL(`models/${options.model}:generateContent?key=${authKey}`, baseUrl);
+      const headers = {};
+      return {
+        url: url.href,
+        authKey,
+        format: "gemini",
+        onCall(_2, body) {
+          var _a;
+          if (!options.defaultParameters) {
+            return;
+          }
+          const _b = options.defaultParameters, { generationConfig: defaultGenerationConfig } = _b, otherDefaults = __rest2(_b, ["generationConfig"]);
+          Object.assign(body, Object.assign(Object.assign({}, otherDefaults), body));
+          if (defaultGenerationConfig) {
+            body.generationConfig = Object.assign(Object.assign(Object.assign({}, defaultGenerationConfig), body.generationConfig || {}), {
+              // And ensure nested thinkingConfig is also deep-merged
+              thinkingConfig: Object.assign(Object.assign({}, defaultGenerationConfig.thinkingConfig), ((_a = body.generationConfig) === null || _a === void 0 ? void 0 : _a.thinkingConfig) || {})
+            });
+          }
+        },
+        headers,
+        options
+      };
+    };
+    exports2.gemini = gemini;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/openai.js
+var require_openai2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/openai.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.openai = void 0;
+    var env_1 = require_env();
+    var openai = (options) => {
+      const authKey = options.apiKey || (0, env_1.processEnv)(env_1.envKeys.OpenAiApiKey) || "";
+      let baseUrl = options.baseUrl || "https://api.openai.com/v1/";
+      if (!baseUrl.endsWith("/")) {
+        baseUrl += "/";
+      }
+      const url = new URL("chat/completions", baseUrl);
+      return {
+        url: url.href,
+        authKey,
+        format: "openai-chat",
+        onCall(_2, body) {
+          Object.assign(body, options.defaultParameters);
+          body.model || (body.model = options.model);
+        },
+        options
+      };
+    };
+    exports2.openai = openai;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/azure-openai.js
+var require_azure_openai2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/azure-openai.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.azureOpenai = void 0;
+    var env_js_1 = require_env();
+    var openai_js_1 = require_openai2();
+    var azureOpenai = (options) => {
+      if (!options.endpoint) {
+        throw new Error("Azure OpenAI endpoint is required");
+      }
+      const authKey = options.apiKey || (0, env_js_1.processEnv)(env_js_1.envKeys.AzureOpenAiApiKey) || "";
+      const baseModel = (0, openai_js_1.openai)({
+        model: options.model,
+        apiKey: authKey,
+        baseUrl: options.endpoint,
+        defaultParameters: options.defaultParameters
+      });
+      const url = new URL(`openai/deployments/${options.deployment}/chat/completions`, options.endpoint);
+      url.searchParams.set("api-version", options.apiVersion);
+      return Object.assign(Object.assign({}, baseModel), {
+        url: url.href,
+        format: "azure-openai",
+        onCall(_2, body) {
+          Object.assign(body, options.defaultParameters);
+          body.model || (body.model = options.model);
+        },
+        // Override headers to use Azure's API key format
+        headers: {
+          "api-key": baseModel.authKey,
+          "Content-Type": "application/json"
+        },
+        options
+      });
+    };
+    exports2.azureOpenai = azureOpenai;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/deepseek.js
+var require_deepseek = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/deepseek.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.deepseek = void 0;
+    var env_1 = require_env();
+    var deepseek = (options) => {
+      const authKey = options.apiKey || (0, env_1.processEnv)(env_1.envKeys.DeepSeekApiKey) || "";
+      let baseUrl = options.baseUrl || "https://api.deepseek.com/v1/";
+      if (!baseUrl.endsWith("/")) {
+        baseUrl += "/";
+      }
+      const url = new URL("chat/completions", baseUrl);
+      return {
+        url: url.href,
+        authKey,
+        format: "openai-chat",
+        onCall(_2, body) {
+          Object.assign(body, options.defaultParameters);
+          body.model || (body.model = options.model);
+        },
+        options
+      };
+    };
+    exports2.deepseek = deepseek;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/grok.js
+var require_grok2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/grok.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.grok = void 0;
+    var env_1 = require_env();
+    var openai_js_1 = require_openai2();
+    var grok = (options) => {
+      const apiKey = options.apiKey || (0, env_1.processEnv)(env_1.envKeys.GrokApiKey);
+      const baseUrl = options.baseUrl || "https://api.x.ai/v1";
+      const model = options.model;
+      const adapter = (0, openai_js_1.openai)(Object.assign(Object.assign({}, options), {
+        apiKey,
+        baseUrl,
+        model
+      }));
+      adapter.format = "grok";
+      return adapter;
+    };
+    exports2.grok = grok;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/openai-responses.js
+var require_openai_responses2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/openai-responses.js"(exports2) {
+    "use strict";
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.openaiResponses = void 0;
+    var env_1 = require_env();
+    var openaiResponses = (options) => {
+      const authKey = options.apiKey || (0, env_1.processEnv)(env_1.envKeys.OpenAiApiKey) || "";
+      let baseUrl = options.baseUrl || "https://api.openai.com/v1/";
+      if (!baseUrl.endsWith("/")) {
+        baseUrl += "/";
+      }
+      const url = new URL("responses", baseUrl);
+      return {
+        url: url.href,
+        authKey,
+        format: "openai-responses",
+        onCall(_2, body) {
+          Object.assign(body, options.defaultParameters);
+          body.model || (body.model = options.model);
+        },
+        options
+      };
+    };
+    exports2.openaiResponses = openaiResponses;
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/index.js
+var require_models = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/index.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
+    };
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    __exportStar(require_anthropic2(), exports2);
+    __exportStar(require_gemini2(), exports2);
+    __exportStar(require_openai2(), exports2);
+    __exportStar(require_azure_openai2(), exports2);
+    __exportStar(require_deepseek(), exports2);
+    __exportStar(require_grok2(), exports2);
+    __exportStar(require_openai_responses2(), exports2);
+  }
+});
+
+// ../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/index.js
+var require_dist2 = __commonJS({
+  "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/index.js"(exports2) {
+    "use strict";
+    var __createBinding = exports2 && exports2.__createBinding || (Object.create ? (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      var desc = Object.getOwnPropertyDescriptor(m, k);
+      if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+        desc = { enumerable: true, get: function() {
+          return m[k];
+        } };
+      }
+      Object.defineProperty(o, k2, desc);
+    }) : (function(o, m, k, k2) {
+      if (k2 === void 0) k2 = k;
+      o[k2] = m[k];
+    }));
+    var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? (function(o, v) {
+      Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+      o["default"] = v;
+    });
+    var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+      for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p)) __createBinding(exports3, m, p);
+    };
+    var __importStar = exports2 && exports2.__importStar || /* @__PURE__ */ (function() {
+      var ownKeys4 = function(o) {
+        ownKeys4 = Object.getOwnPropertyNames || function(o2) {
+          var ar = [];
+          for (var k in o2) if (Object.prototype.hasOwnProperty.call(o2, k)) ar[ar.length] = k;
+          return ar;
+        };
+        return ownKeys4(o);
+      };
+      return function(mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) {
+          for (var k = ownKeys4(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        }
+        __setModuleDefault(result, mod);
+        return result;
+      };
+    })();
+    Object.defineProperty(exports2, "__esModule", { value: true });
+    exports2.models = void 0;
+    __exportStar(require_adapters(), exports2);
+    __exportStar(require_models(), exports2);
+    exports2.models = __importStar(require_models());
+  }
+});
+
+// ../../node_modules/.pnpm/ulid@2.4.0/node_modules/ulid/dist/index.esm.js
+var index_esm_exports = {};
+__export(index_esm_exports, {
+  decodeTime: () => decodeTime,
+  detectPrng: () => detectPrng,
+  encodeRandom: () => encodeRandom,
+  encodeTime: () => encodeTime,
+  factory: () => factory,
+  incrementBase32: () => incrementBase32,
+  monotonicFactory: () => monotonicFactory,
+  randomChar: () => randomChar,
+  replaceCharAt: () => replaceCharAt,
+  ulid: () => ulid
+});
+function createError(message) {
+  const err2 = new Error(message);
+  err2.source = "ulid";
+  return err2;
+}
+function replaceCharAt(str, index, char) {
+  if (index > str.length - 1) {
+    return str;
+  }
+  return str.substr(0, index) + char + str.substr(index + 1);
+}
+function incrementBase32(str) {
+  let done = void 0;
+  let index = str.length;
+  let char;
+  let charIndex;
+  const maxCharIndex = ENCODING_LEN - 1;
+  while (!done && index-- >= 0) {
+    char = str[index];
+    charIndex = ENCODING.indexOf(char);
+    if (charIndex === -1) {
+      throw createError("incorrectly encoded string");
+    }
+    if (charIndex === maxCharIndex) {
+      str = replaceCharAt(str, index, ENCODING[0]);
+      continue;
+    }
+    done = replaceCharAt(str, index, ENCODING[charIndex + 1]);
+  }
+  if (typeof done === "string") {
+    return done;
+  }
+  throw createError("cannot increment this string");
+}
+function randomChar(prng) {
+  let rand = Math.floor(prng() * ENCODING_LEN);
+  if (rand === ENCODING_LEN) {
+    rand = ENCODING_LEN - 1;
+  }
+  return ENCODING.charAt(rand);
+}
+function encodeTime(now, len) {
+  if (isNaN(now)) {
+    throw new Error(now + " must be a number");
+  }
+  if (now > TIME_MAX) {
+    throw createError("cannot encode time greater than " + TIME_MAX);
+  }
+  if (now < 0) {
+    throw createError("time must be positive");
+  }
+  if (Number.isInteger(Number(now)) === false) {
+    throw createError("time must be an integer");
+  }
+  let mod;
+  let str = "";
+  for (; len > 0; len--) {
+    mod = now % ENCODING_LEN;
+    str = ENCODING.charAt(mod) + str;
+    now = (now - mod) / ENCODING_LEN;
+  }
+  return str;
+}
+function encodeRandom(len, prng) {
+  let str = "";
+  for (; len > 0; len--) {
+    str = randomChar(prng) + str;
+  }
+  return str;
+}
+function decodeTime(id) {
+  if (id.length !== TIME_LEN + RANDOM_LEN) {
+    throw createError("malformed ulid");
+  }
+  var time2 = id.substr(0, TIME_LEN).split("").reverse().reduce((carry, char, index) => {
+    const encodingIndex = ENCODING.indexOf(char);
+    if (encodingIndex === -1) {
+      throw createError("invalid character found: " + char);
+    }
+    return carry += encodingIndex * Math.pow(ENCODING_LEN, index);
+  }, 0);
+  if (time2 > TIME_MAX) {
+    throw createError("malformed ulid, timestamp too large");
+  }
+  return time2;
+}
+function detectPrng(allowInsecure = false, root) {
+  if (!root) {
+    root = typeof window !== "undefined" ? window : null;
+  }
+  const browserCrypto = root && (root.crypto || root.msCrypto);
+  if (browserCrypto) {
+    return () => {
+      const buffer = new Uint8Array(1);
+      browserCrypto.getRandomValues(buffer);
+      return buffer[0] / 255;
+    };
+  } else {
+    try {
+      const nodeCrypto = require("crypto");
+      return () => nodeCrypto.randomBytes(1).readUInt8() / 255;
+    } catch (e) {
+    }
+  }
+  if (allowInsecure) {
+    try {
+      console.error("secure crypto unusable, falling back to insecure Math.random()!");
+    } catch (e) {
+    }
+    return () => Math.random();
+  }
+  throw createError("secure crypto unusable, insecure Math.random not allowed");
+}
+function factory(currPrng) {
+  if (!currPrng) {
+    currPrng = detectPrng();
+  }
+  return function ulid2(seedTime) {
+    if (isNaN(seedTime)) {
+      seedTime = Date.now();
+    }
+    return encodeTime(seedTime, TIME_LEN) + encodeRandom(RANDOM_LEN, currPrng);
+  };
+}
+function monotonicFactory(currPrng) {
+  if (!currPrng) {
+    currPrng = detectPrng();
+  }
+  let lastTime = 0;
+  let lastRandom;
+  return function ulid2(seedTime) {
+    if (isNaN(seedTime)) {
+      seedTime = Date.now();
+    }
+    if (seedTime <= lastTime) {
+      const incrementedRandom = lastRandom = incrementBase32(lastRandom);
+      return encodeTime(lastTime, TIME_LEN) + incrementedRandom;
+    }
+    lastTime = seedTime;
+    const newRandom = lastRandom = encodeRandom(RANDOM_LEN, currPrng);
+    return encodeTime(seedTime, TIME_LEN) + newRandom;
+  };
+}
+var ENCODING, ENCODING_LEN, TIME_MAX, TIME_LEN, RANDOM_LEN, ulid;
+var init_index_esm = __esm({
+  "../../node_modules/.pnpm/ulid@2.4.0/node_modules/ulid/dist/index.esm.js"() {
+    "use strict";
+    ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    ENCODING_LEN = ENCODING.length;
+    TIME_MAX = Math.pow(2, 48) - 1;
+    TIME_LEN = 10;
+    RANDOM_LEN = 16;
+    ulid = factory();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/getEnvVariable-CzO2lHzx.mjs
+var init_getEnvVariable_CzO2lHzx = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/getEnvVariable-CzO2lHzx.mjs"() {
+    "use strict";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/runtimeEnvironment-DHuMF-tN.mjs
+var automatedEnvironmentVariables, isTestEnvironment, isProductionEnvironment;
+var init_runtimeEnvironment_DHuMF_tN = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/runtimeEnvironment-DHuMF-tN.mjs"() {
+    "use strict";
+    init_getEnvVariable_CzO2lHzx();
+    automatedEnvironmentVariables = [
+      "CI",
+      "CONTINUOUS_INTEGRATION",
+      "GITHUB_ACTIONS",
+      "GITLAB_CI",
+      "CIRCLECI",
+      "TRAVIS",
+      "BUILDKITE",
+      "BITBUCKET_BUILD_NUMBER",
+      "APPVEYOR",
+      "CODEBUILD_BUILD_ID",
+      "TF_BUILD",
+      "TEAMCITY_VERSION",
+      "JENKINS_URL",
+      "HUDSON_URL",
+      "BAMBOO_BUILDKEY",
+      "CF_PAGES"
+    ];
+    isTestEnvironment = () => {
+      try {
+        return process.env.NODE_ENV === "test";
+      } catch {
+      }
+      return false;
+    };
+    isProductionEnvironment = () => {
+      try {
+        return process.env.NODE_ENV === "production";
+      } catch {
+      }
+      return false;
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/deprecated-D89ptCyg.mjs
+var displayedWarnings, deprecated;
+var init_deprecated_D89ptCyg = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/deprecated-D89ptCyg.mjs"() {
+    "use strict";
+    init_runtimeEnvironment_DHuMF_tN();
+    displayedWarnings = /* @__PURE__ */ new Set();
+    deprecated = (fnName, warning, key) => {
+      const hideWarning = isTestEnvironment() || isProductionEnvironment();
+      const messageId = key ?? fnName;
+      if (displayedWarnings.has(messageId) || hideWarning) return;
+      displayedWarnings.add(messageId);
+      console.warn(`Clerk - DEPRECATION WARNING: "${fnName}" is deprecated and will be removed in the next major release.
+${warning}`);
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/deprecated.mjs
+var init_deprecated = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/deprecated.mjs"() {
+    "use strict";
+    init_getEnvVariable_CzO2lHzx();
+    init_runtimeEnvironment_DHuMF_tN();
+    init_deprecated_D89ptCyg();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/constants-BVchI2jn.mjs
+var LEGACY_DEV_INSTANCE_SUFFIXES, CURRENT_DEV_INSTANCE_SUFFIXES, DEV_OR_STAGING_SUFFIXES;
+var init_constants_BVchI2jn = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/constants-BVchI2jn.mjs"() {
+    "use strict";
+    LEGACY_DEV_INSTANCE_SUFFIXES = [
+      ".lcl.dev",
+      ".lclstage.dev",
+      ".lclclerk.com"
+    ];
+    CURRENT_DEV_INSTANCE_SUFFIXES = [
+      ".accounts.dev",
+      ".accountsstage.dev",
+      ".accounts.lclclerk.com"
+    ];
+    DEV_OR_STAGING_SUFFIXES = [
+      ".lcl.dev",
+      ".stg.dev",
+      ".lclstage.dev",
+      ".stgstage.dev",
+      ".dev.lclclerk.com",
+      ".stg.lclclerk.com",
+      ".accounts.lclclerk.com",
+      "accountsstage.dev",
+      "accounts.dev"
+    ];
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicAtob-C1KQ5FtS.mjs
+var isomorphicAtob;
+var init_isomorphicAtob_C1KQ5FtS = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicAtob-C1KQ5FtS.mjs"() {
+    "use strict";
+    isomorphicAtob = (data) => {
+      if (typeof atob !== "undefined" && typeof atob === "function") return atob(data);
+      else if (typeof globalThis.Buffer !== "undefined") return globalThis.Buffer.from(data, "base64").toString();
+      return data;
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicBtoa-BBBfp_jr.mjs
+var isomorphicBtoa;
+var init_isomorphicBtoa_BBBfp_jr = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicBtoa-BBBfp_jr.mjs"() {
+    "use strict";
+    isomorphicBtoa = (data) => {
+      if (typeof btoa !== "undefined" && typeof btoa === "function") return btoa(data);
+      else if (typeof globalThis.Buffer !== "undefined") return globalThis.Buffer.from(data).toString("base64");
+      return data;
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/keys-jlv3GIE3.mjs
+function isValidDecodedPublishableKey(decoded) {
+  if (!decoded.endsWith("$")) return false;
+  const withoutTrailing = decoded.slice(0, -1);
+  if (withoutTrailing.includes("$")) return false;
+  return withoutTrailing.includes(".");
+}
+function parsePublishableKey(key, options = {}) {
+  key = key || "";
+  if (!key || !isPublishableKey(key)) {
+    if (options.fatal && !key) throw new Error("Publishable key is missing. Ensure that your publishable key is correctly configured. Double-check your environment configuration for your keys, or access them here: https://dashboard.clerk.com/last-active?path=api-keys");
+    if (options.fatal && !isPublishableKey(key)) throw new Error("Publishable key not valid.");
+    return null;
+  }
+  const instanceType = key.startsWith(PUBLISHABLE_KEY_LIVE_PREFIX) ? "production" : "development";
+  let decodedFrontendApi;
+  try {
+    decodedFrontendApi = isomorphicAtob(key.split("_")[2]);
+  } catch {
+    if (options.fatal) throw new Error("Publishable key not valid: Failed to decode key.");
+    return null;
+  }
+  if (!isValidDecodedPublishableKey(decodedFrontendApi)) {
+    if (options.fatal) throw new Error("Publishable key not valid: Decoded key has invalid format.");
+    return null;
+  }
+  let frontendApi = decodedFrontendApi.slice(0, -1);
+  if (options.proxyUrl) frontendApi = options.proxyUrl;
+  else if (instanceType !== "development" && options.domain && options.isSatellite) frontendApi = `clerk.${options.domain}`;
+  return {
+    instanceType,
+    frontendApi
+  };
+}
+function isPublishableKey(key = "") {
+  try {
+    if (!(key.startsWith(PUBLISHABLE_KEY_LIVE_PREFIX) || key.startsWith(PUBLISHABLE_KEY_TEST_PREFIX))) return false;
+    const parts = key.split("_");
+    if (parts.length !== 3) return false;
+    const encodedPart = parts[2];
+    if (!encodedPart) return false;
+    return isValidDecodedPublishableKey(isomorphicAtob(encodedPart));
+  } catch {
+    return false;
+  }
+}
+function createDevOrStagingUrlCache() {
+  const devOrStagingUrlCache = /* @__PURE__ */ new Map();
+  return { isDevOrStagingUrl: (url) => {
+    if (!url) return false;
+    const hostname = typeof url === "string" ? url : url.hostname;
+    let res = devOrStagingUrlCache.get(hostname);
+    if (res === void 0) {
+      res = DEV_OR_STAGING_SUFFIXES.some((s2) => hostname.endsWith(s2));
+      devOrStagingUrlCache.set(hostname, res);
+    }
+    return res;
+  } };
+}
+function isProductionFromPublishableKey(apiKey) {
+  return apiKey.startsWith("live_") || apiKey.startsWith("pk_live_");
+}
+function isDevelopmentFromSecretKey(apiKey) {
+  return apiKey.startsWith("test_") || apiKey.startsWith("sk_test_");
+}
+async function getCookieSuffix(publishableKey, subtle = globalThis.crypto.subtle) {
+  const data = new TextEncoder().encode(publishableKey);
+  const digest = await subtle.digest("sha-1", data);
+  return isomorphicBtoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/gi, "-").replace(/\//gi, "_").substring(0, 8);
+}
+var PUBLISHABLE_KEY_LIVE_PREFIX, PUBLISHABLE_KEY_TEST_PREFIX, getSuffixedCookieName;
+var init_keys_jlv3GIE3 = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/keys-jlv3GIE3.mjs"() {
+    "use strict";
+    init_constants_BVchI2jn();
+    init_isomorphicAtob_C1KQ5FtS();
+    init_isomorphicBtoa_BBBfp_jr();
+    PUBLISHABLE_KEY_LIVE_PREFIX = "pk_live_";
+    PUBLISHABLE_KEY_TEST_PREFIX = "pk_test_";
+    getSuffixedCookieName = (cookieName, cookieSuffix) => {
+      return `${cookieName}_${cookieSuffix}`;
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/keys.mjs
+var init_keys = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/keys.mjs"() {
+    "use strict";
+    init_constants_BVchI2jn();
+    init_isomorphicAtob_C1KQ5FtS();
+    init_isomorphicBtoa_BBBfp_jr();
+    init_keys_jlv3GIE3();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/retry-NrE3SkPj.mjs
+var defaultOptions, RETRY_IMMEDIATELY_DELAY, sleep3, applyJitter, createExponentialDelayAsyncFn, retry;
+var init_retry_NrE3SkPj = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/retry-NrE3SkPj.mjs"() {
+    "use strict";
+    defaultOptions = {
+      initialDelay: 125,
+      maxDelayBetweenRetries: 0,
+      factor: 2,
+      shouldRetry: (_2, iteration) => iteration < 5,
+      retryImmediately: false,
+      jitter: true
+    };
+    RETRY_IMMEDIATELY_DELAY = 100;
+    sleep3 = async (ms5) => new Promise((s2) => setTimeout(s2, ms5));
+    applyJitter = (delay, jitter) => {
+      return jitter ? delay * (1 + Math.random()) : delay;
+    };
+    createExponentialDelayAsyncFn = (opts) => {
+      let timesCalled = 0;
+      const calculateDelayInMs = () => {
+        const constant = opts.initialDelay;
+        const base = opts.factor;
+        let delay = constant * Math.pow(base, timesCalled);
+        delay = applyJitter(delay, opts.jitter);
+        return Math.min(opts.maxDelayBetweenRetries || delay, delay);
+      };
+      return async () => {
+        await sleep3(calculateDelayInMs());
+        timesCalled++;
+      };
+    };
+    retry = async (callback, options = {}) => {
+      let iterations = 0;
+      const { shouldRetry: shouldRetry2, initialDelay, maxDelayBetweenRetries, factor, retryImmediately, jitter, onBeforeRetry } = {
+        ...defaultOptions,
+        ...options
+      };
+      const delay = createExponentialDelayAsyncFn({
+        initialDelay,
+        maxDelayBetweenRetries,
+        factor,
+        jitter
+      });
+      while (true) try {
+        return await callback();
+      } catch (e) {
+        iterations++;
+        if (!shouldRetry2(e, iterations)) throw e;
+        if (onBeforeRetry) await onBeforeRetry(iterations);
+        if (retryImmediately && iterations === 1) await sleep3(applyJitter(RETRY_IMMEDIATELY_DELAY, jitter));
+        else await delay();
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/retry.mjs
+var init_retry = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/retry.mjs"() {
+    "use strict";
+    init_retry_NrE3SkPj();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/instance-oOmLJefy.mjs
+var init_instance_oOmLJefy = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/instance-oOmLJefy.mjs"() {
+    "use strict";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/url-BwZwnCsF.mjs
+function isLegacyDevAccountPortalOrigin(host) {
+  return LEGACY_DEV_INSTANCE_SUFFIXES.some((legacyDevSuffix) => {
+    return host.startsWith("accounts.") && host.endsWith(legacyDevSuffix);
+  });
+}
+function isCurrentDevAccountPortalOrigin(host) {
+  return CURRENT_DEV_INSTANCE_SUFFIXES.some((currentDevSuffix) => {
+    return host.endsWith(currentDevSuffix) && !host.endsWith(".clerk" + currentDevSuffix);
+  });
+}
+var init_url_BwZwnCsF = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/url-BwZwnCsF.mjs"() {
+    "use strict";
+    init_constants_BVchI2jn();
+    init_instance_oOmLJefy();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/url.mjs
+var init_url = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/url.mjs"() {
+    "use strict";
+    init_constants_BVchI2jn();
+    init_instance_oOmLJefy();
+    init_url_BwZwnCsF();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/clerkRuntimeError-EpUpwIcY.mjs
+function createErrorTypeGuard(ErrorClass) {
+  function typeGuard(error) {
+    const target = error ?? this;
+    if (!target) throw new TypeError(`${ErrorClass.kind || ErrorClass.name} type guard requires an error object`);
+    if (ErrorClass.kind && typeof target === "object" && target !== null && "constructor" in target) {
+      if (target.constructor?.kind === ErrorClass.kind) return true;
+    }
+    return target instanceof ErrorClass;
+  }
+  return typeGuard;
+}
+var ClerkError, ClerkRuntimeError, isClerkRuntimeError;
+var init_clerkRuntimeError_EpUpwIcY = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/clerkRuntimeError-EpUpwIcY.mjs"() {
+    "use strict";
+    ClerkError = class ClerkError2 extends Error {
+      static kind = "ClerkError";
+      clerkError = true;
+      code;
+      longMessage;
+      docsUrl;
+      cause;
+      get name() {
+        return this.constructor.name;
+      }
+      constructor(opts) {
+        super(new.target.formatMessage(new.target.kind, opts.message, opts.code, opts.docsUrl), { cause: opts.cause });
+        Object.setPrototypeOf(this, ClerkError2.prototype);
+        this.code = opts.code;
+        this.docsUrl = opts.docsUrl;
+        this.longMessage = opts.longMessage;
+        this.cause = opts.cause;
+      }
+      toString() {
+        return `[${this.name}]
+Message:${this.message}`;
+      }
+      static formatMessage(name, msg, code, docsUrl) {
+        const prefix = "Clerk:";
+        const regex = new RegExp(prefix.replace(" ", "\\s*"), "i");
+        msg = msg.replace(regex, "");
+        msg = `${prefix} ${msg.trim()}
+
+(code="${code}")
+
+`;
+        if (docsUrl) msg += `
+
+Docs: ${docsUrl}`;
+        return msg;
+      }
+    };
+    ClerkRuntimeError = class ClerkRuntimeError2 extends ClerkError {
+      static kind = "ClerkRuntimeError";
+      /**
+      * @deprecated Use `clerkError` property instead. This property is maintained for backward compatibility.
+      */
+      clerkRuntimeError = true;
+      constructor(message, options) {
+        super({
+          ...options,
+          message
+        });
+        Object.setPrototypeOf(this, ClerkRuntimeError2.prototype);
+      }
+    };
+    isClerkRuntimeError = createErrorTypeGuard(ClerkRuntimeError);
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/error-DAG0ASPV.mjs
+function parseError(error) {
+  return new ClerkAPIError(error);
+}
+function buildErrorThrower({ packageName, customMessages }) {
+  let pkg = packageName;
+  function buildMessage(rawMessage, replacements) {
+    if (!replacements) return `${pkg}: ${rawMessage}`;
+    let msg = rawMessage;
+    const matches2 = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
+    for (const match3 of matches2) {
+      const replacement = (replacements[match3[1]] || "").toString();
+      msg = msg.replace(`{{${match3[1]}}}`, replacement);
+    }
+    return `${pkg}: ${msg}`;
+  }
+  const messages = {
+    ...DefaultMessages,
+    ...customMessages
+  };
+  return {
+    setPackageName({ packageName: packageName$1 }) {
+      if (typeof packageName$1 === "string") pkg = packageName$1;
+      return this;
+    },
+    setMessages({ customMessages: customMessages$1 }) {
+      Object.assign(messages, customMessages$1 || {});
+      return this;
+    },
+    throwInvalidPublishableKeyError(params) {
+      throw new Error(buildMessage(messages.InvalidPublishableKeyErrorMessage, params));
+    },
+    throwInvalidProxyUrl(params) {
+      throw new Error(buildMessage(messages.InvalidProxyUrlErrorMessage, params));
+    },
+    throwMissingPublishableKeyError() {
+      throw new Error(buildMessage(messages.MissingPublishableKeyErrorMessage));
+    },
+    throwMissingSecretKeyError() {
+      throw new Error(buildMessage(messages.MissingSecretKeyErrorMessage));
+    },
+    throwMissingClerkProviderError(params) {
+      throw new Error(buildMessage(messages.MissingClerkProvider, params));
+    },
+    throw(message) {
+      throw new Error(buildMessage(message));
+    }
+  };
+}
+var ClerkAPIError, isClerkAPIError, ClerkAPIResponseError, isClerkAPIResponseError, DefaultMessages;
+var init_error_DAG0ASPV = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/error-DAG0ASPV.mjs"() {
+    "use strict";
+    init_clerkRuntimeError_EpUpwIcY();
+    ClerkAPIError = class {
+      static kind = "ClerkAPIError";
+      code;
+      message;
+      longMessage;
+      meta;
+      constructor(json2) {
+        const parsedError = {
+          code: json2.code,
+          message: json2.message,
+          longMessage: json2.long_message,
+          meta: {
+            paramName: json2.meta?.param_name,
+            sessionId: json2.meta?.session_id,
+            emailAddresses: json2.meta?.email_addresses,
+            identifiers: json2.meta?.identifiers,
+            zxcvbn: json2.meta?.zxcvbn,
+            plan: json2.meta?.plan,
+            isPlanUpgradePossible: json2.meta?.is_plan_upgrade_possible
+          }
+        };
+        this.code = parsedError.code;
+        this.message = parsedError.message;
+        this.longMessage = parsedError.longMessage;
+        this.meta = parsedError.meta;
+      }
+    };
+    isClerkAPIError = createErrorTypeGuard(ClerkAPIError);
+    ClerkAPIResponseError = class ClerkAPIResponseError2 extends ClerkError {
+      static kind = "ClerkAPIResponseError";
+      status;
+      clerkTraceId;
+      retryAfter;
+      errors;
+      constructor(message, options) {
+        const { data: errorsJson, status, clerkTraceId, retryAfter } = options;
+        super({
+          ...options,
+          message,
+          code: "api_response_error"
+        });
+        Object.setPrototypeOf(this, ClerkAPIResponseError2.prototype);
+        this.status = status;
+        this.clerkTraceId = clerkTraceId;
+        this.retryAfter = retryAfter;
+        this.errors = (errorsJson || []).map((e) => new ClerkAPIError(e));
+      }
+      toString() {
+        let message = `[${this.name}]
+Message:${this.message}
+Status:${this.status}
+Serialized errors: ${this.errors.map((e) => JSON.stringify(e))}`;
+        if (this.clerkTraceId) message += `
+Clerk Trace ID: ${this.clerkTraceId}`;
+        return message;
+      }
+      static formatMessage(name, msg, _2, __) {
+        return msg;
+      }
+    };
+    isClerkAPIResponseError = createErrorTypeGuard(ClerkAPIResponseError);
+    DefaultMessages = Object.freeze({
+      InvalidProxyUrlErrorMessage: `The proxyUrl passed to Clerk is invalid. The expected value for proxyUrl is an absolute URL or a relative path with a leading '/'. (key={{url}})`,
+      InvalidPublishableKeyErrorMessage: `The publishableKey passed to Clerk is invalid. You can get your Publishable key at https://dashboard.clerk.com/last-active?path=api-keys. (key={{key}})`,
+      MissingPublishableKeyErrorMessage: `Missing publishableKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
+      MissingSecretKeyErrorMessage: `Missing secretKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
+      MissingClerkProvider: `{{source}} can only be used within the <ClerkProvider /> component. Learn more: https://clerk.com/docs/components/clerk-provider`
+    });
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/error.mjs
+var init_error = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/error.mjs"() {
+    "use strict";
+    init_clerkRuntimeError_EpUpwIcY();
+    init_error_DAG0ASPV();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs
+var errorThrower, isDevOrStagingUrl;
+var init_chunk_YBVFDYDR = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs"() {
+    "use strict";
+    init_deprecated();
+    init_keys();
+    init_retry();
+    init_url();
+    init_error();
+    init_keys();
+    errorThrower = buildErrorThrower({ packageName: "@clerk/backend" });
+    ({ isDevOrStagingUrl } = createDevOrStagingUrlCache());
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-RZ7A7F6X.mjs
+var TokenVerificationErrorCode, TokenVerificationErrorReason, TokenVerificationErrorAction, TokenVerificationError, MachineTokenVerificationErrorCode, _MachineTokenVerificationError, MachineTokenVerificationError;
+var init_chunk_RZ7A7F6X = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-RZ7A7F6X.mjs"() {
+    "use strict";
+    init_error();
+    init_error();
+    TokenVerificationErrorCode = {
+      InvalidSecretKey: "clerk_key_invalid"
+    };
+    TokenVerificationErrorReason = {
+      TokenExpired: "token-expired",
+      TokenInvalid: "token-invalid",
+      TokenInvalidAlgorithm: "token-invalid-algorithm",
+      TokenInvalidAuthorizedParties: "token-invalid-authorized-parties",
+      TokenInvalidSignature: "token-invalid-signature",
+      TokenNotActiveYet: "token-not-active-yet",
+      TokenIatInTheFuture: "token-iat-in-the-future",
+      TokenVerificationFailed: "token-verification-failed",
+      InvalidSecretKey: "secret-key-invalid",
+      LocalJWKMissing: "jwk-local-missing",
+      RemoteJWKFailedToLoad: "jwk-remote-failed-to-load",
+      RemoteJWKInvalid: "jwk-remote-invalid",
+      RemoteJWKMissing: "jwk-remote-missing",
+      JWKFailedToResolve: "jwk-failed-to-resolve",
+      JWKKidMismatch: "jwk-kid-mismatch"
+    };
+    TokenVerificationErrorAction = {
+      ContactSupport: "Contact support@clerk.com",
+      EnsureClerkJWT: "Make sure that this is a valid Clerk-generated JWT.",
+      SetClerkJWTKey: "Set the CLERK_JWT_KEY environment variable.",
+      SetClerkSecretKey: "Set the CLERK_SECRET_KEY environment variable.",
+      EnsureClockSync: "Make sure your system clock is in sync (e.g. turn off and on automatic time synchronization)."
+    };
+    TokenVerificationError = class _TokenVerificationError extends Error {
+      constructor({
+        action,
+        message,
+        reason
+      }) {
+        super(message);
+        Object.setPrototypeOf(this, _TokenVerificationError.prototype);
+        this.reason = reason;
+        this.message = message;
+        this.action = action;
+      }
+      getFullMessage() {
+        return `${[this.message, this.action].filter((m) => m).join(" ")} (reason=${this.reason}, token-carrier=${this.tokenCarrier})`;
+      }
+    };
+    MachineTokenVerificationErrorCode = {
+      TokenInvalid: "token-invalid",
+      InvalidSecretKey: "secret-key-invalid",
+      UnexpectedError: "unexpected-error",
+      TokenVerificationFailed: "token-verification-failed"
+    };
+    _MachineTokenVerificationError = class _MachineTokenVerificationError2 extends ClerkError {
+      constructor({
+        message,
+        code,
+        status,
+        action
+      }) {
+        super({ message, code });
+        Object.setPrototypeOf(this, _MachineTokenVerificationError2.prototype);
+        this.status = status;
+        this.action = action;
+      }
+      // Keep message unformatted, matching ClerkAPIResponseError's approach
+      static formatMessage(_name, msg, _code, _docsUrl) {
+        return msg;
+      }
+      getFullMessage() {
+        return `${this.message} (code=${this.code}, status=${this.status || "n/a"})`;
+      }
+    };
+    _MachineTokenVerificationError.kind = "MachineTokenVerificationError";
+    MachineTokenVerificationError = _MachineTokenVerificationError;
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/runtime/node/crypto.mjs
+var import_node_crypto;
+var init_crypto = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/runtime/node/crypto.mjs"() {
+    "use strict";
+    import_node_crypto = require("crypto");
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/isomorphicAtob.mjs
+var init_isomorphicAtob = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/isomorphicAtob.mjs"() {
+    "use strict";
+    init_isomorphicAtob_C1KQ5FtS();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-J2CDX2WG.mjs
+function parse2(string, encoding, opts = {}) {
+  if (!encoding.codes) {
+    encoding.codes = {};
+    for (let i = 0; i < encoding.chars.length; ++i) {
+      encoding.codes[encoding.chars[i]] = i;
+    }
+  }
+  if (!opts.loose && string.length * encoding.bits & 7) {
+    throw new SyntaxError("Invalid padding");
+  }
+  let end = string.length;
+  while (string[end - 1] === "=") {
+    --end;
+    if (!opts.loose && !((string.length - end) * encoding.bits & 7)) {
+      throw new SyntaxError("Invalid padding");
+    }
+  }
+  const out = new (opts.out ?? Uint8Array)(end * encoding.bits / 8 | 0);
+  let bits = 0;
+  let buffer = 0;
+  let written = 0;
+  for (let i = 0; i < end; ++i) {
+    const value = encoding.codes[string[i]];
+    if (value === void 0) {
+      throw new SyntaxError("Invalid character " + string[i]);
+    }
+    buffer = buffer << encoding.bits | value;
+    bits += encoding.bits;
+    if (bits >= 8) {
+      bits -= 8;
+      out[written++] = 255 & buffer >> bits;
+    }
+  }
+  if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
+    throw new SyntaxError("Unexpected end of data");
+  }
+  return out;
+}
+function stringify3(data, encoding, opts = {}) {
+  const { pad = true } = opts;
+  const mask = (1 << encoding.bits) - 1;
+  let out = "";
+  let bits = 0;
+  let buffer = 0;
+  for (let i = 0; i < data.length; ++i) {
+    buffer = buffer << 8 | 255 & data[i];
+    bits += 8;
+    while (bits > encoding.bits) {
+      bits -= encoding.bits;
+      out += encoding.chars[mask & buffer >> bits];
+    }
+  }
+  if (bits) {
+    out += encoding.chars[mask & buffer << encoding.bits - bits];
+  }
+  if (pad) {
+    while (out.length * encoding.bits & 7) {
+      out += "=";
+    }
+  }
+  return out;
+}
+function getCryptoAlgorithm(algorithmName) {
+  const hash = algToHash[algorithmName];
+  const name = jwksAlgToCryptoAlg[algorithmName];
+  if (!hash || !name) {
+    throw new Error(`Unsupported algorithm ${algorithmName}, expected one of ${algs.join(",")}.`);
+  }
+  return {
+    hash: { name: algToHash[algorithmName] },
+    name: jwksAlgToCryptoAlg[algorithmName]
+  };
+}
+function pemToBuffer(secret) {
+  const trimmed = secret.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
+  const decoded = isomorphicAtob(trimmed);
+  const buffer = new ArrayBuffer(decoded.length);
+  const bufView = new Uint8Array(buffer);
+  for (let i = 0, strLen = decoded.length; i < strLen; i++) {
+    bufView[i] = decoded.charCodeAt(i);
+  }
+  return bufView;
+}
+function importKey(key, algorithm, keyUsage) {
+  if (typeof key === "object") {
+    return runtime.crypto.subtle.importKey("jwk", key, algorithm, false, [keyUsage]);
+  }
+  const keyData = pemToBuffer(key);
+  const format = keyUsage === "sign" ? "pkcs8" : "spki";
+  return runtime.crypto.subtle.importKey(format, keyData, algorithm, false, [keyUsage]);
+}
+async function hasValidSignature(jwt, key) {
+  const { header, signature, raw: raw2 } = jwt;
+  const encoder = new TextEncoder();
+  const data = encoder.encode([raw2.header, raw2.payload].join("."));
+  const algorithm = getCryptoAlgorithm(header.alg);
+  try {
+    const cryptoKey = await importKey(key, algorithm, "verify");
+    const verified = await runtime.crypto.subtle.verify(algorithm.name, cryptoKey, signature, data);
+    return { data: verified };
+  } catch (error) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidSignature,
+          message: error?.message
+        })
+      ]
+    };
+  }
+}
+function decodeJwt(token) {
+  const tokenParts = (token || "").toString().split(".");
+  if (tokenParts.length !== 3) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalid,
+          message: `Invalid JWT form. A JWT consists of three parts separated by dots.`
+        })
+      ]
+    };
+  }
+  const [rawHeader, rawPayload, rawSignature] = tokenParts;
+  const decoder = new TextDecoder();
+  const header = JSON.parse(decoder.decode(base64url.parse(rawHeader, { loose: true })));
+  const payload = JSON.parse(decoder.decode(base64url.parse(rawPayload, { loose: true })));
+  const signature = base64url.parse(rawSignature, { loose: true });
+  const data = {
+    header,
+    payload,
+    signature,
+    raw: {
+      header: rawHeader,
+      payload: rawPayload,
+      signature: rawSignature,
+      text: token
+    }
+  };
+  return { data };
+}
+async function verifyJwt(token, options) {
+  const { audience, authorizedParties, clockSkewInMs, key, headerType } = options;
+  const clockSkew = typeof clockSkewInMs === "number" && Number.isFinite(clockSkewInMs) ? clockSkewInMs : DEFAULT_CLOCK_SKEW_IN_MS;
+  const { data: decoded, errors } = decodeJwt(token);
+  if (errors) {
+    return { errors };
+  }
+  const { header, payload } = decoded;
+  try {
+    const { typ, alg } = header;
+    assertHeaderType(typ, headerType);
+    assertHeaderAlgorithm(alg);
+  } catch (err2) {
+    return { errors: [err2] };
+  }
+  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
+  if (signatureErrors) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Error verifying JWT signature. ${signatureErrors[0]}`
+        })
+      ]
+    };
+  }
+  if (!signatureValid) {
+    return {
+      errors: [
+        new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidSignature,
+          message: "JWT signature is invalid."
+        })
+      ]
+    };
+  }
+  try {
+    const { azp, sub, aud, iat, exp, nbf } = payload;
+    assertSubClaim(sub);
+    assertAudienceClaim(aud, audience);
+    assertAuthorizedPartiesClaim(azp, authorizedParties);
+    assertExpirationClaim(exp, clockSkew);
+    assertActivationClaim(nbf, clockSkew);
+    assertIssuedAtClaim(iat, clockSkew);
+  } catch (err2) {
+    return { errors: [err2] };
+  }
+  return { data: payload };
+}
+var globalFetch2, runtime, base64url, base64UrlEncoding, algToHash, RSA_ALGORITHM_NAME, jwksAlgToCryptoAlg, algs, isArrayString, assertAudienceClaim, assertHeaderType, assertHeaderAlgorithm, assertSubClaim, assertAuthorizedPartiesClaim, assertExpirationClaim, assertActivationClaim, assertIssuedAtClaim, DEFAULT_CLOCK_SKEW_IN_MS;
+var init_chunk_J2CDX2WG = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-J2CDX2WG.mjs"() {
+    "use strict";
+    init_chunk_RZ7A7F6X();
+    init_crypto();
+    init_isomorphicAtob();
+    globalFetch2 = fetch.bind(globalThis);
+    runtime = {
+      crypto: import_node_crypto.webcrypto,
+      get fetch() {
+        return process.env.NODE_ENV === "test" ? fetch : globalFetch2;
+      },
+      AbortController: globalThis.AbortController,
+      Blob: globalThis.Blob,
+      FormData: globalThis.FormData,
+      Headers: globalThis.Headers,
+      Request: globalThis.Request,
+      Response: globalThis.Response
+    };
+    base64url = {
+      parse(string, opts) {
+        return parse2(string, base64UrlEncoding, opts);
+      },
+      stringify(data, opts) {
+        return stringify3(data, base64UrlEncoding, opts);
+      }
+    };
+    base64UrlEncoding = {
+      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+      bits: 6
+    };
+    algToHash = {
+      RS256: "SHA-256",
+      RS384: "SHA-384",
+      RS512: "SHA-512"
+    };
+    RSA_ALGORITHM_NAME = "RSASSA-PKCS1-v1_5";
+    jwksAlgToCryptoAlg = {
+      RS256: RSA_ALGORITHM_NAME,
+      RS384: RSA_ALGORITHM_NAME,
+      RS512: RSA_ALGORITHM_NAME
+    };
+    algs = Object.keys(algToHash);
+    isArrayString = (s2) => {
+      return Array.isArray(s2) && s2.length > 0 && s2.every((a) => typeof a === "string");
+    };
+    assertAudienceClaim = (aud, audience) => {
+      const audienceList = [audience].flat().filter((a) => !!a);
+      const audList = [aud].flat().filter((a) => !!a);
+      const shouldVerifyAudience = audienceList.length > 0 && audList.length > 0;
+      if (!shouldVerifyAudience) {
+        return;
+      }
+      if (typeof aud === "string") {
+        if (!audienceList.includes(aud)) {
+          throw new TokenVerificationError({
+            action: TokenVerificationErrorAction.EnsureClerkJWT,
+            reason: TokenVerificationErrorReason.TokenVerificationFailed,
+            message: `Invalid JWT audience claim (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
+              audienceList
+            )}".`
+          });
+        }
+      } else if (isArrayString(aud)) {
+        if (!aud.some((a) => audienceList.includes(a))) {
+          throw new TokenVerificationError({
+            action: TokenVerificationErrorAction.EnsureClerkJWT,
+            reason: TokenVerificationErrorReason.TokenVerificationFailed,
+            message: `Invalid JWT audience claim array (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
+              audienceList
+            )}".`
+          });
+        }
+      }
+    };
+    assertHeaderType = (typ, allowedTypes) => {
+      if (typeof typ === "undefined" && typeof allowedTypes === "undefined") {
+        return;
+      }
+      const expectedTypes = allowedTypes ?? "JWT";
+      const allowed = Array.isArray(expectedTypes) ? expectedTypes : [expectedTypes];
+      if (!allowed.includes(typ)) {
+        throw new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenInvalid,
+          message: `Invalid JWT type ${JSON.stringify(typ)}. Expected "${allowed.join(", ")}".`
+        });
+      }
+    };
+    assertHeaderAlgorithm = (alg) => {
+      if (!algs.includes(alg)) {
+        throw new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenInvalidAlgorithm,
+          message: `Invalid JWT algorithm ${JSON.stringify(alg)}. Supported: ${algs}.`
+        });
+      }
+    };
+    assertSubClaim = (sub) => {
+      if (typeof sub !== "string") {
+        throw new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Subject claim (sub) is required and must be a string. Received ${JSON.stringify(sub)}.`
+        });
+      }
+    };
+    assertAuthorizedPartiesClaim = (azp, authorizedParties) => {
+      if (!azp || !authorizedParties || authorizedParties.length === 0) {
+        return;
+      }
+      if (!authorizedParties.includes(azp)) {
+        throw new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenInvalidAuthorizedParties,
+          message: `Invalid JWT Authorized party claim (azp) ${JSON.stringify(azp)}. Expected "${authorizedParties}".`
+        });
+      }
+    };
+    assertExpirationClaim = (exp, clockSkewInMs) => {
+      if (typeof exp !== "number") {
+        throw new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Invalid JWT expiry date claim (exp) ${JSON.stringify(exp)}. Expected number.`
+        });
+      }
+      const currentDate = new Date(Date.now());
+      const expiryDate = /* @__PURE__ */ new Date(0);
+      expiryDate.setUTCSeconds(exp);
+      const expired = expiryDate.getTime() <= currentDate.getTime() - clockSkewInMs;
+      if (expired) {
+        throw new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenExpired,
+          message: `JWT is expired. Expiry date: ${expiryDate.toUTCString()}, Current date: ${currentDate.toUTCString()}.`
+        });
+      }
+    };
+    assertActivationClaim = (nbf, clockSkewInMs) => {
+      if (typeof nbf === "undefined") {
+        return;
+      }
+      if (typeof nbf !== "number") {
+        throw new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Invalid JWT not before date claim (nbf) ${JSON.stringify(nbf)}. Expected number.`
+        });
+      }
+      const currentDate = new Date(Date.now());
+      const notBeforeDate = /* @__PURE__ */ new Date(0);
+      notBeforeDate.setUTCSeconds(nbf);
+      const early = notBeforeDate.getTime() > currentDate.getTime() + clockSkewInMs;
+      if (early) {
+        throw new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenNotActiveYet,
+          message: `JWT cannot be used prior to not before date claim (nbf). Not before date: ${notBeforeDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
+        });
+      }
+    };
+    assertIssuedAtClaim = (iat, clockSkewInMs) => {
+      if (typeof iat === "undefined") {
+        return;
+      }
+      if (typeof iat !== "number") {
+        throw new TokenVerificationError({
+          action: TokenVerificationErrorAction.EnsureClerkJWT,
+          reason: TokenVerificationErrorReason.TokenVerificationFailed,
+          message: `Invalid JWT issued at date claim (iat) ${JSON.stringify(iat)}. Expected number.`
+        });
+      }
+      const currentDate = new Date(Date.now());
+      const issuedAtDate = /* @__PURE__ */ new Date(0);
+      issuedAtDate.setUTCSeconds(iat);
+      const postIssued = issuedAtDate.getTime() > currentDate.getTime() + clockSkewInMs;
+      if (postIssued) {
+        throw new TokenVerificationError({
+          reason: TokenVerificationErrorReason.TokenIatInTheFuture,
+          message: `JWT issued at date claim (iat) is in the future. Issued at date: ${issuedAtDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
+        });
+      }
+    };
+    DEFAULT_CLOCK_SKEW_IN_MS = 5 * 1e3;
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-TOROEX6P.mjs
+var __create2, __defProp2, __getOwnPropDesc2, __getOwnPropNames2, __getProtoOf2, __hasOwnProp2, __typeError, __commonJS2, __copyProps2, __toESM2, __accessCheck, __privateGet, __privateAdd, __privateSet, __privateMethod;
+var init_chunk_TOROEX6P = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-TOROEX6P.mjs"() {
+    "use strict";
+    __create2 = Object.create;
+    __defProp2 = Object.defineProperty;
+    __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+    __getOwnPropNames2 = Object.getOwnPropertyNames;
+    __getProtoOf2 = Object.getPrototypeOf;
+    __hasOwnProp2 = Object.prototype.hasOwnProperty;
+    __typeError = (msg) => {
+      throw TypeError(msg);
+    };
+    __commonJS2 = (cb, mod) => function __require2() {
+      return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    };
+    __copyProps2 = (to, from, except, desc) => {
+      if (from && typeof from === "object" || typeof from === "function") {
+        for (let key of __getOwnPropNames2(from))
+          if (!__hasOwnProp2.call(to, key) && key !== except)
+            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
+      }
+      return to;
+    };
+    __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
+      // If the importer is in node compatibility mode or this is not an ESM
+      // file that has been converted to a CommonJS file using a Babel-
+      // compatible transform (i.e. "__esModule" has not been set), then set
+      // "default" to the CommonJS "module.exports" for node compatibility.
+      isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
+      mod
+    ));
+    __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
+    __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
+    __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+    __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
+    __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/buildAccountsBaseUrl.mjs
+function buildAccountsBaseUrl(frontendApi) {
+  if (!frontendApi) return "";
+  return `https://${frontendApi.replace(/clerk\.accountsstage\./, "accountsstage.").replace(/clerk\.accounts\.|clerk\./, "accounts.")}`;
+}
+var init_buildAccountsBaseUrl = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/buildAccountsBaseUrl.mjs"() {
+    "use strict";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/logger-C6joC6-q.mjs
+var loggedMessages, logger2;
+var init_logger_C6joC6_q = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/logger-C6joC6-q.mjs"() {
+    "use strict";
+    loggedMessages = /* @__PURE__ */ new Set();
+    logger2 = {
+      warnOnce: (msg) => {
+        if (loggedMessages.has(msg)) return;
+        loggedMessages.add(msg);
+        console.warn(msg);
+      },
+      logOnce: (msg) => {
+        if (loggedMessages.has(msg)) return;
+        console.log(msg);
+        loggedMessages.add(msg);
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/logger.mjs
+var init_logger = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/logger.mjs"() {
+    "use strict";
+    init_logger_C6joC6_q();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/proxy-6sFESt4u.mjs
+function shouldAutoProxy(hostname) {
+  return AUTO_PROXY_HOST_SUFFIXES.some((hostSuffix) => hostname?.endsWith(hostSuffix)) ?? false;
+}
+function getDefaultEnvironment() {
+  return typeof process !== "undefined" && process.env ? process.env : {};
+}
+function normalizeHostname(hostnameOrUrl) {
+  if (hostnameOrUrl.startsWith("http://") || hostnameOrUrl.startsWith("https://")) try {
+    return new URL(hostnameOrUrl).hostname;
+  } catch {
+    return "";
+  }
+  return hostnameOrUrl.split("/")[0] || "";
+}
+function getAutoProxyUrlFromEnvironment({ publishableKey, hasDomain = false, hasProxyUrl = false, environment = getDefaultEnvironment() }) {
+  if (hasProxyUrl || hasDomain || !isProductionFromPublishableKey(publishableKey)) return "";
+  if (environment.VERCEL_TARGET_ENV !== "production") return "";
+  const vercelProductionHostname = environment.VERCEL_PROJECT_PRODUCTION_URL;
+  if (!vercelProductionHostname || !shouldAutoProxy(normalizeHostname(vercelProductionHostname))) return "";
+  return AUTO_PROXY_PATH;
+}
+var AUTO_PROXY_HOST_SUFFIXES, AUTO_PROXY_PATH;
+var init_proxy_6sFESt4u = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/proxy-6sFESt4u.mjs"() {
+    "use strict";
+    init_keys_jlv3GIE3();
+    AUTO_PROXY_HOST_SUFFIXES = [".vercel.app"];
+    AUTO_PROXY_PATH = "/__clerk";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/proxy.mjs
+var init_proxy = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/proxy.mjs"() {
+    "use strict";
+    init_constants_BVchI2jn();
+    init_isomorphicAtob_C1KQ5FtS();
+    init_isomorphicBtoa_BBBfp_jr();
+    init_keys_jlv3GIE3();
+    init_proxy_6sFESt4u();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-D10DwNv6.mjs
+var TYPES_TO_OBJECTS, ALLOWED_LEVELS, ALLOWED_TYPES, ORG_SCOPES, USER_SCOPES, isValidMaxAge, isValidLevel, isValidVerificationType, isValidFactorAge, prefixWithOrg, checkOrgAuthorization, checkForFeatureOrPlan, checkBillingAuthorization, splitByScope, validateReverificationConfig, checkReverificationAuthorization, combine, createCheckAuthorization;
+var init_authorization_D10DwNv6 = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-D10DwNv6.mjs"() {
+    "use strict";
+    TYPES_TO_OBJECTS = {
+      strict_mfa: {
+        afterMinutes: 10,
+        level: "multi_factor"
+      },
+      strict: {
+        afterMinutes: 10,
+        level: "second_factor"
+      },
+      moderate: {
+        afterMinutes: 60,
+        level: "second_factor"
+      },
+      lax: {
+        afterMinutes: 1440,
+        level: "second_factor"
+      }
+    };
+    ALLOWED_LEVELS = /* @__PURE__ */ new Set([
+      "first_factor",
+      "second_factor",
+      "multi_factor"
+    ]);
+    ALLOWED_TYPES = /* @__PURE__ */ new Set([
+      "strict_mfa",
+      "strict",
+      "moderate",
+      "lax"
+    ]);
+    ORG_SCOPES = /* @__PURE__ */ new Set([
+      "o",
+      "org",
+      "organization"
+    ]);
+    USER_SCOPES = /* @__PURE__ */ new Set(["u", "user"]);
+    isValidMaxAge = (maxAge) => typeof maxAge === "number" && maxAge > 0;
+    isValidLevel = (level) => ALLOWED_LEVELS.has(level);
+    isValidVerificationType = (type) => ALLOWED_TYPES.has(type);
+    isValidFactorAge = (x) => typeof x === "number" && Number.isFinite(x) && (x === -1 || x >= 0);
+    prefixWithOrg = (value) => value.replace(/^(org:)*/, "org:");
+    checkOrgAuthorization = (params, options) => {
+      const { orgId, orgRole, orgPermissions } = options;
+      const roleAsked = params.role !== void 0;
+      const permissionAsked = params.permission !== void 0;
+      if (!roleAsked && !permissionAsked) return "skip";
+      if (roleAsked && typeof params.role !== "string") return "fail";
+      if (permissionAsked && typeof params.permission !== "string") return "fail";
+      if (!orgId) return "fail";
+      if (roleAsked) {
+        if (typeof orgRole !== "string" || !orgRole) return "fail";
+        if (prefixWithOrg(orgRole) !== prefixWithOrg(params.role)) return "fail";
+      }
+      if (permissionAsked) {
+        if (!Array.isArray(orgPermissions)) return "fail";
+        if (!orgPermissions.includes(prefixWithOrg(params.permission))) return "fail";
+      }
+      return "pass";
+    };
+    checkForFeatureOrPlan = (claim, featureOrPlan) => {
+      const { org: orgFeatures, user: userFeatures } = splitByScope(claim);
+      const [rawScope, rawId] = featureOrPlan.split(":");
+      const hasExplicitScope = rawId !== void 0;
+      const scope = rawScope;
+      const id = rawId || rawScope;
+      if (hasExplicitScope && !ORG_SCOPES.has(scope) && !USER_SCOPES.has(scope)) throw new Error(`Invalid scope: ${scope}`);
+      if (hasExplicitScope) {
+        if (ORG_SCOPES.has(scope)) return orgFeatures.includes(id);
+        if (USER_SCOPES.has(scope)) return userFeatures.includes(id);
+      }
+      return [...orgFeatures, ...userFeatures].includes(id);
+    };
+    checkBillingAuthorization = (params, options) => {
+      const { features, plans } = options;
+      const featureAsked = params.feature !== void 0;
+      const planAsked = params.plan !== void 0;
+      if (!featureAsked && !planAsked) return "skip";
+      if (featureAsked && typeof params.feature !== "string") return "fail";
+      if (planAsked && typeof params.plan !== "string") return "fail";
+      if (featureAsked) {
+        if (typeof features !== "string" || !features) return "fail";
+        try {
+          if (!checkForFeatureOrPlan(features, params.feature)) return "fail";
+        } catch {
+          return "fail";
+        }
+      }
+      if (planAsked) {
+        if (typeof plans !== "string" || !plans) return "fail";
+        try {
+          if (!checkForFeatureOrPlan(plans, params.plan)) return "fail";
+        } catch {
+          return "fail";
+        }
+      }
+      return "pass";
+    };
+    splitByScope = (fea) => {
+      const org = [];
+      const user = [];
+      if (!fea) return {
+        org,
+        user
+      };
+      const parts = fea.split(",");
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i].trim();
+        const colonIndex = part.indexOf(":");
+        if (colonIndex === -1) throw new Error(`Invalid claim element (missing colon): ${part}`);
+        const scope = part.slice(0, colonIndex);
+        const value = part.slice(colonIndex + 1);
+        if (scope === "o") org.push(value);
+        else if (scope === "u") user.push(value);
+        else if (scope === "ou" || scope === "uo") {
+          org.push(value);
+          user.push(value);
+        }
+      }
+      return {
+        org,
+        user
+      };
+    };
+    validateReverificationConfig = (config) => {
+      if (!config) return false;
+      const convertConfigToObject = (config$1) => {
+        if (typeof config$1 === "string") return TYPES_TO_OBJECTS[config$1];
+        return config$1;
+      };
+      const isValidStringValue = typeof config === "string" && isValidVerificationType(config);
+      const isValidObjectValue = typeof config === "object" && isValidLevel(config.level) && isValidMaxAge(config.afterMinutes);
+      if (isValidStringValue || isValidObjectValue) return convertConfigToObject.bind(null, config);
+      return false;
+    };
+    checkReverificationAuthorization = (params, { factorVerificationAge }) => {
+      if (params.reverification === void 0) return "skip";
+      if (!factorVerificationAge) return "fail";
+      if (!Array.isArray(factorVerificationAge) || factorVerificationAge.length !== 2 || !isValidFactorAge(factorVerificationAge[0]) || !isValidFactorAge(factorVerificationAge[1])) return "fail";
+      const getConfig = validateReverificationConfig(params.reverification);
+      if (!getConfig) return "fail";
+      const { level, afterMinutes } = getConfig();
+      const [factor1Age, factor2Age] = factorVerificationAge;
+      if (factor1Age === -1 && factor2Age === -1) return "fail";
+      const factor1FreshEnough = factor1Age !== -1 && afterMinutes > factor1Age;
+      const factor2FreshEnough = factor2Age !== -1 && afterMinutes > factor2Age;
+      switch (level) {
+        case "first_factor":
+          return factor1FreshEnough ? "pass" : "fail";
+        case "second_factor":
+          if (factor2Age === -1) return factor1FreshEnough ? "pass" : "fail";
+          if (factor1Age === -1) return factor2FreshEnough ? "pass" : "fail";
+          return factor2FreshEnough ? "pass" : "fail";
+        case "multi_factor":
+          if (factor2Age === -1) return factor1FreshEnough ? "pass" : "fail";
+          if (factor1Age === -1) return "fail";
+          return factor1FreshEnough && factor2FreshEnough ? "pass" : "fail";
+      }
+    };
+    combine = (results) => results.some((r) => r === "pass") && results.every((r) => r === "pass" || r === "skip");
+    createCheckAuthorization = (options) => {
+      return (params) => {
+        if (!options.userId) return false;
+        return combine([
+          checkOrgAuthorization(params, options),
+          checkBillingAuthorization(params, options),
+          checkReverificationAuthorization(params, options)
+        ]);
+      };
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization.mjs
+var init_authorization = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization.mjs"() {
+    "use strict";
+    init_authorization_D10DwNv6();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/jwtPayloadParser.mjs
+function buildOrgPermissions({ features, permissions, featurePermissionMap }) {
+  if (!features || !permissions || !featurePermissionMap) return [];
+  const orgPermissions = [];
+  for (let featureIndex = 0; featureIndex < features.length; featureIndex++) {
+    const feature = features[featureIndex];
+    if (featureIndex >= featurePermissionMap.length) continue;
+    const permissionBits = featurePermissionMap[featureIndex];
+    if (!permissionBits) continue;
+    for (let permIndex = 0; permIndex < permissionBits.length; permIndex++) if (permissionBits[permIndex] === 1) orgPermissions.push(`org:${feature}:${permissions[permIndex]}`);
+  }
+  return orgPermissions;
+}
+var parsePermissions, __experimental_JWTPayloadToAuthObjectProperties;
+var init_jwtPayloadParser = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/jwtPayloadParser.mjs"() {
+    "use strict";
+    init_authorization_D10DwNv6();
+    parsePermissions = ({ per, fpm }) => {
+      if (!per || !fpm) return {
+        permissions: [],
+        featurePermissionMap: []
+      };
+      const permissions = per.split(",").map((p) => p.trim());
+      return {
+        permissions,
+        featurePermissionMap: fpm.split(",").map((permission) => Number.parseInt(permission.trim(), 10)).map((permission) => permission.toString(2).padStart(permissions.length, "0").split("").map((bit) => Number.parseInt(bit, 10)).reverse()).filter(Boolean)
+      };
+    };
+    __experimental_JWTPayloadToAuthObjectProperties = (claims) => {
+      let orgId;
+      let orgRole;
+      let orgSlug;
+      let orgPermissions;
+      const factorVerificationAge = claims.fva ?? null;
+      const sessionStatus = claims.sts ?? null;
+      switch (claims.v) {
+        case 2:
+          if (claims.o) {
+            orgId = claims.o?.id;
+            orgSlug = claims.o?.slg;
+            if (claims.o?.rol) orgRole = `org:${claims.o?.rol}`;
+            const { org } = splitByScope(claims.fea);
+            const { permissions, featurePermissionMap } = parsePermissions({
+              per: claims.o?.per,
+              fpm: claims.o?.fpm
+            });
+            orgPermissions = buildOrgPermissions({
+              features: org,
+              featurePermissionMap,
+              permissions
+            });
+          }
+          break;
+        default:
+          orgId = claims.org_id;
+          orgRole = claims.org_role;
+          orgSlug = claims.org_slug;
+          orgPermissions = claims.org_permissions;
+          break;
+      }
+      return {
+        sessionClaims: claims,
+        sessionId: claims.sid,
+        sessionStatus,
+        actor: claims.act,
+        userId: claims.sub,
+        orgId,
+        orgRole,
+        orgSlug,
+        orgPermissions,
+        factorVerificationAge
+      };
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/pathToRegexp-CNkSDpje.mjs
+function _(r) {
+  for (var n = [], e = 0; e < r.length; ) {
+    var a = r[e];
+    if (a === "*" || a === "+" || a === "?") {
+      n.push({
+        type: "MODIFIER",
+        index: e,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === "\\") {
+      n.push({
+        type: "ESCAPED_CHAR",
+        index: e++,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === "{") {
+      n.push({
+        type: "OPEN",
+        index: e,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === "}") {
+      n.push({
+        type: "CLOSE",
+        index: e,
+        value: r[e++]
+      });
+      continue;
+    }
+    if (a === ":") {
+      for (var u = "", t = e + 1; t < r.length; ) {
+        var c = r.charCodeAt(t);
+        if (c >= 48 && c <= 57 || c >= 65 && c <= 90 || c >= 97 && c <= 122 || c === 95) {
+          u += r[t++];
+          continue;
+        }
+        break;
+      }
+      if (!u) throw new TypeError("Missing parameter name at ".concat(e));
+      n.push({
+        type: "NAME",
+        index: e,
+        value: u
+      }), e = t;
+      continue;
+    }
+    if (a === "(") {
+      var o = 1, m = "", t = e + 1;
+      if (r[t] === "?") throw new TypeError('Pattern cannot start with "?" at '.concat(t));
+      for (; t < r.length; ) {
+        if (r[t] === "\\") {
+          m += r[t++] + r[t++];
+          continue;
+        }
+        if (r[t] === ")") {
+          if (o--, o === 0) {
+            t++;
+            break;
+          }
+        } else if (r[t] === "(" && (o++, r[t + 1] !== "?")) throw new TypeError("Capturing groups are not allowed at ".concat(t));
+        m += r[t++];
+      }
+      if (o) throw new TypeError("Unbalanced pattern at ".concat(e));
+      if (!m) throw new TypeError("Missing pattern at ".concat(e));
+      n.push({
+        type: "PATTERN",
+        index: e,
+        value: m
+      }), e = t;
+      continue;
+    }
+    n.push({
+      type: "CHAR",
+      index: e,
+      value: r[e++]
+    });
+  }
+  return n.push({
+    type: "END",
+    index: e,
+    value: ""
+  }), n;
+}
+function F(r, n) {
+  n === void 0 && (n = {});
+  for (var e = _(r), a = n.prefixes, u = a === void 0 ? "./" : a, t = n.delimiter, c = t === void 0 ? "/#?" : t, o = [], m = 0, h = 0, p = "", f = function(l) {
+    if (h < e.length && e[h].type === l) return e[h++].value;
+  }, w = function(l) {
+    var v = f(l);
+    if (v !== void 0) return v;
+    var E = e[h], N = E.type, S = E.index;
+    throw new TypeError("Unexpected ".concat(N, " at ").concat(S, ", expected ").concat(l));
+  }, d = function() {
+    for (var l = "", v; v = f("CHAR") || f("ESCAPED_CHAR"); ) l += v;
+    return l;
+  }, M = function(l) {
+    for (var v = 0, E = c; v < E.length; v++) {
+      var N = E[v];
+      if (l.indexOf(N) > -1) return true;
+    }
+    return false;
+  }, A = function(l) {
+    var v = o[o.length - 1], E = l || (v && typeof v == "string" ? v : "");
+    if (v && !E) throw new TypeError('Must have text between two parameters, missing text after "'.concat(v.name, '"'));
+    return !E || M(E) ? "[^".concat(s(c), "]+?") : "(?:(?!".concat(s(E), ")[^").concat(s(c), "])+?");
+  }; h < e.length; ) {
+    var T = f("CHAR"), x = f("NAME"), C = f("PATTERN");
+    if (x || C) {
+      var g = T || "";
+      u.indexOf(g) === -1 && (p += g, g = ""), p && (o.push(p), p = ""), o.push({
+        name: x || m++,
+        prefix: g,
+        suffix: "",
+        pattern: C || A(g),
+        modifier: f("MODIFIER") || ""
+      });
+      continue;
+    }
+    var i = T || f("ESCAPED_CHAR");
+    if (i) {
+      p += i;
+      continue;
+    }
+    p && (o.push(p), p = "");
+    if (f("OPEN")) {
+      var g = d(), y = f("NAME") || "", O = f("PATTERN") || "", b = d();
+      w("CLOSE"), o.push({
+        name: y || (O ? m++ : ""),
+        pattern: y && !O ? A(g) : O,
+        prefix: g,
+        suffix: b,
+        modifier: f("MODIFIER") || ""
+      });
+      continue;
+    }
+    w("END");
+  }
+  return o;
+}
+function H(r, n) {
+  var e = [];
+  return I(P(r, e, n), e, n);
+}
+function I(r, n, e) {
+  e === void 0 && (e = {});
+  var a = e.decode, u = a === void 0 ? function(t) {
+    return t;
+  } : a;
+  return function(t) {
+    var c = r.exec(t);
+    if (!c) return false;
+    for (var o = c[0], m = c.index, h = /* @__PURE__ */ Object.create(null), p = function(w) {
+      if (c[w] === void 0) return "continue";
+      var d = n[w - 1];
+      d.modifier === "*" || d.modifier === "+" ? h[d.name] = c[w].split(d.prefix + d.suffix).map(function(M) {
+        return u(M, d);
+      }) : h[d.name] = u(c[w], d);
+    }, f = 1; f < c.length; f++) p(f);
+    return {
+      path: o,
+      index: m,
+      params: h
+    };
+  };
+}
+function s(r) {
+  return r.replace(/([.+*?=^!:${}()[\]|/\\])/g, "\\$1");
+}
+function D(r) {
+  return r && r.sensitive ? "" : "i";
+}
+function $(r, n) {
+  if (!n) return r;
+  for (var e = /\((?:\?<(.*?)>)?(?!\?)/g, a = 0, u = e.exec(r.source); u; ) n.push({
+    name: u[1] || a++,
+    prefix: "",
+    suffix: "",
+    modifier: "",
+    pattern: ""
+  }), u = e.exec(r.source);
+  return r;
+}
+function W(r, n, e) {
+  var a = r.map(function(u) {
+    return P(u, n, e).source;
+  });
+  return new RegExp("(?:".concat(a.join("|"), ")"), D(e));
+}
+function L(r, n, e) {
+  return U(F(r, e), n, e);
+}
+function U(r, n, e) {
+  e === void 0 && (e = {});
+  for (var a = e.strict, u = a === void 0 ? false : a, t = e.start, c = t === void 0 ? true : t, o = e.end, m = o === void 0 ? true : o, h = e.encode, p = h === void 0 ? function(v) {
+    return v;
+  } : h, f = e.delimiter, w = f === void 0 ? "/#?" : f, d = e.endsWith, M = d === void 0 ? "" : d, A = "[".concat(s(M), "]|$"), T = "[".concat(s(w), "]"), x = c ? "^" : "", C = 0, g = r; C < g.length; C++) {
+    var i = g[C];
+    if (typeof i == "string") x += s(p(i));
+    else {
+      var R = s(p(i.prefix)), y = s(p(i.suffix));
+      if (i.pattern) if (n && n.push(i), R || y) if (i.modifier === "+" || i.modifier === "*") {
+        var O = i.modifier === "*" ? "?" : "";
+        x += "(?:".concat(R, "((?:").concat(i.pattern, ")(?:").concat(y).concat(R, "(?:").concat(i.pattern, "))*)").concat(y, ")").concat(O);
+      } else x += "(?:".concat(R, "(").concat(i.pattern, ")").concat(y, ")").concat(i.modifier);
+      else {
+        if (i.modifier === "+" || i.modifier === "*") throw new TypeError('Can not repeat "'.concat(i.name, '" without a prefix and suffix'));
+        x += "(".concat(i.pattern, ")").concat(i.modifier);
+      }
+      else x += "(?:".concat(R).concat(y, ")").concat(i.modifier);
+    }
+  }
+  if (m) u || (x += "".concat(T, "?")), x += e.endsWith ? "(?=".concat(A, ")") : "$";
+  else {
+    var b = r[r.length - 1], l = typeof b == "string" ? T.indexOf(b[b.length - 1]) > -1 : b === void 0;
+    u || (x += "(?:".concat(T, "(?=").concat(A, "))?")), l || (x += "(?=".concat(T, "|").concat(A, ")"));
+  }
+  return new RegExp(x, D(e));
+}
+function P(r, n, e) {
+  return r instanceof RegExp ? $(r, n) : Array.isArray(r) ? W(r, n, e) : L(r, n, e);
+}
+function match2(str, options) {
+  try {
+    return H(str, options);
+  } catch (e) {
+    throw new Error(`Invalid path and options: Consult the documentation of path-to-regexp here: https://github.com/pillarjs/path-to-regexp/tree/6.x
+${e.message}`);
+  }
+}
+var init_pathToRegexp_CNkSDpje = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/pathToRegexp-CNkSDpje.mjs"() {
+    "use strict";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/pathToRegexp.mjs
+var init_pathToRegexp = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/pathToRegexp.mjs"() {
+    "use strict";
+    init_pathToRegexp_CNkSDpje();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-errors-B05708zx.mjs
+var init_authorization_errors_B05708zx = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-errors-B05708zx.mjs"() {
+    "use strict";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization-errors.mjs
+var init_authorization_errors = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization-errors.mjs"() {
+    "use strict";
+    init_authorization_errors_B05708zx();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-H3NCOZAT.mjs
+function mergePreDefinedOptions(preDefinedOptions, options) {
+  return Object.keys(preDefinedOptions).reduce(
+    (obj, key) => {
+      return { ...obj, [key]: options[key] || obj[key] };
+    },
+    { ...preDefinedOptions }
+  );
+}
+function assertValidSecretKey(val) {
+  if (!val || typeof val !== "string") {
+    throw Error("Missing Clerk Secret Key. Go to https://dashboard.clerk.com and get your key for your instance.");
+  }
+}
+function assertValidPublishableKey(val) {
+  parsePublishableKey(val, { fatal: true });
+}
+function isDotSegment(segment) {
+  let candidate = segment;
+  for (let i = 0; i <= MAX_DECODES; i++) {
+    if (candidate.split(/[/\\]/).some((p) => p === "." || p === "..")) {
+      return true;
+    }
+    if (i === MAX_DECODES) {
+      throw new Error(`joinPaths: too many layers of encoding in ${segment}`);
+    }
+    try {
+      const next = decodeURIComponent(candidate);
+      if (next === candidate) {
+        break;
+      }
+      candidate = next;
+    } catch {
+      break;
+    }
+  }
+  return false;
+}
+function joinPaths(...args) {
+  const result = args.filter((p) => p).join(SEPARATOR).replace(MULTIPLE_SEPARATOR_REGEX, SEPARATOR);
+  for (const segment of result.split(SEPARATOR)) {
+    if (isDotSegment(segment)) {
+      throw new Error(`joinPaths: "." and ".." path segments are not allowed (received "${result}")`);
+    }
+  }
+  return result;
+}
+function extractCustomClaims(payload) {
+  const claims = {};
+  for (const key of Object.keys(payload)) {
+    if (!M2M_RESERVED_JWT_CLAIMS.has(key)) {
+      claims[key] = payload[key];
+    }
+  }
+  return Object.keys(claims).length > 0 ? claims : null;
+}
+function getFromCache(kid) {
+  return cache[kid];
+}
+function getCacheValues() {
+  return Object.values(cache);
+}
+function setInCache(cacheKey2, jwk, shouldExpire = true) {
+  cache[cacheKey2] = jwk;
+  lastUpdatedAt = shouldExpire ? Date.now() : -1;
+}
+function loadClerkJwkFromPem(params) {
+  const { kid, pem } = params;
+  const prefixedKid = `local-${kid}`;
+  const cachedJwk = getFromCache(prefixedKid);
+  if (cachedJwk) {
+    return cachedJwk;
+  }
+  if (!pem) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkJWTKey,
+      message: "Missing local JWK.",
+      reason: TokenVerificationErrorReason.LocalJWKMissing
+    });
+  }
+  const modulus = pem.replace(/\r\n|\n|\r/g, "").replace(PEM_HEADER, "").replace(PEM_TRAILER, "").replace(RSA_PREFIX, "").replace(RSA_SUFFIX, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const jwk = { kid: prefixedKid, kty: "RSA", alg: "RS256", n: modulus, e: "AQAB" };
+  setInCache(prefixedKid, jwk, false);
+  return jwk;
+}
+async function loadClerkJWKFromRemote(params) {
+  const { secretKey, apiUrl = API_URL, apiVersion = API_VERSION, kid, skipJwksCache } = params;
+  if (skipJwksCache || cacheHasExpired() || !getFromCache(kid)) {
+    if (!secretKey) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: "Failed to load JWKS from Clerk Backend or Frontend API.",
+        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+      });
+    }
+    const fetcher = () => fetchJWKSFromBAPI(apiUrl, secretKey, apiVersion);
+    const { keys } = await retry(fetcher);
+    if (!keys || !keys.length) {
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: "The JWKS endpoint did not contain any signing keys. Contact support@clerk.com.",
+        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+      });
+    }
+    keys.forEach((key) => setInCache(key.kid, key));
+  }
+  const jwk = getFromCache(kid);
+  if (!jwk) {
+    const cacheValues = getCacheValues();
+    const jwkKeys = cacheValues.map((jwk2) => jwk2.kid).sort().join(", ");
+    throw new TokenVerificationError({
+      action: `Go to your Dashboard and validate your secret and public keys are correct. ${TokenVerificationErrorAction.ContactSupport} if the issue persists.`,
+      message: `Unable to find a signing key in JWKS that matches the kid='${kid}' of the provided session token. Please make sure that the __session cookie or the HTTP authorization header contain a Clerk-generated session JWT. The following kid is available: ${jwkKeys}`,
+      reason: TokenVerificationErrorReason.JWKKidMismatch
+    });
+  }
+  return jwk;
+}
+async function fetchJWKSFromBAPI(apiUrl, key, apiVersion) {
+  if (!key) {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkSecretKey,
+      message: "Missing Clerk Secret Key or API Key. Go to https://dashboard.clerk.com and get your key for your instance.",
+      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+    });
+  }
+  const url = new URL(apiUrl);
+  url.pathname = joinPaths(url.pathname, apiVersion, "/jwks");
+  const response3 = await runtime.fetch(url.href, {
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
+      "Content-Type": "application/json",
+      "User-Agent": USER_AGENT
+    }
+  });
+  if (!response3.ok) {
+    const json2 = await response3.json();
+    const invalidSecretKeyError = getErrorObjectByCode(json2?.errors, TokenVerificationErrorCode.InvalidSecretKey);
+    if (invalidSecretKeyError) {
+      const reason = TokenVerificationErrorReason.InvalidSecretKey;
+      throw new TokenVerificationError({
+        action: TokenVerificationErrorAction.ContactSupport,
+        message: invalidSecretKeyError.message,
+        reason
+      });
+    }
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.ContactSupport,
+      message: `Error loading Clerk JWKS from ${url.href} with code=${response3.status}`,
+      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
+    });
+  }
+  return response3.json();
+}
+function cacheHasExpired() {
+  if (lastUpdatedAt === -1) {
+    return false;
+  }
+  const isExpired = Date.now() - lastUpdatedAt >= MAX_CACHE_LAST_UPDATED_AT_SECONDS * 1e3;
+  if (isExpired) {
+    cache = {};
+  }
+  return isExpired;
+}
+function isJwtFormat(token) {
+  return JwtFormatRegExp.test(token);
+}
+function isOAuthJwt(token) {
+  if (!isJwtFormat(token)) {
+    return false;
+  }
+  try {
+    const { data, errors } = decodeJwt(token);
+    return !errors && !!data && OAUTH_ACCESS_TOKEN_TYPES.includes(data.header.typ);
+  } catch {
+    return false;
+  }
+}
+function isM2MJwt(token) {
+  if (!isJwtFormat(token)) {
+    return false;
+  }
+  try {
+    const { data, errors } = decodeJwt(token);
+    return !errors && !!data && typeof data.payload.sub === "string" && data.payload.sub.startsWith(M2M_SUBJECT_PREFIX);
+  } catch {
+    return false;
+  }
+}
+function isMachineJwt(token) {
+  return isOAuthJwt(token) || isM2MJwt(token);
+}
+function isMachineTokenByPrefix(token) {
+  return MACHINE_TOKEN_PREFIXES.some((prefix) => token.startsWith(prefix));
+}
+function isMachineToken(token) {
+  return isMachineTokenByPrefix(token) || isOAuthJwt(token) || isM2MJwt(token);
+}
+function getMachineTokenType(token) {
+  if (token.startsWith(M2M_TOKEN_PREFIX) || isM2MJwt(token)) {
+    return TokenType.M2MToken;
+  }
+  if (token.startsWith(OAUTH_TOKEN_PREFIX) || isOAuthJwt(token)) {
+    return TokenType.OAuthToken;
+  }
+  if (token.startsWith(API_KEY_PREFIX)) {
+    return TokenType.ApiKey;
+  }
+  throw new Error("Unknown machine token type");
+}
+async function resolveKeyAndVerifyJwt(token, kid, options, headerType) {
+  try {
+    let key;
+    if (options.jwtKey) {
+      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
+    } else if (options.secretKey) {
+      key = await loadClerkJWKFromRemote({ ...options, kid });
+    } else {
+      return {
+        error: new MachineTokenVerificationError({
+          action: TokenVerificationErrorAction.SetClerkJWTKey,
+          message: "Failed to resolve JWK during verification.",
+          code: MachineTokenVerificationErrorCode.TokenVerificationFailed
+        })
+      };
+    }
+    const { data: payload, errors: verifyErrors } = await verifyJwt(token, {
+      ...options,
+      key,
+      ...headerType ? { headerType } : {}
+    });
+    if (verifyErrors) {
+      return {
+        error: new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+          message: verifyErrors[0].message
+        })
+      };
+    }
+    return { payload };
+  } catch (error) {
+    return {
+      error: new MachineTokenVerificationError({
+        code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+        message: error.message
+      })
+    };
+  }
+}
+async function verifyM2MJwt(token, decoded, options) {
+  const result = await resolveKeyAndVerifyJwt(token, decoded.header.kid, options);
+  if ("error" in result) {
+    return { data: void 0, tokenType: TokenType.M2MToken, errors: [result.error] };
+  }
+  return {
+    data: M2MToken.fromJwtPayload(result.payload, options.clockSkewInMs),
+    tokenType: TokenType.M2MToken,
+    errors: void 0
+  };
+}
+async function verifyOAuthJwt(token, decoded, options) {
+  const result = await resolveKeyAndVerifyJwt(token, decoded.header.kid, options, OAUTH_ACCESS_TOKEN_TYPES);
+  if ("error" in result) {
+    return { data: void 0, tokenType: TokenType.OAuthToken, errors: [result.error] };
+  }
+  return {
+    data: IdPOAuthAccessToken.fromJwtPayload(result.payload, options.clockSkewInMs),
+    tokenType: TokenType.OAuthToken,
+    errors: void 0
+  };
+}
+function mapObject(object, mapper, options) {
+  if (!isObject(object)) {
+    throw new TypeError(`Expected an object, got \`${object}\` (${typeof object})`);
+  }
+  if (Array.isArray(object)) {
+    throw new TypeError("Expected an object, got an array");
+  }
+  return _mapObject(object, mapper, options);
+}
+function split(value) {
+  let result = value.trim();
+  result = result.replace(SPLIT_LOWER_UPPER_RE, SPLIT_REPLACE_VALUE).replace(SPLIT_UPPER_UPPER_RE, SPLIT_REPLACE_VALUE);
+  result = result.replace(DEFAULT_STRIP_REGEXP, "\0");
+  let start = 0;
+  let end = result.length;
+  while (result.charAt(start) === "\0")
+    start++;
+  if (start === end)
+    return [];
+  while (result.charAt(end - 1) === "\0")
+    end--;
+  return result.slice(start, end).split(/\0/g);
+}
+function splitSeparateNumbers(value) {
+  const words = split(value);
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    const match22 = SPLIT_SEPARATE_NUMBER_RE.exec(word);
+    if (match22) {
+      const offset = match22.index + (match22[1] ?? match22[2]).length;
+      words.splice(i, 1, word.slice(0, offset), word.slice(offset));
+    }
+  }
+  return words;
+}
+function noCase(input, options) {
+  const [prefix, words, suffix] = splitPrefixSuffix(input, options);
+  return prefix + words.map(lowerFactory(options?.locale)).join(options?.delimiter ?? " ") + suffix;
+}
+function snakeCase(input, options) {
+  return noCase(input, { delimiter: "_", ...options });
+}
+function lowerFactory(locale) {
+  return locale === false ? (input) => input.toLowerCase() : (input) => input.toLocaleLowerCase(locale);
+}
+function splitPrefixSuffix(input, options = {}) {
+  const splitFn = options.split ?? (options.separateNumbers ? splitSeparateNumbers : split);
+  const prefixCharacters = options.prefixCharacters ?? DEFAULT_PREFIX_SUFFIX_CHARACTERS;
+  const suffixCharacters = options.suffixCharacters ?? DEFAULT_PREFIX_SUFFIX_CHARACTERS;
+  let prefixIndex = 0;
+  let suffixIndex = input.length;
+  while (prefixIndex < input.length) {
+    const char = input.charAt(prefixIndex);
+    if (!prefixCharacters.includes(char))
+      break;
+    prefixIndex++;
+  }
+  while (suffixIndex > prefixIndex) {
+    const index = suffixIndex - 1;
+    const char = input.charAt(index);
+    if (!suffixCharacters.includes(char))
+      break;
+    suffixIndex = index;
+  }
+  return [
+    input.slice(0, prefixIndex),
+    splitFn(input.slice(prefixIndex, suffixIndex)),
+    input.slice(suffixIndex)
+  ];
+}
+function snakecaseKeys(obj, options) {
+  if (Array.isArray(obj)) {
+    if (obj.some((item) => item.constructor !== PlainObjectConstructor)) {
+      throw new Error("obj must be array of plain objects");
+    }
+    options = { deep: true, exclude: [], parsingOptions: {}, ...options };
+    const convertCase2 = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
+    return obj.map((item) => {
+      return mapObject(item, (key, val) => {
+        return [
+          matches(options.exclude, key) ? key : convertCase2(key),
+          val,
+          mapperOptions(key, val, options)
+        ];
+      }, options);
+    });
+  } else {
+    if (obj.constructor !== PlainObjectConstructor) {
+      throw new Error("obj must be an plain object");
+    }
+  }
+  options = { deep: true, exclude: [], parsingOptions: {}, ...options };
+  const convertCase = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
+  return mapObject(obj, (key, val) => {
+    return [
+      matches(options.exclude, key) ? key : convertCase(key),
+      val,
+      mapperOptions(key, val, options)
+    ];
+  }, options);
+}
+function matches(patterns, value) {
+  return patterns.some((pattern) => {
+    return typeof pattern === "string" ? pattern === value : pattern.test(value);
+  });
+}
+function mapperOptions(key, val, options) {
+  return options.shouldRecurse ? { shouldRecurse: options.shouldRecurse(key, val) } : void 0;
+}
+function deserialize(payload) {
+  let data, totalCount;
+  if (Array.isArray(payload)) {
+    const data2 = payload.map((item) => jsonToObject(item));
+    return { data: data2 };
+  } else if (isM2MTokenResponse(payload)) {
+    data = payload.m2m_tokens.map((item) => jsonToObject(item));
+    totalCount = payload.total_count;
+    return { data, totalCount };
+  } else if (isPaginated(payload)) {
+    data = payload.data.map((item) => jsonToObject(item));
+    totalCount = payload.total_count;
+    return { data, totalCount };
+  } else {
+    return { data: jsonToObject(payload) };
+  }
+}
+function isPaginated(payload) {
+  if (!payload || typeof payload !== "object" || !("data" in payload)) {
+    return false;
+  }
+  return Array.isArray(payload.data) && payload.data !== void 0;
+}
+function isM2MTokenResponse(payload) {
+  if (!payload || typeof payload !== "object" || !("m2m_tokens" in payload)) {
+    return false;
+  }
+  return Array.isArray(payload.m2m_tokens);
+}
+function getCount(item) {
+  return item.total_count;
+}
+function jsonToObject(item) {
+  if (typeof item !== "string" && "object" in item && "deleted" in item) {
+    return DeletedObject.fromJSON(item);
+  }
+  switch (item.object) {
+    case ObjectType.AccountlessApplication:
+      return AccountlessApplication.fromJSON(item);
+    case ObjectType.ActorToken:
+      return ActorToken.fromJSON(item);
+    case ObjectType.AllowlistIdentifier:
+      return AllowlistIdentifier.fromJSON(item);
+    case ObjectType.ApiKey:
+      return APIKey.fromJSON(item);
+    case ObjectType.BlocklistIdentifier:
+      return BlocklistIdentifier.fromJSON(item);
+    case ObjectType.Client:
+      return Client.fromJSON(item);
+    case ObjectType.Cookies:
+      return Cookies2.fromJSON(item);
+    case ObjectType.Domain:
+      return Domain.fromJSON(item);
+    case ObjectType.EmailAddress:
+      return EmailAddress.fromJSON(item);
+    case ObjectType.EnterpriseAccount:
+      return EnterpriseAccount.fromJSON(item);
+    case ObjectType.Email:
+      return Email.fromJSON(item);
+    case ObjectType.IdpOAuthAccessToken:
+      return IdPOAuthAccessToken.fromJSON(item);
+    case ObjectType.Instance:
+      return Instance.fromJSON(item);
+    case ObjectType.InstanceRestrictions:
+      return InstanceRestrictions.fromJSON(item);
+    case ObjectType.InstanceSettings:
+      return InstanceSettings.fromJSON(item);
+    case ObjectType.Invitation:
+      return Invitation.fromJSON(item);
+    case ObjectType.JwtTemplate:
+      return JwtTemplate.fromJSON(item);
+    case ObjectType.Machine:
+      return Machine.fromJSON(item);
+    case ObjectType.MachineScope:
+      return MachineScope.fromJSON(item);
+    case ObjectType.MachineSecretKey:
+      return MachineSecretKey.fromJSON(item);
+    case ObjectType.M2MToken:
+      return M2MToken.fromJSON(item);
+    case ObjectType.OauthAccessToken:
+      return OauthAccessToken.fromJSON(item);
+    case ObjectType.OAuthApplication:
+      return OAuthApplication.fromJSON(item);
+    case ObjectType.Organization:
+      return Organization.fromJSON(item);
+    case ObjectType.OrganizationInvitation:
+      return OrganizationInvitation.fromJSON(item);
+    case ObjectType.OrganizationMembership:
+      return OrganizationMembership.fromJSON(item);
+    case ObjectType.OrganizationSettings:
+      return OrganizationSettings.fromJSON(item);
+    case ObjectType.PhoneNumber:
+      return PhoneNumber.fromJSON(item);
+    case ObjectType.ProxyCheck:
+      return ProxyCheck.fromJSON(item);
+    case ObjectType.RedirectUrl:
+      return RedirectUrl.fromJSON(item);
+    case ObjectType.EnterpriseConnection:
+      return EnterpriseConnection.fromJSON(item);
+    case ObjectType.SamlConnection:
+      return SamlConnection.fromJSON(item);
+    case ObjectType.SignInToken:
+      return SignInToken.fromJSON(item);
+    case ObjectType.AgentTask:
+      return AgentTask.fromJSON(item);
+    case ObjectType.SignUpAttempt:
+      return SignUpAttempt.fromJSON(item);
+    case ObjectType.Session:
+      return Session.fromJSON(item);
+    case ObjectType.SmsMessage:
+      return SMSMessage.fromJSON(item);
+    case ObjectType.Token:
+      return Token.fromJSON(item);
+    case ObjectType.TotalCount:
+      return getCount(item);
+    case ObjectType.User:
+      return User.fromJSON(item);
+    case ObjectType.WaitlistEntry:
+      return WaitlistEntry.fromJSON(item);
+    case ObjectType.BillingPlan:
+      return BillingPlan.fromJSON(item);
+    case ObjectType.BillingSubscription:
+      return BillingSubscription.fromJSON(item);
+    case ObjectType.BillingSubscriptionItem:
+      return BillingSubscriptionItem.fromJSON(item);
+    case ObjectType.Feature:
+      return Feature.fromJSON(item);
+    default:
+      return item;
+  }
+}
+function buildRequest(options) {
+  const requestFn = async (requestOptions) => {
+    const {
+      secretKey,
+      machineSecretKey,
+      useMachineSecretKey = false,
+      requireSecretKey = true,
+      apiUrl = API_URL,
+      apiVersion = API_VERSION,
+      userAgent = USER_AGENT,
+      skipApiVersionInUrl = false
+    } = options;
+    const { path, method, queryParams, headerParams, bodyParams, formData, options: opts } = requestOptions;
+    const { deepSnakecaseBodyParamKeys = false } = opts || {};
+    if (requireSecretKey) {
+      assertValidSecretKey(secretKey);
+    }
+    const url = skipApiVersionInUrl ? joinPaths(apiUrl, path) : joinPaths(apiUrl, apiVersion, path);
+    const finalUrl = new URL(url);
+    if (queryParams) {
+      const snakecasedQueryParams = snakecase_keys_default({ ...queryParams });
+      for (const [key, val] of Object.entries(snakecasedQueryParams)) {
+        if (val) {
+          [val].flat().forEach((v) => finalUrl.searchParams.append(key, v));
+        }
+      }
+    }
+    const headers = new Headers({
+      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
+      [constants2.Headers.UserAgent]: userAgent,
+      ...headerParams
+    });
+    const authorizationHeader = constants2.Headers.Authorization;
+    if (!headers.has(authorizationHeader)) {
+      if (useMachineSecretKey && machineSecretKey) {
+        headers.set(authorizationHeader, `Bearer ${machineSecretKey}`);
+      } else if (secretKey) {
+        headers.set(authorizationHeader, `Bearer ${secretKey}`);
+      }
+    }
+    let res;
+    try {
+      if (formData) {
+        res = await runtime.fetch(finalUrl.href, {
+          method,
+          headers,
+          body: formData
+        });
+      } else {
+        headers.set("Content-Type", "application/json");
+        const buildBody = () => {
+          const hasBody = method !== "GET" && bodyParams && Object.keys(bodyParams).length > 0;
+          if (!hasBody) {
+            return null;
+          }
+          const formatKeys = (object) => snakecase_keys_default(object, { deep: deepSnakecaseBodyParamKeys });
+          return {
+            body: JSON.stringify(Array.isArray(bodyParams) ? bodyParams.map(formatKeys) : formatKeys(bodyParams))
+          };
+        };
+        res = await runtime.fetch(finalUrl.href, {
+          method,
+          headers,
+          ...buildBody()
+        });
+      }
+      const isJSONResponse = res?.headers && res.headers?.get(constants2.Headers.ContentType) === constants2.ContentTypes.Json;
+      const responseBody = await (isJSONResponse ? res.json() : res.text());
+      if (!res.ok) {
+        return {
+          data: null,
+          errors: parseErrors2(responseBody),
+          status: res?.status,
+          statusText: res?.statusText,
+          clerkTraceId: getTraceId(responseBody, res?.headers),
+          retryAfter: getRetryAfter(res?.headers)
+        };
+      }
+      return {
+        ...deserialize(responseBody),
+        errors: null
+      };
+    } catch (err2) {
+      if (err2 instanceof Error) {
+        return {
+          data: null,
+          errors: [
+            {
+              code: "unexpected_error",
+              message: err2.message || "Unexpected error"
+            }
+          ],
+          clerkTraceId: getTraceId(err2, res?.headers)
+        };
+      }
+      return {
+        data: null,
+        errors: parseErrors2(err2),
+        status: res?.status,
+        statusText: res?.statusText,
+        clerkTraceId: getTraceId(err2, res?.headers),
+        retryAfter: getRetryAfter(res?.headers)
+      };
+    }
+  };
+  return withLegacyRequestReturn(requestFn);
+}
+function getTraceId(data, headers) {
+  if (data && typeof data === "object" && "clerk_trace_id" in data && typeof data.clerk_trace_id === "string") {
+    return data.clerk_trace_id;
+  }
+  const cfRay = headers?.get("cf-ray");
+  return cfRay || "";
+}
+function getRetryAfter(headers) {
+  const retryAfter = headers?.get("Retry-After");
+  if (!retryAfter) {
+    return;
+  }
+  const value = parseInt(retryAfter, 10);
+  if (isNaN(value)) {
+    return;
+  }
+  return value;
+}
+function parseErrors2(data) {
+  if (!!data && typeof data === "object" && "errors" in data) {
+    const errors = data.errors;
+    return errors.length > 0 ? errors.map(parseError) : [];
+  }
+  return [];
+}
+function withLegacyRequestReturn(cb) {
+  return async (...args) => {
+    const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+    if (errors) {
+      const error = new ClerkAPIResponseError(statusText || "", {
+        data: [],
+        status,
+        clerkTraceId,
+        retryAfter
+      });
+      error.errors = errors;
+      throw error;
+    }
+    if (typeof totalCount !== "undefined") {
+      return { data, totalCount };
+    }
+    return data;
+  };
+}
+function createBackendApiClient(options) {
+  const request = buildRequest(options);
+  return {
+    __experimental_accountlessApplications: new AccountlessApplicationAPI(
+      buildRequest({ ...options, requireSecretKey: false })
+    ),
+    actorTokens: new ActorTokenAPI(request),
+    /**
+     * @experimental This is an experimental API for the Agent Tasks feature that is available under a private beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+     */
+    agentTasks: new AgentTaskAPI(request),
+    allowlistIdentifiers: new AllowlistIdentifierAPI(request),
+    apiKeys: new APIKeysAPI(
+      buildRequest({
+        ...options,
+        skipApiVersionInUrl: true
+      })
+    ),
+    betaFeatures: new BetaFeaturesAPI(request),
+    blocklistIdentifiers: new BlocklistIdentifierAPI(request),
+    /**
+     * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+     */
+    billing: new BillingAPI(request),
+    clients: new ClientAPI(request),
+    domains: new DomainAPI(request),
+    emailAddresses: new EmailAddressAPI(request),
+    enterpriseConnections: new EnterpriseConnectionAPI(request),
+    idPOAuthAccessToken: new IdPOAuthAccessTokenApi(
+      buildRequest({
+        ...options,
+        skipApiVersionInUrl: true
+      })
+    ),
+    instance: new InstanceAPI(request),
+    invitations: new InvitationAPI(request),
+    jwks: new JwksAPI(request),
+    jwtTemplates: new JwtTemplatesApi(request),
+    machines: new MachineApi(request),
+    m2m: new M2MTokenApi(
+      buildRequest({
+        ...options,
+        skipApiVersionInUrl: true,
+        requireSecretKey: false,
+        useMachineSecretKey: true
+      }),
+      {
+        secretKey: options.secretKey,
+        apiUrl: options.apiUrl,
+        jwtKey: options.jwtKey
+      }
+    ),
+    oauthApplications: new OAuthApplicationsApi(request),
+    organizations: new OrganizationAPI(request),
+    phoneNumbers: new PhoneNumberAPI(request),
+    proxyChecks: new ProxyCheckAPI(request),
+    redirectUrls: new RedirectUrlAPI(request),
+    sessions: new SessionAPI(request),
+    signInTokens: new SignInTokenAPI(request),
+    signUps: new SignUpAPI(request),
+    testingTokens: new TestingTokenAPI(request),
+    users: new UserAPI(request),
+    waitlistEntries: new WaitlistEntryAPI(request),
+    webhooks: new WebhookAPI(request),
+    /**
+     * @deprecated Use `enterpriseConnections` instead.
+     */
+    samlConnections: new SamlConnectionAPI(request)
+  };
+}
+function signedInAuthObject(authenticateContext, sessionToken, sessionClaims) {
+  const { actor, sessionId, sessionStatus, userId, orgId, orgRole, orgSlug, orgPermissions, factorVerificationAge } = __experimental_JWTPayloadToAuthObjectProperties(sessionClaims);
+  const apiClient = createBackendApiClient(authenticateContext);
+  const getToken = createGetToken({
+    sessionId,
+    sessionToken,
+    fetcher: async (sessionId2, template, expiresInSeconds) => (await apiClient.sessions.getToken(sessionId2, template || "", expiresInSeconds)).jwt
+  });
+  return {
+    tokenType: TokenType.SessionToken,
+    actor,
+    sessionClaims,
+    sessionId,
+    sessionStatus,
+    userId,
+    orgId,
+    orgRole,
+    orgSlug,
+    orgPermissions,
+    factorVerificationAge,
+    getToken,
+    has: createCheckAuthorization({
+      orgId,
+      orgRole,
+      orgPermissions,
+      userId,
+      factorVerificationAge,
+      features: sessionClaims.fea || "",
+      plans: sessionClaims.pla || ""
+    }),
+    debug: createDebug({ ...authenticateContext, sessionToken }),
+    isAuthenticated: true
+  };
+}
+function signedOutAuthObject(debugData, initialSessionStatus) {
+  return {
+    tokenType: TokenType.SessionToken,
+    sessionClaims: null,
+    sessionId: null,
+    sessionStatus: initialSessionStatus ?? null,
+    userId: null,
+    actor: null,
+    orgId: null,
+    orgRole: null,
+    orgSlug: null,
+    orgPermissions: null,
+    factorVerificationAge: null,
+    getToken: () => Promise.resolve(null),
+    has: () => false,
+    debug: createDebug(debugData),
+    isAuthenticated: false
+  };
+}
+function authenticatedMachineObject(tokenType, token, verificationResult, debugData) {
+  const baseObject = {
+    id: verificationResult.id,
+    subject: verificationResult.subject,
+    getToken: () => Promise.resolve(token),
+    has: () => false,
+    debug: createDebug(debugData),
+    isAuthenticated: true
+  };
+  switch (tokenType) {
+    case TokenType.ApiKey: {
+      const result = verificationResult;
+      return {
+        ...baseObject,
+        tokenType,
+        name: result.name,
+        claims: result.claims,
+        scopes: result.scopes,
+        userId: result.subject.startsWith("user_") ? result.subject : null,
+        orgId: result.subject.startsWith("org_") ? result.subject : null
+      };
+    }
+    case TokenType.M2MToken: {
+      const result = verificationResult;
+      return {
+        ...baseObject,
+        tokenType,
+        claims: result.claims,
+        scopes: result.scopes,
+        machineId: result.subject
+      };
+    }
+    case TokenType.OAuthToken: {
+      const result = verificationResult;
+      return {
+        ...baseObject,
+        tokenType,
+        scopes: result.scopes,
+        userId: result.subject,
+        clientId: result.clientId
+      };
+    }
+    default:
+      throw new Error(`Invalid token type: ${tokenType}`);
+  }
+}
+function unauthenticatedMachineObject(tokenType, debugData) {
+  const baseObject = {
+    id: null,
+    subject: null,
+    scopes: null,
+    has: () => false,
+    getToken: () => Promise.resolve(null),
+    debug: createDebug(debugData),
+    isAuthenticated: false
+  };
+  switch (tokenType) {
+    case TokenType.ApiKey: {
+      return {
+        ...baseObject,
+        tokenType,
+        name: null,
+        claims: null,
+        scopes: null,
+        userId: null,
+        orgId: null
+      };
+    }
+    case TokenType.M2MToken: {
+      return {
+        ...baseObject,
+        tokenType,
+        claims: null,
+        scopes: null,
+        machineId: null
+      };
+    }
+    case TokenType.OAuthToken: {
+      return {
+        ...baseObject,
+        tokenType,
+        scopes: null,
+        userId: null,
+        clientId: null
+      };
+    }
+    default:
+      throw new Error(`Invalid token type: ${tokenType}`);
+  }
+}
+function invalidTokenAuthObject() {
+  return {
+    isAuthenticated: false,
+    tokenType: null,
+    getToken: () => Promise.resolve(null),
+    has: () => false,
+    debug: () => ({})
+  };
+}
+function signedIn(params) {
+  const { authenticateContext, headers = new Headers(), token } = params;
+  const toAuth = (({ treatPendingAsSignedOut = true } = {}) => {
+    if (params.tokenType === TokenType.SessionToken) {
+      const { sessionClaims } = params;
+      const authObject = signedInAuthObject(authenticateContext, token, sessionClaims);
+      if (treatPendingAsSignedOut && authObject.sessionStatus === "pending") {
+        return signedOutAuthObject(void 0, authObject.sessionStatus);
+      }
+      return authObject;
+    }
+    const { machineData } = params;
+    return authenticatedMachineObject(params.tokenType, token, machineData, authenticateContext);
+  });
+  return {
+    status: AuthStatus.SignedIn,
+    reason: null,
+    message: null,
+    proxyUrl: authenticateContext.proxyUrl || "",
+    publishableKey: authenticateContext.publishableKey || "",
+    isSatellite: authenticateContext.isSatellite || false,
+    domain: authenticateContext.domain || "",
+    signInUrl: authenticateContext.signInUrl || "",
+    signUpUrl: authenticateContext.signUpUrl || "",
+    afterSignInUrl: authenticateContext.afterSignInUrl || "",
+    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
+    isSignedIn: true,
+    isAuthenticated: true,
+    tokenType: params.tokenType,
+    toAuth,
+    headers,
+    token
+  };
+}
+function signedOut(params) {
+  const { authenticateContext, headers = new Headers(), reason, message = "", tokenType } = params;
+  const toAuth = (() => {
+    if (tokenType === TokenType.SessionToken) {
+      return signedOutAuthObject({ ...authenticateContext, status: AuthStatus.SignedOut, reason, message });
+    }
+    return unauthenticatedMachineObject(tokenType, { reason, message, headers });
+  });
+  return withDebugHeaders({
+    status: AuthStatus.SignedOut,
+    reason,
+    message,
+    proxyUrl: authenticateContext.proxyUrl || "",
+    publishableKey: authenticateContext.publishableKey || "",
+    isSatellite: authenticateContext.isSatellite || false,
+    domain: authenticateContext.domain || "",
+    signInUrl: authenticateContext.signInUrl || "",
+    signUpUrl: authenticateContext.signUpUrl || "",
+    afterSignInUrl: authenticateContext.afterSignInUrl || "",
+    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
+    isSignedIn: false,
+    isAuthenticated: false,
+    tokenType,
+    toAuth,
+    headers,
+    token: null
+  });
+}
+function handshake(authenticateContext, reason, message = "", headers) {
+  return withDebugHeaders({
+    status: AuthStatus.Handshake,
+    reason,
+    message,
+    publishableKey: authenticateContext.publishableKey || "",
+    isSatellite: authenticateContext.isSatellite || false,
+    domain: authenticateContext.domain || "",
+    proxyUrl: authenticateContext.proxyUrl || "",
+    signInUrl: authenticateContext.signInUrl || "",
+    signUpUrl: authenticateContext.signUpUrl || "",
+    afterSignInUrl: authenticateContext.afterSignInUrl || "",
+    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
+    isSignedIn: false,
+    isAuthenticated: false,
+    tokenType: TokenType.SessionToken,
+    toAuth: () => null,
+    headers,
+    token: null
+  });
+}
+function signedOutInvalidToken() {
+  const authObject = invalidTokenAuthObject();
+  return withDebugHeaders({
+    status: AuthStatus.SignedOut,
+    reason: AuthErrorReason.TokenTypeMismatch,
+    message: "",
+    proxyUrl: "",
+    publishableKey: "",
+    isSatellite: false,
+    domain: "",
+    signInUrl: "",
+    signUpUrl: "",
+    afterSignInUrl: "",
+    afterSignUpUrl: "",
+    isSignedIn: false,
+    isAuthenticated: false,
+    tokenType: null,
+    toAuth: () => authObject,
+    headers: new Headers(),
+    token: null
+  });
+}
+async function verifyToken(token, options) {
+  const { data: decodedResult, errors } = decodeJwt(token);
+  if (errors) {
+    return { errors };
+  }
+  const { header } = decodedResult;
+  const { kid } = header;
+  try {
+    let key;
+    if (options.jwtKey) {
+      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
+    } else if (options.secretKey) {
+      key = await loadClerkJWKFromRemote({ ...options, kid });
+    } else {
+      return {
+        errors: [
+          new TokenVerificationError({
+            action: TokenVerificationErrorAction.SetClerkJWTKey,
+            message: "Failed to resolve JWK during verification.",
+            reason: TokenVerificationErrorReason.JWKFailedToResolve
+          })
+        ]
+      };
+    }
+    return await verifyJwt(token, { ...options, key });
+  } catch (error) {
+    return { errors: [error] };
+  }
+}
+function handleClerkAPIError(tokenType, err2, notFoundMessage) {
+  if (isClerkAPIResponseError(err2)) {
+    let code;
+    let message;
+    switch (err2.status) {
+      case 401:
+        code = MachineTokenVerificationErrorCode.InvalidSecretKey;
+        message = err2.errors[0]?.message || "Invalid secret key";
+        break;
+      case 404:
+        code = MachineTokenVerificationErrorCode.TokenInvalid;
+        message = notFoundMessage;
+        break;
+      default:
+        code = MachineTokenVerificationErrorCode.UnexpectedError;
+        message = "Unexpected error";
+    }
+    return {
+      data: void 0,
+      tokenType,
+      errors: [
+        new MachineTokenVerificationError({
+          message,
+          code,
+          status: err2.status
+        })
+      ]
+    };
+  }
+  return {
+    data: void 0,
+    tokenType,
+    errors: [
+      new MachineTokenVerificationError({
+        message: "Unexpected error",
+        code: MachineTokenVerificationErrorCode.UnexpectedError,
+        status: err2.status
+      })
+    ]
+  };
+}
+async function verifyM2MToken(token, options) {
+  try {
+    const client = createBackendApiClient(options);
+    const verifiedToken = await client.m2m.verify({ token });
+    return { data: verifiedToken, tokenType: TokenType.M2MToken, errors: void 0 };
+  } catch (err2) {
+    return handleClerkAPIError(TokenType.M2MToken, err2, "Machine token not found");
+  }
+}
+async function verifyOAuthToken(accessToken, options) {
+  try {
+    const client = createBackendApiClient(options);
+    const verifiedToken = await client.idPOAuthAccessToken.verify(accessToken);
+    return { data: verifiedToken, tokenType: TokenType.OAuthToken, errors: void 0 };
+  } catch (err2) {
+    return handleClerkAPIError(TokenType.OAuthToken, err2, "OAuth token not found");
+  }
+}
+async function verifyAPIKey(secret, options) {
+  try {
+    const client = createBackendApiClient(options);
+    const verifiedToken = await client.apiKeys.verify(secret);
+    return { data: verifiedToken, tokenType: TokenType.ApiKey, errors: void 0 };
+  } catch (err2) {
+    return handleClerkAPIError(TokenType.ApiKey, err2, "API key not found");
+  }
+}
+async function verifyMachineAuthToken(token, options) {
+  if (isJwtFormat(token)) {
+    let decodedResult;
+    try {
+      const { data, errors: decodeErrors } = decodeJwt(token);
+      if (decodeErrors) {
+        throw decodeErrors[0];
+      }
+      decodedResult = data;
+    } catch (e) {
+      return {
+        data: void 0,
+        tokenType: TokenType.M2MToken,
+        errors: [
+          new MachineTokenVerificationError({
+            code: MachineTokenVerificationErrorCode.TokenInvalid,
+            message: e.message
+          })
+        ]
+      };
+    }
+    if (decodedResult.payload.sub.startsWith(M2M_SUBJECT_PREFIX)) {
+      return verifyM2MJwt(token, decodedResult, options);
+    }
+    if (OAUTH_ACCESS_TOKEN_TYPES.includes(decodedResult.header.typ)) {
+      return verifyOAuthJwt(token, decodedResult, options);
+    }
+    return {
+      data: void 0,
+      tokenType: TokenType.OAuthToken,
+      errors: [
+        new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
+          message: `Invalid JWT type: ${decodedResult.header.typ ?? "missing"}. Expected one of: ${OAUTH_ACCESS_TOKEN_TYPES.join(", ")} for OAuth, or sub starting with 'mch_' for M2M`
+        })
+      ]
+    };
+  }
+  if (token.startsWith(M2M_TOKEN_PREFIX)) {
+    return verifyM2MToken(token, options);
+  }
+  if (token.startsWith(OAUTH_TOKEN_PREFIX)) {
+    return verifyOAuthToken(token, options);
+  }
+  if (token.startsWith(API_KEY_PREFIX)) {
+    return verifyAPIKey(token, options);
+  }
+  throw new Error("Unknown machine token type");
+}
+async function verifyHandshakeJwt(token, { key }) {
+  const { data: decoded, errors } = decodeJwt(token);
+  if (errors) {
+    throw errors[0];
+  }
+  const { header, payload } = decoded;
+  const { typ, alg } = header;
+  assertHeaderType(typ);
+  assertHeaderAlgorithm(alg);
+  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
+  if (signatureErrors) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenVerificationFailed,
+      message: `Error verifying handshake token. ${signatureErrors[0]}`
+    });
+  }
+  if (!signatureValid) {
+    throw new TokenVerificationError({
+      reason: TokenVerificationErrorReason.TokenInvalidSignature,
+      message: "Handshake signature is invalid."
+    });
+  }
+  return payload;
+}
+async function verifyHandshakeToken(token, options) {
+  const { secretKey, apiUrl, apiVersion, jwksCacheTtlInMs, jwtKey, skipJwksCache } = options;
+  const { data, errors } = decodeJwt(token);
+  if (errors) {
+    throw errors[0];
+  }
+  const { kid } = data.header;
+  let key;
+  if (jwtKey) {
+    key = loadClerkJwkFromPem({ kid, pem: jwtKey });
+  } else if (secretKey) {
+    key = await loadClerkJWKFromRemote({ secretKey, apiUrl, apiVersion, kid, jwksCacheTtlInMs, skipJwksCache });
+  } else {
+    throw new TokenVerificationError({
+      action: TokenVerificationErrorAction.SetClerkJWTKey,
+      message: "Failed to resolve JWK during handshake verification.",
+      reason: TokenVerificationErrorReason.JWKFailedToResolve
+    });
+  }
+  return verifyHandshakeJwt(token, { key });
+}
+function assertSignInUrlExists(signInUrl, key) {
+  if (!signInUrl && isDevelopmentFromSecretKey(key)) {
+    throw new Error(`Missing signInUrl. Pass a signInUrl for dev instances if an app is satellite`);
+  }
+}
+function assertProxyUrlOrDomain(proxyUrlOrDomain) {
+  if (!proxyUrlOrDomain) {
+    throw new Error(`Missing domain and proxyUrl. A satellite application needs to specify a domain or a proxyUrl`);
+  }
+}
+function assertSignInUrlFormatAndOrigin(_signInUrl, origin) {
+  let signInUrl;
+  try {
+    signInUrl = new URL(_signInUrl);
+  } catch {
+    throw new Error(`The signInUrl needs to have a absolute url format.`);
+  }
+  if (signInUrl.origin === origin) {
+    throw new Error(`The signInUrl needs to be on a different origin than your satellite application.`);
+  }
+}
+function assertMachineSecretOrSecretKey(authenticateContext) {
+  if (!authenticateContext.machineSecretKey && !authenticateContext.secretKey) {
+    throw new Error(
+      "Machine token authentication requires either a Machine secret key or a Clerk secret key. Ensure a Clerk secret key or Machine secret key is set."
+    );
+  }
+}
+function isRequestEligibleForRefresh(err2, authenticateContext, request) {
+  return err2.reason === TokenVerificationErrorReason.TokenExpired && !!authenticateContext.refreshTokenInCookie && request.method === "GET";
+}
+function checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext) {
+  const mismatch = !isTokenTypeAccepted(parsedTokenType, acceptsToken);
+  if (mismatch) {
+    const tokenTypeToReturn = typeof acceptsToken === "string" ? acceptsToken : parsedTokenType;
+    return signedOut({
+      tokenType: tokenTypeToReturn,
+      authenticateContext,
+      reason: AuthErrorReason.TokenTypeMismatch
+    });
+  }
+  return null;
+}
+function isTokenTypeInAcceptedArray(acceptsToken, authenticateContext) {
+  let parsedTokenType = null;
+  const { tokenInHeader } = authenticateContext;
+  if (tokenInHeader) {
+    if (isMachineToken(tokenInHeader)) {
+      parsedTokenType = getMachineTokenType(tokenInHeader);
+    } else {
+      parsedTokenType = TokenType.SessionToken;
+    }
+  }
+  const typeToCheck = parsedTokenType ?? TokenType.SessionToken;
+  return isTokenTypeAccepted(typeToCheck, acceptsToken);
+}
+function createAuthenticateRequest(params) {
+  const buildTimeOptions = mergePreDefinedOptions(defaultOptions2, params.options);
+  const apiClient = params.apiClient;
+  const authenticateRequest2 = (request, options = {}) => {
+    const { apiUrl, apiVersion } = buildTimeOptions;
+    const runTimeOptions = mergePreDefinedOptions(buildTimeOptions, options);
+    return authenticateRequest(request, {
+      ...options,
+      ...runTimeOptions,
+      // We should add all the omitted props from options here (eg apiUrl / apiVersion)
+      // to avoid runtime options override them.
+      apiUrl,
+      apiVersion,
+      apiClient
+    });
+  };
+  return {
+    authenticateRequest: authenticateRequest2,
+    debugRequestState
+  };
+}
+var require_dist3, API_URL, API_VERSION, USER_AGENT, MAX_CACHE_LAST_UPDATED_AT_SECONDS, SUPPORTED_BAPI_VERSION, Attributes, Cookies, QueryParameters, Headers2, ContentTypes, ClerkSyncStatus, constants2, TokenType, AuthenticateContext, createAuthenticateContext, SEPARATOR, MULTIPLE_SEPARATOR_REGEX, MAX_DECODES, AbstractAPI, basePath, ActorTokenAPI, basePath2, AgentTaskAPI, basePath3, AccountlessApplicationAPI, basePath4, AllowlistIdentifierAPI, basePath5, APIKeysAPI, basePath6, BetaFeaturesAPI, basePath7, BlocklistIdentifierAPI, basePath8, ClientAPI, basePath9, DomainAPI, basePath10, EmailAddressAPI, basePath11, EnterpriseConnectionAPI, basePath12, IdPOAuthAccessTokenApi, basePath13, InstanceAPI, basePath14, InvitationAPI, basePath15, MachineApi, IdPOAuthAccessToken, M2M_RESERVED_JWT_CLAIMS, M2MToken, cache, lastUpdatedAt, PEM_HEADER, PEM_TRAILER, RSA_PREFIX, RSA_SUFFIX, getErrorObjectByCode, M2M_TOKEN_PREFIX, M2M_SUBJECT_PREFIX, OAUTH_TOKEN_PREFIX, API_KEY_PREFIX, MACHINE_TOKEN_PREFIXES, JwtFormatRegExp, OAUTH_ACCESS_TOKEN_TYPES, isTokenTypeAccepted, MACHINE_TOKEN_TYPES, basePath16, _verifyOptions, _M2MTokenApi_instances, createRequestOptions_fn, verifyJwtFormat_fn, M2MTokenApi, basePath17, JwksAPI, basePath18, JwtTemplatesApi, basePath19, OrganizationAPI, basePath20, OAuthApplicationsApi, basePath21, PhoneNumberAPI, basePath22, ProxyCheckAPI, basePath23, RedirectUrlAPI, basePath24, SamlConnectionAPI, basePath25, SessionAPI, basePath26, SignInTokenAPI, basePath27, SignUpAPI, basePath28, TestingTokenAPI, basePath29, UserAPI, basePath30, WaitlistEntryAPI, basePath31, WebhookAPI, basePath32, organizationBasePath, userBasePath, BillingAPI, isObject, isObjectCustom, mapObjectSkip, _mapObject, SPLIT_LOWER_UPPER_RE, SPLIT_UPPER_UPPER_RE, SPLIT_SEPARATE_NUMBER_RE, DEFAULT_STRIP_REGEXP, SPLIT_REPLACE_VALUE, DEFAULT_PREFIX_SUFFIX_CHARACTERS, PlainObjectConstructor, snakecase_keys_default, AccountlessApplication, AgentTask, ActorToken, AllowlistIdentifier, APIKey, BlocklistIdentifier, SessionActivity, Session, Client, CnameTarget, Cookies2, DeletedObject, Domain, Email, IdentificationLink, Verification, EmailAddress, Feature, BillingPlan, BillingSubscriptionItem, BillingSubscription, EnterpriseAccountConnection, EnterpriseAccount, EnterpriseConnectionSamlConnection, EnterpriseConnectionOauthConfig, EnterpriseConnection, ExternalAccount, Instance, InstanceRestrictions, InstanceSettings, Invitation, ObjectType, JwtTemplate, Machine, MachineScope, MachineSecretKey, OauthAccessToken, OAuthApplication, Organization, OrganizationInvitation, OrganizationMembership, OrganizationMembershipPublicUserData, OrganizationSettings, PhoneNumber, ProxyCheck, RedirectUrl, SamlConnection, AttributeMapping, SignInToken, SignUpAttemptVerification, SignUpAttemptVerifications, SignUpAttempt, SMSMessage, Token, Web3Wallet, User, WaitlistEntry, createDebug, createGetToken, AuthStatus, AuthErrorReason, withDebugHeaders, import_cookie3, ClerkUrl, createClerkUrl, ClerkRequest, createClerkRequest, getCookieName, getCookieValue, HandshakeService, OrganizationMatcher, RefreshTokenErrorReason, authenticateRequest, debugRequestState, convertTokenVerificationErrorReasonToAuthErrorReason, defaultOptions2;
+var init_chunk_H3NCOZAT = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-H3NCOZAT.mjs"() {
+    "use strict";
+    init_chunk_YBVFDYDR();
+    init_chunk_J2CDX2WG();
+    init_chunk_RZ7A7F6X();
+    init_chunk_TOROEX6P();
+    init_buildAccountsBaseUrl();
+    init_logger();
+    init_buildAccountsBaseUrl();
+    init_proxy();
+    init_url();
+    init_authorization();
+    init_jwtPayloadParser();
+    init_error();
+    init_error();
+    init_pathToRegexp();
+    init_authorization_errors();
+    require_dist3 = __commonJS2({
+      "../../node_modules/.pnpm/cookie@1.1.1/node_modules/cookie/dist/index.js"(exports2) {
+        "use strict";
+        Object.defineProperty(exports2, "__esModule", { value: true });
+        exports2.parseCookie = parseCookie;
+        exports2.parse = parseCookie;
+        exports2.stringifyCookie = stringifyCookie;
+        exports2.stringifySetCookie = stringifySetCookie;
+        exports2.serialize = stringifySetCookie;
+        exports2.parseSetCookie = parseSetCookie;
+        exports2.stringifySetCookie = stringifySetCookie;
+        exports2.serialize = stringifySetCookie;
+        var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
+        var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
+        var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+        var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
+        var maxAgeRegExp = /^-?\d+$/;
+        var __toString = Object.prototype.toString;
+        var NullObject = /* @__PURE__ */ (() => {
+          const C = function() {
+          };
+          C.prototype = /* @__PURE__ */ Object.create(null);
+          return C;
+        })();
+        function parseCookie(str, options) {
+          const obj = new NullObject();
+          const len = str.length;
+          if (len < 2)
+            return obj;
+          const dec = options?.decode || decode;
+          let index = 0;
+          do {
+            const eqIdx = eqIndex(str, index, len);
+            if (eqIdx === -1)
+              break;
+            const endIdx = endIndex(str, index, len);
+            if (eqIdx > endIdx) {
+              index = str.lastIndexOf(";", eqIdx - 1) + 1;
+              continue;
+            }
+            const key = valueSlice(str, index, eqIdx);
+            if (obj[key] === void 0) {
+              obj[key] = dec(valueSlice(str, eqIdx + 1, endIdx));
+            }
+            index = endIdx + 1;
+          } while (index < len);
+          return obj;
+        }
+        function stringifyCookie(cookie, options) {
+          const enc = options?.encode || encodeURIComponent;
+          const cookieStrings = [];
+          for (const name of Object.keys(cookie)) {
+            const val = cookie[name];
+            if (val === void 0)
+              continue;
+            if (!cookieNameRegExp.test(name)) {
+              throw new TypeError(`cookie name is invalid: ${name}`);
+            }
+            const value = enc(val);
+            if (!cookieValueRegExp.test(value)) {
+              throw new TypeError(`cookie val is invalid: ${val}`);
+            }
+            cookieStrings.push(`${name}=${value}`);
+          }
+          return cookieStrings.join("; ");
+        }
+        function stringifySetCookie(_name, _val, _opts) {
+          const cookie = typeof _name === "object" ? _name : { ..._opts, name: _name, value: String(_val) };
+          const options = typeof _val === "object" ? _val : _opts;
+          const enc = options?.encode || encodeURIComponent;
+          if (!cookieNameRegExp.test(cookie.name)) {
+            throw new TypeError(`argument name is invalid: ${cookie.name}`);
+          }
+          const value = cookie.value ? enc(cookie.value) : "";
+          if (!cookieValueRegExp.test(value)) {
+            throw new TypeError(`argument val is invalid: ${cookie.value}`);
+          }
+          let str = cookie.name + "=" + value;
+          if (cookie.maxAge !== void 0) {
+            if (!Number.isInteger(cookie.maxAge)) {
+              throw new TypeError(`option maxAge is invalid: ${cookie.maxAge}`);
+            }
+            str += "; Max-Age=" + cookie.maxAge;
+          }
+          if (cookie.domain) {
+            if (!domainValueRegExp.test(cookie.domain)) {
+              throw new TypeError(`option domain is invalid: ${cookie.domain}`);
+            }
+            str += "; Domain=" + cookie.domain;
+          }
+          if (cookie.path) {
+            if (!pathValueRegExp.test(cookie.path)) {
+              throw new TypeError(`option path is invalid: ${cookie.path}`);
+            }
+            str += "; Path=" + cookie.path;
+          }
+          if (cookie.expires) {
+            if (!isDate(cookie.expires) || !Number.isFinite(cookie.expires.valueOf())) {
+              throw new TypeError(`option expires is invalid: ${cookie.expires}`);
+            }
+            str += "; Expires=" + cookie.expires.toUTCString();
+          }
+          if (cookie.httpOnly) {
+            str += "; HttpOnly";
+          }
+          if (cookie.secure) {
+            str += "; Secure";
+          }
+          if (cookie.partitioned) {
+            str += "; Partitioned";
+          }
+          if (cookie.priority) {
+            const priority = typeof cookie.priority === "string" ? cookie.priority.toLowerCase() : void 0;
+            switch (priority) {
+              case "low":
+                str += "; Priority=Low";
+                break;
+              case "medium":
+                str += "; Priority=Medium";
+                break;
+              case "high":
+                str += "; Priority=High";
+                break;
+              default:
+                throw new TypeError(`option priority is invalid: ${cookie.priority}`);
+            }
+          }
+          if (cookie.sameSite) {
+            const sameSite = typeof cookie.sameSite === "string" ? cookie.sameSite.toLowerCase() : cookie.sameSite;
+            switch (sameSite) {
+              case true:
+              case "strict":
+                str += "; SameSite=Strict";
+                break;
+              case "lax":
+                str += "; SameSite=Lax";
+                break;
+              case "none":
+                str += "; SameSite=None";
+                break;
+              default:
+                throw new TypeError(`option sameSite is invalid: ${cookie.sameSite}`);
+            }
+          }
+          return str;
+        }
+        function parseSetCookie(str, options) {
+          const dec = options?.decode || decode;
+          const len = str.length;
+          const endIdx = endIndex(str, 0, len);
+          const eqIdx = eqIndex(str, 0, endIdx);
+          const setCookie = eqIdx === -1 ? { name: "", value: dec(valueSlice(str, 0, endIdx)) } : {
+            name: valueSlice(str, 0, eqIdx),
+            value: dec(valueSlice(str, eqIdx + 1, endIdx))
+          };
+          let index = endIdx + 1;
+          while (index < len) {
+            const endIdx2 = endIndex(str, index, len);
+            const eqIdx2 = eqIndex(str, index, endIdx2);
+            const attr = eqIdx2 === -1 ? valueSlice(str, index, endIdx2) : valueSlice(str, index, eqIdx2);
+            const val = eqIdx2 === -1 ? void 0 : valueSlice(str, eqIdx2 + 1, endIdx2);
+            switch (attr.toLowerCase()) {
+              case "httponly":
+                setCookie.httpOnly = true;
+                break;
+              case "secure":
+                setCookie.secure = true;
+                break;
+              case "partitioned":
+                setCookie.partitioned = true;
+                break;
+              case "domain":
+                setCookie.domain = val;
+                break;
+              case "path":
+                setCookie.path = val;
+                break;
+              case "max-age":
+                if (val && maxAgeRegExp.test(val))
+                  setCookie.maxAge = Number(val);
+                break;
+              case "expires":
+                if (!val)
+                  break;
+                const date = new Date(val);
+                if (Number.isFinite(date.valueOf()))
+                  setCookie.expires = date;
+                break;
+              case "priority":
+                if (!val)
+                  break;
+                const priority = val.toLowerCase();
+                if (priority === "low" || priority === "medium" || priority === "high") {
+                  setCookie.priority = priority;
+                }
+                break;
+              case "samesite":
+                if (!val)
+                  break;
+                const sameSite = val.toLowerCase();
+                if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") {
+                  setCookie.sameSite = sameSite;
+                }
+                break;
+            }
+            index = endIdx2 + 1;
+          }
+          return setCookie;
+        }
+        function endIndex(str, min, len) {
+          const index = str.indexOf(";", min);
+          return index === -1 ? len : index;
+        }
+        function eqIndex(str, min, max) {
+          const index = str.indexOf("=", min);
+          return index < max ? index : -1;
+        }
+        function valueSlice(str, min, max) {
+          let start = min;
+          let end = max;
+          do {
+            const code = str.charCodeAt(start);
+            if (code !== 32 && code !== 9)
+              break;
+          } while (++start < end);
+          while (end > start) {
+            const code = str.charCodeAt(end - 1);
+            if (code !== 32 && code !== 9)
+              break;
+            end--;
+          }
+          return str.slice(start, end);
+        }
+        function decode(str) {
+          if (str.indexOf("%") === -1)
+            return str;
+          try {
+            return decodeURIComponent(str);
+          } catch (e) {
+            return str;
+          }
+        }
+        function isDate(val) {
+          return __toString.call(val) === "[object Date]";
+        }
+      }
+    });
+    API_URL = "https://api.clerk.com";
+    API_VERSION = "v1";
+    USER_AGENT = `${"@clerk/backend"}@${"3.5.0"}`;
+    MAX_CACHE_LAST_UPDATED_AT_SECONDS = 5 * 60;
+    SUPPORTED_BAPI_VERSION = "2025-11-10";
+    Attributes = {
+      AuthToken: "__clerkAuthToken",
+      AuthSignature: "__clerkAuthSignature",
+      AuthStatus: "__clerkAuthStatus",
+      AuthReason: "__clerkAuthReason",
+      AuthMessage: "__clerkAuthMessage",
+      ClerkUrl: "__clerkUrl"
+    };
+    Cookies = {
+      Session: "__session",
+      Refresh: "__refresh",
+      ClientUat: "__client_uat",
+      Handshake: "__clerk_handshake",
+      DevBrowser: "__clerk_db_jwt",
+      RedirectCount: "__clerk_redirect_count",
+      HandshakeNonce: "__clerk_handshake_nonce"
+    };
+    QueryParameters = {
+      ClerkSynced: "__clerk_synced",
+      SuffixedCookies: "suffixed_cookies",
+      ClerkRedirectUrl: "__clerk_redirect_url",
+      // use the reference to Cookies to indicate that it's the same value
+      DevBrowser: Cookies.DevBrowser,
+      Handshake: Cookies.Handshake,
+      HandshakeHelp: "__clerk_help",
+      LegacyDevBrowser: "__dev_session",
+      HandshakeReason: "__clerk_hs_reason",
+      HandshakeNonce: Cookies.HandshakeNonce,
+      HandshakeFormat: "format",
+      Session: "__session"
+    };
+    Headers2 = {
+      Accept: "accept",
+      AuthMessage: "x-clerk-auth-message",
+      Authorization: "authorization",
+      AuthReason: "x-clerk-auth-reason",
+      AuthSignature: "x-clerk-auth-signature",
+      AuthStatus: "x-clerk-auth-status",
+      AuthToken: "x-clerk-auth-token",
+      CacheControl: "cache-control",
+      ClerkRedirectTo: "x-clerk-redirect-to",
+      ClerkRequestData: "x-clerk-request-data",
+      ClerkUrl: "x-clerk-clerk-url",
+      CloudFrontForwardedProto: "cloudfront-forwarded-proto",
+      ContentType: "content-type",
+      ContentSecurityPolicy: "content-security-policy",
+      ContentSecurityPolicyReportOnly: "content-security-policy-report-only",
+      EnableDebug: "x-clerk-debug",
+      ForwardedHost: "x-forwarded-host",
+      ForwardedPort: "x-forwarded-port",
+      ForwardedProto: "x-forwarded-proto",
+      Host: "host",
+      Location: "location",
+      Nonce: "x-nonce",
+      Origin: "origin",
+      Referrer: "referer",
+      SecFetchDest: "sec-fetch-dest",
+      SecFetchSite: "sec-fetch-site",
+      UserAgent: "user-agent",
+      ReportingEndpoints: "reporting-endpoints"
+    };
+    ContentTypes = {
+      Json: "application/json"
+    };
+    ClerkSyncStatus = {
+      /** Not synced - satellite needs handshake after returning from primary sign-in */
+      NeedsSync: "false",
+      /** Sync completed - prevents re-sync loop after handshake completes */
+      Completed: "true"
+    };
+    constants2 = {
+      Attributes,
+      Cookies,
+      Headers: Headers2,
+      ContentTypes,
+      QueryParameters,
+      ClerkSyncStatus
+    };
+    TokenType = {
+      SessionToken: "session_token",
+      ApiKey: "api_key",
+      M2MToken: "m2m_token",
+      OAuthToken: "oauth_token"
+    };
+    AuthenticateContext = class {
+      constructor(cookieSuffix, clerkRequest, options) {
+        this.cookieSuffix = cookieSuffix;
+        this.clerkRequest = clerkRequest;
+        this.originalFrontendApi = "";
+        const autoProxyPath = getAutoProxyUrlFromEnvironment({
+          publishableKey: options.publishableKey ?? "",
+          hasProxyUrl: !!options.proxyUrl,
+          hasDomain: !!options.domain
+        });
+        if (autoProxyPath) {
+          options = { ...options, proxyUrl: `${clerkRequest.clerkUrl.origin}${autoProxyPath}` };
+        }
+        if (options.acceptsToken === TokenType.M2MToken || options.acceptsToken === TokenType.ApiKey) {
+          this.initHeaderValues();
+        } else {
+          this.initPublishableKeyValues(options);
+          this.initHeaderValues();
+          this.initCookieValues();
+          this.initHandshakeValues();
+        }
+        Object.assign(this, options);
+        this.clerkUrl = this.clerkRequest.clerkUrl;
+        if (this.proxyUrl?.startsWith("/")) {
+          this.proxyUrl = `${this.clerkUrl.origin}${this.proxyUrl}`;
+        }
+      }
+      /**
+       * Retrieves the session token from either the cookie or the header.
+       *
+       * @returns {string | undefined} The session token if available, otherwise undefined.
+       */
+      get sessionToken() {
+        return this.sessionTokenInCookie || this.tokenInHeader;
+      }
+      usesSuffixedCookies() {
+        const suffixedClientUat = this.getSuffixedCookie(constants2.Cookies.ClientUat);
+        const clientUat = this.getCookie(constants2.Cookies.ClientUat);
+        const suffixedSession = this.getSuffixedCookie(constants2.Cookies.Session) || "";
+        const session = this.getCookie(constants2.Cookies.Session) || "";
+        if (session && !this.tokenHasIssuer(session)) {
+          return false;
+        }
+        if (session && !this.tokenBelongsToInstance(session)) {
+          return true;
+        }
+        if (!suffixedClientUat && !suffixedSession) {
+          return false;
+        }
+        const { data: sessionData } = decodeJwt(session);
+        const sessionIat = sessionData?.payload.iat || 0;
+        const { data: suffixedSessionData } = decodeJwt(suffixedSession);
+        const suffixedSessionIat = suffixedSessionData?.payload.iat || 0;
+        if (suffixedClientUat !== "0" && clientUat !== "0" && sessionIat > suffixedSessionIat) {
+          return false;
+        }
+        if (suffixedClientUat === "0" && clientUat !== "0") {
+          return false;
+        }
+        if (this.instanceType !== "production") {
+          const isSuffixedSessionExpired = this.sessionExpired(suffixedSessionData);
+          if (suffixedClientUat !== "0" && clientUat === "0" && isSuffixedSessionExpired) {
+            return false;
+          }
+        }
+        if (!suffixedClientUat && suffixedSession) {
+          return false;
+        }
+        return true;
+      }
+      /**
+       * Determines if the request came from a different origin based on the referrer header.
+       * Used for cross-origin detection in multi-domain authentication flows.
+       *
+       * @returns {boolean} True if referrer exists and is from a different origin, false otherwise.
+       */
+      isCrossOriginReferrer() {
+        if (!this.referrer || !this.clerkUrl.origin) {
+          return false;
+        }
+        try {
+          const referrerOrigin = new URL(this.referrer).origin;
+          return referrerOrigin !== this.clerkUrl.origin;
+        } catch {
+          return false;
+        }
+      }
+      /**
+       * Determines if the referrer URL is from a Clerk domain (accounts portal or FAPI).
+       * This includes both development and production account portal domains, as well as FAPI domains
+       * used for redirect-based authentication flows.
+       *
+       * @returns {boolean} True if the referrer is from a Clerk accounts portal or FAPI domain, false otherwise
+       */
+      isKnownClerkReferrer() {
+        if (!this.referrer) {
+          return false;
+        }
+        try {
+          const referrerOrigin = new URL(this.referrer);
+          const referrerHost = referrerOrigin.hostname;
+          if (this.frontendApi) {
+            const fapiHost = this.frontendApi.startsWith("http") ? new URL(this.frontendApi).hostname : this.frontendApi;
+            if (referrerHost === fapiHost) {
+              return true;
+            }
+          }
+          if (isLegacyDevAccountPortalOrigin(referrerHost) || isCurrentDevAccountPortalOrigin(referrerHost)) {
+            return true;
+          }
+          const expectedAccountsUrl = buildAccountsBaseUrl(this.frontendApi);
+          if (expectedAccountsUrl) {
+            const expectedAccountsOrigin = new URL(expectedAccountsUrl).origin;
+            if (referrerOrigin.origin === expectedAccountsOrigin) {
+              return true;
+            }
+          }
+          if (referrerHost.startsWith("accounts.")) {
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      }
+      initPublishableKeyValues(options) {
+        assertValidPublishableKey(options.publishableKey);
+        this.publishableKey = options.publishableKey;
+        let resolvedProxyUrl = options.proxyUrl;
+        if (resolvedProxyUrl?.startsWith("/")) {
+          resolvedProxyUrl = `${this.clerkRequest.clerkUrl.origin}${resolvedProxyUrl}`;
+        }
+        const originalPk = parsePublishableKey(this.publishableKey, {
+          fatal: true,
+          domain: options.domain,
+          isSatellite: options.isSatellite
+        });
+        this.originalFrontendApi = originalPk.frontendApi;
+        const pk = parsePublishableKey(this.publishableKey, {
+          fatal: true,
+          proxyUrl: resolvedProxyUrl,
+          domain: options.domain,
+          isSatellite: options.isSatellite
+        });
+        this.instanceType = pk.instanceType;
+        this.frontendApi = pk.frontendApi;
+      }
+      initHeaderValues() {
+        this.method = this.clerkRequest.method;
+        this.tokenInHeader = this.parseAuthorizationHeader(this.getHeader(constants2.Headers.Authorization));
+        this.origin = this.getHeader(constants2.Headers.Origin);
+        this.host = this.getHeader(constants2.Headers.Host);
+        this.forwardedHost = this.getHeader(constants2.Headers.ForwardedHost);
+        this.forwardedProto = this.getHeader(constants2.Headers.CloudFrontForwardedProto) || this.getHeader(constants2.Headers.ForwardedProto);
+        this.referrer = this.getHeader(constants2.Headers.Referrer);
+        this.userAgent = this.getHeader(constants2.Headers.UserAgent);
+        this.secFetchDest = this.getHeader(constants2.Headers.SecFetchDest);
+        this.accept = this.getHeader(constants2.Headers.Accept);
+      }
+      initCookieValues() {
+        this.sessionTokenInCookie = this.getSuffixedOrUnSuffixedCookie(constants2.Cookies.Session);
+        this.refreshTokenInCookie = this.getSuffixedCookie(constants2.Cookies.Refresh);
+        this.clientUat = Number.parseInt(this.getSuffixedOrUnSuffixedCookie(constants2.Cookies.ClientUat) || "") || 0;
+      }
+      initHandshakeValues() {
+        this.devBrowserToken = this.getQueryParam(constants2.QueryParameters.DevBrowser) || this.getSuffixedOrUnSuffixedCookie(constants2.Cookies.DevBrowser);
+        this.handshakeToken = this.getQueryParam(constants2.QueryParameters.Handshake) || this.getCookie(constants2.Cookies.Handshake);
+        this.handshakeRedirectLoopCounter = Number(this.getCookie(constants2.Cookies.RedirectCount)) || 0;
+        this.handshakeNonce = this.getQueryParam(constants2.QueryParameters.HandshakeNonce) || this.getCookie(constants2.Cookies.HandshakeNonce);
+      }
+      getQueryParam(name) {
+        return this.clerkRequest.clerkUrl.searchParams.get(name);
+      }
+      getHeader(name) {
+        return this.clerkRequest.headers.get(name) || void 0;
+      }
+      getCookie(name) {
+        return this.clerkRequest.cookies.get(name) || void 0;
+      }
+      getSuffixedCookie(name) {
+        return this.getCookie(getSuffixedCookieName(name, this.cookieSuffix)) || void 0;
+      }
+      getSuffixedOrUnSuffixedCookie(cookieName) {
+        if (this.usesSuffixedCookies()) {
+          return this.getSuffixedCookie(cookieName);
+        }
+        return this.getCookie(cookieName);
+      }
+      parseAuthorizationHeader(authorizationHeader) {
+        if (!authorizationHeader) {
+          return void 0;
+        }
+        const [scheme, token] = authorizationHeader.split(" ", 2);
+        if (!token) {
+          return scheme;
+        }
+        if (scheme === "Bearer") {
+          return token;
+        }
+        return void 0;
+      }
+      tokenHasIssuer(token) {
+        const { data, errors } = decodeJwt(token);
+        if (errors) {
+          return false;
+        }
+        return !!data.payload.iss;
+      }
+      tokenBelongsToInstance(token) {
+        if (!token) {
+          return false;
+        }
+        const { data, errors } = decodeJwt(token);
+        if (errors) {
+          return false;
+        }
+        const tokenIssuer = data.payload.iss.replace(/https?:\/\//gi, "");
+        return this.originalFrontendApi === tokenIssuer;
+      }
+      sessionExpired(jwt) {
+        return !!jwt && jwt?.payload.exp <= Date.now() / 1e3 >> 0;
+      }
+    };
+    createAuthenticateContext = async (clerkRequest, options) => {
+      const cookieSuffix = options.publishableKey ? await getCookieSuffix(options.publishableKey, runtime.crypto.subtle) : "";
+      return new AuthenticateContext(cookieSuffix, clerkRequest, options);
+    };
+    SEPARATOR = "/";
+    MULTIPLE_SEPARATOR_REGEX = new RegExp("(?<!:)" + SEPARATOR + "{1,}", "g");
+    MAX_DECODES = 10;
+    AbstractAPI = class {
+      constructor(request) {
+        this.request = request;
+      }
+      requireId(id) {
+        if (!id) {
+          throw new Error("A valid resource ID is required.");
+        }
+      }
+    };
+    basePath = "/actor_tokens";
+    ActorTokenAPI = class extends AbstractAPI {
+      async create(params) {
+        return this.request({
+          method: "POST",
+          path: basePath,
+          bodyParams: params
+        });
+      }
+      async revoke(actorTokenId) {
+        this.requireId(actorTokenId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath, actorTokenId, "revoke")
+        });
+      }
+    };
+    basePath2 = "/agents/tasks";
+    AgentTaskAPI = class extends AbstractAPI {
+      async create(params) {
+        return this.request({
+          method: "POST",
+          path: basePath2,
+          bodyParams: params,
+          options: {
+            deepSnakecaseBodyParamKeys: true
+          }
+        });
+      }
+      async revoke(agentTaskId) {
+        this.requireId(agentTaskId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath2, agentTaskId, "revoke")
+        });
+      }
+    };
+    basePath3 = "/accountless_applications";
+    AccountlessApplicationAPI = class extends AbstractAPI {
+      async createAccountlessApplication(params) {
+        const headerParams = params?.requestHeaders ? Object.fromEntries(params.requestHeaders.entries()) : void 0;
+        return this.request({
+          method: "POST",
+          path: basePath3,
+          headerParams,
+          queryParams: {
+            source: params?.source
+          }
+        });
+      }
+      async completeAccountlessApplicationOnboarding(params) {
+        const headerParams = params?.requestHeaders ? Object.fromEntries(params.requestHeaders.entries()) : void 0;
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath3, "complete"),
+          headerParams,
+          queryParams: {
+            source: params?.source
+          }
+        });
+      }
+    };
+    basePath4 = "/allowlist_identifiers";
+    AllowlistIdentifierAPI = class extends AbstractAPI {
+      async getAllowlistIdentifierList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath4,
+          queryParams: { ...params, paginated: true }
+        });
+      }
+      async createAllowlistIdentifier(params) {
+        return this.request({
+          method: "POST",
+          path: basePath4,
+          bodyParams: params
+        });
+      }
+      async deleteAllowlistIdentifier(allowlistIdentifierId) {
+        this.requireId(allowlistIdentifierId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath4, allowlistIdentifierId)
+        });
+      }
+    };
+    basePath5 = "/api_keys";
+    APIKeysAPI = class extends AbstractAPI {
+      async list(queryParams) {
+        return this.request({
+          method: "GET",
+          path: basePath5,
+          queryParams
+        });
+      }
+      async create(params) {
+        return this.request({
+          method: "POST",
+          path: basePath5,
+          bodyParams: params
+        });
+      }
+      async get(apiKeyId) {
+        this.requireId(apiKeyId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath5, apiKeyId)
+        });
+      }
+      async update(params) {
+        const { apiKeyId, ...bodyParams } = params;
+        this.requireId(apiKeyId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath5, apiKeyId),
+          bodyParams
+        });
+      }
+      async delete(apiKeyId) {
+        this.requireId(apiKeyId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath5, apiKeyId)
+        });
+      }
+      async revoke(params) {
+        const { apiKeyId, revocationReason = null } = params;
+        this.requireId(apiKeyId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath5, apiKeyId, "revoke"),
+          bodyParams: { revocationReason }
+        });
+      }
+      async getSecret(apiKeyId) {
+        this.requireId(apiKeyId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath5, apiKeyId, "secret")
+        });
+      }
+      async verify(secret) {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath5, "verify"),
+          bodyParams: { secret }
+        });
+      }
+    };
+    basePath6 = "/beta_features";
+    BetaFeaturesAPI = class extends AbstractAPI {
+      /**
+       * Change the domain of a production instance.
+       *
+       * Changing the domain requires updating the DNS records accordingly, deploying new SSL certificates,
+       * updating your Social Connection's redirect URLs and setting the new keys in your code.
+       *
+       * @remarks
+       * WARNING: Changing your domain will invalidate all current user sessions (i.e. users will be logged out).
+       *          Also, while your application is being deployed, a small downtime is expected to occur.
+       */
+      async changeDomain(params) {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath6, "change_domain"),
+          bodyParams: params
+        });
+      }
+    };
+    basePath7 = "/blocklist_identifiers";
+    BlocklistIdentifierAPI = class extends AbstractAPI {
+      async getBlocklistIdentifierList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath7,
+          queryParams: params
+        });
+      }
+      async createBlocklistIdentifier(params) {
+        return this.request({
+          method: "POST",
+          path: basePath7,
+          bodyParams: params
+        });
+      }
+      async deleteBlocklistIdentifier(blocklistIdentifierId) {
+        this.requireId(blocklistIdentifierId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath7, blocklistIdentifierId)
+        });
+      }
+    };
+    basePath8 = "/clients";
+    ClientAPI = class extends AbstractAPI {
+      async getClientList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath8,
+          queryParams: { ...params, paginated: true }
+        });
+      }
+      async getClient(clientId) {
+        this.requireId(clientId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath8, clientId)
+        });
+      }
+      verifyClient(token) {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath8, "verify"),
+          bodyParams: { token }
+        });
+      }
+      async getHandshakePayload(queryParams) {
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath8, "handshake_payload"),
+          queryParams
+        });
+      }
+    };
+    basePath9 = "/domains";
+    DomainAPI = class extends AbstractAPI {
+      async list() {
+        return this.request({
+          method: "GET",
+          path: basePath9
+        });
+      }
+      async add(params) {
+        return this.request({
+          method: "POST",
+          path: basePath9,
+          bodyParams: params
+        });
+      }
+      async update(params) {
+        const { domainId, ...bodyParams } = params;
+        this.requireId(domainId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath9, domainId),
+          bodyParams
+        });
+      }
+      /**
+       * Deletes a satellite domain for the instance.
+       * It is currently not possible to delete the instance's primary domain.
+       */
+      async delete(satelliteDomainId) {
+        return this.deleteDomain(satelliteDomainId);
+      }
+      /**
+       * @deprecated Use `delete` instead
+       */
+      async deleteDomain(satelliteDomainId) {
+        this.requireId(satelliteDomainId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath9, satelliteDomainId)
+        });
+      }
+    };
+    basePath10 = "/email_addresses";
+    EmailAddressAPI = class extends AbstractAPI {
+      async getEmailAddress(emailAddressId) {
+        this.requireId(emailAddressId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath10, emailAddressId)
+        });
+      }
+      async createEmailAddress(params) {
+        return this.request({
+          method: "POST",
+          path: basePath10,
+          bodyParams: params
+        });
+      }
+      async updateEmailAddress(emailAddressId, params = {}) {
+        this.requireId(emailAddressId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath10, emailAddressId),
+          bodyParams: params
+        });
+      }
+      async deleteEmailAddress(emailAddressId) {
+        this.requireId(emailAddressId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath10, emailAddressId)
+        });
+      }
+    };
+    basePath11 = "/enterprise_connections";
+    EnterpriseConnectionAPI = class extends AbstractAPI {
+      async createEnterpriseConnection(params) {
+        return this.request({
+          method: "POST",
+          path: basePath11,
+          bodyParams: params,
+          options: {
+            deepSnakecaseBodyParamKeys: true
+          }
+        });
+      }
+      async updateEnterpriseConnection(enterpriseConnectionId, params) {
+        this.requireId(enterpriseConnectionId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath11, enterpriseConnectionId),
+          bodyParams: params,
+          options: {
+            deepSnakecaseBodyParamKeys: true
+          }
+        });
+      }
+      async getEnterpriseConnectionList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath11,
+          queryParams: params
+        });
+      }
+      async getEnterpriseConnection(enterpriseConnectionId) {
+        this.requireId(enterpriseConnectionId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath11, enterpriseConnectionId)
+        });
+      }
+      async deleteEnterpriseConnection(enterpriseConnectionId) {
+        this.requireId(enterpriseConnectionId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath11, enterpriseConnectionId)
+        });
+      }
+    };
+    basePath12 = "/oauth_applications/access_tokens";
+    IdPOAuthAccessTokenApi = class extends AbstractAPI {
+      async verify(accessToken) {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath12, "verify"),
+          bodyParams: { access_token: accessToken }
+        });
+      }
+    };
+    basePath13 = "/instance";
+    InstanceAPI = class extends AbstractAPI {
+      async get() {
+        return this.request({
+          method: "GET",
+          path: basePath13
+        });
+      }
+      async update(params) {
+        return this.request({
+          method: "PATCH",
+          path: basePath13,
+          bodyParams: params
+        });
+      }
+      async updateRestrictions(params) {
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath13, "restrictions"),
+          bodyParams: params
+        });
+      }
+      async getOrganizationSettings() {
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath13, "organization_settings")
+        });
+      }
+      async updateOrganizationSettings(params) {
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath13, "organization_settings"),
+          bodyParams: params
+        });
+      }
+    };
+    basePath14 = "/invitations";
+    InvitationAPI = class extends AbstractAPI {
+      async getInvitationList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath14,
+          queryParams: { ...params, paginated: true }
+        });
+      }
+      async createInvitation(params) {
+        return this.request({
+          method: "POST",
+          path: basePath14,
+          bodyParams: params
+        });
+      }
+      async createInvitationBulk(params) {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath14, "bulk"),
+          bodyParams: params
+        });
+      }
+      async revokeInvitation(invitationId) {
+        this.requireId(invitationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath14, invitationId, "revoke")
+        });
+      }
+    };
+    basePath15 = "/machines";
+    MachineApi = class extends AbstractAPI {
+      async get(machineId) {
+        this.requireId(machineId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath15, machineId)
+        });
+      }
+      async list(queryParams = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath15,
+          queryParams
+        });
+      }
+      async create(bodyParams) {
+        return this.request({
+          method: "POST",
+          path: basePath15,
+          bodyParams
+        });
+      }
+      async update(params) {
+        const { machineId, ...bodyParams } = params;
+        this.requireId(machineId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath15, machineId),
+          bodyParams
+        });
+      }
+      async delete(machineId) {
+        this.requireId(machineId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath15, machineId)
+        });
+      }
+      async getSecretKey(machineId) {
+        this.requireId(machineId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath15, machineId, "secret_key")
+        });
+      }
+      async rotateSecretKey(params) {
+        const { machineId, previousTokenTtl } = params;
+        this.requireId(machineId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath15, machineId, "secret_key", "rotate"),
+          bodyParams: {
+            previousTokenTtl
+          }
+        });
+      }
+      /**
+       * Creates a new machine scope, allowing the specified machine to access another machine.
+       *
+       * @param machineId - The ID of the machine that will have access to another machine.
+       * @param toMachineId - The ID of the machine that will be scoped to the current machine.
+       */
+      async createScope(machineId, toMachineId) {
+        this.requireId(machineId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath15, machineId, "scopes"),
+          bodyParams: {
+            toMachineId
+          }
+        });
+      }
+      /**
+       * Deletes a machine scope, removing access from one machine to another.
+       *
+       * @param machineId - The ID of the machine that has access to another machine.
+       * @param otherMachineId - The ID of the machine that is being accessed.
+       */
+      async deleteScope(machineId, otherMachineId) {
+        this.requireId(machineId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath15, machineId, "scopes", otherMachineId)
+        });
+      }
+    };
+    IdPOAuthAccessToken = class _IdPOAuthAccessToken {
+      constructor(id, clientId, type, subject, scopes, revoked, revocationReason, expired, expiration, createdAt, updatedAt) {
+        this.id = id;
+        this.clientId = clientId;
+        this.type = type;
+        this.subject = subject;
+        this.scopes = scopes;
+        this.revoked = revoked;
+        this.revocationReason = revocationReason;
+        this.expired = expired;
+        this.expiration = expiration;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _IdPOAuthAccessToken(
+          data.id,
+          data.client_id,
+          data.type,
+          data.subject,
+          data.scopes,
+          data.revoked,
+          data.revocation_reason,
+          data.expired,
+          data.expiration,
+          data.created_at,
+          data.updated_at
+        );
+      }
+      /**
+       * Creates an IdPOAuthAccessToken from a JWT payload.
+       * Maps standard JWT claims and OAuth-specific fields to token properties.
+       */
+      static fromJwtPayload(payload, clockSkewInMs = 5e3) {
+        const oauthPayload = payload;
+        return new _IdPOAuthAccessToken(
+          oauthPayload.jti ?? "",
+          oauthPayload.client_id ?? "",
+          "oauth_token",
+          payload.sub,
+          oauthPayload.scp ?? oauthPayload.scope?.split(" ") ?? [],
+          false,
+          null,
+          payload.exp * 1e3 <= Date.now() - clockSkewInMs,
+          payload.exp,
+          payload.iat,
+          payload.iat
+        );
+      }
+    };
+    M2M_RESERVED_JWT_CLAIMS = /* @__PURE__ */ new Set(["iss", "sub", "exp", "nbf", "iat", "jti"]);
+    M2MToken = class _M2MToken {
+      constructor(id, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdAt, updatedAt, token) {
+        this.id = id;
+        this.subject = subject;
+        this.scopes = scopes;
+        this.claims = claims;
+        this.revoked = revoked;
+        this.revocationReason = revocationReason;
+        this.expired = expired;
+        this.expiration = expiration;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.token = token;
+      }
+      static fromJSON(data) {
+        return new _M2MToken(
+          data.id,
+          data.subject,
+          data.scopes,
+          data.claims,
+          data.revoked,
+          data.revocation_reason,
+          data.expired,
+          data.expiration,
+          data.created_at,
+          data.updated_at,
+          data.token
+        );
+      }
+      static fromJwtPayload(payload, clockSkewInMs = 5e3) {
+        return new _M2MToken(
+          payload.jti ?? "",
+          // jti should always be present in Clerk-issued M2M JWTs
+          payload.sub,
+          payload.scopes?.split(" ") ?? payload.aud ?? [],
+          extractCustomClaims(payload),
+          false,
+          null,
+          payload.exp * 1e3 <= Date.now() - clockSkewInMs,
+          payload.exp * 1e3,
+          // milliseconds — expiration, converted from JWT exp claim
+          payload.iat * 1e3,
+          // milliseconds — createdAt, converted from JWT iat claim
+          payload.iat * 1e3
+          // milliseconds — updatedAt, no JWT equivalent; defaults to iat
+        );
+      }
+    };
+    cache = {};
+    lastUpdatedAt = 0;
+    PEM_HEADER = "-----BEGIN PUBLIC KEY-----";
+    PEM_TRAILER = "-----END PUBLIC KEY-----";
+    RSA_PREFIX = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA";
+    RSA_SUFFIX = "IDAQAB";
+    getErrorObjectByCode = (errors, code) => {
+      if (!errors) {
+        return null;
+      }
+      return errors.find((err2) => err2.code === code);
+    };
+    M2M_TOKEN_PREFIX = "mt_";
+    M2M_SUBJECT_PREFIX = "mch_";
+    OAUTH_TOKEN_PREFIX = "oat_";
+    API_KEY_PREFIX = "ak_";
+    MACHINE_TOKEN_PREFIXES = [M2M_TOKEN_PREFIX, OAUTH_TOKEN_PREFIX, API_KEY_PREFIX];
+    JwtFormatRegExp = /^[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+$/;
+    OAUTH_ACCESS_TOKEN_TYPES = ["at+jwt", "application/at+jwt"];
+    isTokenTypeAccepted = (tokenType, acceptsToken) => {
+      if (!tokenType) {
+        return false;
+      }
+      if (acceptsToken === "any") {
+        return true;
+      }
+      const tokenTypes = Array.isArray(acceptsToken) ? acceptsToken : [acceptsToken];
+      return tokenTypes.includes(tokenType);
+    };
+    MACHINE_TOKEN_TYPES = /* @__PURE__ */ new Set([TokenType.ApiKey, TokenType.M2MToken, TokenType.OAuthToken]);
+    basePath16 = "/m2m_tokens";
+    M2MTokenApi = class extends AbstractAPI {
+      /**
+       * @param verifyOptions - JWT verification options (secretKey, apiUrl, etc.).
+       * Passed explicitly because BuildRequestOptions are captured inside the buildRequest closure
+       * and are not accessible from the RequestFunction itself.
+       */
+      constructor(request, verifyOptions = {}) {
+        super(request);
+        __privateAdd(this, _M2MTokenApi_instances);
+        __privateAdd(this, _verifyOptions);
+        __privateSet(this, _verifyOptions, verifyOptions);
+      }
+      async list(queryParams) {
+        const { machineSecretKey, ...params } = queryParams;
+        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+          method: "GET",
+          path: basePath16,
+          queryParams: params
+        }, machineSecretKey);
+        return this.request(requestOptions);
+      }
+      async createToken(params) {
+        const {
+          claims = null,
+          machineSecretKey,
+          minRemainingTtlSeconds,
+          secondsUntilExpiration = null,
+          tokenFormat = "opaque"
+        } = params || {};
+        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+          method: "POST",
+          path: basePath16,
+          bodyParams: {
+            secondsUntilExpiration,
+            claims,
+            minRemainingTtlSeconds,
+            tokenFormat
+          }
+        }, machineSecretKey);
+        return this.request(requestOptions);
+      }
+      async revokeToken(params) {
+        const { m2mTokenId, revocationReason = null, machineSecretKey } = params;
+        this.requireId(m2mTokenId);
+        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+          method: "POST",
+          path: joinPaths(basePath16, m2mTokenId, "revoke"),
+          bodyParams: {
+            revocationReason
+          }
+        }, machineSecretKey);
+        return this.request(requestOptions);
+      }
+      async verify(params) {
+        const { token, machineSecretKey } = params;
+        if (isM2MJwt(token)) {
+          return __privateMethod(this, _M2MTokenApi_instances, verifyJwtFormat_fn).call(this, token);
+        }
+        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
+          method: "POST",
+          path: joinPaths(basePath16, "verify"),
+          bodyParams: { token }
+        }, machineSecretKey);
+        return this.request(requestOptions);
+      }
+    };
+    _verifyOptions = /* @__PURE__ */ new WeakMap();
+    _M2MTokenApi_instances = /* @__PURE__ */ new WeakSet();
+    createRequestOptions_fn = function(options, machineSecretKey) {
+      if (machineSecretKey) {
+        return {
+          ...options,
+          headerParams: {
+            ...options.headerParams,
+            Authorization: `Bearer ${machineSecretKey}`
+          }
+        };
+      }
+      return options;
+    };
+    verifyJwtFormat_fn = async function(token) {
+      let decoded;
+      try {
+        const { data, errors } = decodeJwt(token);
+        if (errors) {
+          throw errors[0];
+        }
+        decoded = data;
+      } catch (e) {
+        throw new MachineTokenVerificationError({
+          code: MachineTokenVerificationErrorCode.TokenInvalid,
+          message: e.message
+        });
+      }
+      const result = await verifyM2MJwt(token, decoded, __privateGet(this, _verifyOptions));
+      if (result.errors) {
+        throw result.errors[0];
+      }
+      return result.data;
+    };
+    basePath17 = "/jwks";
+    JwksAPI = class extends AbstractAPI {
+      async getJwks() {
+        return this.request({
+          method: "GET",
+          path: basePath17
+        });
+      }
+    };
+    basePath18 = "/jwt_templates";
+    JwtTemplatesApi = class extends AbstractAPI {
+      async list(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath18,
+          queryParams: { ...params, paginated: true }
+        });
+      }
+      async get(templateId) {
+        this.requireId(templateId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath18, templateId)
+        });
+      }
+      async create(params) {
+        return this.request({
+          method: "POST",
+          path: basePath18,
+          bodyParams: params
+        });
+      }
+      async update(params) {
+        const { templateId, ...bodyParams } = params;
+        this.requireId(templateId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath18, templateId),
+          bodyParams
+        });
+      }
+      async delete(templateId) {
+        this.requireId(templateId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath18, templateId)
+        });
+      }
+    };
+    basePath19 = "/organizations";
+    OrganizationAPI = class extends AbstractAPI {
+      async getOrganizationList(params) {
+        return this.request({
+          method: "GET",
+          path: basePath19,
+          queryParams: params
+        });
+      }
+      async createOrganization(params) {
+        return this.request({
+          method: "POST",
+          path: basePath19,
+          bodyParams: params
+        });
+      }
+      async getOrganization(params) {
+        const { includeMembersCount } = params;
+        const organizationIdOrSlug = "organizationId" in params ? params.organizationId : params.slug;
+        this.requireId(organizationIdOrSlug);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath19, organizationIdOrSlug),
+          queryParams: {
+            includeMembersCount
+          }
+        });
+      }
+      async updateOrganization(organizationId, params) {
+        this.requireId(organizationId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath19, organizationId),
+          bodyParams: params
+        });
+      }
+      async updateOrganizationLogo(organizationId, params) {
+        this.requireId(organizationId);
+        const formData = new runtime.FormData();
+        formData.append("file", params?.file);
+        if (params?.uploaderUserId) {
+          formData.append("uploader_user_id", params?.uploaderUserId);
+        }
+        return this.request({
+          method: "PUT",
+          path: joinPaths(basePath19, organizationId, "logo"),
+          formData
+        });
+      }
+      async deleteOrganizationLogo(organizationId) {
+        this.requireId(organizationId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath19, organizationId, "logo")
+        });
+      }
+      async updateOrganizationMetadata(organizationId, params) {
+        this.requireId(organizationId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath19, organizationId, "metadata"),
+          bodyParams: params
+        });
+      }
+      async deleteOrganization(organizationId) {
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath19, organizationId)
+        });
+      }
+      async getOrganizationMembershipList(params) {
+        const { organizationId, ...queryParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath19, organizationId, "memberships"),
+          queryParams
+        });
+      }
+      async getInstanceOrganizationMembershipList(params) {
+        return this.request({
+          method: "GET",
+          path: "/organization_memberships",
+          queryParams: params
+        });
+      }
+      async createOrganizationMembership(params) {
+        const { organizationId, ...bodyParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath19, organizationId, "memberships"),
+          bodyParams
+        });
+      }
+      async updateOrganizationMembership(params) {
+        const { organizationId, userId, ...bodyParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath19, organizationId, "memberships", userId),
+          bodyParams
+        });
+      }
+      async updateOrganizationMembershipMetadata(params) {
+        const { organizationId, userId, ...bodyParams } = params;
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath19, organizationId, "memberships", userId, "metadata"),
+          bodyParams
+        });
+      }
+      async deleteOrganizationMembership(params) {
+        const { organizationId, userId } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath19, organizationId, "memberships", userId)
+        });
+      }
+      async getOrganizationInvitationList(params) {
+        const { organizationId, ...queryParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath19, organizationId, "invitations"),
+          queryParams
+        });
+      }
+      async createOrganizationInvitation(params) {
+        const { organizationId, ...bodyParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath19, organizationId, "invitations"),
+          bodyParams
+        });
+      }
+      async createOrganizationInvitationBulk(organizationId, params) {
+        this.requireId(organizationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath19, organizationId, "invitations", "bulk"),
+          bodyParams: params
+        });
+      }
+      async getOrganizationInvitation(params) {
+        const { organizationId, invitationId } = params;
+        this.requireId(organizationId);
+        this.requireId(invitationId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath19, organizationId, "invitations", invitationId)
+        });
+      }
+      async revokeOrganizationInvitation(params) {
+        const { organizationId, invitationId, ...bodyParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath19, organizationId, "invitations", invitationId, "revoke"),
+          bodyParams
+        });
+      }
+      async getOrganizationDomainList(params) {
+        const { organizationId, ...queryParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath19, organizationId, "domains"),
+          queryParams
+        });
+      }
+      async createOrganizationDomain(params) {
+        const { organizationId, ...bodyParams } = params;
+        this.requireId(organizationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath19, organizationId, "domains"),
+          bodyParams: {
+            ...bodyParams,
+            verified: bodyParams.verified ?? true
+          }
+        });
+      }
+      async updateOrganizationDomain(params) {
+        const { organizationId, domainId, ...bodyParams } = params;
+        this.requireId(organizationId);
+        this.requireId(domainId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath19, organizationId, "domains", domainId),
+          bodyParams
+        });
+      }
+      async deleteOrganizationDomain(params) {
+        const { organizationId, domainId } = params;
+        this.requireId(organizationId);
+        this.requireId(domainId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath19, organizationId, "domains", domainId)
+        });
+      }
+    };
+    basePath20 = "/oauth_applications";
+    OAuthApplicationsApi = class extends AbstractAPI {
+      async list(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath20,
+          queryParams: params
+        });
+      }
+      async get(oauthApplicationId) {
+        this.requireId(oauthApplicationId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath20, oauthApplicationId)
+        });
+      }
+      async create(params) {
+        return this.request({
+          method: "POST",
+          path: basePath20,
+          bodyParams: params
+        });
+      }
+      async update(params) {
+        const { oauthApplicationId, ...bodyParams } = params;
+        this.requireId(oauthApplicationId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath20, oauthApplicationId),
+          bodyParams
+        });
+      }
+      async delete(oauthApplicationId) {
+        this.requireId(oauthApplicationId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath20, oauthApplicationId)
+        });
+      }
+      async rotateSecret(oauthApplicationId) {
+        this.requireId(oauthApplicationId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath20, oauthApplicationId, "rotate_secret")
+        });
+      }
+    };
+    basePath21 = "/phone_numbers";
+    PhoneNumberAPI = class extends AbstractAPI {
+      async getPhoneNumber(phoneNumberId) {
+        this.requireId(phoneNumberId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath21, phoneNumberId)
+        });
+      }
+      async createPhoneNumber(params) {
+        return this.request({
+          method: "POST",
+          path: basePath21,
+          bodyParams: params
+        });
+      }
+      async updatePhoneNumber(phoneNumberId, params = {}) {
+        this.requireId(phoneNumberId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath21, phoneNumberId),
+          bodyParams: params
+        });
+      }
+      async deletePhoneNumber(phoneNumberId) {
+        this.requireId(phoneNumberId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath21, phoneNumberId)
+        });
+      }
+    };
+    basePath22 = "/proxy_checks";
+    ProxyCheckAPI = class extends AbstractAPI {
+      async verify(params) {
+        return this.request({
+          method: "POST",
+          path: basePath22,
+          bodyParams: params
+        });
+      }
+    };
+    basePath23 = "/redirect_urls";
+    RedirectUrlAPI = class extends AbstractAPI {
+      async getRedirectUrlList() {
+        return this.request({
+          method: "GET",
+          path: basePath23,
+          queryParams: { paginated: true }
+        });
+      }
+      async getRedirectUrl(redirectUrlId) {
+        this.requireId(redirectUrlId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath23, redirectUrlId)
+        });
+      }
+      async createRedirectUrl(params) {
+        return this.request({
+          method: "POST",
+          path: basePath23,
+          bodyParams: params
+        });
+      }
+      async deleteRedirectUrl(redirectUrlId) {
+        this.requireId(redirectUrlId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath23, redirectUrlId)
+        });
+      }
+    };
+    basePath24 = "/saml_connections";
+    SamlConnectionAPI = class extends AbstractAPI {
+      async getSamlConnectionList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath24,
+          queryParams: params
+        });
+      }
+      async createSamlConnection(params) {
+        return this.request({
+          method: "POST",
+          path: basePath24,
+          bodyParams: params,
+          options: {
+            deepSnakecaseBodyParamKeys: true
+          }
+        });
+      }
+      async getSamlConnection(samlConnectionId) {
+        this.requireId(samlConnectionId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath24, samlConnectionId)
+        });
+      }
+      async updateSamlConnection(samlConnectionId, params = {}) {
+        this.requireId(samlConnectionId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath24, samlConnectionId),
+          bodyParams: params,
+          options: {
+            deepSnakecaseBodyParamKeys: true
+          }
+        });
+      }
+      async deleteSamlConnection(samlConnectionId) {
+        this.requireId(samlConnectionId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath24, samlConnectionId)
+        });
+      }
+    };
+    basePath25 = "/sessions";
+    SessionAPI = class extends AbstractAPI {
+      async getSessionList(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath25,
+          queryParams: { ...params, paginated: true }
+        });
+      }
+      async getSession(sessionId) {
+        this.requireId(sessionId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath25, sessionId)
+        });
+      }
+      async createSession(params) {
+        return this.request({
+          method: "POST",
+          path: basePath25,
+          bodyParams: params
+        });
+      }
+      async revokeSession(sessionId) {
+        this.requireId(sessionId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath25, sessionId, "revoke")
+        });
+      }
+      async verifySession(sessionId, token) {
+        this.requireId(sessionId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath25, sessionId, "verify"),
+          bodyParams: { token }
+        });
+      }
+      /**
+       * Retrieves a session token or generates a JWT using a specified template.
+       *
+       * @param sessionId - The ID of the session for which to generate the token
+       * @param template - Optional name of the JWT template configured in the Clerk Dashboard.
+       * @param expiresInSeconds - Optional expiration time for the token in seconds.
+       *   If not provided, uses the default expiration.
+       *
+       * @returns A promise that resolves to the generated token
+       *
+       * @throws {Error} When sessionId is invalid or empty
+       */
+      async getToken(sessionId, template, expiresInSeconds) {
+        this.requireId(sessionId);
+        const path = template ? joinPaths(basePath25, sessionId, "tokens", template) : joinPaths(basePath25, sessionId, "tokens");
+        const requestOptions = {
+          method: "POST",
+          path
+        };
+        if (expiresInSeconds !== void 0) {
+          requestOptions.bodyParams = { expires_in_seconds: expiresInSeconds };
+        }
+        return this.request(requestOptions);
+      }
+      async refreshSession(sessionId, params) {
+        this.requireId(sessionId);
+        const { suffixed_cookies, ...restParams } = params;
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath25, sessionId, "refresh"),
+          bodyParams: restParams,
+          queryParams: { suffixed_cookies }
+        });
+      }
+    };
+    basePath26 = "/sign_in_tokens";
+    SignInTokenAPI = class extends AbstractAPI {
+      async createSignInToken(params) {
+        return this.request({
+          method: "POST",
+          path: basePath26,
+          bodyParams: params
+        });
+      }
+      async revokeSignInToken(signInTokenId) {
+        this.requireId(signInTokenId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath26, signInTokenId, "revoke")
+        });
+      }
+    };
+    basePath27 = "/sign_ups";
+    SignUpAPI = class extends AbstractAPI {
+      async get(signUpAttemptId) {
+        this.requireId(signUpAttemptId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath27, signUpAttemptId)
+        });
+      }
+      async update(params) {
+        const { signUpAttemptId, ...bodyParams } = params;
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath27, signUpAttemptId),
+          bodyParams
+        });
+      }
+    };
+    basePath28 = "/testing_tokens";
+    TestingTokenAPI = class extends AbstractAPI {
+      async createTestingToken() {
+        return this.request({
+          method: "POST",
+          path: basePath28
+        });
+      }
+    };
+    basePath29 = "/users";
+    UserAPI = class extends AbstractAPI {
+      async getUserList(params = {}) {
+        const { limit, offset, orderBy, ...userCountParams } = params;
+        const [data, totalCount] = await Promise.all([
+          this.request({
+            method: "GET",
+            path: basePath29,
+            queryParams: params
+          }),
+          this.getCount(userCountParams)
+        ]);
+        return { data, totalCount };
+      }
+      async getUser(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath29, userId)
+        });
+      }
+      async createUser(params) {
+        return this.request({
+          method: "POST",
+          path: basePath29,
+          bodyParams: params
+        });
+      }
+      async updateUser(userId, params = {}) {
+        this.requireId(userId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath29, userId),
+          bodyParams: params
+        });
+      }
+      async replaceUserEmailAddress(userId, params) {
+        this.requireId(userId);
+        return this.request({
+          method: "PUT",
+          path: joinPaths(basePath29, userId, "email_address"),
+          bodyParams: params
+        });
+      }
+      async replaceUserPhoneNumber(userId, params) {
+        this.requireId(userId);
+        return this.request({
+          method: "PUT",
+          path: joinPaths(basePath29, userId, "phone_number"),
+          bodyParams: params
+        });
+      }
+      async updateUserProfileImage(userId, params) {
+        this.requireId(userId);
+        const formData = new runtime.FormData();
+        formData.append("file", params?.file);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "profile_image"),
+          formData
+        });
+      }
+      async updateUserMetadata(userId, params) {
+        this.requireId(userId);
+        return this.request({
+          method: "PATCH",
+          path: joinPaths(basePath29, userId, "metadata"),
+          bodyParams: params
+        });
+      }
+      async deleteUser(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, userId)
+        });
+      }
+      async getCount(params = {}) {
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath29, "count"),
+          queryParams: params
+        });
+      }
+      async getUserOauthAccessToken(userId, provider) {
+        this.requireId(userId);
+        const hasPrefix = provider.startsWith("oauth_");
+        const _provider = hasPrefix ? provider : `oauth_${provider}`;
+        if (hasPrefix) {
+          deprecated(
+            "getUserOauthAccessToken(userId, provider)",
+            "Remove the `oauth_` prefix from the `provider` argument."
+          );
+        }
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath29, userId, "oauth_access_tokens", _provider),
+          queryParams: { paginated: true }
+        });
+      }
+      async disableUserMFA(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, userId, "mfa")
+        });
+      }
+      async getOrganizationMembershipList(params) {
+        const { userId, limit, offset } = params;
+        this.requireId(userId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath29, userId, "organization_memberships"),
+          queryParams: { limit, offset }
+        });
+      }
+      async getOrganizationInvitationList(params) {
+        const { userId, ...queryParams } = params;
+        this.requireId(userId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath29, userId, "organization_invitations"),
+          queryParams
+        });
+      }
+      async verifyPassword(params) {
+        const { userId, password } = params;
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "verify_password"),
+          bodyParams: { password }
+        });
+      }
+      async verifyTOTP(params) {
+        const { userId, code } = params;
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "verify_totp"),
+          bodyParams: { code }
+        });
+      }
+      async banUser(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "ban")
+        });
+      }
+      async unbanUser(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "unban")
+        });
+      }
+      async lockUser(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "lock")
+        });
+      }
+      async unlockUser(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "unlock")
+        });
+      }
+      async deleteUserProfileImage(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, userId, "profile_image")
+        });
+      }
+      async deleteUserPasskey(params) {
+        this.requireId(params.userId);
+        this.requireId(params.passkeyIdentificationId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, params.userId, "passkeys", params.passkeyIdentificationId)
+        });
+      }
+      async deleteUserWeb3Wallet(params) {
+        this.requireId(params.userId);
+        this.requireId(params.web3WalletIdentificationId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, params.userId, "web3_wallets", params.web3WalletIdentificationId)
+        });
+      }
+      async deleteUserExternalAccount(params) {
+        this.requireId(params.userId);
+        this.requireId(params.externalAccountId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, params.userId, "external_accounts", params.externalAccountId)
+        });
+      }
+      async deleteUserBackupCodes(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, userId, "backup_code")
+        });
+      }
+      async deleteUserTOTP(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath29, userId, "totp")
+        });
+      }
+      async setPasswordCompromised(userId, params = {
+        revokeAllSessions: false
+      }) {
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "password", "set_compromised"),
+          bodyParams: params
+        });
+      }
+      async unsetPasswordCompromised(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath29, userId, "password", "unset_compromised")
+        });
+      }
+    };
+    basePath30 = "/waitlist_entries";
+    WaitlistEntryAPI = class extends AbstractAPI {
+      /**
+       * List waitlist entries.
+       * @param params Optional parameters (e.g., `query`, `status`, `orderBy`).
+       */
+      async list(params = {}) {
+        return this.request({
+          method: "GET",
+          path: basePath30,
+          queryParams: params
+        });
+      }
+      /**
+       * Create a waitlist entry.
+       * @param params The parameters for creating a waitlist entry.
+       */
+      async create(params) {
+        return this.request({
+          method: "POST",
+          path: basePath30,
+          bodyParams: params
+        });
+      }
+      /**
+       * Bulk create waitlist entries.
+       * @param params An array of parameters for creating waitlist entries.
+       */
+      async createBulk(params) {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath30, "bulk"),
+          bodyParams: params
+        });
+      }
+      /**
+       * Invite a waitlist entry.
+       * @param id The waitlist entry ID.
+       * @param params Optional parameters (e.g., `ignoreExisting`).
+       */
+      async invite(id, params = {}) {
+        this.requireId(id);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath30, id, "invite"),
+          bodyParams: params
+        });
+      }
+      /**
+       * Reject a waitlist entry.
+       * @param id The waitlist entry ID.
+       */
+      async reject(id) {
+        this.requireId(id);
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath30, id, "reject")
+        });
+      }
+      /**
+       * Delete a waitlist entry.
+       * @param id The waitlist entry ID.
+       */
+      async delete(id) {
+        this.requireId(id);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath30, id)
+        });
+      }
+    };
+    basePath31 = "/webhooks";
+    WebhookAPI = class extends AbstractAPI {
+      async createSvixApp() {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath31, "svix")
+        });
+      }
+      async generateSvixAuthURL() {
+        return this.request({
+          method: "POST",
+          path: joinPaths(basePath31, "svix_url")
+        });
+      }
+      async deleteSvixApp() {
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath31, "svix")
+        });
+      }
+    };
+    basePath32 = "/billing";
+    organizationBasePath = "/organizations";
+    userBasePath = "/users";
+    BillingAPI = class extends AbstractAPI {
+      /**
+       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+       */
+      async getPlanList(params) {
+        return this.request({
+          method: "GET",
+          path: joinPaths(basePath32, "plans"),
+          queryParams: params
+        });
+      }
+      /**
+       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+       */
+      async cancelSubscriptionItem(subscriptionItemId, params) {
+        this.requireId(subscriptionItemId);
+        return this.request({
+          method: "DELETE",
+          path: joinPaths(basePath32, "subscription_items", subscriptionItemId),
+          queryParams: params
+        });
+      }
+      /**
+       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+       */
+      async extendSubscriptionItemFreeTrial(subscriptionItemId, params) {
+        this.requireId(subscriptionItemId);
+        return this.request({
+          method: "POST",
+          path: joinPaths("/billing", "subscription_items", subscriptionItemId, "extend_free_trial"),
+          bodyParams: params
+        });
+      }
+      /**
+       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+       */
+      async getOrganizationBillingSubscription(organizationId) {
+        this.requireId(organizationId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(organizationBasePath, organizationId, "billing", "subscription")
+        });
+      }
+      /**
+       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
+       */
+      async getUserBillingSubscription(userId) {
+        this.requireId(userId);
+        return this.request({
+          method: "GET",
+          path: joinPaths(userBasePath, userId, "billing", "subscription")
+        });
+      }
+    };
+    isObject = (value) => typeof value === "object" && value !== null;
+    isObjectCustom = (value) => isObject(value) && !(value instanceof RegExp) && !(value instanceof Error) && !(value instanceof Date) && !(globalThis.Blob && value instanceof globalThis.Blob);
+    mapObjectSkip = /* @__PURE__ */ Symbol("mapObjectSkip");
+    _mapObject = (object, mapper, options, isSeen = /* @__PURE__ */ new WeakMap()) => {
+      options = {
+        deep: false,
+        target: {},
+        ...options
+      };
+      if (isSeen.has(object)) {
+        return isSeen.get(object);
+      }
+      isSeen.set(object, options.target);
+      const { target } = options;
+      delete options.target;
+      const mapArray = (array) => array.map((element) => isObjectCustom(element) ? _mapObject(element, mapper, options, isSeen) : element);
+      if (Array.isArray(object)) {
+        return mapArray(object);
+      }
+      for (const [key, value] of Object.entries(object)) {
+        const mapResult = mapper(key, value, object);
+        if (mapResult === mapObjectSkip) {
+          continue;
+        }
+        let [newKey, newValue, { shouldRecurse = true } = {}] = mapResult;
+        if (newKey === "__proto__") {
+          continue;
+        }
+        if (options.deep && shouldRecurse && isObjectCustom(newValue)) {
+          newValue = Array.isArray(newValue) ? mapArray(newValue) : _mapObject(newValue, mapper, options, isSeen);
+        }
+        target[newKey] = newValue;
+      }
+      return target;
+    };
+    SPLIT_LOWER_UPPER_RE = new RegExp("([\\p{Ll}\\d])(\\p{Lu})", "gu");
+    SPLIT_UPPER_UPPER_RE = new RegExp("(\\p{Lu})([\\p{Lu}][\\p{Ll}])", "gu");
+    SPLIT_SEPARATE_NUMBER_RE = new RegExp("(\\d)\\p{Ll}|(\\p{L})\\d", "u");
+    DEFAULT_STRIP_REGEXP = /[^\p{L}\d]+/giu;
+    SPLIT_REPLACE_VALUE = "$1\0$2";
+    DEFAULT_PREFIX_SUFFIX_CHARACTERS = "";
+    PlainObjectConstructor = {}.constructor;
+    snakecase_keys_default = snakecaseKeys;
+    AccountlessApplication = class _AccountlessApplication {
+      constructor(publishableKey, secretKey, claimUrl, apiKeysUrl) {
+        this.publishableKey = publishableKey;
+        this.secretKey = secretKey;
+        this.claimUrl = claimUrl;
+        this.apiKeysUrl = apiKeysUrl;
+      }
+      static fromJSON(data) {
+        return new _AccountlessApplication(data.publishable_key, data.secret_key, data.claim_url, data.api_keys_url);
+      }
+    };
+    AgentTask = class _AgentTask {
+      constructor(agentId, taskId, agentTaskId, url) {
+        this.agentId = agentId;
+        this.taskId = taskId;
+        this.agentTaskId = agentTaskId;
+        this.url = url;
+      }
+      /**
+       * Creates a AgentTask instance from a JSON object.
+       *
+       * @param data - The JSON object containing agent task data
+       * @returns A new AgentTask instance
+       */
+      static fromJSON(data) {
+        const agentTaskId = data.agent_task_id ?? data.task_id ?? "";
+        return new _AgentTask(data.agent_id, agentTaskId, agentTaskId, data.url);
+      }
+    };
+    ActorToken = class _ActorToken {
+      constructor(id, status, userId, actor, token, url, createdAt, updatedAt) {
+        this.id = id;
+        this.status = status;
+        this.userId = userId;
+        this.actor = actor;
+        this.token = token;
+        this.url = url;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _ActorToken(
+          data.id,
+          data.status,
+          data.user_id,
+          data.actor,
+          data.token,
+          data.url,
+          data.created_at,
+          data.updated_at
+        );
+      }
+    };
+    AllowlistIdentifier = class _AllowlistIdentifier {
+      constructor(id, identifier, identifierType, createdAt, updatedAt, instanceId, invitationId) {
+        this.id = id;
+        this.identifier = identifier;
+        this.identifierType = identifierType;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.instanceId = instanceId;
+        this.invitationId = invitationId;
+      }
+      static fromJSON(data) {
+        return new _AllowlistIdentifier(
+          data.id,
+          data.identifier,
+          data.identifier_type,
+          data.created_at,
+          data.updated_at,
+          data.instance_id,
+          data.invitation_id
+        );
+      }
+    };
+    APIKey = class _APIKey {
+      constructor(id, type, name, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret) {
+        this.id = id;
+        this.type = type;
+        this.name = name;
+        this.subject = subject;
+        this.scopes = scopes;
+        this.claims = claims;
+        this.revoked = revoked;
+        this.revocationReason = revocationReason;
+        this.expired = expired;
+        this.expiration = expiration;
+        this.createdBy = createdBy;
+        this.description = description;
+        this.lastUsedAt = lastUsedAt;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.secret = secret;
+      }
+      static fromJSON(data) {
+        return new _APIKey(
+          data.id,
+          data.type,
+          data.name,
+          data.subject,
+          data.scopes,
+          data.claims,
+          data.revoked,
+          data.revocation_reason,
+          data.expired,
+          data.expiration,
+          data.created_by,
+          data.description,
+          data.last_used_at,
+          data.created_at,
+          data.updated_at,
+          data.secret
+        );
+      }
+    };
+    BlocklistIdentifier = class _BlocklistIdentifier {
+      constructor(id, identifier, identifierType, createdAt, updatedAt, instanceId) {
+        this.id = id;
+        this.identifier = identifier;
+        this.identifierType = identifierType;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.instanceId = instanceId;
+      }
+      static fromJSON(data) {
+        return new _BlocklistIdentifier(
+          data.id,
+          data.identifier,
+          data.identifier_type,
+          data.created_at,
+          data.updated_at,
+          data.instance_id
+        );
+      }
+    };
+    SessionActivity = class _SessionActivity {
+      constructor(id, isMobile, ipAddress, city, country, browserVersion, browserName, deviceType) {
+        this.id = id;
+        this.isMobile = isMobile;
+        this.ipAddress = ipAddress;
+        this.city = city;
+        this.country = country;
+        this.browserVersion = browserVersion;
+        this.browserName = browserName;
+        this.deviceType = deviceType;
+      }
+      static fromJSON(data) {
+        return new _SessionActivity(
+          data.id,
+          data.is_mobile,
+          data.ip_address,
+          data.city,
+          data.country,
+          data.browser_version,
+          data.browser_name,
+          data.device_type
+        );
+      }
+    };
+    Session = class _Session {
+      constructor(id, clientId, userId, status, lastActiveAt, expireAt, abandonAt, createdAt, updatedAt, lastActiveOrganizationId, latestActivity, actor = null) {
+        this.id = id;
+        this.clientId = clientId;
+        this.userId = userId;
+        this.status = status;
+        this.lastActiveAt = lastActiveAt;
+        this.expireAt = expireAt;
+        this.abandonAt = abandonAt;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.lastActiveOrganizationId = lastActiveOrganizationId;
+        this.latestActivity = latestActivity;
+        this.actor = actor;
+      }
+      static fromJSON(data) {
+        return new _Session(
+          data.id,
+          data.client_id,
+          data.user_id,
+          data.status,
+          data.last_active_at,
+          data.expire_at,
+          data.abandon_at,
+          data.created_at,
+          data.updated_at,
+          data.last_active_organization_id,
+          data.latest_activity && SessionActivity.fromJSON(data.latest_activity),
+          data.actor
+        );
+      }
+    };
+    Client = class _Client {
+      constructor(id, sessionIds, sessions, signInId, signUpId, lastActiveSessionId, lastAuthenticationStrategy, createdAt, updatedAt) {
+        this.id = id;
+        this.sessionIds = sessionIds;
+        this.sessions = sessions;
+        this.signInId = signInId;
+        this.signUpId = signUpId;
+        this.lastActiveSessionId = lastActiveSessionId;
+        this.lastAuthenticationStrategy = lastAuthenticationStrategy;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _Client(
+          data.id,
+          data.session_ids,
+          data.sessions.map((x) => Session.fromJSON(x)),
+          data.sign_in_id,
+          data.sign_up_id,
+          data.last_active_session_id,
+          data.last_authentication_strategy,
+          data.created_at,
+          data.updated_at
+        );
+      }
+    };
+    CnameTarget = class _CnameTarget {
+      constructor(host, value, required) {
+        this.host = host;
+        this.value = value;
+        this.required = required;
+      }
+      static fromJSON(data) {
+        return new _CnameTarget(data.host, data.value, data.required);
+      }
+    };
+    Cookies2 = class _Cookies {
+      constructor(cookies) {
+        this.cookies = cookies;
+      }
+      static fromJSON(data) {
+        return new _Cookies(data.cookies);
+      }
+    };
+    DeletedObject = class _DeletedObject {
+      constructor(object, id, slug, deleted) {
+        this.object = object;
+        this.id = id;
+        this.slug = slug;
+        this.deleted = deleted;
+      }
+      static fromJSON(data) {
+        return new _DeletedObject(data.object, data.id || null, data.slug || null, data.deleted);
+      }
+    };
+    Domain = class _Domain {
+      constructor(id, name, isSatellite, frontendApiUrl, developmentOrigin, cnameTargets, accountsPortalUrl, proxyUrl) {
+        this.id = id;
+        this.name = name;
+        this.isSatellite = isSatellite;
+        this.frontendApiUrl = frontendApiUrl;
+        this.developmentOrigin = developmentOrigin;
+        this.cnameTargets = cnameTargets;
+        this.accountsPortalUrl = accountsPortalUrl;
+        this.proxyUrl = proxyUrl;
+      }
+      static fromJSON(data) {
+        return new _Domain(
+          data.id,
+          data.name,
+          data.is_satellite,
+          data.frontend_api_url,
+          data.development_origin,
+          data.cname_targets && data.cname_targets.map((x) => CnameTarget.fromJSON(x)),
+          data.accounts_portal_url,
+          data.proxy_url
+        );
+      }
+    };
+    Email = class _Email {
+      constructor(id, fromEmailName, emailAddressId, toEmailAddress, subject, body, bodyPlain, status, slug, data, deliveredByClerk) {
+        this.id = id;
+        this.fromEmailName = fromEmailName;
+        this.emailAddressId = emailAddressId;
+        this.toEmailAddress = toEmailAddress;
+        this.subject = subject;
+        this.body = body;
+        this.bodyPlain = bodyPlain;
+        this.status = status;
+        this.slug = slug;
+        this.data = data;
+        this.deliveredByClerk = deliveredByClerk;
+      }
+      static fromJSON(data) {
+        return new _Email(
+          data.id,
+          data.from_email_name,
+          data.email_address_id,
+          data.to_email_address,
+          data.subject,
+          data.body,
+          data.body_plain,
+          data.status,
+          data.slug,
+          data.data,
+          data.delivered_by_clerk
+        );
+      }
+    };
+    IdentificationLink = class _IdentificationLink {
+      constructor(id, type) {
+        this.id = id;
+        this.type = type;
+      }
+      static fromJSON(data) {
+        return new _IdentificationLink(data.id, data.type);
+      }
+    };
+    Verification = class _Verification {
+      constructor(status, strategy, externalVerificationRedirectURL = null, attempts = null, expireAt = null, nonce = null, message = null) {
+        this.status = status;
+        this.strategy = strategy;
+        this.externalVerificationRedirectURL = externalVerificationRedirectURL;
+        this.attempts = attempts;
+        this.expireAt = expireAt;
+        this.nonce = nonce;
+        this.message = message;
+      }
+      static fromJSON(data) {
+        return new _Verification(
+          data.status,
+          data.strategy,
+          data.external_verification_redirect_url ? new URL(data.external_verification_redirect_url) : null,
+          data.attempts,
+          data.expire_at,
+          data.nonce
+        );
+      }
+    };
+    EmailAddress = class _EmailAddress {
+      constructor(id, emailAddress, verification, linkedTo) {
+        this.id = id;
+        this.emailAddress = emailAddress;
+        this.verification = verification;
+        this.linkedTo = linkedTo;
+      }
+      static fromJSON(data) {
+        return new _EmailAddress(
+          data.id,
+          data.email_address,
+          data.verification && Verification.fromJSON(data.verification),
+          data.linked_to.map((link) => IdentificationLink.fromJSON(link))
+        );
+      }
+    };
+    Feature = class _Feature {
+      constructor(id, name, description, slug, avatarUrl) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+        this.slug = slug;
+        this.avatarUrl = avatarUrl;
+      }
+      static fromJSON(data) {
+        return new _Feature(data.id, data.name, data.description ?? null, data.slug, data.avatar_url ?? null);
+      }
+    };
+    BillingPlan = class _BillingPlan {
+      constructor(id, name, slug, description, isDefault, isRecurring, hasBaseFee, publiclyVisible, fee, annualFee, annualMonthlyFee, forPayerType, features, avatarUrl, freeTrialDays, freeTrialEnabled) {
+        this.id = id;
+        this.name = name;
+        this.slug = slug;
+        this.description = description;
+        this.isDefault = isDefault;
+        this.isRecurring = isRecurring;
+        this.hasBaseFee = hasBaseFee;
+        this.publiclyVisible = publiclyVisible;
+        this.fee = fee;
+        this.annualFee = annualFee;
+        this.annualMonthlyFee = annualMonthlyFee;
+        this.forPayerType = forPayerType;
+        this.features = features;
+        this.avatarUrl = avatarUrl;
+        this.freeTrialDays = freeTrialDays;
+        this.freeTrialEnabled = freeTrialEnabled;
+      }
+      static fromJSON(data) {
+        const formatAmountJSON = (fee) => {
+          return fee ? {
+            amount: fee.amount,
+            amountFormatted: fee.amount_formatted,
+            currency: fee.currency,
+            currencySymbol: fee.currency_symbol
+          } : null;
+        };
+        return new _BillingPlan(
+          data.id,
+          data.name,
+          data.slug,
+          data.description ?? null,
+          data.is_default,
+          data.is_recurring,
+          data.has_base_fee,
+          data.publicly_visible,
+          formatAmountJSON(data.fee),
+          formatAmountJSON(data.annual_fee),
+          formatAmountJSON(data.annual_monthly_fee),
+          data.for_payer_type,
+          (data.features ?? []).map((feature) => Feature.fromJSON(feature)),
+          data.avatar_url,
+          data.free_trial_days,
+          data.free_trial_enabled
+        );
+      }
+    };
+    BillingSubscriptionItem = class _BillingSubscriptionItem {
+      constructor(id, status, planPeriod, periodStart, nextPayment, amount, plan, planId, createdAt, updatedAt, periodEnd, canceledAt, pastDueAt, endedAt, payerId, isFreeTrial, lifetimePaid) {
+        this.id = id;
+        this.status = status;
+        this.planPeriod = planPeriod;
+        this.periodStart = periodStart;
+        this.nextPayment = nextPayment;
+        this.amount = amount;
+        this.plan = plan;
+        this.planId = planId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.periodEnd = periodEnd;
+        this.canceledAt = canceledAt;
+        this.pastDueAt = pastDueAt;
+        this.endedAt = endedAt;
+        this.payerId = payerId;
+        this.isFreeTrial = isFreeTrial;
+        this.lifetimePaid = lifetimePaid;
+      }
+      static fromJSON(data) {
+        function formatAmountJSON(amount) {
+          if (!amount) {
+            return amount;
+          }
+          return {
+            amount: amount.amount,
+            amountFormatted: amount.amount_formatted,
+            currency: amount.currency,
+            currencySymbol: amount.currency_symbol
+          };
+        }
+        return new _BillingSubscriptionItem(
+          data.id,
+          data.status,
+          data.plan_period,
+          data.period_start,
+          data.next_payment,
+          formatAmountJSON(data.amount) ?? void 0,
+          data.plan ? BillingPlan.fromJSON(data.plan) : null,
+          data.plan_id ?? null,
+          data.created_at,
+          data.updated_at,
+          data.period_end,
+          data.canceled_at,
+          data.past_due_at,
+          data.ended_at,
+          data.payer_id,
+          data.is_free_trial,
+          formatAmountJSON(data.lifetime_paid) ?? void 0
+        );
+      }
+    };
+    BillingSubscription = class _BillingSubscription {
+      constructor(id, status, payerId, createdAt, updatedAt, activeAt, pastDueAt, subscriptionItems, nextPayment, eligibleForFreeTrial) {
+        this.id = id;
+        this.status = status;
+        this.payerId = payerId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.activeAt = activeAt;
+        this.pastDueAt = pastDueAt;
+        this.subscriptionItems = subscriptionItems;
+        this.nextPayment = nextPayment;
+        this.eligibleForFreeTrial = eligibleForFreeTrial;
+      }
+      static fromJSON(data) {
+        const nextPayment = data.next_payment ? {
+          date: data.next_payment.date,
+          amount: {
+            amount: data.next_payment.amount.amount,
+            amountFormatted: data.next_payment.amount.amount_formatted,
+            currency: data.next_payment.amount.currency,
+            currencySymbol: data.next_payment.amount.currency_symbol
+          }
+        } : null;
+        return new _BillingSubscription(
+          data.id,
+          data.status,
+          data.payer_id,
+          data.created_at,
+          data.updated_at,
+          data.active_at ?? null,
+          data.past_due_at ?? null,
+          (data.subscription_items ?? []).map((item) => BillingSubscriptionItem.fromJSON(item)),
+          nextPayment,
+          data.eligible_for_free_trial ?? false
+        );
+      }
+    };
+    EnterpriseAccountConnection = class _EnterpriseAccountConnection {
+      constructor(id, active, allowIdpInitiated, allowSubdomains, disableAdditionalIdentifications, domain, logoPublicUrl, name, protocol, provider, syncUserAttributes, createdAt, updatedAt) {
+        this.id = id;
+        this.active = active;
+        this.allowIdpInitiated = allowIdpInitiated;
+        this.allowSubdomains = allowSubdomains;
+        this.disableAdditionalIdentifications = disableAdditionalIdentifications;
+        this.domain = domain;
+        this.logoPublicUrl = logoPublicUrl;
+        this.name = name;
+        this.protocol = protocol;
+        this.provider = provider;
+        this.syncUserAttributes = syncUserAttributes;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _EnterpriseAccountConnection(
+          data.id,
+          data.active,
+          data.allow_idp_initiated,
+          data.allow_subdomains,
+          data.disable_additional_identifications,
+          data.domain,
+          data.logo_public_url,
+          data.name,
+          data.protocol,
+          data.provider,
+          data.sync_user_attributes,
+          data.created_at,
+          data.updated_at
+        );
+      }
+    };
+    EnterpriseAccount = class _EnterpriseAccount {
+      constructor(id, active, emailAddress, enterpriseConnection, firstName, lastName, protocol, provider, providerUserId, publicMetadata, verification, lastAuthenticatedAt, enterpriseConnectionId) {
+        this.id = id;
+        this.active = active;
+        this.emailAddress = emailAddress;
+        this.enterpriseConnection = enterpriseConnection;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.protocol = protocol;
+        this.provider = provider;
+        this.providerUserId = providerUserId;
+        this.publicMetadata = publicMetadata;
+        this.verification = verification;
+        this.lastAuthenticatedAt = lastAuthenticatedAt;
+        this.enterpriseConnectionId = enterpriseConnectionId;
+      }
+      static fromJSON(data) {
+        return new _EnterpriseAccount(
+          data.id,
+          data.active,
+          data.email_address,
+          data.enterprise_connection && EnterpriseAccountConnection.fromJSON(data.enterprise_connection),
+          data.first_name,
+          data.last_name,
+          data.protocol,
+          data.provider,
+          data.provider_user_id,
+          data.public_metadata,
+          data.verification && Verification.fromJSON(data.verification),
+          data.last_authenticated_at,
+          data.enterprise_connection_id
+        );
+      }
+    };
+    EnterpriseConnectionSamlConnection = class _EnterpriseConnectionSamlConnection {
+      constructor(id, name, idpEntityId, idpSsoUrl, idpCertificate, idpMetadataUrl, idpMetadata, acsUrl, spEntityId, spMetadataUrl, syncUserAttributes, allowSubdomains, allowIdpInitiated) {
+        this.id = id;
+        this.name = name;
+        this.idpEntityId = idpEntityId;
+        this.idpSsoUrl = idpSsoUrl;
+        this.idpCertificate = idpCertificate;
+        this.idpMetadataUrl = idpMetadataUrl;
+        this.idpMetadata = idpMetadata;
+        this.acsUrl = acsUrl;
+        this.spEntityId = spEntityId;
+        this.spMetadataUrl = spMetadataUrl;
+        this.syncUserAttributes = syncUserAttributes;
+        this.allowSubdomains = allowSubdomains;
+        this.allowIdpInitiated = allowIdpInitiated;
+      }
+      static fromJSON(data) {
+        return new _EnterpriseConnectionSamlConnection(
+          data.id,
+          data.name,
+          data.idp_entity_id,
+          data.idp_sso_url,
+          data.idp_certificate,
+          data.idp_metadata_url,
+          data.idp_metadata,
+          data.acs_url,
+          data.sp_entity_id,
+          data.sp_metadata_url,
+          data.sync_user_attributes,
+          data.allow_subdomains,
+          data.allow_idp_initiated
+        );
+      }
+    };
+    EnterpriseConnectionOauthConfig = class _EnterpriseConnectionOauthConfig {
+      constructor(id, name, clientId, discoveryUrl, logoPublicUrl, createdAt, updatedAt) {
+        this.id = id;
+        this.name = name;
+        this.clientId = clientId;
+        this.discoveryUrl = discoveryUrl;
+        this.logoPublicUrl = logoPublicUrl;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _EnterpriseConnectionOauthConfig(
+          data.id,
+          data.name,
+          data.client_id,
+          data.discovery_url,
+          data.logo_public_url,
+          data.created_at,
+          data.updated_at
+        );
+      }
+    };
+    EnterpriseConnection = class _EnterpriseConnection {
+      constructor(id, name, domains, organizationId, active, syncUserAttributes, allowSubdomains, disableAdditionalIdentifications, createdAt, updatedAt, samlConnection, oauthConfig) {
+        this.id = id;
+        this.name = name;
+        this.domains = domains;
+        this.organizationId = organizationId;
+        this.active = active;
+        this.syncUserAttributes = syncUserAttributes;
+        this.allowSubdomains = allowSubdomains;
+        this.disableAdditionalIdentifications = disableAdditionalIdentifications;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.samlConnection = samlConnection;
+        this.oauthConfig = oauthConfig;
+      }
+      static fromJSON(data) {
+        return new _EnterpriseConnection(
+          data.id,
+          data.name,
+          data.domains,
+          data.organization_id,
+          data.active,
+          data.sync_user_attributes,
+          data.allow_subdomains,
+          data.disable_additional_identifications,
+          data.created_at,
+          data.updated_at,
+          data.saml_connection != null ? EnterpriseConnectionSamlConnection.fromJSON(data.saml_connection) : null,
+          data.oauth_config != null ? EnterpriseConnectionOauthConfig.fromJSON(data.oauth_config) : null
+        );
+      }
+    };
+    ExternalAccount = class _ExternalAccount {
+      constructor(id, provider, providerUserId, identificationId, externalId, approvedScopes, emailAddress, firstName, lastName, imageUrl, username, phoneNumber, publicMetadata = {}, label, verification) {
+        this.id = id;
+        this.provider = provider;
+        this.providerUserId = providerUserId;
+        this.identificationId = identificationId;
+        this.externalId = externalId;
+        this.approvedScopes = approvedScopes;
+        this.emailAddress = emailAddress;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.imageUrl = imageUrl;
+        this.username = username;
+        this.phoneNumber = phoneNumber;
+        this.publicMetadata = publicMetadata;
+        this.label = label;
+        this.verification = verification;
+      }
+      static fromJSON(data) {
+        return new _ExternalAccount(
+          data.id,
+          data.provider,
+          data.provider_user_id,
+          data.identification_id,
+          data.provider_user_id,
+          data.approved_scopes,
+          data.email_address,
+          data.first_name,
+          data.last_name,
+          data.image_url || "",
+          data.username,
+          data.phone_number,
+          data.public_metadata,
+          data.label,
+          data.verification && Verification.fromJSON(data.verification)
+        );
+      }
+    };
+    Instance = class _Instance {
+      constructor(id, environmentType, allowedOrigins) {
+        this.id = id;
+        this.environmentType = environmentType;
+        this.allowedOrigins = allowedOrigins;
+      }
+      static fromJSON(data) {
+        return new _Instance(data.id, data.environment_type, data.allowed_origins);
+      }
+    };
+    InstanceRestrictions = class _InstanceRestrictions {
+      constructor(allowlist, blocklist, blockEmailSubaddresses, blockDisposableEmailDomains, ignoreDotsForGmailAddresses) {
+        this.allowlist = allowlist;
+        this.blocklist = blocklist;
+        this.blockEmailSubaddresses = blockEmailSubaddresses;
+        this.blockDisposableEmailDomains = blockDisposableEmailDomains;
+        this.ignoreDotsForGmailAddresses = ignoreDotsForGmailAddresses;
+      }
+      static fromJSON(data) {
+        return new _InstanceRestrictions(
+          data.allowlist,
+          data.blocklist,
+          data.block_email_subaddresses,
+          data.block_disposable_email_domains,
+          data.ignore_dots_for_gmail_addresses
+        );
+      }
+    };
+    InstanceSettings = class _InstanceSettings {
+      constructor(id, restrictedToAllowlist, fromEmailAddress, progressiveSignUp, enhancedEmailDeliverability) {
+        this.id = id;
+        this.restrictedToAllowlist = restrictedToAllowlist;
+        this.fromEmailAddress = fromEmailAddress;
+        this.progressiveSignUp = progressiveSignUp;
+        this.enhancedEmailDeliverability = enhancedEmailDeliverability;
+      }
+      static fromJSON(data) {
+        return new _InstanceSettings(
+          data.id,
+          data.restricted_to_allowlist,
+          data.from_email_address,
+          data.progressive_sign_up,
+          data.enhanced_email_deliverability
+        );
+      }
+    };
+    Invitation = class _Invitation {
+      constructor(id, emailAddress, publicMetadata, createdAt, updatedAt, status, url, revoked) {
+        this.id = id;
+        this.emailAddress = emailAddress;
+        this.publicMetadata = publicMetadata;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.status = status;
+        this.url = url;
+        this.revoked = revoked;
+        this._raw = null;
+      }
+      get raw() {
+        return this._raw;
+      }
+      static fromJSON(data) {
+        const res = new _Invitation(
+          data.id,
+          data.email_address,
+          data.public_metadata,
+          data.created_at,
+          data.updated_at,
+          data.status,
+          data.url,
+          data.revoked
+        );
+        res._raw = data;
+        return res;
+      }
+    };
+    ObjectType = {
+      AccountlessApplication: "accountless_application",
+      ActorToken: "actor_token",
+      AgentTask: "agent_task",
+      AllowlistIdentifier: "allowlist_identifier",
+      ApiKey: "api_key",
+      BlocklistIdentifier: "blocklist_identifier",
+      Client: "client",
+      Cookies: "cookies",
+      Domain: "domain",
+      Email: "email",
+      EnterpriseAccount: "enterprise_account",
+      EnterpriseConnection: "enterprise_connection",
+      EmailAddress: "email_address",
+      ExternalAccount: "external_account",
+      FacebookAccount: "facebook_account",
+      GoogleAccount: "google_account",
+      Instance: "instance",
+      InstanceRestrictions: "instance_restrictions",
+      InstanceSettings: "instance_settings",
+      Invitation: "invitation",
+      Machine: "machine",
+      MachineScope: "machine_scope",
+      MachineSecretKey: "machine_secret_key",
+      M2MToken: "machine_to_machine_token",
+      JwtTemplate: "jwt_template",
+      OauthAccessToken: "oauth_access_token",
+      IdpOAuthAccessToken: "clerk_idp_oauth_access_token",
+      OAuthApplication: "oauth_application",
+      Organization: "organization",
+      OrganizationDomain: "organization_domain",
+      OrganizationInvitation: "organization_invitation",
+      OrganizationMembership: "organization_membership",
+      OrganizationSettings: "organization_settings",
+      PhoneNumber: "phone_number",
+      ProxyCheck: "proxy_check",
+      RedirectUrl: "redirect_url",
+      SamlConnection: "saml_connection",
+      Session: "session",
+      SignInAttempt: "sign_in_attempt",
+      SignInToken: "sign_in_token",
+      SignUpAttempt: "sign_up_attempt",
+      SmsMessage: "sms_message",
+      User: "user",
+      WaitlistEntry: "waitlist_entry",
+      Web3Wallet: "web3_wallet",
+      Token: "token",
+      TotalCount: "total_count",
+      TestingToken: "testing_token",
+      Role: "role",
+      RoleSet: "role_set",
+      RoleSetItem: "role_set_item",
+      RoleSetMigration: "role_set_migration",
+      Permission: "permission",
+      BillingPayer: "commerce_payer",
+      BillingPaymentAttempt: "commerce_payment_attempt",
+      BillingSubscription: "commerce_subscription",
+      BillingSubscriptionItem: "commerce_subscription_item",
+      BillingPlan: "commerce_plan",
+      Feature: "feature"
+    };
+    JwtTemplate = class _JwtTemplate {
+      constructor(id, name, claims, lifetime, allowedClockSkew, customSigningKey, signingAlgorithm, createdAt, updatedAt) {
+        this.id = id;
+        this.name = name;
+        this.claims = claims;
+        this.lifetime = lifetime;
+        this.allowedClockSkew = allowedClockSkew;
+        this.customSigningKey = customSigningKey;
+        this.signingAlgorithm = signingAlgorithm;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _JwtTemplate(
+          data.id,
+          data.name,
+          data.claims,
+          data.lifetime,
+          data.allowed_clock_skew,
+          data.custom_signing_key,
+          data.signing_algorithm,
+          data.created_at,
+          data.updated_at
+        );
+      }
+    };
+    Machine = class _Machine {
+      constructor(id, name, instanceId, createdAt, updatedAt, scopedMachines, defaultTokenTtl, secretKey) {
+        this.id = id;
+        this.name = name;
+        this.instanceId = instanceId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.scopedMachines = scopedMachines;
+        this.defaultTokenTtl = defaultTokenTtl;
+        this.secretKey = secretKey;
+      }
+      static fromJSON(data) {
+        return new _Machine(
+          data.id,
+          data.name,
+          data.instance_id,
+          data.created_at,
+          data.updated_at,
+          data.scoped_machines.map(
+            (m) => new _Machine(
+              m.id,
+              m.name,
+              m.instance_id,
+              m.created_at,
+              m.updated_at,
+              [],
+              // Nested machines don't have scoped_machines
+              m.default_token_ttl
+            )
+          ),
+          data.default_token_ttl,
+          data.secret_key
+        );
+      }
+    };
+    MachineScope = class _MachineScope {
+      constructor(fromMachineId, toMachineId, createdAt, deleted) {
+        this.fromMachineId = fromMachineId;
+        this.toMachineId = toMachineId;
+        this.createdAt = createdAt;
+        this.deleted = deleted;
+      }
+      static fromJSON(data) {
+        return new _MachineScope(data.from_machine_id, data.to_machine_id, data.created_at, data.deleted);
+      }
+    };
+    MachineSecretKey = class _MachineSecretKey {
+      constructor(secret) {
+        this.secret = secret;
+      }
+      static fromJSON(data) {
+        return new _MachineSecretKey(data.secret);
+      }
+    };
+    OauthAccessToken = class _OauthAccessToken {
+      constructor(externalAccountId, provider, token, publicMetadata = {}, label, scopes, tokenSecret, expiresAt2, idToken) {
+        this.externalAccountId = externalAccountId;
+        this.provider = provider;
+        this.token = token;
+        this.publicMetadata = publicMetadata;
+        this.label = label;
+        this.scopes = scopes;
+        this.tokenSecret = tokenSecret;
+        this.expiresAt = expiresAt2;
+        this.idToken = idToken;
+      }
+      static fromJSON(data) {
+        return new _OauthAccessToken(
+          data.external_account_id,
+          data.provider,
+          data.token,
+          data.public_metadata,
+          data.label || "",
+          data.scopes,
+          data.token_secret,
+          data.expires_at,
+          data.id_token
+        );
+      }
+    };
+    OAuthApplication = class _OAuthApplication {
+      constructor(id, instanceId, name, clientId, clientUri, clientImageUrl, dynamicallyRegistered, consentScreenEnabled, pkceRequired, isPublic, scopes, redirectUris, authorizeUrl, tokenFetchUrl, userInfoUrl, discoveryUrl, tokenIntrospectionUrl, createdAt, updatedAt, clientSecret) {
+        this.id = id;
+        this.instanceId = instanceId;
+        this.name = name;
+        this.clientId = clientId;
+        this.clientUri = clientUri;
+        this.clientImageUrl = clientImageUrl;
+        this.dynamicallyRegistered = dynamicallyRegistered;
+        this.consentScreenEnabled = consentScreenEnabled;
+        this.pkceRequired = pkceRequired;
+        this.isPublic = isPublic;
+        this.scopes = scopes;
+        this.redirectUris = redirectUris;
+        this.authorizeUrl = authorizeUrl;
+        this.tokenFetchUrl = tokenFetchUrl;
+        this.userInfoUrl = userInfoUrl;
+        this.discoveryUrl = discoveryUrl;
+        this.tokenIntrospectionUrl = tokenIntrospectionUrl;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.clientSecret = clientSecret;
+      }
+      static fromJSON(data) {
+        return new _OAuthApplication(
+          data.id,
+          data.instance_id,
+          data.name,
+          data.client_id,
+          data.client_uri,
+          data.client_image_url,
+          data.dynamically_registered,
+          data.consent_screen_enabled,
+          data.pkce_required,
+          data.public,
+          data.scopes,
+          data.redirect_uris,
+          data.authorize_url,
+          data.token_fetch_url,
+          data.user_info_url,
+          data.discovery_url,
+          data.token_introspection_url,
+          data.created_at,
+          data.updated_at,
+          data.client_secret
+        );
+      }
+    };
+    Organization = class _Organization {
+      constructor(id, name, slug, imageUrl, hasImage, createdAt, updatedAt, publicMetadata = {}, privateMetadata = {}, maxAllowedMemberships, adminDeleteEnabled, membersCount, createdBy) {
+        this.id = id;
+        this.name = name;
+        this.slug = slug;
+        this.imageUrl = imageUrl;
+        this.hasImage = hasImage;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.publicMetadata = publicMetadata;
+        this.privateMetadata = privateMetadata;
+        this.maxAllowedMemberships = maxAllowedMemberships;
+        this.adminDeleteEnabled = adminDeleteEnabled;
+        this.membersCount = membersCount;
+        this.createdBy = createdBy;
+        this._raw = null;
+      }
+      get raw() {
+        return this._raw;
+      }
+      static fromJSON(data) {
+        const res = new _Organization(
+          data.id,
+          data.name,
+          data.slug,
+          data.image_url || "",
+          data.has_image,
+          data.created_at,
+          data.updated_at,
+          data.public_metadata,
+          data.private_metadata,
+          data.max_allowed_memberships,
+          data.admin_delete_enabled,
+          data.members_count,
+          data.created_by
+        );
+        res._raw = data;
+        return res;
+      }
+    };
+    OrganizationInvitation = class _OrganizationInvitation {
+      constructor(id, emailAddress, role, roleName, organizationId, createdAt, updatedAt, expiresAt2, url, status, publicMetadata = {}, privateMetadata = {}, publicOrganizationData) {
+        this.id = id;
+        this.emailAddress = emailAddress;
+        this.role = role;
+        this.roleName = roleName;
+        this.organizationId = organizationId;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.expiresAt = expiresAt2;
+        this.url = url;
+        this.status = status;
+        this.publicMetadata = publicMetadata;
+        this.privateMetadata = privateMetadata;
+        this.publicOrganizationData = publicOrganizationData;
+        this._raw = null;
+      }
+      get raw() {
+        return this._raw;
+      }
+      static fromJSON(data) {
+        const res = new _OrganizationInvitation(
+          data.id,
+          data.email_address,
+          data.role,
+          data.role_name,
+          data.organization_id,
+          data.created_at,
+          data.updated_at,
+          data.expires_at,
+          data.url,
+          data.status,
+          data.public_metadata,
+          data.private_metadata,
+          data.public_organization_data
+        );
+        res._raw = data;
+        return res;
+      }
+    };
+    OrganizationMembership = class _OrganizationMembership {
+      constructor(id, role, permissions, publicMetadata = {}, privateMetadata = {}, createdAt, updatedAt, organization, publicUserData) {
+        this.id = id;
+        this.role = role;
+        this.permissions = permissions;
+        this.publicMetadata = publicMetadata;
+        this.privateMetadata = privateMetadata;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.organization = organization;
+        this.publicUserData = publicUserData;
+        this._raw = null;
+      }
+      get raw() {
+        return this._raw;
+      }
+      static fromJSON(data) {
+        const res = new _OrganizationMembership(
+          data.id,
+          data.role,
+          data.permissions,
+          data.public_metadata,
+          data.private_metadata,
+          data.created_at,
+          data.updated_at,
+          Organization.fromJSON(data.organization),
+          OrganizationMembershipPublicUserData.fromJSON(data.public_user_data)
+        );
+        res._raw = data;
+        return res;
+      }
+    };
+    OrganizationMembershipPublicUserData = class _OrganizationMembershipPublicUserData {
+      constructor(identifier, firstName, lastName, imageUrl, hasImage, userId) {
+        this.identifier = identifier;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.imageUrl = imageUrl;
+        this.hasImage = hasImage;
+        this.userId = userId;
+      }
+      static fromJSON(data) {
+        return new _OrganizationMembershipPublicUserData(
+          data.identifier,
+          data.first_name,
+          data.last_name,
+          data.image_url,
+          data.has_image,
+          data.user_id
+        );
+      }
+    };
+    OrganizationSettings = class _OrganizationSettings {
+      constructor(enabled, maxAllowedMemberships, maxAllowedRoles, maxAllowedPermissions, creatorRole, adminDeleteEnabled, domainsEnabled, slugDisabled, domainsEnrollmentModes, domainsDefaultRole) {
+        this.enabled = enabled;
+        this.maxAllowedMemberships = maxAllowedMemberships;
+        this.maxAllowedRoles = maxAllowedRoles;
+        this.maxAllowedPermissions = maxAllowedPermissions;
+        this.creatorRole = creatorRole;
+        this.adminDeleteEnabled = adminDeleteEnabled;
+        this.domainsEnabled = domainsEnabled;
+        this.slugDisabled = slugDisabled;
+        this.domainsEnrollmentModes = domainsEnrollmentModes;
+        this.domainsDefaultRole = domainsDefaultRole;
+      }
+      static fromJSON(data) {
+        return new _OrganizationSettings(
+          data.enabled,
+          data.max_allowed_memberships,
+          data.max_allowed_roles,
+          data.max_allowed_permissions,
+          data.creator_role,
+          data.admin_delete_enabled,
+          data.domains_enabled,
+          data.slug_disabled,
+          data.domains_enrollment_modes,
+          data.domains_default_role
+        );
+      }
+    };
+    PhoneNumber = class _PhoneNumber {
+      constructor(id, phoneNumber, reservedForSecondFactor, defaultSecondFactor, verification, linkedTo) {
+        this.id = id;
+        this.phoneNumber = phoneNumber;
+        this.reservedForSecondFactor = reservedForSecondFactor;
+        this.defaultSecondFactor = defaultSecondFactor;
+        this.verification = verification;
+        this.linkedTo = linkedTo;
+      }
+      static fromJSON(data) {
+        return new _PhoneNumber(
+          data.id,
+          data.phone_number,
+          data.reserved_for_second_factor,
+          data.default_second_factor,
+          data.verification && Verification.fromJSON(data.verification),
+          data.linked_to.map((link) => IdentificationLink.fromJSON(link))
+        );
+      }
+    };
+    ProxyCheck = class _ProxyCheck {
+      constructor(id, domainId, lastRunAt, proxyUrl, successful, createdAt, updatedAt) {
+        this.id = id;
+        this.domainId = domainId;
+        this.lastRunAt = lastRunAt;
+        this.proxyUrl = proxyUrl;
+        this.successful = successful;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _ProxyCheck(
+          data.id,
+          data.domain_id,
+          data.last_run_at,
+          data.proxy_url,
+          data.successful,
+          data.created_at,
+          data.updated_at
+        );
+      }
+    };
+    RedirectUrl = class _RedirectUrl {
+      constructor(id, url, createdAt, updatedAt) {
+        this.id = id;
+        this.url = url;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _RedirectUrl(data.id, data.url, data.created_at, data.updated_at);
+      }
+    };
+    SamlConnection = class _SamlConnection {
+      constructor(id, name, domain, organizationId, idpEntityId, idpSsoUrl, idpCertificate, idpMetadataUrl, idpMetadata, acsUrl, spEntityId, spMetadataUrl, active, provider, userCount, syncUserAttributes, allowSubdomains, allowIdpInitiated, createdAt, updatedAt, attributeMapping) {
+        this.id = id;
+        this.name = name;
+        this.domain = domain;
+        this.organizationId = organizationId;
+        this.idpEntityId = idpEntityId;
+        this.idpSsoUrl = idpSsoUrl;
+        this.idpCertificate = idpCertificate;
+        this.idpMetadataUrl = idpMetadataUrl;
+        this.idpMetadata = idpMetadata;
+        this.acsUrl = acsUrl;
+        this.spEntityId = spEntityId;
+        this.spMetadataUrl = spMetadataUrl;
+        this.active = active;
+        this.provider = provider;
+        this.userCount = userCount;
+        this.syncUserAttributes = syncUserAttributes;
+        this.allowSubdomains = allowSubdomains;
+        this.allowIdpInitiated = allowIdpInitiated;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.attributeMapping = attributeMapping;
+      }
+      static fromJSON(data) {
+        return new _SamlConnection(
+          data.id,
+          data.name,
+          data.domain,
+          data.organization_id,
+          data.idp_entity_id,
+          data.idp_sso_url,
+          data.idp_certificate,
+          data.idp_metadata_url,
+          data.idp_metadata,
+          data.acs_url,
+          data.sp_entity_id,
+          data.sp_metadata_url,
+          data.active,
+          data.provider,
+          data.user_count,
+          data.sync_user_attributes,
+          data.allow_subdomains,
+          data.allow_idp_initiated,
+          data.created_at,
+          data.updated_at,
+          data.attribute_mapping && AttributeMapping.fromJSON(data.attribute_mapping)
+        );
+      }
+    };
+    AttributeMapping = class _AttributeMapping {
+      constructor(userId, emailAddress, firstName, lastName) {
+        this.userId = userId;
+        this.emailAddress = emailAddress;
+        this.firstName = firstName;
+        this.lastName = lastName;
+      }
+      static fromJSON(data) {
+        return new _AttributeMapping(data.user_id, data.email_address, data.first_name, data.last_name);
+      }
+    };
+    SignInToken = class _SignInToken {
+      constructor(id, userId, token, status, url, createdAt, updatedAt) {
+        this.id = id;
+        this.userId = userId;
+        this.token = token;
+        this.status = status;
+        this.url = url;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+      }
+      static fromJSON(data) {
+        return new _SignInToken(data.id, data.user_id, data.token, data.status, data.url, data.created_at, data.updated_at);
+      }
+    };
+    SignUpAttemptVerification = class _SignUpAttemptVerification {
+      constructor(nextAction, supportedStrategies) {
+        this.nextAction = nextAction;
+        this.supportedStrategies = supportedStrategies;
+      }
+      static fromJSON(data) {
+        return new _SignUpAttemptVerification(data.next_action, data.supported_strategies);
+      }
+    };
+    SignUpAttemptVerifications = class _SignUpAttemptVerifications {
+      constructor(emailAddress, phoneNumber, web3Wallet, externalAccount) {
+        this.emailAddress = emailAddress;
+        this.phoneNumber = phoneNumber;
+        this.web3Wallet = web3Wallet;
+        this.externalAccount = externalAccount;
+      }
+      static fromJSON(data) {
+        return new _SignUpAttemptVerifications(
+          data.email_address && SignUpAttemptVerification.fromJSON(data.email_address),
+          data.phone_number && SignUpAttemptVerification.fromJSON(data.phone_number),
+          data.web3_wallet && SignUpAttemptVerification.fromJSON(data.web3_wallet),
+          data.external_account
+        );
+      }
+    };
+    SignUpAttempt = class _SignUpAttempt {
+      constructor(id, status, requiredFields, optionalFields, missingFields, unverifiedFields, verifications, username, emailAddress, phoneNumber, web3Wallet, passwordEnabled, firstName, lastName, customAction, externalId, createdSessionId, createdUserId, abandonAt, legalAcceptedAt, publicMetadata, unsafeMetadata) {
+        this.id = id;
+        this.status = status;
+        this.requiredFields = requiredFields;
+        this.optionalFields = optionalFields;
+        this.missingFields = missingFields;
+        this.unverifiedFields = unverifiedFields;
+        this.verifications = verifications;
+        this.username = username;
+        this.emailAddress = emailAddress;
+        this.phoneNumber = phoneNumber;
+        this.web3Wallet = web3Wallet;
+        this.passwordEnabled = passwordEnabled;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.customAction = customAction;
+        this.externalId = externalId;
+        this.createdSessionId = createdSessionId;
+        this.createdUserId = createdUserId;
+        this.abandonAt = abandonAt;
+        this.legalAcceptedAt = legalAcceptedAt;
+        this.publicMetadata = publicMetadata;
+        this.unsafeMetadata = unsafeMetadata;
+      }
+      static fromJSON(data) {
+        return new _SignUpAttempt(
+          data.id,
+          data.status,
+          data.required_fields,
+          data.optional_fields,
+          data.missing_fields,
+          data.unverified_fields,
+          data.verifications ? SignUpAttemptVerifications.fromJSON(data.verifications) : null,
+          data.username,
+          data.email_address,
+          data.phone_number,
+          data.web3_wallet,
+          data.password_enabled,
+          data.first_name,
+          data.last_name,
+          data.custom_action,
+          data.external_id,
+          data.created_session_id,
+          data.created_user_id,
+          data.abandon_at,
+          data.legal_accepted_at,
+          data.public_metadata,
+          data.unsafe_metadata
+        );
+      }
+    };
+    SMSMessage = class _SMSMessage {
+      constructor(id, fromPhoneNumber, toPhoneNumber, message, status, phoneNumberId, data) {
+        this.id = id;
+        this.fromPhoneNumber = fromPhoneNumber;
+        this.toPhoneNumber = toPhoneNumber;
+        this.message = message;
+        this.status = status;
+        this.phoneNumberId = phoneNumberId;
+        this.data = data;
+      }
+      static fromJSON(data) {
+        return new _SMSMessage(
+          data.id,
+          data.from_phone_number,
+          data.to_phone_number,
+          data.message,
+          data.status,
+          data.phone_number_id,
+          data.data
+        );
+      }
+    };
+    Token = class _Token {
+      constructor(jwt) {
+        this.jwt = jwt;
+      }
+      static fromJSON(data) {
+        return new _Token(data.jwt);
+      }
+    };
+    Web3Wallet = class _Web3Wallet {
+      constructor(id, web3Wallet, verification) {
+        this.id = id;
+        this.web3Wallet = web3Wallet;
+        this.verification = verification;
+      }
+      static fromJSON(data) {
+        return new _Web3Wallet(data.id, data.web3_wallet, data.verification && Verification.fromJSON(data.verification));
+      }
+    };
+    User = class _User {
+      constructor(id, passwordEnabled, totpEnabled, backupCodeEnabled, twoFactorEnabled, banned, locked, createdAt, updatedAt, imageUrl, hasImage, primaryEmailAddressId, primaryPhoneNumberId, primaryWeb3WalletId, lastSignInAt, externalId, username, firstName, lastName, publicMetadata = {}, privateMetadata = {}, unsafeMetadata = {}, emailAddresses = [], phoneNumbers = [], web3Wallets = [], externalAccounts = [], enterpriseAccounts = [], lastActiveAt, createOrganizationEnabled, createOrganizationsLimit = null, deleteSelfEnabled, legalAcceptedAt, locale) {
+        this.id = id;
+        this.passwordEnabled = passwordEnabled;
+        this.totpEnabled = totpEnabled;
+        this.backupCodeEnabled = backupCodeEnabled;
+        this.twoFactorEnabled = twoFactorEnabled;
+        this.banned = banned;
+        this.locked = locked;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.imageUrl = imageUrl;
+        this.hasImage = hasImage;
+        this.primaryEmailAddressId = primaryEmailAddressId;
+        this.primaryPhoneNumberId = primaryPhoneNumberId;
+        this.primaryWeb3WalletId = primaryWeb3WalletId;
+        this.lastSignInAt = lastSignInAt;
+        this.externalId = externalId;
+        this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.publicMetadata = publicMetadata;
+        this.privateMetadata = privateMetadata;
+        this.unsafeMetadata = unsafeMetadata;
+        this.emailAddresses = emailAddresses;
+        this.phoneNumbers = phoneNumbers;
+        this.web3Wallets = web3Wallets;
+        this.externalAccounts = externalAccounts;
+        this.enterpriseAccounts = enterpriseAccounts;
+        this.lastActiveAt = lastActiveAt;
+        this.createOrganizationEnabled = createOrganizationEnabled;
+        this.createOrganizationsLimit = createOrganizationsLimit;
+        this.deleteSelfEnabled = deleteSelfEnabled;
+        this.legalAcceptedAt = legalAcceptedAt;
+        this.locale = locale;
+        this._raw = null;
+      }
+      get raw() {
+        return this._raw;
+      }
+      static fromJSON(data) {
+        const res = new _User(
+          data.id,
+          data.password_enabled,
+          data.totp_enabled,
+          data.backup_code_enabled,
+          data.two_factor_enabled,
+          data.banned,
+          data.locked,
+          data.created_at,
+          data.updated_at,
+          data.image_url,
+          data.has_image,
+          data.primary_email_address_id,
+          data.primary_phone_number_id,
+          data.primary_web3_wallet_id,
+          data.last_sign_in_at,
+          data.external_id,
+          data.username,
+          data.first_name,
+          data.last_name,
+          data.public_metadata,
+          data.private_metadata,
+          data.unsafe_metadata,
+          (data.email_addresses || []).map((x) => EmailAddress.fromJSON(x)),
+          (data.phone_numbers || []).map((x) => PhoneNumber.fromJSON(x)),
+          (data.web3_wallets || []).map((x) => Web3Wallet.fromJSON(x)),
+          (data.external_accounts || []).map((x) => ExternalAccount.fromJSON(x)),
+          (data.enterprise_accounts || []).map((x) => EnterpriseAccount.fromJSON(x)),
+          data.last_active_at,
+          data.create_organization_enabled,
+          data.create_organizations_limit,
+          data.delete_self_enabled,
+          data.legal_accepted_at,
+          data.locale
+        );
+        res._raw = data;
+        return res;
+      }
+      /**
+       * The primary email address of the user.
+       */
+      get primaryEmailAddress() {
+        return this.emailAddresses.find(({ id }) => id === this.primaryEmailAddressId) ?? null;
+      }
+      /**
+       * The primary phone number of the user.
+       */
+      get primaryPhoneNumber() {
+        return this.phoneNumbers.find(({ id }) => id === this.primaryPhoneNumberId) ?? null;
+      }
+      /**
+       * The primary web3 wallet of the user.
+       */
+      get primaryWeb3Wallet() {
+        return this.web3Wallets.find(({ id }) => id === this.primaryWeb3WalletId) ?? null;
+      }
+      /**
+       * The full name of the user.
+       */
+      get fullName() {
+        return [this.firstName, this.lastName].join(" ").trim() || null;
+      }
+    };
+    WaitlistEntry = class _WaitlistEntry {
+      constructor(id, emailAddress, status, invitation, createdAt, updatedAt, isLocked) {
+        this.id = id;
+        this.emailAddress = emailAddress;
+        this.status = status;
+        this.invitation = invitation;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.isLocked = isLocked;
+      }
+      static fromJSON(data) {
+        return new _WaitlistEntry(
+          data.id,
+          data.email_address,
+          data.status,
+          data.invitation && Invitation.fromJSON(data.invitation),
+          data.created_at,
+          data.updated_at,
+          data.is_locked
+        );
+      }
+    };
+    createDebug = (data) => {
+      return () => {
+        const res = { ...data };
+        res.secretKey = (res.secretKey || "").substring(0, 7);
+        res.jwtKey = (res.jwtKey || "").substring(0, 7);
+        return { ...res };
+      };
+    };
+    createGetToken = (params) => {
+      const { fetcher, sessionToken, sessionId } = params || {};
+      return async (options = {}) => {
+        if (!sessionId) {
+          return null;
+        }
+        if (options.template || options.expiresInSeconds !== void 0) {
+          return fetcher(sessionId, options.template, options.expiresInSeconds);
+        }
+        return sessionToken;
+      };
+    };
+    AuthStatus = {
+      SignedIn: "signed-in",
+      SignedOut: "signed-out",
+      Handshake: "handshake"
+    };
+    AuthErrorReason = {
+      ClientUATWithoutSessionToken: "client-uat-but-no-session-token",
+      DevBrowserMissing: "dev-browser-missing",
+      DevBrowserSync: "dev-browser-sync",
+      PrimaryRespondsToSyncing: "primary-responds-to-syncing",
+      PrimaryDomainCrossOriginSync: "primary-domain-cross-origin-sync",
+      SatelliteCookieNeedsSyncing: "satellite-needs-syncing",
+      SessionTokenAndUATMissing: "session-token-and-uat-missing",
+      SessionTokenMissing: "session-token-missing",
+      SessionTokenExpired: "session-token-expired",
+      SessionTokenIATBeforeClientUAT: "session-token-iat-before-client-uat",
+      SessionTokenNBF: "session-token-nbf",
+      SessionTokenIatInTheFuture: "session-token-iat-in-the-future",
+      SessionTokenWithoutClientUAT: "session-token-but-no-client-uat",
+      ActiveOrganizationMismatch: "active-organization-mismatch",
+      TokenTypeMismatch: "token-type-mismatch",
+      UnexpectedError: "unexpected-error"
+    };
+    withDebugHeaders = (requestState) => {
+      const headers = new Headers(requestState.headers || {});
+      if (requestState.message) {
+        try {
+          headers.set(constants2.Headers.AuthMessage, requestState.message);
+        } catch {
+        }
+      }
+      if (requestState.reason) {
+        try {
+          headers.set(constants2.Headers.AuthReason, requestState.reason);
+        } catch {
+        }
+      }
+      if (requestState.status) {
+        try {
+          headers.set(constants2.Headers.AuthStatus, requestState.status);
+        } catch {
+        }
+      }
+      requestState.headers = headers;
+      return requestState;
+    };
+    import_cookie3 = __toESM2(require_dist3());
+    ClerkUrl = class extends URL {
+      isCrossOrigin(other) {
+        return this.origin !== new URL(other.toString()).origin;
+      }
+    };
+    createClerkUrl = (...args) => {
+      return new ClerkUrl(...args);
+    };
+    ClerkRequest = class extends Request {
+      constructor(input, init) {
+        const url = typeof input !== "string" && "url" in input ? input.url : String(input);
+        let cloneInit;
+        if (init) {
+          cloneInit = init;
+        } else if (typeof input !== "string") {
+          cloneInit = new Proxy(input, {
+            get(target, prop) {
+              if (prop === "signal" || prop === "body") {
+                return void 0;
+              }
+              return Reflect.get(target, prop, target);
+            }
+          });
+        }
+        super(url, cloneInit);
+        this.clerkUrl = this.deriveUrlFromHeaders(this);
+        this.cookies = this.parseCookies(this);
+      }
+      toJSON() {
+        return {
+          url: this.clerkUrl.href,
+          method: this.method,
+          headers: JSON.stringify(Object.fromEntries(this.headers)),
+          clerkUrl: this.clerkUrl.toString(),
+          cookies: JSON.stringify(Object.fromEntries(this.cookies))
+        };
+      }
+      /**
+       * Used to fix request.url using the x-forwarded-* headers
+       * TODO add detailed description of the issues this solves
+       */
+      deriveUrlFromHeaders(req) {
+        const initialUrl = new URL(req.url);
+        const forwardedProto = req.headers.get(constants2.Headers.ForwardedProto);
+        const forwardedHost = req.headers.get(constants2.Headers.ForwardedHost);
+        const host = req.headers.get(constants2.Headers.Host);
+        const protocol = initialUrl.protocol;
+        const resolvedHost = this.getFirstValueFromHeader(forwardedHost) ?? host;
+        const resolvedProtocol = this.getFirstValueFromHeader(forwardedProto) ?? protocol?.replace(/[:/]/, "");
+        const origin = resolvedHost && resolvedProtocol ? `${resolvedProtocol}://${resolvedHost}` : initialUrl.origin;
+        if (origin === initialUrl.origin) {
+          return createClerkUrl(initialUrl);
+        }
+        try {
+          return createClerkUrl(initialUrl.pathname + initialUrl.search, origin);
+        } catch {
+          return createClerkUrl(initialUrl);
+        }
+      }
+      getFirstValueFromHeader(value) {
+        return value?.split(",")[0];
+      }
+      parseCookies(req) {
+        const cookiesRecord = (0, import_cookie3.parse)(this.decodeCookieValue(req.headers.get("cookie") || ""));
+        return new Map(Object.entries(cookiesRecord));
+      }
+      decodeCookieValue(str) {
+        return str ? str.replace(/(%[0-9A-Z]{2})+/g, decodeURIComponent) : str;
+      }
+    };
+    createClerkRequest = (...args) => {
+      const isClerkRequest = args[0] && typeof args[0] === "object" && "clerkUrl" in args[0] && "cookies" in args[0];
+      return isClerkRequest ? args[0] : new ClerkRequest(...args);
+    };
+    getCookieName = (cookieDirective) => {
+      return cookieDirective.split(";")[0]?.split("=")[0];
+    };
+    getCookieValue = (cookieDirective) => {
+      return cookieDirective.split(";")[0]?.split("=")[1];
+    };
+    HandshakeService = class {
+      constructor(authenticateContext, options, organizationMatcher) {
+        this.authenticateContext = authenticateContext;
+        this.options = options;
+        this.organizationMatcher = organizationMatcher;
+      }
+      /**
+       * Determines if a request is eligible for handshake based on its headers
+       *
+       * Currently, a request is only eligible for a handshake if we can say it's *probably* a request for a document, not a fetch or some other exotic request.
+       * This heuristic should give us a reliable enough signal for browsers that support `Sec-Fetch-Dest` and for those that don't.
+       *
+       * @returns boolean indicating if the request is eligible for handshake
+       */
+      isRequestEligibleForHandshake() {
+        const { accept, method, secFetchDest } = this.authenticateContext;
+        if (method !== "GET") {
+          return false;
+        }
+        if (secFetchDest === "document" || secFetchDest === "iframe") {
+          return true;
+        }
+        if (!secFetchDest && accept?.startsWith("text/html")) {
+          return true;
+        }
+        return false;
+      }
+      /**
+       * Builds the redirect headers for a handshake request
+       * @param reason - The reason for the handshake (e.g. 'session-token-expired')
+       * @returns Headers object containing the Location header for redirect
+       * @throws Error if clerkUrl is missing in authenticateContext
+       */
+      buildRedirectToHandshake(reason) {
+        if (!this.authenticateContext?.clerkUrl) {
+          throw new Error("Missing clerkUrl in authenticateContext");
+        }
+        const redirectUrl = this.removeDevBrowserFromURL(this.authenticateContext.clerkUrl);
+        let baseUrl = this.authenticateContext.frontendApi.startsWith("http") ? this.authenticateContext.frontendApi : `https://${this.authenticateContext.frontendApi}`;
+        baseUrl = baseUrl.replace(/\/+$/, "") + "/";
+        const url = new URL("v1/client/handshake", baseUrl);
+        url.searchParams.append("redirect_url", redirectUrl?.href || "");
+        url.searchParams.append("__clerk_api_version", SUPPORTED_BAPI_VERSION);
+        url.searchParams.append(
+          constants2.QueryParameters.SuffixedCookies,
+          this.authenticateContext.usesSuffixedCookies().toString()
+        );
+        url.searchParams.append(constants2.QueryParameters.HandshakeReason, reason);
+        url.searchParams.append(constants2.QueryParameters.HandshakeFormat, "nonce");
+        if (this.authenticateContext.sessionToken) {
+          url.searchParams.append(constants2.QueryParameters.Session, this.authenticateContext.sessionToken);
+        }
+        if (this.authenticateContext.instanceType === "development" && this.authenticateContext.devBrowserToken) {
+          url.searchParams.append(constants2.QueryParameters.DevBrowser, this.authenticateContext.devBrowserToken);
+        }
+        const toActivate = this.getOrganizationSyncTarget(this.authenticateContext.clerkUrl, this.organizationMatcher);
+        if (toActivate) {
+          const params = this.getOrganizationSyncQueryParams(toActivate);
+          params.forEach((value, key) => {
+            url.searchParams.append(key, value);
+          });
+        }
+        return new Headers({ [constants2.Headers.Location]: url.href });
+      }
+      /**
+       * Gets cookies from either a handshake nonce or a handshake token
+       * @returns Promise resolving to string array of cookie directives
+       */
+      async getCookiesFromHandshake() {
+        const cookiesToSet = [];
+        if (this.authenticateContext.handshakeNonce) {
+          try {
+            const handshakePayload = await this.authenticateContext.apiClient?.clients.getHandshakePayload({
+              nonce: this.authenticateContext.handshakeNonce
+            });
+            if (handshakePayload) {
+              cookiesToSet.push(...handshakePayload.directives);
+            }
+          } catch (error) {
+            console.error("Clerk: HandshakeService: error getting handshake payload:", error);
+          }
+        } else if (this.authenticateContext.handshakeToken) {
+          const handshakePayload = await verifyHandshakeToken(
+            this.authenticateContext.handshakeToken,
+            this.authenticateContext
+          );
+          if (handshakePayload && Array.isArray(handshakePayload.handshake)) {
+            cookiesToSet.push(...handshakePayload.handshake);
+          }
+        }
+        return cookiesToSet;
+      }
+      /**
+       * Resolves a handshake request by verifying the handshake token and setting appropriate cookies
+       * @returns Promise resolving to either a SignedInState or SignedOutState
+       * @throws Error if handshake verification fails or if there are issues with the session token
+       */
+      async resolveHandshake() {
+        const headers = new Headers({
+          "Access-Control-Allow-Origin": "null",
+          "Access-Control-Allow-Credentials": "true"
+        });
+        const cookiesToSet = await this.getCookiesFromHandshake();
+        let sessionToken = "";
+        cookiesToSet.forEach((x) => {
+          headers.append("Set-Cookie", x);
+          if (getCookieName(x).startsWith(constants2.Cookies.Session)) {
+            sessionToken = getCookieValue(x);
+          }
+        });
+        if (this.authenticateContext.instanceType === "development") {
+          const newUrl = new URL(this.authenticateContext.clerkUrl);
+          newUrl.searchParams.delete(constants2.QueryParameters.Handshake);
+          newUrl.searchParams.delete(constants2.QueryParameters.HandshakeHelp);
+          newUrl.searchParams.delete(constants2.QueryParameters.DevBrowser);
+          newUrl.searchParams.delete(constants2.QueryParameters.HandshakeNonce);
+          headers.append(constants2.Headers.Location, newUrl.toString());
+          headers.set(constants2.Headers.CacheControl, "no-store");
+        }
+        if (sessionToken === "") {
+          return signedOut({
+            tokenType: TokenType.SessionToken,
+            authenticateContext: this.authenticateContext,
+            reason: AuthErrorReason.SessionTokenMissing,
+            message: "",
+            headers
+          });
+        }
+        const { data, errors: [error] = [] } = await verifyToken(sessionToken, this.authenticateContext);
+        if (data) {
+          return signedIn({
+            tokenType: TokenType.SessionToken,
+            authenticateContext: this.authenticateContext,
+            sessionClaims: data,
+            headers,
+            token: sessionToken
+          });
+        }
+        if (this.authenticateContext.instanceType === "development" && (error?.reason === TokenVerificationErrorReason.TokenExpired || error?.reason === TokenVerificationErrorReason.TokenNotActiveYet || error?.reason === TokenVerificationErrorReason.TokenIatInTheFuture)) {
+          const developmentError = new TokenVerificationError({
+            action: error.action,
+            message: error.message,
+            reason: error.reason
+          });
+          developmentError.tokenCarrier = "cookie";
+          console.error(
+            `Clerk: Clock skew detected. This usually means that your system clock is inaccurate. Clerk will attempt to account for the clock skew in development.
+
+To resolve this issue, make sure your system's clock is set to the correct time (e.g. turn off and on automatic time synchronization).
+
+---
+
+${developmentError.getFullMessage()}`
+          );
+          const { data: retryResult, errors: [retryError] = [] } = await verifyToken(sessionToken, {
+            ...this.authenticateContext,
+            clockSkewInMs: 864e5
+          });
+          if (retryResult) {
+            return signedIn({
+              tokenType: TokenType.SessionToken,
+              authenticateContext: this.authenticateContext,
+              sessionClaims: retryResult,
+              headers,
+              token: sessionToken
+            });
+          }
+          throw new Error(retryError?.message || "Clerk: Handshake retry failed.");
+        }
+        throw new Error(error?.message || "Clerk: Handshake failed.");
+      }
+      /**
+       * Handles handshake token verification errors in development mode
+       * @param error - The TokenVerificationError that occurred
+       * @throws Error with a descriptive message about the verification failure
+       */
+      handleTokenVerificationErrorInDevelopment(error) {
+        if (error.reason === TokenVerificationErrorReason.TokenInvalidSignature) {
+          const msg = `Clerk: Handshake token verification failed due to an invalid signature. If you have switched Clerk keys locally, clear your cookies and try again.`;
+          throw new Error(msg);
+        }
+        throw new Error(`Clerk: Handshake token verification failed: ${error.getFullMessage()}.`);
+      }
+      /**
+       * Checks if a redirect loop is detected and sets headers to track redirect count
+       * @param headers - The Headers object to modify
+       * @returns boolean indicating if a redirect loop was detected (true) or if the request can proceed (false)
+       */
+      checkAndTrackRedirectLoop(headers) {
+        if (this.authenticateContext.handshakeRedirectLoopCounter === 3) {
+          return true;
+        }
+        const newCounterValue = this.authenticateContext.handshakeRedirectLoopCounter + 1;
+        const cookieName = constants2.Cookies.RedirectCount;
+        headers.append("Set-Cookie", `${cookieName}=${newCounterValue}; SameSite=Lax; HttpOnly; Max-Age=2`);
+        return false;
+      }
+      removeDevBrowserFromURL(url) {
+        const updatedURL = new URL(url);
+        updatedURL.searchParams.delete(constants2.QueryParameters.DevBrowser);
+        updatedURL.searchParams.delete(constants2.QueryParameters.LegacyDevBrowser);
+        return updatedURL;
+      }
+      getOrganizationSyncTarget(url, matchers) {
+        return matchers.findTarget(url);
+      }
+      getOrganizationSyncQueryParams(toActivate) {
+        const ret = /* @__PURE__ */ new Map();
+        if (toActivate.type === "personalAccount") {
+          ret.set("organization_id", "");
+        }
+        if (toActivate.type === "organization") {
+          if (toActivate.organizationId) {
+            ret.set("organization_id", toActivate.organizationId);
+          }
+          if (toActivate.organizationSlug) {
+            ret.set("organization_id", toActivate.organizationSlug);
+          }
+        }
+        return ret;
+      }
+    };
+    OrganizationMatcher = class {
+      constructor(options) {
+        this.organizationPattern = this.createMatcher(options?.organizationPatterns);
+        this.personalAccountPattern = this.createMatcher(options?.personalAccountPatterns);
+      }
+      createMatcher(pattern) {
+        if (!pattern) {
+          return null;
+        }
+        try {
+          return match2(pattern);
+        } catch (e) {
+          throw new Error(`Invalid pattern "${pattern}": ${e}`);
+        }
+      }
+      findTarget(url) {
+        const orgTarget = this.findOrganizationTarget(url);
+        if (orgTarget) {
+          return orgTarget;
+        }
+        return this.findPersonalAccountTarget(url);
+      }
+      findOrganizationTarget(url) {
+        if (!this.organizationPattern) {
+          return null;
+        }
+        try {
+          const result = this.organizationPattern(url.pathname);
+          if (!result || !("params" in result)) {
+            return null;
+          }
+          const params = result.params;
+          if (params.id) {
+            return { type: "organization", organizationId: params.id };
+          }
+          if (params.slug) {
+            return { type: "organization", organizationSlug: params.slug };
+          }
+          return null;
+        } catch (e) {
+          console.error("Failed to match organization pattern:", e);
+          return null;
+        }
+      }
+      findPersonalAccountTarget(url) {
+        if (!this.personalAccountPattern) {
+          return null;
+        }
+        try {
+          const result = this.personalAccountPattern(url.pathname);
+          return result ? { type: "personalAccount" } : null;
+        } catch (e) {
+          console.error("Failed to match personal account pattern:", e);
+          return null;
+        }
+      }
+    };
+    RefreshTokenErrorReason = {
+      NonEligibleNoCookie: "non-eligible-no-refresh-cookie",
+      NonEligibleNonGet: "non-eligible-non-get",
+      InvalidSessionToken: "invalid-session-token",
+      MissingApiClient: "missing-api-client",
+      MissingSessionToken: "missing-session-token",
+      MissingRefreshToken: "missing-refresh-token",
+      ExpiredSessionTokenDecodeFailed: "expired-session-token-decode-failed",
+      ExpiredSessionTokenMissingSidClaim: "expired-session-token-missing-sid-claim",
+      FetchError: "fetch-error",
+      UnexpectedSDKError: "unexpected-sdk-error",
+      UnexpectedBAPIError: "unexpected-bapi-error"
+    };
+    authenticateRequest = (async (request, options) => {
+      const authenticateContext = await createAuthenticateContext(createClerkRequest(request), options);
+      const acceptsToken = options.acceptsToken ?? TokenType.SessionToken;
+      if (acceptsToken !== TokenType.M2MToken) {
+        assertValidSecretKey(authenticateContext.secretKey);
+        if (authenticateContext.isSatellite) {
+          assertSignInUrlExists(authenticateContext.signInUrl, authenticateContext.secretKey);
+          if (authenticateContext.signInUrl && authenticateContext.origin) {
+            assertSignInUrlFormatAndOrigin(authenticateContext.signInUrl, authenticateContext.origin);
+          }
+          assertProxyUrlOrDomain(authenticateContext.proxyUrl || authenticateContext.domain);
+        }
+      }
+      if (acceptsToken === TokenType.M2MToken) {
+        assertMachineSecretOrSecretKey(authenticateContext);
+      }
+      const organizationMatcher = new OrganizationMatcher(options.organizationSyncOptions);
+      const handshakeService = new HandshakeService(
+        authenticateContext,
+        { organizationSyncOptions: options.organizationSyncOptions },
+        organizationMatcher
+      );
+      async function refreshToken(authenticateContext2) {
+        if (!options.apiClient) {
+          return {
+            data: null,
+            error: {
+              message: "An apiClient is needed to perform token refresh.",
+              cause: { reason: RefreshTokenErrorReason.MissingApiClient }
+            }
+          };
+        }
+        const { sessionToken: expiredSessionToken, refreshTokenInCookie: refreshToken2 } = authenticateContext2;
+        if (!expiredSessionToken) {
+          return {
+            data: null,
+            error: {
+              message: "Session token must be provided.",
+              cause: { reason: RefreshTokenErrorReason.MissingSessionToken }
+            }
+          };
+        }
+        if (!refreshToken2) {
+          return {
+            data: null,
+            error: {
+              message: "Refresh token must be provided.",
+              cause: { reason: RefreshTokenErrorReason.MissingRefreshToken }
+            }
+          };
+        }
+        const { data: decodeResult, errors: decodedErrors } = decodeJwt(expiredSessionToken);
+        if (!decodeResult || decodedErrors) {
+          return {
+            data: null,
+            error: {
+              message: "Unable to decode the expired session token.",
+              cause: { reason: RefreshTokenErrorReason.ExpiredSessionTokenDecodeFailed, errors: decodedErrors }
+            }
+          };
+        }
+        if (!decodeResult?.payload?.sid) {
+          return {
+            data: null,
+            error: {
+              message: "Expired session token is missing the `sid` claim.",
+              cause: { reason: RefreshTokenErrorReason.ExpiredSessionTokenMissingSidClaim }
+            }
+          };
+        }
+        try {
+          const response3 = await options.apiClient.sessions.refreshSession(decodeResult.payload.sid, {
+            format: "cookie",
+            suffixed_cookies: authenticateContext2.usesSuffixedCookies(),
+            expired_token: expiredSessionToken || "",
+            refresh_token: refreshToken2 || "",
+            request_origin: authenticateContext2.clerkUrl.origin,
+            // The refresh endpoint expects headers as Record<string, string[]>, so we need to transform it.
+            request_headers: Object.fromEntries(Array.from(request.headers.entries()).map(([k, v]) => [k, [v]]))
+          });
+          return { data: response3.cookies, error: null };
+        } catch (err2) {
+          if (err2?.errors?.length) {
+            if (err2.errors[0].code === "unexpected_error") {
+              return {
+                data: null,
+                error: {
+                  message: `Fetch unexpected error`,
+                  cause: { reason: RefreshTokenErrorReason.FetchError, errors: err2.errors }
+                }
+              };
+            }
+            return {
+              data: null,
+              error: {
+                message: err2.errors[0].code,
+                cause: { reason: err2.errors[0].code, errors: err2.errors }
+              }
+            };
+          } else {
+            return {
+              data: null,
+              error: {
+                message: `Unexpected Server/BAPI error`,
+                cause: { reason: RefreshTokenErrorReason.UnexpectedBAPIError, errors: [err2] }
+              }
+            };
+          }
+        }
+      }
+      async function attemptRefresh(authenticateContext2) {
+        const { data: cookiesToSet, error } = await refreshToken(authenticateContext2);
+        if (!cookiesToSet || cookiesToSet.length === 0) {
+          return { data: null, error };
+        }
+        const headers = new Headers();
+        let sessionToken = "";
+        cookiesToSet.forEach((x) => {
+          headers.append("Set-Cookie", x);
+          if (getCookieName(x).startsWith(constants2.Cookies.Session)) {
+            sessionToken = getCookieValue(x);
+          }
+        });
+        const { data: jwtPayload, errors } = await verifyToken(sessionToken, authenticateContext2);
+        if (errors) {
+          return {
+            data: null,
+            error: {
+              message: `Clerk: unable to verify refreshed session token.`,
+              cause: { reason: RefreshTokenErrorReason.InvalidSessionToken, errors }
+            }
+          };
+        }
+        return { data: { jwtPayload, sessionToken, headers }, error: null };
+      }
+      function handleMaybeHandshakeStatus(authenticateContext2, reason, message, headers) {
+        if (!handshakeService.isRequestEligibleForHandshake()) {
+          return signedOut({
+            tokenType: TokenType.SessionToken,
+            authenticateContext: authenticateContext2,
+            reason,
+            message
+          });
+        }
+        const handshakeHeaders = headers ?? handshakeService.buildRedirectToHandshake(reason);
+        if (handshakeHeaders.get(constants2.Headers.Location)) {
+          handshakeHeaders.set(constants2.Headers.CacheControl, "no-store");
+        }
+        const isRedirectLoop = handshakeService.checkAndTrackRedirectLoop(handshakeHeaders);
+        if (isRedirectLoop) {
+          const msg = `Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.`;
+          console.log(msg);
+          return signedOut({
+            tokenType: TokenType.SessionToken,
+            authenticateContext: authenticateContext2,
+            reason,
+            message
+          });
+        }
+        return handshake(authenticateContext2, reason, message, handshakeHeaders);
+      }
+      function handleMaybeOrganizationSyncHandshake(authenticateContext2, auth) {
+        const organizationSyncTarget = organizationMatcher.findTarget(authenticateContext2.clerkUrl);
+        if (!organizationSyncTarget) {
+          return null;
+        }
+        let mustActivate = false;
+        if (organizationSyncTarget.type === "organization") {
+          if (organizationSyncTarget.organizationSlug && organizationSyncTarget.organizationSlug !== auth.orgSlug) {
+            mustActivate = true;
+          }
+          if (organizationSyncTarget.organizationId && organizationSyncTarget.organizationId !== auth.orgId) {
+            mustActivate = true;
+          }
+        }
+        if (organizationSyncTarget.type === "personalAccount" && auth.orgId) {
+          mustActivate = true;
+        }
+        if (!mustActivate) {
+          return null;
+        }
+        if (authenticateContext2.handshakeRedirectLoopCounter >= 3) {
+          console.warn(
+            "Clerk: Organization activation handshake loop detected. This is likely due to an invalid organization ID or slug. Skipping organization activation."
+          );
+          return null;
+        }
+        const handshakeState = handleMaybeHandshakeStatus(
+          authenticateContext2,
+          AuthErrorReason.ActiveOrganizationMismatch,
+          ""
+        );
+        if (handshakeState.status !== "handshake") {
+          return null;
+        }
+        return handshakeState;
+      }
+      async function authenticateRequestWithTokenInHeader() {
+        const { tokenInHeader } = authenticateContext;
+        if (isMachineJwt(tokenInHeader)) {
+          return signedOut({
+            tokenType: TokenType.SessionToken,
+            authenticateContext,
+            reason: AuthErrorReason.TokenTypeMismatch,
+            message: ""
+          });
+        }
+        try {
+          const { data, errors } = await verifyToken(tokenInHeader, authenticateContext);
+          if (errors) {
+            throw errors[0];
+          }
+          return signedIn({
+            tokenType: TokenType.SessionToken,
+            authenticateContext,
+            sessionClaims: data,
+            headers: new Headers(),
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            token: tokenInHeader
+          });
+        } catch (err2) {
+          return handleSessionTokenError(err2, "header");
+        }
+      }
+      async function authenticateRequestWithTokenInCookie() {
+        const hasActiveClient = authenticateContext.clientUat;
+        const hasSessionToken = !!authenticateContext.sessionTokenInCookie;
+        const hasDevBrowserToken = !!authenticateContext.devBrowserToken;
+        if (authenticateContext.handshakeNonce || authenticateContext.handshakeToken) {
+          try {
+            return await handshakeService.resolveHandshake();
+          } catch (error) {
+            if (error instanceof TokenVerificationError && authenticateContext.instanceType === "development") {
+              handshakeService.handleTokenVerificationErrorInDevelopment(error);
+            } else {
+              console.error("Clerk: unable to resolve handshake:", error);
+            }
+          }
+        }
+        const isRequestEligibleForMultiDomainSync = authenticateContext.isSatellite && authenticateContext.secFetchDest === "document" && authenticateContext.method === "GET";
+        const syncedParam = authenticateContext.clerkUrl.searchParams.get(constants2.QueryParameters.ClerkSynced);
+        const needsSync = syncedParam === constants2.ClerkSyncStatus.NeedsSync;
+        const syncCompleted = syncedParam === constants2.ClerkSyncStatus.Completed;
+        const hasCookies = hasSessionToken || hasActiveClient;
+        const shouldSkipSatelliteHandshake = authenticateContext.satelliteAutoSync !== true && !hasCookies && !needsSync;
+        if (authenticateContext.instanceType === "production" && isRequestEligibleForMultiDomainSync && !syncCompleted) {
+          if (shouldSkipSatelliteHandshake) {
+            return signedOut({
+              tokenType: TokenType.SessionToken,
+              authenticateContext,
+              reason: AuthErrorReason.SessionTokenAndUATMissing
+            });
+          }
+          if (!hasCookies || needsSync) {
+            return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SatelliteCookieNeedsSyncing, "");
+          }
+        }
+        if (authenticateContext.instanceType === "development" && isRequestEligibleForMultiDomainSync && !syncCompleted) {
+          if (shouldSkipSatelliteHandshake) {
+            return signedOut({
+              tokenType: TokenType.SessionToken,
+              authenticateContext,
+              reason: AuthErrorReason.SessionTokenAndUATMissing
+            });
+          }
+          if (!hasCookies || needsSync) {
+            const redirectURL = new URL(authenticateContext.signInUrl);
+            redirectURL.searchParams.append(
+              constants2.QueryParameters.ClerkRedirectUrl,
+              authenticateContext.clerkUrl.toString()
+            );
+            const headers = new Headers({ [constants2.Headers.Location]: redirectURL.toString() });
+            return handleMaybeHandshakeStatus(
+              authenticateContext,
+              AuthErrorReason.SatelliteCookieNeedsSyncing,
+              "",
+              headers
+            );
+          }
+        }
+        const redirectUrl = new URL(authenticateContext.clerkUrl).searchParams.get(
+          constants2.QueryParameters.ClerkRedirectUrl
+        );
+        if (authenticateContext.instanceType === "development" && !authenticateContext.isSatellite && redirectUrl) {
+          const redirectBackToSatelliteUrl = new URL(redirectUrl);
+          if (authenticateContext.devBrowserToken) {
+            redirectBackToSatelliteUrl.searchParams.append(
+              constants2.QueryParameters.DevBrowser,
+              authenticateContext.devBrowserToken
+            );
+          }
+          redirectBackToSatelliteUrl.searchParams.set(
+            constants2.QueryParameters.ClerkSynced,
+            constants2.ClerkSyncStatus.Completed
+          );
+          const headers = new Headers({ [constants2.Headers.Location]: redirectBackToSatelliteUrl.toString() });
+          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.PrimaryRespondsToSyncing, "", headers);
+        }
+        if (authenticateContext.instanceType === "development" && authenticateContext.clerkUrl.searchParams.has(constants2.QueryParameters.DevBrowser)) {
+          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.DevBrowserSync, "");
+        }
+        if (authenticateContext.instanceType === "development" && !hasDevBrowserToken) {
+          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.DevBrowserMissing, "");
+        }
+        if (!hasActiveClient && !hasSessionToken) {
+          return signedOut({
+            tokenType: TokenType.SessionToken,
+            authenticateContext,
+            reason: AuthErrorReason.SessionTokenAndUATMissing
+          });
+        }
+        if (!hasActiveClient && hasSessionToken) {
+          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SessionTokenWithoutClientUAT, "");
+        }
+        if (hasActiveClient && !hasSessionToken) {
+          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.ClientUATWithoutSessionToken, "");
+        }
+        const { data: decodeResult, errors: decodedErrors } = decodeJwt(authenticateContext.sessionTokenInCookie);
+        if (decodedErrors) {
+          return handleSessionTokenError(decodedErrors[0], "cookie");
+        }
+        if (decodeResult.payload.iat < authenticateContext.clientUat) {
+          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SessionTokenIATBeforeClientUAT, "");
+        }
+        try {
+          const { data, errors } = await verifyToken(authenticateContext.sessionTokenInCookie, authenticateContext);
+          if (errors) {
+            throw errors[0];
+          }
+          if (!data.azp) {
+            logger2.warnOnce(
+              "Clerk: Session token from cookie is missing the azp claim. In a future version of Clerk, this token will be considered invalid. Please contact Clerk support if you see this warning."
+            );
+          }
+          const signedInRequestState = signedIn({
+            tokenType: TokenType.SessionToken,
+            authenticateContext,
+            sessionClaims: data,
+            headers: new Headers(),
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            token: authenticateContext.sessionTokenInCookie
+          });
+          const shouldForceHandshakeForCrossDomain = !authenticateContext.isSatellite && // We're on primary
+          authenticateContext.method === "GET" && // Only GET navigations (POST form submissions set sec-fetch-dest: document too)
+          authenticateContext.secFetchDest === "document" && // Document navigation
+          authenticateContext.isCrossOriginReferrer() && // Came from different domain
+          !authenticateContext.isKnownClerkReferrer() && // Not from Clerk accounts portal or FAPI
+          authenticateContext.handshakeRedirectLoopCounter === 0;
+          if (shouldForceHandshakeForCrossDomain) {
+            return handleMaybeHandshakeStatus(
+              authenticateContext,
+              AuthErrorReason.PrimaryDomainCrossOriginSync,
+              "Cross-origin request from satellite domain requires handshake"
+            );
+          }
+          const authObject = signedInRequestState.toAuth();
+          if (authObject.userId) {
+            const handshakeRequestState = handleMaybeOrganizationSyncHandshake(authenticateContext, authObject);
+            if (handshakeRequestState) {
+              return handshakeRequestState;
+            }
+          }
+          return signedInRequestState;
+        } catch (err2) {
+          return handleSessionTokenError(err2, "cookie");
+        }
+        return signedOut({
+          tokenType: TokenType.SessionToken,
+          authenticateContext,
+          reason: AuthErrorReason.UnexpectedError
+        });
+      }
+      async function handleSessionTokenError(err2, tokenCarrier) {
+        if (!(err2 instanceof TokenVerificationError)) {
+          return signedOut({
+            tokenType: TokenType.SessionToken,
+            authenticateContext,
+            reason: AuthErrorReason.UnexpectedError
+          });
+        }
+        let refreshError;
+        if (isRequestEligibleForRefresh(err2, authenticateContext, request)) {
+          const { data, error } = await attemptRefresh(authenticateContext);
+          if (data) {
+            return signedIn({
+              tokenType: TokenType.SessionToken,
+              authenticateContext,
+              sessionClaims: data.jwtPayload,
+              headers: data.headers,
+              token: data.sessionToken
+            });
+          }
+          if (error?.cause?.reason) {
+            refreshError = error.cause.reason;
+          } else {
+            refreshError = RefreshTokenErrorReason.UnexpectedSDKError;
+          }
+        } else {
+          if (request.method !== "GET") {
+            refreshError = RefreshTokenErrorReason.NonEligibleNonGet;
+          } else if (!authenticateContext.refreshTokenInCookie) {
+            refreshError = RefreshTokenErrorReason.NonEligibleNoCookie;
+          } else {
+            refreshError = null;
+          }
+        }
+        err2.tokenCarrier = tokenCarrier;
+        const reasonToHandshake = [
+          TokenVerificationErrorReason.TokenExpired,
+          TokenVerificationErrorReason.TokenNotActiveYet,
+          TokenVerificationErrorReason.TokenIatInTheFuture
+        ].includes(err2.reason);
+        if (reasonToHandshake) {
+          return handleMaybeHandshakeStatus(
+            authenticateContext,
+            convertTokenVerificationErrorReasonToAuthErrorReason({ tokenError: err2.reason, refreshError }),
+            err2.getFullMessage()
+          );
+        }
+        return signedOut({
+          tokenType: TokenType.SessionToken,
+          authenticateContext,
+          reason: err2.reason,
+          message: err2.getFullMessage()
+        });
+      }
+      function handleMachineError(tokenType, err2) {
+        if (!(err2 instanceof MachineTokenVerificationError)) {
+          return signedOut({
+            tokenType,
+            authenticateContext,
+            reason: AuthErrorReason.UnexpectedError
+          });
+        }
+        return signedOut({
+          tokenType,
+          authenticateContext,
+          reason: err2.code,
+          message: err2.getFullMessage()
+        });
+      }
+      async function authenticateMachineRequestWithTokenInHeader() {
+        const { tokenInHeader } = authenticateContext;
+        if (!tokenInHeader) {
+          return handleSessionTokenError(new Error("Missing token in header"), "header");
+        }
+        if (!isMachineToken(tokenInHeader)) {
+          return signedOut({
+            tokenType: acceptsToken,
+            authenticateContext,
+            reason: AuthErrorReason.TokenTypeMismatch,
+            message: ""
+          });
+        }
+        const parsedTokenType = getMachineTokenType(tokenInHeader);
+        const mismatchState = checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext);
+        if (mismatchState) {
+          return mismatchState;
+        }
+        const { data, tokenType, errors } = await verifyMachineAuthToken(tokenInHeader, authenticateContext);
+        if (errors) {
+          return handleMachineError(tokenType, errors[0]);
+        }
+        return signedIn({
+          tokenType,
+          authenticateContext,
+          machineData: data,
+          token: tokenInHeader
+        });
+      }
+      async function authenticateAnyRequestWithTokenInHeader() {
+        const { tokenInHeader } = authenticateContext;
+        if (!tokenInHeader) {
+          return handleSessionTokenError(new Error("Missing token in header"), "header");
+        }
+        if (isMachineToken(tokenInHeader)) {
+          const parsedTokenType = getMachineTokenType(tokenInHeader);
+          const mismatchState = checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext);
+          if (mismatchState) {
+            return mismatchState;
+          }
+          const { data: data2, tokenType, errors: errors2 } = await verifyMachineAuthToken(tokenInHeader, authenticateContext);
+          if (errors2) {
+            return handleMachineError(tokenType, errors2[0]);
+          }
+          return signedIn({
+            tokenType,
+            authenticateContext,
+            machineData: data2,
+            token: tokenInHeader
+          });
+        }
+        const { data, errors } = await verifyToken(tokenInHeader, authenticateContext);
+        if (errors) {
+          return handleSessionTokenError(errors[0], "header");
+        }
+        return signedIn({
+          tokenType: TokenType.SessionToken,
+          authenticateContext,
+          sessionClaims: data,
+          token: tokenInHeader
+        });
+      }
+      if (Array.isArray(acceptsToken)) {
+        if (!isTokenTypeInAcceptedArray(acceptsToken, authenticateContext)) {
+          return signedOutInvalidToken();
+        }
+      }
+      if (authenticateContext.tokenInHeader) {
+        if (acceptsToken === "any" || Array.isArray(acceptsToken)) {
+          return authenticateAnyRequestWithTokenInHeader();
+        }
+        if (acceptsToken === TokenType.SessionToken) {
+          return authenticateRequestWithTokenInHeader();
+        }
+        return authenticateMachineRequestWithTokenInHeader();
+      }
+      if (acceptsToken === TokenType.OAuthToken || acceptsToken === TokenType.ApiKey || acceptsToken === TokenType.M2MToken) {
+        return signedOut({
+          tokenType: acceptsToken,
+          authenticateContext,
+          reason: "No token in header"
+        });
+      }
+      return authenticateRequestWithTokenInCookie();
+    });
+    debugRequestState = (params) => {
+      const { isSignedIn, isAuthenticated, proxyUrl, reason, message, publishableKey, isSatellite, domain } = params;
+      return { isSignedIn, isAuthenticated, proxyUrl, reason, message, publishableKey, isSatellite, domain };
+    };
+    convertTokenVerificationErrorReasonToAuthErrorReason = ({
+      tokenError,
+      refreshError
+    }) => {
+      switch (tokenError) {
+        case TokenVerificationErrorReason.TokenExpired:
+          return `${AuthErrorReason.SessionTokenExpired}-refresh-${refreshError}`;
+        case TokenVerificationErrorReason.TokenNotActiveYet:
+          return AuthErrorReason.SessionTokenNBF;
+        case TokenVerificationErrorReason.TokenIatInTheFuture:
+          return AuthErrorReason.SessionTokenIatInTheFuture;
+        default:
+          return AuthErrorReason.UnexpectedError;
+      }
+    };
+    defaultOptions2 = {
+      secretKey: "",
+      machineSecretKey: "",
+      jwtKey: "",
+      apiUrl: void 0,
+      apiVersion: void 0,
+      proxyUrl: "",
+      publishableKey: "",
+      isSatellite: false,
+      domain: "",
+      audience: ""
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs
+function withLegacyReturn(cb) {
+  return async (...args) => {
+    const { data, errors } = await cb(...args);
+    if (errors) {
+      throw errors[0];
+    }
+    return data;
+  };
+}
+var init_chunk_P263NW7Z = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs"() {
+    "use strict";
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/underscore-CPJSkOtE.mjs
+function snakeToCamel(str) {
+  return str ? str.replace(/([-_][a-z])/g, (match3) => match3.toUpperCase().replace(/-|_/, "")) : "";
+}
+function camelToSnake(str) {
+  return str ? str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`) : "";
+}
+function isTruthy(value) {
+  if (typeof value === `boolean`) return value;
+  if (value === void 0 || value === null) return false;
+  if (typeof value === `string`) {
+    if (value.toLowerCase() === `true`) return true;
+    if (value.toLowerCase() === `false`) return false;
+  }
+  const number = parseInt(value, 10);
+  if (isNaN(number)) return false;
+  if (number > 0) return true;
+  return false;
+}
+var createDeepObjectTransformer, deepCamelToSnake, deepSnakeToCamel;
+var init_underscore_CPJSkOtE = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/underscore-CPJSkOtE.mjs"() {
+    "use strict";
+    createDeepObjectTransformer = (transform) => {
+      const deepTransform = (obj) => {
+        if (!obj) return obj;
+        if (Array.isArray(obj)) return obj.map((el) => {
+          if (typeof el === "object" || Array.isArray(el)) return deepTransform(el);
+          return el;
+        });
+        const copy = { ...obj };
+        const keys = Object.keys(copy);
+        for (const oldName of keys) {
+          const newName = transform(oldName.toString());
+          if (newName !== oldName) {
+            copy[newName] = copy[oldName];
+            delete copy[oldName];
+          }
+          if (typeof copy[newName] === "object") copy[newName] = deepTransform(copy[newName]);
+        }
+        return copy;
+      };
+      return deepTransform;
+    };
+    deepCamelToSnake = createDeepObjectTransformer(camelToSnake);
+    deepSnakeToCamel = createDeepObjectTransformer(snakeToCamel);
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/telemetry-DmiY4LSf.mjs
+function isServerRuntime() {
+  if (typeof window !== "undefined") return false;
+  if (typeof globalThis.EdgeRuntime !== "undefined") return false;
+  return true;
+}
+function isCI() {
+  if (typeof process === "undefined" || !process.env) return false;
+  return automatedEnvironmentVariables.some((name) => isTruthy(process.env[name]));
+}
+function hasSeen() {
+  return Boolean(globalThis[PROCESS_FLAG]);
+}
+function markSeen() {
+  globalThis[PROCESS_FLAG] = true;
+}
+function printNotice() {
+  if (typeof console === "undefined" || typeof console.log !== "function") return;
+  for (const line of NOTICE_LINES) console.log(line);
+  console.log("");
+}
+function maybeShowTelemetryNotice(options = {}) {
+  if (options.skip) return;
+  try {
+    if (!isServerRuntime()) return;
+    if (isCI()) return;
+    if (hasSeen()) return;
+    printNotice();
+    markSeen();
+  } catch {
+  }
+}
+function isWindowClerkWithMetadata(clerk) {
+  return typeof clerk === "object" && clerk !== null && "constructor" in clerk && typeof clerk.constructor === "function";
+}
+var PROCESS_FLAG, NOTICE_LINES, DEFAULT_CACHE_TTL_MS, TelemetryEventThrottler, LocalStorageThrottlerCache, InMemoryThrottlerCache, VALID_LOG_LEVELS, DEFAULT_CONFIG, TelemetryCollector;
+var init_telemetry_DmiY4LSf = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/telemetry-DmiY4LSf.mjs"() {
+    "use strict";
+    init_keys_jlv3GIE3();
+    init_runtimeEnvironment_DHuMF_tN();
+    init_underscore_CPJSkOtE();
+    PROCESS_FLAG = /* @__PURE__ */ Symbol.for("@clerk/shared.telemetryNoticeShown");
+    NOTICE_LINES = [
+      "Attention: Clerk collects telemetry data from its SDKs when connected to development instances.",
+      "The data collected is used to inform Clerk's product roadmap.",
+      "To learn more, including how to opt-out from the telemetry program, visit: https://clerk.com/docs/telemetry."
+    ];
+    DEFAULT_CACHE_TTL_MS = 864e5;
+    TelemetryEventThrottler = class {
+      #cache;
+      #cacheTtl = DEFAULT_CACHE_TTL_MS;
+      constructor(cache2) {
+        this.#cache = cache2;
+      }
+      isEventThrottled(payload) {
+        const now = Date.now();
+        const key = this.#generateKey(payload);
+        const entry = this.#cache.getItem(key);
+        if (!entry) {
+          this.#cache.setItem(key, now);
+          return false;
+        }
+        if (now - entry > this.#cacheTtl) {
+          this.#cache.setItem(key, now);
+          return false;
+        }
+        return true;
+      }
+      /**
+      * Generates a consistent unique key for telemetry events by sorting payload properties.
+      * This ensures that payloads with identical content in different orders produce the same key.
+      */
+      #generateKey(event) {
+        const { sk: _sk, pk: _pk, payload, ...rest } = event;
+        const sanitizedEvent = {
+          ...payload,
+          ...rest
+        };
+        return JSON.stringify(Object.keys({
+          ...payload,
+          ...rest
+        }).sort().map((key) => sanitizedEvent[key]));
+      }
+    };
+    LocalStorageThrottlerCache = class {
+      #storageKey = "clerk_telemetry_throttler";
+      getItem(key) {
+        return this.#getCache()[key];
+      }
+      setItem(key, value) {
+        try {
+          const cache2 = this.#getCache();
+          cache2[key] = value;
+          localStorage.setItem(this.#storageKey, JSON.stringify(cache2));
+        } catch (err2) {
+          if (err2 instanceof DOMException && (err2.name === "QuotaExceededError" || err2.name === "NS_ERROR_DOM_QUOTA_REACHED") && localStorage.length > 0) localStorage.removeItem(this.#storageKey);
+        }
+      }
+      removeItem(key) {
+        try {
+          const cache2 = this.#getCache();
+          delete cache2[key];
+          localStorage.setItem(this.#storageKey, JSON.stringify(cache2));
+        } catch {
+        }
+      }
+      #getCache() {
+        try {
+          const cacheString = localStorage.getItem(this.#storageKey);
+          if (!cacheString) return {};
+          return JSON.parse(cacheString);
+        } catch {
+          return {};
+        }
+      }
+      static isSupported() {
+        return typeof window !== "undefined" && !!window.localStorage;
+      }
+    };
+    InMemoryThrottlerCache = class {
+      #cache = /* @__PURE__ */ new Map();
+      #maxSize = 1e4;
+      getItem(key) {
+        if (this.#cache.size > this.#maxSize) {
+          this.#cache.clear();
+          return;
+        }
+        return this.#cache.get(key);
+      }
+      setItem(key, value) {
+        this.#cache.set(key, value);
+      }
+      removeItem(key) {
+        this.#cache.delete(key);
+      }
+    };
+    VALID_LOG_LEVELS = /* @__PURE__ */ new Set([
+      "error",
+      "warn",
+      "info",
+      "debug",
+      "trace"
+    ]);
+    DEFAULT_CONFIG = {
+      samplingRate: 1,
+      maxBufferSize: 5,
+      endpoint: "https://clerk-telemetry.com"
+    };
+    TelemetryCollector = class {
+      #config;
+      #eventThrottler;
+      #metadata = {};
+      #buffer = [];
+      #pendingFlush = null;
+      constructor(options) {
+        this.#config = {
+          maxBufferSize: options.maxBufferSize ?? DEFAULT_CONFIG.maxBufferSize,
+          samplingRate: options.samplingRate ?? DEFAULT_CONFIG.samplingRate,
+          perEventSampling: options.perEventSampling ?? true,
+          disabled: options.disabled ?? false,
+          debug: options.debug ?? false,
+          endpoint: DEFAULT_CONFIG.endpoint
+        };
+        if (!options.clerkVersion && typeof window === "undefined") this.#metadata.clerkVersion = "";
+        else this.#metadata.clerkVersion = options.clerkVersion ?? "";
+        this.#metadata.sdk = options.sdk;
+        this.#metadata.sdkVersion = options.sdkVersion;
+        this.#metadata.publishableKey = options.publishableKey ?? "";
+        const parsedKey = parsePublishableKey(options.publishableKey);
+        if (parsedKey) this.#metadata.instanceType = parsedKey.instanceType;
+        if (options.secretKey) this.#metadata.secretKey = options.secretKey.substring(0, 16);
+        this.#eventThrottler = new TelemetryEventThrottler(LocalStorageThrottlerCache.isSupported() ? new LocalStorageThrottlerCache() : new InMemoryThrottlerCache());
+        maybeShowTelemetryNotice({ skip: !this.isEnabled });
+      }
+      get isEnabled() {
+        if (this.#metadata.instanceType !== "development") return false;
+        if (this.#config.disabled || typeof process !== "undefined" && process.env && isTruthy(process.env.CLERK_TELEMETRY_DISABLED)) return false;
+        if (typeof window !== "undefined" && !!window?.navigator?.webdriver) return false;
+        return true;
+      }
+      get isDebug() {
+        return this.#config.debug || typeof process !== "undefined" && process.env && isTruthy(process.env.CLERK_TELEMETRY_DEBUG);
+      }
+      record(event) {
+        try {
+          const preparedPayload = this.#preparePayload(event.event, event.payload);
+          this.#logEvent(preparedPayload.event, preparedPayload);
+          if (!this.#shouldRecord(preparedPayload, event.eventSamplingRate)) return;
+          this.#buffer.push({
+            kind: "event",
+            value: preparedPayload
+          });
+          this.#scheduleFlush();
+        } catch (error) {
+          console.error("[clerk/telemetry] Error recording telemetry event", error);
+        }
+      }
+      /**
+      * Records a telemetry log entry if logging is enabled and not in debug mode.
+      *
+      * @param entry - The telemetry log entry to record.
+      */
+      recordLog(entry) {
+        try {
+          if (!this.#shouldRecordLog(entry)) return;
+          const levelIsValid = typeof entry?.level === "string" && VALID_LOG_LEVELS.has(entry.level);
+          const messageIsValid = typeof entry?.message === "string" && entry.message.trim().length > 0;
+          let normalizedTimestamp = null;
+          const timestampInput = entry?.timestamp;
+          if (typeof timestampInput === "number" || typeof timestampInput === "string") {
+            const candidate = new Date(timestampInput);
+            if (!Number.isNaN(candidate.getTime())) normalizedTimestamp = candidate;
+          }
+          if (!levelIsValid || !messageIsValid || normalizedTimestamp === null) {
+            if (this.isDebug && typeof console !== "undefined") console.warn("[clerk/telemetry] Dropping invalid telemetry log entry", {
+              levelIsValid,
+              messageIsValid,
+              timestampIsValid: normalizedTimestamp !== null
+            });
+            return;
+          }
+          const sdkMetadata = this.#getSDKMetadata();
+          const logData = {
+            sdk: sdkMetadata.name,
+            sdkv: sdkMetadata.version,
+            cv: this.#metadata.clerkVersion ?? "",
+            lvl: entry.level,
+            msg: entry.message,
+            ts: normalizedTimestamp.toISOString(),
+            pk: this.#metadata.publishableKey || null,
+            payload: this.#sanitizeContext(entry.context)
+          };
+          this.#buffer.push({
+            kind: "log",
+            value: logData
+          });
+          this.#scheduleFlush();
+        } catch (error) {
+          console.error("[clerk/telemetry] Error recording telemetry log entry", error);
+        }
+      }
+      #shouldRecord(preparedPayload, eventSamplingRate) {
+        return this.isEnabled && !this.isDebug && this.#shouldBeSampled(preparedPayload, eventSamplingRate);
+      }
+      #shouldRecordLog(_entry) {
+        return true;
+      }
+      #shouldBeSampled(preparedPayload, eventSamplingRate) {
+        const randomSeed = Math.random();
+        if (!(randomSeed <= this.#config.samplingRate && (this.#config.perEventSampling === false || typeof eventSamplingRate === "undefined" || randomSeed <= eventSamplingRate))) return false;
+        return !this.#eventThrottler.isEventThrottled(preparedPayload);
+      }
+      #scheduleFlush() {
+        if (typeof window === "undefined") {
+          this.#flush();
+          return;
+        }
+        if (this.#buffer.length >= this.#config.maxBufferSize) {
+          if (this.#pendingFlush) if (typeof cancelIdleCallback !== "undefined") cancelIdleCallback(Number(this.#pendingFlush));
+          else clearTimeout(Number(this.#pendingFlush));
+          this.#flush();
+          return;
+        }
+        if (this.#pendingFlush) return;
+        if ("requestIdleCallback" in window) this.#pendingFlush = requestIdleCallback(() => {
+          this.#flush();
+          this.#pendingFlush = null;
+        });
+        else this.#pendingFlush = setTimeout(() => {
+          this.#flush();
+          this.#pendingFlush = null;
+        }, 0);
+      }
+      #flush() {
+        const itemsToSend = [...this.#buffer];
+        this.#buffer = [];
+        this.#pendingFlush = null;
+        if (itemsToSend.length === 0) return;
+        const eventsToSend = itemsToSend.filter((item) => item.kind === "event").map((item) => item.value);
+        const logsToSend = itemsToSend.filter((item) => item.kind === "log").map((item) => item.value);
+        if (eventsToSend.length > 0) {
+          const eventsUrl = new URL("/v1/event", this.#config.endpoint);
+          fetch(eventsUrl, {
+            headers: { "Content-Type": "application/json" },
+            keepalive: true,
+            method: "POST",
+            body: JSON.stringify({ events: eventsToSend })
+          }).catch(() => void 0);
+        }
+        if (logsToSend.length > 0) {
+          const logsUrl = new URL("/v1/logs", this.#config.endpoint);
+          fetch(logsUrl, {
+            headers: { "Content-Type": "application/json" },
+            keepalive: true,
+            method: "POST",
+            body: JSON.stringify({ logs: logsToSend })
+          }).catch(() => void 0);
+        }
+      }
+      /**
+      * If running in debug mode, log the event and its payload to the console.
+      */
+      #logEvent(event, payload) {
+        if (!this.isDebug) return;
+        if (typeof console.groupCollapsed !== "undefined") {
+          console.groupCollapsed("[clerk/telemetry]", event);
+          console.log(payload);
+          console.groupEnd();
+        } else console.log("[clerk/telemetry]", event, payload);
+      }
+      /**
+      * If in browser, attempt to lazily grab the SDK metadata from the Clerk singleton, otherwise fallback to the initially passed in values.
+      *
+      * This is necessary because the sdkMetadata can be set by the host SDK after the TelemetryCollector is instantiated.
+      */
+      #getSDKMetadata() {
+        const sdkMetadata = {
+          name: this.#metadata.sdk,
+          version: this.#metadata.sdkVersion
+        };
+        if (typeof window !== "undefined") {
+          const windowWithClerk = window;
+          if (windowWithClerk.Clerk) {
+            const windowClerk = windowWithClerk.Clerk;
+            if (isWindowClerkWithMetadata(windowClerk) && windowClerk.constructor.sdkMetadata) {
+              const { name, version: version6 } = windowClerk.constructor.sdkMetadata;
+              if (name !== void 0) sdkMetadata.name = name;
+              if (version6 !== void 0) sdkMetadata.version = version6;
+            }
+          }
+        }
+        return sdkMetadata;
+      }
+      /**
+      * Append relevant metadata from the Clerk singleton to the event payload.
+      */
+      #preparePayload(event, payload) {
+        const sdkMetadata = this.#getSDKMetadata();
+        return {
+          event,
+          cv: this.#metadata.clerkVersion ?? "",
+          it: this.#metadata.instanceType ?? "",
+          sdk: sdkMetadata.name,
+          sdkv: sdkMetadata.version,
+          ...this.#metadata.publishableKey ? { pk: this.#metadata.publishableKey } : {},
+          ...this.#metadata.secretKey ? { sk: this.#metadata.secretKey } : {},
+          payload
+        };
+      }
+      /**
+      * Best-effort sanitization of the context payload. Returns a plain object with JSON-serializable
+      * values or null when the input is missing or not serializable. Arrays are not accepted.
+      */
+      #sanitizeContext(context2) {
+        if (context2 === null || typeof context2 === "undefined") return null;
+        if (typeof context2 !== "object") return null;
+        try {
+          const cleaned = JSON.parse(JSON.stringify(context2));
+          if (cleaned && typeof cleaned === "object" && !Array.isArray(cleaned)) return cleaned;
+          return null;
+        } catch {
+          return null;
+        }
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/telemetry.mjs
+var init_telemetry = __esm({
+  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/telemetry.mjs"() {
+    "use strict";
+    init_constants_BVchI2jn();
+    init_isomorphicAtob_C1KQ5FtS();
+    init_isomorphicBtoa_BBBfp_jr();
+    init_keys_jlv3GIE3();
+    init_getEnvVariable_CzO2lHzx();
+    init_runtimeEnvironment_DHuMF_tN();
+    init_underscore_CPJSkOtE();
+    init_telemetry_DmiY4LSf();
+  }
+});
+
+// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/index.mjs
+var dist_exports = {};
+__export(dist_exports, {
+  createClerkClient: () => createClerkClient,
+  verifyToken: () => verifyToken2
+});
+function createClerkClient(options) {
+  const opts = { ...options };
+  const apiClient = createBackendApiClient(opts);
+  const requestState = createAuthenticateRequest({ options: opts, apiClient });
+  const telemetry = new TelemetryCollector({
+    publishableKey: opts.publishableKey,
+    secretKey: opts.secretKey,
+    samplingRate: 0.1,
+    ...opts.sdkMetadata ? { sdk: opts.sdkMetadata.name, sdkVersion: opts.sdkMetadata.version } : {},
+    ...opts.telemetry || {}
+  });
+  return {
+    ...apiClient,
+    ...requestState,
+    telemetry
+  };
+}
+var verifyToken2;
+var init_dist = __esm({
+  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/index.mjs"() {
+    "use strict";
+    init_chunk_H3NCOZAT();
+    init_chunk_YBVFDYDR();
+    init_chunk_P263NW7Z();
+    init_chunk_J2CDX2WG();
+    init_chunk_RZ7A7F6X();
+    init_chunk_TOROEX6P();
+    init_telemetry();
+    verifyToken2 = withLegacyReturn(verifyToken);
+  }
+});
+
+// ../../node_modules/.pnpm/@hono+node-server@2.0.4_hono@4.12.23/node_modules/@hono/node-server/dist/constants-BLSFu_RU.mjs
+var X_ALREADY_SENT = "x-hono-already-sent";
+
+// ../../node_modules/.pnpm/@hono+node-server@2.0.4_hono@4.12.23/node_modules/@hono/node-server/dist/index.mjs
+var import_node_http = require("http");
+var import_node_http2 = require("http2");
+var import_node_stream = require("stream");
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/websocket/index.js
+var defineWebSocketHelper = (handler) => {
+  return ((...args) => {
+    if (typeof args[0] === "function") {
+      const [createEvents, options] = args;
+      return async function upgradeWebSocket2(c, next) {
+        const events = await createEvents(c);
+        const result = await handler(c, events, options);
+        if (result) {
+          return result;
+        }
+        await next();
+      };
+    } else {
+      const [c, events, options] = args;
+      return (async () => {
+        const upgraded = await handler(c, events, options);
+        if (!upgraded) {
+          throw new Error("Failed to upgrade WebSocket");
+        }
+        return upgraded;
+      })();
+    }
+  });
+};
+
+// ../../node_modules/.pnpm/@hono+node-server@2.0.4_hono@4.12.23/node_modules/@hono/node-server/dist/index.mjs
+var RequestError = class extends Error {
+  constructor(message, options) {
+    super(message, options);
+    this.name = "RequestError";
+  }
+};
+var reValidRequestUrl = /^\/[!#$&-;=?-\[\]_a-z~]*$/;
+var reDotSegment = /\/\.\.?(?:[/?#]|$)/;
+var reValidHost = /^[a-z0-9._-]+(?::(?:[1-5]\d{3,4}|[6-9]\d{3}))?$/;
+var buildUrl = (scheme, host, incomingUrl) => {
+  const url = `${scheme}://${host}${incomingUrl}`;
+  if (!reValidHost.test(host)) {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.length !== host.length && urlObj.hostname !== (host.includes(":") ? host.replace(/:\d+$/, "") : host).toLowerCase()) throw new RequestError("Invalid host header");
+    return urlObj.href;
+  } else if (incomingUrl.length === 0) return url + "/";
+  else {
+    if (incomingUrl.charCodeAt(0) !== 47) throw new RequestError("Invalid URL");
+    if (!reValidRequestUrl.test(incomingUrl) || reDotSegment.test(incomingUrl)) return new URL(url).href;
+    return url;
+  }
+};
+var toRequestError = (e) => {
+  if (e instanceof RequestError) return e;
+  return new RequestError(e.message, { cause: e });
+};
+var GlobalRequest = global.Request;
+var Request$1 = class extends GlobalRequest {
+  constructor(input, options) {
+    if (typeof input === "object" && getRequestCache in input) {
+      const hasReplacementBody = options !== void 0 && "body" in options && options.body != null;
+      if (input[bodyConsumedDirectlyKey] && !hasReplacementBody) throw new TypeError("Cannot construct a Request with a Request object that has already been used.");
+      input = input[getRequestCache]();
+    }
+    if (typeof options?.body?.getReader !== "undefined") options.duplex ??= "half";
+    super(input, options);
+  }
+};
+var newHeadersFromIncoming = (incoming) => {
+  const headerRecord = [];
+  const rawHeaders = incoming.rawHeaders;
+  for (let i = 0, len = rawHeaders.length; i < len; i += 2) {
+    const key = rawHeaders[i];
+    if (key.charCodeAt(0) !== 58) headerRecord.push([key, rawHeaders[i + 1]]);
+  }
+  return new Headers(headerRecord);
+};
+var wrapBodyStream = /* @__PURE__ */ Symbol("wrapBodyStream");
+var newRequestFromIncoming = (method, url, headers, incoming, abortController) => {
+  const init = {
+    method,
+    headers,
+    signal: abortController.signal
+  };
+  if (method === "TRACE") {
+    init.method = "GET";
+    const req = new Request$1(url, init);
+    Object.defineProperty(req, "method", { get() {
+      return "TRACE";
+    } });
+    return req;
+  }
+  if (!(method === "GET" || method === "HEAD")) if ("rawBody" in incoming && incoming.rawBody instanceof Buffer) init.body = new ReadableStream({ start(controller) {
+    controller.enqueue(incoming.rawBody);
+    controller.close();
+  } });
+  else if (incoming[wrapBodyStream]) {
+    let reader;
+    init.body = new ReadableStream({ async pull(controller) {
+      try {
+        reader ||= import_node_stream.Readable.toWeb(incoming).getReader();
+        const { done, value } = await reader.read();
+        if (done) controller.close();
+        else controller.enqueue(value);
+      } catch (error) {
+        controller.error(error);
+      }
+    } });
+  } else init.body = import_node_stream.Readable.toWeb(incoming);
+  return new Request$1(url, init);
+};
+var getRequestCache = /* @__PURE__ */ Symbol("getRequestCache");
+var requestCache = /* @__PURE__ */ Symbol("requestCache");
+var incomingKey = /* @__PURE__ */ Symbol("incomingKey");
+var urlKey = /* @__PURE__ */ Symbol("urlKey");
+var methodKey = /* @__PURE__ */ Symbol("methodKey");
+var headersKey = /* @__PURE__ */ Symbol("headersKey");
+var abortControllerKey = /* @__PURE__ */ Symbol("abortControllerKey");
+var getAbortController = /* @__PURE__ */ Symbol("getAbortController");
+var abortRequest = /* @__PURE__ */ Symbol("abortRequest");
+var bodyBufferKey = /* @__PURE__ */ Symbol("bodyBuffer");
+var bodyReadPromiseKey = /* @__PURE__ */ Symbol("bodyReadPromise");
+var bodyConsumedDirectlyKey = /* @__PURE__ */ Symbol("bodyConsumedDirectly");
+var bodyLockReaderKey = /* @__PURE__ */ Symbol("bodyLockReader");
+var abortReasonKey = /* @__PURE__ */ Symbol("abortReason");
+var newBodyUnusableError = () => {
+  return /* @__PURE__ */ new TypeError("Body is unusable");
+};
+var rejectBodyUnusable = () => {
+  return Promise.reject(newBodyUnusableError());
+};
+var textDecoder = new TextDecoder();
+var consumeBodyDirectOnce = (request) => {
+  if (request[bodyConsumedDirectlyKey]) return rejectBodyUnusable();
+  request[bodyConsumedDirectlyKey] = true;
+};
+var toArrayBuffer = (buf) => {
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+};
+var contentType = (request) => {
+  return (request[headersKey] ||= newHeadersFromIncoming(request[incomingKey])).get("content-type") || "";
+};
+var methodTokenRegExp = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+var normalizeIncomingMethod = (method) => {
+  if (typeof method !== "string" || method.length === 0) return "GET";
+  switch (method) {
+    case "DELETE":
+    case "GET":
+    case "HEAD":
+    case "OPTIONS":
+    case "POST":
+    case "PUT":
+      return method;
+  }
+  const upper = method.toUpperCase();
+  switch (upper) {
+    case "DELETE":
+    case "GET":
+    case "HEAD":
+    case "OPTIONS":
+    case "POST":
+    case "PUT":
+      return upper;
+    default:
+      return method;
+  }
+};
+var validateDirectReadMethod = (method) => {
+  if (!methodTokenRegExp.test(method)) return /* @__PURE__ */ new TypeError(`'${method}' is not a valid HTTP method.`);
+  const normalized = method.toUpperCase();
+  if (normalized === "CONNECT" || normalized === "TRACK" || normalized === "TRACE" && method !== "TRACE") return /* @__PURE__ */ new TypeError(`'${method}' HTTP method is unsupported.`);
+};
+var readBodyWithFastPath = (request, method, fromBuffer) => {
+  if (request[bodyConsumedDirectlyKey]) return rejectBodyUnusable();
+  const methodName = request.method;
+  if (methodName === "GET" || methodName === "HEAD") return request[getRequestCache]()[method]();
+  const methodValidationError = validateDirectReadMethod(methodName);
+  if (methodValidationError) return Promise.reject(methodValidationError);
+  if (request[requestCache]) {
+    if (methodName !== "TRACE") return request[requestCache][method]();
+  }
+  const alreadyUsedError = consumeBodyDirectOnce(request);
+  if (alreadyUsedError) return alreadyUsedError;
+  const raw2 = readRawBodyIfAvailable(request);
+  if (raw2) {
+    const result = Promise.resolve(fromBuffer(raw2, request));
+    request[bodyBufferKey] = void 0;
+    return result;
+  }
+  return readBodyDirect(request).then((buf) => {
+    const result = fromBuffer(buf, request);
+    request[bodyBufferKey] = void 0;
+    return result;
+  });
+};
+var readRawBodyIfAvailable = (request) => {
+  const incoming = request[incomingKey];
+  if ("rawBody" in incoming && incoming.rawBody instanceof Buffer) return incoming.rawBody;
+};
+var readBodyDirect = (request) => {
+  if (request[bodyBufferKey]) return Promise.resolve(request[bodyBufferKey]);
+  if (request[bodyReadPromiseKey]) return request[bodyReadPromiseKey];
+  const incoming = request[incomingKey];
+  if (import_node_stream.Readable.isDisturbed(incoming)) return rejectBodyUnusable();
+  const promise = new Promise((resolve, reject) => {
+    const chunks = [];
+    let settled = false;
+    const finish = (callback) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const onData = (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    };
+    const onEnd = () => {
+      finish(() => {
+        const buffer = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
+        request[bodyBufferKey] = buffer;
+        resolve(buffer);
+      });
+    };
+    const onError = (error) => {
+      finish(() => {
+        reject(error);
+      });
+    };
+    const onClose = () => {
+      if (incoming.readableEnded) {
+        onEnd();
+        return;
+      }
+      finish(() => {
+        if (incoming.errored) {
+          reject(incoming.errored);
+          return;
+        }
+        const reason = request[abortReasonKey];
+        if (reason !== void 0) {
+          reject(reason instanceof Error ? reason : new Error(String(reason)));
+          return;
+        }
+        reject(/* @__PURE__ */ new Error("Client connection prematurely closed."));
+      });
+    };
+    const cleanup = () => {
+      incoming.off("data", onData);
+      incoming.off("end", onEnd);
+      incoming.off("error", onError);
+      incoming.off("close", onClose);
+      request[bodyReadPromiseKey] = void 0;
+    };
+    incoming.on("data", onData);
+    incoming.on("end", onEnd);
+    incoming.on("error", onError);
+    incoming.on("close", onClose);
+    queueMicrotask(() => {
+      if (settled) return;
+      if (incoming.readableEnded) onEnd();
+      else if (incoming.errored) onError(incoming.errored);
+      else if (incoming.destroyed) onClose();
+    });
+  });
+  request[bodyReadPromiseKey] = promise;
+  return promise;
+};
+var requestPrototype = {
+  get method() {
+    return this[methodKey];
+  },
+  get url() {
+    return this[urlKey];
+  },
+  get headers() {
+    return this[headersKey] ||= newHeadersFromIncoming(this[incomingKey]);
+  },
+  [abortRequest](reason) {
+    if (this[abortReasonKey] === void 0) this[abortReasonKey] = reason;
+    const abortController = this[abortControllerKey];
+    if (abortController && !abortController.signal.aborted) abortController.abort(reason);
+  },
+  [getAbortController]() {
+    this[abortControllerKey] ||= new AbortController();
+    if (this[abortReasonKey] !== void 0 && !this[abortControllerKey].signal.aborted) this[abortControllerKey].abort(this[abortReasonKey]);
+    return this[abortControllerKey];
+  },
+  [getRequestCache]() {
+    const abortController = this[getAbortController]();
+    if (this[requestCache]) return this[requestCache];
+    const method = this.method;
+    if (this[bodyConsumedDirectlyKey] && !(method === "GET" || method === "HEAD")) {
+      this[bodyBufferKey] = void 0;
+      const init = {
+        method: method === "TRACE" ? "GET" : method,
+        headers: this.headers,
+        signal: abortController.signal
+      };
+      if (method !== "TRACE") {
+        init.body = new ReadableStream({ start(c) {
+          c.close();
+        } });
+        init.duplex = "half";
+      }
+      const req = new Request$1(this[urlKey], init);
+      if (method === "TRACE") Object.defineProperty(req, "method", { get() {
+        return "TRACE";
+      } });
+      return this[requestCache] = req;
+    }
+    return this[requestCache] = newRequestFromIncoming(this.method, this[urlKey], this.headers, this[incomingKey], abortController);
+  },
+  get body() {
+    if (!this[bodyConsumedDirectlyKey]) return this[getRequestCache]().body;
+    const request = this[getRequestCache]();
+    if (!this[bodyLockReaderKey] && request.body) this[bodyLockReaderKey] = request.body.getReader();
+    return request.body;
+  },
+  get bodyUsed() {
+    if (this[bodyConsumedDirectlyKey]) return true;
+    if (this[requestCache]) return this[requestCache].bodyUsed;
+    return false;
+  }
+};
+Object.defineProperty(requestPrototype, "signal", { get() {
+  return this[getAbortController]().signal;
+} });
+[
+  "cache",
+  "credentials",
+  "destination",
+  "integrity",
+  "mode",
+  "redirect",
+  "referrer",
+  "referrerPolicy",
+  "keepalive"
+].forEach((k) => {
+  Object.defineProperty(requestPrototype, k, { get() {
+    return this[getRequestCache]()[k];
+  } });
+});
+["clone", "formData"].forEach((k) => {
+  Object.defineProperty(requestPrototype, k, { value: function() {
+    if (this[bodyConsumedDirectlyKey]) {
+      if (k === "clone") throw newBodyUnusableError();
+      return rejectBodyUnusable();
+    }
+    return this[getRequestCache]()[k]();
+  } });
+});
+Object.defineProperty(requestPrototype, "text", { value: function() {
+  return readBodyWithFastPath(this, "text", (buf) => textDecoder.decode(buf));
+} });
+Object.defineProperty(requestPrototype, "arrayBuffer", { value: function() {
+  return readBodyWithFastPath(this, "arrayBuffer", (buf) => toArrayBuffer(buf));
+} });
+Object.defineProperty(requestPrototype, "blob", { value: function() {
+  return readBodyWithFastPath(this, "blob", (buf, request) => {
+    const type = contentType(request);
+    const init = type ? { headers: { "content-type": type } } : void 0;
+    return new Response(buf, init).blob();
+  });
+} });
+Object.defineProperty(requestPrototype, "json", { value: function() {
+  if (this[bodyConsumedDirectlyKey]) return rejectBodyUnusable();
+  return this.text().then(JSON.parse);
+} });
+Object.defineProperty(requestPrototype, /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom"), { value: function(depth, options, inspectFn) {
+  return `Request (lightweight) ${inspectFn({
+    method: this.method,
+    url: this.url,
+    headers: this.headers,
+    nativeRequest: this[requestCache]
+  }, {
+    ...options,
+    depth: depth == null ? null : depth - 1
+  })}`;
+} });
+Object.setPrototypeOf(requestPrototype, Request$1.prototype);
+var newRequest = (incoming, defaultHostname) => {
+  const req = Object.create(requestPrototype);
+  req[incomingKey] = incoming;
+  req[methodKey] = normalizeIncomingMethod(incoming.method);
+  const incomingUrl = incoming.url || "";
+  if (incomingUrl[0] !== "/" && (incomingUrl.startsWith("http://") || incomingUrl.startsWith("https://"))) {
+    if (incoming instanceof import_node_http2.Http2ServerRequest) throw new RequestError("Absolute URL for :path is not allowed in HTTP/2");
+    try {
+      req[urlKey] = new URL(incomingUrl).href;
+    } catch (e) {
+      throw new RequestError("Invalid absolute URL", { cause: e });
+    }
+    return req;
+  }
+  const host = (incoming instanceof import_node_http2.Http2ServerRequest ? incoming.authority : incoming.headers.host) || defaultHostname;
+  if (!host) throw new RequestError("Missing host header");
+  let scheme;
+  if (incoming instanceof import_node_http2.Http2ServerRequest) {
+    scheme = incoming.scheme;
+    if (!(scheme === "http" || scheme === "https")) throw new RequestError("Unsupported scheme");
+  } else scheme = incoming.socket && incoming.socket.encrypted ? "https" : "http";
+  try {
+    req[urlKey] = buildUrl(scheme, host, incomingUrl);
+  } catch (e) {
+    if (e instanceof RequestError) throw e;
+    else throw new RequestError("Invalid URL", { cause: e });
+  }
+  return req;
+};
+var defaultContentType = "text/plain; charset=UTF-8";
+var responseCache = /* @__PURE__ */ Symbol("responseCache");
+var getResponseCache = /* @__PURE__ */ Symbol("getResponseCache");
+var cacheKey = /* @__PURE__ */ Symbol("cache");
+var GlobalResponse = global.Response;
+var Response$1 = class Response$12 {
+  #body;
+  #init;
+  [getResponseCache]() {
+    const cache2 = this[cacheKey];
+    const liveHeaders = cache2 && cache2[2] instanceof Headers ? cache2[2] : void 0;
+    delete this[cacheKey];
+    return this[responseCache] ||= new GlobalResponse(this.#body, liveHeaders ? {
+      ...this.#init,
+      headers: liveHeaders
+    } : this.#init);
+  }
+  constructor(body, init) {
+    let headers;
+    this.#body = body;
+    if (init instanceof Response$12) {
+      const cachedGlobalResponse = init[responseCache];
+      if (cachedGlobalResponse) {
+        this.#init = cachedGlobalResponse;
+        this[getResponseCache]();
+        return;
+      } else {
+        this.#init = init.#init;
+        headers = new Headers(init.headers);
+      }
+    } else this.#init = init;
+    if (body == null || typeof body === "string" || typeof body?.getReader !== "undefined" || body instanceof Blob || body instanceof Uint8Array) this[cacheKey] = [
+      init?.status || 200,
+      body ?? null,
+      headers || init?.headers
+    ];
+  }
+  get headers() {
+    const cache2 = this[cacheKey];
+    if (cache2) {
+      if (!(cache2[2] instanceof Headers)) cache2[2] = new Headers(cache2[2] || (cache2[1] === null ? void 0 : { "content-type": defaultContentType }));
+      return cache2[2];
+    }
+    return this[getResponseCache]().headers;
+  }
+  get status() {
+    return this[cacheKey]?.[0] ?? this[getResponseCache]().status;
+  }
+  get ok() {
+    const status = this.status;
+    return status >= 200 && status < 300;
+  }
+};
+[
+  "body",
+  "bodyUsed",
+  "redirected",
+  "statusText",
+  "trailers",
+  "type",
+  "url"
+].forEach((k) => {
+  Object.defineProperty(Response$1.prototype, k, { get() {
+    return this[getResponseCache]()[k];
+  } });
+});
+[
+  "arrayBuffer",
+  "blob",
+  "clone",
+  "formData",
+  "json",
+  "text"
+].forEach((k) => {
+  Object.defineProperty(Response$1.prototype, k, { value: function() {
+    return this[getResponseCache]()[k]();
+  } });
+});
+Object.defineProperty(Response$1.prototype, /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom"), { value: function(depth, options, inspectFn) {
+  return `Response (lightweight) ${inspectFn({
+    status: this.status,
+    headers: this.headers,
+    ok: this.ok,
+    nativeResponse: this[responseCache]
+  }, {
+    ...options,
+    depth: depth == null ? null : depth - 1
+  })}`;
+} });
+Object.setPrototypeOf(Response$1, GlobalResponse);
+Object.setPrototypeOf(Response$1.prototype, GlobalResponse.prototype);
+var validRedirectUrl = /^https?:\/\/[!#-;=?-[\]_a-z~A-Z]+$/;
+var parseRedirectUrl = (url) => {
+  if (url instanceof URL) return url.href;
+  if (validRedirectUrl.test(url)) return url;
+  return new URL(url).href;
+};
+var validRedirectStatuses = /* @__PURE__ */ new Set([
+  301,
+  302,
+  303,
+  307,
+  308
+]);
+Object.defineProperty(Response$1, "redirect", {
+  value: function redirect(url, status = 302) {
+    if (!validRedirectStatuses.has(status)) throw new RangeError("Invalid status code");
+    return new Response$1(null, {
+      status,
+      headers: { location: parseRedirectUrl(url) }
+    });
+  },
+  writable: true,
+  configurable: true
+});
+Object.defineProperty(Response$1, "json", {
+  value: function json(data, init) {
+    const body = JSON.stringify(data);
+    if (body === void 0) throw new TypeError("The data is not JSON serializable");
+    const initHeaders = init?.headers;
+    let headers;
+    if (initHeaders) {
+      headers = new Headers(initHeaders);
+      if (!headers.has("content-type")) headers.set("content-type", "application/json");
+    } else headers = { "content-type": "application/json" };
+    return new Response$1(body, {
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+      headers
+    });
+  },
+  writable: true,
+  configurable: true
+});
+async function readWithoutBlocking(readPromise) {
+  return Promise.race([readPromise, Promise.resolve().then(() => Promise.resolve(void 0))]);
+}
+function writeFromReadableStreamDefaultReader(reader, writable, currentReadPromise) {
+  const cancel = (error) => {
+    reader.cancel(error).catch(() => {
+    });
+  };
+  writable.on("close", cancel);
+  writable.on("error", cancel);
+  (currentReadPromise ?? reader.read()).then(flow, handleStreamError);
+  return reader.closed.finally(() => {
+    writable.off("close", cancel);
+    writable.off("error", cancel);
+  });
+  function handleStreamError(error) {
+    if (error) writable.destroy(error);
+  }
+  function onDrain() {
+    reader.read().then(flow, handleStreamError);
+  }
+  function flow({ done, value }) {
+    try {
+      if (done) writable.end();
+      else if (!writable.write(value)) writable.once("drain", onDrain);
+      else return reader.read().then(flow, handleStreamError);
+    } catch (e) {
+      handleStreamError(e);
+    }
+  }
+}
+function writeFromReadableStream(stream, writable) {
+  if (stream.locked) throw new TypeError("ReadableStream is locked.");
+  else if (writable.destroyed) return;
+  return writeFromReadableStreamDefaultReader(stream.getReader(), writable);
+}
+var buildOutgoingHttpHeaders = (headers, defaultContentType2) => {
+  const res = {};
+  if (!(headers instanceof Headers)) headers = new Headers(headers ?? void 0);
+  if (headers.has("set-cookie")) {
+    const cookies = [];
+    for (const [k, v] of headers) if (k === "set-cookie") cookies.push(v);
+    else res[k] = v;
+    if (cookies.length > 0) res["set-cookie"] = cookies;
+  } else for (const [k, v] of headers) res[k] = v;
+  if (defaultContentType2) res["content-type"] ??= defaultContentType2;
+  return res;
+};
+var outgoingEnded = /* @__PURE__ */ Symbol("outgoingEnded");
+var incomingDraining = /* @__PURE__ */ Symbol("incomingDraining");
+var DRAIN_TIMEOUT_MS = 500;
+var MAX_DRAIN_BYTES = 64 * 1024 * 1024;
+var drainIncoming = (incoming) => {
+  const incomingWithDrainState = incoming;
+  if (incoming.destroyed || incomingWithDrainState[incomingDraining]) return;
+  incomingWithDrainState[incomingDraining] = true;
+  if (incoming instanceof import_node_http2.Http2ServerRequest) {
+    try {
+      incoming.stream?.close?.(import_node_http2.constants.NGHTTP2_NO_ERROR);
+    } catch {
+    }
+    return;
+  }
+  let bytesRead = 0;
+  const cleanup = () => {
+    clearTimeout(timer);
+    incoming.off("data", onData);
+    incoming.off("end", cleanup);
+    incoming.off("error", cleanup);
+  };
+  const forceClose = () => {
+    cleanup();
+    const socket = incoming.socket;
+    if (socket && !socket.destroyed) socket.destroySoon();
+  };
+  const timer = setTimeout(forceClose, DRAIN_TIMEOUT_MS);
+  timer.unref?.();
+  const onData = (chunk) => {
+    bytesRead += chunk.length;
+    if (bytesRead > MAX_DRAIN_BYTES) forceClose();
+  };
+  incoming.on("data", onData);
+  incoming.on("end", cleanup);
+  incoming.on("error", cleanup);
+  incoming.resume();
+};
+var makeCloseHandler = (req, incoming, outgoing, needsBodyCleanup) => () => {
+  if (incoming.errored) req[abortRequest](incoming.errored.toString());
+  else if (!outgoing.writableFinished) req[abortRequest]("Client connection prematurely closed.");
+  if (needsBodyCleanup && !incoming.readableEnded) setTimeout(() => {
+    if (!incoming.readableEnded) setTimeout(() => {
+      drainIncoming(incoming);
+    });
+  });
+};
+var isImmediateCacheableResponse = (res) => {
+  if (!(cacheKey in res)) return false;
+  const body = res[cacheKey][1];
+  return body === null || typeof body === "string" || body instanceof Uint8Array;
+};
+var handleRequestError = () => new Response(null, { status: 400 });
+var handleFetchError = (e) => new Response(null, { status: e instanceof Error && (e.name === "TimeoutError" || e.constructor.name === "TimeoutError") ? 504 : 500 });
+var handleResponseError = (e, outgoing) => {
+  const err2 = e instanceof Error ? e : new Error("unknown error", { cause: e });
+  if (err2.code === "ERR_STREAM_PREMATURE_CLOSE") console.info("The user aborted a request.");
+  else {
+    console.error(e);
+    if (!outgoing.headersSent) outgoing.writeHead(500, { "Content-Type": "text/plain" });
+    outgoing.end(`Error: ${err2.message}`);
+    outgoing.destroy(err2);
+  }
+};
+var flushHeaders = (outgoing) => {
+  if ("flushHeaders" in outgoing && outgoing.writable) outgoing.flushHeaders();
+};
+var responseViaCache = async (res, outgoing) => {
+  let [status, body, header] = res[cacheKey];
+  if (!header) {
+    if (body === null) {
+      outgoing.writeHead(status);
+      outgoing.end();
+    } else if (typeof body === "string") {
+      outgoing.writeHead(status, {
+        "Content-Type": defaultContentType,
+        "Content-Length": Buffer.byteLength(body)
+      });
+      outgoing.end(body);
+    } else if (body instanceof Uint8Array) {
+      outgoing.writeHead(status, {
+        "Content-Type": defaultContentType,
+        "Content-Length": body.byteLength
+      });
+      outgoing.end(body);
+    } else if (body instanceof Blob) {
+      outgoing.writeHead(status, {
+        "Content-Type": defaultContentType,
+        "Content-Length": body.size
+      });
+      outgoing.end(new Uint8Array(await body.arrayBuffer()));
+    } else {
+      outgoing.writeHead(status, { "Content-Type": defaultContentType });
+      flushHeaders(outgoing);
+      await writeFromReadableStream(body, outgoing)?.catch((e) => handleResponseError(e, outgoing));
+    }
+    outgoing[outgoingEnded]?.();
+    return;
+  }
+  let hasContentLength = false;
+  if (header instanceof Headers) {
+    hasContentLength = header.has("content-length");
+    header = buildOutgoingHttpHeaders(header, body === null ? void 0 : defaultContentType);
+  } else if (Array.isArray(header)) {
+    const headerObj = new Headers(header);
+    hasContentLength = headerObj.has("content-length");
+    header = buildOutgoingHttpHeaders(headerObj, body === null ? void 0 : defaultContentType);
+  } else for (const key in header) if (key.length === 14 && key.toLowerCase() === "content-length") {
+    hasContentLength = true;
+    break;
+  }
+  if (!hasContentLength) {
+    if (typeof body === "string") header["Content-Length"] = Buffer.byteLength(body);
+    else if (body instanceof Uint8Array) header["Content-Length"] = body.byteLength;
+    else if (body instanceof Blob) header["Content-Length"] = body.size;
+  }
+  outgoing.writeHead(status, header);
+  if (body == null) outgoing.end();
+  else if (typeof body === "string" || body instanceof Uint8Array) outgoing.end(body);
+  else if (body instanceof Blob) outgoing.end(new Uint8Array(await body.arrayBuffer()));
+  else {
+    flushHeaders(outgoing);
+    await writeFromReadableStream(body, outgoing)?.catch((e) => handleResponseError(e, outgoing));
+  }
+  outgoing[outgoingEnded]?.();
+};
+var isPromise = (res) => typeof res.then === "function";
+var responseViaResponseObject = async (res, outgoing, options = {}) => {
+  if (isPromise(res)) if (options.errorHandler) try {
+    res = await res;
+  } catch (err2) {
+    const errRes = await options.errorHandler(err2);
+    if (!errRes) return;
+    res = errRes;
+  }
+  else res = await res.catch(handleFetchError);
+  if (cacheKey in res) return responseViaCache(res, outgoing);
+  const resHeaderRecord = buildOutgoingHttpHeaders(res.headers, res.body === null ? void 0 : defaultContentType);
+  if (res.body) {
+    const reader = res.body.getReader();
+    const values = [];
+    let done = false;
+    let currentReadPromise = void 0;
+    if (resHeaderRecord["transfer-encoding"] !== "chunked") {
+      let maxReadCount = 2;
+      for (let i = 0; i < maxReadCount; i++) {
+        currentReadPromise ||= reader.read();
+        const chunk = await readWithoutBlocking(currentReadPromise).catch((e) => {
+          console.error(e);
+          done = true;
+        });
+        if (!chunk) {
+          if (i === 1) {
+            await new Promise((resolve) => setTimeout(resolve));
+            maxReadCount = 3;
+            continue;
+          }
+          break;
+        }
+        currentReadPromise = void 0;
+        if (chunk.value) values.push(chunk.value);
+        if (chunk.done) {
+          done = true;
+          break;
+        }
+      }
+      if (done && !("content-length" in resHeaderRecord)) resHeaderRecord["content-length"] = values.reduce((acc, value) => acc + value.length, 0);
+    }
+    outgoing.writeHead(res.status, resHeaderRecord);
+    values.forEach((value) => {
+      outgoing.write(value);
+    });
+    if (done) outgoing.end();
+    else {
+      if (values.length === 0) flushHeaders(outgoing);
+      await writeFromReadableStreamDefaultReader(reader, outgoing, currentReadPromise);
+    }
+  } else if (resHeaderRecord[X_ALREADY_SENT]) {
+  } else {
+    outgoing.writeHead(res.status, resHeaderRecord);
+    outgoing.end();
+  }
+  outgoing[outgoingEnded]?.();
+};
+var getRequestListener = (fetchCallback, options = {}) => {
+  const autoCleanupIncoming = options.autoCleanupIncoming ?? true;
+  if (options.overrideGlobalObjects !== false && global.Request !== Request$1) {
+    Object.defineProperty(global, "Request", { value: Request$1 });
+    Object.defineProperty(global, "Response", { value: Response$1 });
+  }
+  return async (incoming, outgoing) => {
+    let res, req;
+    let needsBodyCleanup = false;
+    let closeHandlerAttached = false;
+    const ensureCloseHandler = () => {
+      if (!req || closeHandlerAttached) return;
+      closeHandlerAttached = true;
+      outgoing.on("close", makeCloseHandler(req, incoming, outgoing, needsBodyCleanup));
+    };
+    try {
+      req = newRequest(incoming, options.hostname);
+      needsBodyCleanup = autoCleanupIncoming && !(incoming.method === "GET" || incoming.method === "HEAD");
+      if (needsBodyCleanup) {
+        incoming[wrapBodyStream] = true;
+        if (incoming instanceof import_node_http2.Http2ServerRequest) outgoing[outgoingEnded] = () => {
+          if (!incoming.readableEnded) setTimeout(() => {
+            if (!incoming.readableEnded) setTimeout(() => {
+              incoming.destroy();
+              outgoing.destroy();
+            });
+          });
+        };
+      }
+      res = fetchCallback(req, {
+        incoming,
+        outgoing
+      });
+      if (!isPromise(res) && isImmediateCacheableResponse(res)) {
+        if (needsBodyCleanup && !incoming.readableEnded) outgoing.once("finish", () => {
+          if (!incoming.readableEnded) drainIncoming(incoming);
+        });
+        return responseViaCache(res, outgoing);
+      }
+      ensureCloseHandler();
+    } catch (e) {
+      if (!res) if (options.errorHandler) {
+        ensureCloseHandler();
+        res = await options.errorHandler(req ? e : toRequestError(e));
+        if (!res) return;
+      } else if (!req) res = handleRequestError();
+      else res = handleFetchError(e);
+      else return handleResponseError(e, outgoing);
+    }
+    try {
+      return await responseViaResponseObject(res, outgoing, options);
+    } catch (e) {
+      return handleResponseError(e, outgoing);
+    }
+  };
+};
+var CloseEvent2 = globalThis.CloseEvent ?? class extends Event {
+  #eventInitDict;
+  constructor(type, eventInitDict = {}) {
+    super(type, eventInitDict);
+    this.#eventInitDict = eventInitDict;
+  }
+  get wasClean() {
+    return this.#eventInitDict.wasClean ?? false;
+  }
+  get code() {
+    return this.#eventInitDict.code ?? 0;
+  }
+  get reason() {
+    return this.#eventInitDict.reason ?? "";
+  }
+};
+var generateConnectionSymbol = () => /* @__PURE__ */ Symbol("connection");
+var CONNECTION_SYMBOL_KEY = /* @__PURE__ */ Symbol("CONNECTION_SYMBOL_KEY");
+var WAIT_FOR_WEBSOCKET_SYMBOL = /* @__PURE__ */ Symbol("WAIT_FOR_WEBSOCKET_SYMBOL");
+var responseHeadersToSkip = /* @__PURE__ */ new Set([
+  "connection",
+  "content-length",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "sec-websocket-accept",
+  "sec-websocket-extensions",
+  "sec-websocket-protocol"
+]);
+var appendResponseHeaders = (headers, responseHeaders) => {
+  if (!responseHeaders) return;
+  responseHeaders.forEach((value, key) => {
+    if (responseHeadersToSkip.has(key.toLowerCase())) return;
+    headers.push(`${key}: ${value}`);
+  });
+};
+var rejectUpgradeRequest = (socket, status, responseHeaders) => {
+  const responseLines = ["Connection: close", "Content-Length: 0"];
+  appendResponseHeaders(responseLines, responseHeaders);
+  socket.end(`HTTP/1.1 ${status.toString()} ${import_node_http.STATUS_CODES[status] ?? ""}\r
+${responseLines.join("\r\n")}\r
+\r
+`);
+};
+var createUpgradeRequest = (request) => {
+  const protocol = request.socket.encrypted ? "https" : "http";
+  const url = new URL(request.url ?? "/", `${protocol}://${request.headers.host ?? "localhost"}`);
+  const headers = new Headers();
+  for (const key in request.headers) {
+    const value = request.headers[key];
+    if (!value) continue;
+    headers.append(key, Array.isArray(value) ? value[0] : value);
+  }
+  return new Request(url, { headers });
+};
+var setupWebSocket = (options) => {
+  const { server, fetchCallback, wss } = options;
+  const waiterMap = /* @__PURE__ */ new Map();
+  wss.on("connection", (ws, request) => {
+    const waiter = waiterMap.get(request);
+    if (waiter) {
+      waiter.resolve(ws);
+      waiterMap.delete(request);
+    }
+  });
+  const waitForWebSocket = (request, connectionSymbol) => {
+    return new Promise((resolve) => {
+      waiterMap.set(request, {
+        resolve,
+        connectionSymbol
+      });
+    });
+  };
+  server.on("upgrade", async (request, socket, head2) => {
+    if (request.headers.upgrade?.toLowerCase() !== "websocket") return;
+    const env2 = {
+      incoming: request,
+      outgoing: void 0,
+      wss,
+      [WAIT_FOR_WEBSOCKET_SYMBOL]: waitForWebSocket
+    };
+    let status = 400;
+    let responseHeaders;
+    try {
+      const response3 = await fetchCallback(createUpgradeRequest(request), env2);
+      if (response3 instanceof Response) {
+        status = response3.status;
+        responseHeaders = response3.headers;
+      }
+    } catch {
+      if (server.listenerCount("upgrade") === 1) rejectUpgradeRequest(socket, 500);
+      return;
+    }
+    const waiter = waiterMap.get(request);
+    if (!waiter || waiter.connectionSymbol !== env2[CONNECTION_SYMBOL_KEY]) {
+      waiterMap.delete(request);
+      if (server.listenerCount("upgrade") === 1) rejectUpgradeRequest(socket, status, responseHeaders);
+      return;
+    }
+    const addResponseHeaders = (headers) => {
+      appendResponseHeaders(headers, responseHeaders);
+    };
+    wss.on("headers", addResponseHeaders);
+    try {
+      wss.handleUpgrade(request, socket, head2, (ws) => {
+        wss.emit("connection", ws, request);
+      });
+    } finally {
+      wss.off("headers", addResponseHeaders);
+    }
+  });
+  server.on("close", () => {
+    wss.close();
+  });
+};
+var upgradeWebSocket = defineWebSocketHelper(async (c, events, options) => {
+  if (c.req.header("upgrade")?.toLowerCase() !== "websocket") return;
+  const env2 = c.env;
+  const waitForWebSocket = env2[WAIT_FOR_WEBSOCKET_SYMBOL];
+  if (!waitForWebSocket || !env2.incoming) return new Response(null, { status: 500 });
+  const connectionSymbol = generateConnectionSymbol();
+  env2[CONNECTION_SYMBOL_KEY] = connectionSymbol;
+  (async () => {
+    const ws = await waitForWebSocket(env2.incoming, connectionSymbol);
+    const messagesReceivedInStarting = [];
+    const bufferMessage = (data, isBinary) => {
+      messagesReceivedInStarting.push([data, isBinary]);
+    };
+    ws.on("message", bufferMessage);
+    const ctx = {
+      binaryType: "arraybuffer",
+      close(code, reason) {
+        ws.close(code, reason);
+      },
+      protocol: ws.protocol,
+      raw: ws,
+      get readyState() {
+        return ws.readyState;
+      },
+      send(source, opts) {
+        ws.send(source, { compress: opts?.compress });
+      },
+      url: new URL(c.req.url)
+    };
+    try {
+      events?.onOpen?.(new Event("open"), ctx);
+    } catch (e) {
+      (options?.onError ?? console.error)(e);
+    }
+    const handleMessage = (data, isBinary) => {
+      const datas = Array.isArray(data) ? data : [data];
+      for (const data2 of datas) try {
+        events?.onMessage?.(new MessageEvent("message", { data: isBinary ? data2 instanceof ArrayBuffer ? data2 : data2.buffer.slice(data2.byteOffset, data2.byteOffset + data2.byteLength) : typeof data2 === "string" ? data2 : Buffer.from(data2).toString("utf-8") }), ctx);
+      } catch (e) {
+        (options?.onError ?? console.error)(e);
+      }
+    };
+    ws.off("message", bufferMessage);
+    for (const message of messagesReceivedInStarting) handleMessage(...message);
+    ws.on("message", (data, isBinary) => {
+      handleMessage(data, isBinary);
+    });
+    ws.on("close", (code, reason) => {
+      try {
+        events?.onClose?.(new CloseEvent2("close", {
+          code,
+          reason: reason.toString()
+        }), ctx);
+      } catch (e) {
+        (options?.onError ?? console.error)(e);
+      }
+    });
+    ws.on("error", (error) => {
+      try {
+        events?.onError?.(new ErrorEvent("error", { error }), ctx);
+      } catch (e) {
+        (options?.onError ?? console.error)(e);
+      }
+    });
+  })();
+  return new Response();
+});
+var createAdaptorServer = (options) => {
+  const fetchCallback = options.fetch;
+  const requestListener = getRequestListener(fetchCallback, {
+    hostname: options.hostname,
+    overrideGlobalObjects: options.overrideGlobalObjects,
+    autoCleanupIncoming: options.autoCleanupIncoming
+  });
+  const server = (options.createServer || import_node_http.createServer)(options.serverOptions || {}, requestListener);
+  if (options.websocket && options.websocket.server) {
+    if (options.websocket.server.options.noServer !== true) throw new Error("WebSocket server must be created with { noServer: true } option");
+    setupWebSocket({
+      server,
+      fetchCallback,
+      wss: options.websocket.server
+    });
+  }
+  return server;
+};
+var serve = (options, listeningListener) => {
+  const server = createAdaptorServer(options);
+  server.listen(options?.port ?? 3e3, options.hostname, () => {
+    const serverInfo = server.address();
+    listeningListener && listeningListener(serverInfo);
+  });
+  return server;
 };
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/compose.js
@@ -16,24 +14062,24 @@ var compose = (middleware, onError, onNotFound) => {
       }
       index = i;
       let res;
-      let isError = false;
-      let handler2;
+      let isError2 = false;
+      let handler;
       if (middleware[i]) {
-        handler2 = middleware[i][0][0];
+        handler = middleware[i][0][0];
         context2.req.routeIndex = i;
       } else {
-        handler2 = i === middleware.length && next || void 0;
+        handler = i === middleware.length && next || void 0;
       }
-      if (handler2) {
+      if (handler) {
         try {
-          res = await handler2(context2, () => dispatch(i + 1));
-        } catch (err) {
-          if (err instanceof Error && onError) {
-            context2.error = err;
-            res = await onError(err, context2);
-            isError = true;
+          res = await handler(context2, () => dispatch(i + 1));
+        } catch (err2) {
+          if (err2 instanceof Error && onError) {
+            context2.error = err2;
+            res = await onError(err2, context2);
+            isError2 = true;
           } else {
-            throw err;
+            throw err2;
           }
         }
       } else {
@@ -41,7 +14087,7 @@ var compose = (middleware, onError, onNotFound) => {
           res = await onNotFound(context2);
         }
       }
-      if (res && (context2.finalized === false || isError)) {
+      if (res && (context2.finalized === false || isError2)) {
         context2.res = res;
       }
       return context2;
@@ -89,8 +14135,8 @@ var GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
 var parseBody = async (request, options = /* @__PURE__ */ Object.create(null)) => {
   const { all = false, dot = false } = options;
   const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
-  const contentType = headers.get("Content-Type");
-  if (contentType?.startsWith("multipart/form-data") || contentType?.startsWith("application/x-www-form-urlencoded")) {
+  const contentType2 = headers.get("Content-Type");
+  if (contentType2?.startsWith("multipart/form-data") || contentType2?.startsWith("application/x-www-form-urlencoded")) {
     return parseFormData(request, { all, dot });
   }
   return {};
@@ -198,15 +14244,15 @@ var getPattern = (label, next) => {
   }
   const match3 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
   if (match3) {
-    const cacheKey = `${label}#${next}`;
-    if (!patternCache[cacheKey]) {
+    const cacheKey2 = `${label}#${next}`;
+    if (!patternCache[cacheKey2]) {
       if (match3[2]) {
-        patternCache[cacheKey] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey, match3[1], new RegExp(`^${match3[2]}(?=/${next})`)] : [label, match3[1], new RegExp(`^${match3[2]}$`)];
+        patternCache[cacheKey2] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey2, match3[1], new RegExp(`^${match3[2]}(?=/${next})`)] : [label, match3[1], new RegExp(`^${match3[2]}$`)];
       } else {
-        patternCache[cacheKey] = [label, match3[1], true];
+        patternCache[cacheKey2] = [label, match3[1], true];
       }
     }
-    return patternCache[cacheKey];
+    return patternCache[cacheKey2];
   }
   return null;
 };
@@ -258,22 +14304,22 @@ var checkOptionalParameter = (path) => {
   }
   const segments = path.split("/");
   const results = [];
-  let basePath = "";
+  let basePath33 = "";
   segments.forEach((segment) => {
     if (segment !== "" && !/\:/.test(segment)) {
-      basePath += "/" + segment;
+      basePath33 += "/" + segment;
     } else if (/\:/.test(segment)) {
       if (/\?/.test(segment)) {
-        if (results.length === 0 && basePath === "") {
+        if (results.length === 0 && basePath33 === "") {
           results.push("/");
         } else {
-          results.push(basePath);
+          results.push(basePath33);
         }
         const optionalSegment = segment.replace("?", "");
-        basePath += "/" + optionalSegment;
-        results.push(basePath);
+        basePath33 += "/" + optionalSegment;
+        results.push(basePath33);
       } else {
-        basePath += "/" + segment;
+        basePath33 += "/" + segment;
       }
     }
   });
@@ -688,9 +14734,9 @@ var resolveCallback = async (str, phase, preserveCallbacks, context2, buffer) =>
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/context.js
 var TEXT_PLAIN = "text/plain; charset=UTF-8";
-var setDefaultContentType = (contentType, headers) => {
+var setDefaultContentType = (contentType2, headers) => {
   return {
-    "Content-Type": contentType,
+    "Content-Type": contentType2,
     ...headers
   };
 };
@@ -1108,12 +15154,12 @@ var COMPOSED_HANDLER = "__COMPOSED_HANDLER";
 var notFoundHandler = (c) => {
   return c.text("404 Not Found", 404);
 };
-var errorHandler = (err, c) => {
-  if ("getResponse" in err) {
-    const res = err.getResponse();
+var errorHandler = (err2, c) => {
+  if ("getResponse" in err2) {
+    const res = err2.getResponse();
     return c.newResponse(res.body, res);
   }
-  console.error(err);
+  console.error(err2);
   return c.text("Internal Server Error", 500);
 };
 var Hono = class _Hono {
@@ -1145,8 +15191,8 @@ var Hono = class _Hono {
         } else {
           this.#addRoute(method, this.#path, args1);
         }
-        args.forEach((handler2) => {
-          this.#addRoute(method, this.#path, handler2);
+        args.forEach((handler) => {
+          this.#addRoute(method, this.#path, handler);
         });
         return this;
       };
@@ -1155,8 +15201,8 @@ var Hono = class _Hono {
       for (const p of [path].flat()) {
         this.#path = p;
         for (const m of [method].flat()) {
-          handlers.map((handler2) => {
-            this.#addRoute(m.toUpperCase(), this.#path, handler2);
+          handlers.map((handler) => {
+            this.#addRoute(m.toUpperCase(), this.#path, handler);
           });
         }
       }
@@ -1169,8 +15215,8 @@ var Hono = class _Hono {
         this.#path = "*";
         handlers.unshift(arg1);
       }
-      handlers.forEach((handler2) => {
-        this.#addRoute(METHOD_NAME_ALL, this.#path, handler2);
+      handlers.forEach((handler) => {
+        this.#addRoute(METHOD_NAME_ALL, this.#path, handler);
       });
       return this;
     };
@@ -1212,14 +15258,14 @@ var Hono = class _Hono {
   route(path, app2) {
     const subApp = this.basePath(path);
     app2.routes.map((r) => {
-      let handler2;
+      let handler;
       if (app2.errorHandler === errorHandler) {
-        handler2 = r.handler;
+        handler = r.handler;
       } else {
-        handler2 = async (c, next) => (await compose([], app2.errorHandler)(c, () => r.handler(c, next))).res;
-        handler2[COMPOSED_HANDLER] = r.handler;
+        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r.handler(c, next))).res;
+        handler[COMPOSED_HANDLER] = r.handler;
       }
-      subApp.#addRoute(r.method, r.path, handler2, r.basePath);
+      subApp.#addRoute(r.method, r.path, handler, r.basePath);
     });
     return this;
   }
@@ -1257,8 +15303,8 @@ var Hono = class _Hono {
    * })
    * ```
    */
-  onError = (handler2) => {
-    this.errorHandler = handler2;
+  onError = (handler) => {
+    this.errorHandler = handler;
     return this;
   };
   /**
@@ -1276,8 +15322,8 @@ var Hono = class _Hono {
    * })
    * ```
    */
-  notFound = (handler2) => {
-    this.#notFoundHandler = handler2;
+  notFound = (handler) => {
+    this.#notFoundHandler = handler;
     return this;
   };
   /**
@@ -1347,44 +15393,44 @@ var Hono = class _Hono {
         return new Request(url, request);
       };
     })();
-    const handler2 = async (c, next) => {
+    const handler = async (c, next) => {
       const res = await applicationHandler(replaceRequest(c.req.raw), ...getOptions(c));
       if (res) {
         return res;
       }
       await next();
     };
-    this.#addRoute(METHOD_NAME_ALL, mergePath(path, "*"), handler2);
+    this.#addRoute(METHOD_NAME_ALL, mergePath(path, "*"), handler);
     return this;
   }
-  #addRoute(method, path, handler2, baseRoutePath) {
+  #addRoute(method, path, handler, baseRoutePath) {
     method = method.toUpperCase();
     path = mergePath(this._basePath, path);
     const r = {
       basePath: baseRoutePath !== void 0 ? mergePath(this._basePath, baseRoutePath) : this._basePath,
       path,
       method,
-      handler: handler2
+      handler
     };
-    this.router.add(method, path, [handler2, r]);
+    this.router.add(method, path, [handler, r]);
     this.routes.push(r);
   }
-  #handleError(err, c) {
-    if (err instanceof Error) {
-      return this.errorHandler(err, c);
+  #handleError(err2, c) {
+    if (err2 instanceof Error) {
+      return this.errorHandler(err2, c);
     }
-    throw err;
+    throw err2;
   }
-  #dispatch(request, executionCtx, env, method) {
+  #dispatch(request, executionCtx, env2, method) {
     if (method === "HEAD") {
-      return (async () => new Response(null, await this.#dispatch(request, executionCtx, env, "GET")))();
+      return (async () => new Response(null, await this.#dispatch(request, executionCtx, env2, "GET")))();
     }
-    const path = this.getPath(request, { env });
+    const path = this.getPath(request, { env: env2 });
     const matchResult = this.router.match(method, path);
     const c = new Context(request, {
       path,
       matchResult,
-      env,
+      env: env2,
       executionCtx,
       notFoundHandler: this.#notFoundHandler
     });
@@ -1394,12 +15440,12 @@ var Hono = class _Hono {
         res = matchResult[0][0][0][0](c, async () => {
           c.res = await this.#notFoundHandler(c);
         });
-      } catch (err) {
-        return this.#handleError(err, c);
+      } catch (err2) {
+        return this.#handleError(err2, c);
       }
       return res instanceof Promise ? res.then(
         (resolved) => resolved || (c.finalized ? c.res : this.#notFoundHandler(c))
-      ).catch((err) => this.#handleError(err, c)) : res ?? this.#notFoundHandler(c);
+      ).catch((err2) => this.#handleError(err2, c)) : res ?? this.#notFoundHandler(c);
     }
     const composed = compose(matchResult[0], this.errorHandler, this.#notFoundHandler);
     return (async () => {
@@ -1411,8 +15457,8 @@ var Hono = class _Hono {
           );
         }
         return context2.res;
-      } catch (err) {
-        return this.#handleError(err, c);
+      } catch (err2) {
+        return this.#handleError(err2, c);
       }
     })();
   }
@@ -1650,7 +15696,7 @@ var Trie = class {
     let captureIndex = 0;
     const indexReplacementMap = [];
     const paramReplacementMap = [];
-    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_, handlerIndex, paramIndex) => {
+    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_2, handlerIndex, paramIndex) => {
       if (handlerIndex !== void 0) {
         indexReplacementMap[++captureIndex] = Number(handlerIndex);
         return "$()";
@@ -1672,7 +15718,7 @@ function buildWildcardRegExp(path) {
   return wildcardRegExpCache[path] ??= new RegExp(
     path === "*" ? "" : `^${path.replace(
       /\/\*$|([.\\+*[^\]$()])/g,
-      (_, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
+      (_2, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
     )}$`
   );
 }
@@ -1755,7 +15801,7 @@ var RegExpRouter = class {
     this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
     this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
   }
-  add(method, path, handler2) {
+  add(method, path, handler) {
     const middleware = this.#middleware;
     const routes = this.#routes;
     if (!middleware || !routes) {
@@ -1775,7 +15821,7 @@ var RegExpRouter = class {
     }
     const paramCount = (path.match(/\/:/g) || []).length;
     if (/\*$/.test(path)) {
-      const re = buildWildcardRegExp(path);
+      const re2 = buildWildcardRegExp(path);
       if (method === METHOD_NAME_ALL) {
         Object.keys(middleware).forEach((m) => {
           middleware[m][path] ||= findMiddleware(middleware[m], path) || findMiddleware(middleware[METHOD_NAME_ALL], path) || [];
@@ -1786,14 +15832,14 @@ var RegExpRouter = class {
       Object.keys(middleware).forEach((m) => {
         if (method === METHOD_NAME_ALL || method === m) {
           Object.keys(middleware[m]).forEach((p) => {
-            re.test(p) && middleware[m][p].push([handler2, paramCount]);
+            re2.test(p) && middleware[m][p].push([handler, paramCount]);
           });
         }
       });
       Object.keys(routes).forEach((m) => {
         if (method === METHOD_NAME_ALL || method === m) {
           Object.keys(routes[m]).forEach(
-            (p) => re.test(p) && routes[m][p].push([handler2, paramCount])
+            (p) => re2.test(p) && routes[m][p].push([handler, paramCount])
           );
         }
       });
@@ -1807,7 +15853,7 @@ var RegExpRouter = class {
           routes[m][path2] ||= [
             ...findMiddleware(middleware[m], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || []
           ];
-          routes[m][path2].push([handler2, paramCount - len + i + 1]);
+          routes[m][path2].push([handler, paramCount - len + i + 1]);
         }
       });
     }
@@ -1852,11 +15898,11 @@ var SmartRouter = class {
   constructor(init) {
     this.#routers = init.routers;
   }
-  add(method, path, handler2) {
+  add(method, path, handler) {
     if (!this.#routes) {
       throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
     }
-    this.#routes.push([method, path, handler2]);
+    this.#routes.push([method, path, handler]);
   }
   match(method, path) {
     if (!this.#routes) {
@@ -1868,20 +15914,20 @@ var SmartRouter = class {
     let i = 0;
     let res;
     for (; i < len; i++) {
-      const router28 = routers[i];
+      const router30 = routers[i];
       try {
         for (let i2 = 0, len2 = routes.length; i2 < len2; i2++) {
-          router28.add(...routes[i2]);
+          router30.add(...routes[i2]);
         }
-        res = router28.match(method, path);
+        res = router30.match(method, path);
       } catch (e) {
         if (e instanceof UnsupportedPathError) {
           continue;
         }
         throw e;
       }
-      this.match = router28.match.bind(router28);
-      this.#routers = [router28];
+      this.match = router30.match.bind(router30);
+      this.#routers = [router30];
       this.#routes = void 0;
       break;
     }
@@ -1902,7 +15948,7 @@ var SmartRouter = class {
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router/trie-router/node.js
 var emptyParams = /* @__PURE__ */ Object.create(null);
 var hasChildren = (children) => {
-  for (const _ in children) {
+  for (const _2 in children) {
     return true;
   }
   return false;
@@ -1913,17 +15959,17 @@ var Node2 = class _Node2 {
   #patterns;
   #order = 0;
   #params = emptyParams;
-  constructor(method, handler2, children) {
+  constructor(method, handler, children) {
     this.#children = children || /* @__PURE__ */ Object.create(null);
     this.#methods = [];
-    if (method && handler2) {
+    if (method && handler) {
       const m = /* @__PURE__ */ Object.create(null);
-      m[method] = { handler: handler2, possibleKeys: [], score: 0 };
+      m[method] = { handler, possibleKeys: [], score: 0 };
       this.#methods = [m];
     }
     this.#patterns = [];
   }
-  insert(method, path, handler2) {
+  insert(method, path, handler) {
     this.#order = ++this.#order;
     let curNode = this;
     const parts = splitRoutingPath(path);
@@ -1949,7 +15995,7 @@ var Node2 = class _Node2 {
     }
     curNode.#methods.push({
       [method]: {
-        handler: handler2,
+        handler,
         possibleKeys: possibleKeys.filter((v, i, a) => a.indexOf(v) === i),
         score: this.#order
       }
@@ -2070,7 +16116,7 @@ var Node2 = class _Node2 {
         return a.score - b.score;
       });
     }
-    return [handlerSets.map(({ handler: handler2, params }) => [handler2, params])];
+    return [handlerSets.map(({ handler, params }) => [handler, params])];
   }
 };
 
@@ -2081,15 +16127,15 @@ var TrieRouter = class {
   constructor() {
     this.#node = new Node2();
   }
-  add(method, path, handler2) {
+  add(method, path, handler) {
     const results = checkOptionalParameter(path);
     if (results) {
       for (let i = 0, len = results.length; i < len; i++) {
-        this.#node.insert(method, results[i], handler2);
+        this.#node.insert(method, results[i], handler);
       }
       return;
     }
-    this.#node.insert(method, path, handler2);
+    this.#node.insert(method, path, handler);
   }
   match(method, path) {
     return this.#node.search(method, path);
@@ -2259,169 +16305,469 @@ var logger = (fn = console.log) => {
   };
 };
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
-var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
-var validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
-var trimCookieWhitespace = (value) => {
-  let start = 0;
-  let end = value.length;
-  while (start < end) {
-    const charCode = value.charCodeAt(start);
-    if (charCode !== 32 && charCode !== 9) {
-      break;
-    }
-    start++;
-  }
-  while (end > start) {
-    const charCode = value.charCodeAt(end - 1);
-    if (charCode !== 32 && charCode !== 9) {
-      break;
-    }
-    end--;
-  }
-  return start === 0 && end === value.length ? value : value.slice(start, end);
-};
-var parse = (cookie, name) => {
-  if (name && cookie.indexOf(name) === -1) {
-    return {};
-  }
-  const pairs = cookie.split(";");
-  const parsedCookie = /* @__PURE__ */ Object.create(null);
-  for (const pairStr of pairs) {
-    const valueStartPos = pairStr.indexOf("=");
-    if (valueStartPos === -1) {
-      continue;
-    }
-    const cookieName = trimCookieWhitespace(pairStr.substring(0, valueStartPos));
-    if (name && name !== cookieName || !validCookieNameRegEx.test(cookieName) || cookieName in parsedCookie) {
-      continue;
-    }
-    let cookieValue = trimCookieWhitespace(pairStr.substring(valueStartPos + 1));
-    if (cookieValue.startsWith('"') && cookieValue.endsWith('"')) {
-      cookieValue = cookieValue.slice(1, -1);
-    }
-    if (validCookieValueRegEx.test(cookieValue)) {
-      parsedCookie[cookieName] = cookieValue.indexOf("%") !== -1 ? tryDecode(cookieValue, decodeURIComponent_) : cookieValue;
-      if (name) {
-        break;
-      }
-    }
-  }
-  return parsedCookie;
-};
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/consts.js
+var import_chalk = __toESM(require_source(), 1);
+var queryKeys = /* @__PURE__ */ (function(queryKeys$1) {
+  queryKeys$1["DeployId"] = "deployId";
+  queryKeys$1["FnId"] = "fnId";
+  queryKeys$1["Probe"] = "probe";
+  queryKeys$1["StepId"] = "stepId";
+  return queryKeys$1;
+})({});
+var probe = /* @__PURE__ */ (function(probe$1) {
+  probe$1["Trust"] = "trust";
+  return probe$1;
+})({});
+var envKeys = /* @__PURE__ */ (function(envKeys$1) {
+  envKeys$1["InngestSigningKey"] = "INNGEST_SIGNING_KEY";
+  envKeys$1["InngestSigningKeyFallback"] = "INNGEST_SIGNING_KEY_FALLBACK";
+  envKeys$1["InngestEventKey"] = "INNGEST_EVENT_KEY";
+  envKeys$1["InngestDevServerUrl"] = "INNGEST_DEVSERVER_URL";
+  envKeys$1["InngestEnvironment"] = "INNGEST_ENV";
+  envKeys$1["InngestBaseUrl"] = "INNGEST_BASE_URL";
+  envKeys$1["InngestEventApiBaseUrl"] = "INNGEST_EVENT_API_BASE_URL";
+  envKeys$1["InngestApiBaseUrl"] = "INNGEST_API_BASE_URL";
+  envKeys$1["InngestServeHost"] = "INNGEST_SERVE_HOST";
+  envKeys$1["InngestServePath"] = "INNGEST_SERVE_PATH";
+  envKeys$1["InngestLogLevel"] = "INNGEST_LOG_LEVEL";
+  envKeys$1["InngestStreaming"] = "INNGEST_STREAMING";
+  envKeys$1["InngestDevMode"] = "INNGEST_DEV";
+  envKeys$1["InngestAllowInBandSync"] = "INNGEST_ALLOW_IN_BAND_SYNC";
+  envKeys$1["InngestConnectMaxWorkerConcurrency"] = "INNGEST_CONNECT_MAX_WORKER_CONCURRENCY";
+  envKeys$1["InngestConnectIsolateExecution"] = "INNGEST_CONNECT_ISOLATE_EXECUTION";
+  envKeys$1["BranchName"] = "BRANCH_NAME";
+  envKeys$1["VercelBranch"] = "VERCEL_GIT_COMMIT_REF";
+  envKeys$1["IsVercel"] = "VERCEL";
+  envKeys$1["CloudflarePagesBranch"] = "CF_PAGES_BRANCH";
+  envKeys$1["IsCloudflarePages"] = "CF_PAGES";
+  envKeys$1["NetlifyBranch"] = "BRANCH";
+  envKeys$1["IsNetlify"] = "NETLIFY";
+  envKeys$1["RenderBranch"] = "RENDER_GIT_BRANCH";
+  envKeys$1["IsRender"] = "RENDER";
+  envKeys$1["RailwayBranch"] = "RAILWAY_GIT_BRANCH";
+  envKeys$1["RailwayEnvironment"] = "RAILWAY_ENVIRONMENT";
+  envKeys$1["VercelEnvKey"] = "VERCEL_ENV";
+  envKeys$1["NodeEnv"] = "NODE_ENV";
+  envKeys$1["Context"] = "CONTEXT";
+  envKeys$1["Environment"] = "ENVIRONMENT";
+  envKeys$1["DenoDeployment"] = "DENO_DEPLOYMENT_ID";
+  envKeys$1["OpenAiApiKey"] = "OPENAI_API_KEY";
+  envKeys$1["GeminiApiKey"] = "GEMINI_API_KEY";
+  envKeys$1["AnthropicApiKey"] = "ANTHROPIC_API_KEY";
+  envKeys$1["ReactAppInngestBaseUrl"] = "REACT_APP_INNGEST_BASE_URL";
+  envKeys$1["ReactAppInngestDevMode"] = "REACT_APP_INNGEST_DEV";
+  envKeys$1["NextPublicInngestBaseUrl"] = "NEXT_PUBLIC_INNGEST_BASE_URL";
+  envKeys$1["NextPublicInngestDevMode"] = "NEXT_PUBLIC_INNGEST_DEV";
+  return envKeys$1;
+})({});
+var headerKeys = /* @__PURE__ */ (function(headerKeys$1) {
+  headerKeys$1["ContentType"] = "content-type";
+  headerKeys$1["Host"] = "host";
+  headerKeys$1["ForwardedFor"] = "x-forwarded-for";
+  headerKeys$1["RealIp"] = "x-real-ip";
+  headerKeys$1["Location"] = "location";
+  headerKeys$1["ContentLength"] = "content-length";
+  headerKeys$1["Signature"] = "x-inngest-signature";
+  headerKeys$1["SdkVersion"] = "x-inngest-sdk";
+  headerKeys$1["Environment"] = "x-inngest-env";
+  headerKeys$1["Platform"] = "x-inngest-platform";
+  headerKeys$1["Framework"] = "x-inngest-framework";
+  headerKeys$1["NoRetry"] = "x-inngest-no-retry";
+  headerKeys$1["RequestVersion"] = "x-inngest-req-version";
+  headerKeys$1["RetryAfter"] = "retry-after";
+  headerKeys$1["InngestServerKind"] = "x-inngest-server-kind";
+  headerKeys$1["InngestExpectedServerKind"] = "x-inngest-expected-server-kind";
+  headerKeys$1["InngestSyncKind"] = "x-inngest-sync-kind";
+  headerKeys$1["EventIdSeed"] = "x-inngest-event-id-seed";
+  headerKeys$1["TraceParent"] = "traceparent";
+  headerKeys$1["TraceState"] = "tracestate";
+  headerKeys$1["InngestRunId"] = "x-run-id";
+  headerKeys$1["InngestStepId"] = "x-inngest-step-id";
+  headerKeys$1["InngestForceStepPlan"] = "x-inngest-force-step-plan";
+  headerKeys$1["SdkHandled"] = "x-inngest-sdk-handled";
+  return headerKeys$1;
+})({});
+var forwardedHeaders = [headerKeys.TraceParent, headerKeys.TraceState];
+var defaultInngestApiBaseUrl = "https://api.inngest.com/";
+var defaultInngestEventBaseUrl = "https://inn.gs/";
+var defaultDevServerHost = "http://localhost:8288/";
+var internalEvents = /* @__PURE__ */ (function(internalEvents$1) {
+  internalEvents$1["FunctionFailed"] = "inngest/function.failed";
+  internalEvents$1["FunctionInvoked"] = "inngest/function.invoked";
+  internalEvents$1["FunctionFinished"] = "inngest/function.finished";
+  internalEvents$1["FunctionCancelled"] = "inngest/function.cancelled";
+  internalEvents$1["ScheduledTimer"] = "inngest/scheduled.timer";
+  internalEvents$1["HttpRequest"] = "inngest/http.request";
+  return internalEvents$1;
+})({});
+var logPrefix = import_chalk.default.magenta.bold("[Inngest]");
+var debugPrefix = "inngest";
+var dummyEventKey = "NO_EVENT_KEY_SET";
+var syncKind = /* @__PURE__ */ (function(syncKind$1) {
+  syncKind$1["InBand"] = "in_band";
+  syncKind$1["OutOfBand"] = "out_of_band";
+  return syncKind$1;
+})({});
+var ExecutionVersion = /* @__PURE__ */ (function(ExecutionVersion$1) {
+  ExecutionVersion$1[ExecutionVersion$1["V0"] = 0] = "V0";
+  ExecutionVersion$1[ExecutionVersion$1["V1"] = 1] = "V1";
+  ExecutionVersion$1[ExecutionVersion$1["V2"] = 2] = "V2";
+  return ExecutionVersion$1;
+})({});
+var defaultMaxRetries = 3;
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/cookie/index.js
-var getCookie = (c, key, prefix) => {
-  const cookie = c.req.raw.headers.get("Cookie");
-  if (typeof key === "string") {
-    if (!cookie) {
-      return void 0;
-    }
-    let finalKey = key;
-    if (prefix === "secure") {
-      finalKey = "__Secure-" + key;
-    } else if (prefix === "host") {
-      finalKey = "__Host-" + key;
-    }
-    const obj2 = parse(cookie, finalKey);
-    return obj2[finalKey];
-  }
-  if (!cookie) {
-    return {};
-  }
-  const obj = parse(cookie);
-  return obj;
-};
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/version.js
+var version = "3.54.2";
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/buffer.js
-var bufferToFormData = (arrayBuffer, contentType) => {
-  const response3 = new Response(arrayBuffer, {
-    headers: {
-      "Content-Type": contentType
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/strings.js
+var import_hash = __toESM(require_hash(), 1);
+var import_json_stringify_safe = __toESM(require_stringify(), 1);
+var import_ms = __toESM(require_ms(), 1);
+var { sha256 } = import_hash.default;
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+var stringify$1 = (input) => {
+  return (0, import_json_stringify_safe.default)(input, (_key, value) => {
+    if (typeof value !== "bigint") return value;
+  });
+};
+var slugify = (str) => {
+  const join = "-";
+  return str.toLowerCase().replace(/[^a-z0-9-]+/g, join).replace(/-+/g, join).split(join).filter(Boolean).join(join);
+};
+var second = 1 * 1e3;
+var minute = second * 60;
+var hour = minute * 60;
+var day = hour * 24;
+var periods = [
+  ["w", day * 7],
+  ["d", day],
+  ["h", hour],
+  ["m", minute],
+  ["s", second]
+];
+var timeStr = (input) => {
+  if (input instanceof Date) return input.toISOString();
+  const milliseconds = typeof input === "string" ? (0, import_ms.default)(input) : input;
+  const [, timeStr$1] = periods.reduce(([num, str], [suffix, period]) => {
+    const numPeriods = Math.floor(num / period);
+    if (numPeriods > 0) return [num % period, `${str}${numPeriods}${suffix}`];
+    return [num, str];
+  }, [milliseconds, ""]);
+  return timeStr$1;
+};
+var stringifyUnknown = (input) => {
+  if (typeof input === "boolean" || typeof input === "number" || typeof input === "string") return input.toString();
+};
+var hashEventKey = (eventKey) => {
+  return sha256().update(eventKey).digest("hex");
+};
+var hashSigningKey = (signingKey) => {
+  if (!signingKey) return "";
+  const prefix = signingKey.match(/^signkey-[\w]+-/)?.shift() || "";
+  const key = removeSigningKeyPrefix(signingKey);
+  return `${prefix}${sha256().update(key, "hex").digest("hex")}`;
+};
+function removeSigningKeyPrefix(signingKey) {
+  return signingKey.replace(/^signkey-[\w]+-/, "");
+}
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/_virtual/rolldown_runtime.js
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, { get: (a, b) => (typeof require !== "undefined" ? require : a)[b] }) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Calling `require` for "' + x + "\" in an environment that doesn't expose the `require` function.");
+});
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/env.js
+var devServerHost = (env2 = getProcessEnv()) => {
+  return [
+    envKeys.ReactAppInngestBaseUrl,
+    envKeys.NextPublicInngestBaseUrl,
+    envKeys.ReactAppInngestDevMode,
+    envKeys.NextPublicInngestDevMode
+  ].map((key) => {
+    return env2[key];
+  }).find((v) => {
+    if (!v) return;
+    try {
+      return Boolean(new URL(v));
+    } catch {
     }
   });
-  return response3.formData();
+};
+var checkFns = /* @__PURE__ */ ((checks) => checks)({
+  equals: (actual, expected) => actual === expected,
+  "starts with": (actual, expected) => expected ? actual?.startsWith(expected) ?? false : false,
+  "is truthy": (actual) => Boolean(actual),
+  "is truthy but not": (actual, expected) => Boolean(actual) && actual !== expected
+});
+var prodChecks = [
+  [
+    envKeys.IsCloudflarePages,
+    "equals",
+    "1"
+  ],
+  [
+    envKeys.Context,
+    "starts with",
+    "prod"
+  ],
+  [
+    envKeys.Environment,
+    "starts with",
+    "prod"
+  ],
+  [
+    envKeys.NodeEnv,
+    "starts with",
+    "prod"
+  ],
+  [
+    envKeys.VercelEnvKey,
+    "starts with",
+    "prod"
+  ],
+  [envKeys.DenoDeployment, "is truthy"],
+  [
+    envKeys.VercelEnvKey,
+    "is truthy but not",
+    "development"
+  ],
+  [envKeys.IsNetlify, "is truthy"],
+  [envKeys.IsRender, "is truthy"],
+  [envKeys.RailwayBranch, "is truthy"],
+  [envKeys.IsCloudflarePages, "is truthy"]
+];
+var Mode = class {
+  type;
+  /**
+  * Whether the mode was explicitly set, or inferred from other sources.
+  */
+  isExplicit;
+  explicitDevUrl;
+  env;
+  constructor({ type, isExplicit, explicitDevUrl, env: env2 = getProcessEnv() }) {
+    this.env = protectEnv(env2);
+    this.type = type;
+    this.isExplicit = isExplicit || Boolean(explicitDevUrl);
+    this.explicitDevUrl = explicitDevUrl;
+  }
+  get isDev() {
+    return this.type === "dev";
+  }
+  get isCloud() {
+    return this.type === "cloud";
+  }
+  get isInferred() {
+    return !this.isExplicit;
+  }
+  toJSON() {
+    return {};
+  }
+  /**
+  * If we are explicitly in a particular mode, retrieve the URL that we are
+  * sure we should be using, not considering any environment variables or other
+  * influences.
+  */
+  getExplicitUrl(defaultCloudUrl) {
+    if (!this.isExplicit) return;
+    if (this.explicitDevUrl) return this.explicitDevUrl.href;
+    if (this.isCloud) return defaultCloudUrl;
+    if (this.isDev) return defaultDevServerHost;
+  }
+};
+var getMode = ({ env: env2 = getProcessEnv(), client, explicitMode } = {}) => {
+  if (explicitMode) return new Mode({
+    type: explicitMode,
+    isExplicit: true,
+    env: env2
+  });
+  if (client?.["mode"].isExplicit) return client["mode"];
+  if (envKeys.InngestDevMode in env2) {
+    if (typeof env2[envKeys.InngestDevMode] === "string") try {
+      return new Mode({
+        type: "dev",
+        isExplicit: true,
+        explicitDevUrl: new URL(env2[envKeys.InngestDevMode]),
+        env: env2
+      });
+    } catch {
+    }
+    const envIsDev = parseAsBoolean(env2[envKeys.InngestDevMode]);
+    if (typeof envIsDev === "boolean") return new Mode({
+      type: envIsDev ? "dev" : "cloud",
+      isExplicit: true,
+      env: env2
+    });
+  }
+  return new Mode({
+    type: prodChecks.some(([key, checkKey, expected]) => {
+      return checkFns[checkKey](stringifyUnknown(env2[key]), expected);
+    }) ? "cloud" : "dev",
+    isExplicit: false,
+    env: env2
+  });
+};
+var getEnvironmentName = (env2 = getProcessEnv()) => {
+  return env2[envKeys.InngestEnvironment] || env2[envKeys.BranchName] || env2[envKeys.VercelBranch] || env2[envKeys.NetlifyBranch] || env2[envKeys.CloudflarePagesBranch] || env2[envKeys.RenderBranch] || env2[envKeys.RailwayBranch];
+};
+var processEnv = (key) => {
+  if (!Object.values(envKeys).includes(key)) throw new Error(`Env var "${key}" is not in the whitelist`);
+  return getProcessEnv()[key];
+};
+function getProcessEnv() {
+  const env2 = {};
+  const whitelist = Object.values(envKeys);
+  for (const [k, v] of Object.entries(allProcessEnv())) {
+    if (!whitelist.includes(k)) continue;
+    env2[k] = v;
+  }
+  return protectEnv(env2);
+}
+function protectEnv(env2) {
+  return {
+    ...env2,
+    toJSON: () => {
+      return {};
+    }
+  };
+}
+var allProcessEnv = () => {
+  try {
+    if (process.env) return process.env;
+  } catch (_err) {
+  }
+  try {
+    const env2 = Deno.env.toObject();
+    if (env2) return env2;
+  } catch (_err) {
+  }
+  try {
+    const env2 = Netlify.env.toObject();
+    if (env2) return env2;
+  } catch (_err) {
+  }
+  return {};
+};
+var inngestHeaders = (opts) => {
+  const sdkVersion = `inngest-js:v${version}`;
+  const headers = {
+    "Content-Type": "application/json",
+    "User-Agent": sdkVersion,
+    [headerKeys.SdkVersion]: sdkVersion,
+    [headerKeys.SdkHandled]: "true"
+  };
+  if (opts?.framework) headers[headerKeys.Framework] = opts.framework;
+  if (opts?.expectedServerKind) headers[headerKeys.InngestExpectedServerKind] = opts.expectedServerKind;
+  const env2 = {
+    ...getProcessEnv(),
+    ...opts?.env
+  };
+  const inngestEnv = opts?.inngestEnv || getEnvironmentName(env2);
+  if (inngestEnv) headers[headerKeys.Environment] = inngestEnv;
+  const platform = getPlatformName(env2);
+  if (platform) headers[headerKeys.Platform] = platform;
+  return {
+    ...headers,
+    ...opts?.client?.["headers"],
+    ...opts?.extras
+  };
+};
+var platformChecks = {
+  vercel: (env2) => env2[envKeys.IsVercel] === "1" || typeof EdgeRuntime === "string",
+  netlify: (env2) => env2[envKeys.IsNetlify] === "true",
+  "cloudflare-pages": (env2) => env2[envKeys.IsCloudflarePages] === "1",
+  render: (env2) => env2[envKeys.IsRender] === "true",
+  railway: (env2) => Boolean(env2[envKeys.RailwayEnvironment])
+};
+var streamingChecks = {
+  vercel: (_framework, _env) => typeof EdgeRuntime === "string",
+  "cloudflare-pages": () => true
+};
+var getPlatformName = (env2) => {
+  return Object.keys(platformChecks).find((key) => {
+    return platformChecks[key](env2);
+  });
+};
+var platformSupportsStreaming = (framework, env2 = getProcessEnv()) => {
+  return streamingChecks[getPlatformName(env2)]?.(framework, env2) ?? false;
+};
+var CUSTOM_FETCH_MARKER = /* @__PURE__ */ Symbol("Custom fetch implementation");
+var getFetch = (givenFetch) => {
+  if (givenFetch) {
+    if (CUSTOM_FETCH_MARKER in givenFetch) return givenFetch;
+    const customFetch = async (...args) => {
+      try {
+        return await givenFetch(...args);
+      } catch (err2) {
+        if (!(err2 instanceof Error) || !err2.message?.startsWith("fetch failed")) {
+          console.warn("A request failed when using a custom fetch implementation; this may be a misconfiguration. Make sure that your fetch client is correctly bound to the global scope.");
+          console.error(err2);
+        }
+        throw err2;
+      }
+    };
+    Object.defineProperties(customFetch, {
+      [CUSTOM_FETCH_MARKER]: {},
+      name: { value: givenFetch.name },
+      length: { value: givenFetch.length }
+    });
+    return customFetch;
+  }
+  try {
+    if (typeof globalThis !== "undefined" && "fetch" in globalThis) return fetch.bind(globalThis);
+  } catch (_err) {
+  }
+  if (typeof fetch !== "undefined") return fetch;
+  return __require("cross-fetch");
+};
+var parseAsBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return Boolean(value);
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase();
+    if (trimmed === "undefined") return;
+    if (["true", "1"].includes(trimmed)) return true;
+    return false;
+  }
 };
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/validator/validator.js
-var jsonRegex = /^application\/([a-z-\.]+\+)?json(;\s*[a-zA-Z0-9\-]+\=([^;]+))*$/;
-var multipartRegex = /^multipart\/form-data(;\s?boundary=[a-zA-Z0-9'"()+_,\-./:=?]+)?$/;
-var urlencodedRegex = /^application\/x-www-form-urlencoded(;\s*[a-zA-Z0-9\-]+\=([^;]+))*$/;
-var validator = (target, validationFunc) => {
-  return async (c, next) => {
-    let value = {};
-    const contentType = c.req.header("Content-Type");
-    switch (target) {
-      case "json":
-        if (!contentType || !jsonRegex.test(contentType)) {
-          break;
-        }
-        try {
-          value = await c.req.json();
-        } catch {
-          const message = "Malformed JSON in request body";
-          throw new HTTPException(400, { message });
-        }
-        break;
-      case "form": {
-        if (!contentType || !(multipartRegex.test(contentType) || urlencodedRegex.test(contentType))) {
-          break;
-        }
-        let formData;
-        if (c.req.bodyCache.formData) {
-          formData = await c.req.bodyCache.formData;
-        } else {
-          try {
-            const arrayBuffer = await c.req.arrayBuffer();
-            formData = await bufferToFormData(arrayBuffer, contentType);
-            c.req.bodyCache.formData = formData;
-          } catch (e) {
-            let message = "Malformed FormData request.";
-            message += e instanceof Error ? ` ${e.message}` : ` ${String(e)}`;
-            throw new HTTPException(400, { message });
-          }
-        }
-        const form = /* @__PURE__ */ Object.create(null);
-        formData.forEach((value2, key) => {
-          if (key.endsWith("[]")) {
-            ;
-            (form[key] ??= []).push(value2);
-          } else if (Array.isArray(form[key])) {
-            ;
-            form[key].push(value2);
-          } else if (Object.hasOwn(form, key)) {
-            form[key] = [form[key], value2];
-          } else {
-            form[key] = value2;
-          }
-        });
-        value = form;
-        break;
-      }
-      case "query":
-        value = Object.fromEntries(
-          Object.entries(c.req.queries()).map(([k, v]) => {
-            return v.length === 1 ? [k, v[0]] : [k, v];
-          })
-        );
-        break;
-      case "param":
-        value = c.req.param();
-        break;
-      case "header":
-        value = c.req.header();
-        break;
-      case "cookie":
-        value = getCookie(c);
-        break;
-    }
-    const res = await validationFunc(value, c);
-    if (res instanceof Response) {
-      return res;
-    }
-    c.req.addValidatedData(target, res);
-    return await next();
-  };
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/devserver.js
+var devServerAvailable = async (host = defaultDevServerHost, fetch3) => {
+  try {
+    await (await fetch3(devServerUrl(host, "/dev").toString())).json();
+    return true;
+  } catch (_e) {
+    return false;
+  }
+};
+var devServerUrl = (host = devServerHost$1(), pathname = "") => {
+  return new URL(pathname, host.includes("://") ? host : `http://${host}`);
+};
+var devServerHost$1 = () => devServerHost() || defaultDevServerHost;
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/enum.js
+var enumFromValue = (enumType2, value) => {
+  if (Object.values(enumType2).includes(value)) return value;
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/NonRetriableError.js
+var NonRetriableError = class extends Error {
+  /**
+  * The underlying cause of the error, if any.
+  *
+  * This will be serialized and sent to Inngest.
+  */
+  cause;
+  constructor(message, options) {
+    super(message);
+    this.cause = options?.cause;
+    this.name = "NonRetriableError";
+  }
 };
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -2539,7 +16885,7 @@ __export(external_exports, {
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
 (function(util2) {
-  util2.assertEqual = (_) => {
+  util2.assertEqual = (_2) => {
   };
   function assertIs(_arg) {
   }
@@ -2589,7 +16935,7 @@ var util;
     return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
   }
   util2.joinValues = joinValues;
-  util2.jsonStringifyReplacer = (_, value) => {
+  util2.jsonStringifyReplacer = (_2, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -2598,10 +16944,10 @@ var util;
 })(util || (util = {}));
 var objectUtil;
 (function(objectUtil2) {
-  objectUtil2.mergeShapes = (first, second) => {
+  objectUtil2.mergeShapes = (first, second2) => {
     return {
       ...first,
-      ...second
+      ...second2
       // second overwrites first
     };
   };
@@ -2690,8 +17036,8 @@ var ZodIssueCode = util.arrayToEnum([
   "not_finite"
 ]);
 var quotelessJson = (obj) => {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/"([^"]+)":/g, "$1:");
+  const json2 = JSON.stringify(obj, null, 2);
+  return json2.replace(/"([^"]+)":/g, "$1:");
 };
 var ZodError = class _ZodError extends Error {
   get errors() {
@@ -2960,12 +17306,12 @@ var ParseStatus = class _ParseStatus {
   }
   static mergeArray(status, results) {
     const arrayValue = [];
-    for (const s of results) {
-      if (s.status === "aborted")
+    for (const s2 of results) {
+      if (s2.status === "aborted")
         return INVALID;
-      if (s.status === "dirty")
+      if (s2.status === "dirty")
         status.dirty();
-      arrayValue.push(s.value);
+      arrayValue.push(s2.value);
     }
     return { status: status.value, value: arrayValue };
   }
@@ -3162,8 +17508,8 @@ var ZodType = class {
         } : {
           issues: ctx.common.issues
         };
-      } catch (err) {
-        if (err?.message?.toLowerCase()?.includes("encountered")) {
+      } catch (err2) {
+        if (err2?.message?.toLowerCase()?.includes("encountered")) {
           this["~standard"].async = true;
         }
         ctx.common = {
@@ -3402,11 +17748,11 @@ function datetimeRegex(args) {
   regex = `${regex}(${opts.join("|")})`;
   return new RegExp(`^${regex}$`);
 }
-function isValidIP(ip, version5) {
-  if ((version5 === "v4" || !version5) && ipv4Regex.test(ip)) {
+function isValidIP(ip, version6) {
+  if ((version6 === "v4" || !version6) && ipv4Regex.test(ip)) {
     return true;
   }
-  if ((version5 === "v6" || !version5) && ipv6Regex.test(ip)) {
+  if ((version6 === "v6" || !version6) && ipv6Regex.test(ip)) {
     return true;
   }
   return false;
@@ -3433,11 +17779,11 @@ function isValidJWT(jwt, alg) {
     return false;
   }
 }
-function isValidCidr(ip, version5) {
-  if ((version5 === "v4" || !version5) && ipv4CidrRegex.test(ip)) {
+function isValidCidr(ip, version6) {
+  if ((version6 === "v4" || !version6) && ipv4CidrRegex.test(ip)) {
     return true;
   }
-  if ((version5 === "v6" || !version5) && ipv6CidrRegex.test(ip)) {
+  if ((version6 === "v6" || !version6) && ipv6CidrRegex.test(ip)) {
     return true;
   }
   return false;
@@ -3988,12 +18334,12 @@ ZodString.create = (params) => {
     ...processCreateParams(params)
   });
 };
-function floatSafeRemainder(val, step) {
+function floatSafeRemainder(val, step2) {
   const valDecCount = (val.toString().split(".")[1] || "").length;
-  const stepDecCount = (step.toString().split(".")[1] || "").length;
+  const stepDecCount = (step2.toString().split(".")[1] || "").length;
   const decCount = valDecCount > stepDecCount ? valDecCount : stepDecCount;
   const valInt = Number.parseInt(val.toFixed(decCount).replace(".", ""));
-  const stepInt = Number.parseInt(step.toFixed(decCount).replace(".", ""));
+  const stepInt = Number.parseInt(step2.toFixed(decCount).replace(".", ""));
   return valInt % stepInt / 10 ** decCount;
 }
 var ZodNumber = class _ZodNumber extends ZodType {
@@ -5522,11 +19868,11 @@ var ZodRecord = class _ZodRecord extends ZodType {
   get element() {
     return this._def.valueType;
   }
-  static create(first, second, third) {
-    if (second instanceof ZodType) {
+  static create(first, second2, third) {
+    if (second2 instanceof ZodType) {
       return new _ZodRecord({
         keyType: first,
-        valueType: second,
+        valueType: second2,
         typeName: ZodFirstPartyTypeKind.ZodRecord,
         ...processCreateParams(third)
       });
@@ -5535,7 +19881,7 @@ var ZodRecord = class _ZodRecord extends ZodType {
       keyType: ZodString.create(),
       valueType: first,
       typeName: ZodFirstPartyTypeKind.ZodRecord,
-      ...processCreateParams(second)
+      ...processCreateParams(second2)
     });
   }
 };
@@ -6465,1489 +20811,7416 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// ../../node_modules/.pnpm/@hono+zod-validator@0.5.0_hono@4.12.23_zod@3.25.76/node_modules/@hono/zod-validator/dist/index.js
-var zValidator = (target, schema, hook, options) => (
-  // @ts-expect-error not typed well
-  validator(target, async (value, c) => {
-    let validatorValue = value;
-    if (target === "header" && schema instanceof ZodObject) {
-      const schemaKeys = Object.keys(schema.shape);
-      const caseInsensitiveKeymap = Object.fromEntries(
-        schemaKeys.map((key) => [key.toLowerCase(), key])
-      );
-      validatorValue = Object.fromEntries(
-        Object.entries(value).map(([key, value2]) => [caseInsensitiveKeymap[key] || key, value2])
-      );
-    }
-    const result = options && options.validationFunction ? await options.validationFunction(schema, validatorValue) : await schema.safeParseAsync(validatorValue);
-    if (hook) {
-      const hookResult = await hook({ data: validatorValue, ...result, target }, c);
-      if (hookResult) {
-        if (hookResult instanceof Response) {
-          return hookResult;
-        }
-        if ("response" in hookResult) {
-          return hookResult.response;
-        }
-      }
-    }
-    if (!result.success) {
-      return c.json(result, 400);
-    }
-    return result.data;
-  })
-);
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/factory/index.js
-var createMiddleware = (middleware) => middleware;
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/constants-BVchI2jn.mjs
-var DEV_OR_STAGING_SUFFIXES = [
-  ".lcl.dev",
-  ".stg.dev",
-  ".lclstage.dev",
-  ".stgstage.dev",
-  ".dev.lclclerk.com",
-  ".stg.lclclerk.com",
-  ".accounts.lclclerk.com",
-  "accountsstage.dev",
-  "accounts.dev"
-];
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicAtob-C1KQ5FtS.mjs
-var isomorphicAtob = (data) => {
-  if (typeof atob !== "undefined" && typeof atob === "function") return atob(data);
-  else if (typeof globalThis.Buffer !== "undefined") return globalThis.Buffer.from(data, "base64").toString();
-  return data;
-};
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/keys-jlv3GIE3.mjs
-function createDevOrStagingUrlCache() {
-  const devOrStagingUrlCache = /* @__PURE__ */ new Map();
-  return { isDevOrStagingUrl: (url) => {
-    if (!url) return false;
-    const hostname = typeof url === "string" ? url : url.hostname;
-    let res = devOrStagingUrlCache.get(hostname);
-    if (res === void 0) {
-      res = DEV_OR_STAGING_SUFFIXES.some((s) => hostname.endsWith(s));
-      devOrStagingUrlCache.set(hostname, res);
-    }
-    return res;
-  } };
-}
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/retry-NrE3SkPj.mjs
-var defaultOptions = {
-  initialDelay: 125,
-  maxDelayBetweenRetries: 0,
-  factor: 2,
-  shouldRetry: (_, iteration) => iteration < 5,
-  retryImmediately: false,
-  jitter: true
-};
-var RETRY_IMMEDIATELY_DELAY = 100;
-var sleep = async (ms) => new Promise((s) => setTimeout(s, ms));
-var applyJitter = (delay, jitter) => {
-  return jitter ? delay * (1 + Math.random()) : delay;
-};
-var createExponentialDelayAsyncFn = (opts) => {
-  let timesCalled = 0;
-  const calculateDelayInMs = () => {
-    const constant = opts.initialDelay;
-    const base = opts.factor;
-    let delay = constant * Math.pow(base, timesCalled);
-    delay = applyJitter(delay, opts.jitter);
-    return Math.min(opts.maxDelayBetweenRetries || delay, delay);
-  };
-  return async () => {
-    await sleep(calculateDelayInMs());
-    timesCalled++;
-  };
-};
-var retry = async (callback, options = {}) => {
-  let iterations = 0;
-  const { shouldRetry: shouldRetry2, initialDelay, maxDelayBetweenRetries, factor, retryImmediately, jitter, onBeforeRetry } = {
-    ...defaultOptions,
-    ...options
-  };
-  const delay = createExponentialDelayAsyncFn({
-    initialDelay,
-    maxDelayBetweenRetries,
-    factor,
-    jitter
-  });
-  while (true) try {
-    return await callback();
-  } catch (e) {
-    iterations++;
-    if (!shouldRetry2(e, iterations)) throw e;
-    if (onBeforeRetry) await onBeforeRetry(iterations);
-    if (retryImmediately && iterations === 1) await sleep(applyJitter(RETRY_IMMEDIATELY_DELAY, jitter));
-    else await delay();
-  }
-};
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/clerkRuntimeError-EpUpwIcY.mjs
-function createErrorTypeGuard(ErrorClass) {
-  function typeGuard(error) {
-    const target = error ?? this;
-    if (!target) throw new TypeError(`${ErrorClass.kind || ErrorClass.name} type guard requires an error object`);
-    if (ErrorClass.kind && typeof target === "object" && target !== null && "constructor" in target) {
-      if (target.constructor?.kind === ErrorClass.kind) return true;
-    }
-    return target instanceof ErrorClass;
-  }
-  return typeGuard;
-}
-var ClerkError = class ClerkError2 extends Error {
-  static kind = "ClerkError";
-  clerkError = true;
-  code;
-  longMessage;
-  docsUrl;
-  cause;
-  get name() {
-    return this.constructor.name;
-  }
-  constructor(opts) {
-    super(new.target.formatMessage(new.target.kind, opts.message, opts.code, opts.docsUrl), { cause: opts.cause });
-    Object.setPrototypeOf(this, ClerkError2.prototype);
-    this.code = opts.code;
-    this.docsUrl = opts.docsUrl;
-    this.longMessage = opts.longMessage;
-    this.cause = opts.cause;
-  }
-  toString() {
-    return `[${this.name}]
-Message:${this.message}`;
-  }
-  static formatMessage(name, msg, code, docsUrl) {
-    const prefix = "Clerk:";
-    const regex = new RegExp(prefix.replace(" ", "\\s*"), "i");
-    msg = msg.replace(regex, "");
-    msg = `${prefix} ${msg.trim()}
-
-(code="${code}")
-
-`;
-    if (docsUrl) msg += `
-
-Docs: ${docsUrl}`;
-    return msg;
-  }
-};
-var ClerkRuntimeError = class ClerkRuntimeError2 extends ClerkError {
-  static kind = "ClerkRuntimeError";
-  /**
-  * @deprecated Use `clerkError` property instead. This property is maintained for backward compatibility.
-  */
-  clerkRuntimeError = true;
-  constructor(message, options) {
-    super({
-      ...options,
-      message
-    });
-    Object.setPrototypeOf(this, ClerkRuntimeError2.prototype);
-  }
-};
-var isClerkRuntimeError = createErrorTypeGuard(ClerkRuntimeError);
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/error-DAG0ASPV.mjs
-var ClerkAPIError = class {
-  static kind = "ClerkAPIError";
-  code;
-  message;
-  longMessage;
-  meta;
-  constructor(json) {
-    const parsedError = {
-      code: json.code,
-      message: json.message,
-      longMessage: json.long_message,
-      meta: {
-        paramName: json.meta?.param_name,
-        sessionId: json.meta?.session_id,
-        emailAddresses: json.meta?.email_addresses,
-        identifiers: json.meta?.identifiers,
-        zxcvbn: json.meta?.zxcvbn,
-        plan: json.meta?.plan,
-        isPlanUpgradePossible: json.meta?.is_plan_upgrade_possible
-      }
-    };
-    this.code = parsedError.code;
-    this.message = parsedError.message;
-    this.longMessage = parsedError.longMessage;
-    this.meta = parsedError.meta;
-  }
-};
-var isClerkAPIError = createErrorTypeGuard(ClerkAPIError);
-var ClerkAPIResponseError = class ClerkAPIResponseError2 extends ClerkError {
-  static kind = "ClerkAPIResponseError";
-  status;
-  clerkTraceId;
-  retryAfter;
-  errors;
-  constructor(message, options) {
-    const { data: errorsJson, status, clerkTraceId, retryAfter } = options;
-    super({
-      ...options,
-      message,
-      code: "api_response_error"
-    });
-    Object.setPrototypeOf(this, ClerkAPIResponseError2.prototype);
-    this.status = status;
-    this.clerkTraceId = clerkTraceId;
-    this.retryAfter = retryAfter;
-    this.errors = (errorsJson || []).map((e) => new ClerkAPIError(e));
-  }
-  toString() {
-    let message = `[${this.name}]
-Message:${this.message}
-Status:${this.status}
-Serialized errors: ${this.errors.map((e) => JSON.stringify(e))}`;
-    if (this.clerkTraceId) message += `
-Clerk Trace ID: ${this.clerkTraceId}`;
-    return message;
-  }
-  static formatMessage(name, msg, _, __) {
-    return msg;
-  }
-};
-var isClerkAPIResponseError = createErrorTypeGuard(ClerkAPIResponseError);
-var DefaultMessages = Object.freeze({
-  InvalidProxyUrlErrorMessage: `The proxyUrl passed to Clerk is invalid. The expected value for proxyUrl is an absolute URL or a relative path with a leading '/'. (key={{url}})`,
-  InvalidPublishableKeyErrorMessage: `The publishableKey passed to Clerk is invalid. You can get your Publishable key at https://dashboard.clerk.com/last-active?path=api-keys. (key={{key}})`,
-  MissingPublishableKeyErrorMessage: `Missing publishableKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
-  MissingSecretKeyErrorMessage: `Missing secretKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
-  MissingClerkProvider: `{{source}} can only be used within the <ClerkProvider /> component. Learn more: https://clerk.com/docs/components/clerk-provider`
-});
-function buildErrorThrower({ packageName, customMessages }) {
-  let pkg = packageName;
-  function buildMessage(rawMessage, replacements) {
-    if (!replacements) return `${pkg}: ${rawMessage}`;
-    let msg = rawMessage;
-    const matches = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
-    for (const match3 of matches) {
-      const replacement = (replacements[match3[1]] || "").toString();
-      msg = msg.replace(`{{${match3[1]}}}`, replacement);
-    }
-    return `${pkg}: ${msg}`;
-  }
-  const messages = {
-    ...DefaultMessages,
-    ...customMessages
-  };
-  return {
-    setPackageName({ packageName: packageName$1 }) {
-      if (typeof packageName$1 === "string") pkg = packageName$1;
-      return this;
-    },
-    setMessages({ customMessages: customMessages$1 }) {
-      Object.assign(messages, customMessages$1 || {});
-      return this;
-    },
-    throwInvalidPublishableKeyError(params) {
-      throw new Error(buildMessage(messages.InvalidPublishableKeyErrorMessage, params));
-    },
-    throwInvalidProxyUrl(params) {
-      throw new Error(buildMessage(messages.InvalidProxyUrlErrorMessage, params));
-    },
-    throwMissingPublishableKeyError() {
-      throw new Error(buildMessage(messages.MissingPublishableKeyErrorMessage));
-    },
-    throwMissingSecretKeyError() {
-      throw new Error(buildMessage(messages.MissingSecretKeyErrorMessage));
-    },
-    throwMissingClerkProviderError(params) {
-      throw new Error(buildMessage(messages.MissingClerkProvider, params));
-    },
-    throw(message) {
-      throw new Error(buildMessage(message));
-    }
-  };
-}
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs
-var errorThrower = buildErrorThrower({ packageName: "@clerk/backend" });
-var { isDevOrStagingUrl } = createDevOrStagingUrlCache();
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-RZ7A7F6X.mjs
-var TokenVerificationErrorCode = {
-  InvalidSecretKey: "clerk_key_invalid"
-};
-var TokenVerificationErrorReason = {
-  TokenExpired: "token-expired",
-  TokenInvalid: "token-invalid",
-  TokenInvalidAlgorithm: "token-invalid-algorithm",
-  TokenInvalidAuthorizedParties: "token-invalid-authorized-parties",
-  TokenInvalidSignature: "token-invalid-signature",
-  TokenNotActiveYet: "token-not-active-yet",
-  TokenIatInTheFuture: "token-iat-in-the-future",
-  TokenVerificationFailed: "token-verification-failed",
-  InvalidSecretKey: "secret-key-invalid",
-  LocalJWKMissing: "jwk-local-missing",
-  RemoteJWKFailedToLoad: "jwk-remote-failed-to-load",
-  RemoteJWKInvalid: "jwk-remote-invalid",
-  RemoteJWKMissing: "jwk-remote-missing",
-  JWKFailedToResolve: "jwk-failed-to-resolve",
-  JWKKidMismatch: "jwk-kid-mismatch"
-};
-var TokenVerificationErrorAction = {
-  ContactSupport: "Contact support@clerk.com",
-  EnsureClerkJWT: "Make sure that this is a valid Clerk-generated JWT.",
-  SetClerkJWTKey: "Set the CLERK_JWT_KEY environment variable.",
-  SetClerkSecretKey: "Set the CLERK_SECRET_KEY environment variable.",
-  EnsureClockSync: "Make sure your system clock is in sync (e.g. turn off and on automatic time synchronization)."
-};
-var TokenVerificationError = class _TokenVerificationError extends Error {
-  constructor({
-    action,
-    message,
-    reason
-  }) {
-    super(message);
-    Object.setPrototypeOf(this, _TokenVerificationError.prototype);
-    this.reason = reason;
-    this.message = message;
-    this.action = action;
-  }
-  getFullMessage() {
-    return `${[this.message, this.action].filter((m) => m).join(" ")} (reason=${this.reason}, token-carrier=${this.tokenCarrier})`;
-  }
-};
-var MachineTokenVerificationErrorCode = {
-  TokenInvalid: "token-invalid",
-  InvalidSecretKey: "secret-key-invalid",
-  UnexpectedError: "unexpected-error",
-  TokenVerificationFailed: "token-verification-failed"
-};
-var _MachineTokenVerificationError = class _MachineTokenVerificationError2 extends ClerkError {
-  constructor({
-    message,
-    code,
-    status,
-    action
-  }) {
-    super({ message, code });
-    Object.setPrototypeOf(this, _MachineTokenVerificationError2.prototype);
-    this.status = status;
-    this.action = action;
-  }
-  // Keep message unformatted, matching ClerkAPIResponseError's approach
-  static formatMessage(_name, msg, _code, _docsUrl) {
-    return msg;
-  }
-  getFullMessage() {
-    return `${this.message} (code=${this.code}, status=${this.status || "n/a"})`;
-  }
-};
-_MachineTokenVerificationError.kind = "MachineTokenVerificationError";
-var MachineTokenVerificationError = _MachineTokenVerificationError;
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/runtime/node/crypto.mjs
-var import_node_crypto = require("crypto");
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-J2CDX2WG.mjs
-var globalFetch = fetch.bind(globalThis);
-var runtime = {
-  crypto: import_node_crypto.webcrypto,
-  get fetch() {
-    return process.env.NODE_ENV === "test" ? fetch : globalFetch;
-  },
-  AbortController: globalThis.AbortController,
-  Blob: globalThis.Blob,
-  FormData: globalThis.FormData,
-  Headers: globalThis.Headers,
-  Request: globalThis.Request,
-  Response: globalThis.Response
-};
-var base64url = {
-  parse(string, opts) {
-    return parse2(string, base64UrlEncoding, opts);
-  },
-  stringify(data, opts) {
-    return stringify(data, base64UrlEncoding, opts);
-  }
-};
-var base64UrlEncoding = {
-  chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
-  bits: 6
-};
-function parse2(string, encoding, opts = {}) {
-  if (!encoding.codes) {
-    encoding.codes = {};
-    for (let i = 0; i < encoding.chars.length; ++i) {
-      encoding.codes[encoding.chars[i]] = i;
-    }
-  }
-  if (!opts.loose && string.length * encoding.bits & 7) {
-    throw new SyntaxError("Invalid padding");
-  }
-  let end = string.length;
-  while (string[end - 1] === "=") {
-    --end;
-    if (!opts.loose && !((string.length - end) * encoding.bits & 7)) {
-      throw new SyntaxError("Invalid padding");
-    }
-  }
-  const out = new (opts.out ?? Uint8Array)(end * encoding.bits / 8 | 0);
-  let bits = 0;
-  let buffer = 0;
-  let written = 0;
-  for (let i = 0; i < end; ++i) {
-    const value = encoding.codes[string[i]];
-    if (value === void 0) {
-      throw new SyntaxError("Invalid character " + string[i]);
-    }
-    buffer = buffer << encoding.bits | value;
-    bits += encoding.bits;
-    if (bits >= 8) {
-      bits -= 8;
-      out[written++] = 255 & buffer >> bits;
-    }
-  }
-  if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
-    throw new SyntaxError("Unexpected end of data");
-  }
-  return out;
-}
-function stringify(data, encoding, opts = {}) {
-  const { pad = true } = opts;
-  const mask = (1 << encoding.bits) - 1;
-  let out = "";
-  let bits = 0;
-  let buffer = 0;
-  for (let i = 0; i < data.length; ++i) {
-    buffer = buffer << 8 | 255 & data[i];
-    bits += 8;
-    while (bits > encoding.bits) {
-      bits -= encoding.bits;
-      out += encoding.chars[mask & buffer >> bits];
-    }
-  }
-  if (bits) {
-    out += encoding.chars[mask & buffer << encoding.bits - bits];
-  }
-  if (pad) {
-    while (out.length * encoding.bits & 7) {
-      out += "=";
-    }
-  }
-  return out;
-}
-var algToHash = {
-  RS256: "SHA-256",
-  RS384: "SHA-384",
-  RS512: "SHA-512"
-};
-var RSA_ALGORITHM_NAME = "RSASSA-PKCS1-v1_5";
-var jwksAlgToCryptoAlg = {
-  RS256: RSA_ALGORITHM_NAME,
-  RS384: RSA_ALGORITHM_NAME,
-  RS512: RSA_ALGORITHM_NAME
-};
-var algs = Object.keys(algToHash);
-function getCryptoAlgorithm(algorithmName) {
-  const hash = algToHash[algorithmName];
-  const name = jwksAlgToCryptoAlg[algorithmName];
-  if (!hash || !name) {
-    throw new Error(`Unsupported algorithm ${algorithmName}, expected one of ${algs.join(",")}.`);
-  }
-  return {
-    hash: { name: algToHash[algorithmName] },
-    name: jwksAlgToCryptoAlg[algorithmName]
-  };
-}
-var isArrayString = (s) => {
-  return Array.isArray(s) && s.length > 0 && s.every((a) => typeof a === "string");
-};
-var assertAudienceClaim = (aud, audience) => {
-  const audienceList = [audience].flat().filter((a) => !!a);
-  const audList = [aud].flat().filter((a) => !!a);
-  const shouldVerifyAudience = audienceList.length > 0 && audList.length > 0;
-  if (!shouldVerifyAudience) {
-    return;
-  }
-  if (typeof aud === "string") {
-    if (!audienceList.includes(aud)) {
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.EnsureClerkJWT,
-        reason: TokenVerificationErrorReason.TokenVerificationFailed,
-        message: `Invalid JWT audience claim (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
-          audienceList
-        )}".`
-      });
-    }
-  } else if (isArrayString(aud)) {
-    if (!aud.some((a) => audienceList.includes(a))) {
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.EnsureClerkJWT,
-        reason: TokenVerificationErrorReason.TokenVerificationFailed,
-        message: `Invalid JWT audience claim array (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
-          audienceList
-        )}".`
-      });
-    }
-  }
-};
-var assertHeaderType = (typ, allowedTypes) => {
-  if (typeof typ === "undefined" && typeof allowedTypes === "undefined") {
-    return;
-  }
-  const expectedTypes = allowedTypes ?? "JWT";
-  const allowed = Array.isArray(expectedTypes) ? expectedTypes : [expectedTypes];
-  if (!allowed.includes(typ)) {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.EnsureClerkJWT,
-      reason: TokenVerificationErrorReason.TokenInvalid,
-      message: `Invalid JWT type ${JSON.stringify(typ)}. Expected "${allowed.join(", ")}".`
-    });
-  }
-};
-var assertHeaderAlgorithm = (alg) => {
-  if (!algs.includes(alg)) {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.EnsureClerkJWT,
-      reason: TokenVerificationErrorReason.TokenInvalidAlgorithm,
-      message: `Invalid JWT algorithm ${JSON.stringify(alg)}. Supported: ${algs}.`
-    });
-  }
-};
-var assertSubClaim = (sub) => {
-  if (typeof sub !== "string") {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.EnsureClerkJWT,
-      reason: TokenVerificationErrorReason.TokenVerificationFailed,
-      message: `Subject claim (sub) is required and must be a string. Received ${JSON.stringify(sub)}.`
-    });
-  }
-};
-var assertAuthorizedPartiesClaim = (azp, authorizedParties) => {
-  if (!azp || !authorizedParties || authorizedParties.length === 0) {
-    return;
-  }
-  if (!authorizedParties.includes(azp)) {
-    throw new TokenVerificationError({
-      reason: TokenVerificationErrorReason.TokenInvalidAuthorizedParties,
-      message: `Invalid JWT Authorized party claim (azp) ${JSON.stringify(azp)}. Expected "${authorizedParties}".`
-    });
-  }
-};
-var assertExpirationClaim = (exp, clockSkewInMs) => {
-  if (typeof exp !== "number") {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.EnsureClerkJWT,
-      reason: TokenVerificationErrorReason.TokenVerificationFailed,
-      message: `Invalid JWT expiry date claim (exp) ${JSON.stringify(exp)}. Expected number.`
-    });
-  }
-  const currentDate = new Date(Date.now());
-  const expiryDate = /* @__PURE__ */ new Date(0);
-  expiryDate.setUTCSeconds(exp);
-  const expired = expiryDate.getTime() <= currentDate.getTime() - clockSkewInMs;
-  if (expired) {
-    throw new TokenVerificationError({
-      reason: TokenVerificationErrorReason.TokenExpired,
-      message: `JWT is expired. Expiry date: ${expiryDate.toUTCString()}, Current date: ${currentDate.toUTCString()}.`
-    });
-  }
-};
-var assertActivationClaim = (nbf, clockSkewInMs) => {
-  if (typeof nbf === "undefined") {
-    return;
-  }
-  if (typeof nbf !== "number") {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.EnsureClerkJWT,
-      reason: TokenVerificationErrorReason.TokenVerificationFailed,
-      message: `Invalid JWT not before date claim (nbf) ${JSON.stringify(nbf)}. Expected number.`
-    });
-  }
-  const currentDate = new Date(Date.now());
-  const notBeforeDate = /* @__PURE__ */ new Date(0);
-  notBeforeDate.setUTCSeconds(nbf);
-  const early = notBeforeDate.getTime() > currentDate.getTime() + clockSkewInMs;
-  if (early) {
-    throw new TokenVerificationError({
-      reason: TokenVerificationErrorReason.TokenNotActiveYet,
-      message: `JWT cannot be used prior to not before date claim (nbf). Not before date: ${notBeforeDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
-    });
-  }
-};
-var assertIssuedAtClaim = (iat, clockSkewInMs) => {
-  if (typeof iat === "undefined") {
-    return;
-  }
-  if (typeof iat !== "number") {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.EnsureClerkJWT,
-      reason: TokenVerificationErrorReason.TokenVerificationFailed,
-      message: `Invalid JWT issued at date claim (iat) ${JSON.stringify(iat)}. Expected number.`
-    });
-  }
-  const currentDate = new Date(Date.now());
-  const issuedAtDate = /* @__PURE__ */ new Date(0);
-  issuedAtDate.setUTCSeconds(iat);
-  const postIssued = issuedAtDate.getTime() > currentDate.getTime() + clockSkewInMs;
-  if (postIssued) {
-    throw new TokenVerificationError({
-      reason: TokenVerificationErrorReason.TokenIatInTheFuture,
-      message: `JWT issued at date claim (iat) is in the future. Issued at date: ${issuedAtDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
-    });
-  }
-};
-function pemToBuffer(secret) {
-  const trimmed = secret.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
-  const decoded = isomorphicAtob(trimmed);
-  const buffer = new ArrayBuffer(decoded.length);
-  const bufView = new Uint8Array(buffer);
-  for (let i = 0, strLen = decoded.length; i < strLen; i++) {
-    bufView[i] = decoded.charCodeAt(i);
-  }
-  return bufView;
-}
-function importKey(key, algorithm, keyUsage) {
-  if (typeof key === "object") {
-    return runtime.crypto.subtle.importKey("jwk", key, algorithm, false, [keyUsage]);
-  }
-  const keyData = pemToBuffer(key);
-  const format = keyUsage === "sign" ? "pkcs8" : "spki";
-  return runtime.crypto.subtle.importKey(format, keyData, algorithm, false, [keyUsage]);
-}
-var DEFAULT_CLOCK_SKEW_IN_MS = 5 * 1e3;
-async function hasValidSignature(jwt, key) {
-  const { header, signature, raw: raw2 } = jwt;
-  const encoder = new TextEncoder();
-  const data = encoder.encode([raw2.header, raw2.payload].join("."));
-  const algorithm = getCryptoAlgorithm(header.alg);
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/errors.js
+var import_chalk2 = __toESM(require_source(), 1);
+var import_json_stringify_safe2 = __toESM(require_stringify(), 1);
+var import_serialize_error_cjs = __toESM(require_dist(), 1);
+var import_strip_ansi = __toESM(require_strip_ansi(), 1);
+var SERIALIZED_KEY = "__serialized";
+var SERIALIZED_VALUE = true;
+import_serialize_error_cjs.errorConstructors.set("NonRetriableError", NonRetriableError);
+var serializeError$1 = (subject, allowUnknown = false) => {
   try {
-    const cryptoKey = await importKey(key, algorithm, "verify");
-    const verified = await runtime.crypto.subtle.verify(algorithm.name, cryptoKey, signature, data);
-    return { data: verified };
-  } catch (error) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalidSignature,
-          message: error?.message
-        })
-      ]
-    };
-  }
-}
-function decodeJwt(token) {
-  const tokenParts = (token || "").toString().split(".");
-  if (tokenParts.length !== 3) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalid,
-          message: `Invalid JWT form. A JWT consists of three parts separated by dots.`
-        })
-      ]
-    };
-  }
-  const [rawHeader, rawPayload, rawSignature] = tokenParts;
-  const decoder = new TextDecoder();
-  const header = JSON.parse(decoder.decode(base64url.parse(rawHeader, { loose: true })));
-  const payload = JSON.parse(decoder.decode(base64url.parse(rawPayload, { loose: true })));
-  const signature = base64url.parse(rawSignature, { loose: true });
-  const data = {
-    header,
-    payload,
-    signature,
-    raw: {
-      header: rawHeader,
-      payload: rawPayload,
-      signature: rawSignature,
-      text: token
-    }
-  };
-  return { data };
-}
-async function verifyJwt(token, options) {
-  const { audience, authorizedParties, clockSkewInMs, key, headerType } = options;
-  const clockSkew = typeof clockSkewInMs === "number" && Number.isFinite(clockSkewInMs) ? clockSkewInMs : DEFAULT_CLOCK_SKEW_IN_MS;
-  const { data: decoded, errors } = decodeJwt(token);
-  if (errors) {
-    return { errors };
-  }
-  const { header, payload } = decoded;
-  try {
-    const { typ, alg } = header;
-    assertHeaderType(typ, headerType);
-    assertHeaderAlgorithm(alg);
-  } catch (err) {
-    return { errors: [err] };
-  }
-  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
-  if (signatureErrors) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenVerificationFailed,
-          message: `Error verifying JWT signature. ${signatureErrors[0]}`
-        })
-      ]
-    };
-  }
-  if (!signatureValid) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalidSignature,
-          message: "JWT signature is invalid."
-        })
-      ]
-    };
-  }
-  try {
-    const { azp, sub, aud, iat, exp, nbf } = payload;
-    assertSubClaim(sub);
-    assertAudienceClaim(aud, audience);
-    assertAuthorizedPartiesClaim(azp, authorizedParties);
-    assertExpirationClaim(exp, clockSkew);
-    assertActivationClaim(nbf, clockSkew);
-    assertIssuedAtClaim(iat, clockSkew);
-  } catch (err) {
-    return { errors: [err] };
-  }
-  return { data: payload };
-}
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-TOROEX6P.mjs
-var __create = Object.create;
-var __defProp2 = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __typeError = (msg) => {
-  throw TypeError(msg);
-};
-var __commonJS = (cb, mod) => function __require() {
-  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-H3NCOZAT.mjs
-var require_dist = __commonJS({
-  "../../node_modules/.pnpm/cookie@1.1.1/node_modules/cookie/dist/index.js"(exports2) {
-    "use strict";
-    Object.defineProperty(exports2, "__esModule", { value: true });
-    exports2.parseCookie = parseCookie;
-    exports2.parse = parseCookie;
-    exports2.stringifyCookie = stringifyCookie;
-    exports2.stringifySetCookie = stringifySetCookie;
-    exports2.serialize = stringifySetCookie;
-    exports2.parseSetCookie = parseSetCookie;
-    exports2.stringifySetCookie = stringifySetCookie;
-    exports2.serialize = stringifySetCookie;
-    var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
-    var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
-    var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
-    var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
-    var maxAgeRegExp = /^-?\d+$/;
-    var __toString = Object.prototype.toString;
-    var NullObject = /* @__PURE__ */ (() => {
-      const C = function() {
+    const existingSerializedError = isSerializedError(subject);
+    if (existingSerializedError) return existingSerializedError;
+    if (typeof subject === "object" && subject !== null) {
+      const serializedErr = (0, import_serialize_error_cjs.serializeError)(subject);
+      if (!serializedErr.name && allowUnknown) return subject;
+      const ret = {
+        ...serializedErr,
+        name: serializedErr.name || "Error",
+        message: serializedErr.message || (0, import_json_stringify_safe2.default)(subject) || "Unknown error; error serialization could not find a message.",
+        stack: serializedErr.stack || "",
+        [SERIALIZED_KEY]: SERIALIZED_VALUE
       };
-      C.prototype = /* @__PURE__ */ Object.create(null);
-      return C;
-    })();
-    function parseCookie(str, options) {
-      const obj = new NullObject();
-      const len = str.length;
-      if (len < 2)
-        return obj;
-      const dec = options?.decode || decode;
-      let index = 0;
-      do {
-        const eqIdx = eqIndex(str, index, len);
-        if (eqIdx === -1)
-          break;
-        const endIdx = endIndex(str, index, len);
-        if (eqIdx > endIdx) {
-          index = str.lastIndexOf(";", eqIdx - 1) + 1;
+      let target = ret;
+      const maxDepth = 5;
+      for (let i = 0; i < maxDepth; i++) {
+        if (typeof target === "object" && target !== null && "cause" in target && target.cause) {
+          target = target.cause = serializeError$1(target.cause, true);
           continue;
         }
-        const key = valueSlice(str, index, eqIdx);
-        if (obj[key] === void 0) {
-          obj[key] = dec(valueSlice(str, eqIdx + 1, endIdx));
-        }
-        index = endIdx + 1;
-      } while (index < len);
-      return obj;
-    }
-    function stringifyCookie(cookie, options) {
-      const enc = options?.encode || encodeURIComponent;
-      const cookieStrings = [];
-      for (const name of Object.keys(cookie)) {
-        const val = cookie[name];
-        if (val === void 0)
-          continue;
-        if (!cookieNameRegExp.test(name)) {
-          throw new TypeError(`cookie name is invalid: ${name}`);
-        }
-        const value = enc(val);
-        if (!cookieValueRegExp.test(value)) {
-          throw new TypeError(`cookie val is invalid: ${val}`);
-        }
-        cookieStrings.push(`${name}=${value}`);
-      }
-      return cookieStrings.join("; ");
-    }
-    function stringifySetCookie(_name, _val, _opts) {
-      const cookie = typeof _name === "object" ? _name : { ..._opts, name: _name, value: String(_val) };
-      const options = typeof _val === "object" ? _val : _opts;
-      const enc = options?.encode || encodeURIComponent;
-      if (!cookieNameRegExp.test(cookie.name)) {
-        throw new TypeError(`argument name is invalid: ${cookie.name}`);
-      }
-      const value = cookie.value ? enc(cookie.value) : "";
-      if (!cookieValueRegExp.test(value)) {
-        throw new TypeError(`argument val is invalid: ${cookie.value}`);
-      }
-      let str = cookie.name + "=" + value;
-      if (cookie.maxAge !== void 0) {
-        if (!Number.isInteger(cookie.maxAge)) {
-          throw new TypeError(`option maxAge is invalid: ${cookie.maxAge}`);
-        }
-        str += "; Max-Age=" + cookie.maxAge;
-      }
-      if (cookie.domain) {
-        if (!domainValueRegExp.test(cookie.domain)) {
-          throw new TypeError(`option domain is invalid: ${cookie.domain}`);
-        }
-        str += "; Domain=" + cookie.domain;
-      }
-      if (cookie.path) {
-        if (!pathValueRegExp.test(cookie.path)) {
-          throw new TypeError(`option path is invalid: ${cookie.path}`);
-        }
-        str += "; Path=" + cookie.path;
-      }
-      if (cookie.expires) {
-        if (!isDate(cookie.expires) || !Number.isFinite(cookie.expires.valueOf())) {
-          throw new TypeError(`option expires is invalid: ${cookie.expires}`);
-        }
-        str += "; Expires=" + cookie.expires.toUTCString();
-      }
-      if (cookie.httpOnly) {
-        str += "; HttpOnly";
-      }
-      if (cookie.secure) {
-        str += "; Secure";
-      }
-      if (cookie.partitioned) {
-        str += "; Partitioned";
-      }
-      if (cookie.priority) {
-        const priority = typeof cookie.priority === "string" ? cookie.priority.toLowerCase() : void 0;
-        switch (priority) {
-          case "low":
-            str += "; Priority=Low";
-            break;
-          case "medium":
-            str += "; Priority=Medium";
-            break;
-          case "high":
-            str += "; Priority=High";
-            break;
-          default:
-            throw new TypeError(`option priority is invalid: ${cookie.priority}`);
-        }
-      }
-      if (cookie.sameSite) {
-        const sameSite = typeof cookie.sameSite === "string" ? cookie.sameSite.toLowerCase() : cookie.sameSite;
-        switch (sameSite) {
-          case true:
-          case "strict":
-            str += "; SameSite=Strict";
-            break;
-          case "lax":
-            str += "; SameSite=Lax";
-            break;
-          case "none":
-            str += "; SameSite=None";
-            break;
-          default:
-            throw new TypeError(`option sameSite is invalid: ${cookie.sameSite}`);
-        }
-      }
-      return str;
-    }
-    function parseSetCookie(str, options) {
-      const dec = options?.decode || decode;
-      const len = str.length;
-      const endIdx = endIndex(str, 0, len);
-      const eqIdx = eqIndex(str, 0, endIdx);
-      const setCookie = eqIdx === -1 ? { name: "", value: dec(valueSlice(str, 0, endIdx)) } : {
-        name: valueSlice(str, 0, eqIdx),
-        value: dec(valueSlice(str, eqIdx + 1, endIdx))
-      };
-      let index = endIdx + 1;
-      while (index < len) {
-        const endIdx2 = endIndex(str, index, len);
-        const eqIdx2 = eqIndex(str, index, endIdx2);
-        const attr = eqIdx2 === -1 ? valueSlice(str, index, endIdx2) : valueSlice(str, index, eqIdx2);
-        const val = eqIdx2 === -1 ? void 0 : valueSlice(str, eqIdx2 + 1, endIdx2);
-        switch (attr.toLowerCase()) {
-          case "httponly":
-            setCookie.httpOnly = true;
-            break;
-          case "secure":
-            setCookie.secure = true;
-            break;
-          case "partitioned":
-            setCookie.partitioned = true;
-            break;
-          case "domain":
-            setCookie.domain = val;
-            break;
-          case "path":
-            setCookie.path = val;
-            break;
-          case "max-age":
-            if (val && maxAgeRegExp.test(val))
-              setCookie.maxAge = Number(val);
-            break;
-          case "expires":
-            if (!val)
-              break;
-            const date = new Date(val);
-            if (Number.isFinite(date.valueOf()))
-              setCookie.expires = date;
-            break;
-          case "priority":
-            if (!val)
-              break;
-            const priority = val.toLowerCase();
-            if (priority === "low" || priority === "medium" || priority === "high") {
-              setCookie.priority = priority;
-            }
-            break;
-          case "samesite":
-            if (!val)
-              break;
-            const sameSite = val.toLowerCase();
-            if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") {
-              setCookie.sameSite = sameSite;
-            }
-            break;
-        }
-        index = endIdx2 + 1;
-      }
-      return setCookie;
-    }
-    function endIndex(str, min, len) {
-      const index = str.indexOf(";", min);
-      return index === -1 ? len : index;
-    }
-    function eqIndex(str, min, max) {
-      const index = str.indexOf("=", min);
-      return index < max ? index : -1;
-    }
-    function valueSlice(str, min, max) {
-      let start = min;
-      let end = max;
-      do {
-        const code = str.charCodeAt(start);
-        if (code !== 32 && code !== 9)
-          break;
-      } while (++start < end);
-      while (end > start) {
-        const code = str.charCodeAt(end - 1);
-        if (code !== 32 && code !== 9)
-          break;
-        end--;
-      }
-      return str.slice(start, end);
-    }
-    function decode(str) {
-      if (str.indexOf("%") === -1)
-        return str;
-      try {
-        return decodeURIComponent(str);
-      } catch (e) {
-        return str;
-      }
-    }
-    function isDate(val) {
-      return __toString.call(val) === "[object Date]";
-    }
-  }
-});
-var API_URL = "https://api.clerk.com";
-var API_VERSION = "v1";
-var USER_AGENT = `${"@clerk/backend"}@${"3.5.0"}`;
-var MAX_CACHE_LAST_UPDATED_AT_SECONDS = 5 * 60;
-var SUPPORTED_BAPI_VERSION = "2025-11-10";
-var Cookies = {
-  Session: "__session",
-  Refresh: "__refresh",
-  ClientUat: "__client_uat",
-  Handshake: "__clerk_handshake",
-  DevBrowser: "__clerk_db_jwt",
-  RedirectCount: "__clerk_redirect_count",
-  HandshakeNonce: "__clerk_handshake_nonce"
-};
-var QueryParameters = {
-  ClerkSynced: "__clerk_synced",
-  SuffixedCookies: "suffixed_cookies",
-  ClerkRedirectUrl: "__clerk_redirect_url",
-  // use the reference to Cookies to indicate that it's the same value
-  DevBrowser: Cookies.DevBrowser,
-  Handshake: Cookies.Handshake,
-  HandshakeHelp: "__clerk_help",
-  LegacyDevBrowser: "__dev_session",
-  HandshakeReason: "__clerk_hs_reason",
-  HandshakeNonce: Cookies.HandshakeNonce,
-  HandshakeFormat: "format",
-  Session: "__session"
-};
-var TokenType = {
-  SessionToken: "session_token",
-  ApiKey: "api_key",
-  M2MToken: "m2m_token",
-  OAuthToken: "oauth_token"
-};
-var SEPARATOR = "/";
-var MULTIPLE_SEPARATOR_REGEX = new RegExp("(?<!:)" + SEPARATOR + "{1,}", "g");
-var MAX_DECODES = 10;
-function isDotSegment(segment) {
-  let candidate = segment;
-  for (let i = 0; i <= MAX_DECODES; i++) {
-    if (candidate.split(/[/\\]/).some((p) => p === "." || p === "..")) {
-      return true;
-    }
-    if (i === MAX_DECODES) {
-      throw new Error(`joinPaths: too many layers of encoding in ${segment}`);
-    }
-    try {
-      const next = decodeURIComponent(candidate);
-      if (next === candidate) {
         break;
       }
-      candidate = next;
+      return ret;
+    }
+    throw new Error("Error is not an object; strange throw value.");
+  } catch {
+    if (allowUnknown) return subject;
+    try {
+      return {
+        ...serializeError$1(new Error(typeof subject === "string" ? subject : (0, import_json_stringify_safe2.default)(subject)), false),
+        stack: "",
+        [SERIALIZED_KEY]: SERIALIZED_VALUE
+      };
     } catch {
-      break;
+      return {
+        name: "Could not serialize source error",
+        message: "Serializing the source error failed.",
+        stack: "",
+        [SERIALIZED_KEY]: SERIALIZED_VALUE
+      };
     }
-  }
-  return false;
-}
-function joinPaths(...args) {
-  const result = args.filter((p) => p).join(SEPARATOR).replace(MULTIPLE_SEPARATOR_REGEX, SEPARATOR);
-  for (const segment of result.split(SEPARATOR)) {
-    if (isDotSegment(segment)) {
-      throw new Error(`joinPaths: "." and ".." path segments are not allowed (received "${result}")`);
-    }
-  }
-  return result;
-}
-var M2M_RESERVED_JWT_CLAIMS = /* @__PURE__ */ new Set(["iss", "sub", "exp", "nbf", "iat", "jti"]);
-function extractCustomClaims(payload) {
-  const claims = {};
-  for (const key of Object.keys(payload)) {
-    if (!M2M_RESERVED_JWT_CLAIMS.has(key)) {
-      claims[key] = payload[key];
-    }
-  }
-  return Object.keys(claims).length > 0 ? claims : null;
-}
-var M2MToken = class _M2MToken {
-  constructor(id, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdAt, updatedAt, token) {
-    this.id = id;
-    this.subject = subject;
-    this.scopes = scopes;
-    this.claims = claims;
-    this.revoked = revoked;
-    this.revocationReason = revocationReason;
-    this.expired = expired;
-    this.expiration = expiration;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
-    this.token = token;
-  }
-  static fromJSON(data) {
-    return new _M2MToken(
-      data.id,
-      data.subject,
-      data.scopes,
-      data.claims,
-      data.revoked,
-      data.revocation_reason,
-      data.expired,
-      data.expiration,
-      data.created_at,
-      data.updated_at,
-      data.token
-    );
-  }
-  static fromJwtPayload(payload, clockSkewInMs = 5e3) {
-    return new _M2MToken(
-      payload.jti ?? "",
-      // jti should always be present in Clerk-issued M2M JWTs
-      payload.sub,
-      payload.scopes?.split(" ") ?? payload.aud ?? [],
-      extractCustomClaims(payload),
-      false,
-      null,
-      payload.exp * 1e3 <= Date.now() - clockSkewInMs,
-      payload.exp * 1e3,
-      // milliseconds — expiration, converted from JWT exp claim
-      payload.iat * 1e3,
-      // milliseconds — createdAt, converted from JWT iat claim
-      payload.iat * 1e3
-      // milliseconds — updatedAt, no JWT equivalent; defaults to iat
-    );
   }
 };
-var cache = {};
-var lastUpdatedAt = 0;
-function getFromCache(kid) {
-  return cache[kid];
-}
-function getCacheValues() {
-  return Object.values(cache);
-}
-function setInCache(cacheKey, jwk, shouldExpire = true) {
-  cache[cacheKey] = jwk;
-  lastUpdatedAt = shouldExpire ? Date.now() : -1;
-}
-var PEM_HEADER = "-----BEGIN PUBLIC KEY-----";
-var PEM_TRAILER = "-----END PUBLIC KEY-----";
-var RSA_PREFIX = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA";
-var RSA_SUFFIX = "IDAQAB";
-function loadClerkJwkFromPem(params) {
-  const { kid, pem } = params;
-  const prefixedKid = `local-${kid}`;
-  const cachedJwk = getFromCache(prefixedKid);
-  if (cachedJwk) {
-    return cachedJwk;
-  }
-  if (!pem) {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.SetClerkJWTKey,
-      message: "Missing local JWK.",
-      reason: TokenVerificationErrorReason.LocalJWKMissing
-    });
-  }
-  const modulus = pem.replace(/\r\n|\n|\r/g, "").replace(PEM_HEADER, "").replace(PEM_TRAILER, "").replace(RSA_PREFIX, "").replace(RSA_SUFFIX, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const jwk = { kid: prefixedKid, kty: "RSA", alg: "RS256", n: modulus, e: "AQAB" };
-  setInCache(prefixedKid, jwk, false);
-  return jwk;
-}
-async function loadClerkJWKFromRemote(params) {
-  const { secretKey, apiUrl = API_URL, apiVersion = API_VERSION, kid, skipJwksCache } = params;
-  if (skipJwksCache || cacheHasExpired() || !getFromCache(kid)) {
-    if (!secretKey) {
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.ContactSupport,
-        message: "Failed to load JWKS from Clerk Backend or Frontend API.",
-        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-      });
+var isSerializedError = (value) => {
+  try {
+    if (typeof value === "string") {
+      const parsed = external_exports.object({
+        [SERIALIZED_KEY]: external_exports.literal(SERIALIZED_VALUE),
+        name: external_exports.enum([...Array.from(import_serialize_error_cjs.errorConstructors.keys())]),
+        message: external_exports.string(),
+        stack: external_exports.string()
+      }).passthrough().safeParse(JSON.parse(value));
+      if (parsed.success) return parsed.data;
     }
-    const fetcher = () => fetchJWKSFromBAPI(apiUrl, secretKey, apiVersion);
-    const { keys } = await retry(fetcher);
-    if (!keys || !keys.length) {
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.ContactSupport,
-        message: "The JWKS endpoint did not contain any signing keys. Contact support@clerk.com.",
-        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-      });
+    if (typeof value === "object" && value !== null) {
+      if (Object.hasOwn(value, SERIALIZED_KEY) && value[SERIALIZED_KEY] === SERIALIZED_VALUE) return value;
     }
-    keys.forEach((key) => setInCache(key.kid, key));
+  } catch {
   }
-  const jwk = getFromCache(kid);
-  if (!jwk) {
-    const cacheValues = getCacheValues();
-    const jwkKeys = cacheValues.map((jwk2) => jwk2.kid).sort().join(", ");
-    throw new TokenVerificationError({
-      action: `Go to your Dashboard and validate your secret and public keys are correct. ${TokenVerificationErrorAction.ContactSupport} if the issue persists.`,
-      message: `Unable to find a signing key in JWKS that matches the kid='${kid}' of the provided session token. Please make sure that the __session cookie or the HTTP authorization header contain a Clerk-generated session JWT. The following kid is available: ${jwkKeys}`,
-      reason: TokenVerificationErrorReason.JWKKidMismatch
-    });
+};
+var deserializeError$1 = (subject, allowUnknown = false) => {
+  const requiredFields = ["name", "message"];
+  try {
+    if (!requiredFields.every((field) => {
+      return Object.hasOwn(subject, field);
+    })) throw new Error();
+    const deserializedErr = (0, import_serialize_error_cjs.deserializeError)(subject);
+    if ("cause" in deserializedErr) deserializedErr.cause = deserializeError$1(deserializedErr.cause, true);
+    return deserializedErr;
+  } catch {
+    if (allowUnknown) return subject;
+    const err2 = /* @__PURE__ */ new Error("Unknown error; could not reserialize");
+    err2.stack = void 0;
+    return err2;
   }
-  return jwk;
-}
-async function fetchJWKSFromBAPI(apiUrl, key, apiVersion) {
-  if (!key) {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.SetClerkSecretKey,
-      message: "Missing Clerk Secret Key or API Key. Go to https://dashboard.clerk.com and get your key for your instance.",
-      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-    });
-  }
-  const url = new URL(apiUrl);
-  url.pathname = joinPaths(url.pathname, apiVersion, "/jwks");
-  const response3 = await runtime.fetch(url.href, {
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
-      "Content-Type": "application/json",
-      "User-Agent": USER_AGENT
+};
+var ErrCode = /* @__PURE__ */ (function(ErrCode$1) {
+  ErrCode$1["NESTING_STEPS"] = "NESTING_STEPS";
+  ErrCode$1["NON_DETERMINISTIC_FUNCTION"] = "NON_DETERMINISTIC_FUNCTION";
+  ErrCode$1["ASYNC_DETECTED_AFTER_MEMOIZATION"] = "ASYNC_DETECTED_AFTER_MEMOIZATION";
+  ErrCode$1["STEP_USED_AFTER_ASYNC"] = "STEP_USED_AFTER_ASYNC";
+  ErrCode$1["AUTOMATIC_PARALLEL_INDEXING"] = "AUTOMATIC_PARALLEL_INDEXING";
+  ErrCode$1["NONDETERMINISTIC_STEPS"] = "NONDETERMINISTIC_STEPS";
+  return ErrCode$1;
+})({});
+var prettyErrorSplitter = "=================================================";
+var minifyPrettyError = (err2) => {
+  try {
+    if (!isError(err2)) return err2;
+    if (!err2.message.includes(prettyErrorSplitter)) return err2;
+    const sanitizedMessage = (0, import_strip_ansi.default)(err2.message);
+    const message = sanitizedMessage.split("  ")[1]?.split("\n")[0]?.trim() || err2.message;
+    err2.message = [sanitizedMessage.split("\n\nCode: ")[1]?.split("\n\n")[0]?.trim() || void 0, message].filter(Boolean).join(" - ");
+    if (err2.stack) {
+      const stackRest = (0, import_strip_ansi.default)(err2.stack).split(`${prettyErrorSplitter}
+`).slice(2).join("\n");
+      err2.stack = `${err2.name}: ${err2.message}
+${stackRest}`;
     }
-  });
-  if (!response3.ok) {
-    const json = await response3.json();
-    const invalidSecretKeyError = getErrorObjectByCode(json?.errors, TokenVerificationErrorCode.InvalidSecretKey);
-    if (invalidSecretKeyError) {
-      const reason = TokenVerificationErrorReason.InvalidSecretKey;
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.ContactSupport,
-        message: invalidSecretKeyError.message,
-        reason
-      });
-    }
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.ContactSupport,
-      message: `Error loading Clerk JWKS from ${url.href} with code=${response3.status}`,
-      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-    });
+    return err2;
+  } catch (_noopErr) {
+    return err2;
   }
-  return response3.json();
-}
-function cacheHasExpired() {
-  if (lastUpdatedAt === -1) {
+};
+var isError = (err2) => {
+  try {
+    if (err2 instanceof Error) return true;
+    if (typeof err2 !== "object" || err2 === null) return false;
+    return Object.hasOwn(err2, "name") && Object.hasOwn(err2, "message");
+  } catch (_noopErr) {
     return false;
   }
-  const isExpired = Date.now() - lastUpdatedAt >= MAX_CACHE_LAST_UPDATED_AT_SECONDS * 1e3;
-  if (isExpired) {
-    cache = {};
-  }
-  return isExpired;
-}
-var getErrorObjectByCode = (errors, code) => {
-  if (!errors) {
-    return null;
-  }
-  return errors.find((err) => err.code === code);
 };
-var MACHINE_TOKEN_TYPES = /* @__PURE__ */ new Set([TokenType.ApiKey, TokenType.M2MToken, TokenType.OAuthToken]);
-async function resolveKeyAndVerifyJwt(token, kid, options, headerType) {
-  try {
-    let key;
-    if (options.jwtKey) {
-      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
-    } else if (options.secretKey) {
-      key = await loadClerkJWKFromRemote({ ...options, kid });
-    } else {
-      return {
-        error: new MachineTokenVerificationError({
-          action: TokenVerificationErrorAction.SetClerkJWTKey,
-          message: "Failed to resolve JWK during verification.",
-          code: MachineTokenVerificationErrorCode.TokenVerificationFailed
-        })
-      };
+var getErrorMessage = (err2, fallback) => {
+  const { message } = external_exports.object({ message: external_exports.string().min(1) }).catch({ message: fallback }).parse(err2);
+  return message;
+};
+var prettyError = ({ type = "error", whatHappened, otherwise, reassurance, toFixNow, why, consequences, stack, code }) => {
+  const { icon, colorFn } = {
+    error: {
+      icon: "\u274C",
+      colorFn: import_chalk2.default.red
+    },
+    warn: {
+      icon: "\u26A0\uFE0F",
+      colorFn: import_chalk2.default.yellow
     }
-    const { data: payload, errors: verifyErrors } = await verifyJwt(token, {
-      ...options,
-      key,
-      ...headerType ? { headerType } : {}
-    });
-    if (verifyErrors) {
-      return {
-        error: new MachineTokenVerificationError({
-          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
-          message: verifyErrors[0].message
-        })
-      };
+  }[type];
+  let header = `${icon}  ${import_chalk2.default.bold.underline(whatHappened.trim())}`;
+  if (stack) header += "\n" + [...(/* @__PURE__ */ new Error()).stack?.split("\n").slice(1).filter(Boolean) || []].join("\n");
+  let toFixNowStr = (Array.isArray(toFixNow) ? toFixNow.map((s2) => s2.trim()).filter(Boolean).map((s2, i) => `	${i + 1}. ${s2}`).join("\n") : toFixNow?.trim()) ?? "";
+  if (Array.isArray(toFixNow) && toFixNowStr) toFixNowStr = `To fix this, you can take one of the following courses of action:
+
+${toFixNowStr}`;
+  let body = [
+    reassurance?.trim(),
+    why?.trim(),
+    consequences?.trim()
+  ].filter(Boolean).join(" ");
+  body += body ? `
+
+${toFixNowStr}` : toFixNowStr;
+  const trailer = [otherwise?.trim()].filter(Boolean).join(" ");
+  return colorFn([
+    prettyErrorSplitter,
+    header,
+    body,
+    trailer,
+    code ? `Code: ${code}` : "",
+    prettyErrorSplitter
+  ].filter(Boolean).join("\n\n"));
+};
+var fixEventKeyMissingSteps = [
+  "Set the `INNGEST_EVENT_KEY` environment variable",
+  `Pass a key to the \`new Inngest()\` constructor using the \`eventKey\` option`,
+  `Use \`inngest.setEventKey()\` at runtime`
+];
+var rethrowError = (prefix) => {
+  return (err2) => {
+    try {
+      err2.message &&= `${prefix}; ${err2.message}`;
+    } catch (_noopErr) {
+    } finally {
+      throw err2;
     }
-    return { payload };
-  } catch (error) {
+  };
+};
+var functionStoppedRunningErr = (code) => {
+  return prettyError({
+    whatHappened: "Your function was stopped from running",
+    why: "We detected a mix of asynchronous logic, some using step tooling and some not.",
+    consequences: "This can cause unexpected behaviour when a function is paused and resumed and is therefore strongly discouraged; we stopped your function to ensure nothing unexpected happened!",
+    stack: true,
+    toFixNow: "Ensure that your function is either entirely step-based or entirely non-step-based, by either wrapping all asynchronous logic in `step.run()` calls or by removing all `step.*()` calls.",
+    otherwise: "For more information on why step functions work in this manner, see https://www.inngest.com/docs/functions/multi-step#gotchas",
+    code
+  });
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/types.js
+var baseJsonErrorSchema = external_exports.object({
+  name: external_exports.string().trim().optional(),
+  error: external_exports.string().trim().optional(),
+  message: external_exports.string().trim().optional(),
+  stack: external_exports.string().trim().optional()
+});
+var maybeJsonErrorSchema = external_exports.lazy(() => external_exports.object({
+  name: external_exports.string().trim(),
+  message: external_exports.string().trim(),
+  stack: external_exports.string().trim().optional(),
+  cause: external_exports.union([maybeJsonErrorSchema, external_exports.unknown()]).optional()
+}));
+var jsonErrorSchema = baseJsonErrorSchema.extend({ cause: external_exports.union([maybeJsonErrorSchema, external_exports.unknown()]).optional() }).passthrough().catch({}).transform((val) => {
+  return {
+    ...val,
+    name: val.name || "Error",
+    message: val.message || val.error || "Unknown error",
+    stack: val.stack
+  };
+});
+var StepOpCode = /* @__PURE__ */ (function(StepOpCode$1) {
+  StepOpCode$1["WaitForSignal"] = "WaitForSignal";
+  StepOpCode$1["WaitForEvent"] = "WaitForEvent";
+  StepOpCode$1["Step"] = "Step";
+  StepOpCode$1["StepRun"] = "StepRun";
+  StepOpCode$1["StepError"] = "StepError";
+  StepOpCode$1["StepFailed"] = "StepFailed";
+  StepOpCode$1["StepPlanned"] = "StepPlanned";
+  StepOpCode$1["Sleep"] = "Sleep";
+  StepOpCode$1["StepNotFound"] = "StepNotFound";
+  StepOpCode$1["InvokeFunction"] = "InvokeFunction";
+  StepOpCode$1["AiGateway"] = "AIGateway";
+  StepOpCode$1["Gateway"] = "Gateway";
+  StepOpCode$1["RunComplete"] = "RunComplete";
+  StepOpCode$1["DiscoveryRequest"] = "DiscoveryRequest";
+  return StepOpCode$1;
+})({});
+var StepMode = /* @__PURE__ */ (function(StepMode$1) {
+  StepMode$1["Sync"] = "sync";
+  StepMode$1["Async"] = "async";
+  StepMode$1["AsyncCheckpointing"] = "async_checkpointing";
+  return StepMode$1;
+})({});
+var AsyncResponseType = /* @__PURE__ */ (function(AsyncResponseType$1) {
+  AsyncResponseType$1["Redirect"] = "redirect";
+  AsyncResponseType$1["Token"] = "token";
+  return AsyncResponseType$1;
+})({});
+var incomingOpSchema = external_exports.object({
+  id: external_exports.string().min(1),
+  data: external_exports.any().optional(),
+  error: external_exports.any().optional(),
+  input: external_exports.any().optional()
+});
+var sendEventResponseSchema = external_exports.object({
+  ids: external_exports.array(external_exports.string()).default([]),
+  status: external_exports.number().default(0),
+  error: external_exports.string().optional()
+});
+var defaultCheckpointingOptions = {
+  bufferedSteps: 1,
+  maxRuntime: 0,
+  maxInterval: 0
+};
+var logLevels = [
+  "fatal",
+  "error",
+  "warn",
+  "info",
+  "debug",
+  "silent"
+];
+var concurrencyOptionSchema = external_exports.strictObject({
+  limit: external_exports.number(),
+  key: external_exports.string().optional(),
+  scope: external_exports.enum([
+    "fn",
+    "env",
+    "account"
+  ]).optional()
+});
+var functionConfigSchema = external_exports.strictObject({
+  name: external_exports.string().optional(),
+  id: external_exports.string(),
+  triggers: external_exports.array(external_exports.union([external_exports.strictObject({
+    event: external_exports.string(),
+    expression: external_exports.string().optional()
+  }), external_exports.strictObject({ cron: external_exports.string() })])),
+  steps: external_exports.record(external_exports.strictObject({
+    id: external_exports.string(),
+    name: external_exports.string(),
+    runtime: external_exports.strictObject({
+      type: external_exports.union([external_exports.literal("http"), external_exports.literal("ws")]),
+      url: external_exports.string()
+    }),
+    retries: external_exports.strictObject({ attempts: external_exports.number().optional() }).optional()
+  })),
+  idempotency: external_exports.string().optional(),
+  batchEvents: external_exports.strictObject({
+    maxSize: external_exports.number(),
+    timeout: external_exports.string(),
+    key: external_exports.string().optional(),
+    if: external_exports.string().optional()
+  }).optional(),
+  rateLimit: external_exports.strictObject({
+    key: external_exports.string().optional(),
+    limit: external_exports.number(),
+    period: external_exports.string().transform((x) => x)
+  }).optional(),
+  throttle: external_exports.strictObject({
+    key: external_exports.string().optional(),
+    limit: external_exports.number(),
+    period: external_exports.string().transform((x) => x),
+    burst: external_exports.number().optional()
+  }).optional(),
+  singleton: external_exports.strictObject({
+    key: external_exports.string().optional(),
+    mode: external_exports.enum(["skip", "cancel"])
+  }).optional(),
+  cancel: external_exports.array(external_exports.strictObject({
+    event: external_exports.string(),
+    if: external_exports.string().optional(),
+    timeout: external_exports.string().optional()
+  })).optional(),
+  debounce: external_exports.strictObject({
+    key: external_exports.string().optional(),
+    period: external_exports.string().transform((x) => x),
+    timeout: external_exports.string().transform((x) => x).optional()
+  }).optional(),
+  timeouts: external_exports.strictObject({
+    start: external_exports.string().transform((x) => x).optional(),
+    finish: external_exports.string().transform((x) => x).optional()
+  }).optional(),
+  priority: external_exports.strictObject({ run: external_exports.string().optional() }).optional(),
+  concurrency: external_exports.union([
+    external_exports.number(),
+    concurrencyOptionSchema.transform((x) => x),
+    external_exports.array(concurrencyOptionSchema.transform((x) => x)).min(1).max(2)
+  ]).optional()
+});
+var ok = (data) => {
+  return {
+    ok: true,
+    value: data
+  };
+};
+var err = (error) => {
+  return {
+    ok: false,
+    error
+  };
+};
+var inBandSyncRequestBodySchema = external_exports.strictObject({ url: external_exports.string() });
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/InngestExecution.js
+var import_debug = __toESM(require_src(), 1);
+var PREFERRED_ASYNC_EXECUTION_VERSION = ExecutionVersion.V1;
+var PREFERRED_CHECKPOINTING_EXECUTION_VERSION = ExecutionVersion.V2;
+var InngestExecution = class {
+  debug;
+  constructor(options) {
+    this.options = options;
+    this.debug = (0, import_debug.default)(`${debugPrefix}:${this.options.runId}`);
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/schema.js
+var errorSchema = external_exports.object({
+  error: external_exports.string(),
+  status: external_exports.number()
+});
+var v0StepSchema = external_exports.record(external_exports.any().refine((v) => typeof v !== "undefined", { message: "Values in steps must be defined" })).optional().nullable();
+var v1StepSchema = external_exports.record(external_exports.object({
+  type: external_exports.literal("data").optional().default("data"),
+  data: external_exports.any().refine((v) => typeof v !== "undefined", { message: "Data in steps must be defined" })
+}).strict().or(external_exports.object({
+  type: external_exports.literal("error").optional().default("error"),
+  error: jsonErrorSchema
+}).strict()).or(external_exports.object({
+  type: external_exports.literal("input").optional().default("input"),
+  input: external_exports.any().refine((v) => typeof v !== "undefined", { message: "If input is present it must not be `undefined`" })
+}).strict()).or(external_exports.any().transform((v) => ({
+  type: "data",
+  data: v
+})))).default({});
+var v2StepSchema = v1StepSchema;
+var stepsSchemas = {
+  [ExecutionVersion.V0]: v0StepSchema,
+  [ExecutionVersion.V1]: v1StepSchema,
+  [ExecutionVersion.V2]: v2StepSchema
+};
+var batchSchema = external_exports.array(external_exports.record(external_exports.any()).transform((v) => v));
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/functions.js
+var cacheFn = (fn) => {
+  const key = "value";
+  const cache2 = /* @__PURE__ */ new Map();
+  return ((...args) => {
+    if (!cache2.has(key)) cache2.set(key, fn(...args));
+    return cache2.get(key);
+  });
+};
+var waterfall = (fns, transform) => {
+  return (...args) => {
+    return fns.reduce(async (acc, fn) => {
+      const prev = await acc;
+      const output = await fn(prev);
+      if (transform) return await transform(prev, output);
+      if (typeof output === "undefined") return prev;
+      return output;
+    }, Promise.resolve(args[0]));
+  };
+};
+var undefinedToNull = (v) => {
+  return typeof v === "undefined" ? null : v;
+};
+var versionSchema = external_exports.literal(-1).or(external_exports.literal(0)).or(external_exports.literal(1)).or(external_exports.literal(2)).optional().transform((v) => {
+  if (typeof v === "undefined") {
+    console.debug(`No request version specified by executor; defaulting to v${PREFERRED_ASYNC_EXECUTION_VERSION}`);
     return {
-      error: new MachineTokenVerificationError({
-        code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
-        message: error.message
-      })
+      sdkDecided: true,
+      version: PREFERRED_ASYNC_EXECUTION_VERSION
     };
   }
-}
-async function verifyM2MJwt(token, decoded, options) {
-  const result = await resolveKeyAndVerifyJwt(token, decoded.header.kid, options);
-  if ("error" in result) {
-    return { data: void 0, tokenType: TokenType.M2MToken, errors: [result.error] };
-  }
-  return {
-    data: M2MToken.fromJwtPayload(result.payload, options.clockSkewInMs),
-    tokenType: TokenType.M2MToken,
-    errors: void 0
+  if (v === -1) return {
+    sdkDecided: true,
+    version: PREFERRED_ASYNC_EXECUTION_VERSION
   };
-}
-var _verifyOptions;
-var _M2MTokenApi_instances;
-var createRequestOptions_fn;
-var verifyJwtFormat_fn;
-_verifyOptions = /* @__PURE__ */ new WeakMap();
-_M2MTokenApi_instances = /* @__PURE__ */ new WeakSet();
-createRequestOptions_fn = function(options, machineSecretKey) {
-  if (machineSecretKey) {
+  return {
+    sdkDecided: false,
+    version: v
+  };
+});
+var fnDataVersionSchema = external_exports.object({ version: versionSchema });
+var parseFnData = (data, headerVersion) => {
+  let version6;
+  let sdkDecided;
+  try {
+    if (typeof headerVersion !== "undefined") try {
+      const res = versionSchema.parse(headerVersion);
+      version6 = res.version;
+      sdkDecided = res.sdkDecided;
+    } catch {
+    }
+    if (typeof version6 === "undefined") {
+      const parsedVersionData = fnDataVersionSchema.parse(data);
+      version6 = parsedVersionData.version.version;
+      sdkDecided = parsedVersionData.version.sdkDecided;
+    }
     return {
-      ...options,
-      headerParams: {
-        ...options.headerParams,
-        Authorization: `Bearer ${machineSecretKey}`
+      [ExecutionVersion.V0]: () => ({
+        version: ExecutionVersion.V0,
+        sdkDecided,
+        ...external_exports.object({
+          event: external_exports.record(external_exports.any()),
+          events: external_exports.array(external_exports.record(external_exports.any())).default([]),
+          steps: stepsSchemas[ExecutionVersion.V0],
+          ctx: external_exports.object({
+            run_id: external_exports.string(),
+            attempt: external_exports.number().default(0),
+            stack: external_exports.object({
+              stack: external_exports.array(external_exports.string()).nullable().transform((v) => Array.isArray(v) ? v : []),
+              current: external_exports.number()
+            }).optional().nullable()
+          }).optional().nullable(),
+          use_api: external_exports.boolean().default(false)
+        }).parse(data)
+      }),
+      [ExecutionVersion.V1]: () => ({
+        version: ExecutionVersion.V1,
+        sdkDecided,
+        ...external_exports.object({
+          event: external_exports.record(external_exports.any()),
+          events: external_exports.array(external_exports.record(external_exports.any())).default([]),
+          steps: stepsSchemas[ExecutionVersion.V1],
+          ctx: external_exports.object({
+            run_id: external_exports.string(),
+            fn_id: external_exports.string().optional(),
+            attempt: external_exports.number().default(0),
+            max_attempts: external_exports.number().optional(),
+            disable_immediate_execution: external_exports.boolean().default(false),
+            use_api: external_exports.boolean().default(false),
+            qi_id: external_exports.string().optional(),
+            stack: external_exports.object({
+              stack: external_exports.array(external_exports.string()).nullable().transform((v) => Array.isArray(v) ? v : []),
+              current: external_exports.number()
+            }).optional().nullable()
+          }).optional().nullable()
+        }).parse(data)
+      }),
+      [ExecutionVersion.V2]: () => ({
+        version: ExecutionVersion.V2,
+        sdkDecided,
+        ...external_exports.object({
+          event: external_exports.record(external_exports.any()),
+          events: external_exports.array(external_exports.record(external_exports.any())).default([]),
+          steps: stepsSchemas[ExecutionVersion.V2],
+          ctx: external_exports.object({
+            run_id: external_exports.string(),
+            fn_id: external_exports.string().optional(),
+            attempt: external_exports.number().default(0),
+            max_attempts: external_exports.number().optional(),
+            disable_immediate_execution: external_exports.boolean().default(false),
+            use_api: external_exports.boolean().default(false),
+            qi_id: external_exports.string().optional(),
+            stack: external_exports.object({
+              stack: external_exports.array(external_exports.string()).nullable().transform((v) => Array.isArray(v) ? v : []),
+              current: external_exports.number()
+            }).optional().nullable()
+          }).optional().nullable()
+        }).parse(data)
+      })
+    }[version6]();
+  } catch (err$1) {
+    throw new Error(parseFailureErr(err$1));
+  }
+};
+var fetchAllFnData = async ({ data, api, version: version6 }) => {
+  const result = { ...data };
+  const shouldFetchData = {
+    [ExecutionVersion.V0]: () => result.version === ExecutionVersion.V0 && result.use_api,
+    [ExecutionVersion.V1]: () => result.version === ExecutionVersion.V1 && Boolean(result.ctx?.use_api),
+    [ExecutionVersion.V2]: () => result.version === ExecutionVersion.V2 && Boolean(result.ctx?.use_api)
+  };
+  try {
+    if (shouldFetchData[result.version]()) {
+      if (!result.ctx?.run_id) return err(prettyError({
+        whatHappened: "failed to attempt retrieving data from API",
+        consequences: "function execution can't continue",
+        why: "run_id is missing from context",
+        stack: true
+      }));
+      const [evtResp, stepResp] = await Promise.all([api.getRunBatch(result.ctx.run_id), api.getRunSteps(result.ctx.run_id, version6)]);
+      if (evtResp.ok) result.events = evtResp.value;
+      else return err(prettyError({
+        whatHappened: "failed to retrieve list of events",
+        consequences: "function execution can't continue",
+        why: evtResp.error?.error,
+        stack: true
+      }));
+      if (stepResp.ok) result.steps = stepResp.value;
+      else return err(prettyError({
+        whatHappened: "failed to retrieve steps for function run",
+        consequences: "function execution can't continue",
+        why: stepResp.error?.error,
+        stack: true
+      }));
+    }
+    const stepIds = Object.keys(result.steps || {});
+    if (stepIds.length && !result.ctx?.stack?.stack?.length) result.ctx = {
+      ...result.ctx,
+      stack: {
+        stack: stepIds,
+        current: stepIds.length - 1
       }
     };
+    return ok(result);
+  } catch (error) {
+    console.error(error);
+    return err(parseFailureErr(error));
   }
+};
+var parseFailureErr = (err$1) => {
+  let why;
+  if (err$1 instanceof ZodError) why = err$1.toString();
+  return prettyError({
+    whatHappened: "Failed to parse data from executor.",
+    consequences: "Function execution can't continue.",
+    toFixNow: "Make sure that your API is set up to parse incoming request bodies as JSON, like body-parser for Express (https://expressjs.com/en/resources/middleware/body-parser.html).",
+    stack: true,
+    why
+  });
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/net.js
+var import_hash2 = __toESM(require_hash(), 1);
+var import_canonicalize = __toESM(require_canonicalize(), 1);
+var { hmac, sha256: sha2562 } = import_hash2.default;
+var hasLoggedCryptoImplementation = false;
+async function fetchWithAuthFallback({ authToken, authTokenFallback, fetch: fetch3, options, url }) {
+  let res = await fetch3(url, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      Authorization: `Bearer ${authToken}`
+    }
+  });
+  if ([401, 403].includes(res.status) && authTokenFallback) res = await fetch3(url, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      Authorization: `Bearer ${authTokenFallback}`
+    }
+  });
+  return res;
+}
+function signWithHashJs(data, signingKey, ts) {
+  const encoded = typeof data === "string" ? data : (0, import_canonicalize.default)(data);
+  return hmac(sha2562, removeSigningKeyPrefix(signingKey)).update(encoded).update(ts).digest("hex");
+}
+var cryptoKeyCache = /* @__PURE__ */ new Map();
+async function signWithNative(subtle, data, signingKey, ts) {
+  const encoded = typeof data === "string" ? data : (0, import_canonicalize.default)(data);
+  const key = removeSigningKeyPrefix(signingKey);
+  let cryptoKey = cryptoKeyCache.get(key);
+  if (!cryptoKey) {
+    cryptoKey = await subtle.importKey("raw", new TextEncoder().encode(key), {
+      name: "HMAC",
+      hash: "SHA-256"
+    }, false, ["sign"]);
+    cryptoKeyCache.set(key, cryptoKey);
+  }
+  const signature = await subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(encoded + ts));
+  return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function signDataWithKey(data, signingKey, ts) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!hasLoggedCryptoImplementation) {
+    hasLoggedCryptoImplementation = true;
+    if (subtle) console.debug("[inngest] Using native Web Crypto for request signing");
+    else console.debug("[inngest] Using hash.js fallback for request signing (native crypto unavailable)");
+  }
+  if (subtle) try {
+    return await signWithNative(subtle, data, signingKey, ts);
+  } catch (error) {
+    console.debug("[inngest] Native crypto failed, falling back to hash.js:", error);
+  }
+  return signWithHashJs(data, signingKey, ts);
+}
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/promises.js
+var shimQueueMicrotask = (callback) => {
+  Promise.resolve().then(callback);
+};
+var resolveAfterPending = (count = 100) => {
+  return new Promise((resolve) => {
+    let i = 0;
+    const iterate = () => {
+      shimQueueMicrotask(() => {
+        if (i++ > count) return resolve();
+        iterate();
+      });
+    };
+    iterate();
+  });
+};
+var createDeferredPromise = () => {
+  let resolve;
+  let reject;
+  return {
+    promise: new Promise((_resolve, _reject) => {
+      resolve = (value) => {
+        _resolve(value);
+        return createDeferredPromise();
+      };
+      reject = (reason) => {
+        _reject(reason);
+        return createDeferredPromise();
+      };
+    }),
+    resolve,
+    reject
+  };
+};
+var createDeferredPromiseWithStack = () => {
+  const settledPromises = [];
+  let rotateQueue = () => {
+  };
+  const results = (async function* () {
+    while (true) {
+      const next = settledPromises.shift();
+      if (next) yield next;
+      else await new Promise((resolve) => {
+        rotateQueue = resolve;
+      });
+    }
+  })();
+  const shimDeferredPromise = (deferred) => {
+    const originalResolve = deferred.resolve;
+    const originalReject = deferred.reject;
+    deferred.resolve = (value) => {
+      settledPromises.push(deferred.promise);
+      rotateQueue();
+      return shimDeferredPromise(originalResolve(value));
+    };
+    deferred.reject = (reason) => {
+      settledPromises.push(deferred.promise);
+      rotateQueue();
+      return shimDeferredPromise(originalReject(reason));
+    };
+    return deferred;
+  };
+  return {
+    deferred: shimDeferredPromise(createDeferredPromise()),
+    results
+  };
+};
+var createTimeoutPromise = (duration) => {
+  const { promise, resolve } = createDeferredPromise();
+  let timeout;
+  let ret;
+  const start = () => {
+    if (timeout) return ret;
+    timeout = setTimeout(() => {
+      resolve();
+    }, duration);
+    return ret;
+  };
+  const clear = () => {
+    clearTimeout(timeout);
+    timeout = void 0;
+  };
+  const reset = () => {
+    clear();
+    return start();
+  };
+  ret = Object.assign(promise, {
+    start,
+    clear,
+    reset
+  });
+  return ret;
+};
+var runAsPromise = (fn) => {
+  return Promise.resolve().then(fn);
+};
+var resolveNextTick = () => {
+  return new Promise((resolve) => setTimeout(resolve));
+};
+var retryWithBackoff = async (fn, opts) => {
+  const maxAttempts = opts?.maxAttempts || 5;
+  const baseDelay = opts?.baseDelay ?? 100;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) try {
+    return await fn();
+  } catch (err2) {
+    if (attempt >= maxAttempts) throw err2;
+    const jitter = Math.random() * baseDelay;
+    const delay = baseDelay * Math.pow(2, attempt - 1) + jitter;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  throw new Error("Max retries reached; this should be unreachable.");
+};
+var goIntervalTiming = async (fn) => {
+  const start = Date.now();
+  const resultPromise = runAsPromise(fn);
+  try {
+    await resultPromise;
+  } catch {
+  }
+  const end = Date.now();
+  return {
+    resultPromise,
+    interval: {
+      a: start * 1e6,
+      b: (end - start) * 1e6
+    }
+  };
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/ServerTiming.js
+var ServerTiming = class {
+  timings = {};
+  /**
+  * Start a timing. Returns a function that, when called, will stop the timing
+  * and add it to the header.
+  */
+  start(name, description) {
+    if (!this.timings[name]) this.timings[name] = {
+      description: description ?? "",
+      timers: []
+    };
+    const index = this.timings[name].timers.push({ start: Date.now() }) - 1;
+    return () => {
+      const target = this.timings[name];
+      if (!target) return console.warn(`Timing "${name}" does not exist`);
+      const timer = target.timers[index];
+      if (!timer) return console.warn(`Timer ${index} for timing "${name}" does not exist`);
+      timer.end = Date.now();
+    };
+  }
+  /**
+  * Add a piece of arbitrary, untimed information to the header. Common use
+  * cases would be cache misses.
+  *
+  * @example
+  * ```
+  * timer.append("cache", "miss");
+  * ```
+  */
+  append(key, value) {
+    this.timings[key] = {
+      description: value,
+      timers: []
+    };
+  }
+  /**
+  * Wrap a function in a timing. The timing will be stopped and added to the
+  * header when the function resolves or rejects.
+  *
+  * The return value of the function will be returned from this function.
+  */
+  async wrap(name, fn, description) {
+    const stop = this.start(name, description);
+    try {
+      return await runAsPromise(fn);
+    } finally {
+      stop();
+    }
+  }
+  /**
+  * Generate the `Server-Timing` header.
+  */
+  getHeader() {
+    return Object.entries(this.timings).reduce((acc, [name, { description, timers }]) => {
+      if (!timers.some((timer) => timer.end)) return acc;
+      const dur = timers.reduce((acc$1, { start, end }) => {
+        if (!start || !end) return acc$1;
+        return acc$1 + (end - start);
+      }, 0);
+      const entry = [
+        name,
+        description ? `desc="${description}"` : "",
+        dur ? `dur=${dur}` : ""
+      ].filter(Boolean).join(";");
+      return [...acc, entry];
+    }, []).join(", ");
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/stream.js
+var createStream = (opts) => {
+  let passFinalize;
+  const finalizeP = new Promise((resolve) => {
+    passFinalize = resolve;
+  });
+  const interval = opts?.interval ?? 3e3;
+  const value = opts?.value ?? " ";
+  return new Promise(async (resolve, reject) => {
+    try {
+      resolve({
+        stream: new ReadableStream({ start(controller) {
+          const encoder = new TextEncoder();
+          const heartbeat = setInterval(() => {
+            controller.enqueue(encoder.encode(value));
+          }, interval);
+          const finalize = (data) => {
+            clearInterval(heartbeat);
+            Promise.resolve(data).then((resolvedData) => {
+              controller.enqueue(encoder.encode(stringify$1(resolvedData)));
+              controller.close();
+            });
+          };
+          passFinalize(finalize);
+        } }),
+        finalize: await finalizeP
+      });
+    } catch (err2) {
+      reject(err2);
+    }
+  });
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/als.js
+var alsSymbol = /* @__PURE__ */ Symbol.for("inngest:als");
+var getAsyncCtx = async () => {
+  return getAsyncLocalStorage().then((als) => als.getStore());
+};
+var getAsyncLocalStorage = async () => {
+  globalThis[alsSymbol] ??= new Promise(async (resolve) => {
+    try {
+      const { AsyncLocalStorage } = await import("async_hooks");
+      resolve(new AsyncLocalStorage());
+    } catch (_err) {
+      console.warn("node:async_hooks is not supported in this runtime. Experimental async context is disabled.");
+      resolve({
+        getStore: () => void 0,
+        run: (_2, fn) => fn()
+      });
+    }
+  });
+  return globalThis[alsSymbol];
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMiddleware.js
+var InngestMiddleware = class InngestMiddleware2 {
+  get [Symbol.toStringTag]() {
+    return InngestMiddleware2.Tag;
+  }
+  /**
+  * The name of this middleware. Used primarily for debugging and logging
+  * purposes.
+  */
+  name;
+  /**
+  * This function is used to initialize your middleware and register any hooks
+  * you want to use. It will be called once when the SDK is initialized, and
+  * should be used to store any state you want to use in other parts of your
+  * middleware.
+  *
+  * It can be synchronous or asynchronous, in which case the client will wait
+  * for it to resolve before continuing to initialize the next middleware.
+  *
+  * Multiple clients could be used in the same application with differing
+  * middleware, so do not store state in global variables or assume that your
+  * middleware will only be used once.
+  *
+  * Must return an object detailing the hooks you want to register.
+  */
+  init;
+  constructor({ name, init }) {
+    this.name = name;
+    this.init = init;
+  }
+};
+(function(_InngestMiddleware) {
+  _InngestMiddleware.Tag = "Inngest.Middleware";
+})(InngestMiddleware || (InngestMiddleware = {}));
+var getHookStack = async (middleware, key, arg, transforms) => {
+  const hookDirs = hookDirections[key];
+  if (!hookDirs) throw new Error(`No hook directions found for key "${String(key)}". This is likely a bug in the Inngest SDK.`);
+  const hooksRegistered = await (await middleware).reduce((acc, mw) => {
+    const fn = mw[key];
+    if (fn) return [...acc, fn];
+    return acc;
+  }, []).reduce(async (acc, fn) => {
+    return [...await acc, await fn(arg)];
+  }, Promise.resolve([]));
+  const ret = {};
+  for (const hook of hooksRegistered) {
+    const hookKeys = Object.keys(hook);
+    for (const key$1 of hookKeys) {
+      let fns = [hook[key$1]];
+      const existingWaterfall = ret[key$1];
+      if (existingWaterfall) if (hookDirs[key$1] === "forward") fns = [existingWaterfall, hook[key$1]];
+      else fns = [hook[key$1], existingWaterfall];
+      const transform = transforms[key$1];
+      ret[key$1] = waterfall(fns, transform);
+    }
+  }
+  for (const k of Object.keys(ret)) {
+    const key$1 = k;
+    if (key$1 === "transformOutput") continue;
+    ret[key$1] = cacheFn(ret[key$1]);
+  }
+  return ret;
+};
+var hookDirections = {
+  onFunctionRun: {
+    transformInput: "forward",
+    beforeMemoization: "forward",
+    afterMemoization: "backward",
+    beforeExecution: "forward",
+    afterExecution: "backward",
+    transformOutput: "backward",
+    beforeResponse: "forward",
+    finished: "forward"
+  },
+  onSendEvent: {
+    transformInput: "forward",
+    transformOutput: "backward"
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/RetryAfterError.js
+var import_ms2 = __toESM(require_ms(), 1);
+var RetryAfterError = class extends Error {
+  /**
+  * The underlying cause of the error, if any.
+  *
+  * This will be serialized and sent to Inngest.
+  */
+  cause;
+  /**
+  * The time after which the function should be retried. Represents either a
+  * number of milliseconds or a RFC3339 date.
+  */
+  retryAfter;
+  constructor(message, retryAfter, options) {
+    super(message);
+    this.name = "RetryAfterError";
+    if (retryAfter instanceof Date) this.retryAfter = retryAfter.toISOString();
+    else {
+      const seconds = `${Math.ceil((typeof retryAfter === "string" ? (0, import_ms2.default)(retryAfter) : retryAfter) / 1e3)}`;
+      if (!isFinite(Number(seconds))) throw new Error("retryAfter must be a number of milliseconds, a ms-compatible string, or a Date");
+      this.retryAfter = seconds;
+    }
+    this.cause = options?.cause;
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/temporal.js
+var isTemporalDuration = (input) => {
+  try {
+    return input[Symbol.toStringTag] === "Temporal.Duration";
+  } catch {
+    return false;
+  }
+};
+var isTemporalInstant = (input) => {
+  try {
+    return input[Symbol.toStringTag] === "Temporal.Instant";
+  } catch {
+    return false;
+  }
+};
+var isTemporalZonedDateTime = (input) => {
+  try {
+    return input[Symbol.toStringTag] === "Temporal.ZonedDateTime";
+  } catch {
+    return false;
+  }
+};
+var getISOString = (time2) => {
+  if (typeof time2 === "string") return new Date(time2).toISOString();
+  if (time2 instanceof Date) return time2.toISOString();
+  if (isTemporalZonedDateTime(time2)) return time2.toInstant().toString();
+  if (isTemporalInstant(time2)) return time2.toString();
+  throw new TypeError("Invalid date input");
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMetadata.js
+var UnscopedMetadataBuilder = class UnscopedMetadataBuilder2 {
+  constructor(client, config = {}) {
+    this.client = client;
+    this.config = config;
+  }
+  run(id) {
+    return new UnscopedMetadataBuilder2(this.client, {
+      ...this.config,
+      runId: id ?? null
+    });
+  }
+  step(id, index) {
+    return new UnscopedMetadataBuilder2(this.client, {
+      ...this.config,
+      stepId: id ?? null,
+      stepIndex: index ?? 0
+    });
+  }
+  attempt(attempt) {
+    return new UnscopedMetadataBuilder2(this.client, {
+      ...this.config,
+      attempt: attempt ?? null
+    });
+  }
+  span(id) {
+    return new UnscopedMetadataBuilder2(this.client, {
+      ...this.config,
+      spanId: id
+    });
+  }
+  async update(values, kind = "default") {
+    await performOp(this.client, this.config, values, `userland.${kind}`, "merge");
+  }
+  toJSON() {
+    return this.config;
+  }
+};
+function buildTarget(config, ctx) {
+  const ctxExecution = ctx?.execution;
+  const ctxRunId = ctxExecution?.ctx?.runId;
+  const ctxStepId = ctxExecution?.executingStep?.id;
+  const ctxAttempt = ctxExecution?.ctx?.attempt;
+  const targetRunId = config.runId ?? ctxRunId;
+  if (!targetRunId) throw new Error("No run context available");
+  const isSameRunAsCtx = ctxRunId !== void 0 && targetRunId === ctxRunId;
+  const stepCtxReason = !ctxExecution ? "no function execution context is available" : !ctxExecution.executingStep ? "you are not inside a step.run() callback" : "you are targeting a different run";
+  if (config.attempt === null && (!isSameRunAsCtx || !ctxExecution?.executingStep)) throw new Error(`attempt() was called without a value, but ${stepCtxReason}`);
+  if (config.stepId === null && (!isSameRunAsCtx || !ctxExecution?.executingStep)) throw new Error(`step() was called without a value, but ${stepCtxReason}`);
+  if (config.spanId !== void 0) return {
+    run_id: targetRunId,
+    step_id: config.stepId ?? ctxStepId,
+    step_index: config.stepIndex,
+    step_attempt: config.attempt ?? ctxAttempt,
+    span_id: config.spanId
+  };
+  else if (config.attempt !== void 0) return {
+    run_id: targetRunId,
+    step_id: config.stepId ?? ctxStepId,
+    step_index: config.stepIndex,
+    step_attempt: config.attempt ?? ctxAttempt
+  };
+  else if (config.stepId !== void 0) return {
+    run_id: targetRunId,
+    step_id: config.stepId ?? ctxStepId,
+    step_index: config.stepIndex
+  };
+  else if (config.runId !== void 0) return { run_id: targetRunId };
+  else if (ctxStepId && ctxAttempt !== void 0) return {
+    run_id: targetRunId,
+    step_id: ctxStepId,
+    step_attempt: ctxAttempt
+  };
+  else return { run_id: targetRunId };
+}
+function createMetadataPayload(kind, op, metadata) {
+  return [{
+    kind,
+    op,
+    values: metadata
+  }];
+}
+async function sendMetadataViaAPI(client, target, kind, op, metadata, headers) {
+  const metadataArray = createMetadataPayload(kind, op, metadata);
+  await client["updateMetadata"]({
+    target,
+    metadata: metadataArray,
+    headers
+  });
+}
+function getBatchScope(config) {
+  if (config.spanId !== void 0) return "extended_trace";
+  if (config.attempt !== void 0) return "step_attempt";
+  if (config.stepId !== void 0) return "step";
+  if (config.runId !== void 0) return "run";
+  return "step_attempt";
+}
+async function performOp(client, config, values, kind, op) {
+  const ctx = await getAsyncCtx();
+  const target = buildTarget(config, ctx);
+  const isInsideRun = !!ctx?.execution;
+  const isInsideStep = !!ctx?.execution?.executingStep;
+  if (isInsideRun && !isInsideStep) console.warn("inngest: metadata.update() called outside of a step. This metadata may be lost on retries. Wrap the call in step.run() for durable metadata.");
+  const runId = config.runId ?? ctx?.execution?.ctx?.runId;
+  const stepId = config.stepId ?? ctx?.execution?.executingStep?.id;
+  const attempt = config.attempt ?? ctx?.execution?.ctx?.attempt;
+  if (runId === ctx?.execution?.ctx?.runId && stepId === ctx?.execution?.executingStep?.id && attempt === ctx?.execution?.ctx?.attempt && !config.spanId) {
+    const executingStep = ctx?.execution?.executingStep;
+    const execInstance = ctx?.execution?.instance;
+    const scope = getBatchScope(config);
+    if (executingStep?.id && execInstance && execInstance.addMetadata(executingStep.id, kind, scope, op, values)) return;
+  }
+  await sendMetadataViaAPI(client, target, kind, op, values, ctx?.execution?.instance?.options?.headers ?? void 0);
+}
+var metadataSymbol = /* @__PURE__ */ Symbol.for("inngest.step.metadata");
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Fetch.js
+var import_debug2 = __toESM(require_src(), 1);
+var globalFetch = globalThis.fetch;
+var debug$1 = (0, import_debug2.default)("inngest:fetch");
+var createFetchShim = () => {
+  let stepFetch;
+  const fetch$1 = async (input, init) => {
+    const ctx = await getAsyncCtx();
+    if (!ctx?.execution) {
+      if (!stepFetch.fallback) throw new Error("step.fetch() called outside of a function and had no fallback set");
+      debug$1("step.fetch() called outside of a function; falling back to global fetch");
+      return stepFetch.fallback(input, init);
+    }
+    if (ctx.execution.executingStep) {
+      if (!stepFetch.fallback) throw new Error(`step.fetch() called inside step "${ctx.execution.executingStep.id}" and had no fallback set`);
+      debug$1(`step.fetch() called inside step "${ctx.execution.executingStep.id}"; falling back to global fetch`);
+      return stepFetch.fallback(input, init);
+    }
+    const targetUrl = new URL(input instanceof Request ? input.url : input.toString());
+    debug$1("step.fetch() shimming request to", targetUrl.hostname);
+    const jsonRes = await ctx.execution.ctx.step[gatewaySymbol](`step.fetch: ${targetUrl.hostname}`, input, init);
+    return new Response(jsonRes.body, {
+      headers: jsonRes.headers,
+      status: jsonRes.status_code
+    });
+  };
+  const optionsRef = { fallback: globalFetch };
+  const extras = {
+    config: (options) => {
+      Object.assign(optionsRef, options);
+      Object.assign(stepFetch, optionsRef);
+      return stepFetch;
+    },
+    ...optionsRef
+  };
+  stepFetch = Object.assign(fetch$1, extras);
+  return stepFetch;
+};
+var fetch2 = createFetchShim();
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunctionReference.js
+var InngestFunctionReference = class InngestFunctionReference2 {
+  get [Symbol.toStringTag]() {
+    return InngestFunctionReference2.Tag;
+  }
+  constructor(opts) {
+    this.opts = opts;
+  }
+};
+var referenceFunction = ({ functionId, appId }) => {
+  return new InngestFunctionReference({
+    functionId,
+    appId
+  });
+};
+(function(_InngestFunctionReference) {
+  _InngestFunctionReference.Tag = "Inngest.FunctionReference";
+})(InngestFunctionReference || (InngestFunctionReference = {}));
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestStepTools.js
+var import_ai = __toESM(require_dist2(), 1);
+var getStepOptions = (options) => {
+  if (typeof options === "string") return { id: options };
   return options;
 };
-verifyJwtFormat_fn = async function(token) {
-  let decoded;
-  try {
-    const { data, errors } = decodeJwt(token);
-    if (errors) {
-      throw errors[0];
-    }
-    decoded = data;
-  } catch (e) {
-    throw new MachineTokenVerificationError({
-      code: MachineTokenVerificationErrorCode.TokenInvalid,
-      message: e.message
+var STEP_INDEXING_SUFFIX = ":";
+var createStepTools = (client, execution, stepHandler) => {
+  const createTool = (matchOp, opts) => {
+    return (async (...args) => {
+      return stepHandler({
+        args,
+        matchOp,
+        opts
+      });
+    });
+  };
+  const createStepRun = (type) => {
+    return createTool(({ id, name }, _fn, ...input) => {
+      const opts = {
+        ...input.length ? { input } : {},
+        ...type ? { type } : {}
+      };
+      return {
+        id,
+        mode: StepMode.Sync,
+        op: StepOpCode.StepPlanned,
+        name: id,
+        displayName: name ?? id,
+        ...Object.keys(opts).length ? { opts } : {},
+        userland: { id }
+      };
+    }, { fn: (_2, __, fn, ...input) => fn(...input) });
+  };
+  const createStepMetadataWrapper = (memoizationId, builder) => {
+    if (!client["experimentalMetadataEnabled"]) throw new Error('step.metadata() is experimental. Enable it by adding metadataMiddleware() from "inngest/experimental" to your client middleware.');
+    const withBuilder = (next) => createStepMetadataWrapper(memoizationId, next);
+    if (!builder) builder = new UnscopedMetadataBuilder(client).run();
+    return {
+      run: (runId) => withBuilder(builder.run(runId)),
+      step: (stepId, index) => withBuilder(builder.step(stepId, index)),
+      attempt: (attemptIndex) => withBuilder(builder.attempt(attemptIndex)),
+      span: (spanId) => withBuilder(builder.span(spanId)),
+      update: async (values, kind = "default") => {
+        await tools.run(memoizationId, async () => {
+          await builder.update(values, kind);
+        });
+      },
+      do: async (fn) => {
+        await tools.run(memoizationId, async () => {
+          await fn(builder);
+        });
+      }
+    };
+  };
+  const tools = {
+    sendEvent: createTool(({ id, name }) => {
+      return {
+        id,
+        mode: StepMode.Sync,
+        op: StepOpCode.StepPlanned,
+        name: "sendEvent",
+        displayName: name ?? id,
+        opts: { type: "step.sendEvent" },
+        userland: { id }
+      };
+    }, { fn: (_ctx, _idOrOptions, payload) => {
+      return client["_send"]({
+        payload,
+        headers: execution["options"]["headers"]
+      });
+    } }),
+    waitForSignal: createTool(({ id, name }, opts) => {
+      return {
+        id,
+        mode: StepMode.Async,
+        op: StepOpCode.WaitForSignal,
+        name: opts.signal,
+        displayName: name ?? id,
+        opts: {
+          signal: opts.signal,
+          timeout: timeStr(opts.timeout),
+          conflict: opts.onConflict
+        },
+        userland: { id }
+      };
+    }),
+    realtime: { publish: createTool(({ id, name }) => {
+      return {
+        id,
+        mode: StepMode.Sync,
+        op: StepOpCode.StepPlanned,
+        displayName: name ?? id,
+        opts: { type: "step.realtime.publish" },
+        userland: { id }
+      };
+    }, { fn: (ctx, _idOrOptions, opts) => {
+      return client["inngestApi"].publish({
+        topics: [opts.topic],
+        channel: opts.channel,
+        runId: ctx.runId
+      }, opts.data);
+    } }) },
+    sendSignal: createTool(({ id, name }, opts) => {
+      return {
+        id,
+        mode: StepMode.Sync,
+        op: StepOpCode.StepPlanned,
+        name: "sendSignal",
+        displayName: name ?? id,
+        opts: {
+          type: "step.sendSignal",
+          signal: opts.signal
+        },
+        userland: { id }
+      };
+    }, { fn: (_ctx, _idOrOptions, opts) => {
+      return client["_sendSignal"]({
+        signal: opts.signal,
+        data: opts.data,
+        headers: execution["options"]["headers"]
+      });
+    } }),
+    waitForEvent: createTool(({ id, name }, opts) => {
+      const matchOpts = { timeout: timeStr(typeof opts === "string" ? opts : opts.timeout) };
+      if (typeof opts !== "string") {
+        if (opts?.match) matchOpts.if = `event.${opts.match} == async.${opts.match}`;
+        else if (opts?.if) matchOpts.if = opts.if;
+      }
+      return {
+        id,
+        mode: StepMode.Async,
+        op: StepOpCode.WaitForEvent,
+        name: opts.event,
+        opts: matchOpts,
+        displayName: name ?? id,
+        userland: { id }
+      };
+    }),
+    run: createStepRun(),
+    ai: {
+      infer: createTool(({ id, name }, options) => {
+        const { model, body, ...rest } = options;
+        const modelCopy = { ...model };
+        options.model.onCall?.(modelCopy, options.body);
+        return {
+          id,
+          mode: StepMode.Async,
+          op: StepOpCode.AiGateway,
+          displayName: name ?? id,
+          opts: {
+            type: "step.ai.infer",
+            url: modelCopy.url,
+            headers: modelCopy.headers,
+            auth_key: modelCopy.authKey,
+            format: modelCopy.format,
+            body,
+            ...rest
+          },
+          userland: { id }
+        };
+      }),
+      wrap: createStepRun("step.ai.wrap"),
+      models: { ...import_ai.models }
+    },
+    sleep: createTool(({ id, name }, time2) => {
+      const msTimeStr = timeStr(isTemporalDuration(time2) ? time2.total({ unit: "milliseconds" }) : time2);
+      return {
+        id,
+        mode: StepMode.Async,
+        op: StepOpCode.Sleep,
+        name: msTimeStr,
+        displayName: name ?? id,
+        userland: { id }
+      };
+    }),
+    sleepUntil: createTool(({ id, name }, time2) => {
+      try {
+        const iso = getISOString(time2);
+        return {
+          id,
+          mode: StepMode.Async,
+          op: StepOpCode.Sleep,
+          name: iso,
+          displayName: name ?? id,
+          userland: { id }
+        };
+      } catch (err2) {
+        console.warn("Invalid `Date`, date string, `Temporal.Instant`, or `Temporal.ZonedDateTime` passed to sleepUntil;", err2);
+        throw new Error(`Invalid \`Date\`, date string, \`Temporal.Instant\`, or \`Temporal.ZonedDateTime\` passed to sleepUntil: ${time2}`);
+      }
+    }),
+    invoke: createTool(({ id, name }, invokeOpts) => {
+      const optsSchema = invokePayloadSchema.extend({ timeout: external_exports.union([
+        external_exports.number(),
+        external_exports.string(),
+        external_exports.date()
+      ]).optional() });
+      const parsedFnOpts = optsSchema.extend({
+        _type: external_exports.literal("fullId").optional().default("fullId"),
+        function: external_exports.string().min(1)
+      }).or(optsSchema.extend({
+        _type: external_exports.literal("fnInstance").optional().default("fnInstance"),
+        function: external_exports.instanceof(InngestFunction)
+      })).or(optsSchema.extend({
+        _type: external_exports.literal("refInstance").optional().default("refInstance"),
+        function: external_exports.instanceof(InngestFunctionReference)
+      })).safeParse(invokeOpts);
+      if (!parsedFnOpts.success) throw new Error(`Invalid invocation options passed to invoke; must include either a function or functionId.`);
+      const { _type, function: fn, data, user, v, timeout } = parsedFnOpts.data;
+      const opts = {
+        payload: {
+          data,
+          user,
+          v
+        },
+        function_id: "",
+        timeout: typeof timeout === "undefined" ? void 0 : timeStr(timeout)
+      };
+      switch (_type) {
+        case "fnInstance":
+          opts.function_id = fn.id(fn["client"].id);
+          break;
+        case "fullId":
+          console.warn(`${logPrefix} Invoking function with \`function: string\` is deprecated and will be removed in v4.0.0; use an imported function or \`referenceFunction()\` instead. See https://innge.st/ts-referencing-functions`);
+          opts.function_id = fn;
+          break;
+        case "refInstance":
+          opts.function_id = [fn.opts.appId || client.id, fn.opts.functionId].filter(Boolean).join("-");
+          break;
+      }
+      return {
+        id,
+        mode: StepMode.Async,
+        op: StepOpCode.InvokeFunction,
+        displayName: name ?? id,
+        opts,
+        userland: { id }
+      };
+    }),
+    fetch: fetch2
+  };
+  tools[metadataSymbol] = (memoizationId) => createStepMetadataWrapper(memoizationId);
+  tools[gatewaySymbol] = createTool(({ id, name }, input, init) => {
+    const url = input instanceof Request ? input.url : input.toString();
+    const headers = {};
+    if (input instanceof Request) input.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    else if (init?.headers) new Headers(init.headers).forEach((value, key) => {
+      headers[key] = value;
+    });
+    return {
+      id,
+      mode: StepMode.Async,
+      op: StepOpCode.Gateway,
+      displayName: name ?? id,
+      opts: {
+        url,
+        method: init?.method ?? "GET",
+        headers,
+        body: init?.body
+      },
+      userland: { id }
+    };
+  });
+  return tools;
+};
+var gatewaySymbol = /* @__PURE__ */ Symbol.for("inngest.step.gateway");
+var step = {
+  fetch: null,
+  ai: {
+    infer: (...args) => getDeferredStepTooling().then((tools) => tools.ai.infer(...args)),
+    wrap: (...args) => getDeferredStepTooling().then((tools) => tools.ai.wrap(...args)),
+    models: { ...import_ai.models }
+  },
+  invoke: (...args) => getDeferredStepTooling().then((tools) => tools.invoke(...args)),
+  run: (...args) => getDeferredStepTooling().then((tools) => tools.run(...args)),
+  sendEvent: (...args) => getDeferredStepTooling().then((tools) => tools.sendEvent(...args)),
+  sendSignal: (...args) => getDeferredStepTooling().then((tools) => tools.sendSignal(...args)),
+  sleep: (...args) => getDeferredStepTooling().then((tools) => tools.sleep(...args)),
+  sleepUntil: (...args) => getDeferredStepTooling().then((tools) => tools.sleepUntil(...args)),
+  waitForEvent: (...args) => getDeferredStepTooling().then((tools) => tools.waitForEvent(...args)),
+  waitForSignal: (...args) => getDeferredStepTooling().then((tools) => tools.waitForSignal(...args)),
+  realtime: { publish: (...args) => getDeferredStepTooling().then((tools) => tools.realtime.publish(...args)) }
+};
+var getDeferredStepTooling = async () => {
+  const ctx = await getAsyncCtx();
+  if (!ctx) throw new Error("`step` tools can only be used within Inngest function executions; no context was found");
+  if (!ctx.app) throw new Error("`step` tools can only be used within Inngest function executions; no Inngest client was found in the execution context");
+  if (!ctx.execution) throw new Error("`step` tools can only be used within Inngest function executions; no execution context was found");
+  return ctx.execution.ctx.step;
+};
+var invokePayloadSchema = external_exports.object({
+  data: external_exports.record(external_exports.any()).optional(),
+  user: external_exports.record(external_exports.any()).optional(),
+  v: external_exports.string().optional()
+});
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v0.js
+var import_hash3 = __toESM(require_hash(), 1);
+var import_canonicalize2 = __toESM(require_canonicalize(), 1);
+var { sha1 } = import_hash3.default;
+var createV0InngestExecution = (options) => {
+  return new V0InngestExecution(options);
+};
+var V0InngestExecution = class extends InngestExecution {
+  version = ExecutionVersion.V0;
+  state;
+  execution;
+  userFnToRun;
+  fnArg;
+  constructor(options) {
+    super(options);
+    this.userFnToRun = this.getUserFnToRun();
+    this.state = this.createExecutionState();
+    this.fnArg = this.createFnArg();
+  }
+  addMetadata(_stepId, _kind, _scope, _op, _values) {
+    return false;
+  }
+  start() {
+    this.debug("starting V0 execution");
+    return this.execution ??= this._start().then((result) => {
+      this.debug("result:", result);
+      return result;
     });
   }
-  const result = await verifyM2MJwt(token, decoded, __privateGet(this, _verifyOptions));
-  if (result.errors) {
-    throw result.errors[0];
-  }
-  return result.data;
-};
-var SPLIT_LOWER_UPPER_RE = new RegExp("([\\p{Ll}\\d])(\\p{Lu})", "gu");
-var SPLIT_UPPER_UPPER_RE = new RegExp("(\\p{Lu})([\\p{Lu}][\\p{Ll}])", "gu");
-var SPLIT_SEPARATE_NUMBER_RE = new RegExp("(\\d)\\p{Ll}|(\\p{L})\\d", "u");
-var PlainObjectConstructor = {}.constructor;
-var import_cookie3 = __toESM(require_dist());
-async function verifyToken(token, options) {
-  const { data: decodedResult, errors } = decodeJwt(token);
-  if (errors) {
-    return { errors };
-  }
-  const { header } = decodedResult;
-  const { kid } = header;
-  try {
-    let key;
-    if (options.jwtKey) {
-      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
-    } else if (options.secretKey) {
-      key = await loadClerkJWKFromRemote({ ...options, kid });
-    } else {
+  async _start() {
+    this.state.hooks = await this.initializeMiddleware();
+    try {
+      await this.transformInput();
+      await this.state.hooks.beforeMemoization?.();
+      if (this.state.opStack.length === 0 && !this.options.requestedRunStep) {
+        await this.state.hooks.afterMemoization?.();
+        await this.state.hooks.beforeExecution?.();
+      }
+      const userFnPromise = runAsPromise(() => this.userFnToRun(this.fnArg));
+      let pos = -1;
+      do {
+        if (pos >= 0) {
+          if (!this.options.requestedRunStep && pos === this.state.opStack.length - 1) {
+            await this.state.hooks.afterMemoization?.();
+            await this.state.hooks.beforeExecution?.();
+          }
+          this.state.tickOps = {};
+          const incomingOp = this.state.opStack[pos];
+          this.state.currentOp = this.state.allFoundOps[incomingOp.id];
+          if (!this.state.currentOp)
+            throw new NonRetriableError(prettyError({
+              whatHappened: " Your function was stopped from running",
+              why: "We couldn't resume your function's state because it may have changed since the run started or there are async actions in-between steps that we haven't noticed in previous executions.",
+              consequences: "Continuing to run the function may result in unexpected behaviour, so we've stopped your function to ensure nothing unexpected happened!",
+              toFixNow: "Ensure that your function is either entirely step-based or entirely non-step-based, by either wrapping all asynchronous logic in `step.run()` calls or by removing all `step.*()` calls.",
+              otherwise: "For more information on why step functions work in this manner, see https://www.inngest.com/docs/functions/multi-step#gotchas",
+              stack: true,
+              code: ErrCode.NON_DETERMINISTIC_FUNCTION
+            }));
+          this.state.currentOp.fulfilled = true;
+          if (typeof incomingOp.data !== "undefined") this.state.currentOp.resolve(incomingOp.data);
+          else this.state.currentOp.reject(incomingOp.error);
+        }
+        await resolveAfterPending();
+        this.state.reset();
+        pos++;
+      } while (pos < this.state.opStack.length);
+      await this.state.hooks.afterMemoization?.();
+      const discoveredOps = Object.values(this.state.tickOps).map(tickOpToOutgoing);
+      const runStep = this.options.requestedRunStep || this.getEarlyExecRunStep(discoveredOps);
+      if (runStep) {
+        const userFnOp = this.state.allFoundOps[runStep];
+        const stepToRun = userFnOp?.fn;
+        if (!stepToRun) throw new Error(`Bad stack; executor requesting to run unknown step "${runStep}"`);
+        const outgoingUserFnOp = {
+          ...tickOpToOutgoing(userFnOp),
+          op: StepOpCode.Step
+        };
+        await this.state.hooks.beforeExecution?.();
+        this.state.executingStep = true;
+        const { type: _type, ...rest } = await runAsPromise(stepToRun).finally(() => {
+          this.state.executingStep = false;
+        }).then(async (data) => {
+          await this.state.hooks?.afterExecution?.();
+          return await this.transformOutput({ data }, outgoingUserFnOp);
+        }, async (error) => {
+          await this.state.hooks?.afterExecution?.();
+          return await this.transformOutput({ error }, outgoingUserFnOp);
+        });
+        return {
+          type: "step-ran",
+          ctx: this.fnArg,
+          ops: this.ops,
+          step: {
+            ...outgoingUserFnOp,
+            ...rest
+          }
+        };
+      }
+      if (!discoveredOps.length) {
+        const fnRet = await Promise.race([userFnPromise.then((data) => ({
+          type: "complete",
+          data
+        })), resolveNextTick().then(() => ({ type: "incomplete" }))]);
+        if (fnRet.type === "complete") {
+          await this.state.hooks.afterExecution?.();
+          if (Object.values(this.state.allFoundOps).every((op) => {
+            return op.fulfilled;
+          })) return await this.transformOutput({ data: fnRet.data });
+        } else if (!this.state.hasUsedTools) {
+          this.state.nonStepFnDetected = true;
+          const data = await userFnPromise;
+          await this.state.hooks.afterExecution?.();
+          return await this.transformOutput({ data });
+        } else if (!Object.values(this.state.allFoundOps).some((op) => {
+          return op.fulfilled === false;
+        })) throw new NonRetriableError(functionStoppedRunningErr(ErrCode.ASYNC_DETECTED_AFTER_MEMOIZATION));
+      }
+      await this.state.hooks.afterExecution?.();
       return {
-        errors: [
-          new TokenVerificationError({
-            action: TokenVerificationErrorAction.SetClerkJWTKey,
-            message: "Failed to resolve JWK during verification.",
-            reason: TokenVerificationErrorReason.JWKFailedToResolve
-          })
-        ]
+        type: "steps-found",
+        ctx: this.fnArg,
+        ops: this.ops,
+        steps: discoveredOps
+      };
+    } catch (error) {
+      return await this.transformOutput({ error });
+    } finally {
+      await this.state.hooks.beforeResponse?.();
+    }
+  }
+  async initializeMiddleware() {
+    const ctx = this.options.data;
+    return await getHookStack(this.options.fn["middleware"], "onFunctionRun", {
+      ctx,
+      fn: this.options.fn,
+      steps: Object.values(this.options.stepState),
+      reqArgs: this.options.reqArgs
+    }, {
+      transformInput: (prev, output) => {
+        return {
+          ctx: {
+            ...prev.ctx,
+            ...output?.ctx
+          },
+          fn: this.options.fn,
+          steps: prev.steps.map((step2, i) => ({
+            ...step2,
+            ...output?.steps?.[i]
+          })),
+          reqArgs: prev.reqArgs
+        };
+      },
+      transformOutput: (prev, output) => {
+        return {
+          result: {
+            ...prev.result,
+            ...output?.result
+          },
+          step: prev.step
+        };
+      }
+    });
+  }
+  createExecutionState() {
+    const state = {
+      allFoundOps: {},
+      tickOps: {},
+      tickOpHashes: {},
+      currentOp: void 0,
+      hasUsedTools: false,
+      reset: () => {
+        state.tickOpHashes = {};
+        state.allFoundOps = {
+          ...state.allFoundOps,
+          ...state.tickOps
+        };
+      },
+      nonStepFnDetected: false,
+      executingStep: false,
+      opStack: this.options.stepCompletionOrder.reduce((acc, stepId) => {
+        const stepState = this.options.stepState[stepId];
+        if (!stepState) return acc;
+        return [...acc, stepState];
+      }, [])
+    };
+    return state;
+  }
+  get ops() {
+    return Object.fromEntries(Object.entries(this.state.allFoundOps).map(([id, op]) => [id, {
+      id: op.id,
+      rawArgs: op.rawArgs,
+      data: op.data,
+      error: op.error,
+      fulfilled: op.fulfilled,
+      seen: true
+    }]));
+  }
+  getUserFnToRun() {
+    if (!this.options.isFailureHandler) return this.options.fn["fn"];
+    if (!this.options.fn["onFailureFn"])
+      throw new Error("Cannot find function `onFailure` handler");
+    return this.options.fn["onFailureFn"];
+  }
+  createFnArg() {
+    this.state.tickOps = this.state.allFoundOps;
+    const hashOp3 = (op) => {
+      const obj = {
+        parent: this.state.currentOp?.id ?? null,
+        op: op.op,
+        name: op.name,
+        opts: op.op === StepOpCode.StepPlanned ? null : op.opts ?? null
+      };
+      const collisionHash = _internals.hashData(obj);
+      const pos = this.state.tickOpHashes[collisionHash] = (this.state.tickOpHashes[collisionHash] ?? -1) + 1;
+      return {
+        ...op,
+        id: _internals.hashData({
+          pos,
+          ...obj
+        })
+      };
+    };
+    const stepHandler = ({ args, matchOp, opts }) => {
+      if (this.state.nonStepFnDetected) throw new NonRetriableError(functionStoppedRunningErr(ErrCode.STEP_USED_AFTER_ASYNC));
+      if (this.state.executingStep) throw new NonRetriableError(prettyError({
+        whatHappened: "Your function was stopped from running",
+        why: "We detected that you have nested `step.*` tooling.",
+        consequences: "Nesting `step.*` tooling is not supported.",
+        stack: true,
+        toFixNow: "Make sure you're not using `step.*` tooling inside of other `step.*` tooling. If you need to compose steps together, you can create a new async function and call it from within your step function, or use promise chaining.",
+        otherwise: "For more information on step functions with Inngest, see https://www.inngest.com/docs/functions/multi-step",
+        code: ErrCode.NESTING_STEPS
+      }));
+      this.state.hasUsedTools = true;
+      const opId = hashOp3(matchOp(getStepOptions(args[0]), ...args.slice(1)));
+      return new Promise((resolve, reject) => {
+        this.state.tickOps[opId.id] = {
+          ...opId,
+          ...opts?.fn ? { fn: () => opts.fn?.(this.fnArg, ...args) } : {},
+          rawArgs: args,
+          resolve,
+          reject,
+          fulfilled: false
+        };
+      });
+    };
+    const step2 = createStepTools(this.options.client, this, stepHandler);
+    let fnArg = {
+      ...this.options.data,
+      step: step2
+    };
+    if (this.options.isFailureHandler) {
+      const eventData = external_exports.object({ error: jsonErrorSchema }).parse(fnArg.event?.data);
+      fnArg = {
+        ...fnArg,
+        error: deserializeError$1(eventData.error)
       };
     }
-    return await verifyJwt(token, { ...options, key });
-  } catch (error) {
-    return { errors: [error] };
+    return this.options.transformCtx?.(fnArg) ?? fnArg;
+  }
+  /**
+  * Using middleware, transform input before running.
+  */
+  async transformInput() {
+    const inputMutations = await this.state.hooks?.transformInput?.({
+      ctx: { ...this.fnArg },
+      steps: Object.values(this.options.stepState),
+      fn: this.options.fn,
+      reqArgs: this.options.reqArgs
+    });
+    if (inputMutations?.ctx) this.fnArg = inputMutations.ctx;
+    if (inputMutations?.steps) this.state.opStack = [...inputMutations.steps];
+  }
+  getEarlyExecRunStep(ops) {
+    if (ops.length !== 1) return;
+    const op = ops[0];
+    if (op && op.op === StepOpCode.StepPlanned) return op.id;
+  }
+  /**
+  * Using middleware, transform output before returning.
+  */
+  async transformOutput(dataOrError, step2) {
+    const output = { ...dataOrError };
+    if (typeof output.error !== "undefined") output.data = serializeError$1(output.error);
+    const transformedOutput = await this.state.hooks?.transformOutput?.({
+      result: { ...output },
+      step: step2
+    });
+    const { data, error } = {
+      ...output,
+      ...transformedOutput?.result
+    };
+    if (!step2) await this.state.hooks?.finished?.({ result: { ...typeof error !== "undefined" ? { error } : { data } } });
+    if (typeof error !== "undefined") {
+      let retriable = !(error instanceof NonRetriableError || error?.name === "NonRetriableError");
+      if (retriable && (error instanceof RetryAfterError || error?.name === "RetryAfterError")) retriable = error.retryAfter;
+      const serializedError = serializeError$1(error);
+      return {
+        type: "function-rejected",
+        ctx: this.fnArg,
+        ops: this.ops,
+        error: serializedError,
+        retriable
+      };
+    }
+    return {
+      type: "function-resolved",
+      ctx: this.fnArg,
+      ops: this.ops,
+      data: undefinedToNull(data)
+    };
+  }
+};
+var tickOpToOutgoing = (op) => {
+  return {
+    op: op.op,
+    id: op.id,
+    name: op.name,
+    opts: op.opts
+  };
+};
+var hashData = (op) => {
+  return sha1().update((0, import_canonicalize2.default)(op)).digest("hex");
+};
+var _internals = { hashData };
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/otel/access.js
+var clientProcessorMap = /* @__PURE__ */ new WeakMap();
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/StepError.js
+var StepError = class extends Error {
+  cause;
+  constructor(stepId, err2) {
+    const parsedErr = jsonErrorSchema.parse(err2);
+    super(parsedErr.message);
+    this.stepId = stepId;
+    this.name = parsedErr.name;
+    this.stepId = stepId;
+    this.stack = parsedErr.stack ?? void 0;
+    this.cause = parsedErr.cause ? deserializeError$1(parsedErr.cause, true) : void 0;
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v2.js
+var import_hash4 = __toESM(require_hash(), 1);
+var import_ms3 = __toESM(require_ms(), 1);
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/version.js
+var VERSION = "1.9.1";
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/internal/semver.js
+var re = /^(\d+)\.(\d+)\.(\d+)(-(.+))?$/;
+function _makeCompatibilityCheck(ownVersion) {
+  const acceptedVersions = /* @__PURE__ */ new Set([ownVersion]);
+  const rejectedVersions = /* @__PURE__ */ new Set();
+  const myVersionMatch = ownVersion.match(re);
+  if (!myVersionMatch) {
+    return () => false;
+  }
+  const ownVersionParsed = {
+    major: +myVersionMatch[1],
+    minor: +myVersionMatch[2],
+    patch: +myVersionMatch[3],
+    prerelease: myVersionMatch[4]
+  };
+  if (ownVersionParsed.prerelease != null) {
+    return function isExactmatch(globalVersion) {
+      return globalVersion === ownVersion;
+    };
+  }
+  function _reject(v) {
+    rejectedVersions.add(v);
+    return false;
+  }
+  function _accept(v) {
+    acceptedVersions.add(v);
+    return true;
+  }
+  return function isCompatible2(globalVersion) {
+    if (acceptedVersions.has(globalVersion)) {
+      return true;
+    }
+    if (rejectedVersions.has(globalVersion)) {
+      return false;
+    }
+    const globalVersionMatch = globalVersion.match(re);
+    if (!globalVersionMatch) {
+      return _reject(globalVersion);
+    }
+    const globalVersionParsed = {
+      major: +globalVersionMatch[1],
+      minor: +globalVersionMatch[2],
+      patch: +globalVersionMatch[3],
+      prerelease: globalVersionMatch[4]
+    };
+    if (globalVersionParsed.prerelease != null) {
+      return _reject(globalVersion);
+    }
+    if (ownVersionParsed.major !== globalVersionParsed.major) {
+      return _reject(globalVersion);
+    }
+    if (ownVersionParsed.major === 0) {
+      if (ownVersionParsed.minor === globalVersionParsed.minor && ownVersionParsed.patch <= globalVersionParsed.patch) {
+        return _accept(globalVersion);
+      }
+      return _reject(globalVersion);
+    }
+    if (ownVersionParsed.minor <= globalVersionParsed.minor) {
+      return _accept(globalVersion);
+    }
+    return _reject(globalVersion);
+  };
+}
+var isCompatible = _makeCompatibilityCheck(VERSION);
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/internal/global-utils.js
+var major = VERSION.split(".")[0];
+var GLOBAL_OPENTELEMETRY_API_KEY = /* @__PURE__ */ Symbol.for(`opentelemetry.js.api.${major}`);
+var _global = typeof globalThis === "object" ? globalThis : typeof self === "object" ? self : typeof window === "object" ? window : typeof global === "object" ? global : {};
+function registerGlobal(type, instance, diag, allowOverride = false) {
+  var _a;
+  const api = _global[GLOBAL_OPENTELEMETRY_API_KEY] = (_a = _global[GLOBAL_OPENTELEMETRY_API_KEY]) !== null && _a !== void 0 ? _a : {
+    version: VERSION
+  };
+  if (!allowOverride && api[type]) {
+    const err2 = new Error(`@opentelemetry/api: Attempted duplicate registration of API: ${type}`);
+    diag.error(err2.stack || err2.message);
+    return false;
+  }
+  if (api.version !== VERSION) {
+    const err2 = new Error(`@opentelemetry/api: Registration of version v${api.version} for ${type} does not match previously registered API v${VERSION}`);
+    diag.error(err2.stack || err2.message);
+    return false;
+  }
+  api[type] = instance;
+  diag.debug(`@opentelemetry/api: Registered a global for ${type} v${VERSION}.`);
+  return true;
+}
+function getGlobal(type) {
+  var _a, _b;
+  const globalVersion = (_a = _global[GLOBAL_OPENTELEMETRY_API_KEY]) === null || _a === void 0 ? void 0 : _a.version;
+  if (!globalVersion || !isCompatible(globalVersion)) {
+    return;
+  }
+  return (_b = _global[GLOBAL_OPENTELEMETRY_API_KEY]) === null || _b === void 0 ? void 0 : _b[type];
+}
+function unregisterGlobal(type, diag) {
+  diag.debug(`@opentelemetry/api: Unregistering a global for ${type} v${VERSION}.`);
+  const api = _global[GLOBAL_OPENTELEMETRY_API_KEY];
+  if (api) {
+    delete api[type];
   }
 }
 
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs
-function withLegacyReturn(cb) {
-  return async (...args) => {
-    const { data, errors } = await cb(...args);
-    if (errors) {
-      throw errors[0];
-    }
-    return data;
-  };
-}
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/underscore-CPJSkOtE.mjs
-function snakeToCamel(str) {
-  return str ? str.replace(/([-_][a-z])/g, (match3) => match3.toUpperCase().replace(/-|_/, "")) : "";
-}
-function camelToSnake(str) {
-  return str ? str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`) : "";
-}
-var createDeepObjectTransformer = (transform) => {
-  const deepTransform = (obj) => {
-    if (!obj) return obj;
-    if (Array.isArray(obj)) return obj.map((el) => {
-      if (typeof el === "object" || Array.isArray(el)) return deepTransform(el);
-      return el;
-    });
-    const copy = { ...obj };
-    const keys = Object.keys(copy);
-    for (const oldName of keys) {
-      const newName = transform(oldName.toString());
-      if (newName !== oldName) {
-        copy[newName] = copy[oldName];
-        delete copy[oldName];
-      }
-      if (typeof copy[newName] === "object") copy[newName] = deepTransform(copy[newName]);
-    }
-    return copy;
-  };
-  return deepTransform;
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/diag/ComponentLogger.js
+var DiagComponentLogger = class {
+  constructor(props) {
+    this._namespace = props.namespace || "DiagComponentLogger";
+  }
+  debug(...args) {
+    return logProxy("debug", this._namespace, args);
+  }
+  error(...args) {
+    return logProxy("error", this._namespace, args);
+  }
+  info(...args) {
+    return logProxy("info", this._namespace, args);
+  }
+  warn(...args) {
+    return logProxy("warn", this._namespace, args);
+  }
+  verbose(...args) {
+    return logProxy("verbose", this._namespace, args);
+  }
 };
-var deepCamelToSnake = createDeepObjectTransformer(camelToSnake);
-var deepSnakeToCamel = createDeepObjectTransformer(snakeToCamel);
+function logProxy(funcName, namespace, args) {
+  const logger3 = getGlobal("diag");
+  if (!logger3) {
+    return;
+  }
+  return logger3[funcName](namespace, ...args);
+}
 
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/index.mjs
-var verifyToken2 = withLegacyReturn(verifyToken);
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/diag/types.js
+var DiagLogLevel;
+(function(DiagLogLevel2) {
+  DiagLogLevel2[DiagLogLevel2["NONE"] = 0] = "NONE";
+  DiagLogLevel2[DiagLogLevel2["ERROR"] = 30] = "ERROR";
+  DiagLogLevel2[DiagLogLevel2["WARN"] = 50] = "WARN";
+  DiagLogLevel2[DiagLogLevel2["INFO"] = 60] = "INFO";
+  DiagLogLevel2[DiagLogLevel2["DEBUG"] = 70] = "DEBUG";
+  DiagLogLevel2[DiagLogLevel2["VERBOSE"] = 80] = "VERBOSE";
+  DiagLogLevel2[DiagLogLevel2["ALL"] = 9999] = "ALL";
+})(DiagLogLevel || (DiagLogLevel = {}));
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/diag/internal/logLevelLogger.js
+function createLogLevelDiagLogger(maxLevel, logger3) {
+  if (maxLevel < DiagLogLevel.NONE) {
+    maxLevel = DiagLogLevel.NONE;
+  } else if (maxLevel > DiagLogLevel.ALL) {
+    maxLevel = DiagLogLevel.ALL;
+  }
+  logger3 = logger3 || {};
+  function _filterFunc(funcName, theLevel) {
+    const theFunc = logger3[funcName];
+    if (typeof theFunc === "function" && maxLevel >= theLevel) {
+      return theFunc.bind(logger3);
+    }
+    return function() {
+    };
+  }
+  return {
+    error: _filterFunc("error", DiagLogLevel.ERROR),
+    warn: _filterFunc("warn", DiagLogLevel.WARN),
+    info: _filterFunc("info", DiagLogLevel.INFO),
+    debug: _filterFunc("debug", DiagLogLevel.DEBUG),
+    verbose: _filterFunc("verbose", DiagLogLevel.VERBOSE)
+  };
+}
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/api/diag.js
+var API_NAME = "diag";
+var DiagAPI = class _DiagAPI {
+  /** Get the singleton instance of the DiagAPI API */
+  static instance() {
+    if (!this._instance) {
+      this._instance = new _DiagAPI();
+    }
+    return this._instance;
+  }
+  /**
+   * Private internal constructor
+   * @private
+   */
+  constructor() {
+    function _logProxy(funcName) {
+      return function(...args) {
+        const logger3 = getGlobal("diag");
+        if (!logger3)
+          return;
+        return logger3[funcName](...args);
+      };
+    }
+    const self2 = this;
+    const setLogger = (logger3, optionsOrLogLevel = { logLevel: DiagLogLevel.INFO }) => {
+      var _a, _b, _c;
+      if (logger3 === self2) {
+        const err2 = new Error("Cannot use diag as the logger for itself. Please use a DiagLogger implementation like ConsoleDiagLogger or a custom implementation");
+        self2.error((_a = err2.stack) !== null && _a !== void 0 ? _a : err2.message);
+        return false;
+      }
+      if (typeof optionsOrLogLevel === "number") {
+        optionsOrLogLevel = {
+          logLevel: optionsOrLogLevel
+        };
+      }
+      const oldLogger = getGlobal("diag");
+      const newLogger = createLogLevelDiagLogger((_b = optionsOrLogLevel.logLevel) !== null && _b !== void 0 ? _b : DiagLogLevel.INFO, logger3);
+      if (oldLogger && !optionsOrLogLevel.suppressOverrideMessage) {
+        const stack = (_c = new Error().stack) !== null && _c !== void 0 ? _c : "<failed to generate stacktrace>";
+        oldLogger.warn(`Current logger will be overwritten from ${stack}`);
+        newLogger.warn(`Current logger will overwrite one already registered from ${stack}`);
+      }
+      return registerGlobal("diag", newLogger, self2, true);
+    };
+    self2.setLogger = setLogger;
+    self2.disable = () => {
+      unregisterGlobal(API_NAME, self2);
+    };
+    self2.createComponentLogger = (options) => {
+      return new DiagComponentLogger(options);
+    };
+    self2.verbose = _logProxy("verbose");
+    self2.debug = _logProxy("debug");
+    self2.info = _logProxy("info");
+    self2.warn = _logProxy("warn");
+    self2.error = _logProxy("error");
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/context/context.js
+function createContextKey(description) {
+  return Symbol.for(description);
+}
+var BaseContext = class _BaseContext {
+  /**
+   * Construct a new context which inherits values from an optional parent context.
+   *
+   * @param parentContext a context from which to inherit values
+   */
+  constructor(parentContext) {
+    const self2 = this;
+    self2._currentContext = parentContext ? new Map(parentContext) : /* @__PURE__ */ new Map();
+    self2.getValue = (key) => self2._currentContext.get(key);
+    self2.setValue = (key, value) => {
+      const context2 = new _BaseContext(self2._currentContext);
+      context2._currentContext.set(key, value);
+      return context2;
+    };
+    self2.deleteValue = (key) => {
+      const context2 = new _BaseContext(self2._currentContext);
+      context2._currentContext.delete(key);
+      return context2;
+    };
+  }
+};
+var ROOT_CONTEXT = new BaseContext();
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/context/NoopContextManager.js
+var NoopContextManager = class {
+  active() {
+    return ROOT_CONTEXT;
+  }
+  with(_context, fn, thisArg, ...args) {
+    return fn.call(thisArg, ...args);
+  }
+  bind(_context, target) {
+    return target;
+  }
+  enable() {
+    return this;
+  }
+  disable() {
+    return this;
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/api/context.js
+var API_NAME2 = "context";
+var NOOP_CONTEXT_MANAGER = new NoopContextManager();
+var ContextAPI = class _ContextAPI {
+  /** Empty private constructor prevents end users from constructing a new instance of the API */
+  constructor() {
+  }
+  /** Get the singleton instance of the Context API */
+  static getInstance() {
+    if (!this._instance) {
+      this._instance = new _ContextAPI();
+    }
+    return this._instance;
+  }
+  /**
+   * Set the current context manager.
+   *
+   * @returns true if the context manager was successfully registered, else false
+   */
+  setGlobalContextManager(contextManager) {
+    return registerGlobal(API_NAME2, contextManager, DiagAPI.instance());
+  }
+  /**
+   * Get the currently active context
+   */
+  active() {
+    return this._getContextManager().active();
+  }
+  /**
+   * Execute a function with an active context
+   *
+   * @param context context to be active during function execution
+   * @param fn function to execute in a context
+   * @param thisArg optional receiver to be used for calling fn
+   * @param args optional arguments forwarded to fn
+   */
+  with(context2, fn, thisArg, ...args) {
+    return this._getContextManager().with(context2, fn, thisArg, ...args);
+  }
+  /**
+   * Bind a context to a target function or event emitter
+   *
+   * @param context context to bind to the event emitter or function. Defaults to the currently active context
+   * @param target function or event emitter to bind
+   */
+  bind(context2, target) {
+    return this._getContextManager().bind(context2, target);
+  }
+  _getContextManager() {
+    return getGlobal(API_NAME2) || NOOP_CONTEXT_MANAGER;
+  }
+  /** Disable and remove the global context manager */
+  disable() {
+    this._getContextManager().disable();
+    unregisterGlobal(API_NAME2, DiagAPI.instance());
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/trace_flags.js
+var TraceFlags;
+(function(TraceFlags2) {
+  TraceFlags2[TraceFlags2["NONE"] = 0] = "NONE";
+  TraceFlags2[TraceFlags2["SAMPLED"] = 1] = "SAMPLED";
+})(TraceFlags || (TraceFlags = {}));
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/invalid-span-constants.js
+var INVALID_SPANID = "0000000000000000";
+var INVALID_TRACEID = "00000000000000000000000000000000";
+var INVALID_SPAN_CONTEXT = {
+  traceId: INVALID_TRACEID,
+  spanId: INVALID_SPANID,
+  traceFlags: TraceFlags.NONE
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/NonRecordingSpan.js
+var NonRecordingSpan = class {
+  constructor(spanContext = INVALID_SPAN_CONTEXT) {
+    this._spanContext = spanContext;
+  }
+  // Returns a SpanContext.
+  spanContext() {
+    return this._spanContext;
+  }
+  // By default does nothing
+  setAttribute(_key, _value) {
+    return this;
+  }
+  // By default does nothing
+  setAttributes(_attributes) {
+    return this;
+  }
+  // By default does nothing
+  addEvent(_name, _attributes) {
+    return this;
+  }
+  addLink(_link) {
+    return this;
+  }
+  addLinks(_links) {
+    return this;
+  }
+  // By default does nothing
+  setStatus(_status) {
+    return this;
+  }
+  // By default does nothing
+  updateName(_name) {
+    return this;
+  }
+  // By default does nothing
+  end(_endTime) {
+  }
+  // isRecording always returns false for NonRecordingSpan.
+  isRecording() {
+    return false;
+  }
+  // By default does nothing
+  recordException(_exception, _time) {
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/context-utils.js
+var SPAN_KEY = createContextKey("OpenTelemetry Context Key SPAN");
+function getSpan(context2) {
+  return context2.getValue(SPAN_KEY) || void 0;
+}
+function getActiveSpan() {
+  return getSpan(ContextAPI.getInstance().active());
+}
+function setSpan(context2, span) {
+  return context2.setValue(SPAN_KEY, span);
+}
+function deleteSpan(context2) {
+  return context2.deleteValue(SPAN_KEY);
+}
+function setSpanContext(context2, spanContext) {
+  return setSpan(context2, new NonRecordingSpan(spanContext));
+}
+function getSpanContext(context2) {
+  var _a;
+  return (_a = getSpan(context2)) === null || _a === void 0 ? void 0 : _a.spanContext();
+}
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/spancontext-utils.js
+var isHex = new Uint8Array([
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  1,
+  1,
+  1,
+  1
+]);
+function isValidHex(id, length) {
+  if (typeof id !== "string" || id.length !== length)
+    return false;
+  let r = 0;
+  for (let i = 0; i < id.length; i += 4) {
+    r += (isHex[id.charCodeAt(i)] | 0) + (isHex[id.charCodeAt(i + 1)] | 0) + (isHex[id.charCodeAt(i + 2)] | 0) + (isHex[id.charCodeAt(i + 3)] | 0);
+  }
+  return r === length;
+}
+function isValidTraceId(traceId) {
+  return isValidHex(traceId, 32) && traceId !== INVALID_TRACEID;
+}
+function isValidSpanId(spanId) {
+  return isValidHex(spanId, 16) && spanId !== INVALID_SPANID;
+}
+function isSpanContextValid(spanContext) {
+  return isValidTraceId(spanContext.traceId) && isValidSpanId(spanContext.spanId);
+}
+function wrapSpanContext(spanContext) {
+  return new NonRecordingSpan(spanContext);
+}
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/NoopTracer.js
+var contextApi = ContextAPI.getInstance();
+var NoopTracer = class {
+  // startSpan starts a noop span.
+  startSpan(name, options, context2 = contextApi.active()) {
+    const root = Boolean(options === null || options === void 0 ? void 0 : options.root);
+    if (root) {
+      return new NonRecordingSpan();
+    }
+    const parentFromContext = context2 && getSpanContext(context2);
+    if (isSpanContext(parentFromContext) && isSpanContextValid(parentFromContext)) {
+      return new NonRecordingSpan(parentFromContext);
+    } else {
+      return new NonRecordingSpan();
+    }
+  }
+  startActiveSpan(name, arg2, arg3, arg4) {
+    let opts;
+    let ctx;
+    let fn;
+    if (arguments.length < 2) {
+      return;
+    } else if (arguments.length === 2) {
+      fn = arg2;
+    } else if (arguments.length === 3) {
+      opts = arg2;
+      fn = arg3;
+    } else {
+      opts = arg2;
+      ctx = arg3;
+      fn = arg4;
+    }
+    const parentContext = ctx !== null && ctx !== void 0 ? ctx : contextApi.active();
+    const span = this.startSpan(name, opts, parentContext);
+    const contextWithSpanSet = setSpan(parentContext, span);
+    return contextApi.with(contextWithSpanSet, fn, void 0, span);
+  }
+};
+function isSpanContext(spanContext) {
+  return spanContext !== null && typeof spanContext === "object" && "spanId" in spanContext && typeof spanContext["spanId"] === "string" && "traceId" in spanContext && typeof spanContext["traceId"] === "string" && "traceFlags" in spanContext && typeof spanContext["traceFlags"] === "number";
+}
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/ProxyTracer.js
+var NOOP_TRACER = new NoopTracer();
+var ProxyTracer = class {
+  constructor(provider, name, version6, options) {
+    this._provider = provider;
+    this.name = name;
+    this.version = version6;
+    this.options = options;
+  }
+  startSpan(name, options, context2) {
+    return this._getTracer().startSpan(name, options, context2);
+  }
+  startActiveSpan(_name, _options, _context, _fn) {
+    const tracer = this._getTracer();
+    return Reflect.apply(tracer.startActiveSpan, tracer, arguments);
+  }
+  /**
+   * Try to get a tracer from the proxy tracer provider.
+   * If the proxy tracer provider has no delegate, return a noop tracer.
+   */
+  _getTracer() {
+    if (this._delegate) {
+      return this._delegate;
+    }
+    const tracer = this._provider.getDelegateTracer(this.name, this.version, this.options);
+    if (!tracer) {
+      return NOOP_TRACER;
+    }
+    this._delegate = tracer;
+    return this._delegate;
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/NoopTracerProvider.js
+var NoopTracerProvider = class {
+  getTracer(_name, _version, _options) {
+    return new NoopTracer();
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace/ProxyTracerProvider.js
+var NOOP_TRACER_PROVIDER = new NoopTracerProvider();
+var ProxyTracerProvider = class {
+  /**
+   * Get a {@link ProxyTracer}
+   */
+  getTracer(name, version6, options) {
+    var _a;
+    return (_a = this.getDelegateTracer(name, version6, options)) !== null && _a !== void 0 ? _a : new ProxyTracer(this, name, version6, options);
+  }
+  getDelegate() {
+    var _a;
+    return (_a = this._delegate) !== null && _a !== void 0 ? _a : NOOP_TRACER_PROVIDER;
+  }
+  /**
+   * Set the delegate tracer provider
+   */
+  setDelegate(delegate) {
+    this._delegate = delegate;
+  }
+  getDelegateTracer(name, version6, options) {
+    var _a;
+    return (_a = this._delegate) === null || _a === void 0 ? void 0 : _a.getTracer(name, version6, options);
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/api/trace.js
+var API_NAME3 = "trace";
+var TraceAPI = class _TraceAPI {
+  /** Empty private constructor prevents end users from constructing a new instance of the API */
+  constructor() {
+    this._proxyTracerProvider = new ProxyTracerProvider();
+    this.wrapSpanContext = wrapSpanContext;
+    this.isSpanContextValid = isSpanContextValid;
+    this.deleteSpan = deleteSpan;
+    this.getSpan = getSpan;
+    this.getActiveSpan = getActiveSpan;
+    this.getSpanContext = getSpanContext;
+    this.setSpan = setSpan;
+    this.setSpanContext = setSpanContext;
+  }
+  /** Get the singleton instance of the Trace API */
+  static getInstance() {
+    if (!this._instance) {
+      this._instance = new _TraceAPI();
+    }
+    return this._instance;
+  }
+  /**
+   * Set the current global tracer.
+   *
+   * @returns true if the tracer provider was successfully registered, else false
+   */
+  setGlobalTracerProvider(provider) {
+    const success = registerGlobal(API_NAME3, this._proxyTracerProvider, DiagAPI.instance());
+    if (success) {
+      this._proxyTracerProvider.setDelegate(provider);
+    }
+    return success;
+  }
+  /**
+   * Returns the global tracer provider.
+   */
+  getTracerProvider() {
+    return getGlobal(API_NAME3) || this._proxyTracerProvider;
+  }
+  /**
+   * Returns a tracer from the global tracer provider.
+   */
+  getTracer(name, version6) {
+    return this.getTracerProvider().getTracer(name, version6);
+  }
+  /** Remove the global tracer provider */
+  disable() {
+    unregisterGlobal(API_NAME3, DiagAPI.instance());
+    this._proxyTracerProvider = new ProxyTracerProvider();
+  }
+};
+
+// ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/trace-api.js
+var trace = TraceAPI.getInstance();
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v2.js
+var { sha1: sha12 } = import_hash4.default;
+var CHECKPOINT_RETRY_OPTIONS = {
+  maxAttempts: 5,
+  baseDelay: 100
+};
+var STEP_NOT_FOUND_MAX_FOUND_STEPS = 25;
+var createV2InngestExecution = (options) => {
+  return new V2InngestExecution(options);
+};
+var V2InngestExecution = class extends InngestExecution {
+  version = ExecutionVersion.V2;
+  state;
+  fnArg;
+  checkpointHandlers;
+  timeoutDuration = 1e3 * 10;
+  execution;
+  userFnToRun;
+  /**
+  * If we're supposed to run a particular step via `requestedRunStep`, this
+  * will be a `Promise` that resolves after no steps have been found for
+  * `timeoutDuration` milliseconds.
+  *
+  * If we're not supposed to run a particular step, this will be `undefined`.
+  */
+  timeout;
+  rootSpanId;
+  /**
+  * If we're checkpointing and have been given a maximum runtime, this will be
+  * a `Promise` that resolves after that duration has elapsed, allowing us to
+  * ensure that we end the execution in good time, especially in serverless
+  * environments.
+  */
+  checkpointingMaxRuntimeTimer;
+  /**
+  * If we're checkpointing and have been given a maximum buffer interval, this
+  * will be a `Promise` that resolves after that duration has elapsed, allowing
+  * us to periodically checkpoint even if the step buffer hasn't filled.
+  */
+  checkpointingMaxBufferIntervalTimer;
+  constructor(rawOptions) {
+    const options = {
+      ...rawOptions,
+      stepMode: rawOptions.stepMode ?? StepMode.Async
+    };
+    super(options);
+    if (this.options.stepMode === StepMode.Sync) {
+      if (!this.options.createResponse) throw new Error("createResponse is required for sync step mode");
+    }
+    this.userFnToRun = this.getUserFnToRun();
+    this.state = this.createExecutionState();
+    this.fnArg = this.createFnArg();
+    this.checkpointHandlers = this.createCheckpointHandlers();
+    this.initializeTimer(this.state);
+    this.initializeCheckpointRuntimeTimer(this.state);
+    this.debug("created new V2 execution for run;", this.options.requestedRunStep ? `wanting to run step "${this.options.requestedRunStep}"` : "discovering steps");
+    this.debug("existing state keys:", Object.keys(this.state.stepState));
+  }
+  /**
+  * Idempotently start the execution of the user's function.
+  */
+  start() {
+    if (!this.execution) {
+      this.debug("starting V2 execution");
+      const tracer = trace.getTracer("inngest", version);
+      this.execution = getAsyncLocalStorage().then((als) => {
+        return als.run({
+          app: this.options.client,
+          execution: {
+            ctx: this.fnArg,
+            instance: this
+          }
+        }, async () => {
+          return tracer.startActiveSpan("inngest.execution", (span) => {
+            this.rootSpanId = span.spanContext().spanId;
+            clientProcessorMap.get(this.options.client)?.declareStartingSpan({
+              span,
+              runId: this.options.runId,
+              traceparent: this.options.headers[headerKeys.TraceParent],
+              tracestate: this.options.headers[headerKeys.TraceState]
+            });
+            return this._start().then((result) => {
+              this.debug("result:", result);
+              return result;
+            }).finally(() => {
+              span.end();
+            });
+          });
+        });
+      });
+    }
+    return this.execution;
+  }
+  addMetadata(stepId, kind, scope, op, values) {
+    if (!this.state.metadata) this.state.metadata = /* @__PURE__ */ new Map();
+    const updates = this.state.metadata.get(stepId) ?? [];
+    updates.push({
+      kind,
+      scope,
+      op,
+      values
+    });
+    this.state.metadata.set(stepId, updates);
+    return true;
+  }
+  /**
+  * Starts execution of the user's function and the core loop.
+  */
+  async _start() {
+    try {
+      const allCheckpointHandler = this.getCheckpointHandler("");
+      this.state.hooks = await this.initializeMiddleware();
+      await this.startExecution();
+      let i = 0;
+      for await (const checkpoint of this.state.loop) {
+        await allCheckpointHandler(checkpoint, i);
+        const result = await this.getCheckpointHandler(checkpoint.type)(checkpoint, i++);
+        if (result) return result;
+      }
+    } catch (error) {
+      return await this.transformOutput({ error });
+    } finally {
+      this.state.loop.return();
+      await this.state.hooks?.beforeResponse?.();
+    }
+    throw new Error("Core loop finished without returning a value");
+  }
+  async checkpoint(steps) {
+    if (this.options.stepMode === StepMode.Sync) if (!this.state.checkpointedRun) {
+      const res = await retryWithBackoff(() => this.options.client["inngestApi"].checkpointNewRun({
+        runId: this.fnArg.runId,
+        event: this.fnArg.event,
+        steps,
+        executionVersion: this.version,
+        retries: this.fnArg.maxAttempts ?? defaultMaxRetries
+      }), CHECKPOINT_RETRY_OPTIONS);
+      this.state.checkpointedRun = {
+        appId: res.data.app_id,
+        fnId: res.data.fn_id,
+        token: res.data.token
+      };
+    } else await retryWithBackoff(() => this.options.client["inngestApi"].checkpointSteps({
+      appId: this.state.checkpointedRun.appId,
+      fnId: this.state.checkpointedRun.fnId,
+      runId: this.fnArg.runId,
+      steps
+    }), CHECKPOINT_RETRY_OPTIONS);
+    else if (this.options.stepMode === StepMode.AsyncCheckpointing) {
+      if (!this.options.queueItemId) throw new Error("Missing queueItemId for async checkpointing. This is a bug in the Inngest SDK.");
+      if (!this.options.internalFnId) throw new Error("Missing internalFnId for async checkpointing. This is a bug in the Inngest SDK.");
+      await retryWithBackoff(() => this.options.client["inngestApi"].checkpointStepsAsync({
+        runId: this.fnArg.runId,
+        fnId: this.options.internalFnId,
+        queueItemId: this.options.queueItemId,
+        steps
+      }), CHECKPOINT_RETRY_OPTIONS);
+    } else throw new Error("Checkpointing is only supported in Sync and AsyncCheckpointing step modes. This is a bug in the Inngest SDK.");
+  }
+  async checkpointAndSwitchToAsync(steps) {
+    await this.checkpoint(steps);
+    if (!this.state.checkpointedRun?.token) throw new Error("Failed to checkpoint and switch to async mode");
+    return {
+      type: "change-mode",
+      ctx: this.fnArg,
+      ops: this.ops,
+      to: StepMode.Async,
+      token: this.state.checkpointedRun?.token
+    };
+  }
+  /**
+  * Returns whether we're in the final attempt of execution, or `null` if we
+  * can't determine this in the SDK.
+  */
+  inFinalAttempt() {
+    if (typeof this.fnArg.maxAttempts !== "number") return null;
+    return this.fnArg.attempt + 1 >= this.fnArg.maxAttempts;
+  }
+  /**
+  * Creates a handler for every checkpoint type, defining what to do when we
+  * reach that checkpoint in the core loop.
+  */
+  createCheckpointHandlers() {
+    const commonCheckpointHandler = (checkpoint) => {
+      this.debug(`${this.options.stepMode} checkpoint:`, checkpoint);
+    };
+    const stepRanHandler = async (stepResult) => {
+      const transformResult = await this.transformOutput(stepResult);
+      if (transformResult.type === "function-resolved") return {
+        type: "step-ran",
+        ctx: transformResult.ctx,
+        ops: transformResult.ops,
+        step: {
+          ...stepResult,
+          data: transformResult.data
+        }
+      };
+      else if (transformResult.type === "function-rejected") {
+        const stepForResponse = {
+          ...stepResult,
+          error: transformResult.error
+        };
+        if (stepResult.op === StepOpCode.StepFailed) {
+          const ser = serializeError$1(transformResult.error);
+          stepForResponse.data = {
+            __serialized: true,
+            name: ser.name,
+            message: ser.message,
+            stack: ""
+          };
+        }
+        return {
+          type: "step-ran",
+          ctx: transformResult.ctx,
+          ops: transformResult.ops,
+          retriable: transformResult.retriable,
+          step: stepForResponse
+        };
+      }
+      return transformResult;
+    };
+    const maybeReturnNewSteps = async (steps) => {
+      const newSteps = await this.filterNewSteps(Array.from(steps.values()));
+      if (newSteps) return {
+        type: "steps-found",
+        ctx: this.fnArg,
+        ops: this.ops,
+        steps: newSteps
+      };
+    };
+    const attemptCheckpointAndResume = async (stepResult, resume = true, force = false) => {
+      if (stepResult) {
+        const stepToResume = this.resumeStepWithResult(stepResult, resume);
+        delete this.state.executingStep;
+        const transformedData = (await this.state.hooks?.transformOutput?.({
+          result: { data: stepResult.data },
+          step: stepResult
+        }))?.result?.data ?? stepResult.data;
+        this.state.checkpointingStepBuffer.push({
+          ...stepToResume,
+          data: transformedData
+        });
+      }
+      if (force || !this.options.checkpointingConfig?.bufferedSteps || this.state.checkpointingStepBuffer.length >= this.options.checkpointingConfig.bufferedSteps) {
+        this.debug("checkpointing and resuming execution after step run");
+        try {
+          this.debug(`checkpointing all buffered steps:`, this.state.checkpointingStepBuffer.map((op) => op.displayName || op.id).join(", "));
+          await this.checkpoint(this.state.checkpointingStepBuffer);
+          return;
+        } catch (err2) {
+          this.debug("error checkpointing after step run, so falling back to async", err2);
+          const buffered = this.state.checkpointingStepBuffer;
+          if (buffered.length) return {
+            type: "steps-found",
+            ctx: this.fnArg,
+            ops: this.ops,
+            steps: buffered
+          };
+          return;
+        } finally {
+          this.state.checkpointingStepBuffer = [];
+        }
+      } else this.debug(`not checkpointing yet, continuing execution as we haven't reached buffered step limit of ${this.options.checkpointingConfig?.bufferedSteps}`);
+    };
+    const syncHandlers = {
+      "": commonCheckpointHandler,
+      "function-resolved": async (checkpoint, i) => {
+        const transformedData = (await this.state.hooks?.transformOutput?.({
+          result: { data: checkpoint.data },
+          step: this.state.executingStep
+        }))?.result?.data ?? checkpoint.data;
+        await this.checkpoint([{
+          op: StepOpCode.RunComplete,
+          id: _internals2.hashId("complete"),
+          data: await this.options.createResponse(transformedData)
+        }]);
+        return await this.transformOutput({ data: checkpoint.data });
+      },
+      "function-rejected": async (checkpoint) => {
+        if (this.inFinalAttempt()) return await this.transformOutput({ error: checkpoint.error });
+        return this.checkpointAndSwitchToAsync([{
+          id: _internals2.hashId("complete"),
+          op: StepOpCode.StepError,
+          error: checkpoint.error
+        }]);
+      },
+      "step-not-found": () => {
+        return {
+          type: "function-rejected",
+          ctx: this.fnArg,
+          error: /* @__PURE__ */ new Error("Step not found when checkpointing; this should never happen"),
+          ops: this.ops,
+          retriable: false
+        };
+      },
+      "steps-found": async ({ steps }) => {
+        if (steps.length !== 1 || steps[0].mode !== StepMode.Sync) return this.checkpointAndSwitchToAsync(steps.map((step2) => ({
+          ...step2,
+          id: step2.hashedId
+        })));
+        const result = await this.executeStep(steps[0]);
+        const transformed = await stepRanHandler(result);
+        if (transformed.type !== "step-ran") throw new Error("Unexpected checkpoint handler result type after running step in sync mode");
+        if (result.error) return this.checkpointAndSwitchToAsync([transformed.step]);
+        const stepForCheckpoint = {
+          ...this.resumeStepWithResult(result),
+          data: transformed.step.data
+        };
+        await this.checkpoint([stepForCheckpoint]);
+      },
+      "checkpointing-runtime-reached": () => {
+        return this.checkpointAndSwitchToAsync([{
+          op: StepOpCode.DiscoveryRequest,
+          id: _internals2.hashId("discovery-request")
+        }]);
+      },
+      "checkpointing-buffer-interval-reached": () => {
+        return attemptCheckpointAndResume(void 0, false, true);
+      }
+    };
+    const asyncHandlers = {
+      "": commonCheckpointHandler,
+      "function-resolved": async ({ data }) => {
+        if (this.options.createResponse) data = await this.options.createResponse(data);
+        return await this.transformOutput({ data });
+      },
+      "function-rejected": async (checkpoint) => {
+        return await this.transformOutput({ error: checkpoint.error });
+      },
+      "steps-found": async ({ steps }) => {
+        const stepResult = await this.tryExecuteStep(steps);
+        if (stepResult) return stepRanHandler(stepResult);
+        return maybeReturnNewSteps(steps);
+      },
+      "step-not-found": ({ step: step2, foundSteps, totalFoundSteps }) => {
+        return {
+          type: "step-not-found",
+          ctx: this.fnArg,
+          ops: this.ops,
+          step: step2,
+          foundSteps,
+          totalFoundSteps
+        };
+      },
+      "checkpointing-runtime-reached": () => {
+        throw new Error("Checkpointing maximum runtime reached, but this is not in a checkpointing step mode. This is a bug in the Inngest SDK.");
+      },
+      "checkpointing-buffer-interval-reached": () => {
+        throw new Error("Checkpointing maximum buffer interval reached, but this is not in a checkpointing step mode. This is a bug in the Inngest SDK.");
+      }
+    };
+    const asyncCheckpointingHandlers = {
+      "": commonCheckpointHandler,
+      "function-resolved": async (checkpoint, i) => {
+        const output = await asyncHandlers["function-resolved"](checkpoint, i);
+        if (output?.type === "function-resolved") {
+          const steps = this.state.checkpointingStepBuffer.concat({
+            op: StepOpCode.RunComplete,
+            id: _internals2.hashId("complete"),
+            data: output.data
+          });
+          return {
+            type: "steps-found",
+            ctx: output.ctx,
+            ops: output.ops,
+            steps
+          };
+        }
+      },
+      "function-rejected": async (checkpoint) => {
+        if (this.state.checkpointingStepBuffer.length) {
+          const fallback = await attemptCheckpointAndResume(void 0, false, true);
+          if (fallback) return fallback;
+        }
+        return await this.transformOutput({ error: checkpoint.error });
+      },
+      "step-not-found": asyncHandlers["step-not-found"],
+      "steps-found": async ({ steps }) => {
+        const { stepsToResume, newSteps } = steps.reduce((acc, step2) => {
+          if (!step2.hasStepState) acc.newSteps.push(step2);
+          else if (!step2.fulfilled) acc.stepsToResume.push(step2);
+          return acc;
+        }, {
+          stepsToResume: [],
+          newSteps: []
+        });
+        this.debug("split found steps in to:", {
+          stepsToResume: stepsToResume.length,
+          newSteps: newSteps.length
+        });
+        if (!this.options.requestedRunStep && newSteps.length) {
+          if (this.state.checkpointingRuntimeExceeded) {
+            if (this.state.checkpointingStepBuffer.length) {
+              const fallback = await attemptCheckpointAndResume(void 0, false, true);
+              if (fallback) return fallback;
+            }
+            return maybeReturnNewSteps(steps);
+          }
+          const stepResult = await this.tryExecuteStep(newSteps);
+          if (stepResult) {
+            this.debug(`executed step "${stepResult.id}" successfully`);
+            if (stepResult.error) {
+              if (this.state.checkpointingStepBuffer.length) {
+                const fallback = await attemptCheckpointAndResume(void 0, false, true);
+                if (fallback) return fallback;
+              }
+              return stepRanHandler(stepResult);
+            }
+            return await attemptCheckpointAndResume(stepResult);
+          }
+          if (this.state.checkpointingStepBuffer.length) {
+            const fallback = await attemptCheckpointAndResume(void 0, false, true);
+            if (fallback) return fallback;
+          }
+          return maybeReturnNewSteps(steps);
+        }
+        if (stepsToResume.length) {
+          this.debug(`resuming ${stepsToResume.length} steps`);
+          for (const st of stepsToResume) this.resumeStepWithResult({
+            ...st,
+            id: st.hashedId
+          });
+        }
+      },
+      "checkpointing-runtime-reached": async () => {
+        this.state.checkpointingRuntimeExceeded = true;
+      },
+      "checkpointing-buffer-interval-reached": () => {
+        return attemptCheckpointAndResume(void 0, false, true);
+      }
+    };
+    return {
+      [StepMode.Async]: asyncHandlers,
+      [StepMode.Sync]: syncHandlers,
+      [StepMode.AsyncCheckpointing]: asyncCheckpointingHandlers
+    };
+  }
+  getCheckpointHandler(type) {
+    return this.checkpointHandlers[this.options.stepMode][type];
+  }
+  async tryExecuteStep(steps) {
+    const hashedStepIdToRun = this.options.requestedRunStep || this.getEarlyExecRunStep(steps);
+    if (!hashedStepIdToRun) return;
+    const step2 = steps.find((step$1) => step$1.hashedId === hashedStepIdToRun && step$1.fn);
+    if (step2) return await this.executeStep(step2);
+    this.timeout?.reset();
+  }
+  /**
+  * Given a list of outgoing ops, decide if we can execute an op early and
+  * return the ID of the step to execute if we can.
+  */
+  getEarlyExecRunStep(steps) {
+    if (this.options.disableImmediateExecution) return;
+    const unfulfilledSteps = steps.filter((step2) => !step2.fulfilled);
+    if (unfulfilledSteps.length !== 1) return;
+    const op = unfulfilledSteps[0];
+    if (op && op.op === StepOpCode.StepPlanned) return op.hashedId;
+  }
+  async filterNewSteps(foundSteps) {
+    if (this.options.requestedRunStep) return;
+    const newSteps = foundSteps.reduce((acc, step2) => {
+      if (!step2.hasStepState) acc.push(step2);
+      return acc;
+    }, []);
+    if (!newSteps.length) return;
+    await this.state.hooks?.afterMemoization?.();
+    await this.state.hooks?.beforeExecution?.();
+    await this.state.hooks?.afterExecution?.();
+    const stepList = newSteps.map((step2) => ({
+      displayName: step2.displayName,
+      op: step2.op,
+      id: step2.hashedId,
+      name: step2.name,
+      opts: step2.opts,
+      userland: step2.userland
+    }));
+    return await this.transformNewSteps(stepList);
+  }
+  /**
+  * Using middleware, transform any newly-found steps before returning them to
+  * an Inngest Server.
+  */
+  async transformNewSteps(steps) {
+    return Promise.all(steps.map(async (step2) => {
+      if (step2.op !== StepOpCode.InvokeFunction) return step2;
+      const transformedPayload = await (await getHookStack(this.options.fn["middleware"], "onSendEvent", void 0, {
+        transformInput: (prev, output) => {
+          return {
+            ...prev,
+            ...output
+          };
+        },
+        transformOutput: (prev, output) => {
+          return { result: {
+            ...prev.result,
+            ...output?.result
+          } };
+        }
+      })).transformInput?.({ payloads: [{
+        ...step2.opts?.payload ?? {},
+        name: internalEvents.FunctionInvoked
+      }] });
+      const newPayload = invokePayloadSchema.parse(transformedPayload?.payloads?.[0] ?? {});
+      return {
+        ...step2,
+        opts: {
+          ...step2.opts,
+          payload: {
+            ...step2.opts?.payload ?? {},
+            ...newPayload
+          }
+        }
+      };
+    }));
+  }
+  async executeStep({ id, name, opts, fn, displayName, userland, hashedId }) {
+    this.debug(`preparing to execute step "${id}"`);
+    this.timeout?.clear();
+    await this.state.hooks?.afterMemoization?.();
+    await this.state.hooks?.beforeExecution?.();
+    const outgoingOp = {
+      id: hashedId,
+      op: StepOpCode.StepRun,
+      name,
+      opts,
+      displayName,
+      userland
+    };
+    this.state.executingStep = outgoingOp;
+    const store = await getAsyncCtx();
+    if (store?.execution) store.execution.executingStep = {
+      id,
+      name: displayName
+    };
+    this.debug(`executing step "${id}"`);
+    if (this.rootSpanId && this.options.checkpointingConfig) clientProcessorMap.get(this.options.client)?.declareStepExecution(this.rootSpanId, hashedId, this.options.data?.attempt ?? 0);
+    let interval;
+    return goIntervalTiming(() => runAsPromise(fn)).finally(async () => {
+      this.debug(`finished executing step "${id}"`);
+      if (this.rootSpanId && this.options.checkpointingConfig) clientProcessorMap.get(this.options.client)?.clearStepExecution(this.rootSpanId);
+      if (store?.execution) delete store.execution.executingStep;
+      await this.state.hooks?.afterExecution?.();
+    }).then(async ({ resultPromise, interval: _interval }) => {
+      interval = _interval;
+      const metadata = this.state.metadata?.get(id);
+      return {
+        ...outgoingOp,
+        data: await resultPromise,
+        ...metadata && metadata.length > 0 ? { metadata } : {}
+      };
+    }).catch((error) => {
+      let errorIsRetriable = true;
+      if (error instanceof NonRetriableError || error?.name === "NonRetriableError") errorIsRetriable = false;
+      else if (this.fnArg.maxAttempts && this.fnArg?.maxAttempts - 1 === this.fnArg.attempt) errorIsRetriable = false;
+      const metadata = this.state.metadata?.get(id);
+      const serialized = serializeError$1(error);
+      if (errorIsRetriable) return {
+        ...outgoingOp,
+        op: StepOpCode.StepError,
+        error: serialized,
+        ...metadata && metadata.length > 0 ? { metadata } : {}
+      };
+      else return {
+        ...outgoingOp,
+        op: StepOpCode.StepFailed,
+        error: serialized,
+        ...metadata && metadata.length > 0 ? { metadata } : {}
+      };
+    }).then((op) => ({
+      ...op,
+      timing: interval
+    }));
+  }
+  /**
+  * Starts execution of the user's function, including triggering checkpoints
+  * and middleware hooks where appropriate.
+  */
+  async startExecution() {
+    await this.transformInput();
+    this.timeout?.start();
+    this.checkpointingMaxRuntimeTimer?.start();
+    this.checkpointingMaxBufferIntervalTimer?.start();
+    await this.state.hooks?.beforeMemoization?.();
+    if (this.state.allStateUsed()) {
+      await this.state.hooks?.afterMemoization?.();
+      await this.state.hooks?.beforeExecution?.();
+    }
+    runAsPromise(() => this.userFnToRun(this.fnArg)).finally(async () => {
+      await this.state.hooks?.afterMemoization?.();
+      await this.state.hooks?.beforeExecution?.();
+      await this.state.hooks?.afterExecution?.();
+    }).then((data) => {
+      this.state.setCheckpoint({
+        type: "function-resolved",
+        data
+      });
+    }).catch((error) => {
+      this.state.setCheckpoint({
+        type: "function-rejected",
+        error
+      });
+    });
+  }
+  /**
+  * Using middleware, transform input before running.
+  */
+  async transformInput() {
+    const inputMutations = await this.state.hooks?.transformInput?.({
+      ctx: { ...this.fnArg },
+      steps: Object.values(this.state.stepState),
+      fn: this.options.fn,
+      reqArgs: this.options.reqArgs
+    });
+    if (inputMutations?.ctx) this.fnArg = inputMutations.ctx;
+    if (inputMutations?.steps) this.state.stepState = Object.fromEntries(inputMutations.steps.map((step2) => [step2.id, step2]));
+  }
+  /**
+  * Using middleware, transform output before returning.
+  */
+  async transformOutput(dataOrError) {
+    const output = { ...dataOrError };
+    const step2 = this.state.executingStep;
+    delete this.state.executingStep;
+    const isStepExecution = Boolean(step2);
+    const transformedOutput = await this.state.hooks?.transformOutput?.({
+      result: { ...output },
+      step: step2
+    });
+    const { data, error } = {
+      ...output,
+      ...transformedOutput?.result
+    };
+    if (!isStepExecution) await this.state.hooks?.finished?.({ result: { ...typeof error !== "undefined" ? { error } : { data } } });
+    if (typeof error !== "undefined") {
+      let retriable = !(error instanceof NonRetriableError || error?.name === "NonRetriableError" || error instanceof StepError && error === this.state.recentlyRejectedStepError);
+      if (retriable && (error instanceof RetryAfterError || error?.name === "RetryAfterError")) retriable = error.retryAfter;
+      const serializedError = minifyPrettyError(serializeError$1(error));
+      return {
+        type: "function-rejected",
+        ctx: this.fnArg,
+        ops: this.ops,
+        error: serializedError,
+        retriable
+      };
+    }
+    return {
+      type: "function-resolved",
+      ctx: this.fnArg,
+      ops: this.ops,
+      data: undefinedToNull(data)
+    };
+  }
+  createExecutionState() {
+    const d = createDeferredPromiseWithStack();
+    let checkpointResolve = d.deferred.resolve;
+    const checkpointResults = d.results;
+    const loop = (async function* (cleanUp) {
+      try {
+        while (true) {
+          const res = (await checkpointResults.next()).value;
+          if (res) yield res;
+        }
+      } finally {
+        cleanUp?.();
+      }
+    })(() => {
+      this.timeout?.clear();
+      this.checkpointingMaxRuntimeTimer?.clear();
+      this.checkpointingMaxBufferIntervalTimer?.clear();
+      checkpointResults.return();
+    });
+    const stepsToFulfill = Object.keys(this.options.stepState).length;
+    return {
+      stepState: this.options.stepState,
+      stepsToFulfill,
+      steps: /* @__PURE__ */ new Map(),
+      loop,
+      hasSteps: Boolean(stepsToFulfill),
+      stepCompletionOrder: [...this.options.stepCompletionOrder],
+      remainingStepsToBeSeen: new Set(this.options.stepCompletionOrder),
+      setCheckpoint: (checkpoint) => {
+        this.debug("setting checkpoint:", checkpoint.type);
+        ({ resolve: checkpointResolve } = checkpointResolve(checkpoint));
+      },
+      allStateUsed: () => {
+        return this.state.remainingStepsToBeSeen.size === 0;
+      },
+      checkpointingStepBuffer: [],
+      metadata: /* @__PURE__ */ new Map()
+    };
+  }
+  get ops() {
+    return Object.fromEntries(this.state.steps);
+  }
+  createFnArg() {
+    const step2 = this.createStepTools();
+    let fnArg = {
+      ...this.options.data,
+      step: step2
+    };
+    if (this.options.isFailureHandler) {
+      const eventData = external_exports.object({ error: jsonErrorSchema }).parse(fnArg.event?.data);
+      fnArg = {
+        ...fnArg,
+        error: deserializeError$1(eventData.error)
+      };
+    }
+    return this.options.transformCtx?.(fnArg) ?? fnArg;
+  }
+  createStepTools() {
+    const foundStepsToReport = /* @__PURE__ */ new Map();
+    const unhandledFoundStepsToReport = /* @__PURE__ */ new Map();
+    const expectedNextStepIndexes = /* @__PURE__ */ new Map();
+    let foundStepsReportPromise;
+    let beforeExecHooksPromise;
+    const reportNextTick = () => {
+      if (foundStepsReportPromise) return;
+      foundStepsReportPromise = resolveAfterPending().then(() => beforeExecHooksPromise).then(() => {
+        foundStepsReportPromise = void 0;
+        for (const [hashedId, step2] of unhandledFoundStepsToReport) if ((this.options.stepMode === StepMode.Async || step2.hasStepState) && step2.handle()) {
+          unhandledFoundStepsToReport.delete(hashedId);
+          if (step2.fulfilled) foundStepsToReport.delete(step2.id);
+        }
+        if (foundStepsToReport.size) {
+          const steps = [...foundStepsToReport.values()];
+          foundStepsToReport.clear();
+          unhandledFoundStepsToReport.clear();
+          this.state.setCheckpoint({
+            type: "steps-found",
+            steps
+          });
+          return;
+        }
+      });
+    };
+    const pushStepToReport = (step2) => {
+      foundStepsToReport.set(step2.hashedId, step2);
+      unhandledFoundStepsToReport.set(step2.hashedId, step2);
+      reportNextTick();
+    };
+    const stepHandler = async ({ args, matchOp, opts }) => {
+      await beforeExecHooksPromise;
+      const opId = matchOp(getStepOptions(args[0]), ...args.slice(1));
+      if (this.state.executingStep)
+        this.options.client["warnMetadata"]({ run_id: this.fnArg.runId }, ErrCode.NESTING_STEPS, prettyError({
+          whatHappened: `We detected that you have nested \`step.*\` tooling in \`${opId.displayName ?? opId.id}\``,
+          consequences: "Nesting `step.*` tooling is not supported.",
+          type: "warn",
+          reassurance: "It's possible to see this warning if steps are separated by regular asynchronous calls, which is fine.",
+          stack: true,
+          toFixNow: "Make sure you're not using `step.*` tooling inside of other `step.*` tooling. If you need to compose steps together, you can create a new async function and call it from within your step function, or use promise chaining.",
+          code: ErrCode.NESTING_STEPS
+        }));
+      if (this.state.steps.has(_internals2.hashId(opId.id))) {
+        const originalId = opId.id;
+        const expectedNextIndex = expectedNextStepIndexes.get(originalId) ?? 1;
+        for (let i = expectedNextIndex; ; i++) {
+          const newId = originalId + STEP_INDEXING_SUFFIX + i;
+          if (!this.state.steps.has(_internals2.hashId(newId))) {
+            expectedNextStepIndexes.set(originalId, i + 1);
+            opId.id = newId;
+            opId.userland.index = i;
+            break;
+          }
+        }
+      }
+      const { promise, resolve, reject } = createDeferredPromise();
+      const hashedId = _internals2.hashId(opId.id);
+      const stepState = this.state.stepState[hashedId];
+      let isFulfilled = false;
+      if (stepState) {
+        stepState.seen = true;
+        this.state.remainingStepsToBeSeen.delete(hashedId);
+        if (typeof stepState.input === "undefined") isFulfilled = true;
+      }
+      let extraOpts;
+      let fnArgs = [...args];
+      if (typeof stepState?.input !== "undefined" && Array.isArray(stepState.input)) switch (opId.op) {
+        case StepOpCode.StepPlanned:
+          fnArgs = [...args.slice(0, 2), ...stepState.input];
+          extraOpts = { input: [...stepState.input] };
+          break;
+        case StepOpCode.AiGateway:
+          extraOpts = { body: {
+            ...typeof opId.opts?.body === "object" ? { ...opId.opts.body } : {},
+            ...stepState.input[0]
+          } };
+          break;
+      }
+      const step2 = {
+        ...opId,
+        opts: {
+          ...opId.opts,
+          ...extraOpts
+        },
+        rawArgs: fnArgs,
+        hashedId,
+        input: stepState?.input,
+        fn: opts?.fn ? () => opts.fn?.(this.fnArg, ...fnArgs) : void 0,
+        promise,
+        fulfilled: isFulfilled,
+        hasStepState: Boolean(stepState),
+        displayName: opId.displayName ?? opId.id,
+        handled: false,
+        handle: () => {
+          if (step2.handled) return false;
+          this.debug(`handling step "${hashedId}"`);
+          step2.handled = true;
+          const result = this.state.stepState[hashedId];
+          if (step2.fulfilled && result) {
+            result.fulfilled = true;
+            Promise.all([
+              result.data,
+              result.error,
+              result.input
+            ]).then(() => {
+              if (typeof result.data !== "undefined") resolve(result.data);
+              else {
+                this.state.recentlyRejectedStepError = new StepError(opId.id, result.error);
+                reject(this.state.recentlyRejectedStepError);
+              }
+            });
+          }
+          return true;
+        }
+      };
+      this.state.steps.set(hashedId, step2);
+      this.state.hasSteps = true;
+      pushStepToReport(step2);
+      if (!beforeExecHooksPromise && this.state.allStateUsed()) await (beforeExecHooksPromise = (async () => {
+        await this.state.hooks?.afterMemoization?.();
+        await this.state.hooks?.beforeExecution?.();
+      })());
+      return promise;
+    };
+    return createStepTools(this.options.client, this, stepHandler);
+  }
+  resumeStepWithResult(resultOp, resume = true) {
+    const userlandStep = this.state.steps.get(resultOp.id);
+    if (!userlandStep) throw new Error("Step not found in memoization state during async checkpointing; this should never happen and is a bug in the Inngest SDK");
+    userlandStep.data = undefinedToNull(resultOp.data);
+    userlandStep.timing = resultOp.timing;
+    userlandStep.op = resultOp.op;
+    userlandStep.id = resultOp.id;
+    userlandStep.hasStepState = true;
+    if (resume) {
+      userlandStep.fulfilled = true;
+      this.state.stepState[resultOp.id] = userlandStep;
+      userlandStep.handle();
+    }
+    return userlandStep;
+  }
+  getUserFnToRun() {
+    if (!this.options.isFailureHandler) return this.options.fn["fn"];
+    if (!this.options.fn["onFailureFn"])
+      throw new Error("Cannot find function `onFailure` handler");
+    return this.options.fn["onFailureFn"];
+  }
+  initializeTimer(state) {
+    if (!this.options.requestedRunStep) return;
+    this.timeout = createTimeoutPromise(this.timeoutDuration);
+    this.timeout.then(async () => {
+      const { foundSteps, totalFoundSteps } = this.getStepNotFoundDetails();
+      await this.state.hooks?.afterMemoization?.();
+      await this.state.hooks?.beforeExecution?.();
+      await this.state.hooks?.afterExecution?.();
+      state.setCheckpoint({
+        type: "step-not-found",
+        step: {
+          id: this.options.requestedRunStep,
+          op: StepOpCode.StepNotFound
+        },
+        foundSteps,
+        totalFoundSteps
+      });
+    });
+  }
+  getStepNotFoundDetails() {
+    const foundSteps = [...this.state.steps.values()].filter((step2) => !step2.hasStepState).map((step2) => ({
+      id: step2.hashedId,
+      name: step2.name,
+      displayName: step2.displayName
+    })).sort((a, b) => a.id.localeCompare(b.id));
+    return {
+      foundSteps: foundSteps.slice(0, STEP_NOT_FOUND_MAX_FOUND_STEPS),
+      totalFoundSteps: foundSteps.length
+    };
+  }
+  initializeCheckpointRuntimeTimer(state) {
+    this.debug("initializing checkpointing runtime timers", this.options.checkpointingConfig);
+    if (this.options.checkpointingConfig?.maxRuntime) {
+      const maxRuntimeMs = isTemporalDuration(this.options.checkpointingConfig.maxRuntime) ? this.options.checkpointingConfig.maxRuntime.total({ unit: "milliseconds" }) : typeof this.options.checkpointingConfig.maxRuntime === "string" ? (0, import_ms3.default)(this.options.checkpointingConfig.maxRuntime) : this.options.checkpointingConfig.maxRuntime;
+      if (Number.isFinite(maxRuntimeMs) && maxRuntimeMs > 0) {
+        this.checkpointingMaxRuntimeTimer = createTimeoutPromise(maxRuntimeMs);
+        this.checkpointingMaxRuntimeTimer.then(async () => {
+          await this.state.hooks?.afterMemoization?.();
+          await this.state.hooks?.beforeExecution?.();
+          await this.state.hooks?.afterExecution?.();
+          state.setCheckpoint({ type: "checkpointing-runtime-reached" });
+        });
+      }
+    }
+    if (this.options.checkpointingConfig?.maxInterval) {
+      const maxIntervalMs = isTemporalDuration(this.options.checkpointingConfig.maxInterval) ? this.options.checkpointingConfig.maxInterval.total({ unit: "milliseconds" }) : typeof this.options.checkpointingConfig.maxInterval === "string" ? (0, import_ms3.default)(this.options.checkpointingConfig.maxInterval) : this.options.checkpointingConfig.maxInterval;
+      if (Number.isFinite(maxIntervalMs) && maxIntervalMs > 0) {
+        this.checkpointingMaxBufferIntervalTimer = createTimeoutPromise(maxIntervalMs);
+        this.checkpointingMaxBufferIntervalTimer.then(async () => {
+          state.setCheckpoint({ type: "checkpointing-buffer-interval-reached" });
+          this.checkpointingMaxBufferIntervalTimer?.reset();
+        });
+      }
+    }
+  }
+  async initializeMiddleware() {
+    const ctx = this.options.data;
+    return await getHookStack(this.options.fn["middleware"], "onFunctionRun", {
+      ctx,
+      fn: this.options.fn,
+      steps: Object.values(this.options.stepState),
+      reqArgs: this.options.reqArgs
+    }, {
+      transformInput: (prev, output) => {
+        return {
+          ctx: {
+            ...prev.ctx,
+            ...output?.ctx
+          },
+          fn: this.options.fn,
+          steps: prev.steps.map((step2, i) => ({
+            ...step2,
+            ...output?.steps?.[i]
+          })),
+          reqArgs: prev.reqArgs
+        };
+      },
+      transformOutput: (prev, output) => {
+        return {
+          result: {
+            ...prev.result,
+            ...output?.result
+          },
+          step: prev.step
+        };
+      }
+    });
+  }
+};
+var hashId = (id) => {
+  return sha12().update(id).digest("hex");
+};
+var hashOp = (op) => {
+  return {
+    ...op,
+    id: hashId(op.id)
+  };
+};
+var _internals2 = {
+  hashOp,
+  hashId
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v1.js
+var import_hash5 = __toESM(require_hash(), 1);
+var import_ms4 = __toESM(require_ms(), 1);
+var { sha1: sha13 } = import_hash5.default;
+var CHECKPOINT_RETRY_OPTIONS2 = {
+  maxAttempts: 5,
+  baseDelay: 100
+};
+var STEP_NOT_FOUND_MAX_FOUND_STEPS2 = 25;
+var createV1InngestExecution = (options) => {
+  return new V1InngestExecution(options);
+};
+var V1InngestExecution = class extends InngestExecution {
+  version = ExecutionVersion.V1;
+  state;
+  fnArg;
+  checkpointHandlers;
+  timeoutDuration = 1e3 * 10;
+  execution;
+  userFnToRun;
+  /**
+  * If we're supposed to run a particular step via `requestedRunStep`, this
+  * will be a `Promise` that resolves after no steps have been found for
+  * `timeoutDuration` milliseconds.
+  *
+  * If we're not supposed to run a particular step, this will be `undefined`.
+  */
+  timeout;
+  rootSpanId;
+  /**
+  * If we're checkpointing and have been given a maximum runtime, this will be
+  * a `Promise` that resolves after that duration has elapsed, allowing us to
+  * ensure that we end the execution in good time, especially in serverless
+  * environments.
+  */
+  checkpointingMaxRuntimeTimer;
+  /**
+  * If we're checkpointing and have been given a maximum buffer interval, this
+  * will be a `Promise` that resolves after that duration has elapsed, allowing
+  * us to periodically checkpoint even if the step buffer hasn't filled.
+  */
+  checkpointingMaxBufferIntervalTimer;
+  constructor(rawOptions) {
+    const options = {
+      ...rawOptions,
+      stepMode: rawOptions.stepMode ?? StepMode.Async
+    };
+    super(options);
+    if (this.options.stepMode === StepMode.Sync) {
+      if (!this.options.createResponse) throw new Error("createResponse is required for sync step mode");
+    }
+    this.userFnToRun = this.getUserFnToRun();
+    this.state = this.createExecutionState();
+    this.fnArg = this.createFnArg();
+    this.checkpointHandlers = this.createCheckpointHandlers();
+    this.initializeTimer(this.state);
+    this.initializeCheckpointRuntimeTimer(this.state);
+    this.debug("created new V1 execution for run;", this.options.requestedRunStep ? `wanting to run step "${this.options.requestedRunStep}"` : "discovering steps");
+    this.debug("existing state keys:", Object.keys(this.state.stepState));
+  }
+  /**
+  * Idempotently start the execution of the user's function.
+  */
+  start() {
+    if (!this.execution) {
+      this.debug("starting V1 execution");
+      const tracer = trace.getTracer("inngest", version);
+      this.execution = getAsyncLocalStorage().then((als) => {
+        return als.run({
+          app: this.options.client,
+          execution: {
+            ctx: this.fnArg,
+            instance: this
+          }
+        }, async () => {
+          return tracer.startActiveSpan("inngest.execution", (span) => {
+            this.rootSpanId = span.spanContext().spanId;
+            clientProcessorMap.get(this.options.client)?.declareStartingSpan({
+              span,
+              runId: this.options.runId,
+              traceparent: this.options.headers[headerKeys.TraceParent],
+              tracestate: this.options.headers[headerKeys.TraceState]
+            });
+            return this._start().then((result) => {
+              this.debug("result:", result);
+              return result;
+            }).finally(() => {
+              span.end();
+            });
+          });
+        });
+      });
+    }
+    return this.execution;
+  }
+  addMetadata(stepId, kind, scope, op, values) {
+    if (!this.state.metadata) this.state.metadata = /* @__PURE__ */ new Map();
+    const updates = this.state.metadata.get(stepId) ?? [];
+    updates.push({
+      kind,
+      scope,
+      op,
+      values
+    });
+    this.state.metadata.set(stepId, updates);
+    return true;
+  }
+  /**
+  * Starts execution of the user's function and the core loop.
+  */
+  async _start() {
+    try {
+      const allCheckpointHandler = this.getCheckpointHandler("");
+      this.state.hooks = await this.initializeMiddleware();
+      await this.startExecution();
+      let i = 0;
+      for await (const checkpoint of this.state.loop) {
+        await allCheckpointHandler(checkpoint, i);
+        const result = await this.getCheckpointHandler(checkpoint.type)(checkpoint, i++);
+        if (result) return result;
+      }
+    } catch (error) {
+      return await this.transformOutput({ error });
+    } finally {
+      this.state.loop.return();
+      await this.state.hooks?.beforeResponse?.();
+    }
+    throw new Error("Core loop finished without returning a value");
+  }
+  async checkpoint(steps) {
+    if (this.options.stepMode === StepMode.Sync) if (!this.state.checkpointedRun) {
+      const res = await retryWithBackoff(() => this.options.client["inngestApi"].checkpointNewRun({
+        runId: this.fnArg.runId,
+        event: this.fnArg.event,
+        steps,
+        executionVersion: this.version,
+        retries: this.fnArg.maxAttempts ?? defaultMaxRetries
+      }), CHECKPOINT_RETRY_OPTIONS2);
+      this.state.checkpointedRun = {
+        appId: res.data.app_id,
+        fnId: res.data.fn_id,
+        token: res.data.token
+      };
+    } else await retryWithBackoff(() => this.options.client["inngestApi"].checkpointSteps({
+      appId: this.state.checkpointedRun.appId,
+      fnId: this.state.checkpointedRun.fnId,
+      runId: this.fnArg.runId,
+      steps
+    }), CHECKPOINT_RETRY_OPTIONS2);
+    else if (this.options.stepMode === StepMode.AsyncCheckpointing) {
+      if (!this.options.queueItemId) throw new Error("Missing queueItemId for async checkpointing. This is a bug in the Inngest SDK.");
+      if (!this.options.internalFnId) throw new Error("Missing internalFnId for async checkpointing. This is a bug in the Inngest SDK.");
+      await retryWithBackoff(() => this.options.client["inngestApi"].checkpointStepsAsync({
+        runId: this.fnArg.runId,
+        fnId: this.options.internalFnId,
+        queueItemId: this.options.queueItemId,
+        steps
+      }), CHECKPOINT_RETRY_OPTIONS2);
+    } else throw new Error("Checkpointing is only supported in Sync and AsyncCheckpointing step modes. This is a bug in the Inngest SDK.");
+  }
+  async checkpointAndSwitchToAsync(steps) {
+    await this.checkpoint(steps);
+    if (!this.state.checkpointedRun?.token) throw new Error("Failed to checkpoint and switch to async mode");
+    return {
+      type: "change-mode",
+      ctx: this.fnArg,
+      ops: this.ops,
+      to: StepMode.Async,
+      token: this.state.checkpointedRun?.token
+    };
+  }
+  /**
+  * Returns whether we're in the final attempt of execution, or `null` if we
+  * can't determine this in the SDK.
+  */
+  inFinalAttempt() {
+    if (typeof this.fnArg.maxAttempts !== "number") return null;
+    return this.fnArg.attempt + 1 >= this.fnArg.maxAttempts;
+  }
+  /**
+  * Creates a handler for every checkpoint type, defining what to do when we
+  * reach that checkpoint in the core loop.
+  */
+  createCheckpointHandlers() {
+    const commonCheckpointHandler = (checkpoint) => {
+      this.debug(`${this.options.stepMode} checkpoint:`, checkpoint);
+    };
+    const stepRanHandler = async (stepResult) => {
+      const transformResult = await this.transformOutput(stepResult);
+      if (transformResult.type === "function-resolved") return {
+        type: "step-ran",
+        ctx: transformResult.ctx,
+        ops: transformResult.ops,
+        step: {
+          ...stepResult,
+          data: transformResult.data
+        }
+      };
+      else if (transformResult.type === "function-rejected") {
+        const stepForResponse = {
+          ...stepResult,
+          error: transformResult.error
+        };
+        if (stepResult.op === StepOpCode.StepFailed) {
+          const ser = serializeError$1(transformResult.error);
+          stepForResponse.data = {
+            __serialized: true,
+            name: ser.name,
+            message: ser.message,
+            stack: ""
+          };
+        }
+        return {
+          type: "step-ran",
+          ctx: transformResult.ctx,
+          ops: transformResult.ops,
+          retriable: transformResult.retriable,
+          step: stepForResponse
+        };
+      }
+      return transformResult;
+    };
+    const maybeReturnNewSteps = async () => {
+      const newSteps = await this.filterNewSteps(Array.from(this.state.steps.values()));
+      if (newSteps) return {
+        type: "steps-found",
+        ctx: this.fnArg,
+        ops: this.ops,
+        steps: newSteps
+      };
+    };
+    const attemptCheckpointAndResume = async (stepResult, resume = true, force = false) => {
+      if (stepResult) {
+        const stepToResume = this.resumeStepWithResult(stepResult, resume);
+        delete this.state.executingStep;
+        const transformedData = (await this.state.hooks?.transformOutput?.({
+          result: { data: stepResult.data },
+          step: void 0
+        }))?.result?.data ?? stepResult.data;
+        this.state.checkpointingStepBuffer.push({
+          ...stepToResume,
+          data: transformedData
+        });
+      }
+      if (force || !this.options.checkpointingConfig?.bufferedSteps || this.state.checkpointingStepBuffer.length >= this.options.checkpointingConfig.bufferedSteps) {
+        this.debug("checkpointing and resuming execution after step run");
+        try {
+          this.debug(`checkpointing all buffered steps:`, this.state.checkpointingStepBuffer.map((op) => op.displayName || op.id).join(", "));
+          await this.checkpoint(this.state.checkpointingStepBuffer);
+          return;
+        } catch (err2) {
+          this.debug("error checkpointing after step run, so falling back to async", err2);
+          if (stepResult) return stepRanHandler(stepResult);
+        } finally {
+          this.state.checkpointingStepBuffer = [];
+        }
+      } else this.debug(`not checkpointing yet, continuing execution as we haven't reached buffered step limit of ${this.options.checkpointingConfig?.bufferedSteps}`);
+    };
+    const syncHandlers = {
+      "": commonCheckpointHandler,
+      "function-resolved": async (checkpoint, i) => {
+        const transformedData = (await this.state.hooks?.transformOutput?.({
+          result: { data: checkpoint.data },
+          step: void 0
+        }))?.result?.data ?? checkpoint.data;
+        await this.checkpoint([{
+          op: StepOpCode.RunComplete,
+          id: _internals3.hashId("complete"),
+          data: await this.options.createResponse(transformedData)
+        }]);
+        return await this.transformOutput({ data: checkpoint.data });
+      },
+      "function-rejected": async (checkpoint) => {
+        if (this.inFinalAttempt()) return await this.transformOutput({ error: checkpoint.error });
+        return this.checkpointAndSwitchToAsync([{
+          id: _internals3.hashId("complete"),
+          op: StepOpCode.StepError,
+          error: checkpoint.error
+        }]);
+      },
+      "step-not-found": () => {
+        return {
+          type: "function-rejected",
+          ctx: this.fnArg,
+          error: /* @__PURE__ */ new Error("Step not found when checkpointing; this should never happen"),
+          ops: this.ops,
+          retriable: false
+        };
+      },
+      "steps-found": async ({ steps }) => {
+        if (steps.length !== 1 || steps[0].mode !== StepMode.Sync) return this.checkpointAndSwitchToAsync(steps.map((step2) => ({
+          ...step2,
+          id: step2.hashedId
+        })));
+        const result = await this.executeStep(steps[0]);
+        if (result.error) return this.checkpointAndSwitchToAsync([result]);
+        const stepToResume = this.resumeStepWithResult(result);
+        delete this.state.executingStep;
+        const transformedData = (await this.state.hooks?.transformOutput?.({
+          result: { data: result.data },
+          step: void 0
+        }))?.result?.data ?? result.data;
+        const stepForCheckpoint = {
+          ...stepToResume,
+          data: transformedData
+        };
+        await this.checkpoint([stepForCheckpoint]);
+      },
+      "checkpointing-runtime-reached": () => {
+        return this.checkpointAndSwitchToAsync([{
+          op: StepOpCode.DiscoveryRequest,
+          id: _internals3.hashId("discovery-request")
+        }]);
+      },
+      "checkpointing-buffer-interval-reached": () => {
+        return attemptCheckpointAndResume(void 0, false, true);
+      }
+    };
+    const asyncHandlers = {
+      "": commonCheckpointHandler,
+      "function-resolved": async ({ data }) => {
+        if (this.options.createResponse) data = await this.options.createResponse(data);
+        return await this.transformOutput({ data });
+      },
+      "function-rejected": async (checkpoint) => {
+        return await this.transformOutput({ error: checkpoint.error });
+      },
+      "steps-found": async ({ steps }) => {
+        const stepResult = await this.tryExecuteStep(steps);
+        if (stepResult) return stepRanHandler(stepResult);
+        return maybeReturnNewSteps();
+      },
+      "step-not-found": ({ step: step2, foundSteps, totalFoundSteps }) => {
+        return {
+          type: "step-not-found",
+          ctx: this.fnArg,
+          ops: this.ops,
+          step: step2,
+          foundSteps,
+          totalFoundSteps
+        };
+      },
+      "checkpointing-runtime-reached": () => {
+        throw new Error("Checkpointing maximum runtime reached, but this is not in a checkpointing step mode. This is a bug in the Inngest SDK.");
+      },
+      "checkpointing-buffer-interval-reached": () => {
+        throw new Error("Checkpointing maximum buffer interval reached, but this is not in a checkpointing step mode. This is a bug in the Inngest SDK.");
+      }
+    };
+    const asyncCheckpointingHandlers = {
+      "": commonCheckpointHandler,
+      "function-resolved": async (checkpoint, i) => {
+        const output = await asyncHandlers["function-resolved"](checkpoint, i);
+        if (output?.type === "function-resolved") {
+          const steps = this.state.checkpointingStepBuffer.concat({
+            op: StepOpCode.RunComplete,
+            id: _internals3.hashId("complete"),
+            data: output.data
+          });
+          return {
+            type: "steps-found",
+            ctx: output.ctx,
+            ops: output.ops,
+            steps
+          };
+        }
+      },
+      "function-rejected": async (checkpoint) => {
+        if (this.state.checkpointingStepBuffer.length) await attemptCheckpointAndResume(void 0, false);
+        return await this.transformOutput({ error: checkpoint.error });
+      },
+      "step-not-found": asyncHandlers["step-not-found"],
+      "steps-found": async ({ steps }) => {
+        const { stepsToResume, newSteps } = steps.reduce((acc, step2) => {
+          if (!step2.hasStepState) acc.newSteps.push(step2);
+          else if (!step2.fulfilled) acc.stepsToResume.push(step2);
+          return acc;
+        }, {
+          stepsToResume: [],
+          newSteps: []
+        });
+        this.debug("split found steps in to:", {
+          stepsToResume: stepsToResume.length,
+          newSteps: newSteps.length
+        });
+        if (!this.options.requestedRunStep && newSteps.length) {
+          if (this.state.checkpointingRuntimeExceeded) {
+            if (this.state.checkpointingStepBuffer.length) {
+              const fallback = await attemptCheckpointAndResume(void 0, false, true);
+              if (fallback) return fallback;
+            }
+            return maybeReturnNewSteps();
+          }
+          const stepResult = await this.tryExecuteStep(newSteps);
+          if (stepResult) {
+            this.debug(`executed step "${stepResult.id}" successfully`);
+            if (stepResult.error) return stepRanHandler(stepResult);
+            return await attemptCheckpointAndResume(stepResult);
+          }
+          return maybeReturnNewSteps();
+        }
+        if (stepsToResume.length) {
+          this.debug(`resuming ${stepsToResume.length} steps`);
+          for (const st of stepsToResume) this.resumeStepWithResult({
+            ...st,
+            id: st.hashedId
+          });
+        }
+      },
+      "checkpointing-runtime-reached": async () => {
+        this.state.checkpointingRuntimeExceeded = true;
+      },
+      "checkpointing-buffer-interval-reached": () => {
+        return attemptCheckpointAndResume(void 0, false, true);
+      }
+    };
+    return {
+      [StepMode.Async]: asyncHandlers,
+      [StepMode.Sync]: syncHandlers,
+      [StepMode.AsyncCheckpointing]: asyncCheckpointingHandlers
+    };
+  }
+  getCheckpointHandler(type) {
+    return this.checkpointHandlers[this.options.stepMode][type];
+  }
+  async tryExecuteStep(steps) {
+    const hashedStepIdToRun = this.options.requestedRunStep || this.getEarlyExecRunStep(steps);
+    if (!hashedStepIdToRun) return;
+    const step2 = steps.find((step$1) => step$1.hashedId === hashedStepIdToRun && step$1.fn);
+    if (step2) return await this.executeStep(step2);
+    this.timeout?.reset();
+  }
+  /**
+  * Given a list of outgoing ops, decide if we can execute an op early and
+  * return the ID of the step to execute if we can.
+  */
+  getEarlyExecRunStep(steps) {
+    if (this.options.disableImmediateExecution) return;
+    const unfulfilledSteps = steps.filter((step2) => !step2.fulfilled);
+    if (unfulfilledSteps.length !== 1) return;
+    const op = unfulfilledSteps[0];
+    if (op && op.op === StepOpCode.StepPlanned) return op.hashedId;
+  }
+  async filterNewSteps(foundSteps) {
+    if (this.options.requestedRunStep) return;
+    const newSteps = foundSteps.reduce((acc, step2) => {
+      if (!step2.hasStepState) acc.push(step2);
+      return acc;
+    }, []);
+    if (!newSteps.length) return;
+    await this.state.hooks?.afterMemoization?.();
+    await this.state.hooks?.beforeExecution?.();
+    await this.state.hooks?.afterExecution?.();
+    const stepList = newSteps.map((step2) => ({
+      displayName: step2.displayName,
+      op: step2.op,
+      id: step2.hashedId,
+      name: step2.name,
+      opts: step2.opts,
+      userland: step2.userland
+    }));
+    return await this.transformNewSteps(stepList);
+  }
+  /**
+  * Using middleware, transform any newly-found steps before returning them to
+  * an Inngest Server.
+  */
+  async transformNewSteps(steps) {
+    return Promise.all(steps.map(async (step2) => {
+      if (step2.op !== StepOpCode.InvokeFunction) return step2;
+      const transformedPayload = await (await getHookStack(this.options.fn["middleware"], "onSendEvent", void 0, {
+        transformInput: (prev, output) => {
+          return {
+            ...prev,
+            ...output
+          };
+        },
+        transformOutput: (prev, output) => {
+          return { result: {
+            ...prev.result,
+            ...output?.result
+          } };
+        }
+      })).transformInput?.({ payloads: [{
+        ...step2.opts?.payload ?? {},
+        name: internalEvents.FunctionInvoked
+      }] });
+      const newPayload = invokePayloadSchema.parse(transformedPayload?.payloads?.[0] ?? {});
+      return {
+        ...step2,
+        opts: {
+          ...step2.opts,
+          payload: {
+            ...step2.opts?.payload ?? {},
+            ...newPayload
+          }
+        }
+      };
+    }));
+  }
+  async executeStep({ id, name, opts, fn, displayName, userland, hashedId }) {
+    this.debug(`preparing to execute step "${id}"`);
+    this.timeout?.clear();
+    await this.state.hooks?.afterMemoization?.();
+    await this.state.hooks?.beforeExecution?.();
+    const outgoingOp = {
+      id: hashedId,
+      op: StepOpCode.StepRun,
+      name,
+      opts,
+      displayName,
+      userland
+    };
+    this.state.executingStep = outgoingOp;
+    const store = await getAsyncCtx();
+    if (store?.execution) store.execution.executingStep = {
+      id,
+      name: displayName
+    };
+    this.debug(`executing step "${id}"`);
+    if (this.rootSpanId && this.options.checkpointingConfig) clientProcessorMap.get(this.options.client)?.declareStepExecution(this.rootSpanId, hashedId, this.options.data?.attempt ?? 0);
+    let interval;
+    return goIntervalTiming(() => runAsPromise(fn)).finally(async () => {
+      this.debug(`finished executing step "${id}"`);
+      if (this.rootSpanId && this.options.checkpointingConfig) clientProcessorMap.get(this.options.client)?.clearStepExecution(this.rootSpanId);
+      if (store?.execution) delete store.execution.executingStep;
+      await this.state.hooks?.afterExecution?.();
+    }).then(async ({ resultPromise, interval: _interval }) => {
+      interval = _interval;
+      const metadata = this.state.metadata?.get(id);
+      return {
+        ...outgoingOp,
+        data: await resultPromise,
+        ...metadata && metadata.length > 0 ? { metadata } : {}
+      };
+    }).catch((error) => {
+      let errorIsRetriable = true;
+      if (error instanceof NonRetriableError || error?.name === "NonRetriableError") errorIsRetriable = false;
+      else if (this.fnArg.maxAttempts && this.fnArg?.maxAttempts - 1 === this.fnArg.attempt) errorIsRetriable = false;
+      const metadata = this.state.metadata?.get(id);
+      if (errorIsRetriable) return {
+        ...outgoingOp,
+        op: StepOpCode.StepError,
+        error,
+        ...metadata && metadata.length > 0 ? { metadata } : {}
+      };
+      else return {
+        ...outgoingOp,
+        op: StepOpCode.StepFailed,
+        error,
+        ...metadata && metadata.length > 0 ? { metadata } : {}
+      };
+    }).then((op) => ({
+      ...op,
+      timing: interval
+    }));
+  }
+  /**
+  * Starts execution of the user's function, including triggering checkpoints
+  * and middleware hooks where appropriate.
+  */
+  async startExecution() {
+    await this.transformInput();
+    this.timeout?.start();
+    this.checkpointingMaxRuntimeTimer?.start();
+    this.checkpointingMaxBufferIntervalTimer?.start();
+    await this.state.hooks?.beforeMemoization?.();
+    if (this.state.allStateUsed()) {
+      await this.state.hooks?.afterMemoization?.();
+      await this.state.hooks?.beforeExecution?.();
+    }
+    runAsPromise(() => this.userFnToRun(this.fnArg)).finally(async () => {
+      await this.state.hooks?.afterMemoization?.();
+      await this.state.hooks?.beforeExecution?.();
+      await this.state.hooks?.afterExecution?.();
+    }).then((data) => {
+      this.state.setCheckpoint({
+        type: "function-resolved",
+        data
+      });
+    }).catch((error) => {
+      this.state.setCheckpoint({
+        type: "function-rejected",
+        error
+      });
+    });
+  }
+  /**
+  * Using middleware, transform input before running.
+  */
+  async transformInput() {
+    const inputMutations = await this.state.hooks?.transformInput?.({
+      ctx: { ...this.fnArg },
+      steps: Object.values(this.state.stepState),
+      fn: this.options.fn,
+      reqArgs: this.options.reqArgs
+    });
+    if (inputMutations?.ctx) this.fnArg = inputMutations.ctx;
+    if (inputMutations?.steps) this.state.stepState = Object.fromEntries(inputMutations.steps.map((step2) => [step2.id, step2]));
+  }
+  /**
+  * Using middleware, transform output before returning.
+  */
+  async transformOutput(dataOrError) {
+    const output = { ...dataOrError };
+    const step2 = this.state.executingStep;
+    delete this.state.executingStep;
+    const isStepExecution = Boolean(step2);
+    const transformedOutput = await this.state.hooks?.transformOutput?.({
+      result: { ...output },
+      step: step2
+    });
+    const { data, error } = {
+      ...output,
+      ...transformedOutput?.result
+    };
+    if (!isStepExecution) await this.state.hooks?.finished?.({ result: { ...typeof error !== "undefined" ? { error } : { data } } });
+    if (typeof error !== "undefined") {
+      let retriable = !(error instanceof NonRetriableError || error?.name === "NonRetriableError" || error instanceof StepError && error === this.state.recentlyRejectedStepError);
+      if (retriable && (error instanceof RetryAfterError || error?.name === "RetryAfterError")) retriable = error.retryAfter;
+      const serializedError = minifyPrettyError(serializeError$1(error));
+      return {
+        type: "function-rejected",
+        ctx: this.fnArg,
+        ops: this.ops,
+        error: serializedError,
+        retriable
+      };
+    }
+    return {
+      type: "function-resolved",
+      ctx: this.fnArg,
+      ops: this.ops,
+      data: undefinedToNull(data)
+    };
+  }
+  createExecutionState() {
+    const d = createDeferredPromiseWithStack();
+    let checkpointResolve = d.deferred.resolve;
+    const checkpointResults = d.results;
+    const loop = (async function* (cleanUp) {
+      try {
+        while (true) {
+          const res = (await checkpointResults.next()).value;
+          if (res) yield res;
+        }
+      } finally {
+        cleanUp?.();
+      }
+    })(() => {
+      this.timeout?.clear();
+      this.checkpointingMaxRuntimeTimer?.clear();
+      this.checkpointingMaxBufferIntervalTimer?.clear();
+      checkpointResults.return();
+    });
+    const stepsToFulfill = Object.keys(this.options.stepState).length;
+    return {
+      stepState: this.options.stepState,
+      stepsToFulfill,
+      steps: /* @__PURE__ */ new Map(),
+      loop,
+      hasSteps: Boolean(stepsToFulfill),
+      stepCompletionOrder: [...this.options.stepCompletionOrder],
+      remainingStepsToBeSeen: new Set(this.options.stepCompletionOrder),
+      setCheckpoint: (checkpoint) => {
+        this.debug("setting checkpoint:", checkpoint.type);
+        ({ resolve: checkpointResolve } = checkpointResolve(checkpoint));
+      },
+      allStateUsed: () => {
+        return this.state.remainingStepsToBeSeen.size === 0;
+      },
+      checkpointingStepBuffer: [],
+      metadata: /* @__PURE__ */ new Map()
+    };
+  }
+  get ops() {
+    return Object.fromEntries(this.state.steps);
+  }
+  createFnArg() {
+    const step2 = this.createStepTools();
+    let fnArg = {
+      ...this.options.data,
+      step: step2
+    };
+    if (this.options.isFailureHandler) {
+      const eventData = external_exports.object({ error: jsonErrorSchema }).parse(fnArg.event?.data);
+      fnArg = {
+        ...fnArg,
+        error: deserializeError$1(eventData.error)
+      };
+    }
+    return this.options.transformCtx?.(fnArg) ?? fnArg;
+  }
+  createStepTools() {
+    const foundStepsToReport = /* @__PURE__ */ new Map();
+    const unhandledFoundStepsToReport = /* @__PURE__ */ new Map();
+    const expectedNextStepIndexes = /* @__PURE__ */ new Map();
+    const remainingStepCompletionOrder = this.state.stepCompletionOrder.slice();
+    let foundStepsReportPromise;
+    let beforeExecHooksPromise;
+    let warnOfParallelIndexing = false;
+    let tickExtensionCount = 0;
+    const maybeWarnOfParallelIndexing = (userlandCollisionId) => {
+      if (warnOfParallelIndexing) return;
+      const hashedCollisionId = _internals3.hashId(userlandCollisionId);
+      if (this.state.steps.has(hashedCollisionId)) {
+        if (!foundStepsToReport.has(hashedCollisionId)) {
+          warnOfParallelIndexing = true;
+          this.options.client["warnMetadata"]({ run_id: this.fnArg.runId }, ErrCode.AUTOMATIC_PARALLEL_INDEXING, prettyError({
+            type: "warn",
+            whatHappened: "We detected that you have multiple steps with the same ID.",
+            code: ErrCode.AUTOMATIC_PARALLEL_INDEXING,
+            why: `This can happen if you're using the same ID for multiple steps across different chains of parallel work. We found the issue with step "${userlandCollisionId}".`,
+            reassurance: "Your function is still running, though it may exhibit unexpected behaviour.",
+            consequences: "Using the same IDs across parallel chains of work can cause unexpected behaviour.",
+            toFixNow: "We recommend using a unique ID for each step, especially those happening in parallel."
+          }));
+        }
+      }
+    };
+    const reportNextTick = () => {
+      if (foundStepsReportPromise) return;
+      let extensionPromise;
+      if (++tickExtensionCount >= 10) {
+        tickExtensionCount = 0;
+        extensionPromise = resolveNextTick();
+      } else extensionPromise = resolveAfterPending();
+      foundStepsReportPromise = extensionPromise.then(() => beforeExecHooksPromise).then(() => {
+        foundStepsReportPromise = void 0;
+        for (let i = 0; i < remainingStepCompletionOrder.length; i++) {
+          const nextStepId = remainingStepCompletionOrder[i];
+          if (!nextStepId) continue;
+          if (unhandledFoundStepsToReport.get(nextStepId)?.handle()) {
+            remainingStepCompletionOrder.splice(i, 1);
+            unhandledFoundStepsToReport.delete(nextStepId);
+            reportNextTick();
+            return;
+          }
+        }
+        const steps = [...foundStepsToReport.values()];
+        foundStepsToReport.clear();
+        unhandledFoundStepsToReport.clear();
+        this.state.setCheckpoint({
+          type: "steps-found",
+          steps
+        });
+      });
+    };
+    const pushStepToReport = (step2) => {
+      foundStepsToReport.set(step2.hashedId, step2);
+      unhandledFoundStepsToReport.set(step2.hashedId, step2);
+      reportNextTick();
+    };
+    const stepHandler = async ({ args, matchOp, opts }) => {
+      await beforeExecHooksPromise;
+      const opId = matchOp(getStepOptions(args[0]), ...args.slice(1));
+      if (this.state.executingStep)
+        this.options.client["warnMetadata"]({ run_id: this.fnArg.runId }, ErrCode.NESTING_STEPS, prettyError({
+          whatHappened: `We detected that you have nested \`step.*\` tooling in \`${opId.displayName ?? opId.id}\``,
+          consequences: "Nesting `step.*` tooling is not supported.",
+          type: "warn",
+          reassurance: "It's possible to see this warning if steps are separated by regular asynchronous calls, which is fine.",
+          stack: true,
+          toFixNow: "Make sure you're not using `step.*` tooling inside of other `step.*` tooling. If you need to compose steps together, you can create a new async function and call it from within your step function, or use promise chaining.",
+          code: ErrCode.NESTING_STEPS
+        }));
+      if (this.state.steps.has(_internals3.hashId(opId.id))) {
+        const originalId = opId.id;
+        maybeWarnOfParallelIndexing(originalId);
+        const expectedNextIndex = expectedNextStepIndexes.get(originalId) ?? 1;
+        for (let i = expectedNextIndex; ; i++) {
+          const newId = originalId + STEP_INDEXING_SUFFIX + i;
+          if (!this.state.steps.has(_internals3.hashId(newId))) {
+            expectedNextStepIndexes.set(originalId, i + 1);
+            opId.id = newId;
+            opId.userland.index = i;
+            break;
+          }
+        }
+      }
+      const { promise, resolve, reject } = createDeferredPromise();
+      const hashedId = _internals3.hashId(opId.id);
+      const stepState = this.state.stepState[hashedId];
+      let isFulfilled = false;
+      if (stepState) {
+        stepState.seen = true;
+        this.state.remainingStepsToBeSeen.delete(hashedId);
+        if (typeof stepState.input === "undefined") isFulfilled = true;
+      }
+      let extraOpts;
+      let fnArgs = [...args];
+      if (typeof stepState?.input !== "undefined" && Array.isArray(stepState.input)) switch (opId.op) {
+        case StepOpCode.StepPlanned:
+          fnArgs = [...args.slice(0, 2), ...stepState.input];
+          extraOpts = { input: [...stepState.input] };
+          break;
+        case StepOpCode.AiGateway:
+          extraOpts = { body: {
+            ...typeof opId.opts?.body === "object" ? { ...opId.opts.body } : {},
+            ...stepState.input[0]
+          } };
+          break;
+      }
+      const step2 = {
+        ...opId,
+        opts: {
+          ...opId.opts,
+          ...extraOpts
+        },
+        rawArgs: fnArgs,
+        hashedId,
+        input: stepState?.input,
+        fn: opts?.fn ? () => opts.fn?.(this.fnArg, ...fnArgs) : void 0,
+        promise,
+        fulfilled: isFulfilled,
+        hasStepState: Boolean(stepState),
+        displayName: opId.displayName ?? opId.id,
+        handled: false,
+        handle: () => {
+          if (step2.handled) return false;
+          this.debug(`handling step "${hashedId}"`);
+          step2.handled = true;
+          const result = this.state.stepState[hashedId];
+          if (step2.fulfilled && result) {
+            result.fulfilled = true;
+            Promise.all([
+              result.data,
+              result.error,
+              result.input
+            ]).then(() => {
+              if (typeof result.data !== "undefined") resolve(result.data);
+              else {
+                this.state.recentlyRejectedStepError = new StepError(opId.id, result.error);
+                reject(this.state.recentlyRejectedStepError);
+              }
+            });
+          }
+          return true;
+        }
+      };
+      this.state.steps.set(hashedId, step2);
+      this.state.hasSteps = true;
+      pushStepToReport(step2);
+      if (!beforeExecHooksPromise && this.state.allStateUsed()) await (beforeExecHooksPromise = (async () => {
+        await this.state.hooks?.afterMemoization?.();
+        await this.state.hooks?.beforeExecution?.();
+      })());
+      return promise;
+    };
+    return createStepTools(this.options.client, this, stepHandler);
+  }
+  resumeStepWithResult(resultOp, resume = true) {
+    const userlandStep = this.state.steps.get(resultOp.id);
+    if (!userlandStep) throw new Error("Step not found in memoization state during async checkpointing; this should never happen and is a bug in the Inngest SDK");
+    userlandStep.data = undefinedToNull(resultOp.data);
+    userlandStep.timing = resultOp.timing;
+    userlandStep.op = resultOp.op;
+    userlandStep.id = resultOp.id;
+    if (resume) {
+      userlandStep.fulfilled = true;
+      userlandStep.hasStepState = true;
+      this.state.stepState[resultOp.id] = userlandStep;
+      userlandStep.handle();
+    }
+    return userlandStep;
+  }
+  getUserFnToRun() {
+    if (!this.options.isFailureHandler) return this.options.fn["fn"];
+    if (!this.options.fn["onFailureFn"])
+      throw new Error("Cannot find function `onFailure` handler");
+    return this.options.fn["onFailureFn"];
+  }
+  initializeTimer(state) {
+    if (!this.options.requestedRunStep) return;
+    this.timeout = createTimeoutPromise(this.timeoutDuration);
+    this.timeout.then(async () => {
+      const { foundSteps, totalFoundSteps } = this.getStepNotFoundDetails();
+      await this.state.hooks?.afterMemoization?.();
+      await this.state.hooks?.beforeExecution?.();
+      await this.state.hooks?.afterExecution?.();
+      state.setCheckpoint({
+        type: "step-not-found",
+        step: {
+          id: this.options.requestedRunStep,
+          op: StepOpCode.StepNotFound
+        },
+        foundSteps,
+        totalFoundSteps
+      });
+    });
+  }
+  getStepNotFoundDetails() {
+    const foundSteps = [...this.state.steps.values()].filter((step2) => !step2.hasStepState).map((step2) => ({
+      id: step2.hashedId,
+      name: step2.name,
+      displayName: step2.displayName
+    })).sort((a, b) => a.id.localeCompare(b.id));
+    return {
+      foundSteps: foundSteps.slice(0, STEP_NOT_FOUND_MAX_FOUND_STEPS2),
+      totalFoundSteps: foundSteps.length
+    };
+  }
+  initializeCheckpointRuntimeTimer(state) {
+    this.debug("initializing checkpointing runtime timers", this.options.checkpointingConfig);
+    if (this.options.checkpointingConfig?.maxRuntime) {
+      const maxRuntimeMs = isTemporalDuration(this.options.checkpointingConfig.maxRuntime) ? this.options.checkpointingConfig.maxRuntime.total({ unit: "milliseconds" }) : typeof this.options.checkpointingConfig.maxRuntime === "string" ? (0, import_ms4.default)(this.options.checkpointingConfig.maxRuntime) : this.options.checkpointingConfig.maxRuntime;
+      if (Number.isFinite(maxRuntimeMs) && maxRuntimeMs > 0) {
+        this.checkpointingMaxRuntimeTimer = createTimeoutPromise(maxRuntimeMs);
+        this.checkpointingMaxRuntimeTimer.then(async () => {
+          await this.state.hooks?.afterMemoization?.();
+          await this.state.hooks?.beforeExecution?.();
+          await this.state.hooks?.afterExecution?.();
+          state.setCheckpoint({ type: "checkpointing-runtime-reached" });
+        });
+      }
+    }
+    if (this.options.checkpointingConfig?.maxInterval) {
+      const maxIntervalMs = isTemporalDuration(this.options.checkpointingConfig.maxInterval) ? this.options.checkpointingConfig.maxInterval.total({ unit: "milliseconds" }) : typeof this.options.checkpointingConfig.maxInterval === "string" ? (0, import_ms4.default)(this.options.checkpointingConfig.maxInterval) : this.options.checkpointingConfig.maxInterval;
+      if (Number.isFinite(maxIntervalMs) && maxIntervalMs > 0) {
+        this.checkpointingMaxBufferIntervalTimer = createTimeoutPromise(maxIntervalMs);
+        this.checkpointingMaxBufferIntervalTimer.then(async () => {
+          state.setCheckpoint({ type: "checkpointing-buffer-interval-reached" });
+          this.checkpointingMaxBufferIntervalTimer?.reset();
+        });
+      }
+    }
+  }
+  async initializeMiddleware() {
+    const ctx = this.options.data;
+    return await getHookStack(this.options.fn["middleware"], "onFunctionRun", {
+      ctx,
+      fn: this.options.fn,
+      steps: Object.values(this.options.stepState),
+      reqArgs: this.options.reqArgs
+    }, {
+      transformInput: (prev, output) => {
+        return {
+          ctx: {
+            ...prev.ctx,
+            ...output?.ctx
+          },
+          fn: this.options.fn,
+          steps: prev.steps.map((step2, i) => ({
+            ...step2,
+            ...output?.steps?.[i]
+          })),
+          reqArgs: prev.reqArgs
+        };
+      },
+      transformOutput: (prev, output) => {
+        return {
+          result: {
+            ...prev.result,
+            ...output?.result
+          },
+          step: prev.step
+        };
+      }
+    });
+  }
+};
+var hashId2 = (id) => {
+  return sha13().update(id).digest("hex");
+};
+var hashOp2 = (op) => {
+  return {
+    ...op,
+    id: hashId2(op.id)
+  };
+};
+var _internals3 = {
+  hashOp: hashOp2,
+  hashId: hashId2
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunction.js
+var InngestFunction = class InngestFunction2 {
+  static stepId = "step";
+  static failureSuffix = "-failure";
+  get [Symbol.toStringTag]() {
+    return InngestFunction2.Tag;
+  }
+  opts;
+  fn;
+  onFailureFn;
+  client;
+  middleware;
+  /**
+  * A stateless Inngest function, wrapping up function configuration and any
+  * in-memory steps to run when triggered.
+  *
+  * This function can be "registered" to create a handler that Inngest can
+  * trigger remotely.
+  */
+  constructor(client, opts, fn) {
+    this.client = client;
+    this.opts = opts;
+    this.fn = fn;
+    this.onFailureFn = this.opts.onFailure;
+    this.middleware = this.client["initializeMiddleware"](this.opts.middleware, {
+      registerInput: { fn: this },
+      prefixStack: this.client["middleware"]
+    });
+  }
+  /**
+  * The generated or given ID for this function.
+  */
+  id(prefix) {
+    return [prefix, this.opts.id].filter(Boolean).join("-");
+  }
+  /**
+  * The generated or given ID for this function, prefixed with the app ID. This
+  * is used for routing invokes and identifying the function across apps.
+  */
+  get absoluteId() {
+    return this.id(this.client.id);
+  }
+  /**
+  * The name of this function as it will appear in the Inngest Cloud UI.
+  */
+  get name() {
+    return this.opts.name || this.id();
+  }
+  /**
+  * The description of this function.
+  */
+  get description() {
+    return this.opts.description;
+  }
+  /**
+  * Retrieve the Inngest config for this function.
+  */
+  getConfig({ baseUrl, appPrefix, isConnect }) {
+    const fnId = this.id(appPrefix);
+    const stepUrl = new URL(baseUrl.href);
+    stepUrl.searchParams.set(queryKeys.FnId, fnId);
+    stepUrl.searchParams.set(queryKeys.StepId, InngestFunction2.stepId);
+    const { retries: attempts, cancelOn, idempotency, batchEvents, rateLimit, throttle, concurrency, debounce, timeouts, priority, singleton } = this.opts;
+    const retries = typeof attempts === "undefined" ? void 0 : { attempts };
+    const fn = {
+      id: fnId,
+      name: this.name,
+      triggers: (this.opts.triggers ?? []).map((trigger) => {
+        if ("event" in trigger) return {
+          event: trigger.event,
+          expression: trigger.if
+        };
+        return { cron: trigger.cron };
+      }),
+      steps: { [InngestFunction2.stepId]: {
+        id: InngestFunction2.stepId,
+        name: InngestFunction2.stepId,
+        runtime: {
+          type: isConnect ? "ws" : "http",
+          url: stepUrl.href
+        },
+        retries
+      } },
+      idempotency,
+      batchEvents,
+      rateLimit,
+      throttle,
+      concurrency,
+      debounce,
+      priority,
+      timeouts,
+      singleton
+    };
+    if (cancelOn) fn.cancel = cancelOn.map(({ event, timeout, if: ifStr, match: match3 }) => {
+      const ret = { event };
+      if (timeout) ret.timeout = timeStr(timeout);
+      if (match3) ret.if = `event.${match3} == async.${match3}`;
+      else if (ifStr) ret.if = ifStr;
+      return ret;
+    }, []);
+    const config = [fn];
+    if (this.onFailureFn) {
+      const id = `${fn.id}${InngestFunction2.failureSuffix}`;
+      const name = `${fn.name ?? fn.id} (failure)`;
+      const failureStepUrl = new URL(stepUrl.href);
+      failureStepUrl.searchParams.set(queryKeys.FnId, id);
+      config.push({
+        id,
+        name,
+        triggers: [{
+          event: internalEvents.FunctionFailed,
+          expression: `event.data.function_id == '${fnId}'`
+        }],
+        steps: { [InngestFunction2.stepId]: {
+          id: InngestFunction2.stepId,
+          name: InngestFunction2.stepId,
+          runtime: {
+            type: "http",
+            url: failureStepUrl.href
+          },
+          retries: { attempts: 1 }
+        } }
+      });
+    }
+    return config;
+  }
+  createExecution(opts) {
+    const options = {
+      fn: this,
+      ...opts.partialOptions
+    };
+    return {
+      [ExecutionVersion.V2]: () => createV2InngestExecution(options),
+      [ExecutionVersion.V1]: () => createV1InngestExecution(options),
+      [ExecutionVersion.V0]: () => createV0InngestExecution(options)
+    }[opts.version]();
+  }
+  shouldOptimizeParallelism() {
+    return this.opts.optimizeParallelism ?? this.client["options"].optimizeParallelism ?? false;
+  }
+  shouldAsyncCheckpoint(requestedRunStep, internalFnId, disableImmediateExecution) {
+    if (requestedRunStep || !internalFnId || disableImmediateExecution) return;
+    const userCfg = this.opts.checkpointing ?? this.client["options"].checkpointing ?? this.opts.experimentalCheckpointing ?? this.client["options"].experimentalCheckpointing;
+    if (!userCfg) return;
+    if (userCfg === true) return defaultCheckpointingOptions;
+    return {
+      bufferedSteps: userCfg.bufferedSteps ?? defaultCheckpointingOptions.bufferedSteps,
+      maxRuntime: userCfg.maxRuntime ?? defaultCheckpointingOptions.maxRuntime,
+      maxInterval: userCfg.maxInterval ?? defaultCheckpointingOptions.maxInterval
+    };
+  }
+};
+(function(_InngestFunction) {
+  _InngestFunction.Tag = "Inngest.Function";
+})(InngestFunction || (InngestFunction = {}));
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestCommHandler.js
+var import_debug3 = __toESM(require_src(), 1);
+var registerResSchema = external_exports.object({
+  status: external_exports.number().default(200),
+  skipped: external_exports.boolean().optional().default(false),
+  modified: external_exports.boolean().optional().default(false),
+  error: external_exports.string().default("Successfully registered")
+});
+var InngestCommHandler = class {
+  /**
+  * The ID of this serve handler, e.g. `"my-app"`. It's recommended that this
+  * value represents the overarching app/service that this set of functions is
+  * being served from.
+  */
+  id;
+  /**
+  * The handler specified during instantiation of the class.
+  */
+  handler;
+  /**
+  * The URL of the Inngest function registration endpoint.
+  */
+  inngestRegisterUrl;
+  /**
+  * The name of the framework this handler is designed for. Should be
+  * lowercase, alphanumeric characters inclusive of `-` and `/`.
+  */
+  frameworkName;
+  /**
+  * The signing key used to validate requests from Inngest. This is
+  * intentionally mutable so that we can pick up the signing key from the
+  * environment during execution if needed.
+  */
+  signingKey;
+  /**
+  * The same as signingKey, except used as a fallback when auth fails using the
+  * primary signing key.
+  */
+  signingKeyFallback;
+  /**
+  * A property that can be set to indicate whether we believe we are in
+  * production mode.
+  *
+  * Should be set every time a request is received.
+  */
+  _mode;
+  /**
+  * The localized `fetch` implementation used by this handler.
+  */
+  fetch;
+  /**
+  * The host used to access the Inngest serve endpoint, e.g.:
+  *
+  *     "https://myapp.com"
+  *
+  * By default, the library will try to infer this using request details such
+  * as the "Host" header and request path, but sometimes this isn't possible
+  * (e.g. when running in a more controlled environments such as AWS Lambda or
+  * when dealing with proxies/redirects).
+  *
+  * Provide the custom hostname here to ensure that the path is reported
+  * correctly when registering functions with Inngest.
+  *
+  * To also provide a custom path, use `servePath`.
+  */
+  _serveHost;
+  /**
+  * The path to the Inngest serve endpoint. e.g.:
+  *
+  *     "/some/long/path/to/inngest/endpoint"
+  *
+  * By default, the library will try to infer this using request details such
+  * as the "Host" header and request path, but sometimes this isn't possible
+  * (e.g. when running in a more controlled environments such as AWS Lambda or
+  * when dealing with proxies/redirects).
+  *
+  * Provide the custom path (excluding the hostname) here to ensure that the
+  * path is reported correctly when registering functions with Inngest.
+  *
+  * To also provide a custom hostname, use `serveHost`.
+  */
+  _servePath;
+  /**
+  * The minimum level to log from the Inngest serve handler.
+  */
+  logLevel;
+  streaming;
+  /**
+  * A private collection of just Inngest functions, as they have been passed
+  * when instantiating the class.
+  */
+  rawFns;
+  client;
+  /**
+  * A private collection of functions that are being served. This map is used
+  * to find and register functions when interacting with Inngest Cloud.
+  */
+  fns = {};
+  env = getProcessEnv();
+  allowExpiredSignatures;
+  _options;
+  skipSignatureValidation;
+  constructor(options) {
+    this._options = options;
+    if (Object.hasOwn(options, "eventKey")) throw new Error(`${logPrefix} You've passed an Inngest client as the first argument to your serve handler. This is no longer supported in v3; please pass the Inngest client as the \`client\` property of an options object instead. See https://www.inngest.com/docs/sdk/migration`);
+    this.frameworkName = options.frameworkName;
+    this.client = options.client;
+    if (options.id) console.warn(`${logPrefix} The \`id\` serve option is deprecated and will be removed in v4`);
+    this.id = options.id || this.client.id;
+    this.handler = options.handler;
+    this.allowExpiredSignatures = Boolean(arguments["0"]?.__testingAllowExpiredSignatures);
+    this.rawFns = options.functions?.filter(Boolean) ?? [];
+    if (this.rawFns.length !== (options.functions ?? []).length) console.warn(`Some functions passed to serve() are undefined and misconfigured.  Please check your imports.`);
+    this.fns = this.rawFns.reduce((acc, fn) => {
+      const configs = fn["getConfig"]({
+        baseUrl: new URL("https://example.com"),
+        appPrefix: this.id
+      });
+      const fns = configs.reduce((acc$1, { id }, index) => {
+        return {
+          ...acc$1,
+          [id]: {
+            fn,
+            onFailure: Boolean(index)
+          }
+        };
+      }, {});
+      configs.forEach(({ id }) => {
+        if (acc[id]) throw new Error(`Duplicate function ID "${id}"; please change a function's name or provide an explicit ID to avoid conflicts.`);
+      });
+      return {
+        ...acc,
+        ...fns
+      };
+    }, {});
+    this.inngestRegisterUrl = new URL("/fn/register", this.apiBaseUrl);
+    this.signingKey = options.signingKey;
+    this.signingKeyFallback = options.signingKeyFallback;
+    this._serveHost = options.serveHost || this.env[envKeys.InngestServeHost];
+    this._servePath = options.servePath || this.env[envKeys.InngestServePath];
+    this.skipSignatureValidation = options.skipSignatureValidation || false;
+    const defaultLogLevel = "info";
+    this.logLevel = external_exports.enum(logLevels).default(defaultLogLevel).catch((ctx) => {
+      this.log("warn", `Unknown log level passed: ${String(ctx.input)}; defaulting to ${defaultLogLevel}`);
+      return defaultLogLevel;
+    }).parse(options.logLevel || this.env[envKeys.InngestLogLevel]);
+    if (this.logLevel === "debug") {
+      if (import_debug3.default.enable && typeof import_debug3.default.enable === "function") import_debug3.default.enable(`${debugPrefix}:*`);
+    }
+    const defaultStreamingOption = false;
+    this.streaming = external_exports.union([external_exports.enum(["allow", "force"]), external_exports.literal(false)]).default(defaultStreamingOption).catch((ctx) => {
+      this.log("warn", `Unknown streaming option passed: ${String(ctx.input)}; defaulting to ${String(defaultStreamingOption)}`);
+      return defaultStreamingOption;
+    }).parse(options.streaming || this.env[envKeys.InngestStreaming]);
+    this.fetch = options.fetch ? getFetch(options.fetch) : this.client["fetch"];
+  }
+  /**
+  * Get the API base URL for the Inngest API.
+  *
+  * This is a getter to encourage checking the environment for the API base URL
+  * each time it's accessed, as it may change during execution.
+  */
+  get apiBaseUrl() {
+    return this._options.baseUrl || this.env[envKeys.InngestApiBaseUrl] || this.env[envKeys.InngestBaseUrl] || this.client.apiBaseUrl || defaultInngestApiBaseUrl;
+  }
+  /**
+  * Get the event API base URL for the Inngest API.
+  *
+  * This is a getter to encourage checking the environment for the event API
+  * base URL each time it's accessed, as it may change during execution.
+  */
+  get eventApiBaseUrl() {
+    return this._options.baseUrl || this.env[envKeys.InngestEventApiBaseUrl] || this.env[envKeys.InngestBaseUrl] || this.client.eventBaseUrl || defaultInngestEventBaseUrl;
+  }
+  /**
+  * The host used to access the Inngest serve endpoint, e.g.:
+  *
+  *     "https://myapp.com"
+  *
+  * By default, the library will try to infer this using request details such
+  * as the "Host" header and request path, but sometimes this isn't possible
+  * (e.g. when running in a more controlled environments such as AWS Lambda or
+  * when dealing with proxies/redirects).
+  *
+  * Provide the custom hostname here to ensure that the path is reported
+  * correctly when registering functions with Inngest.
+  *
+  * To also provide a custom path, use `servePath`.
+  */
+  get serveHost() {
+    return this._serveHost || this.env[envKeys.InngestServeHost];
+  }
+  /**
+  * The path to the Inngest serve endpoint. e.g.:
+  *
+  *     "/some/long/path/to/inngest/endpoint"
+  *
+  * By default, the library will try to infer this using request details such
+  * as the "Host" header and request path, but sometimes this isn't possible
+  * (e.g. when running in a more controlled environments such as AWS Lambda or
+  * when dealing with proxies/redirects).
+  *
+  * Provide the custom path (excluding the hostname) here to ensure that the
+  * path is reported correctly when registering functions with Inngest.
+  *
+  * To also provide a custom hostname, use `serveHost`.
+  *
+  * This is a getter to encourage checking the environment for the serve path
+  * each time it's accessed, as it may change during execution.
+  */
+  get servePath() {
+    return this._servePath || this.env[envKeys.InngestServePath];
+  }
+  get hashedEventKey() {
+    if (!this.client["eventKey"] || this.client["eventKey"] === dummyEventKey) return;
+    return hashEventKey(this.client["eventKey"]);
+  }
+  get hashedSigningKey() {
+    if (!this.signingKey) return;
+    return hashSigningKey(this.signingKey);
+  }
+  get hashedSigningKeyFallback() {
+    if (!this.signingKeyFallback) return;
+    return hashSigningKey(this.signingKeyFallback);
+  }
+  /**
+  * Returns a `boolean` representing whether this handler will stream responses
+  * or not. Takes into account the user's preference and the platform's
+  * capabilities.
+  */
+  async shouldStream(actions) {
+    if (await actions.queryStringWithDefaults("testing for probe", queryKeys.Probe) !== void 0) return false;
+    if (!actions.transformStreamingResponse) return false;
+    if (this.streaming === "force") return true;
+    return this.streaming === "allow" && platformSupportsStreaming(this.frameworkName, this.env);
+  }
+  async isInngestReq(actions) {
+    const reqMessage = `checking if this is an Inngest request`;
+    const [runId, signature] = await Promise.all([actions.headers(reqMessage, headerKeys.InngestRunId), actions.headers(reqMessage, headerKeys.Signature)]);
+    return Boolean(runId && typeof signature === "string");
+  }
+  /**
+  * Start handling a request, setting up environments, modes, and returning
+  * some helpers.
+  */
+  async initRequest(...args) {
+    const timer = new ServerTiming();
+    const actions = await this.getActions(timer, ...args);
+    const [env2, expectedServerKind] = await Promise.all([actions.env?.("starting to handle request"), actions.headers("checking expected server kind", headerKeys.InngestServerKind)]);
+    this.env = protectEnv({
+      ...getProcessEnv(),
+      ...env2
+    });
+    const headerPromises = forwardedHeaders.map(async (header) => {
+      return {
+        header,
+        value: await actions.headers(`fetching ${header} for forwarding`, header)
+      };
+    });
+    const headersToForwardP = Promise.all(headerPromises).then((fetchedHeaders) => {
+      return fetchedHeaders.reduce((acc, { header, value }) => {
+        if (value) acc[header] = value;
+        return acc;
+      }, {});
+    });
+    const getHeaders = async () => ({
+      ...inngestHeaders({
+        env: this.env,
+        framework: this.frameworkName,
+        client: this.client,
+        expectedServerKind: expectedServerKind || void 0,
+        extras: { "Server-Timing": timer.getHeader() }
+      }),
+      ...await headersToForwardP
+    });
+    const assumedMode = getMode({
+      env: this.env,
+      client: this.client
+    });
+    if (assumedMode.isExplicit) this._mode = assumedMode;
+    else {
+      const serveIsProd = await actions.isProduction?.("starting to handle request");
+      if (typeof serveIsProd === "boolean") this._mode = new Mode({
+        type: serveIsProd ? "cloud" : "dev",
+        isExplicit: false
+      });
+      else this._mode = assumedMode;
+    }
+    this.upsertKeysFromEnv();
+    return {
+      timer,
+      actions,
+      getHeaders
+    };
+  }
+  /**
+  * `createSyncHandler` should be used to return a type-equivalent version of
+  * the `handler` specified during instantiation.
+  */
+  createSyncHandler() {
+    return (handler) => {
+      return this.wrapHandler((async (...args) => {
+        const reqInit = await this.initRequest(...args);
+        const fn = new InngestFunction(this.client, {
+          id: this._options.syncOptions?.functionId ?? "",
+          retries: this._options.syncOptions?.retries ?? defaultMaxRetries
+        }, () => handler(...args));
+        if (await this.isInngestReq(reqInit.actions)) return this.handleAsyncRequest({
+          ...reqInit,
+          forceExecution: true,
+          args,
+          fns: [fn]
+        });
+        return this.handleSyncRequest({
+          ...reqInit,
+          args,
+          asyncMode: this._options.syncOptions?.asyncResponse ?? AsyncResponseType.Redirect,
+          asyncRedirectUrl: this._options.syncOptions?.asyncRedirectUrl,
+          fn
+        });
+      }));
+    };
+  }
+  /**
+  * `createHandler` should be used to return a type-equivalent version of the
+  * `handler` specified during instantiation.
+  *
+  * @example
+  * ```
+  * // my-custom-handler.ts
+  * import {
+  *   InngestCommHandler,
+  *   type ServeHandlerOptions,
+  * } from "./components/InngestCommHandler";
+  *
+  * export const serve = (options: ServeHandlerOptions) => {
+  *   const handler = new InngestCommHandler({
+  *     frameworkName: "my-custom-handler",
+  *     ...options,
+  *     handler: (req: Request) => {
+  *       return {
+  *         body: () => req.json(),
+  *         headers: (key) => req.headers.get(key),
+  *         method: () => req.method,
+  *         url: () => new URL(req.url, `https://${req.headers.get("host") || ""}`),
+  *         transformResponse: ({ body, status, headers }) => {
+  *           return new Response(body, { status, headers });
+  *         },
+  *       };
+  *     },
+  *   });
+  *
+  *   return handler.createHandler();
+  * };
+  * ```
+  */
+  createHandler() {
+    return this.wrapHandler((async (...args) => {
+      return this.handleAsyncRequest({
+        ...await this.initRequest(...args),
+        args
+      });
+    }));
+  }
+  /**
+  * Given a set of actions that let us access the incoming request, create an
+  * event that repesents a run starting from an HTTP request.
+  */
+  async createHttpEvent(actions, fn) {
+    const reason = "creating sync event";
+    const contentTypePromise = actions.headers(reason, headerKeys.ContentType).then((v) => v ?? "");
+    const ipPromise = actions.headers(reason, headerKeys.ForwardedFor).then((v) => {
+      if (v) return v;
+      return actions.headers(reason, headerKeys.RealIp).then((v$1) => v$1 ?? "");
+    });
+    const methodPromise = actions.method(reason);
+    const urlPromise = actions.url(reason).then((v) => this.reqUrl(v));
+    const domainPromise = urlPromise.then((url) => `${url.protocol}//${url.host}`);
+    const pathPromise = urlPromise.then((url) => url.pathname);
+    const queryParamsPromise = urlPromise.then((url) => url.searchParams.toString());
+    const bodyPromise = actions.body(reason).then((body$1) => {
+      return typeof body$1 === "string" ? body$1 : stringify$1(body$1);
+    });
+    const [contentType2, domain, ip, method, path, queryParams, body] = await Promise.all([
+      contentTypePromise,
+      domainPromise,
+      ipPromise,
+      methodPromise,
+      pathPromise,
+      queryParamsPromise,
+      bodyPromise
+    ]);
+    return {
+      name: internalEvents.HttpRequest,
+      data: {
+        content_type: contentType2,
+        domain,
+        ip,
+        method,
+        path,
+        query_params: queryParams,
+        body,
+        fn: fn.id()
+      }
+    };
+  }
+  async handleSyncRequest({ timer, actions, fn, asyncMode, asyncRedirectUrl, args }) {
+    if (!actions.experimentalTransformSyncResponse) throw new Error("This platform does not support synchronous Inngest function executions.");
+    if (await getAsyncCtx()) throw new Error("We already seem to be in the context of an Inngest execution, but didn't expect to be. Did you already wrap this handler?");
+    const { ulid: ulid2 } = await Promise.resolve().then(() => (init_index_esm(), index_esm_exports));
+    const runId = ulid2();
+    const event = await this.createHttpEvent(actions, fn);
+    const exeVersion = PREFERRED_CHECKPOINTING_EXECUTION_VERSION;
+    const result = await fn["createExecution"]({
+      version: exeVersion,
+      partialOptions: {
+        client: this.client,
+        data: {
+          runId,
+          event,
+          attempt: 0,
+          events: [event],
+          maxAttempts: fn.opts.retries ?? defaultMaxRetries
+        },
+        runId,
+        headers: {},
+        reqArgs: args,
+        stepCompletionOrder: [],
+        stepState: {},
+        disableImmediateExecution: false,
+        isFailureHandler: false,
+        timer,
+        createResponse: (data) => actions.experimentalTransformSyncResponse("creating sync execution", data).then((res) => ({
+          ...res,
+          version: exeVersion
+        })),
+        stepMode: StepMode.Sync
+      }
+    }).start();
+    const resultHandler = {
+      "step-not-found": () => {
+        throw new Error("We should not get the result 'step-not-found' when checkpointing. This is a bug in the `inngest` SDK");
+      },
+      "steps-found": () => {
+        throw new Error("We should not get the result 'steps-found' when checkpointing. This is a bug in the `inngest` SDK");
+      },
+      "step-ran": () => {
+        throw new Error("We should not get the result 'step-ran' when checkpointing. This is a bug in the `inngest` SDK");
+      },
+      "function-rejected": (result$1) => {
+        return actions.transformResponse("creating sync error response", {
+          status: result$1.retriable ? 500 : 400,
+          headers: {
+            "Content-Type": "application/json",
+            [headerKeys.NoRetry]: result$1.retriable ? "false" : "true",
+            ...typeof result$1.retriable === "string" ? { [headerKeys.RetryAfter]: result$1.retriable } : {}
+          },
+          version: exeVersion,
+          body: stringify$1(undefinedToNull(result$1.error))
+        });
+      },
+      "function-resolved": ({ data }) => {
+        return data;
+      },
+      "change-mode": async ({ token }) => {
+        switch (asyncMode) {
+          case AsyncResponseType.Redirect: {
+            let redirectUrl;
+            if (asyncRedirectUrl) if (typeof asyncRedirectUrl === "function") redirectUrl = await asyncRedirectUrl({
+              runId,
+              token
+            });
+            else {
+              const baseUrl = await actions.url("getting request origin");
+              const url = new URL(asyncRedirectUrl, baseUrl.origin);
+              url.searchParams.set("runId", runId);
+              url.searchParams.set("token", token);
+              redirectUrl = url.toString();
+            }
+            else redirectUrl = await this.client["inngestApi"]["getTargetUrl"](`/v1/http/runs/${runId}/output?token=${token}`).then((url) => url.toString());
+            return actions.transformResponse("creating sync->async redirect response", {
+              status: 302,
+              headers: { [headerKeys.Location]: redirectUrl },
+              version: exeVersion,
+              body: ""
+            });
+          }
+          case AsyncResponseType.Token:
+            return actions.transformResponse("creating sync->async token response", {
+              status: 200,
+              headers: {},
+              version: exeVersion,
+              body: stringify$1({
+                run_id: runId,
+                token
+              })
+            });
+          default:
+            break;
+        }
+        throw new Error("Not implemented: change-mode");
+      }
+    }[result.type];
+    if (!resultHandler) throw new Error(`No handler for execution result type: ${result.type}. This is a bug in the \`inngest\` SDK`);
+    return resultHandler(result);
+  }
+  async handleAsyncRequest({ timer, actions, args, getHeaders, forceExecution, fns }) {
+    if (forceExecution && !actions.experimentalTransformSyncResponse) throw new Error("This platform does not support async executions in Inngest for APIs.");
+    const methodP = actions.method("starting to handle request");
+    const [signature, method, body] = await Promise.all([
+      actions.headers("checking signature for request", headerKeys.Signature).then((headerSignature) => {
+        return headerSignature ?? void 0;
+      }),
+      methodP,
+      methodP.then(async (method$1) => {
+        if (method$1 === "POST" || method$1 === "PUT") {
+          const body$1 = await actions.body(`checking body for request signing as method is ${method$1}`);
+          if (!body$1) return "";
+          if (typeof body$1 === "string") return JSON.parse(body$1);
+          return body$1;
+        }
+        return "";
+      })
+    ]);
+    const signatureValidation = this.validateSignature(signature, body);
+    const actionRes = timer.wrap("action", () => this.handleAction({
+      actions,
+      timer,
+      getHeaders,
+      reqArgs: args,
+      signatureValidation,
+      body,
+      method,
+      forceExecution: Boolean(forceExecution),
+      fns
+    }));
+    const prepareActionRes = async (res) => {
+      const headers = {
+        ...await getHeaders(),
+        ...res.headers,
+        ...res.version === null ? {} : { [headerKeys.RequestVersion]: (res.version ?? PREFERRED_ASYNC_EXECUTION_VERSION).toString() }
+      };
+      let signature$1;
+      try {
+        signature$1 = await signatureValidation.then(async (result) => {
+          if (!result.success || !result.keyUsed) return;
+          return await this.getResponseSignature(result.keyUsed, res.body);
+        });
+      } catch (err2) {
+        return {
+          ...res,
+          headers,
+          body: stringify$1(serializeError$1(err2)),
+          status: 500
+        };
+      }
+      if (signature$1) headers[headerKeys.Signature] = signature$1;
+      if (!(await signatureValidation).success) {
+        const filteredHeaders = {};
+        for (const [k, v] of Object.entries(headers)) {
+          const lower = k.toLowerCase();
+          if (lower === "user-agent" || lower.startsWith("x-inngest-") && lower !== headerKeys.SdkHandled.toLowerCase()) continue;
+          filteredHeaders[k] = v;
+        }
+        return {
+          ...res,
+          headers: filteredHeaders
+        };
+      }
+      return {
+        ...res,
+        headers
+      };
+    };
+    if (await this.shouldStream(actions)) {
+      if (await actions.method("starting streaming response") === "POST") {
+        const { stream, finalize } = await createStream();
+        actionRes.then((res) => {
+          return finalize(prepareActionRes(res));
+        });
+        return timer.wrap("res", async () => {
+          return actions.transformStreamingResponse?.("starting streaming response", {
+            status: 201,
+            headers: await getHeaders(),
+            body: stream,
+            version: null
+          });
+        });
+      }
+    }
+    return timer.wrap("res", async () => {
+      return actionRes.then(prepareActionRes).then((actionRes$1) => {
+        return actions.transformResponse("sending back response", actionRes$1);
+      });
+    });
+  }
+  async getActions(timer, ...args) {
+    const lastArg = args[args.length - 1];
+    const actionOverrides = typeof lastArg === "object" && lastArg !== null && "actionOverrides" in lastArg && typeof lastArg["actionOverrides"] === "object" && lastArg["actionOverrides"] !== null ? lastArg["actionOverrides"] : {};
+    const rawActions = {
+      ...await timer.wrap("handler", () => this.handler(...args)).catch(rethrowError("Serve handler failed to run")),
+      ...actionOverrides
+    };
+    const actions = {
+      ...Object.entries(rawActions).reduce((acc, [key, value]) => {
+        if (typeof value !== "function") return acc;
+        return {
+          ...acc,
+          [key]: (reason, ...args$1) => {
+            const errMessage = [`Failed calling \`${key}\` from serve handler`, reason].filter(Boolean).join(" when ");
+            const fn = () => value(...args$1);
+            return runAsPromise(fn).catch(rethrowError(errMessage)).catch((err2) => {
+              this.log("error", err2);
+              throw err2;
+            });
+          }
+        };
+      }, {}),
+      queryStringWithDefaults: async (reason, key) => {
+        const url = await actions.url(reason);
+        return await actions.queryString?.(reason, key, url) || url.searchParams.get(key) || void 0;
+      },
+      ...actionOverrides
+    };
+    return actions;
+  }
+  wrapHandler(handler) {
+    Object.defineProperties(handler, {
+      name: { value: "InngestHandler" },
+      length: { value: this.handler.length }
+    });
+    return handler;
+  }
+  get mode() {
+    return this._mode;
+  }
+  set mode(m) {
+    this._mode = m;
+    if (m) this.client["mode"] = m;
+  }
+  /**
+  * Given a set of functions to check if an action is available from the
+  * instance's handler, enact any action that is found.
+  *
+  * This method can fetch varying payloads of data, but ultimately is the place
+  * where _decisions_ are made regarding functionality.
+  *
+  * For example, if we find that we should be viewing the UI, this function
+  * will decide whether the UI should be visible based on the payload it has
+  * found (e.g. env vars, options, etc).
+  */
+  async handleAction({ actions, timer, getHeaders, reqArgs, signatureValidation, body: rawBody, method, forceExecution, fns }) {
+    const isMissingBody = !rawBody;
+    let body = rawBody;
+    try {
+      let url = await actions.url("starting to handle request");
+      if (method === "POST" || forceExecution) {
+        if (!forceExecution && isMissingBody) {
+          this.log("error", "Missing body when executing, possibly due to missing request body middleware");
+          return {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+            body: stringify$1({ message: "Unauthorized" }),
+            version: void 0
+          };
+        }
+        const validationResult = await signatureValidation;
+        if (!validationResult.success) {
+          this.log("error", "Signature validation failed", validationResult.err);
+          return {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+            body: stringify$1({ message: "Unauthorized" }),
+            version: void 0
+          };
+        }
+        let fn;
+        let fnId;
+        if (forceExecution) {
+          fn = fns?.length && fns[0] ? {
+            fn: fns[0],
+            onFailure: false
+          } : Object.values(this.fns)[0];
+          fnId = fn?.fn.id();
+          let die = false;
+          const dieHeader = await actions.headers("getting step plan force control for forced execution", headerKeys.InngestForceStepPlan);
+          if (dieHeader) {
+            const parsed = parseAsBoolean(dieHeader);
+            if (typeof parsed === "boolean") die = parsed;
+            else this.log("warn", `Received invalid value for ${headerKeys.InngestForceStepPlan} header: ${dieHeader}. Expected a boolean value. Defaulting to "false".`);
+          }
+          body = {
+            event: {},
+            events: [],
+            steps: {},
+            version: PREFERRED_ASYNC_EXECUTION_VERSION,
+            sdkDecided: true,
+            ctx: {
+              attempt: 0,
+              disable_immediate_execution: die,
+              use_api: true,
+              max_attempts: Infinity,
+              run_id: await actions.headers("getting run ID for forced execution", headerKeys.InngestRunId),
+              stack: {
+                stack: [],
+                current: 0
+              }
+            }
+          };
+        } else {
+          const rawProbe = await actions.queryStringWithDefaults("testing for probe", queryKeys.Probe);
+          if (rawProbe) {
+            const probe$1 = enumFromValue(probe, rawProbe);
+            if (!probe$1) return {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+              body: stringify$1(serializeError$1(/* @__PURE__ */ new Error(`Unknown probe "${rawProbe}"`))),
+              version: void 0
+            };
+            return { [probe.Trust]: () => ({
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+              body: "",
+              version: void 0
+            }) }[probe$1]();
+          }
+          fnId = await actions.queryStringWithDefaults("processing run request", queryKeys.FnId);
+          if (!fnId) throw new Error("No function ID found in async request");
+          fn = this.fns[fnId];
+        }
+        if (typeof fnId === "undefined" || !fn) throw new Error("No function ID found in request");
+        const stepId = await actions.queryStringWithDefaults("processing run request", queryKeys.StepId) || await actions.headers("processing run request", headerKeys.InngestStepId) || null;
+        let headerReqVersion;
+        try {
+          const rawVersionHeader = await actions.headers("processing run request", headerKeys.RequestVersion);
+          if (rawVersionHeader && Number.isFinite(Number(rawVersionHeader))) {
+            const res = versionSchema.parse(Number(rawVersionHeader));
+            if (!res.sdkDecided) headerReqVersion = res.version;
+          }
+        } catch {
+        }
+        const { version: version$1, result } = this.runStep({
+          functionId: fnId,
+          data: body,
+          stepId,
+          timer,
+          reqArgs,
+          headers: await getHeaders(),
+          fn,
+          forceExecution,
+          actions,
+          headerReqVersion
+        });
+        const stepOutput = await result;
+        const opDataUndefinedToNull = (op) => {
+          op.data = undefinedToNull(op.data);
+          return op;
+        };
+        const handler = {
+          "function-rejected": (result$1) => {
+            return {
+              status: result$1.retriable ? 500 : 400,
+              headers: {
+                "Content-Type": "application/json",
+                [headerKeys.NoRetry]: result$1.retriable ? "false" : "true",
+                ...typeof result$1.retriable === "string" ? { [headerKeys.RetryAfter]: result$1.retriable } : {}
+              },
+              body: stringify$1(undefinedToNull(result$1.error)),
+              version: version$1
+            };
+          },
+          "function-resolved": (result$1) => {
+            if (forceExecution) {
+              const runCompleteOp = {
+                id: _internals3.hashId("complete"),
+                op: StepOpCode.RunComplete,
+                data: undefinedToNull(result$1.data)
+              };
+              return {
+                status: 206,
+                headers: { "Content-Type": "application/json" },
+                body: stringify$1(runCompleteOp),
+                version: version$1
+              };
+            }
+            return {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+              body: stringify$1(undefinedToNull(result$1.data)),
+              version: version$1
+            };
+          },
+          "step-not-found": (result$1) => {
+            let error = `Could not find step "${result$1.step.displayName || result$1.step.id}" to run; timed out.`;
+            if (result$1.foundSteps.length > 0) {
+              const foundStepsSummary = result$1.foundSteps.map((step2) => {
+                return `${step2.displayName || step2.id} (${step2.id})`;
+              }).join("\n");
+              error = `${error} Found new steps: 
+${foundStepsSummary}.`;
+            }
+            if (result$1.totalFoundSteps > result$1.foundSteps.length) error = `${error} (showing ${result$1.foundSteps.length} of ${result$1.totalFoundSteps})`;
+            return {
+              status: 500,
+              headers: {
+                "Content-Type": "application/json",
+                [headerKeys.NoRetry]: "false"
+              },
+              body: stringify$1({
+                error,
+                requestedStep: result$1.step.id,
+                foundSteps: result$1.foundSteps,
+                totalFoundSteps: result$1.totalFoundSteps
+              }),
+              version: version$1
+            };
+          },
+          "step-ran": (result$1) => {
+            const step2 = opDataUndefinedToNull(result$1.step);
+            return {
+              status: 206,
+              headers: {
+                "Content-Type": "application/json",
+                ...typeof result$1.retriable !== "undefined" ? {
+                  [headerKeys.NoRetry]: result$1.retriable ? "false" : "true",
+                  ...typeof result$1.retriable === "string" ? { [headerKeys.RetryAfter]: result$1.retriable } : {}
+                } : {}
+              },
+              body: stringify$1([step2]),
+              version: version$1
+            };
+          },
+          "steps-found": (result$1) => {
+            const steps = result$1.steps.map(opDataUndefinedToNull);
+            return {
+              status: 206,
+              headers: { "Content-Type": "application/json" },
+              body: stringify$1(steps),
+              version: version$1
+            };
+          },
+          "change-mode": (result$1) => {
+            return {
+              status: 500,
+              headers: {
+                "Content-Type": "application/json",
+                [headerKeys.NoRetry]: "true"
+              },
+              body: stringify$1({ error: `We wanted to change mode to "${result$1.to}", but this is not supported within the InngestCommHandler. This is a bug in the Inngest SDK.` }),
+              version: version$1
+            };
+          }
+        }[stepOutput.type];
+        try {
+          return await handler(stepOutput);
+        } catch (err2) {
+          this.log("error", "Error handling execution result", err2);
+          throw err2;
+        }
+      }
+      const env2 = (await getHeaders())[headerKeys.Environment] ?? null;
+      if (method === "GET") {
+        const validationResult = await signatureValidation;
+        if (!validationResult.success) {
+          this.log("error", "Signature validation failed", validationResult.err);
+          return {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+            body: stringify$1({ message: "Unauthorized" }),
+            version: void 0
+          };
+        }
+        return {
+          status: 200,
+          body: stringify$1(await this.introspectionBody({
+            actions,
+            env: env2,
+            signatureValidation,
+            url
+          })),
+          headers: { "Content-Type": "application/json" },
+          version: void 0
+        };
+      }
+      if (method === "PUT") {
+        const [deployId, inBandSyncRequested] = await Promise.all([actions.queryStringWithDefaults("processing deployment request", queryKeys.DeployId).then((deployId$1) => {
+          return deployId$1 === "undefined" ? void 0 : deployId$1;
+        }), Promise.resolve(parseAsBoolean(this.env[envKeys.InngestAllowInBandSync])).then((allowInBandSync) => {
+          if (allowInBandSync !== void 0 && !allowInBandSync) return syncKind.OutOfBand;
+          return actions.headers("processing deployment request", headerKeys.InngestSyncKind);
+        }).then((kind) => {
+          return kind === syncKind.InBand;
+        })]);
+        if (inBandSyncRequested) {
+          if (isMissingBody) {
+            this.log("error", "Missing body when syncing, possibly due to missing request body middleware");
+            return {
+              status: 500,
+              headers: { "Content-Type": "application/json" },
+              body: stringify$1(serializeError$1(/* @__PURE__ */ new Error("Missing request body when syncing, possibly due to missing request body middleware"))),
+              version: void 0
+            };
+          }
+          if (!(await signatureValidation).success) return {
+            status: 401,
+            body: stringify$1({ code: "sig_verification_failed" }),
+            headers: { "Content-Type": "application/json" },
+            version: void 0
+          };
+          const res = inBandSyncRequestBodySchema.safeParse(body);
+          if (!res.success) return {
+            status: 400,
+            body: stringify$1({
+              code: "invalid_request",
+              message: res.error.message
+            }),
+            headers: { "Content-Type": "application/json" },
+            version: void 0
+          };
+          url = this.reqUrl(new URL(res.data.url));
+          return {
+            status: 200,
+            body: stringify$1(await this.inBandRegisterBody({
+              actions,
+              deployId,
+              env: env2,
+              signatureValidation,
+              url
+            })),
+            headers: {
+              "Content-Type": "application/json",
+              [headerKeys.InngestSyncKind]: syncKind.InBand
+            },
+            version: void 0
+          };
+        }
+        const { status, message, modified } = await this.register(this.reqUrl(url), deployId, getHeaders);
+        return {
+          status,
+          body: stringify$1({
+            message,
+            modified
+          }),
+          headers: {
+            "Content-Type": "application/json",
+            [headerKeys.InngestSyncKind]: syncKind.OutOfBand
+          },
+          version: void 0
+        };
+      }
+    } catch (err2) {
+      return {
+        status: 500,
+        body: stringify$1({
+          type: "internal",
+          ...serializeError$1(err2)
+        }),
+        headers: { "Content-Type": "application/json" },
+        version: void 0
+      };
+    }
+    this.log("error", `Received unhandled HTTP method "${method}" (type: ${typeof method}); expected POST, PUT, or GET`);
+    return {
+      status: 405,
+      body: JSON.stringify({ message: "Method not allowed" }),
+      headers: { "Content-Type": "application/json" },
+      version: void 0
+    };
+  }
+  runStep({ actions, functionId, stepId, data, timer, reqArgs, headers, fn, forceExecution, headerReqVersion }) {
+    if (!fn) throw new Error(`Could not find function with ID "${functionId}"`);
+    const immediateFnData = parseFnData(data, headerReqVersion);
+    let { version: version$1, sdkDecided } = immediateFnData;
+    if (version$1 === ExecutionVersion.V1 && sdkDecided && fn.fn["shouldOptimizeParallelism"]?.()) version$1 = ExecutionVersion.V2;
+    const result = runAsPromise(async () => {
+      const anyFnData = await fetchAllFnData({
+        data: immediateFnData,
+        api: this.client["inngestApi"],
+        version: version$1
+      });
+      if (!anyFnData.ok) throw new Error(anyFnData.error);
+      const createResponse = forceExecution && actions.experimentalTransformSyncResponse ? (data$1) => actions.experimentalTransformSyncResponse("created sync->async response", data$1).then((res) => ({
+        ...res,
+        version: version$1
+      })) : void 0;
+      const executionOptions = await (/* @__PURE__ */ ((s2) => s2)({
+        [ExecutionVersion.V0]: ({ event, events, steps, ctx, version: version$2 }) => {
+          const stepState = Object.entries(steps ?? {}).reduce((acc, [id, data$1]) => {
+            return {
+              ...acc,
+              [id]: {
+                id,
+                data: data$1
+              }
+            };
+          }, {});
+          return {
+            version: version$2,
+            partialOptions: {
+              client: this.client,
+              runId: ctx?.run_id || "",
+              stepMode: StepMode.Async,
+              data: {
+                event,
+                events,
+                runId: ctx?.run_id || "",
+                attempt: ctx?.attempt ?? 0
+              },
+              stepState,
+              requestedRunStep: stepId === "step" ? void 0 : stepId || void 0,
+              timer,
+              isFailureHandler: fn.onFailure,
+              stepCompletionOrder: ctx?.stack?.stack ?? [],
+              reqArgs,
+              headers,
+              createResponse
+            }
+          };
+        },
+        [ExecutionVersion.V1]: ({ event, events, steps, ctx, version: version$2 }) => {
+          const stepState = Object.entries(steps ?? {}).reduce((acc, [id, result$1]) => {
+            return {
+              ...acc,
+              [id]: result$1.type === "data" ? {
+                id,
+                data: result$1.data
+              } : result$1.type === "input" ? {
+                id,
+                input: result$1.input
+              } : {
+                id,
+                error: result$1.error
+              }
+            };
+          }, {});
+          const requestedRunStep = stepId === "step" ? void 0 : stepId || void 0;
+          const checkpointingConfig = fn.fn["shouldAsyncCheckpoint"](requestedRunStep, ctx?.fn_id, Boolean(ctx?.disable_immediate_execution));
+          return {
+            version: checkpointingConfig && sdkDecided ? ExecutionVersion.V2 : version$2,
+            partialOptions: {
+              client: this.client,
+              runId: ctx?.run_id || "",
+              stepMode: checkpointingConfig ? StepMode.AsyncCheckpointing : StepMode.Async,
+              checkpointingConfig,
+              data: {
+                event,
+                events,
+                runId: ctx?.run_id || "",
+                attempt: ctx?.attempt ?? 0,
+                maxAttempts: ctx?.max_attempts
+              },
+              internalFnId: ctx?.fn_id,
+              queueItemId: ctx?.qi_id,
+              stepState,
+              requestedRunStep,
+              timer,
+              isFailureHandler: fn.onFailure,
+              disableImmediateExecution: ctx?.disable_immediate_execution,
+              stepCompletionOrder: ctx?.stack?.stack ?? [],
+              reqArgs,
+              headers,
+              createResponse
+            }
+          };
+        },
+        [ExecutionVersion.V2]: ({ event, events, steps, ctx, version: version$2 }) => {
+          const stepState = Object.entries(steps ?? {}).reduce((acc, [id, result$1]) => {
+            return {
+              ...acc,
+              [id]: result$1.type === "data" ? {
+                id,
+                data: result$1.data
+              } : result$1.type === "input" ? {
+                id,
+                input: result$1.input
+              } : {
+                id,
+                error: result$1.error
+              }
+            };
+          }, {});
+          const requestedRunStep = stepId === "step" ? void 0 : stepId || void 0;
+          const checkpointingConfig = fn.fn["shouldAsyncCheckpoint"](requestedRunStep, ctx?.fn_id, Boolean(ctx?.disable_immediate_execution));
+          return {
+            version: version$2,
+            partialOptions: {
+              client: this.client,
+              runId: ctx?.run_id || "",
+              stepMode: checkpointingConfig ? StepMode.AsyncCheckpointing : StepMode.Async,
+              checkpointingConfig,
+              data: {
+                event,
+                events,
+                runId: ctx?.run_id || "",
+                attempt: ctx?.attempt ?? 0,
+                maxAttempts: ctx?.max_attempts
+              },
+              internalFnId: ctx?.fn_id,
+              queueItemId: ctx?.qi_id,
+              stepState,
+              requestedRunStep,
+              timer,
+              isFailureHandler: fn.onFailure,
+              disableImmediateExecution: ctx?.disable_immediate_execution,
+              stepCompletionOrder: ctx?.stack?.stack ?? [],
+              reqArgs,
+              headers,
+              createResponse
+            }
+          };
+        }
+      }))[version$1](anyFnData.value);
+      return fn.fn["createExecution"](executionOptions).start();
+    });
+    return {
+      version: version$1,
+      result
+    };
+  }
+  configs(url) {
+    const configs = Object.values(this.rawFns).reduce((acc, fn) => [...acc, ...fn["getConfig"]({
+      baseUrl: url,
+      appPrefix: this.id
+    })], []);
+    for (const config of configs) {
+      const check = functionConfigSchema.safeParse(config);
+      if (!check.success) {
+        const errors = check.error.errors.map((err2) => err2.message).join("; ");
+        this.log("warn", `Config invalid for function "${config.id}" : ${errors}`);
+      }
+    }
+    return configs;
+  }
+  /**
+  * Return an Inngest serve endpoint URL given a potential `path` and `host`.
+  *
+  * Will automatically use the `serveHost` and `servePath` if they have been
+  * set when registering.
+  */
+  reqUrl(url) {
+    let ret = new URL(url);
+    const serveHost = this.serveHost || this.env[envKeys.InngestServeHost];
+    const servePath = this.servePath || this.env[envKeys.InngestServePath];
+    if (servePath) ret.pathname = servePath;
+    if (serveHost) ret = new URL(ret.pathname + ret.search, serveHost);
+    return ret;
+  }
+  registerBody({ url, deployId }) {
+    return {
+      url: url.href,
+      deployType: "ping",
+      framework: this.frameworkName,
+      appName: this.id,
+      functions: this.configs(url),
+      sdk: `js:v${version}`,
+      v: "0.1",
+      deployId: deployId || void 0,
+      capabilities: {
+        trust_probe: "v1",
+        connect: "v1"
+      },
+      appVersion: this.client.appVersion
+    };
+  }
+  async inBandRegisterBody({ actions, deployId, env: env2, signatureValidation, url }) {
+    const registerBody = this.registerBody({
+      deployId,
+      url
+    });
+    const introspectionBody = await this.introspectionBody({
+      actions,
+      env: env2,
+      signatureValidation,
+      url
+    });
+    const body = {
+      app_id: this.id,
+      appVersion: this.client.appVersion,
+      capabilities: registerBody.capabilities,
+      env: env2,
+      framework: registerBody.framework,
+      functions: registerBody.functions,
+      inspection: introspectionBody,
+      platform: getPlatformName({
+        ...getProcessEnv(),
+        ...this.env
+      }),
+      sdk_author: "inngest",
+      sdk_language: "",
+      sdk_version: "",
+      sdk: registerBody.sdk,
+      url: registerBody.url
+    };
+    if ("authentication_succeeded" in introspectionBody && introspectionBody.authentication_succeeded) {
+      body.sdk_language = introspectionBody.sdk_language;
+      body.sdk_version = introspectionBody.sdk_version;
+    }
+    return body;
+  }
+  async introspectionBody({ actions, env: env2, signatureValidation, url }) {
+    const registerBody = this.registerBody({
+      url: this.reqUrl(url),
+      deployId: null
+    });
+    if (!this._mode) throw new Error("No mode set; cannot introspect without mode");
+    let introspection = {
+      extra: { is_mode_explicit: this._mode.isExplicit },
+      has_event_key: this.client["eventKeySet"](),
+      has_signing_key: Boolean(this.signingKey),
+      function_count: registerBody.functions.length,
+      mode: this._mode.type,
+      schema_version: "2024-05-24"
+    };
+    if (this._mode.type === "cloud") try {
+      if (!(await signatureValidation).success) throw new Error("Signature validation failed");
+      let signingKeyHash = null;
+      if (this.hashedSigningKey) signingKeyHash = removeSigningKeyPrefix(this.hashedSigningKey).slice(0, 12);
+      let signingKeyFallbackHash = null;
+      if (this.hashedSigningKeyFallback) signingKeyFallbackHash = removeSigningKeyPrefix(this.hashedSigningKeyFallback).slice(0, 12);
+      introspection = {
+        ...introspection,
+        authentication_succeeded: true,
+        api_origin: this.apiBaseUrl,
+        app_id: this.id,
+        capabilities: {
+          trust_probe: "v1",
+          connect: "v1"
+        },
+        env: env2,
+        event_api_origin: this.eventApiBaseUrl,
+        event_key_hash: this.hashedEventKey ?? null,
+        extra: {
+          ...introspection.extra,
+          is_streaming: await this.shouldStream(actions),
+          native_crypto: globalThis.crypto?.subtle ? true : false
+        },
+        framework: this.frameworkName,
+        sdk_language: "js",
+        sdk_version: version,
+        serve_origin: this.serveHost ?? null,
+        serve_path: this.servePath ?? null,
+        signing_key_fallback_hash: signingKeyFallbackHash,
+        signing_key_hash: signingKeyHash
+      };
+    } catch {
+      introspection = { ...introspection };
+    }
+    return introspection;
+  }
+  async register(url, deployId, getHeaders) {
+    const body = this.registerBody({
+      url,
+      deployId
+    });
+    let res;
+    let registerURL = new URL(this.inngestRegisterUrl.href);
+    if (this._mode && this._mode.isInferred && this._mode.isDev) {
+      const host = devServerHost(this.env);
+      if (await devServerAvailable(host, this.fetch)) registerURL = devServerUrl(host, "/fn/register");
+    } else if (this._mode?.explicitDevUrl) registerURL = devServerUrl(this._mode.explicitDevUrl.href, "/fn/register");
+    if (deployId) registerURL.searchParams.set(queryKeys.DeployId, deployId);
+    try {
+      res = await fetchWithAuthFallback({
+        authToken: this.hashedSigningKey,
+        authTokenFallback: this.hashedSigningKeyFallback,
+        fetch: this.fetch,
+        url: registerURL.href,
+        options: {
+          method: "POST",
+          body: stringify$1(body),
+          headers: {
+            ...await getHeaders(),
+            [headerKeys.InngestSyncKind]: syncKind.OutOfBand
+          },
+          redirect: "follow"
+        }
+      });
+    } catch (err2) {
+      this.log("error", err2);
+      return {
+        status: 500,
+        message: `Failed to register${err2 instanceof Error ? `; ${err2.message}` : ""}`,
+        modified: false
+      };
+    }
+    const raw2 = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(raw2);
+    } catch (err2) {
+      this.log("warn", "Couldn't unpack register response:", err2);
+      let message = "Failed to register";
+      if (err2 instanceof Error) message += `; ${err2.message}`;
+      message += `; status code: ${res.status}`;
+      return {
+        status: 500,
+        message,
+        modified: false
+      };
+    }
+    let status;
+    let error;
+    let skipped;
+    let modified;
+    try {
+      ({ status, error, skipped, modified } = registerResSchema.parse(data));
+    } catch (err2) {
+      this.log("warn", "Invalid register response schema:", err2);
+      let message = "Failed to register";
+      if (err2 instanceof Error) message += `; ${err2.message}`;
+      message += `; status code: ${res.status}`;
+      return {
+        status: 500,
+        message,
+        modified: false
+      };
+    }
+    if (!skipped) this.log("debug", "registered inngest functions:", res.status, res.statusText, data);
+    return {
+      status,
+      message: error,
+      modified
+    };
+  }
+  /**
+  * Given an environment, upsert any missing keys. This is useful in
+  * situations where environment variables are passed directly to handlers or
+  * are otherwise difficult to access during initialization.
+  */
+  upsertKeysFromEnv() {
+    if (!this.signingKey && this.env[envKeys.InngestSigningKey]) this.signingKey = String(this.env[envKeys.InngestSigningKey]);
+    if (this.signingKey) this.client["inngestApi"].setSigningKey(this.signingKey);
+    if (!this.signingKeyFallback && this.env[envKeys.InngestSigningKeyFallback]) this.signingKeyFallback = String(this.env[envKeys.InngestSigningKeyFallback]);
+    if (this.signingKeyFallback) this.client["inngestApi"].setSigningKeyFallback(this.signingKeyFallback);
+    if (!this.client["eventKeySet"]() && this.env[envKeys.InngestEventKey]) this.client.setEventKey(String(this.env[envKeys.InngestEventKey]));
+    if (this.env[envKeys.InngestDevServerUrl]) this.log("warn", `Use of ${envKeys.InngestDevServerUrl} has been deprecated in v3; please use ${envKeys.InngestBaseUrl} instead. See https://www.inngest.com/docs/sdk/migration`);
+  }
+  /**
+  * Validate the signature of a request and return the signing key used to
+  * validate it.
+  */
+  async validateSignature(sig, body) {
+    try {
+      if (this.skipSignatureValidation) return {
+        success: true,
+        keyUsed: ""
+      };
+      if (this._mode && !this._mode.isCloud) return {
+        success: true,
+        keyUsed: ""
+      };
+      if (!this.signingKey) throw new Error(`No signing key found in client options or ${envKeys.InngestSigningKey} env var. Find your keys at https://app.inngest.com/secrets`);
+      if (!sig) throw new Error(`No ${headerKeys.Signature} provided`);
+      return {
+        success: true,
+        keyUsed: await new RequestSignature(sig).verifySignature({
+          body,
+          allowExpiredSignatures: this.allowExpiredSignatures,
+          signingKey: this.signingKey,
+          signingKeyFallback: this.signingKeyFallback
+        })
+      };
+    } catch (err2) {
+      return {
+        success: false,
+        err: err2
+      };
+    }
+  }
+  async getResponseSignature(key, body) {
+    const now = Math.round(Date.now() / 1e3);
+    return `t=${now}&s=${await signDataWithKey(body, key, now.toString())}`;
+  }
+  /**
+  * Log to stdout/stderr if the log level is set to include the given level.
+  * The default log level is `"info"`.
+  *
+  * This is an abstraction over `console.log` and will try to use the correct
+  * method for the given log level.  For example, `log("error", "foo")` will
+  * call `console.error("foo")`.
+  */
+  log(level, ...args) {
+    const logLevels$1 = [
+      "debug",
+      "info",
+      "warn",
+      "error",
+      "fatal",
+      "silent"
+    ];
+    const logLevelSetting = logLevels$1.indexOf(this.logLevel);
+    if (logLevels$1.indexOf(level) >= logLevelSetting) {
+      let logger3 = console.log;
+      if (Object.hasOwn(console, level)) logger3 = console[level];
+      logger3(`${logPrefix} ${level} -`, ...args);
+    }
+  }
+};
+var RequestSignature = class {
+  timestamp;
+  signature;
+  constructor(sig) {
+    const params = new URLSearchParams(sig);
+    this.timestamp = params.get("t") || "";
+    this.signature = params.get("s") || "";
+    if (!this.timestamp || !this.signature) throw new Error(`Invalid ${headerKeys.Signature} provided`);
+  }
+  hasExpired(allowExpiredSignatures) {
+    if (allowExpiredSignatures) return false;
+    const ts = Number.parseInt(this.timestamp, 10);
+    if (!Number.isFinite(ts)) return true;
+    const delta = Date.now() - ts * 1e3;
+    return Math.abs(delta) > 1e3 * 60 * 5;
+  }
+  async #verifySignature({ body, signingKey, allowExpiredSignatures }) {
+    if (this.hasExpired(allowExpiredSignatures)) throw new Error("Signature has expired");
+    if (!timingSafeEqual(await signDataWithKey(body, signingKey, this.timestamp), this.signature)) throw new Error("Invalid signature");
+  }
+  async verifySignature({ body, signingKey, signingKeyFallback, allowExpiredSignatures }) {
+    try {
+      await this.#verifySignature({
+        body,
+        signingKey,
+        allowExpiredSignatures
+      });
+      return signingKey;
+    } catch (err2) {
+      if (!signingKeyFallback) throw err2;
+      await this.#verifySignature({
+        body,
+        signingKey: signingKeyFallback,
+        allowExpiredSignatures
+      });
+      return signingKeyFallback;
+    }
+  }
+};
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/adapter/index.js
+var env = (c, runtime2) => {
+  const global3 = globalThis;
+  const globalEnv = global3?.process?.env;
+  runtime2 ??= getRuntimeKey();
+  const runtimeEnvHandlers = {
+    bun: () => globalEnv,
+    node: () => globalEnv,
+    "edge-light": () => globalEnv,
+    deno: () => {
+      return Deno.env.toObject();
+    },
+    workerd: () => c.env,
+    // On Fastly Compute, you can use the ConfigStore to manage user-defined data.
+    fastly: () => ({}),
+    other: () => ({})
+  };
+  return runtimeEnvHandlers[runtime2]();
+};
+var knownUserAgents = {
+  deno: "Deno",
+  bun: "Bun",
+  workerd: "Cloudflare-Workers",
+  node: "Node.js"
+};
+var getRuntimeKey = () => {
+  const global3 = globalThis;
+  const userAgentSupported = typeof navigator !== "undefined" && typeof navigator.userAgent === "string";
+  if (userAgentSupported) {
+    for (const [runtimeKey, userAgent] of Object.entries(knownUserAgents)) {
+      if (checkUserAgentEquals(userAgent)) {
+        return runtimeKey;
+      }
+    }
+  }
+  if (typeof global3?.EdgeRuntime === "string") {
+    return "edge-light";
+  }
+  if (global3?.fastly !== void 0) {
+    return "fastly";
+  }
+  if (global3?.process?.release?.name === "node") {
+    return "node";
+  }
+  return "other";
+};
+var checkUserAgentEquals = (platform) => {
+  const userAgent = navigator.userAgent;
+  return userAgent.startsWith(platform);
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/hono.js
+var frameworkName = "hono";
+var serve2 = (options) => {
+  return new InngestCommHandler({
+    fetch: fetch.bind(globalThis),
+    frameworkName,
+    ...options,
+    handler: (c) => {
+      return {
+        transformResponse: ({ headers, status, body }) => {
+          return c.body(body, {
+            headers,
+            status
+          });
+        },
+        url: () => {
+          try {
+            return new URL(c.req.url);
+          } catch {
+          }
+          const host = options.serveHost || c.req.header("host");
+          if (!host) throw new Error("No host header found in request and no `serveHost` given either.");
+          let baseUrl = host;
+          if (!baseUrl.includes("://")) {
+            let scheme = "https";
+            try {
+              if (process.env.NODE_ENV !== "production") scheme = "http";
+            } catch (_err) {
+            }
+            baseUrl = `${scheme}://${baseUrl}`;
+          }
+          return new URL(c.req.url, baseUrl);
+        },
+        queryString: (key) => c.req.query(key),
+        headers: (key) => c.req.header(key),
+        method: () => c.req.method,
+        body: () => c.req.text(),
+        env: () => env(c)
+      };
+    }
+  }).createHandler();
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/index.js
+var inngest_exports = {};
+__export(inngest_exports, {
+  EventSchemas: () => EventSchemas,
+  Inngest: () => Inngest,
+  InngestCommHandler: () => InngestCommHandler,
+  InngestMiddleware: () => InngestMiddleware,
+  NonRetriableError: () => NonRetriableError,
+  ProxyLogger: () => ProxyLogger,
+  RetryAfterError: () => RetryAfterError,
+  StepError: () => StepError,
+  dependencyInjectionMiddleware: () => dependencyInjectionMiddleware,
+  fetch: () => fetch2,
+  headerKeys: () => headerKeys,
+  internalEvents: () => internalEvents,
+  isInngest: () => isInngest,
+  isInngestFunction: () => isInngestFunction,
+  isInngestMiddleware: () => isInngestMiddleware,
+  isInngestRequest: () => isInngestRequest,
+  queryKeys: () => queryKeys,
+  referenceFunction: () => referenceFunction,
+  serializeError: () => serializeError$1,
+  slugify: () => slugify,
+  step: () => step,
+  version: () => version
+});
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/EventSchemas.js
+var EventSchemas = class {
+  runtimeSchemas = {};
+  addRuntimeSchemas(schemas) {
+    this.runtimeSchemas = {
+      ...this.runtimeSchemas,
+      ...schemas
+    };
+  }
+  /**
+  * Use generated Inngest types to type events.
+  */
+  fromGenerated() {
+    return this;
+  }
+  /**
+  * Use a `Record<>` type to type events.
+  *
+  * @example
+  *
+  * ```ts
+  * export const inngest = new Inngest({
+  *   id: "my-app",
+  *   schemas: new EventSchemas().fromRecord<{
+  *     "app/user.created": {
+  *       data: {
+  *         id: string;
+  *         name: string;
+  *       };
+  *     };
+  *   }>(),
+  * });
+  * ```
+  */
+  fromRecord(..._args) {
+    return this;
+  }
+  /**
+  * Use a union type to type events.
+  *
+  * @example
+  *
+  * ```ts
+  * type AccountCreated = {
+  *   name: "app/account.created";
+  *   data: { org: string };
+  *   user: { id: string };
+  * };
+  *
+  * type AccountDeleted = {
+  *   name: "app/account.deleted";
+  *   data: { org: string };
+  *   user: { id: string };
+  * };
+  *
+  * type Events = AccountCreated | AccountDeleted;
+  *
+  * export const inngest = new Inngest({
+  *   id: "my-app",
+  *   schemas: new EventSchemas().fromUnion<Events>(),
+  * });
+  * ```
+  */
+  fromUnion() {
+    return this;
+  }
+  /**
+  * Use Zod to type events.
+  *
+  * @deprecated Use {@link fromSchema}.
+  *
+  * @example
+  *
+  * ```ts
+  * export const inngest = new Inngest({
+  *   id: "my-app",
+  *   schemas: new EventSchemas().fromZod({
+  *     "app/user.created": {
+  *       data: z.object({
+  *         id: z.string(),
+  *         name: z.string(),
+  *       }),
+  *     },
+  *   }),
+  * });
+  * ```
+  */
+  fromZod(schemas) {
+    let runtimeSchemas;
+    if (Array.isArray(schemas)) runtimeSchemas = schemas.reduce((acc, schema) => {
+      const { name: { value: name }, ...rest } = schema.shape;
+      return {
+        ...acc,
+        [name]: rest
+      };
+    }, {});
+    else runtimeSchemas = schemas;
+    this.addRuntimeSchemas(runtimeSchemas);
+    return this;
+  }
+  /**
+  * Use anything compliant with Standard Schema to type events.
+  *
+  * @example
+  *
+  * ```ts
+  * export const inngest = new Inngest({
+  *   id: "my-app",
+  *   schemas: new EventSchemas().fromSchema({
+  *     "app/user.created": z.object({
+  *       id: z.string(),
+  *       name: z.string(),
+  *     }),
+  *   }),
+  * });
+  * ```
+  */
+  fromSchema(schemas) {
+    this.addRuntimeSchemas(Object.entries(schemas).reduce((acc, [name, schema]) => {
+      return {
+        ...acc,
+        [name]: { data: schema }
+      };
+    }, {}));
+    return this;
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/logger.js
+var DefaultLogger = class {
+  info(...args) {
+    console.info(...args);
+  }
+  warn(...args) {
+    console.warn(...args);
+  }
+  error(...args) {
+    console.error(...args);
+  }
+  debug(...args) {
+    console.debug(...args);
+  }
+};
+var ProxyLogger = class {
+  logger;
+  enabled = false;
+  constructor(logger3) {
+    this.logger = logger3;
+    return new Proxy(this, { get(target, prop, receiver) {
+      if (prop in target) return Reflect.get(target, prop, receiver);
+      return Reflect.get(target.logger, prop, receiver);
+    } });
+  }
+  info(...args) {
+    if (!this.enabled) return;
+    this.logger.info(...args);
+  }
+  warn(...args) {
+    if (!this.enabled) return;
+    this.logger.warn(...args);
+  }
+  error(...args) {
+    if (!this.enabled) return;
+    this.logger.error(...args);
+  }
+  debug(...args) {
+    if (!this.enabled || !(typeof this.logger.debug === "function")) return;
+    this.logger.debug(...args);
+  }
+  enable() {
+    this.enabled = true;
+  }
+  disable() {
+    this.enabled = false;
+  }
+  async flush() {
+    if (this.logger.constructor.name == DefaultLogger.name) return;
+    const logger3 = this.logger;
+    if (typeof logger3.flush === "function") {
+      await logger3.flush();
+      return;
+    }
+    await resolveNextTick();
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/url.js
+async function resolveApiBaseUrl(opts) {
+  if (opts.apiBaseUrl !== void 0) return opts.apiBaseUrl;
+  if (opts.mode.isDev && opts.mode.isInferred) {
+    if (await devServerAvailable(defaultDevServerHost, opts.fetch ?? globalThis.fetch)) return defaultDevServerHost;
+  }
+  return defaultInngestApiBaseUrl;
+}
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/api.js
+var realtimeSubscriptionTokenSchema = external_exports.object({ jwt: external_exports.string() });
+var sendSignalSuccessResponseSchema = external_exports.object({ data: external_exports.object({ run_id: external_exports.string().min(1) }) });
+var checkpointNewRunResponseSchema = external_exports.object({ data: external_exports.object({
+  fn_id: external_exports.string().min(1),
+  app_id: external_exports.string().min(1),
+  run_id: external_exports.string().min(1),
+  token: external_exports.string().min(1).optional()
+}) });
+var InngestApi = class {
+  apiBaseUrl;
+  signingKey;
+  signingKeyFallback;
+  fetch;
+  mode;
+  constructor({ baseUrl, signingKey, signingKeyFallback, fetch: fetch3, mode }) {
+    this.apiBaseUrl = baseUrl;
+    this.signingKey = signingKey;
+    this.signingKeyFallback = signingKeyFallback;
+    this.fetch = fetch3;
+    this.mode = mode;
+  }
+  get hashedKey() {
+    return hashSigningKey(this.signingKey);
+  }
+  get hashedFallbackKey() {
+    if (!this.signingKeyFallback) return;
+    return hashSigningKey(this.signingKeyFallback);
+  }
+  setSigningKey(key) {
+    if (typeof key === "string" && this.signingKey === "") this.signingKey = key;
+  }
+  setSigningKeyFallback(key) {
+    if (typeof key === "string" && !this.signingKeyFallback) this.signingKeyFallback = key;
+  }
+  async getTargetUrl(path) {
+    const baseUrl = await resolveApiBaseUrl({
+      apiBaseUrl: this.apiBaseUrl,
+      mode: this.mode,
+      fetch: this.fetch
+    });
+    return new URL(path, baseUrl);
+  }
+  async req(url, options) {
+    const finalUrl = typeof url === "string" ? await this.getTargetUrl(url) : url;
+    try {
+      return ok(await fetchWithAuthFallback({
+        authToken: this.hashedKey,
+        authTokenFallback: this.hashedFallbackKey,
+        fetch: this.fetch,
+        url: finalUrl,
+        options: {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+          }
+        }
+      }));
+    } catch (error) {
+      return err(error);
+    }
+  }
+  async getRunSteps(runId, version6) {
+    const result = await this.req(`/v0/runs/${encodeURIComponent(runId)}/actions`);
+    if (result.ok) {
+      const res = result.value;
+      const data = await res.json();
+      if (res.ok) return ok(stepsSchemas[version6].parse(data));
+      return err(errorSchema.parse(data));
+    }
+    return err({
+      error: getErrorMessage(result.error, "Unknown error retrieving step data"),
+      status: 500
+    });
+  }
+  async getRunBatch(runId) {
+    const result = await this.req(`/v0/runs/${encodeURIComponent(runId)}/batch`);
+    if (result.ok) {
+      const res = result.value;
+      const data = await res.json();
+      if (res.ok) return ok(batchSchema.parse(data));
+      return err(errorSchema.parse(data));
+    }
+    return err({
+      error: getErrorMessage(result.error, "Unknown error retrieving event batch"),
+      status: 500
+    });
+  }
+  async publish(publishOptions, data) {
+    const isStream = data instanceof ReadableStream;
+    const url = await this.getTargetUrl("/v1/realtime/publish");
+    url.searchParams.set("channel", publishOptions.channel || "");
+    if (publishOptions.runId) url.searchParams.set("run_id", publishOptions.runId);
+    for (const topic of publishOptions.topics) url.searchParams.append("topic", topic);
+    const result = await this.req(url, {
+      body: isStream ? data : typeof data === "string" ? data : JSON.stringify(data),
+      method: "POST",
+      headers: { "Content-Type": isStream ? "text/stream" : "application/json" },
+      ...isStream ? { duplex: "half" } : {}
+    });
+    if (result.ok) {
+      const res = result.value;
+      if (!res.ok) throw new Error(`Failed to publish event: ${res.status} ${res.statusText}`);
+      return ok(void 0);
+    }
+    return err({
+      error: getErrorMessage(result.error, "Unknown error publishing event"),
+      status: 500
+    });
+  }
+  async sendSignal(signalOptions, options) {
+    const url = await this.getTargetUrl("/v1/signals");
+    const body = {
+      signal: signalOptions.signal,
+      data: signalOptions.data
+    };
+    return fetchWithAuthFallback({
+      authToken: this.hashedKey,
+      authTokenFallback: this.hashedFallbackKey,
+      fetch: this.fetch,
+      url,
+      options: {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers
+        }
+      }
+    }).then(async (res) => {
+      if (res.status === 404) return ok({ runId: void 0 });
+      const resClone = res.clone();
+      let json2;
+      try {
+        json2 = await res.json();
+      } catch {
+        return err({
+          error: `Failed to send signal: ${res.status} ${res.statusText} - ${await resClone.text()}`,
+          status: res.status
+        });
+      }
+      if (!res.ok) try {
+        return err(errorSchema.parse(json2));
+      } catch {
+        return err({
+          error: `Failed to send signal: ${res.status} ${res.statusText} - ${await res.text()}`,
+          status: res.status
+        });
+      }
+      const parseRes = sendSignalSuccessResponseSchema.safeParse(json2);
+      if (!parseRes.success) return err({
+        error: `Successfully sent signal, but response parsing failed: ${res.status} ${res.statusText} - ${await resClone.text()}`,
+        status: res.status
+      });
+      return ok({ runId: parseRes.data.data.run_id });
+    }).catch((error) => {
+      return err({
+        error: getErrorMessage(error, "Unknown error sending signal"),
+        status: 500
+      });
+    });
+  }
+  async getSubscriptionToken(channel, topics) {
+    const url = await this.getTargetUrl("/v1/realtime/token");
+    const body = topics.map((topic) => ({
+      channel,
+      name: topic,
+      kind: "run"
+    }));
+    return fetchWithAuthFallback({
+      authToken: this.hashedKey,
+      authTokenFallback: this.hashedFallbackKey,
+      fetch: this.fetch,
+      url,
+      options: {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" }
+      }
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`Failed to get subscription token: ${res.status} ${res.statusText} - ${await res.text()}`);
+      return realtimeSubscriptionTokenSchema.parse(await res.json()).jwt;
+    }).catch((error) => {
+      throw new Error(getErrorMessage(error, "Unknown error getting subscription token"));
+    });
+  }
+  async updateMetadata(args, options) {
+    const payload = {
+      target: args.target,
+      metadata: args.metadata
+    };
+    const result = await this.req(`/v1/runs/${encodeURIComponent(args.target.run_id)}/metadata`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: options?.headers
+    });
+    if (!result.ok) return err({
+      error: getErrorMessage(result.error, "Unknown error updating metadata"),
+      status: 500
+    });
+    const res = result.value;
+    if (res.ok) return ok(void 0);
+    const resClone = res.clone();
+    let json2;
+    try {
+      json2 = await res.json();
+    } catch {
+      return err({
+        error: `Failed to update metadata: ${res.status} ${res.statusText} - ${await resClone.text()}`,
+        status: res.status
+      });
+    }
+    try {
+      return err(errorSchema.parse(json2));
+    } catch {
+      return err({
+        error: `Failed to update metadata: ${res.status} ${res.statusText}`,
+        status: res.status
+      });
+    }
+  }
+  /**
+  * Start a new run, optionally passing in a number of steps to initialize the
+  * run with.
+  */
+  async checkpointNewRun(args) {
+    const body = JSON.stringify({
+      run_id: args.runId,
+      event: args.event,
+      steps: args.steps,
+      ts: (/* @__PURE__ */ new Date()).valueOf(),
+      request_version: args.executionVersion,
+      retries: args.retries
+    });
+    const result = await this.req("/v1/checkpoint", {
+      method: "POST",
+      body
+    });
+    if (!result.ok) throw new Error(getErrorMessage(result.error, "Unknown error checkpointing new run"));
+    const res = result.value;
+    if (res.ok) {
+      const rawData = await res.json();
+      return checkpointNewRunResponseSchema.parse(rawData);
+    }
+    throw new Error(`Failed to checkpoint new run: ${res.status} ${res.statusText} - ${await res.text()}`);
+  }
+  /**
+  * Checkpoint steps for a given sync run.
+  */
+  async checkpointSteps(args) {
+    const body = JSON.stringify({
+      fn_id: args.fnId,
+      app_id: args.appId,
+      run_id: args.runId,
+      steps: args.steps,
+      ts: (/* @__PURE__ */ new Date()).valueOf()
+    });
+    const result = await this.req(`/v1/checkpoint/${encodeURIComponent(args.runId)}/steps`, {
+      method: "POST",
+      body
+    });
+    if (!result.ok) throw new Error(getErrorMessage(result.error, "Unknown error checkpointing steps"));
+    const res = result.value;
+    if (!res.ok) throw new Error(`Failed to checkpoint steps: ${res.status} ${res.statusText} - ${await res.text()}`);
+  }
+  /**
+  * Checkpoint steps for a given async run.
+  */
+  async checkpointStepsAsync(args) {
+    const body = JSON.stringify({
+      run_id: args.runId,
+      fn_id: args.fnId,
+      qi_id: args.queueItemId,
+      steps: args.steps,
+      ts: (/* @__PURE__ */ new Date()).valueOf()
+    });
+    const result = await this.req(`/v1/checkpoint/${encodeURIComponent(args.runId)}/async`, {
+      method: "POST",
+      body
+    });
+    if (!result.ok) throw new Error(getErrorMessage(result.error, "Unknown error checkpointing async"));
+    const res = result.value;
+    if (!res.ok) throw new Error(`Failed to checkpoint async: ${res.status} ${res.statusText} - ${await res.text()}`);
+  }
+  /**
+  * Fetch the output of a completed run using a token.
+  *
+  * This uses token-based auth (not signing key) and is intended for use by
+  * proxy endpoints that fetch results on behalf of users.
+  *
+  * @param runId - The ID of the run to fetch output for
+  * @param token - The token used to authenticate the request
+  * @returns The raw Response from the API
+  */
+  async getRunOutput(runId, token) {
+    const url = await this.getTargetUrl(`/v1/http/runs/${encodeURIComponent(runId)}/output`);
+    url.searchParams.set("token", token);
+    return this.fetch(url.toString(), {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/crypto.js
+function createEntropy(byteLength) {
+  const bytes = new Uint8Array(byteLength);
+  const { crypto: crypto2 } = globalThis;
+  if (!crypto2) throw new Error("missing crypto module");
+  if (!crypto2.getRandomValues) throw new Error("missing crypto.getRandomValues");
+  crypto2.getRandomValues(bytes);
+  return bytes;
+}
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Inngest.js
+var Inngest = class Inngest2 {
+  get [Symbol.toStringTag]() {
+    return Inngest2.Tag;
+  }
+  /**
+  * The ID of this instance, most commonly a reference to the application it
+  * resides in.
+  *
+  * The ID of your client should remain the same for its lifetime; if you'd
+  * like to change the name of your client as it appears in the Inngest UI,
+  * change the `name` property instead.
+  */
+  id;
+  /**
+  * Stores the options so we can remember explicit settings the user has
+  * provided.
+  */
+  options;
+  /**
+  * Inngest event key, used to send events to Inngest Cloud.
+  */
+  eventKey = "";
+  _apiBaseUrl;
+  _eventBaseUrl;
+  inngestApi;
+  /**
+  * The absolute URL of the Inngest Cloud API.
+  */
+  sendEventUrl = new URL(`e/${this.eventKey}`, defaultInngestEventBaseUrl);
+  headers;
+  fetch;
+  logger;
+  localFns = [];
+  /**
+  * A promise that resolves when the middleware stack has been initialized and
+  * the client is ready to be used.
+  */
+  middleware;
+  /**
+  * Whether the client is running in a production environment. This can
+  * sometimes be `undefined` if the client has expressed no preference or
+  * perhaps environment variables are only available at a later stage in the
+  * runtime, for example when receiving a request.
+  *
+  * An {@link InngestCommHandler} should prioritize this value over all other
+  * settings, but should still check for the presence of an environment
+  * variable if it is not set.
+  */
+  _mode;
+  schemas;
+  _appVersion;
+  /**
+  * @internal
+  * Flag set by metadataMiddleware to enable step.metadata()
+  */
+  experimentalMetadataEnabled = false;
+  get apiBaseUrl() {
+    return this._apiBaseUrl;
+  }
+  get eventBaseUrl() {
+    return this._eventBaseUrl;
+  }
+  get env() {
+    return this.headers[headerKeys.Environment] ?? null;
+  }
+  get appVersion() {
+    return this._appVersion;
+  }
+  /**
+  * Access the metadata builder for updating run and step metadata.
+  *
+  * @example
+  * ```ts
+  * // Update metadata for the current run
+  * await inngest.metadata.update({ status: "processing" });
+  *
+  * // Update metadata for a different run
+  * await inngest.metadata.run(otherRunId).update({ key: "val" });
+  *
+  * ```
+  */
+  get metadata() {
+    if (!this.experimentalMetadataEnabled) throw new Error('inngest.metadata is experimental. Enable it by adding metadataMiddleware() from "inngest/experimental" to your client middleware.');
+    return new UnscopedMetadataBuilder(this);
+  }
+  /**
+  * A client used to interact with the Inngest API by sending or reacting to
+  * events.
+  *
+  * To provide event typing, see {@link EventSchemas}.
+  *
+  * ```ts
+  * const inngest = new Inngest({ name: "My App" });
+  *
+  * // or to provide event typing too
+  * const inngest = new Inngest({
+  *   name: "My App",
+  *   schemas: new EventSchemas().fromRecord<{
+  *     "app/user.created": {
+  *       data: { userId: string };
+  *     };
+  *   }>(),
+  * });
+  * ```
+  */
+  constructor(options) {
+    this.options = options;
+    const { id, fetch: fetch3, logger: logger3 = new DefaultLogger(), middleware, isDev, schemas, appVersion } = this.options;
+    if (!id) throw new Error("An `id` must be passed to create an Inngest instance.");
+    this.id = id;
+    this._mode = getMode({ explicitMode: typeof isDev === "boolean" ? isDev ? "dev" : "cloud" : void 0 });
+    this.fetch = getFetch(fetch3);
+    this.inngestApi = new InngestApi({
+      baseUrl: this.apiBaseUrl,
+      signingKey: processEnv(envKeys.InngestSigningKey) || "",
+      signingKeyFallback: processEnv(envKeys.InngestSigningKeyFallback),
+      fetch: this.fetch,
+      mode: this.mode
+    });
+    this.schemas = schemas;
+    this.loadModeEnvVars();
+    this.logger = logger3;
+    this.middleware = this.initializeMiddleware([...builtInMiddleware, ...middleware || []]);
+    this._appVersion = appVersion;
+  }
+  /**
+  * Returns a `Promise` that resolves when the app is ready and all middleware
+  * has been initialized.
+  */
+  get ready() {
+    return this.middleware.then(() => {
+    });
+  }
+  /**
+  * Set the environment variables for this client. This is useful if you are
+  * passed environment variables at runtime instead of as globals and need to
+  * update the client with those values as requests come in.
+  */
+  setEnvVars(env2 = getProcessEnv()) {
+    this.mode = getMode({
+      env: env2,
+      client: this
+    });
+    return this;
+  }
+  loadModeEnvVars() {
+    this._apiBaseUrl = this.options.baseUrl || this.mode["env"][envKeys.InngestApiBaseUrl] || this.mode["env"][envKeys.InngestBaseUrl] || this.mode.getExplicitUrl(defaultInngestApiBaseUrl);
+    this._eventBaseUrl = this.options.baseUrl || this.mode["env"][envKeys.InngestEventApiBaseUrl] || this.mode["env"][envKeys.InngestBaseUrl] || this.mode.getExplicitUrl(defaultInngestEventBaseUrl);
+    this.setEventKey(this.options.eventKey || this.mode["env"][envKeys.InngestEventKey] || "");
+    this.headers = inngestHeaders({
+      inngestEnv: this.options.env,
+      env: this.mode["env"]
+    });
+    this.inngestApi["mode"] = this.mode;
+    this.inngestApi["apiBaseUrl"] = this._apiBaseUrl;
+  }
+  /**
+  * Initialize all passed middleware, running the `register` function on each
+  * in sequence and returning the requested hook registrations.
+  */
+  async initializeMiddleware(middleware = [], opts) {
+    const prefix = await (opts?.prefixStack ?? []);
+    const stack = middleware.reduce(async (acc, m) => {
+      const prev = await acc;
+      const next = await m.init({
+        client: this,
+        ...opts?.registerInput
+      });
+      return [...prev, next];
+    }, Promise.resolve([]));
+    return [...prefix, ...await stack];
+  }
+  get mode() {
+    return this._mode;
+  }
+  set mode(m) {
+    this._mode = m;
+    this.loadModeEnvVars();
+  }
+  /**
+  * Given a response from Inngest, relay the error to the caller.
+  */
+  async getResponseError(response3, rawBody, foundErr = "Unknown error") {
+    let errorMessage = foundErr;
+    if (errorMessage === "Unknown error") switch (response3.status) {
+      case 401:
+        errorMessage = "Event key Not Found";
+        break;
+      case 400:
+        errorMessage = "Cannot process event payload";
+        break;
+      case 403:
+        errorMessage = "Forbidden";
+        break;
+      case 404:
+        errorMessage = "Event key not found";
+        break;
+      case 406:
+        errorMessage = `${JSON.stringify(await rawBody)}`;
+        break;
+      case 409:
+      case 412:
+        errorMessage = "Event transformation failed";
+        break;
+      case 413:
+        errorMessage = "Event payload too large";
+        break;
+      case 500:
+        errorMessage = "Internal server error";
+        break;
+      default:
+        try {
+          errorMessage = await response3.text();
+        } catch (_err) {
+          errorMessage = `${JSON.stringify(await rawBody)}`;
+        }
+        break;
+    }
+    return /* @__PURE__ */ new Error(`Inngest API Error: ${response3.status} ${errorMessage}`);
+  }
+  /**
+  * Set the event key for this instance of Inngest. This is useful if for some
+  * reason the key is not available at time of instantiation or present in the
+  * `INNGEST_EVENT_KEY` environment variable.
+  */
+  setEventKey(eventKey) {
+    this.eventKey = eventKey || dummyEventKey;
+    this.sendEventUrl = new URL(`e/${this.eventKey}`, this.eventBaseUrl || defaultInngestEventBaseUrl);
+  }
+  eventKeySet() {
+    return Boolean(this.eventKey) && this.eventKey !== dummyEventKey;
+  }
+  /**
+  * EXPERIMENTAL: This API is not yet stable and may change in the future
+  * without a major version bump.
+  *
+  * Send a Signal to Inngest.
+  */
+  async sendSignal({ signal, data, env: env2 }) {
+    const headers = { ...env2 ? { [headerKeys.Environment]: env2 } : {} };
+    return this._sendSignal({
+      signal,
+      data,
+      headers
+    });
+  }
+  async _sendSignal({ signal, data, headers }) {
+    const res = await this.inngestApi.sendSignal({
+      signal,
+      data
+    }, {
+      ...this.headers,
+      ...headers
+    });
+    if (res.ok) return res.value;
+    throw new Error(`Failed to send signal: ${res.error?.error || "Unknown error"}`);
+  }
+  async updateMetadata({ target, metadata, headers }) {
+    const res = await this.inngestApi.updateMetadata({
+      target,
+      metadata
+    }, { headers });
+    if (res.ok) return res.value;
+    throw new Error(`Failed to update metadata: ${res.error?.error || "Unknown error"}`);
+  }
+  async warnMetadata(target, kind, text) {
+    this.logger.warn(text);
+    if (!this.experimentalMetadataEnabled) return;
+    await this.updateMetadata({
+      target,
+      metadata: [{
+        kind: "inngest.warnings",
+        op: "merge",
+        values: { [`sdk.${kind}`]: text }
+      }]
+    });
+  }
+  /**
+  * Realtime-related functionality for this Inngest client.
+  */
+  realtime = {
+    publish: async (opts) => {
+      const [{ topic, channel, data }, ctx] = await Promise.all([opts, getAsyncCtx()]);
+      const runId = ctx?.execution?.ctx.runId;
+      const res = await this.inngestApi.publish({
+        channel,
+        topics: [topic],
+        runId
+      }, data);
+      if (res.ok) return data;
+      throw new Error(`Failed to publish event: ${res.error?.error || "Unknown error"}`);
+    },
+    getSubscriptionToken: async ({ channel, topics }) => {
+      const channelId = typeof channel === "string" ? channel : channel.name;
+      if (!channelId) throw new Error("Channel ID is required to create a subscription token");
+      return {
+        channel: channelId,
+        topics,
+        key: await this.inngestApi.getSubscriptionToken(channelId, topics)
+      };
+    }
+  };
+  endpoint(handler) {
+    if (!this.options.endpointAdapter) throw new Error("No endpoint adapter configured for this Inngest client.");
+    return this.options.endpointAdapter({ client: this })(handler);
+  }
+  /**
+  * Creates a proxy handler that polls Inngest for durable endpoint results.
+  *
+  * The proxy:
+  * - Extracts `runId` and `token` from query params
+  * - Fetches the result from Inngest API
+  * - Runs the response through middleware (e.g., decryption)
+  * - Adds CORS headers
+  *
+  * Use this in combination with the `asyncRedirectUrl` option on your
+  * endpoint adapter to redirect users to your own proxy endpoint instead
+  * of directly to Inngest.
+  *
+  * @example
+  * ```ts
+  * import { Inngest } from "inngest";
+  * import { endpointAdapter } from "inngest/edge";
+  *
+  * const inngest = new Inngest({
+  *   id: "my-app",
+  *   endpointAdapter: endpointAdapter.withOptions({
+  *     asyncRedirectUrl: "/api/inngest/poll",
+  *   }),
+  * });
+  *
+  * // Durable endpoint
+  * export const GET = inngest.endpoint(async (req) => {
+  *   const result = await step.run("work", () => "done");
+  *   return new Response(result);
+  * });
+  *
+  * // Proxy endpoint at /api/inngest/poll
+  * export const GET = inngest.endpointProxy();
+  * ```
+  */
+  endpointProxy() {
+    if (!this.options.endpointAdapter) throw new Error("No endpoint adapter configured for this Inngest client.");
+    if (!this.options.endpointAdapter.createProxyHandler) throw new Error("The configured endpoint adapter does not support proxy handlers.");
+    return this.options.endpointAdapter.createProxyHandler({ client: this });
+  }
+  /**
+  * Decrypt a proxy response using the client's middleware stack.
+  *
+  * This is called internally by proxy handlers to decrypt E2E encrypted
+  * function results. It runs the `transformInput` hook which handles
+  * decryption in encryption middleware.
+  *
+  * Uses type assertions because we're creating a minimal "fake" execution
+  * context just to run the decryption middleware hooks - not a full execution.
+  *
+  * @internal
+  */
+  async decryptProxyResult(result) {
+    if (!result.data) return result;
+    const dummyEvent = {
+      name: "__proxy__",
+      data: {}
+    };
+    const proxyFn = {
+      id: () => "__proxy__",
+      name: "__proxy__"
+    };
+    const decryptedData = (await (await getHookStack(this.middleware, "onFunctionRun", {
+      ctx: {
+        event: dummyEvent,
+        runId: "__proxy__"
+      },
+      fn: proxyFn,
+      steps: [{
+        id: "__result__",
+        data: result.data
+      }],
+      reqArgs: []
+    }, {
+      transformInput: (prev, output) => ({
+        ctx: {
+          ...prev.ctx,
+          ...output?.ctx
+        },
+        fn: proxyFn,
+        steps: prev.steps.map((step$1, i) => ({
+          ...step$1,
+          ...output?.steps?.[i]
+        })),
+        reqArgs: prev.reqArgs
+      }),
+      transformOutput: (prev, output) => ({ result: {
+        ...prev.result,
+        ...output?.result
+      } })
+    })).transformInput?.({
+      ctx: {
+        event: dummyEvent,
+        events: [dummyEvent],
+        runId: "__proxy__",
+        attempt: 0,
+        step
+      },
+      fn: proxyFn,
+      reqArgs: [],
+      steps: [{
+        id: "__result__",
+        data: result.data
+      }]
+    }))?.steps?.[0]?.data ?? result.data;
+    return {
+      ...result,
+      data: decryptedData
+    };
+  }
+  /**
+  * Send one or many events to Inngest. Takes an entire payload (including
+  * name) as each input.
+  *
+  * ```ts
+  * await inngest.send({ name: "app/user.created", data: { id: 123 } });
+  * ```
+  *
+  * Returns a promise that will resolve if the event(s) were sent successfully,
+  * else throws with an error explaining what went wrong.
+  *
+  * If you wish to send an event with custom types (i.e. one that hasn't been
+  * generated), make sure to add it when creating your Inngest instance, like
+  * so:
+  *
+  * ```ts
+  * const inngest = new Inngest({
+  *   name: "My App",
+  *   schemas: new EventSchemas().fromRecord<{
+  *     "my/event": {
+  *       name: "my/event";
+  *       data: { bar: string };
+  *     };
+  *   }>(),
+  * });
+  * ```
+  */
+  async send(payload, options) {
+    const headers = { ...options?.env ? { [headerKeys.Environment]: options.env } : {} };
+    return this._send({
+      payload,
+      headers
+    });
+  }
+  /**
+  * Internal method for sending an event, used to allow Inngest internals to
+  * further customize the request sent to an Inngest Server.
+  */
+  async _send({ payload, headers }) {
+    const nowMillis = (/* @__PURE__ */ new Date()).getTime();
+    let maxAttempts = 5;
+    try {
+      const entropy = createEntropy(10);
+      const entropyBase64 = Buffer.from(entropy).toString("base64");
+      headers = {
+        ...headers,
+        [headerKeys.EventIdSeed]: `${nowMillis},${entropyBase64}`
+      };
+    } catch (err2) {
+      let message = "Event-sending retries disabled";
+      if (err2 instanceof Error) message += `: ${err2.message}`;
+      console.debug(message);
+      maxAttempts = 1;
+    }
+    const hooks = await getHookStack(this.middleware, "onSendEvent", void 0, {
+      transformInput: (prev, output) => {
+        return {
+          ...prev,
+          ...output
+        };
+      },
+      transformOutput(prev, output) {
+        return { result: {
+          ...prev.result,
+          ...output?.result
+        } };
+      }
+    });
+    let payloads = Array.isArray(payload) ? payload : payload ? [payload] : [];
+    const inputChanges = await hooks.transformInput?.({ payloads: [...payloads] });
+    if (inputChanges?.payloads) payloads = [...inputChanges.payloads];
+    payloads = payloads.map((p) => {
+      return {
+        ...p,
+        id: p.id,
+        ts: p.ts || nowMillis,
+        data: p.data || {}
+      };
+    });
+    const applyHookToOutput = async (arg) => {
+      const hookOutput = await hooks.transformOutput?.(arg);
+      return {
+        ...arg.result,
+        ...hookOutput?.result
+      };
+    };
+    if (!payloads.length) {
+      console.warn(prettyError({
+        type: "warn",
+        whatHappened: "`inngest.send()` called with no events",
+        reassurance: "This is not an error, but you may not have intended to do this.",
+        consequences: "The returned promise will resolve, but no events have been sent to Inngest.",
+        stack: true
+      }));
+      return await applyHookToOutput({ result: { ids: [] } });
+    }
+    let url = this.sendEventUrl.href;
+    if (this.mode.isCloud && !this.eventKeySet()) throw new Error(prettyError({
+      whatHappened: "Failed to send event",
+      consequences: "Your event or events were not sent to Inngest.",
+      why: "We couldn't find an event key to use to send events to Inngest.",
+      toFixNow: fixEventKeyMissingSteps
+    }));
+    if (this.mode.isDev && this.mode.isInferred && !this.eventBaseUrl) {
+      if (await devServerAvailable(defaultDevServerHost, this.fetch)) url = devServerUrl(defaultDevServerHost, `e/${this.eventKey}`).href;
+    }
+    return await applyHookToOutput({ result: { ids: (await retryWithBackoff(async () => {
+      let rawBody;
+      let body;
+      const response3 = await this.fetch(url, {
+        method: "POST",
+        body: stringify$1(payloads),
+        headers: {
+          ...this.headers,
+          ...headers
+        }
+      });
+      try {
+        rawBody = await response3.json();
+        body = await sendEventResponseSchema.parseAsync(rawBody);
+      } catch (_err) {
+        throw await this.getResponseError(response3, rawBody);
+      }
+      if (body.status !== 200 || body.error) throw await this.getResponseError(response3, rawBody, body.error);
+      return body;
+    }, {
+      maxAttempts,
+      baseDelay: 100
+    })).ids } });
+  }
+  createFunction = (rawOptions, rawTrigger, handler) => {
+    const fn = this._createFunction(rawOptions, rawTrigger, handler);
+    this.localFns.push(fn);
+    return fn;
+  };
+  get funcs() {
+    return this.localFns;
+  }
+  _createFunction = (rawOptions, rawTrigger, handler) => {
+    const options = this.sanitizeOptions(rawOptions);
+    const triggers = this.sanitizeTriggers(rawTrigger);
+    return new InngestFunction(this, {
+      ...options,
+      triggers
+    }, handler);
+  };
+  /**
+  * Runtime-only validation.
+  */
+  sanitizeOptions(options) {
+    if (Object.hasOwn(options, "fns")) console.warn(`${logPrefix} InngestFunction: \`fns\` option has been deprecated in v3; use \`middleware\` instead. See https://www.inngest.com/docs/sdk/migration`);
+    if (typeof options === "string") {
+      console.warn(`${logPrefix} InngestFunction: Creating a function with a string as the first argument has been deprecated in v3; pass an object instead. See https://www.inngest.com/docs/sdk/migration`);
+      return { id: options };
+    }
+    return options;
+  }
+  /**
+  * Runtime-only validation.
+  */
+  sanitizeTriggers(triggers) {
+    if (typeof triggers === "string") {
+      console.warn(`${logPrefix} InngestFunction: Creating a function with a string as the second argument has been deprecated in v3; pass an object instead. See https://www.inngest.com/docs/sdk/migration`);
+      return [{ event: triggers }];
+    }
+    if (!Array.isArray(triggers)) return [triggers];
+    return triggers;
+  }
+};
+var builtInMiddleware = /* @__PURE__ */ ((m) => m)([new InngestMiddleware({
+  name: "Inngest: Logger",
+  init({ client }) {
+    return { onFunctionRun(arg) {
+      const { ctx } = arg;
+      const metadata = {
+        runID: ctx.runId,
+        eventName: ctx.event.name,
+        functionName: arg.fn.name
+      };
+      let providedLogger = client["logger"];
+      try {
+        if ("child" in providedLogger) providedLogger = providedLogger.child(metadata);
+      } catch (err2) {
+        console.error('failed to create "childLogger" with error: ', err2);
+      }
+      const logger3 = new ProxyLogger(providedLogger);
+      return {
+        transformInput() {
+          return { ctx: { logger: logger3 } };
+        },
+        beforeExecution() {
+          logger3.enable();
+        },
+        transformOutput({ result: { error } }) {
+          if (error) logger3.error(error);
+        },
+        async beforeResponse() {
+          await logger3.flush();
+        }
+      };
+    } };
+  }
+})]);
+(function(_Inngest) {
+  _Inngest.Tag = "Inngest.App";
+})(Inngest || (Inngest = {}));
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/assertions.js
+var isInngest = (input) => {
+  return input[Symbol.toStringTag] === Inngest.Tag;
+};
+var isInngestFunction = (input) => {
+  return input[Symbol.toStringTag] === InngestFunction.Tag;
+};
+var isInngestMiddleware = (input) => {
+  return input[Symbol.toStringTag] === InngestMiddleware.Tag;
+};
+var isInngestRequest = (input) => {
+  try {
+    const runId = input.headers.get(headerKeys.InngestRunId);
+    const signature = input.headers.get(headerKeys.Signature);
+    return Boolean(runId && typeof signature === "string");
+  } catch {
+    return false;
+  }
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/dependencyInjection.js
+var dependencyInjectionMiddleware = (ctx) => {
+  return new InngestMiddleware({
+    name: "Inngest: Dependency Injection",
+    init() {
+      return { onFunctionRun() {
+        return { transformInput() {
+          return { ctx };
+        } };
+      } };
+    }
+  });
+};
+
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/index.js
+__reExport(inngest_exports, __toESM(require_dist2(), 1));
+
+// src/lib/inngest.ts
+var inngest = new Inngest({
+  id: "mondaily",
+  eventKey: process.env.INNGEST_EVENT_KEY
+});
 
 // ../../node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
-function __rest(s, e) {
+function __rest(s2, e) {
   var t = {};
-  for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-    t[p] = s[p];
-  if (s != null && typeof Object.getOwnPropertySymbols === "function")
-    for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-      if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-        t[p[i]] = s[p[i]];
+  for (var p in s2) if (Object.prototype.hasOwnProperty.call(s2, p) && e.indexOf(p) < 0)
+    t[p] = s2[p];
+  if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
+    for (var i = 0, p = Object.getOwnPropertySymbols(s2); i < p.length; i++) {
+      if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p[i]))
+        t[p[i]] = s2[p[i]];
     }
   return t;
 }
-function __awaiter(thisArg, _arguments, P, generator) {
+function __awaiter(thisArg, _arguments, P2, generator) {
   function adopt(value) {
-    return value instanceof P ? value : new P(function(resolve) {
+    return value instanceof P2 ? value : new P2(function(resolve) {
       resolve(value);
     });
   }
-  return new (P || (P = Promise))(function(resolve, reject) {
+  return new (P2 || (P2 = Promise))(function(resolve, reject) {
     function fulfilled(value) {
       try {
-        step(generator.next(value));
+        step2(generator.next(value));
       } catch (e) {
         reject(e);
       }
     }
     function rejected(value) {
       try {
-        step(generator["throw"](value));
+        step2(generator["throw"](value));
       } catch (e) {
         reject(e);
       }
     }
-    function step(result) {
+    function step2(result) {
       result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
     }
-    step((generator = generator.apply(thisArg, _arguments || [])).next());
+    step2((generator = generator.apply(thisArg, _arguments || [])).next());
   });
 }
 
@@ -8315,7 +28588,7 @@ var PostgrestError = class extends Error {
     };
   }
 };
-function sleep2(ms, signal) {
+function sleep(ms5, signal) {
   return new Promise((resolve) => {
     if (signal === null || signal === void 0 ? void 0 : signal.aborted) {
       resolve();
@@ -8324,7 +28597,7 @@ function sleep2(ms, signal) {
     const id = setTimeout(() => {
       signal === null || signal === void 0 || signal.removeEventListener("abort", onAbort);
       resolve();
-    }, ms);
+    }, ms5);
     function onAbort() {
       clearTimeout(id);
       resolve();
@@ -8503,7 +28776,7 @@ var PostgrestBuilder = class {
           res$1 = await _fetch(_this.url.toString(), {
             method: _this.method,
             headers: requestHeaders,
-            body: JSON.stringify(_this.body, (_, value) => typeof value === "bigint" ? value.toString() : value),
+            body: JSON.stringify(_this.body, (_2, value) => typeof value === "bigint" ? value.toString() : value),
             signal: _this.signal
           });
         } catch (fetchError) {
@@ -8512,7 +28785,7 @@ var PostgrestBuilder = class {
           if (_this.retryEnabled && attemptCount < DEFAULT_MAX_RETRIES) {
             const delay = getRetryDelay(attemptCount);
             attemptCount++;
-            await sleep2(delay, _this.signal);
+            await sleep(delay, _this.signal);
             continue;
           }
           throw fetchError;
@@ -8523,7 +28796,7 @@ var PostgrestBuilder = class {
           const delay = retryAfterHeader !== null ? Math.max(0, parseInt(retryAfterHeader, 10) || 0) * 1e3 : getRetryDelay(attemptCount);
           await res$1.text();
           attemptCount++;
-          await sleep2(delay, _this.signal);
+          await sleep(delay, _this.signal);
           continue;
         }
         return await _this.processResponse(res$1);
@@ -10169,9 +30442,9 @@ var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
   * ```
   */
   in(column, values) {
-    const cleanedValues = Array.from(new Set(values)).map((s) => {
-      if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s)) return `"${s}"`;
-      else return `${s}`;
+    const cleanedValues = Array.from(new Set(values)).map((s2) => {
+      if (typeof s2 === "string" && PostgrestReservedCharsRegexp.test(s2)) return `"${s2}"`;
+      else return `${s2}`;
     }).join(",");
     this.url.searchParams.append(column, `in.(${cleanedValues})`);
     return this;
@@ -10183,9 +30456,9 @@ var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
   * @param values - The values array to filter with
   */
   notIn(column, values) {
-    const cleanedValues = Array.from(new Set(values)).map((s) => {
-      if (typeof s === "string" && PostgrestReservedCharsRegexp.test(s)) return `"${s}"`;
-      else return `${s}`;
+    const cleanedValues = Array.from(new Set(values)).map((s2) => {
+      if (typeof s2 === "string" && PostgrestReservedCharsRegexp.test(s2)) return `"${s2}"`;
+      else return `${s2}`;
     }).join(",");
     this.url.searchParams.append(column, `not.in.(${cleanedValues})`);
     return this;
@@ -11017,7 +31290,7 @@ var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
   * ```
   */
   match(query) {
-    Object.entries(query).filter(([_, value]) => value !== void 0).forEach(([column, value]) => {
+    Object.entries(query).filter(([_2, value]) => value !== void 0).forEach(([column, value]) => {
       this.url.searchParams.append(column, `eq.${value}`);
     });
     return this;
@@ -13263,7 +33536,7 @@ var PostgrestClient = class PostgrestClient2 {
       body = args;
     } else if (head2 || get2) {
       method = head2 ? "HEAD" : "GET";
-      Object.entries(args).filter(([_, value]) => value !== void 0).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
+      Object.entries(args).filter(([_2, value]) => value !== void 0).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
         url.searchParams.append(name, value);
       });
     } else {
@@ -13365,15 +33638,15 @@ var WebSocketFactory = class {
    * ```
    */
   static getWebSocketConstructor() {
-    const env = this.detectEnvironment();
-    if (env.wsConstructor) {
-      return env.wsConstructor;
+    const env2 = this.detectEnvironment();
+    if (env2.wsConstructor) {
+      return env2.wsConstructor;
     }
-    let errorMessage = env.error || "WebSocket not supported in this environment.";
-    if (env.workaround) {
+    let errorMessage = env2.error || "WebSocket not supported in this environment.";
+    if (env2.workaround) {
       errorMessage += `
 
-Suggested solution: ${env.workaround}`;
+Suggested solution: ${env2.workaround}`;
     }
     throw new Error(errorMessage);
   }
@@ -13392,8 +33665,8 @@ Suggested solution: ${env.workaround}`;
    */
   static isWebSocketSupported() {
     try {
-      const env = this.detectEnvironment();
-      return env.type === "native" || env.type === "ws";
+      const env2 = this.detectEnvironment();
+      return env2.type === "native" || env2.type === "ws";
     } catch (_a) {
       return false;
     }
@@ -13402,10 +33675,10 @@ Suggested solution: ${env.workaround}`;
 var websocket_factory_default = WebSocketFactory;
 
 // ../../node_modules/.pnpm/@supabase+realtime-js@2.107.0/node_modules/@supabase/realtime-js/dist/module/lib/version.js
-var version = "2.107.0";
+var version2 = "2.107.0";
 
 // ../../node_modules/.pnpm/@supabase+realtime-js@2.107.0/node_modules/@supabase/realtime-js/dist/module/lib/constants.js
-var DEFAULT_VERSION = `realtime-js/${version}`;
+var DEFAULT_VERSION = `realtime-js/${version2}`;
 var VSN_1_0_0 = "1.0.0";
 var VSN_2_0_0 = "2.0.0";
 var DEFAULT_VSN = VSN_2_0_0;
@@ -13711,7 +33984,7 @@ var toArray = (value, type) => {
     const valTrim = value.slice(1, lastIdx);
     try {
       arr = JSON.parse("[" + valTrim + "]");
-    } catch (_) {
+    } catch (_2) {
       arr = valTrim ? valTrim.split(",") : [];
     }
     return arr.map((val) => convertCell(type, val));
@@ -14280,8 +34553,8 @@ var Ajax = class {
       const _timeoutId = setTimeout(() => controller.abort(), timeout);
       options.signal = controller.signal;
     }
-    global2.fetch(endPoint, options).then((response3) => response3.text()).then((data) => this.parseJSON(data)).then((data) => callback && callback(data)).catch((err) => {
-      if (err.name === "AbortError" && ontimeout) {
+    global2.fetch(endPoint, options).then((response3) => response3.text()).then((data) => this.parseJSON(data)).then((data) => callback && callback(data)).catch((err2) => {
+      if (err2.name === "AbortError" && ontimeout) {
         ontimeout();
       } else {
         callback && callback(null);
@@ -15491,7 +35764,7 @@ var Socket = class {
    */
   triggerStateCallbacks(event, ...args) {
     try {
-      this.stateChangeCallbacks[event].forEach(([_, callback]) => {
+      this.stateChangeCallbacks[event].forEach(([_2, callback]) => {
         try {
           callback(...args);
         } catch (e) {
@@ -17242,7 +37515,7 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path, query) {
+function buildUrl2(baseUrl, path, query) {
   const url = new URL(path, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -17278,7 +37551,7 @@ function createFetchClient(options) {
       body,
       headers
     }) {
-      const url = buildUrl(options.baseUrl, path, query);
+      const url = buildUrl2(options.baseUrl, path, query);
       const authHeaders = await buildAuthHeaders(options.auth);
       const res = await fetchFn(url, {
         method,
@@ -17874,9 +38147,9 @@ var isValidBucketName = (bucketName) => {
   if (bucketName.includes("/") || bucketName.includes("\\")) return false;
   return /^[\w!.\*'() &$@=;:+,?-]+$/.test(bucketName);
 };
-var _getErrorMessage = (err) => {
-  if (typeof err === "object" && err !== null) {
-    const e = err;
+var _getErrorMessage = (err2) => {
+  if (typeof err2 === "object" && err2 !== null) {
+    const e = err2;
     if (typeof e.msg === "string") return e.msg;
     if (typeof e.message === "string") return e.message;
     if (typeof e.error_description === "string") return e.error_description;
@@ -17886,16 +38159,16 @@ var _getErrorMessage = (err) => {
       if (typeof nested.message === "string") return nested.message;
     }
   }
-  return JSON.stringify(err);
+  return JSON.stringify(err2);
 };
 var handleError = async (error, reject, options, namespace) => {
   if (error !== null && typeof error === "object" && "json" in error && typeof error.json === "function") {
     const responseError = error;
     let status = parseInt(String(responseError.status), 10);
     if (!Number.isFinite(status)) status = 500;
-    responseError.json().then((err) => {
-      const statusCode = (err === null || err === void 0 ? void 0 : err.statusCode) || (err === null || err === void 0 ? void 0 : err.code) || status + "";
-      reject(new StorageApiError(_getErrorMessage(err), status, statusCode, namespace));
+    responseError.json().then((err2) => {
+      const statusCode = (err2 === null || err2 === void 0 ? void 0 : err2.statusCode) || (err2 === null || err2 === void 0 ? void 0 : err2.code) || status + "";
+      reject(new StorageApiError(_getErrorMessage(err2), status, statusCode, namespace));
     }).catch(() => {
       const statusCode = status + "";
       reject(new StorageApiError(responseError.statusText || `HTTP ${status} error`, status, statusCode, namespace));
@@ -17911,9 +38184,9 @@ var _getRequestParams = (method, options, parameters, body) => {
   if (isPlainObject(body)) {
     var _contentType;
     const headers = (options === null || options === void 0 ? void 0 : options.headers) || {};
-    let contentType;
-    for (const [key, value] of Object.entries(headers)) if (key.toLowerCase() === "content-type") contentType = value;
-    params.headers = setHeader(headers, "Content-Type", (_contentType = contentType) !== null && _contentType !== void 0 ? _contentType : "application/json");
+    let contentType2;
+    for (const [key, value] of Object.entries(headers)) if (key.toLowerCase() === "content-type") contentType2 = value;
+    params.headers = setHeader(headers, "Content-Type", (_contentType = contentType2) !== null && _contentType !== void 0 ? _contentType : "application/json");
     params.body = JSON.stringify(body);
   } else params.body = body;
   if (options === null || options === void 0 ? void 0 : options.duplex) params.duplex = options.duplex;
@@ -17925,9 +38198,9 @@ async function _handleRequest(fetcher, method, url, options, parameters, body, n
       if (!result.ok) throw result;
       if (options === null || options === void 0 ? void 0 : options.noResolveJson) return result;
       if (namespace === "vectors") {
-        const contentType = result.headers.get("content-type");
+        const contentType2 = result.headers.get("content-type");
         if (result.headers.get("content-length") === "0" || result.status === 204) return {};
-        if (!contentType || !contentType.includes("application/json")) return {};
+        if (!contentType2 || !contentType2.includes("application/json")) return {};
       }
       return result.json();
     }).then((data) => resolve(data)).catch((error) => handleError(error, reject, options, namespace));
@@ -19081,8 +39354,8 @@ var StorageFileApi = class extends BaseApiClient {
     return query;
   }
 };
-var version2 = "2.107.0";
-var DEFAULT_HEADERS = { "X-Client-Info": `storage-js/${version2}` };
+var version3 = "2.107.0";
+var DEFAULT_HEADERS = { "X-Client-Info": `storage-js/${version3}` };
 var StorageBucketApi = class extends BaseApiClient {
   constructor(url, headers = {}, fetch$1, opts) {
     const baseUrl = new URL(url);
@@ -20438,7 +40711,7 @@ var StorageClient = class extends StorageBucketApi {
 };
 
 // ../../node_modules/.pnpm/@supabase+auth-js@2.107.0/node_modules/@supabase/auth-js/dist/module/lib/version.js
-var version3 = "2.107.0";
+var version4 = "2.107.0";
 
 // ../../node_modules/.pnpm/@supabase+auth-js@2.107.0/node_modules/@supabase/auth-js/dist/module/lib/constants.js
 var AUTO_REFRESH_TICK_DURATION_MS = 30 * 1e3;
@@ -20446,7 +40719,7 @@ var AUTO_REFRESH_TICK_THRESHOLD = 3;
 var EXPIRY_MARGIN_MS = AUTO_REFRESH_TICK_THRESHOLD * AUTO_REFRESH_TICK_DURATION_MS;
 var GOTRUE_URL = "http://localhost:9999";
 var STORAGE_KEY = "supabase.auth.token";
-var DEFAULT_HEADERS2 = { "X-Client-Info": `gotrue-js/${version3}` };
+var DEFAULT_HEADERS2 = { "X-Client-Info": `gotrue-js/${version4}` };
 var API_VERSION_HEADER_NAME = "X-Supabase-Api-Version";
 var API_VERSIONS = {
   "2024-01-01": {
@@ -20857,7 +41130,7 @@ function decodeJWT(token) {
   };
   return data;
 }
-async function sleep3(time2) {
+async function sleep2(time2) {
   return await new Promise((accept) => {
     setTimeout(() => accept(null), time2);
   });
@@ -20902,7 +41175,7 @@ function generatePKCEVerifier() {
   crypto.getRandomValues(array);
   return Array.from(array, dec2hex).join("");
 }
-async function sha2562(randomString) {
+async function sha2563(randomString) {
   const encoder = new TextEncoder();
   const encodedData = encoder.encode(randomString);
   const hash = await crypto.subtle.digest("SHA-256", encodedData);
@@ -20915,7 +41188,7 @@ async function generatePKCEChallenge(verifier) {
     console.warn("WebCrypto API is not supported. Code challenge method will default to use plain instead of sha256.");
     return verifier;
   }
-  const hashed = await sha2562(verifier);
+  const hashed = await sha2563(verifier);
   return btoa(hashed).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 async function getCodeChallengeAndMethod(storage, storageKey, isPasswordRecovery = false) {
@@ -21030,9 +41303,9 @@ function deepClone(obj) {
 }
 
 // ../../node_modules/.pnpm/@supabase+auth-js@2.107.0/node_modules/@supabase/auth-js/dist/module/lib/fetch.js
-var _getErrorMessage2 = (err) => {
-  if (typeof err === "object" && err !== null) {
-    const e = err;
+var _getErrorMessage2 = (err2) => {
+  if (typeof err2 === "object" && err2 !== null) {
+    const e = err2;
     if (typeof e.msg === "string")
       return e.msg;
     if (typeof e.message === "string")
@@ -21042,7 +41315,7 @@ var _getErrorMessage2 = (err) => {
     if (typeof e.error === "string")
       return e.error;
   }
-  return JSON.stringify(err);
+  return JSON.stringify(err2);
 };
 var NETWORK_ERROR_CODES = [502, 503, 504, 520, 521, 522, 523, 524, 530];
 async function handleError2(error) {
@@ -21205,10 +41478,10 @@ var GoTrueAdminApi = class {
    * })
    * ```
    */
-  constructor({ url = "", headers = {}, fetch: fetch2, experimental }) {
+  constructor({ url = "", headers = {}, fetch: fetch3, experimental }) {
     this.url = url;
     this.headers = headers;
-    this.fetch = resolveFetch3(fetch2);
+    this.fetch = resolveFetch3(fetch3);
     this.experimental = experimental !== null && experimental !== void 0 ? experimental : {};
     this.mfa = {
       listFactors: this._listFactors.bind(this),
@@ -22325,7 +42598,7 @@ function toHex(value) {
 }
 function createSiweMessage(parameters) {
   var _a;
-  const { chainId, domain, expirationTime, issuedAt = /* @__PURE__ */ new Date(), nonce, notBefore, requestId, resources, scheme, uri, version: version5 } = parameters;
+  const { chainId, domain, expirationTime, issuedAt = /* @__PURE__ */ new Date(), nonce, notBefore, requestId, resources, scheme, uri, version: version6 } = parameters;
   {
     if (!Number.isInteger(chainId))
       throw new Error(`@supabase/auth-js: Invalid SIWE message field "chainId". Chain ID must be a EIP-155 chain ID. Provided value: ${chainId}`);
@@ -22335,8 +42608,8 @@ function createSiweMessage(parameters) {
       throw new Error(`@supabase/auth-js: Invalid SIWE message field "nonce". Nonce must be at least 8 characters. Provided value: ${nonce}`);
     if (!uri)
       throw new Error(`@supabase/auth-js: Invalid SIWE message field "uri". URI must be provided.`);
-    if (version5 !== "1")
-      throw new Error(`@supabase/auth-js: Invalid SIWE message field "version". Version must be '1'. Provided value: ${version5}`);
+    if (version6 !== "1")
+      throw new Error(`@supabase/auth-js: Invalid SIWE message field "version". Version must be '1'. Provided value: ${version6}`);
     if ((_a = parameters.statement) === null || _a === void 0 ? void 0 : _a.includes("\n"))
       throw new Error(`@supabase/auth-js: Invalid SIWE message field "statement". Statement must not include '\\n'. Provided value: ${parameters.statement}`);
   }
@@ -22349,7 +42622,7 @@ ${address}
 
 ${statement}`;
   let suffix = `URI: ${uri}
-Version: ${version5}
+Version: ${version6}
 Chain ID: ${chainId}${nonce ? `
 Nonce: ${nonce}` : ""}
 Issued At: ${issuedAt.toISOString()}`;
@@ -22719,11 +42992,11 @@ async function createCredential(options) {
       };
     }
     return { data: response3, error: null };
-  } catch (err) {
+  } catch (err2) {
     return {
       data: null,
       error: identifyRegistrationError({
-        error: err,
+        error: err2,
         options
       })
     };
@@ -22748,11 +43021,11 @@ async function getCredential(options) {
       };
     }
     return { data: response3, error: null };
-  } catch (err) {
+  } catch (err2) {
     return {
       data: null,
       error: identifyAuthenticationError({
-        error: err,
+        error: err2,
         options
       })
     };
@@ -22776,7 +43049,7 @@ var DEFAULT_REQUEST_OPTIONS = {
   attestation: "direct"
 };
 function deepMerge(...sources) {
-  const isObject = (val) => val !== null && typeof val === "object" && !Array.isArray(val);
+  const isObject2 = (val) => val !== null && typeof val === "object" && !Array.isArray(val);
   const isArrayBufferLike = (val) => val instanceof ArrayBuffer || ArrayBuffer.isView(val);
   const result = {};
   for (const source of sources) {
@@ -22790,9 +43063,9 @@ function deepMerge(...sources) {
         result[key] = value;
       } else if (isArrayBufferLike(value)) {
         result[key] = value;
-      } else if (isObject(value)) {
+      } else if (isObject2(value)) {
         const existing = result[key];
-        if (isObject(existing)) {
+        if (isObject2(existing)) {
           result[key] = deepMerge(existing, value);
         } else {
           result[key] = deepMerge(value);
@@ -23274,7 +43547,7 @@ var GoTrueClient = class _GoTrueClient {
     return result;
   }
   _logPrefix() {
-    return `GoTrueClient@${this.storageKey}:${this.instanceID} (${version3}) ${(/* @__PURE__ */ new Date()).toISOString()}`;
+    return `GoTrueClient@${this.storageKey}:${this.instanceID} (${version4}) ${(/* @__PURE__ */ new Date()).toISOString()}`;
   }
   _debug(...args) {
     if (this.logDebugMessages) {
@@ -26358,13 +46631,13 @@ var GoTrueClient = class _GoTrueClient {
           throw error;
         await ((_a = this.stateChangeEmitters.get(id)) === null || _a === void 0 ? void 0 : _a.callback("INITIAL_SESSION", session));
         this._debug("INITIAL_SESSION", "callback id", id, "session", session);
-      } catch (err) {
+      } catch (err2) {
         await ((_b = this.stateChangeEmitters.get(id)) === null || _b === void 0 ? void 0 : _b.callback("INITIAL_SESSION", null));
-        this._debug("INITIAL_SESSION", "callback id", id, "error", err);
-        if (isAuthSessionMissingError(err)) {
-          console.warn(err);
+        this._debug("INITIAL_SESSION", "callback id", id, "error", err2);
+        if (isAuthSessionMissingError(err2)) {
+          console.warn(err2);
         } else {
-          console.error(err);
+          console.error(err2);
         }
       }
     });
@@ -26689,7 +46962,7 @@ var GoTrueClient = class _GoTrueClient {
       const startedAt = Date.now();
       return await retryable(async (attempt) => {
         if (attempt > 0) {
-          await sleep3(200 * Math.pow(2, attempt - 1));
+          await sleep2(200 * Math.pow(2, attempt - 1));
         }
         this._debug(debugName, "refreshing attempt", attempt);
         return await _request(this.fetch, "POST", `${this.url}/token?grant_type=refresh_token`, {
@@ -26799,9 +47072,9 @@ var GoTrueClient = class _GoTrueClient {
       } else {
         await this._notifyAllSubscribers("SIGNED_IN", currentSession);
       }
-    } catch (err) {
-      this._debug(debugName, "error", err);
-      console.error(err);
+    } catch (err2) {
+      this._debug(debugName, "error", err2);
+      console.error(err2);
       return;
     } finally {
       this._debug(debugName, "end");
@@ -28131,7 +48404,7 @@ var AuthClient = GoTrueClient_default;
 var AuthClient_default = AuthClient;
 
 // ../../node_modules/.pnpm/@supabase+supabase-js@2.107.0/node_modules/@supabase/supabase-js/dist/index.mjs
-var version4 = "2.107.0";
+var version5 = "2.107.0";
 var JS_ENV = "";
 var JS_RUNTIME_VERSION;
 if (typeof Deno !== "undefined") {
@@ -28147,7 +48420,7 @@ var _Deno$version;
 var _process$version;
 var _runtimeMeta = [`runtime=${JS_ENV}`];
 if (JS_RUNTIME_VERSION) _runtimeMeta.push(`runtime-version=${JS_RUNTIME_VERSION}`);
-var DEFAULT_HEADERS3 = { "X-Client-Info": `supabase-js/${version4}; ${_runtimeMeta.join("; ")}` };
+var DEFAULT_HEADERS3 = { "X-Client-Info": `supabase-js/${version5}; ${_runtimeMeta.join("; ")}` };
 var DEFAULT_GLOBAL_OPTIONS = { headers: DEFAULT_HEADERS3 };
 var DEFAULT_DB_OPTIONS = { schema: "public" };
 var DEFAULT_AUTH_OPTIONS = {
@@ -28161,31 +48434,31 @@ var DEFAULT_TRACE_PROPAGATION_OPTIONS = {
   enabled: false,
   respectSamplingDecision: true
 };
-function __awaiter2(thisArg, _arguments, P, generator) {
+function __awaiter2(thisArg, _arguments, P2, generator) {
   function adopt(value) {
-    return value instanceof P ? value : new P(function(resolve) {
+    return value instanceof P2 ? value : new P2(function(resolve) {
       resolve(value);
     });
   }
-  return new (P || (P = Promise))(function(resolve, reject) {
+  return new (P2 || (P2 = Promise))(function(resolve, reject) {
     function fulfilled(value) {
       try {
-        step(generator.next(value));
+        step2(generator.next(value));
       } catch (e) {
         reject(e);
       }
     }
     function rejected(value) {
       try {
-        step(generator["throw"](value));
+        step2(generator["throw"](value));
       } catch (e) {
         reject(e);
       }
     }
-    function step(result) {
+    function step2(result) {
       result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
     }
-    step((generator = generator.apply(thisArg, _arguments || [])).next());
+    step2((generator = generator.apply(thisArg, _arguments || [])).next());
   });
 }
 var otelModulePromise = null;
@@ -28652,7 +48925,7 @@ var SupabaseClient = class {
       this.auth = this._initSupabaseAuthClient((_settings$auth = settings.auth) !== null && _settings$auth !== void 0 ? _settings$auth : {}, this.headers, settings.global.fetch);
     } else {
       this.accessToken = settings.accessToken;
-      this.auth = new Proxy({}, { get: (_, prop) => {
+      this.auth = new Proxy({}, { get: (_2, prop) => {
         throw new Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(prop)} is not possible`);
       } });
     }
@@ -28796,7 +49069,7 @@ var SupabaseClient = class {
     const { data } = await _this.auth.getSession();
     return (_data$session$access_ = (_data$session = data.session) === null || _data$session === void 0 ? void 0 : _data$session.access_token) !== null && _data$session$access_ !== void 0 ? _data$session$access_ : _this.supabaseKey;
   }
-  _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug, throwOnError, experimental, lockAcquireTimeout, skipAutoInitialize }, headers, fetch$1) {
+  _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug: debug4, throwOnError, experimental, lockAcquireTimeout, skipAutoInitialize }, headers, fetch$1) {
     const authHeaders = {
       Authorization: `Bearer ${this.supabaseKey}`,
       apikey: `${this.supabaseKey}`
@@ -28812,7 +49085,7 @@ var SupabaseClient = class {
       userStorage,
       flowType,
       lock,
-      debug,
+      debug: debug4,
       throwOnError,
       experimental,
       fetch: fetch$1,
@@ -28861,28 +49134,682 @@ var supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "placeholder"
 );
 
+// src/lib/agent-logger.ts
+async function startJob(init) {
+  const { data } = await supabase.from("agent_jobs").insert({ ...init, status: "running", started_at: (/* @__PURE__ */ new Date()).toISOString() }).select("id").single();
+  return data?.id ?? "";
+}
+async function completeJob(id, output, steps = []) {
+  await supabase.from("agent_jobs").update({ status: "completed", output, steps, completed_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id);
+}
+async function failJob(id, error) {
+  await supabase.from("agent_jobs").update({ status: "failed", error, completed_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id);
+}
+async function logStep(id, step2) {
+  const { data } = await supabase.from("agent_jobs").select("steps").eq("id", id).single();
+  const steps = Array.isArray(data?.steps) ? data.steps : [];
+  await supabase.from("agent_jobs").update({ steps: [...steps, step2] }).eq("id", id);
+}
+
+// src/jobs/enrich-record.ts
+var ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
+async function tavilySearch(query) {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return "";
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" })
+    });
+    if (!res.ok) return "";
+    const json2 = await res.json();
+    return (json2.results ?? []).slice(0, 4).map((r) => `${r.title}: ${r.content}`).join("\n");
+  } catch {
+    return "";
+  }
+}
+async function callClaude(prompt, toolName, toolSchema) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return {};
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      tools: [{ name: toolName, description: "Extract enrichment fields", input_schema: toolSchema }],
+      tool_choice: { type: "tool", name: toolName },
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if (!res.ok) return {};
+  const data = await res.json();
+  const toolBlock = data.content?.find((b) => b.type === "tool_use");
+  const fields = toolBlock?.input ?? {};
+  return Object.fromEntries(Object.entries(fields).filter(([, v]) => v != null && v !== ""));
+}
+var enrichRecord = inngest.createFunction(
+  { id: "crm-enrich-record", name: "CRM: Enrich Record", concurrency: { limit: 5 } },
+  { event: "crm/record.created" },
+  async ({ event }) => {
+    const { workspaceId, nodeId, objectType: objectType2, recordData } = event.data;
+    const normalizedType = objectType2.toLowerCase();
+    if (!ENRICHABLE.some((t) => normalizedType.includes(t))) {
+      return { skipped: true, reason: "object_type not enrichable" };
+    }
+    const jobId = await startJob({
+      workspace_id: workspaceId,
+      agent_name: "crm_enricher",
+      trigger_type: "signal",
+      input: { nodeId, objectType: objectType2, recordData },
+      node_ids: [nodeId]
+    });
+    try {
+      const isPerson = ["contact", "person", "people", "lead"].some((t) => normalizedType.includes(t));
+      let fields = {};
+      if (isPerson) {
+        const email = recordData.email ?? recordData.Email ?? "";
+        const name = recordData.name ?? recordData.Name ?? "";
+        const query = email ? `${email} linkedin job title company` : `${name} linkedin job title company professional`;
+        await logStep(jobId, { step: "tavily_search", query });
+        const webContext = await tavilySearch(query);
+        await logStep(jobId, { step: "claude_enrich", type: "person" });
+        fields = await callClaude(
+          `Enrich this person. Name: "${name}", Email: "${email}"
+${webContext ? `Web context:
+${webContext}` : ""}`,
+          "enrich_person",
+          {
+            type: "object",
+            properties: {
+              company: { type: "string" },
+              job_title: { type: "string" },
+              linkedin: { type: "string" },
+              location: { type: "string" },
+              twitter: { type: "string" },
+              bio: { type: "string" }
+            }
+          }
+        );
+      } else {
+        const name = recordData.name ?? recordData.Name ?? recordData.company_name ?? "";
+        const domain = recordData.domain ?? recordData.website ?? "";
+        const query = `${name} ${domain} company funding employees revenue industry`;
+        await logStep(jobId, { step: "tavily_search", query });
+        const webContext = await tavilySearch(query);
+        await logStep(jobId, { step: "claude_enrich", type: "company" });
+        fields = await callClaude(
+          `Enrich this company. Name: "${name}", Domain: "${domain}"
+${webContext ? `Web context:
+${webContext}` : ""}`,
+          "enrich_company",
+          {
+            type: "object",
+            properties: {
+              description: { type: "string" },
+              country: { type: "string" },
+              employee_range: { type: "string" },
+              arr: { type: "number" },
+              funding_raised: { type: "number" },
+              website: { type: "string" },
+              industry: { type: "string" },
+              founded_year: { type: "number" }
+            }
+          }
+        );
+      }
+      if (Object.keys(fields).length === 0) {
+        await failJob(jobId, "No fields extracted");
+        return { enriched: false };
+      }
+      const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
+      const merged = { ...node?.data ?? {}, ...fields };
+      await supabase.from("nodes").update({ data: merged }).eq("id", nodeId);
+      await supabase.from("nodes").update({ enriched_at: (/* @__PURE__ */ new Date()).toISOString(), enrichment_status: "done" }).eq("id", nodeId);
+      const summary = Object.keys(fields).slice(0, 3).join(", ");
+      await supabase.from("notifications").insert({
+        workspace_id: workspaceId,
+        type: "agent",
+        title: "\u2726 Record enriched",
+        body: `AI filled in: ${summary}${Object.keys(fields).length > 3 ? ` +${Object.keys(fields).length - 3} more` : ""}`,
+        metadata: { nodeId, fields_added: Object.keys(fields).length }
+      });
+      await completeJob(jobId, { fields_added: Object.keys(fields).length, fields }, []);
+      return { enriched: true, fields_count: Object.keys(fields).length };
+    } catch (err2) {
+      const msg = err2 instanceof Error ? err2.message : String(err2);
+      await failJob(jobId, msg);
+      throw err2;
+    }
+  }
+);
+
+// src/jobs/invoice-chaser.ts
+function daysOverdue(dueDateStr) {
+  const due = new Date(dueDateStr);
+  const now = /* @__PURE__ */ new Date();
+  return Math.floor((now.getTime() - due.getTime()) / (1e3 * 60 * 60 * 24));
+}
+function chaseMessage(invoice, days) {
+  const num = invoice.invoice_number ?? "your invoice";
+  const amount = invoice.amount ? new Intl.NumberFormat("en-US", { style: "currency", currency: invoice.currency ?? "USD" }).format(invoice.amount) : "the outstanding amount";
+  if (days <= 7) {
+    return {
+      subject: `Friendly reminder: ${num} is overdue`,
+      body: `Hi ${invoice.client_name ?? "there"},
+
+This is a friendly reminder that ${num} for ${amount} was due ${days} day${days === 1 ? "" : "s"} ago.
+
+Please let us know if you have any questions.
+
+Thank you!`
+    };
+  }
+  if (days <= 14) {
+    return {
+      subject: `Second notice: ${num} \u2014 ${days} days overdue`,
+      body: `Hi ${invoice.client_name ?? "there"},
+
+We noticed that ${num} for ${amount} remains unpaid and is now ${days} days overdue.
+
+Please arrange payment at your earliest convenience.
+
+If there's an issue, please reach out so we can resolve it.
+
+Regards`
+    };
+  }
+  return {
+    subject: `Urgent: ${num} \u2014 ${days} days past due`,
+    body: `Hi ${invoice.client_name ?? "there"},
+
+Despite previous reminders, ${num} for ${amount} remains unpaid at ${days} days overdue.
+
+Please treat this as urgent. If payment cannot be made immediately, contact us to discuss arrangements.
+
+This matter may be escalated if not resolved promptly.`
+  };
+}
+var invoiceChaser = inngest.createFunction(
+  { id: "finance-invoice-chaser", name: "Finance: Invoice Chaser", concurrency: { limit: 1 } },
+  { cron: "0 9 * * *" },
+  async () => {
+    const { data: workspaces } = await supabase.from("workspaces").select("id, name");
+    if (!workspaces?.length) return { workspaces_processed: 0 };
+    let totalChased = 0;
+    let totalSkipped = 0;
+    for (const ws of workspaces) {
+      const jobId = await startJob({
+        workspace_id: ws.id,
+        agent_name: "invoice_chaser",
+        trigger_type: "scheduled",
+        input: { workspace_id: ws.id }
+      });
+      try {
+        const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+        const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", ws.id).eq("object_type", "invoice").lt("data->>due_date", today).in("data->>status", ["sent", "overdue", "unpaid"]);
+        if (!invoices?.length) {
+          await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, []);
+          continue;
+        }
+        const steps = [];
+        let chased = 0;
+        for (const invoice of invoices) {
+          const due = invoice.data.due_date;
+          if (!due) continue;
+          const days = daysOverdue(due);
+          if (days <= 0) continue;
+          const lastChased = invoice.data.last_chased_at;
+          if (lastChased) {
+            const daysSinceChase = daysOverdue(lastChased);
+            if (daysSinceChase < 3) {
+              totalSkipped++;
+              continue;
+            }
+          }
+          const { subject, body } = chaseMessage(invoice.data, days);
+          const clientEmail = invoice.data.client_email;
+          const chaseCount = (invoice.data.chase_count ?? 0) + 1;
+          await logStep(jobId, { invoice_id: invoice.id, days_overdue: days, chase_count: chaseCount });
+          if (clientEmail) {
+            const { data: emailConn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", ws.id).limit(1).single();
+            if (emailConn?.grant_id) {
+              try {
+                await fetch(`https://api.us.nylas.com/v3/grants/${emailConn.grant_id}/messages/send`, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${process.env.NYLAS_API_KEY}`,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({
+                    subject,
+                    body,
+                    to: [{ email: clientEmail, name: invoice.data.client_name ?? clientEmail }]
+                  })
+                });
+                steps.push({ sent: true, to: clientEmail, subject });
+              } catch {
+                steps.push({ sent: false, to: clientEmail, error: "nylas_failed" });
+              }
+            } else {
+              await supabase.from("nodes").insert({
+                workspace_id: ws.id,
+                vertical: "finance",
+                object_type: "task",
+                created_by: "agent:invoice_chaser",
+                data: {
+                  title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} \u2014 ${days} days overdue`,
+                  notes: `Draft email:
+
+Subject: ${subject}
+
+${body}`,
+                  status: "todo",
+                  priority: days > 14 ? "urgent" : days > 7 ? "high" : "medium"
+                }
+              });
+              steps.push({ task_created: true, invoice_id: invoice.id });
+            }
+          }
+          await supabase.from("nodes").update({
+            data: {
+              ...invoice.data,
+              status: "overdue",
+              last_chased_at: (/* @__PURE__ */ new Date()).toISOString(),
+              chase_count: chaseCount
+            }
+          }).eq("id", invoice.id);
+          await supabase.from("notifications").insert({
+            workspace_id: ws.id,
+            type: "agent",
+            title: `Invoice ${invoice.data.invoice_number ?? ""} chased`,
+            body: `${days} days overdue \xB7 Chase #${chaseCount} sent to ${clientEmail ?? "no email on file"}`,
+            metadata: { invoice_id: invoice.id, days_overdue: days }
+          });
+          chased++;
+          totalChased++;
+        }
+        await completeJob(jobId, { chased, skipped: totalSkipped }, steps);
+      } catch (err2) {
+        const msg = err2 instanceof Error ? err2.message : String(err2);
+        await failJob(jobId, msg);
+      }
+    }
+    return { workspaces_processed: workspaces.length, total_chased: totalChased, total_skipped: totalSkipped };
+  }
+);
+
+// src/jobs/relationship-health.ts
+var relationshipHealth = inngest.createFunction(
+  { id: "crm-relationship-health", name: "CRM: Relationship Health Scoring", concurrency: { limit: 1 } },
+  { cron: "0 2 * * *" },
+  async () => {
+    const { data: workspaces } = await supabase.from("workspaces").select("id");
+    if (!workspaces?.length) return { processed: 0 };
+    let totalScored = 0;
+    for (const ws of workspaces) {
+      const jobId = await startJob({
+        workspace_id: ws.id,
+        agent_name: "relationship_health",
+        trigger_type: "scheduled",
+        input: { workspace_id: ws.id }
+      });
+      try {
+        const { data: contacts } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws.id).in("object_type", ["contact", "person", "lead", "company", "account"]);
+        if (!contacts?.length) {
+          await completeJob(jobId, { scored: 0 }, []);
+          continue;
+        }
+        for (const contact of contacts) {
+          const signals = {};
+          let score = 50;
+          const lastContact = contact.data?.last_contacted_at ?? contact.data?.last_contact;
+          if (lastContact) {
+            const days = Math.floor((Date.now() - new Date(lastContact).getTime()) / 864e5);
+            signals.days_since_contact = days;
+            if (days <= 7) score += 25;
+            else if (days <= 30) score += 10;
+            else if (days <= 90) score -= 10;
+            else score -= 25;
+          } else {
+            signals.days_since_contact = null;
+            score -= 15;
+          }
+          const { count: openTasks } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("object_type", "task").eq("data->>status", "todo").eq("data->>record_id", contact.id);
+          signals.open_tasks = openTasks ?? 0;
+          if ((openTasks ?? 0) > 3) score -= 10;
+          const { count: openDeals } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("object_type", "deal").not("data->>stage", "in", '("closed_won","closed_lost")').eq("data->>contact_id", contact.id);
+          signals.open_deals = openDeals ?? 0;
+          if ((openDeals ?? 0) > 0) score += 15;
+          const { count: recentActivity } = await supabase.from("activities").select("id", { count: "exact", head: true }).eq("node_id", contact.id).gte("created_at", new Date(Date.now() - 30 * 864e5).toISOString());
+          signals.recent_activity_30d = recentActivity ?? 0;
+          if ((recentActivity ?? 0) >= 5) score += 15;
+          else if ((recentActivity ?? 0) >= 2) score += 5;
+          else if ((recentActivity ?? 0) === 0) score -= 10;
+          const finalScore = Math.max(0, Math.min(100, score));
+          await supabase.from("nodes").update({
+            relationship_health: finalScore,
+            health_updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+            health_signals: signals
+          }).eq("id", contact.id);
+          totalScored++;
+        }
+        await completeJob(jobId, { scored: contacts.length }, []);
+      } catch (err2) {
+        const msg = err2 instanceof Error ? err2.message : String(err2);
+        await failJob(jobId, msg);
+      }
+    }
+    return { total_scored: totalScored };
+  }
+);
+
+// src/jobs/deal-alerts.ts
+var dealAlerts = inngest.createFunction(
+  { id: "crm-deal-alerts", name: "CRM: Deal Alerts", concurrency: { limit: 2 } },
+  { cron: "0 8 * * *" },
+  // 8am daily
+  async () => {
+    const jobId = await startJob({
+      workspace_id: "system",
+      agent_name: "deal_alerts",
+      trigger_type: "schedule",
+      input: {},
+      node_ids: []
+    });
+    try {
+      const { data: workspaces } = await supabase.from("workspaces").select("id");
+      let totalAlerts = 0;
+      for (const ws of workspaces ?? []) {
+        const { data: deals } = await supabase.from("nodes").select("id, data, updated_at").eq("workspace_id", ws.id).ilike("object_type", "%deal%");
+        for (const deal of deals ?? []) {
+          const data = deal.data;
+          const stage = String(data.stage ?? data.status ?? "").toLowerCase();
+          if (["won", "lost", "closed"].some((s2) => stage.includes(s2))) continue;
+          const lastActivity = new Date(deal.updated_at);
+          const daysInactive = Math.floor((Date.now() - lastActivity.getTime()) / 864e5);
+          if (daysInactive >= 14) {
+            const { data: existing } = await supabase.from("deal_alerts").select("id").eq("node_id", deal.id).eq("alert_type", "cold_deal").is("dismissed_at", null).single();
+            if (!existing) {
+              await supabase.from("deal_alerts").insert({
+                workspace_id: ws.id,
+                node_id: deal.id,
+                alert_type: "cold_deal",
+                days_inactive: daysInactive
+              });
+              await supabase.from("notifications").insert({
+                workspace_id: ws.id,
+                type: "alert",
+                title: "\u{1F976} Cold deal detected",
+                body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
+                metadata: { node_id: deal.id, days_inactive: daysInactive }
+              });
+              totalAlerts++;
+            }
+          }
+        }
+      }
+      await completeJob(jobId, { alerts_created: totalAlerts }, []);
+      return { alerts_created: totalAlerts };
+    } catch (err2) {
+      const msg = err2 instanceof Error ? err2.message : String(err2);
+      await failJob(jobId, msg);
+      throw err2;
+    }
+  }
+);
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
+var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
+var validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
+var trimCookieWhitespace = (value) => {
+  let start = 0;
+  let end = value.length;
+  while (start < end) {
+    const charCode = value.charCodeAt(start);
+    if (charCode !== 32 && charCode !== 9) {
+      break;
+    }
+    start++;
+  }
+  while (end > start) {
+    const charCode = value.charCodeAt(end - 1);
+    if (charCode !== 32 && charCode !== 9) {
+      break;
+    }
+    end--;
+  }
+  return start === 0 && end === value.length ? value : value.slice(start, end);
+};
+var parse = (cookie, name) => {
+  if (name && cookie.indexOf(name) === -1) {
+    return {};
+  }
+  const pairs = cookie.split(";");
+  const parsedCookie = /* @__PURE__ */ Object.create(null);
+  for (const pairStr of pairs) {
+    const valueStartPos = pairStr.indexOf("=");
+    if (valueStartPos === -1) {
+      continue;
+    }
+    const cookieName = trimCookieWhitespace(pairStr.substring(0, valueStartPos));
+    if (name && name !== cookieName || !validCookieNameRegEx.test(cookieName) || cookieName in parsedCookie) {
+      continue;
+    }
+    let cookieValue = trimCookieWhitespace(pairStr.substring(valueStartPos + 1));
+    if (cookieValue.startsWith('"') && cookieValue.endsWith('"')) {
+      cookieValue = cookieValue.slice(1, -1);
+    }
+    if (validCookieValueRegEx.test(cookieValue)) {
+      parsedCookie[cookieName] = cookieValue.indexOf("%") !== -1 ? tryDecode(cookieValue, decodeURIComponent_) : cookieValue;
+      if (name) {
+        break;
+      }
+    }
+  }
+  return parsedCookie;
+};
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/cookie/index.js
+var getCookie = (c, key, prefix) => {
+  const cookie = c.req.raw.headers.get("Cookie");
+  if (typeof key === "string") {
+    if (!cookie) {
+      return void 0;
+    }
+    let finalKey = key;
+    if (prefix === "secure") {
+      finalKey = "__Secure-" + key;
+    } else if (prefix === "host") {
+      finalKey = "__Host-" + key;
+    }
+    const obj2 = parse(cookie, finalKey);
+    return obj2[finalKey];
+  }
+  if (!cookie) {
+    return {};
+  }
+  const obj = parse(cookie);
+  return obj;
+};
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/buffer.js
+var bufferToFormData = (arrayBuffer, contentType2) => {
+  const response3 = new Response(arrayBuffer, {
+    headers: {
+      "Content-Type": contentType2
+    }
+  });
+  return response3.formData();
+};
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/validator/validator.js
+var jsonRegex = /^application\/([a-z-\.]+\+)?json(;\s*[a-zA-Z0-9\-]+\=([^;]+))*$/;
+var multipartRegex = /^multipart\/form-data(;\s?boundary=[a-zA-Z0-9'"()+_,\-./:=?]+)?$/;
+var urlencodedRegex = /^application\/x-www-form-urlencoded(;\s*[a-zA-Z0-9\-]+\=([^;]+))*$/;
+var validator = (target, validationFunc) => {
+  return async (c, next) => {
+    let value = {};
+    const contentType2 = c.req.header("Content-Type");
+    switch (target) {
+      case "json":
+        if (!contentType2 || !jsonRegex.test(contentType2)) {
+          break;
+        }
+        try {
+          value = await c.req.json();
+        } catch {
+          const message = "Malformed JSON in request body";
+          throw new HTTPException(400, { message });
+        }
+        break;
+      case "form": {
+        if (!contentType2 || !(multipartRegex.test(contentType2) || urlencodedRegex.test(contentType2))) {
+          break;
+        }
+        let formData;
+        if (c.req.bodyCache.formData) {
+          formData = await c.req.bodyCache.formData;
+        } else {
+          try {
+            const arrayBuffer = await c.req.arrayBuffer();
+            formData = await bufferToFormData(arrayBuffer, contentType2);
+            c.req.bodyCache.formData = formData;
+          } catch (e) {
+            let message = "Malformed FormData request.";
+            message += e instanceof Error ? ` ${e.message}` : ` ${String(e)}`;
+            throw new HTTPException(400, { message });
+          }
+        }
+        const form = /* @__PURE__ */ Object.create(null);
+        formData.forEach((value2, key) => {
+          if (key.endsWith("[]")) {
+            ;
+            (form[key] ??= []).push(value2);
+          } else if (Array.isArray(form[key])) {
+            ;
+            form[key].push(value2);
+          } else if (Object.hasOwn(form, key)) {
+            form[key] = [form[key], value2];
+          } else {
+            form[key] = value2;
+          }
+        });
+        value = form;
+        break;
+      }
+      case "query":
+        value = Object.fromEntries(
+          Object.entries(c.req.queries()).map(([k, v]) => {
+            return v.length === 1 ? [k, v[0]] : [k, v];
+          })
+        );
+        break;
+      case "param":
+        value = c.req.param();
+        break;
+      case "header":
+        value = c.req.header();
+        break;
+      case "cookie":
+        value = getCookie(c);
+        break;
+    }
+    const res = await validationFunc(value, c);
+    if (res instanceof Response) {
+      return res;
+    }
+    c.req.addValidatedData(target, res);
+    return await next();
+  };
+};
+
+// ../../node_modules/.pnpm/@hono+zod-validator@0.5.0_hono@4.12.23_zod@3.25.76/node_modules/@hono/zod-validator/dist/index.js
+var zValidator = (target, schema, hook, options) => (
+  // @ts-expect-error not typed well
+  validator(target, async (value, c) => {
+    let validatorValue = value;
+    if (target === "header" && schema instanceof ZodObject) {
+      const schemaKeys = Object.keys(schema.shape);
+      const caseInsensitiveKeymap = Object.fromEntries(
+        schemaKeys.map((key) => [key.toLowerCase(), key])
+      );
+      validatorValue = Object.fromEntries(
+        Object.entries(value).map(([key, value2]) => [caseInsensitiveKeymap[key] || key, value2])
+      );
+    }
+    const result = options && options.validationFunction ? await options.validationFunction(schema, validatorValue) : await schema.safeParseAsync(validatorValue);
+    if (hook) {
+      const hookResult = await hook({ data: validatorValue, ...result, target }, c);
+      if (hookResult) {
+        if (hookResult instanceof Response) {
+          return hookResult;
+        }
+        if ("response" in hookResult) {
+          return hookResult.response;
+        }
+      }
+    }
+    if (!result.success) {
+      return c.json(result, 400);
+    }
+    return result.data;
+  })
+);
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/factory/index.js
+var createMiddleware = (middleware) => middleware;
+
 // src/middleware/auth.ts
+init_dist();
 var requireAuth = createMiddleware(async (c, next) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
   const workspaceId = c.req.header("X-Workspace-Id");
   if (!token) throw new HTTPException(401, { message: "Unauthorized" });
   if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
+  let userId;
   try {
     const verified = await verifyToken2(token, {
-      secretKey: process.env.CLERK_SECRET_KEY
+      jwtKey: process.env.CLERK_JWT_KEY,
+      secretKey: process.env.CLERK_JWT_KEY ? void 0 : process.env.CLERK_SECRET_KEY,
+      skipJwksCache: true
     });
-    const userId = verified.sub;
-    if (!userId) throw new HTTPException(401, { message: "Invalid token" });
-    const { data: membership } = await supabase.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
-    if (!membership) throw new HTTPException(403, { message: "Not a member of this workspace" });
-    c.set("userId", userId);
-    c.set("workspaceId", workspaceId);
-    c.set("role", membership.role);
-    await next();
+    userId = verified.sub;
+    if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
   } catch (e) {
     if (e instanceof HTTPException) throw e;
-    throw new HTTPException(401, { message: "Invalid token" });
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new HTTPException(401, { message: `JWT verification failed: ${msg}` });
   }
+  const { data: membership, error: dbError } = await supabase.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  if (dbError) throw new HTTPException(500, { message: `DB error: ${dbError.message}` });
+  if (!membership) throw new HTTPException(403, { message: `User ${userId} not in workspace ${workspaceId}` });
+  c.set("userId", userId);
+  c.set("workspaceId", workspaceId);
+  c.set("role", membership.role);
+  await next();
+});
+var requireJwt = createMiddleware(async (c, next) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
+  try {
+    const verified = await verifyToken2(token, {
+      jwtKey: process.env.CLERK_JWT_KEY,
+      secretKey: process.env.CLERK_JWT_KEY ? void 0 : process.env.CLERK_SECRET_KEY,
+      skipJwksCache: true
+    });
+    const userId = verified.sub;
+    if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
+    c.set("userId", userId);
+    c.set("workspaceId", c.req.header("X-Workspace-Id") ?? "");
+    c.set("role", "member");
+  } catch (e) {
+    if (e instanceof HTTPException) throw e;
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new HTTPException(401, { message: `JWT verification failed: ${msg}` });
+  }
+  await next();
 });
 var requireAdmin = createMiddleware(async (c, next) => {
   const role = c.get("role");
@@ -28997,6 +49924,17 @@ router.post("/", requireAuth, zValidator("json", external_exports.object({
   const body = c.req.valid("json");
   const node = await createNode({ workspace_id: c.get("workspaceId"), created_by: c.get("userId"), ...body });
   await logActivity(node.id, c.get("workspaceId"), "human", c.get("userId"), "created", void 0, `Created ${body.object_type}`);
+  inngest.send({
+    name: "crm/record.created",
+    data: {
+      workspaceId: c.get("workspaceId"),
+      nodeId: node.id,
+      objectType: body.object_type,
+      vertical: body.vertical,
+      recordData: body.data
+    }
+  }).catch(() => {
+  });
   return c.json(node, 201);
 });
 router.patch("/:id", requireAuth, zValidator("json", external_exports.object({
@@ -29452,7 +50390,7 @@ ${results.join("\n")}`;
               }));
             }
           }
-        } catch (_) {
+        } catch (_2) {
         }
         const plural = `${input.name}s`;
         const { data, error } = await supabase.from("object_definitions").insert({
@@ -29470,8 +50408,8 @@ ${results.join("\n")}`;
       default:
         return `Unknown tool: ${name}`;
     }
-  } catch (err) {
-    return `Tool error: ${err.message}`;
+  } catch (err2) {
+    return `Tool error: ${err2.message}`;
   }
 }
 var router3 = new Hono2();
@@ -29521,8 +50459,8 @@ ${webContext}` : "");
         })
       });
       if (!res.ok) {
-        const err = await res.text();
-        return c.json({ reply: `AI error: ${err}` }, 500);
+        const err2 = await res.text();
+        return c.json({ reply: `AI error: ${err2}` }, 500);
       }
       const data = await res.json();
       const stopReason = data.stop_reason;
@@ -29565,11 +50503,11 @@ ${webContext}` : "");
         period_start: periodStart,
         period_end: periodEnd
       });
-    } catch (_) {
+    } catch (_2) {
     }
     return c.json({ reply, suggestions, thread_id: null });
-  } catch (err) {
-    return c.json({ reply: `Connection error: ${err.message}` }, 500);
+  } catch (err2) {
+    return c.json({ reply: `Connection error: ${err2.message}` }, 500);
   }
 });
 router3.get("/credits", requireAuth, async (c) => {
@@ -29597,13 +50535,107 @@ router4.get("/", requireAuth, async (c) => c.json({ jobs: [] }));
 
 // src/routes/activities.ts
 var router5 = new Hono2();
-router5.get("/", requireAuth, async (c) => c.json({ activities: [] }));
+router5.get("/node/:nodeId", requireAuth, async (c) => {
+  const { data } = await supabase.from("activities").select("*").eq("node_id", c.req.param("nodeId")).eq("workspace_id", c.get("workspaceId")).order("created_at", { ascending: false }).limit(50);
+  return c.json(data ?? []);
+});
+router5.get("/", requireAuth, async (c) => {
+  const limit = Number(c.req.query("limit") ?? 50);
+  const { data } = await supabase.from("activities").select("*, nodes(id, object_type, data)").eq("workspace_id", c.get("workspaceId")).order("created_at", { ascending: false }).limit(limit);
+  return c.json(data ?? []);
+});
 
 // src/routes/webhooks.ts
+var import_node_crypto2 = require("crypto");
 var router6 = new Hono2();
-router6.post("/stripe", async (c) => c.json({ ok: true }));
-router6.post("/clerk", async (c) => c.json({ ok: true }));
-router6.post("/nylas", async (c) => c.json({ ok: true }));
+router6.post("/clerk", async (c) => {
+  const svixId = c.req.header("svix-id") ?? "";
+  const svixTimestamp = c.req.header("svix-timestamp") ?? "";
+  const svixSignature = c.req.header("svix-signature") ?? "";
+  const rawBody = await c.req.text();
+  const secret = process.env.CLERK_WEBHOOK_SECRET ?? "";
+  if (secret) {
+    const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
+    const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secretBytes).update(signedContent).digest("base64");
+    const signatures = svixSignature.split(" ").map((s2) => s2.replace(/^v1,/, ""));
+    const valid = signatures.some((sig) => {
+      try {
+        return (0, import_node_crypto2.timingSafeEqual)(Buffer.from(sig, "base64"), Buffer.from(expected, "base64"));
+      } catch {
+        return false;
+      }
+    });
+    if (!valid) return c.json({ error: "invalid signature" }, 401);
+  }
+  const event = JSON.parse(rawBody);
+  if (event.type === "user.created" || event.type === "user.updated") {
+    const u = event.data;
+    const email = u.email_addresses?.[0]?.email_address ?? "";
+    const name = `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
+    const userId = u.id;
+    if (email && userId) {
+      await supabase.from("workspace_members").update({ email, name, avatar_url: u.image_url ?? null }).eq("user_id", userId);
+    }
+  }
+  return c.json({ ok: true });
+});
+router6.post("/nylas", async (c) => {
+  const challenge = c.req.query("challenge");
+  if (challenge) return c.text(challenge);
+  const rawBody = await c.req.text();
+  const sig = c.req.header("x-nylas-signature") ?? "";
+  const secret = process.env.NYLAS_WEBHOOK_SECRET ?? "";
+  if (secret && sig) {
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secret).update(rawBody).digest("hex");
+    if (sig !== expected) return c.json({ error: "invalid signature" }, 401);
+  }
+  const payload = JSON.parse(rawBody);
+  const events = payload.deltas ?? (payload.data ? [payload] : []);
+  for (const evt of events) {
+    if (evt.type === "message.created" || evt.type === "message.updated") {
+      const grantId = evt.object?.grant_id;
+      const threadId = evt.object?.thread_id;
+      if (!grantId || !threadId) continue;
+      const { data: conn } = await supabase.from("email_connections").select("workspace_id, user_id").eq("grant_id", grantId).single();
+      if (conn) {
+        await supabase.from("notifications").insert({
+          workspace_id: conn.workspace_id,
+          type: "email",
+          title: "New email received",
+          body: evt.object?.subject ?? "No subject",
+          metadata: { thread_id: threadId, grant_id: grantId }
+        });
+      }
+    }
+  }
+  return c.json({ ok: true });
+});
+router6.post("/stripe", async (c) => {
+  const sig = c.req.header("stripe-signature") ?? "";
+  const secret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  const rawBody = await c.req.text();
+  if (secret && sig) {
+    const parts = Object.fromEntries(sig.split(",").map((p) => p.split("=")));
+    const timestamp = parts["t"] ?? "0";
+    const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
+    if (age > 300) return c.json({ error: "timestamp too old" }, 400);
+    const payload = `${timestamp}.${rawBody}`;
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secret).update(payload).digest("hex");
+    const provided = parts["v1"] ?? "";
+    if (!(0, import_node_crypto2.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+      return c.json({ error: "invalid signature" }, 401);
+    }
+  }
+  const event = JSON.parse(rawBody);
+  if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    const sub = event.data.object;
+    const customerId = sub.customer;
+    const status = sub.status;
+    await supabase.from("workspaces").update({ plan: status === "active" ? "pro" : "free" }).eq("stripe_customer_id", customerId);
+  }
+  return c.json({ ok: true });
+});
 
 // src/routes/app-data.ts
 var router7 = new Hono2();
@@ -29669,74 +50701,6 @@ var BOOTSTRAP_OBJECTS = [
     ]
   }
 ];
-var SEED_NODES = {
-  companies: [
-    { name: "Stripe", description: "Payments infrastructure for the internet", arr: 14e8, funding_raised: 22e8, employee_range: "4001\u20137000", country: "USA" },
-    { name: "Vercel", description: "Frontend cloud & edge deployment platform", arr: 15e7, funding_raised: 313e6, employee_range: "201\u2013500", country: "USA" },
-    { name: "Linear", description: "Issue tracking for modern software teams", arr: 4e7, funding_raised: 52e6, employee_range: "51\u2013200", country: "USA" },
-    { name: "Retool", description: "Low-code platform for internal tools", arr: 55e6, funding_raised: 145e6, employee_range: "201\u2013500", country: "USA" },
-    { name: "Figma", description: "Collaborative interface design tool", arr: 4e8, funding_raised: 333e6, employee_range: "501\u20131000", country: "USA" },
-    { name: "Notion", description: "All-in-one connected workspace", arr: 32e7, funding_raised: 343e6, employee_range: "501\u20131000", country: "USA" },
-    { name: "Supabase", description: "Open source Firebase alternative", arr: 3e7, funding_raised: 116e6, employee_range: "51\u2013200", country: "Singapore" },
-    { name: "Loom", description: "Async video messaging for work", arr: 9e7, funding_raised: 203e6, employee_range: "201\u2013500", country: "USA" },
-    { name: "Planetscale", description: "Serverless MySQL-compatible database", arr: 25e6, funding_raised: 105e6, employee_range: "51\u2013200", country: "USA" },
-    { name: "Clerk", description: "Authentication & user management APIs", arr: 18e6, funding_raised: 67e6, employee_range: "51\u2013200", country: "USA" },
-    { name: "Resend", description: "Email API for developers", arr: 8e6, funding_raised: 2e7, employee_range: "11\u201350", country: "USA" },
-    { name: "Railway", description: "Deploy code, databases and apps instantly", arr: 12e6, funding_raised: 24e6, employee_range: "11\u201350", country: "Canada" },
-    { name: "Miro", description: "Online collaborative whiteboard platform", arr: 45e7, funding_raised: 476e6, employee_range: "1001\u20132000", country: "Netherlands" },
-    { name: "Descript", description: "AI-powered video and podcast editor", arr: 35e6, funding_raised: 1e8, employee_range: "201\u2013500", country: "USA" },
-    { name: "Hex", description: "Modern data workspace for teams", arr: 22e6, funding_raised: 56e6, employee_range: "51\u2013200", country: "USA" },
-    { name: "Airbyte", description: "Open-source data integration platform", arr: 45e6, funding_raised: 181e6, employee_range: "201\u2013500", country: "USA" },
-    { name: "Hasura", description: "Instant GraphQL & REST APIs on your database", arr: 3e7, funding_raised: 1e8, employee_range: "201\u2013500", country: "USA" },
-    { name: "Tally", description: "Beautifully simple form builder", arr: 5e6, funding_raised: 25e5, employee_range: "11\u201350", country: "Belgium" },
-    { name: "Raycast", description: "Supercharged Mac productivity launcher", arr: 15e6, funding_raised: 3e7, employee_range: "51\u2013200", country: "Germany" },
-    { name: "Cal.com", description: "Open-source scheduling infrastructure", arr: 6e6, funding_raised: 32e6, employee_range: "11\u201350", country: "USA" }
-  ],
-  people: [
-    { name: "Guillermo Rauch", email: "g@vercel.com", job_title: "CEO & Co-founder", twitter_followers: 42e4, linkedin: "linkedin.com/in/rauchg" },
-    { name: "Patrick Collison", email: "patrick@stripe.com", job_title: "CEO & Co-founder", twitter_followers: 38e4, linkedin: "linkedin.com/in/patrickcollison" },
-    { name: "Dylan Field", email: "dylan@figma.com", job_title: "CEO & Co-founder", twitter_followers: 21e4, linkedin: "linkedin.com/in/dylanfield" },
-    { name: "Ivan Zhao", email: "ivan@notion.so", job_title: "CEO & Co-founder", twitter_followers: 95e3, linkedin: "linkedin.com/in/ivanhzhao" },
-    { name: "Karri Saarinen", email: "karri@linear.app", job_title: "CEO & Co-founder", twitter_followers: 13e4, linkedin: "linkedin.com/in/karrisaarinen" },
-    { name: "Paul Copplestone", email: "paul@supabase.io", job_title: "CEO & Co-founder", twitter_followers: 72e3, linkedin: "linkedin.com/in/paulcopplestone" },
-    { name: "David Hsu", email: "david@retool.com", job_title: "CEO & Co-founder", twitter_followers: 41e3, linkedin: "linkedin.com/in/david-hsu-retool" },
-    { name: "Sarah Chen", email: "s.chen@vercel.com", job_title: "VP of Engineering", twitter_followers: 18400, linkedin: "linkedin.com/in/sarahchen" },
-    { name: "Marcus Rivera", email: "m.rivera@linear.app", job_title: "Head of Product", twitter_followers: 9200, linkedin: "linkedin.com/in/mrivera" },
-    { name: "Priya Nair", email: "priya@notion.so", job_title: "Growth Lead", twitter_followers: 6700, linkedin: "linkedin.com/in/priyanair" },
-    { name: "Tom Eriksson", email: "tom@figma.com", job_title: "Senior Product Designer", twitter_followers: 24100, linkedin: "linkedin.com/in/tomeriksson" },
-    { name: "Yuki Tanaka", email: "yuki@retool.com", job_title: "Solutions Engineer", twitter_followers: 3900, linkedin: "linkedin.com/in/yukitanaka" },
-    { name: "Amara Osei", email: "amara@supabase.io", job_title: "Developer Advocate", twitter_followers: 11500, linkedin: "linkedin.com/in/amaraosei" },
-    { name: "Jake Whitmore", email: "jake@loom.com", job_title: "Account Executive", twitter_followers: 2300, linkedin: "linkedin.com/in/jakewhitmore" },
-    { name: "Diana Popescu", email: "diana@planetscale.com", job_title: "Engineering Manager", twitter_followers: 7800, linkedin: "linkedin.com/in/dianapopescu" },
-    { name: "James Liu", email: "james@clerk.dev", job_title: "Developer Relations Lead", twitter_followers: 15200, linkedin: "linkedin.com/in/jamesliu" },
-    { name: "Nina Braun", email: "nina@raycast.com", job_title: "Head of Design", twitter_followers: 8900, linkedin: "linkedin.com/in/ninabraun" },
-    { name: "L\xE9a Fontaine", email: "lea@cal.com", job_title: "Community Manager", twitter_followers: 4100, linkedin: "linkedin.com/in/leafontaine" },
-    { name: "Ravi Sharma", email: "ravi@airbyte.com", job_title: "Senior Data Engineer", twitter_followers: 5600, linkedin: "linkedin.com/in/ravisharma" },
-    { name: "Chloe Andersen", email: "chloe@hex.tech", job_title: "Product Marketing Manager", twitter_followers: 3300, linkedin: "linkedin.com/in/chloeandersen" }
-  ],
-  deals: [
-    { name: "Stripe Enterprise Expansion", deal_stage: "Closed Won", deal_value: 48e4, deal_owner: "Sarah Chen" },
-    { name: "Figma Design Ops Bundle", deal_stage: "Negotiation", deal_value: 24e4, deal_owner: "Priya Nair" },
-    { name: "Vercel Pro Fleet Upgrade", deal_stage: "Proposal", deal_value: 185e3, deal_owner: "Marcus Rivera" },
-    { name: "Notion Workspace Scale", deal_stage: "In Progress", deal_value: 12e4, deal_owner: "Jake Whitmore" },
-    { name: "Linear Dev Team Expansion", deal_stage: "Qualified", deal_value: 56e3, deal_owner: "Marcus Rivera" },
-    { name: "Retool Internal Tools Rollout", deal_stage: "In Progress", deal_value: 98500, deal_owner: "Amara Osei" },
-    { name: "Supabase Scale-Up Plan", deal_stage: "Lead", deal_value: 42e3, deal_owner: "Tom Eriksson" },
-    { name: "Loom Video Platform", deal_stage: "Closed Won", deal_value: 115e3, deal_owner: "Jake Whitmore" },
-    { name: "Planetscale DB Migration", deal_stage: "Closed Lost", deal_value: 88e3, deal_owner: "Diana Popescu" },
-    { name: "Clerk Auth Integration", deal_stage: "Lead", deal_value: 28e3, deal_owner: "James Liu" },
-    { name: "Miro Whiteboard Enterprise", deal_stage: "Proposal", deal_value: 31e4, deal_owner: "Priya Nair" },
-    { name: "Airbyte Data Pipeline", deal_stage: "In Progress", deal_value: 74e3, deal_owner: "Ravi Sharma" },
-    { name: "Raycast Team Licence", deal_stage: "Lead", deal_value: 18500, deal_owner: "Nina Braun" },
-    { name: "Resend Transactional Email", deal_stage: "Closed Won", deal_value: 32e3, deal_owner: "Chloe Andersen" },
-    { name: "Hex Analytics Workspace", deal_stage: "Qualified", deal_value: 55e3, deal_owner: "Ravi Sharma" },
-    { name: "Cal.com Scheduling Suite", deal_stage: "Negotiation", deal_value: 22e3, deal_owner: "L\xE9a Fontaine" },
-    { name: "Hasura GraphQL Platform", deal_stage: "Closed Lost", deal_value: 67e3, deal_owner: "Sarah Chen" },
-    { name: "Descript Podcast Toolkit", deal_stage: "In Progress", deal_value: 48e3, deal_owner: "Jake Whitmore" },
-    { name: "Tally Forms Enterprise", deal_stage: "Closed Won", deal_value: 15e3, deal_owner: "L\xE9a Fontaine" },
-    { name: "Railway Infrastructure Upgrade", deal_stage: "Lead", deal_value: 38e3, deal_owner: "Marcus Rivera" }
-  ]
-};
 async function bootstrapWorkspace(workspaceId, createdBy) {
   const { count } = await supabase.from("object_definitions").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId);
   if ((count ?? 0) > 0) return;
@@ -29754,14 +50718,6 @@ async function bootstrapWorkspace(workspaceId, createdBy) {
     }))
   ).select();
   if (defErr || !defs?.length) return;
-  const nodeRows = [];
-  for (const obj of BOOTSTRAP_OBJECTS) {
-    const rows2 = SEED_NODES[obj.slug] ?? [];
-    for (const row of rows2) {
-      nodeRows.push({ workspace_id: workspaceId, vertical: "shared", object_type: obj.slug, data: row, created_by: createdBy });
-    }
-  }
-  await supabase.from("nodes").insert(nodeRows);
 }
 router7.get("/objects", async (c) => {
   await bootstrapWorkspace(c.get("workspaceId"), c.get("userId"));
@@ -30032,6 +50988,7 @@ router7.post("/invites", async (c) => {
 });
 
 // src/routes/invites.ts
+init_dist();
 var router8 = new Hono2();
 router8.post("/accept", zValidator("json", external_exports.object({ token: external_exports.string().min(1) })), async (c) => {
   const sessionToken = c.req.header("Authorization")?.replace("Bearer ", "");
@@ -30598,17 +51555,17 @@ router14.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), a
   const node = await getSequence(c.get("workspaceId"), c.req.param("id"));
   if (!node) return c.json({ error: "Sequence not found" }, 404);
   const current = node.data;
-  const step = { id: crypto.randomUUID(), ...c.req.valid("json") };
-  const result = await saveData(c.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step] });
-  return result.error ? c.json({ error: result.error.message }, 400) : c.json(step, 201);
+  const step2 = { id: crypto.randomUUID(), ...c.req.valid("json") };
+  const result = await saveData(c.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step2] });
+  return result.error ? c.json({ error: result.error.message }, 400) : c.json(step2, 201);
 });
 router14.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c) => {
   const node = await getSequence(c.get("workspaceId"), c.req.param("id"));
   if (!node) return c.json({ error: "Sequence not found" }, 404);
   const current = node.data;
-  const steps = (current.steps ?? []).map((step) => step.id === c.req.param("sid") ? { ...step, ...c.req.valid("json") } : step);
+  const steps = (current.steps ?? []).map((step2) => step2.id === c.req.param("sid") ? { ...step2, ...c.req.valid("json") } : step2);
   const result = await saveData(c.get("workspaceId"), node.id, { ...current, steps });
-  return result.error ? c.json({ error: result.error.message }, 400) : c.json(steps.find((step) => step.id === c.req.param("sid")));
+  return result.error ? c.json({ error: result.error.message }, 400) : c.json(steps.find((step2) => step2.id === c.req.param("sid")));
 });
 router14.delete("/:id", async (c) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c.get("workspaceId")).eq("object_type", "automation").eq("id", c.req.param("id"));
@@ -30618,7 +51575,7 @@ router14.delete("/:id/steps/:sid", async (c) => {
   const node = await getSequence(c.get("workspaceId"), c.req.param("id"));
   if (!node) return c.json({ error: "Sequence not found" }, 404);
   const current = node.data;
-  const steps = (current.steps ?? []).filter((step) => step.id !== c.req.param("sid")).map((step, index) => ({ ...step, position: index + 1 }));
+  const steps = (current.steps ?? []).filter((step2) => step2.id !== c.req.param("sid")).map((step2, index) => ({ ...step2, position: index + 1 }));
   const result = await saveData(c.get("workspaceId"), node.id, { ...current, steps });
   return result.error ? c.json({ error: result.error.message }, 400) : c.json({ ok: true });
 });
@@ -30650,17 +51607,23 @@ router14.patch("/:id/enrollments/:eid", zValidator("json", external_exports.obje
 var router15 = new Hono2();
 router15.use("*", requireAuth);
 router15.get("/", async (c) => {
-  const { data, error } = await supabase.from("lists").select("id,name,object_type,access_level,owner_id,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).order("created_at");
+  const userId = c.get("userId");
+  const role = c.get("role");
+  let query = supabase.from("lists").select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).order("created_at");
+  if (!["owner", "admin"].includes(role)) {
+    query = query.or(`visibility.eq.workspace,owner_id.eq.${userId},shared_with.cs.{${userId}}`);
+  }
+  const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 400);
   return c.json((data ?? []).map((list) => ({ ...list, entry_count: Array.isArray(list.list_entries) ? Number(list.list_entries[0]?.count ?? 0) : 0 })));
 });
 router15.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c) => {
   const body = c.req.valid("json");
-  const { data, error } = await supabase.from("lists").insert({ workspace_id: c.get("workspaceId"), owner_id: c.get("userId"), access_level: "workspace", ...body }).select().single();
+  const { data, error } = await supabase.from("lists").insert({ workspace_id: c.get("workspaceId"), owner_id: c.get("userId"), visibility: "workspace", access_level: "workspace", ...body }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json({ ...data, entry_count: 0 }, 201);
 });
 router15.get("/:id", async (c) => {
-  const { data } = await supabase.from("lists").select("id,name,object_type,access_level,owner_id,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  const { data } = await supabase.from("lists").select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
   return data ? c.json({ ...data, entry_count: Array.isArray(data.list_entries) ? Number(data.list_entries[0]?.count ?? 0) : 0 }) : c.json({ error: "List not found" }, 404);
 });
 router15.patch("/:id", async (c) => {
@@ -30693,6 +51656,33 @@ router15.delete("/:id/entries/:nodeId", async (c) => {
   if (!list) return c.json({ error: "List not found" }, 404);
   const { error } = await supabase.from("list_entries").delete().eq("list_id", list.id).eq("node_id", c.req.param("nodeId"));
   return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+router15.post("/:id/enrich", async (c) => {
+  const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  if (!list) return c.json({ error: "List not found" }, 404);
+  const ENRICHABLE2 = ["contact", "person", "people", "lead", "company", "account", "organization"];
+  if (!ENRICHABLE2.some((t) => list.object_type.toLowerCase().includes(t))) {
+    return c.json({ error: "This list type is not enrichable" }, 400);
+  }
+  const { data: entries } = await supabase.from("list_entries").select("node_id, nodes(id, data, object_type)").eq("list_id", list.id);
+  let queued = 0;
+  for (const entry of entries ?? []) {
+    const node = entry.nodes;
+    if (!node) continue;
+    inngest.send({
+      name: "crm/record.created",
+      data: {
+        workspaceId: c.get("workspaceId"),
+        nodeId: node.id,
+        objectType: node.object_type,
+        vertical: "sales",
+        recordData: node.data
+      }
+    }).catch(() => {
+    });
+    queued++;
+  }
+  return c.json({ ok: true, queued });
 });
 
 // src/routes/tasks.ts
@@ -30909,14 +51899,23 @@ router17.post("/", zValidator("json", external_exports.object({
 
 // src/routes/members.ts
 var router18 = new Hono2();
-router18.use("*", requireAuth);
-router18.get("/", async (c) => {
+router18.get("/", requireAuth, async (c) => {
   const workspaceId = c.get("workspaceId");
-  const { data, error } = await supabase.from("workspace_members").select("id, user_id, email, name, role, avatar_url").eq("workspace_id", workspaceId).order("name");
+  const { data, error } = await supabase.from("workspace_members").select("id, user_id, email, name, role, position, avatar_url").eq("workspace_id", workspaceId).order("name");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
-router18.post("/sync", async (c) => {
+router18.patch("/:userId", requireAuth, async (c) => {
+  const requesterRole = c.get("role");
+  if (!["owner", "admin"].includes(requesterRole)) {
+    return c.json({ error: "Only owners and admins can update member roles" }, 403);
+  }
+  const body = await c.req.json();
+  const { data, error } = await supabase.from("workspace_members").update(body).eq("workspace_id", c.get("workspaceId")).eq("user_id", c.req.param("userId")).select().single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data);
+});
+router18.post("/sync", requireJwt, async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
   let body = {};
@@ -30941,13 +51940,16 @@ router18.post("/sync", async (c) => {
     } catch {
     }
   }
+  const { error: wsError } = await supabase.from("workspaces").upsert({ id: workspaceId, name: name || email || "My Workspace", slug: workspaceId }, { onConflict: "id", ignoreDuplicates: true });
+  if (wsError) return c.json({ error: `workspace upsert: ${wsError.message}` }, 500);
+  const { data: existing } = await supabase.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
   const { data, error } = await supabase.from("workspace_members").upsert({
     workspace_id: workspaceId,
     user_id: userId,
     email: email || userId,
     name: name || email || userId,
     avatar_url,
-    role: "member"
+    role: existing?.role ?? "owner"
   }, { onConflict: "workspace_id,user_id" }).select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data);
@@ -31400,7 +52402,17 @@ Reply with ONLY a JSON object mapping each header to its type. Example: {"name":
       errors.push({ row: i + 1, error: e?.message ?? "unknown error" });
     }
   }
-  return c.json({ ok: true, created: created.length, errors, column_types: columnTypes }, 201);
+  const ENRICHABLE2 = ["contact", "person", "people", "lead", "company", "account", "organization"];
+  if (ENRICHABLE2.some((t) => safeType.toLowerCase().includes(t))) {
+    for (const nodeId of created) {
+      inngest.send({
+        name: "crm/record.created",
+        data: { workspaceId, nodeId, objectType: safeType, vertical, recordData: {} }
+      }).catch(() => {
+      });
+    }
+  }
+  return c.json({ ok: true, created: created.length, errors, column_types: columnTypes, auto_enriching: ENRICHABLE2.some((t) => safeType.toLowerCase().includes(t)) }, 201);
 });
 
 // src/routes/generate.ts
@@ -32266,8 +53278,8 @@ router24.post("/:id/send", async (c) => {
   const LOST = ["lost", "closed lost", "rejected", "declined", "dead", "cancelled"];
   const wonRecs = stageCol ? recs.filter((r) => WON.some((k) => String(r.data[stageCol] ?? "").toLowerCase().includes(k))) : recs;
   const lostRecs = stageCol ? recs.filter((r) => LOST.some((k) => String(r.data[stageCol] ?? "").toLowerCase().includes(k))) : [];
-  const wonValue = valueCol ? wonRecs.reduce((s, r) => s + Number(r.data[valueCol] ?? 0), 0) : 0;
-  const totalValue = valueCol ? recs.reduce((s, r) => s + Number(r.data[valueCol] ?? 0), 0) : 0;
+  const wonValue = valueCol ? wonRecs.reduce((s2, r) => s2 + Number(r.data[valueCol] ?? 0), 0) : 0;
+  const totalValue = valueCol ? recs.reduce((s2, r) => s2 + Number(r.data[valueCol] ?? 0), 0) : 0;
   const winRate = wonRecs.length + lostRecs.length > 0 ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
   const fmt = (n) => n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}K` : `$${n.toLocaleString()}`;
   const label = cfg.label || `${cfg.object_type} \xB7 ${cfg.period}`;
@@ -32452,8 +53464,8 @@ var invoiceBodySchema = external_exports.object({
   status: external_exports.enum(["draft", "sent", "viewed", "paid", "overdue", "cancelled"]).default("draft")
 });
 function calcTotals(lineItems) {
-  const subtotal = lineItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const tax_total = lineItems.reduce((s, i) => s + i.quantity * i.unit_price * (i.tax_rate / 100), 0);
+  const subtotal = lineItems.reduce((s2, i) => s2 + i.quantity * i.unit_price, 0);
+  const tax_total = lineItems.reduce((s2, i) => s2 + i.quantity * i.unit_price * (i.tax_rate / 100), 0);
   return { subtotal, tax_total, total: subtotal + tax_total };
 }
 async function nextInvoiceNumber(workspaceId) {
@@ -32542,6 +53554,106 @@ router27.delete("/:id", async (c) => {
   return c.json({ ok: true });
 });
 
+// src/routes/tags.ts
+var router28 = new Hono2();
+router28.get("/", requireAuth, async (c) => {
+  const { data } = await supabase.from("tags").select("*").eq("workspace_id", c.get("workspaceId")).order("name");
+  return c.json(data ?? []);
+});
+router28.post("/", requireAuth, zValidator("json", external_exports.object({
+  name: external_exports.string().min(1),
+  color: external_exports.string().default("#6366f1")
+})), async (c) => {
+  const { name, color } = c.req.valid("json");
+  const { data, error } = await supabase.from("tags").insert({
+    workspace_id: c.get("workspaceId"),
+    name: name.trim(),
+    color
+  }).select().single();
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json(data, 201);
+});
+router28.delete("/:id", requireAuth, async (c) => {
+  await supabase.from("tags").delete().eq("id", c.req.param("id")).eq("workspace_id", c.get("workspaceId"));
+  return c.json({ ok: true });
+});
+router28.get("/node/:nodeId", requireAuth, async (c) => {
+  const { data } = await supabase.from("node_tags").select("tag_id, tags(id, name, color)").eq("node_id", c.req.param("nodeId")).eq("workspace_id", c.get("workspaceId"));
+  return c.json((data ?? []).map((r) => r.tags));
+});
+router28.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.object({
+  tag_id: external_exports.string().uuid()
+})), async (c) => {
+  const { tag_id } = c.req.valid("json");
+  const { error } = await supabase.from("node_tags").insert({
+    node_id: c.req.param("nodeId"),
+    tag_id,
+    workspace_id: c.get("workspaceId")
+  });
+  if (error && !error.message.includes("duplicate")) return c.json({ error: error.message }, 400);
+  return c.json({ ok: true });
+});
+router28.delete("/node/:nodeId/:tagId", requireAuth, async (c) => {
+  await supabase.from("node_tags").delete().eq("node_id", c.req.param("nodeId")).eq("tag_id", c.req.param("tagId")).eq("workspace_id", c.get("workspaceId"));
+  return c.json({ ok: true });
+});
+
+// src/routes/onboarding.ts
+var router29 = new Hono2();
+router29.get("/status", requireAuth, async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const [
+    { count: contactCount },
+    { count: dealCount },
+    { count: memberCount },
+    { count: sequenceCount },
+    { count: workflowCount },
+    { count: reportCount },
+    { count: threadCount },
+    { count: emailCount },
+    { count: importCount },
+    { count: integrationCount }
+  ] = await Promise.all([
+    // contacts: person or company nodes
+    supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("type", ["person", "company"]),
+    // deals
+    supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("type", "deal"),
+    // team members (> 1 means someone else was invited)
+    supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // sequences
+    supabase.from("sequences").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // workflows / automations
+    supabase.from("workflows").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // reports
+    supabase.from("reports").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // ask AI threads
+    supabase.from("ask_threads").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // email connections (synced email accounts)
+    supabase.from("email_accounts").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // imports completed
+    supabase.from("import_jobs").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("status", "done"),
+    // integrations / apps connected
+    supabase.from("integrations").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId)
+  ]);
+  return c.json({
+    workspace: true,
+    // always done — they're logged in
+    contact: (contactCount ?? 0) > 0,
+    email: (emailCount ?? 0) > 0,
+    import: (importCount ?? 0) > 0,
+    deal: (dealCount ?? 0) > 0,
+    member: (memberCount ?? 0) > 1,
+    // > 1 means at least one invite accepted
+    extension: false,
+    // detected client-side via localStorage flag
+    report: (reportCount ?? 0) > 0,
+    workflow: (workflowCount ?? 0) > 0,
+    sequence: (sequenceCount ?? 0) > 0,
+    ai: (threadCount ?? 0) > 0,
+    apps: (integrationCount ?? 0) > 0
+  });
+});
+
 // src/app.ts
 var app = new Hono2();
 app.use("*", cors({
@@ -32576,38 +53688,37 @@ app.route("/api/v1/digests", router24);
 app.route("/api/v1/annotations", router25);
 app.route("/api/v1/workflows", router26);
 app.route("/api/v1/invoices", router27);
+app.route("/api/v1/tags", router28);
+app.route("/api/v1/onboarding", router29);
 app.route("/api/v1", router7);
+var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts] });
+app.all("/api/inngest", inngestHandler);
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
+app.get("/api/debug-auth", async (c) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  const clerkKey = process.env.CLERK_SECRET_KEY;
+  const info = {
+    clerk_key_set: clerkKey ? "yes" : "no",
+    clerk_key_prefix: clerkKey?.substring(0, 12) ?? "NOT SET",
+    token_received: token ? "yes" : "no",
+    token_prefix: token?.substring(0, 20) ?? "none"
+  };
+  if (token && clerkKey) {
+    try {
+      const { verifyToken: verifyToken3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
+      const verified = await verifyToken3(token, { secretKey: clerkKey, skipJwksCache: true });
+      info.verify_result = "ok";
+      info.sub = verified.sub;
+    } catch (e) {
+      info.verify_error = e?.message ?? String(e);
+    }
+  }
+  return c.json(info);
+});
 var app_default = app;
 
-// handler.ts
-async function handler(req, res) {
-  try {
-    const host = req.headers["host"] || "localhost";
-    const url = new URL(req.url || "/", `https://${host}`);
-    const headers = new Headers();
-    for (const [key, val] of Object.entries(req.headers)) {
-      if (val) headers.set(key, Array.isArray(val) ? val.join(", ") : val);
-    }
-    const body = ["GET", "HEAD"].includes(req.method || "GET") ? void 0 : await new Promise((resolve) => {
-      const chunks = [];
-      req.on("data", (c) => chunks.push(c));
-      req.on("end", () => resolve(Buffer.concat(chunks)));
-    });
-    const webRequest = new Request(url.toString(), {
-      method: req.method || "GET",
-      headers,
-      body: body?.length ? new Uint8Array(body) : void 0
-    });
-    const webResponse = await app_default.fetch(webRequest);
-    res.statusCode = webResponse.status;
-    webResponse.headers.forEach((value, key) => res.setHeader(key, value));
-    const responseBody = await webResponse.arrayBuffer();
-    res.end(Buffer.from(responseBody));
-  } catch (err) {
-    res.statusCode = 500;
-    res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ error: err?.message, stack: err?.stack?.split("\n").slice(0, 5) }));
-  }
-}
-module.exports = handler;
+// src/index.ts
+var port = parseInt(process.env.PORT || "8787");
+serve({ fetch: app_default.fetch, port }, () => {
+  console.log(`Mondaily API running on port ${port}`);
+});
