@@ -3,7 +3,7 @@ import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
-  UserCircle2, Type, ToggleLeft, ChevronRight, Trash2,
+  UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -816,12 +816,31 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   const members = membersQuery.data ?? [];
 
+  const [undoToast, setUndoToast] = useState<{ record: NodeRecord; timer: ReturnType<typeof setTimeout> } | null>(null);
+
   function deleteRow(record: NodeRecord) {
+    // Clear any existing undo toast first
+    if (undoToast) {
+      clearTimeout(undoToast.timer);
+      apiClient.delete(`/nodes/${undoToast.record.id}`).catch(() => {});
+    }
     // Optimistic remove
     qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => r.id !== record.id));
-    apiClient.delete(`/nodes/${record.id}`).catch(() => {
-      qc.invalidateQueries({ queryKey: ["records", objectType] });
-    });
+    // Show undo toast for 6 seconds before actually deleting
+    const timer = setTimeout(() => {
+      apiClient.delete(`/nodes/${record.id}`).catch(() => {
+        qc.invalidateQueries({ queryKey: ["records", objectType] });
+      });
+      setUndoToast(null);
+    }, 6000);
+    setUndoToast({ record, timer });
+  }
+
+  function undoDelete() {
+    if (!undoToast) return;
+    clearTimeout(undoToast.timer);
+    qc.setQueryData<NodeRecord[]>(["records", objectType], old => [...(old ?? []), undoToast.record]);
+    setUndoToast(null);
   }
 
   function saveCell(record: NodeRecord, col: string, newVal: string) {
@@ -917,6 +936,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const TOOL_BTN_ON   = `${TOOL_BTN_BASE} border-zinc-600/60 bg-zinc-800/30 text-white`;
 
   return (
+    <>
     <section className="flex flex-col h-full">
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 px-6 py-2 shrink-0">
@@ -1138,5 +1158,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         </table>
       </div>
     </section>
+
+    {/* Undo delete toast */}
+    {undoToast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-white/10 bg-[#1a1d24] px-4 py-3 shadow-2xl">
+        <span className="text-sm text-white/70">Record deleted</span>
+        <button
+          onClick={undoDelete}
+          className="flex items-center gap-1.5 rounded-lg bg-white/[.08] px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/[.12] transition-colors"
+        >
+          <RotateCcw size={11} />
+          Undo
+        </button>
+      </div>
+    )}
+    </>
   );
 }

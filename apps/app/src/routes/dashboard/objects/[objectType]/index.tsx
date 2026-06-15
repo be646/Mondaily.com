@@ -1,10 +1,11 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, X, Sparkles, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban } from "lucide-react";
+import { Plus, X, Sparkles, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { BoardView } from "../../../../components/records/board-view";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
 import { CsvImporter } from "../../../../components/records/csv-importer";
+import { DedupPanel } from "../../../../components/records/dedup-panel";
 import { apiClient } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -646,6 +647,7 @@ export function ObjectIndexPage() {
   const [showAIFill, setShowAIFill] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [dedupOpen, setDedupOpen] = useState(false);
   const [tableColumns, setTableColumns] = useState<string[]>([]);
 
   // Detect empty state — shares the same cache key as RecordTable
@@ -729,6 +731,12 @@ export function ObjectIndexPage() {
             <Sparkles size={11}/> Fill with AI
           </button>
           <button
+            onClick={() => setDedupOpen(true)}
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-800/80 bg-zinc-900/20 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition-all hover:border-indigo-500/40 hover:text-indigo-400"
+          >
+            <ScanSearch size={11}/> Clean & Lists
+          </button>
+          <button
             onClick={() => setImportOpen(p => !p)}
             className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-600/60 bg-zinc-800/50 text-zinc-200" : "border-zinc-800/80 bg-zinc-900/20 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"}`}
           >
@@ -750,6 +758,15 @@ export function ObjectIndexPage() {
             <EnrichBanner key={id} name={name} done={done}/>
           ))}
         </div>
+      )}
+
+      {/* AI Dedup panel */}
+      {dedupOpen && (
+        <DedupPanel
+          objectType={objectType}
+          records={recordsQuery.data ?? []}
+          onClose={() => setDedupOpen(false)}
+        />
       )}
 
       {/* Collapsible CSV importer */}
