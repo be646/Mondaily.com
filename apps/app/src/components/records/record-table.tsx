@@ -541,7 +541,7 @@ function ExportDropdown({ records, columns, objectType, onClose, triggerRef }: {
 }
 
 // ─── Owner cell ───────────────────────────────────────────────────────────────
-interface Member { id: string; name: string; email: string; avatar_url?: string }
+interface Member { id: string; name: string; email: string; avatar_url?: string; role?: string }
 
 // Deterministic avatar colour from name string
 function avatarColor(name: string) {
@@ -617,13 +617,29 @@ function OwnerCell({ value, members, onSelect }: {
 }
 
 // ─── Add column dropdown ───────────────────────────────────────────────────────
-const COLUMN_TYPES = [
-  { type: "text",   label: "Text",    icon: Type },
-  { type: "number", label: "Number",  icon: Hash },
-  { type: "toggle", label: "Checkbox",icon: ToggleLeft },
-  { type: "date",   label: "Date",    icon: Calendar },
-  { type: "owner",  label: "Owner",   icon: UserCircle2 },
+// Column type presets — each maps to a clear semantic meaning
+const COLUMN_TYPE_PRESETS = [
+  { type: "status",   label: "Status",   hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft, color: "text-sky-400"     },
+  { type: "stage",    label: "Stage",    hint: "Pipeline stage (Lead, Proposal, Closed…)",   icon: ChevronRight, color: "text-violet-400" },
+  { type: "assignee", label: "Assignee", hint: "Team member responsible for this record",    icon: UserCircle2, color: "text-emerald-400" },
+  { type: "owner",    label: "Owner",    hint: "Deal owner or account owner",                icon: User, color: "text-amber-400"        },
+  { type: "text",     label: "Text",     hint: "Free text field",                            icon: Type, color: "text-slate-400"        },
+  { type: "number",   label: "Number",   hint: "Numeric value, amount, count",               icon: Hash, color: "text-blue-400"         },
+  { type: "date",     label: "Date",     hint: "Date or deadline",                           icon: Calendar, color: "text-rose-400"     },
 ] as const;
+
+type ColPresetType = typeof COLUMN_TYPE_PRESETS[number]["type"];
+
+// Default column names per type
+const PRESET_DEFAULTS: Record<ColPresetType, string> = {
+  status:   "Status",
+  stage:    "Stage",
+  assignee: "Assigned To",
+  owner:    "Owner",
+  text:     "",
+  number:   "",
+  date:     "",
+};
 
 function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
   onAdd: (name: string, type: string) => void;
@@ -631,40 +647,62 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef }: {
   triggerRef: React.RefObject<HTMLElement | HTMLTableCellElement | null>;
 }) {
   const [name, setName] = useState("");
-  const [type, setType] = useState("text");
+  const [type, setType] = useState<ColPresetType>("status");
+  const [hovered, setHovered] = useState<ColPresetType | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
+  function pickType(t: ColPresetType) {
+    setType(t);
+    if (!name.trim() || Object.values(PRESET_DEFAULTS).includes(name)) {
+      setName(PRESET_DEFAULTS[t]);
+    }
+    inputRef.current?.focus();
+  }
+
   function submit() {
-    const slug = name.trim().toLowerCase().replace(/\s+/g, "_");
-    if (!slug) return;
+    const slug = (name.trim() || PRESET_DEFAULTS[type] || type).toLowerCase().replace(/\s+/g, "_");
     onAdd(slug, type);
     onClose();
   }
 
+  const activePreset = COLUMN_TYPE_PRESETS.find(p => p.type === (hovered ?? type))!;
+
   return (
-    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-56 !p-3 space-y-3">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">New column</p>
-      <input
-        ref={inputRef}
-        value={name}
-        onChange={e => setName(e.target.value)}
-        onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") onClose(); }}
-        placeholder="Column name…"
-        className="w-full rounded-md border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30"
-      />
-      <div className="grid grid-cols-2 gap-1">
-        {COLUMN_TYPES.map(({ type: t, label, icon: Icon }) => (
-          <button key={t} onClick={() => setType(t)}
-            className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] transition-colors ${type === t ? "border-zinc-600/60 bg-zinc-800/60 text-white" : "border-white/[.06] text-slate-500 hover:text-slate-300"}`}>
-            <Icon size={11}/>{label}
+    <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
+      <div className="px-3 pt-3 pb-2 border-b border-white/[.06]">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-2">Add column</p>
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") onClose(); }}
+          placeholder="Column name…"
+          className="w-full rounded-md border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30"
+        />
+      </div>
+      <div className="py-1">
+        {COLUMN_TYPE_PRESETS.map(({ type: t, label, icon: Icon, color }) => (
+          <button key={t} onClick={() => pickType(t)}
+            onMouseEnter={() => setHovered(t)} onMouseLeave={() => setHovered(null)}
+            className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${type === t ? "bg-white/[.05] text-white" : "text-slate-400 hover:bg-white/[.03] hover:text-white"}`}>
+            <Icon size={13} className={color}/>
+            <span className="font-medium">{label}</span>
+            {type === t && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
           </button>
         ))}
       </div>
-      <button onClick={submit} disabled={!name.trim()}
-        className="w-full rounded-lg bg-red-500 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-colors disabled:opacity-40">
-        Add column
-      </button>
+      {activePreset && (
+        <div className="px-3 py-2 border-t border-white/[.04] text-[10px] text-slate-600">
+          {activePreset.hint}
+        </div>
+      )}
+      <div className="px-3 pb-3 pt-2 border-t border-white/[.06]">
+        <button onClick={submit}
+          className="w-full rounded-lg bg-red-500 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-colors">
+          Add {name.trim() || PRESET_DEFAULTS[type] || type}
+        </button>
+      </div>
     </PortalDropdown>
   );
 }
@@ -763,6 +801,53 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   );
 }
 
+// ─── Filter column dropdown (inline bar style) ───────────────────────────────
+function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
+  col: string;
+  vals: string[];
+  activeValue: string | null;
+  isStage: boolean;
+  onSelect: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const s = activeValue && isStage ? stageStyle(activeValue) : null;
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-white/[.08] bg-white/[.03] text-white/40 hover:text-white/80 hover:border-white/[.15]"}`}
+      >
+        {s && <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>}
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mr-0.5">{col.replaceAll("_", " ")}</span>
+        {activeValue ? <span>{activeValue}</span> : <ChevronDown size={10} className="opacity-40"/>}
+        {activeValue && <X size={9} className="ml-0.5 opacity-60" onClick={e => { e.stopPropagation(); onSelect(activeValue); }}/>}
+      </button>
+      {open && (
+        <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-44">
+          {vals.map(val => {
+            const ss = isStage ? stageStyle(val) : null;
+            const isActive = activeValue === val;
+            return (
+              <button key={val} onClick={() => { onSelect(val); setOpen(false); }}
+                className={`dropdown-item w-full gap-2 ${isActive ? "dropdown-item-active" : ""}`}>
+                {ss && <span className={`h-2 w-2 rounded-full shrink-0 ${ss.dot}`}/>}
+                <span className="flex-1 text-left">{val}</span>
+                {isActive && <Check size={10} className="text-red-400 shrink-0"/>}
+              </button>
+            );
+          })}
+          {activeValue && <>
+            <div className="mx-2 my-1 border-t border-white/[.06]"/>
+            <button onClick={() => { onSelect(activeValue); setOpen(false); }} className="dropdown-item w-full text-slate-500">Clear</button>
+          </>}
+        </PortalDropdown>
+      )}
+    </div>
+  );
+}
+
 // ─── Main table ───────────────────────────────────────────────────────────────
 export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", onColumnsChange }: { objectType: string; enrichedIds?: string[]; filterQuery?: string; onColumnsChange?: (cols: string[]) => void }) {
   const qc = useQueryClient();
@@ -831,6 +916,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>([]);
   const allColumnsWithCustom = useMemo(() => [...allColumns, ...customCols.map(c => c.key)], [allColumns, customCols]);
   const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
+
+  // ── Column reorder ──
+  const [colOrder, setColOrder] = useState<string[]>([]);
+  const dragColRef = useRef<string | null>(null);
+
+  // Final ordered columns (apply colOrder on top of visibility)
+  const orderedColumns = useMemo(() => {
+    if (!colOrder.length) return columns;
+    const orderMap = new Map(colOrder.map((c, i) => [c, i]));
+    return [...columns].sort((a, b) => (orderMap.get(a) ?? 999) - (orderMap.get(b) ?? 999));
+  }, [columns, colOrder]);
+
+  // ── Column header context menu (right-click to delete) ──
+  const [colCtxMenu, setColCtxMenu] = useState<{ col: string; x: number; y: number } | null>(null);
 
   useEffect(() => { onColumnsChange?.(columns); }, [columns]);
 
@@ -1044,8 +1143,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const isEnriched = enrichedIds.includes(record.id);
     const customDef = customCols.find(c => c.key === col);
 
-    // Custom owner column
-    if (customDef?.type === "owner" || col === "owner" || col === "assignee") {
+    // Custom assignee/owner/stage/status columns
+    if (customDef?.type === "owner" || customDef?.type === "assignee") {
       return (
         <OwnerCell
           value={getOwner(record.id, col, val)}
@@ -1053,6 +1152,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           onSelect={name => { setOwner(record.id, col, name); saveCell(record, col, name); }}
         />
       );
+    }
+    if (customDef?.type === "stage" || customDef?.type === "status") {
+      const shown = String(val ?? "");
+      const existingOptions = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))];
+      if (!shown) return <span className="text-slate-700 text-xs cursor-pointer hover:text-slate-400" onClick={() => saveCell(record, col, existingOptions[0] ?? (customDef.type === "stage" ? "Lead" : "New"))}>—</span>;
+      return <StagePill value={shown} options={existingOptions.length ? existingOptions : (customDef.type === "stage" ? DEFAULT_STAGE_OPTIONS : ["New","In Progress","Done","On Hold","Cancelled"])} onSelect={v => saveCell(record, col, v)}/>;
     }
 
     // Custom column — empty by default
@@ -1215,58 +1320,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <span className="hidden sm:inline">Filter</span>
               {quickFilters.length > 0 && <span className="rounded-full bg-red-500/80 px-1.5 text-[9px] text-white">{quickFilters.length}</span>}
             </button>
-            {openPanel === "filter" && (
-              <PortalDropdown triggerRef={filterWrapRef} onClose={() => setOpenPanel(null)} align="right" className="w-64">
-                <div className="px-3 py-2 border-b border-white/[.06] flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Filter by</p>
-                  {quickFilters.length > 0 && (
-                    <button onClick={() => setQuickFilters([])} className="text-[10px] text-slate-500 hover:text-red-400 transition-colors">Clear all</button>
-                  )}
-                </div>
-                {(() => {
-                  const filterableCols = columns.filter(c =>
-                    c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
-                    c === "assigned_to" || c === "deal_owner" || c === "owner" || c === "type" || c === "priority" || c === "industry"
-                  );
-                  if (!filterableCols.length) return <p className="px-3 py-3 text-[11px] text-slate-600">No filterable columns found.</p>;
-                  return filterableCols.map(col => {
-                    const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 12);
-                    if (!vals.length) return null;
-                    const isStage = col.toLowerCase().includes("stage") || col === "status";
-                    return (
-                      <div key={col} className="border-b border-white/[.04] last:border-0">
-                        <div className="px-3 py-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">{col.replaceAll("_", " ")}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {vals.map(val => {
-                              const active = quickFilters.some(f => f.col === col && f.value === val);
-                              const s = isStage ? stageStyle(val) : null;
-                              return (
-                                <button
-                                  key={val}
-                                  onClick={() => toggleQuickFilter(col, val)}
-                                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all ${
-                                    active
-                                      ? "border-red-500/50 bg-red-500/15 text-red-300"
-                                      : s
-                                        ? `${s.pill} hover:opacity-100 opacity-70`
-                                        : "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-slate-200"
-                                  }`}
-                                >
-                                  {s && <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-red-400" : s.dot}`}/>}
-                                  {val}
-                                  {active && <X size={8}/>}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </PortalDropdown>
-            )}
           </div>
 
           {/* Sort panel */}
@@ -1312,6 +1365,52 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         </div>
       </div>
 
+      {/* ── Filter inline bar — same look as bulk action bar ── */}
+      {openPanel === "filter" && (() => {
+        const filterableCols = orderedColumns.filter(c =>
+          c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
+          c === "assigned_to" || c === "deal_owner" || c === "owner" ||
+          c.toLowerCase().includes("owner") || c.toLowerCase().includes("assignee") ||
+          c === "type" || c === "priority" || c === "industry"
+        );
+        return (
+          <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 shrink-0">Filter by</span>
+            <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+            {filterableCols.length === 0 && (
+              <span className="text-xs text-slate-600">No filterable columns in this sheet</span>
+            )}
+            {filterableCols.map(col => {
+              const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
+              if (!vals.length) return null;
+              const active = quickFilters.find(f => f.col === col);
+              const isStage = col.toLowerCase().includes("stage") || col === "status" || col === "deal_status";
+              return (
+                <FilterColDropdown
+                  key={col}
+                  col={col}
+                  vals={vals}
+                  activeValue={active?.value ?? null}
+                  isStage={isStage}
+                  onSelect={val => toggleQuickFilter(col, val)}
+                />
+              );
+            })}
+            {quickFilters.length > 0 && (
+              <>
+                <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+                <button onClick={() => setQuickFilters([])} className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors shrink-0 whitespace-nowrap">
+                  Clear all ({quickFilters.length})
+                </button>
+              </>
+            )}
+            <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/60 shrink-0">
+              <X size={13}/>
+            </button>
+          </div>
+        );
+      })()}
+
       {/* Bulk action bar */}
       {someSelected && (
         <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
@@ -1347,7 +1446,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           {bulkEditCols.length > 0 && (
             <div ref={bulkEditRef} className="relative">
               <button
-                onClick={() => setBulkEditField(f => f ? null : bulkEditCols[0])}
+                onClick={() => setBulkEditField(f => f ? null : (bulkEditCols[0] ?? null))}
                 className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
               >
                 <Check size={12}/> Edit field
@@ -1415,13 +1514,30 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
                 </div>
               </th>
-              {columns.map((col, colIdx) => {
+              {orderedColumns.map((col, colIdx) => {
                 const w = colWidths[col];
                 return (
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
+                    draggable={colIdx > 0}
+                    onDragStart={() => { dragColRef.current = col; }}
+                    onDragOver={e => { e.preventDefault(); }}
+                    onDrop={() => {
+                      const from = dragColRef.current;
+                      if (!from || from === col) return;
+                      const base = orderedColumns;
+                      const next = [...base];
+                      const fi = next.indexOf(from);
+                      const ti = next.indexOf(col);
+                      if (fi < 0 || ti < 0) return;
+                      next.splice(fi, 1);
+                      next.splice(ti, 0, from);
+                      setColOrder(next);
+                      dragColRef.current = null;
+                    }}
+                    onContextMenu={e => { e.preventDefault(); setColCtxMenu({ col, x: e.clientX, y: e.clientY }); }}
                   >
                     <button onClick={() => handleHeaderSort(col)}
                       className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 w-full ${isNumeric(col) ? "ml-auto" : ""}`}>
@@ -1490,7 +1606,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
                     </div>
                   </td>
-                  {columns.map((col, colIdx) => (
+                  {orderedColumns.map((col, colIdx) => (
                     <td
                       key={col}
                       className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
@@ -1527,10 +1643,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <tr>
               {/* Blank checkbox placeholder so name column aligns with body */}
               <td className="w-8 min-w-[32px] max-w-[32px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-0 z-30" />
-              {columns.map(col => (
+              {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${col === columns[0] ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
@@ -1581,6 +1697,46 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           Undo
         </button>
       </div>
+    )}
+
+    {/* Column right-click context menu */}
+    {colCtxMenu && createPortal(
+      <>
+        <div className="fixed inset-0 z-[9998]" onClick={() => setColCtxMenu(null)}/>
+        <div
+          className="fixed z-[9999] rounded-xl border border-white/[.08] bg-[#0f1117] py-1 shadow-xl min-w-[160px]"
+          style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
+        >
+          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600 border-b border-white/[.06] mb-1">
+            {colCtxMenu.col.replaceAll("_", " ")}
+          </div>
+          <button
+            onClick={() => {
+              const col = colCtxMenu.col;
+              // Hide data column OR remove custom column
+              if (customCols.some(c => c.key === col)) {
+                setCustomCols(prev => prev.filter(c => c.key !== col));
+              } else {
+                toggleCol(col);
+              }
+              setColCtxMenu(null);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <Trash2 size={12}/> Remove column
+          </button>
+          <button
+            onClick={() => {
+              toggleCol(colCtxMenu.col);
+              setColCtxMenu(null);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
+          >
+            <X size={12}/> Hide column
+          </button>
+        </div>
+      </>,
+      document.body
     )}
     </>
   );
