@@ -1320,6 +1320,60 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <span className="hidden sm:inline">Filter</span>
               {quickFilters.length > 0 && <span className="rounded-full bg-red-500/80 px-1.5 text-[9px] text-white">{quickFilters.length}</span>}
             </button>
+            {openPanel === "filter" && (
+              <PortalDropdown triggerRef={filterWrapRef} onClose={() => setOpenPanel(null)} align="right" className="w-64">
+                <div className="px-3 py-2 border-b border-white/[.06] flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Filter by</p>
+                  {quickFilters.length > 0 && (
+                    <button onClick={() => setQuickFilters([])} className="text-[10px] text-slate-500 hover:text-red-400 transition-colors">Clear all</button>
+                  )}
+                </div>
+                {(() => {
+                  const skipCols = new Set(["name","email","phone","website","linkedin","twitter","domain","description","bio","notes","summary","address","logo_url","avatar_url","image_url","lead_score","updated_at","created_at"]);
+                  const filterableCols = orderedColumns.filter(c => {
+                    if (skipCols.has(c) || c.toLowerCase().includes("url") || c.toLowerCase().includes("email") || c.toLowerCase().includes("phone")) return false;
+                    const uniqueVals = new Set(records.map(r => String(r.data[c] ?? "")).filter(Boolean));
+                    return uniqueVals.size >= 1 && uniqueVals.size <= 15;
+                  });
+                  if (!filterableCols.length) return <p className="px-3 py-3 text-[11px] text-slate-600">No filterable columns found.</p>;
+                  return filterableCols.map(col => {
+                    const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 12);
+                    if (!vals.length) return null;
+                    const isStage = col.toLowerCase().includes("stage") || col === "status" || col === "deal_status";
+                    return (
+                      <div key={col} className="border-b border-white/[.04] last:border-0">
+                        <div className="px-3 py-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">{col.replaceAll("_", " ")}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {vals.map(val => {
+                              const active = quickFilters.some(f => f.col === col && f.value === val);
+                              const s = isStage ? stageStyle(val) : null;
+                              return (
+                                <button
+                                  key={val}
+                                  onClick={() => toggleQuickFilter(col, val)}
+                                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all ${
+                                    active
+                                      ? "border-red-500/50 bg-red-500/15 text-red-300"
+                                      : s
+                                        ? `${s.pill} hover:opacity-100 opacity-70`
+                                        : "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-slate-200"
+                                  }`}
+                                >
+                                  {s && <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-red-400" : s.dot}`}/>}
+                                  {val}
+                                  {active && <X size={8}/>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </PortalDropdown>
+            )}
           </div>
 
           {/* Sort panel */}
@@ -1364,54 +1418,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </div>
         </div>
       </div>
-
-      {/* ── Filter inline bar — same look as bulk action bar ── */}
-      {openPanel === "filter" && (() => {
-        // Auto-detect filterable columns: any column with ≤15 unique non-empty values
-        // Skip free-text / high-cardinality columns like name, email, phone, url, description
-        const skipCols = new Set(["name","email","phone","website","linkedin","twitter","domain","description","bio","notes","summary","address","logo_url","avatar_url","image_url","lead_score","updated_at","created_at"]);
-        const filterableCols = orderedColumns.filter(c => {
-          if (skipCols.has(c) || c.toLowerCase().includes("url") || c.toLowerCase().includes("email") || c.toLowerCase().includes("phone")) return false;
-          const uniqueVals = new Set(records.map(r => String(r.data[c] ?? "")).filter(Boolean));
-          return uniqueVals.size >= 1 && uniqueVals.size <= 15;
-        });
-        return (
-          <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 shrink-0">Filter by</span>
-            <div className="h-3 w-px bg-white/[.08] shrink-0"/>
-            {filterableCols.length === 0 && (
-              <span className="text-xs text-slate-600">No filterable columns in this sheet</span>
-            )}
-            {filterableCols.map(col => {
-              const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
-              if (!vals.length) return null;
-              const active = quickFilters.find(f => f.col === col);
-              const isStage = col.toLowerCase().includes("stage") || col === "status" || col === "deal_status";
-              return (
-                <FilterColDropdown
-                  key={col}
-                  col={col}
-                  vals={vals}
-                  activeValue={active?.value ?? null}
-                  isStage={isStage}
-                  onSelect={val => toggleQuickFilter(col, val)}
-                />
-              );
-            })}
-            {quickFilters.length > 0 && (
-              <>
-                <div className="h-3 w-px bg-white/[.08] shrink-0"/>
-                <button onClick={() => setQuickFilters([])} className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors shrink-0 whitespace-nowrap">
-                  Clear all ({quickFilters.length})
-                </button>
-              </>
-            )}
-            <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/60 shrink-0">
-              <X size={13}/>
-            </button>
-          </div>
-        );
-      })()}
 
       {/* Bulk action bar */}
       {someSelected && (
