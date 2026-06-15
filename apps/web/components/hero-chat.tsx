@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect, useCallback } from "react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://mondaily-api.onrender.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://mondaily-com-api-neon.vercel.app";
 const WORKSPACE_ID = "8ccef088-6493-4cd9-a0cf-3214098f59a1";
 
 interface Msg { role: "user" | "assistant"; content: string; typing?: boolean }
