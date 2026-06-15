@@ -967,9 +967,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     </div>
   );
 
-  const TOOL_BTN_BASE = "flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium tracking-wide transition-all duration-200";
-  const TOOL_BTN_IDLE = `${TOOL_BTN_BASE} border-zinc-800/80 bg-zinc-900/20 text-zinc-300 hover:border-zinc-700/60 hover:text-white`;
-  const TOOL_BTN_ON   = `${TOOL_BTN_BASE} border-zinc-600/60 bg-zinc-800/30 text-white`;
+  const TOOL_BTN_BASE = "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150";
+  const TOOL_BTN_IDLE = `${TOOL_BTN_BASE} border-white/[.07] bg-white/[.02] text-white/40 hover:border-white/[.12] hover:text-white/80 hover:bg-white/[.04]`;
+  const TOOL_BTN_ON   = `${TOOL_BTN_BASE} border-white/[.12] bg-white/[.06] text-white`;
 
   return (
     <>
@@ -1069,14 +1069,17 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             handled per-cell so they composite correctly with the GPU layers.   */}
       {/* Bulk action bar */}
       {someSelected && (
-        <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-red-500/[.04] shrink-0">
-          <span className="text-xs font-semibold text-red-400">{selected.size} selected</span>
-          <div className="h-3 w-px bg-white/10" />
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-white/60">
+            <div className="h-4 w-4 rounded-md bg-red-500 flex items-center justify-center text-[9px] font-bold text-white">{selected.size}</div>
+            selected
+          </span>
+          <div className="h-3 w-px bg-white/[.08]" />
           {/* Add to list */}
           <div className="relative">
             <button
               onClick={() => setListPickerOpen(o => !o)}
-              className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
             >
               <List size={12} /> Add to list
             </button>
@@ -1109,51 +1112,51 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       )}
 
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto [contain:strict]">
-        <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
+        <table className="w-full border-separate border-spacing-0 text-left text-[12px]">
           <thead className="sticky top-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
             <tr>
               {/* Checkbox column */}
-              <th className="w-8 px-2 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70 sticky left-0 z-30" style={{ transform: "translateZ(0)", willChange: "transform" }}>
-                <button
+              <th className="w-10 px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30" style={{ transform: "translateZ(0)" }}>
+                <div
                   onClick={toggleSelectAll}
-                  className={`h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors ${allSelected ? "bg-red-500 border-red-500" : "border-zinc-700 hover:border-zinc-500"}`}
+                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-red-500 border-red-500" : someSelected ? "border-white/30 bg-white/[.06]" : "border-white/[.10] hover:border-white/30"}`}
                 >
-                  {allSelected && <Check size={9} className="text-white" />}
-                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-zinc-500" />}
-                </button>
+                  {allSelected && <Check size={10} className="text-white" strokeWidth={3}/>}
+                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
+                </div>
               </th>
               {columns.map((col, colIdx) => (
                 <th
                   key={col}
-                  className={`whitespace-nowrap px-3 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70 ${colIdx === 0 ? "sticky left-0 z-30" : "border-r border-r-zinc-800/20"}`}
-                  style={colIdx === 0 ? { transform: "translateZ(0)", willChange: "transform", boxShadow: "1px 0 0 0 rgba(63,63,70,0.45)" } : undefined}
+                  className={`px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-10 z-30" : ""}`}
+                  style={colIdx === 0 ? { transform: "translateZ(0)" } : undefined}
                 >
                   <button onClick={() => handleHeaderSort(col)}
-                    className={`flex items-center gap-1.5 hover:text-zinc-200 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
+                    className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
-                    <span className="text-[10px] font-semibold tracking-wider text-zinc-600 uppercase">{col.replaceAll("_", " ")}</span>
+                    <span className="text-[10px] font-semibold tracking-widest uppercase">{col.replaceAll("_", " ")}</span>
                     <SortIcon col={col}/>
                   </button>
                 </th>
               ))}
-              <th className="whitespace-nowrap px-3 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70">
-                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 hover:text-zinc-200 transition-colors">
-                  <Calendar size={11} className="text-zinc-600"/>
-                  <span className="text-[10px] font-semibold tracking-wider text-zinc-600 uppercase">Updated</span>
+              <th className="px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06]">
+                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors">
+                  <Calendar size={11}/>
+                  <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
                   <SortIcon col="__updated_at"/>
                 </button>
               </th>
-              {/* Add column — inline last header cell */}
+              {/* Add column */}
               <th
                 ref={addColHeaderRef}
-                className="w-8 px-2 py-[7px] bg-[#0d0f13] border-b border-b-zinc-800/70 border-l border-l-zinc-800/20 relative"
+                className="w-10 px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] relative"
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-                  className="flex h-5 w-5 items-center justify-center rounded text-zinc-700 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
+                  className="flex h-6 w-6 items-center justify-center rounded-lg text-white/20 hover:text-white/60 hover:bg-white/[.05] transition-all"
                   title="Add column"
                 >
-                  <Plus size={12}/>
+                  <Plus size={13}/>
                 </button>
                 {openPanel === "addcol" && (
                   <AddColumnDropdown
@@ -1168,7 +1171,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-[12px] text-zinc-600">
+                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs text-white/20">
                   No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
                 </td>
               </tr>
@@ -1176,36 +1179,36 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               sorted.map((record, rowIdx) => (
                 <tr
                   key={record.id}
-                  className={`group hover:bg-zinc-800/25 transition-colors ${rowIdx % 2 === 1 ? "bg-white/[.012]" : ""} ${selected.has(record.id) ? "bg-red-500/[.04]" : ""}`}
+                  className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03]`}
                 >
                   {/* Row checkbox */}
-                  <td className="w-8 px-2 py-[6px] border-b border-b-zinc-800/30 sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#101215]" style={{ transform: "translateZ(0)", willChange: "transform" }}>
-                    <button
+                  <td className="w-10 px-3 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 bg-inherit">
+                    <div
                       onClick={() => toggleSelectRow(record.id)}
-                      className={`h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-zinc-700 opacity-0 group-hover:opacity-100"}`}
+                      className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
                     >
-                      {selected.has(record.id) && <Check size={9} className="text-white" />}
-                    </button>
+                      {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
+                    </div>
                   </td>
                   {columns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-3 py-[6px] text-zinc-300 overflow-hidden border-b border-b-zinc-800/30 ${isNumeric(col) ? "text-right tabular-nums font-mono text-zinc-400 max-w-[140px]" : "max-w-[200px]"} ${colIdx !== 0 ? "border-r border-r-zinc-800/15" : ""} ${colIdx === 0 ? "sticky left-0 z-10 bg-[#0d0f13] group-hover:bg-[#101215]" : ""}`}
-                      style={colIdx === 0 ? { transform: "translateZ(0)", willChange: "transform", boxShadow: "1px 0 0 0 rgba(63,63,70,0.45)" } : undefined}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-10 z-10 bg-[#0b0d10] group-hover:bg-[#0f1115] font-medium text-white/90" : ""}`}
+                      style={colIdx === 0 ? { transform: "translateZ(0)" } : undefined}
                     >
                       {renderCell(col, record)}
                     </td>
                   ))}
-                  <td className="whitespace-nowrap px-3 py-[6px] text-[11px] text-zinc-600 tabular-nums border-b border-b-zinc-800/30">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04]">
                     {fmtDate(record.updated_at)}
                   </td>
-                  <td className="border-b border-b-zinc-800/30 border-l border-l-zinc-800/20 w-8 px-1">
+                  <td className="border-b border-b-white/[.04] w-10 px-2">
                     <button
                       onClick={() => deleteRow(record)}
-                      className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-5 w-5 rounded text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
                       title="Delete row"
                     >
-                      <Trash2 size={11}/>
+                      <Trash2 size={12}/>
                     </button>
                   </td>
                 </tr>
