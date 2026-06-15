@@ -649,15 +649,17 @@ export function ObjectIndexPage() {
   const [tableColumns, setTableColumns] = useState<string[]>([]);
 
   // Detect empty state — shares the same cache key as RecordTable
+  const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
+  const hasActiveEnrichment = Object.values(enriching).some(v => !v.done);
+
   const recordsQuery = useQuery({
     queryKey: ["records", objectType],
     queryFn: () => apiClient.get<{ id: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
     staleTime: 30_000,
+    refetchInterval: hasActiveEnrichment ? 3000 : false,
   });
   const isEmpty = recordsQuery.isSuccess && (recordsQuery.data?.length ?? 0) === 0;
 
-  // Track enrichment state: { [recordId]: { name, done } }
-  const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
   const enrichedIds = Object.entries(enriching).filter(([, v]) => v.done).map(([id]) => id);
 
   const handleEnrichStart = useCallback((recordId: string, name: string) => {
