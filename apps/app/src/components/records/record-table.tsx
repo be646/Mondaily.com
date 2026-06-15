@@ -1249,6 +1249,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   const [listPickerOpen, setListPickerOpen] = useState(false);
+  const [assignPickerOpen, setAssignPickerOpen] = useState(false);
+  const [assignSearch, setAssignSearch] = useState("");
+  const assignPickerRef = useRef<HTMLDivElement>(null);
   const listsQuery = useQuery({
     queryKey: ["lists"],
     queryFn: () => apiClient.get<{ id: string; name: string }[]>("/lists"),
@@ -1650,10 +1653,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             selected
           </span>
           <div className="h-3 w-px bg-white/[.08]" />
+
           {/* Add to list */}
           <div className="relative">
             <button
-              onClick={() => setListPickerOpen(o => !o)}
+              onClick={() => { setListPickerOpen(o => !o); setAssignPickerOpen(false); }}
               className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
             >
               <List size={12} /> Add to list
@@ -1661,14 +1665,92 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {listPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-white/[.08] bg-[#0f1117] p-1 shadow-xl">
-                  {(listsQuery.data ?? []).length === 0 && <p className="px-3 py-2 text-xs text-white/30">No lists yet</p>}
-                  {(listsQuery.data ?? []).map(l => (
-                    <button key={l.id} onClick={() => { bulkAddToList(l.id); setListPickerOpen(false); }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
-                      {l.name}
-                    </button>
-                  ))}
+                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2 border-b border-white/[.05]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Add {selected.size} to list</p>
+                  </div>
+                  <div className="p-1">
+                    {(listsQuery.data ?? []).length === 0 && (
+                      <p className="px-3 py-3 text-xs text-white/25 text-center">No lists yet</p>
+                    )}
+                    {(listsQuery.data ?? []).map(l => (
+                      <button key={l.id} onClick={() => { bulkAddToList(l.id); setListPickerOpen(false); }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-white/55 hover:bg-white/[.05] hover:text-white transition-colors">
+                        <List size={11} className="text-white/25 shrink-0"/>
+                        <span className="truncate">{l.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Assign to */}
+          <div className="h-3 w-px bg-white/[.08]" />
+          <div ref={assignPickerRef} className="relative">
+            <button
+              onClick={() => { setAssignPickerOpen(o => !o); setListPickerOpen(false); setAssignSearch(""); }}
+              className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+            >
+              <UserCircle2 size={12} /> Assign to
+            </button>
+            {assignPickerOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => { setAssignPickerOpen(false); setAssignSearch(""); }} />
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2 border-b border-white/[.05]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 mb-2">Assign {selected.size} records</p>
+                    <div className="relative">
+                      <Search size={10} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/20"/>
+                      <input
+                        autoFocus
+                        value={assignSearch}
+                        onChange={e => setAssignSearch(e.target.value)}
+                        placeholder="Search members…"
+                        className="w-full bg-white/[.04] border border-white/[.06] rounded-lg pl-6 pr-3 py-1.5 text-xs text-white outline-none focus:border-white/[.12] placeholder:text-white/20"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-1 max-h-48 overflow-y-auto">
+                    {members
+                      .filter(m => {
+                        const lb = m.name || m.email;
+                        return lb && typeof lb === "string" && isNaN(Number(lb)) && lb.trim().length > 0;
+                      })
+                      .filter(m => {
+                        const lb = (m.name || m.email || "").toLowerCase();
+                        return !assignSearch || lb.includes(assignSearch.toLowerCase());
+                      })
+                      .map(m => {
+                        const label = m.name || m.email || "";
+                        return (
+                          <button key={m.id}
+                            onClick={() => {
+                              // Apply to all assignee/owner columns that exist
+                              const assignCols = columns.filter(c => c.toLowerCase().includes("assign") || c.toLowerCase().includes("owner"));
+                              const col = assignCols[0] ?? "assigned_to";
+                              applyBulkEdit(col, label);
+                              setAssignPickerOpen(false);
+                              setAssignSearch("");
+                            }}
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-white/55 hover:bg-white/[.05] hover:text-white transition-colors">
+                            <MemberAvatar name={label} size={5}/>
+                            <div className="flex flex-col items-start min-w-0">
+                              <span className="truncate text-white/70">{m.name || m.email}</span>
+                              {m.name && m.email && <span className="text-[10px] text-white/25 truncate">{m.email}</span>}
+                            </div>
+                            {m.role && <span className="ml-auto text-[9px] text-white/20 capitalize shrink-0">{m.role}</span>}
+                          </button>
+                        );
+                      })}
+                    {members.filter(m => {
+                      const lb = (m.name || m.email || "").toLowerCase();
+                      return assignSearch ? lb.includes(assignSearch.toLowerCase()) : true;
+                    }).length === 0 && (
+                      <p className="px-3 py-3 text-xs text-white/25 text-center">No members found</p>
+                    )}
+                  </div>
                 </div>
               </>
             )}
