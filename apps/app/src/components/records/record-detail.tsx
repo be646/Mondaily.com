@@ -1111,7 +1111,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 <Clock size={12}/> Activity
               </button>
             </div>
-            <div className="mt-2"><TagBadges nodeId={recordId} /></div>
+            <div className="mt-2"><TagBadges nodeId={recordId} onOpenPicker={() => setTagOpen(true)}/></div>
           </div>
 
           {/* Assignee */}

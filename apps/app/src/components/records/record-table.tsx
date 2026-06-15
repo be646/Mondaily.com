@@ -1,10 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
   UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
-  Rows3, BookmarkCheck,
+  Rows3, BookmarkCheck, LayoutGrid, Percent,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -662,6 +662,7 @@ const COLUMN_TYPE_PRESETS = [
   { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-emerald-400" },
   { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-amber-400"   },
   { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-pink-400"    },
+  { type: "category",  label: "Category",   hint: "Pick a category with icon",                 icon: LayoutGrid,   color: "text-orange-400"  },
   { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-teal-400"    },
   { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-white/30"    },
   { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-slate-400"   },
@@ -678,6 +679,7 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
   assignee:  "Assigned To",
   owner:     "Owner",
   tag:       "Tag",
+  category:  "",
   country:   "Country",
   record_id: "Record ID",
   text:      "",
@@ -908,42 +910,236 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
   );
 }
 
-// ─── Tag cell ─────────────────────────────────────────────────────────────────
-const TAG_COLORS = [
-  { bg: "bg-sky-500/15 border-sky-500/30 text-sky-300", dot: "bg-sky-400" },
-  { bg: "bg-violet-500/15 border-violet-500/30 text-violet-300", dot: "bg-violet-400" },
-  { bg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300", dot: "bg-emerald-400" },
-  { bg: "bg-amber-500/15 border-amber-500/30 text-amber-300", dot: "bg-amber-400" },
-  { bg: "bg-rose-500/15 border-rose-500/30 text-rose-300", dot: "bg-rose-400" },
-  { bg: "bg-pink-500/15 border-pink-500/30 text-pink-300", dot: "bg-pink-400" },
+// ─── Tag cell (multi-tag, workspace-synced) ───────────────────────────────────
+interface WorkspaceTag { id: string; name: string; color: string }
+
+const PRESET_TAG_COLORS = [
+  "#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6",
+  "#ef4444","#8b5cf6","#06b6d4","#f97316","#84cc16",
 ];
+
+// tagColor kept for backwards compat with filter badges
 function tagColor(val: string) {
+  const TAG_COLORS = [
+    { bg: "bg-sky-500/15 border-sky-500/30 text-sky-300", dot: "bg-sky-400" },
+    { bg: "bg-violet-500/15 border-violet-500/30 text-violet-300", dot: "bg-violet-400" },
+    { bg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300", dot: "bg-emerald-400" },
+    { bg: "bg-amber-500/15 border-amber-500/30 text-amber-300", dot: "bg-amber-400" },
+    { bg: "bg-rose-500/15 border-rose-500/30 text-rose-300", dot: "bg-rose-400" },
+    { bg: "bg-pink-500/15 border-pink-500/30 text-pink-300", dot: "bg-pink-400" },
+  ];
   let h = 0; for (let i = 0; i < val.length; i++) h = (h * 31 + val.charCodeAt(i)) & 0xffffffff;
   return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]!;
 }
 
-function TagCell({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [newColor, setNewColor] = useState(PRESET_TAG_COLORS[0]!);
+  const [creating, setCreating] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) { if (!ref.current?.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const allTags = useQuery({ queryKey: ["tags"], queryFn: () => apiClient.get<WorkspaceTag[]>("/tags") });
+  const nodeTags = useQuery({ queryKey: ["node-tags", nodeId], queryFn: () => apiClient.get<WorkspaceTag[]>(`/tags/node/${nodeId}`) });
+  const nodeTagIds = new Set((nodeTags.data ?? []).map(t => t.id));
+
+  const addTag = useMutation({
+    mutationFn: (tag_id: string) => apiClient.post(`/tags/node/${nodeId}`, { tag_id }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["node-tags", nodeId] }),
+  });
+  const removeTag = useMutation({
+    mutationFn: (tagId: string) => apiClient.delete(`/tags/node/${nodeId}/${tagId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["node-tags", nodeId] }),
+  });
+
+  async function createAndAdd() {
+    const name = search.trim(); if (!name) return;
+    setCreating(true);
+    try {
+      const tag = await apiClient.post<WorkspaceTag>("/tags", { name, color: newColor });
+      await apiClient.post(`/tags/node/${nodeId}`, { tag_id: tag.id });
+      qc.invalidateQueries({ queryKey: ["tags"] });
+      qc.invalidateQueries({ queryKey: ["node-tags", nodeId] });
+      setSearch("");
+    } finally { setCreating(false); }
+  }
+
+  const filtered = (allTags.data ?? []).filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+  const canCreate = search.trim() && !(allTags.data ?? []).some(t => t.name.toLowerCase() === search.trim().toLowerCase());
+  const activeTags = nodeTags.data ?? [];
+  void col; void colKey; // used for context only
+
+  return (
+    <div ref={ref} className="relative min-w-0">
+      <div className="flex items-center gap-1 flex-wrap cursor-pointer" onClick={() => setOpen(o => !o)}>
+        {activeTags.length === 0
+          ? <span className="text-slate-700 text-xs hover:text-slate-500 transition-colors">+ tag</span>
+          : activeTags.map(t => (
+            <span key={t.id} onClick={e => { e.stopPropagation(); removeTag.mutate(t.id); }}
+              className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium cursor-pointer hover:opacity-70 transition-opacity"
+              style={{ background: t.color + "22", color: t.color, borderColor: t.color + "44" }}>
+              {t.name}<X size={8}/>
+            </span>
+          ))
+        }
+      </div>
+      {open && createPortal(
+        <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
+          className="w-52 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="px-2 pt-2 pb-1">
+            <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") setOpen(false); }}
+              placeholder="Search or create tag…"
+              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-violet-500/40 placeholder:text-white/20"/>
+          </div>
+          <div className="max-h-40 overflow-y-auto p-1">
+            {filtered.map(tag => {
+              const active = nodeTagIds.has(tag.id);
+              return (
+                <button key={tag.id} onClick={() => active ? removeTag.mutate(tag.id) : addTag.mutate(tag.id)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[.04] transition-colors">
+                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
+                  <span className="flex-1 text-left text-xs text-white/70">{tag.name}</span>
+                  {active && <Check size={10} className="text-violet-400 shrink-0"/>}
+                </button>
+              );
+            })}
+            {filtered.length === 0 && !canCreate && <p className="text-xs text-white/20 text-center py-2">No tags found</p>}
+          </div>
+          {canCreate && (
+            <div className="border-t border-white/[.06] p-2 space-y-1.5">
+              <div className="flex gap-1">
+                {PRESET_TAG_COLORS.map(c => (
+                  <button key={c} onClick={() => setNewColor(c)}
+                    className="h-4 w-4 rounded-full shrink-0 transition-all"
+                    style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px #0f1117, 0 0 0 3px ${c}` : undefined }}/>
+                ))}
+              </div>
+              <button onClick={createAndAdd} disabled={creating}
+                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-violet-500/10 hover:text-violet-300 transition-colors disabled:opacity-40">
+                <Plus size={11}/> Create "{search.trim()}"
+              </button>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// ─── Number cell with formula support ─────────────────────────────────────────
+function evalFormula(expr: string, _context?: Record<string, number>): number | null {
+  try {
+    // Only allow safe math characters
+    const safe = expr.replace(/\s/g, "");
+    if (!/^[0-9+\-*/().%,]+$/.test(safe)) return null;
+    // % operator: treat trailing % as /100
+    const withPct = safe.replace(/(\d+(?:\.\d+)?)%/g, "($1/100)");
+    // eslint-disable-next-line no-new-func
+    const result = new Function(`"use strict"; return (${withPct})`)();
+    return typeof result === "number" && isFinite(result) ? result : null;
+  } catch { return null; }
+}
+
+function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | string) => void }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(String(value ?? ""));
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+  useEffect(() => { if (editing) { setDraft(String(value ?? "")); inputRef.current?.focus(); inputRef.current?.select(); } }, [editing, value]);
+
+  function commit() {
+    const s = draft.trim();
+    if (!s) { onSave(""); setEditing(false); return; }
+    if (s.startsWith("=")) {
+      const result = evalFormula(s.slice(1));
+      if (result !== null) { onSave(result); setEditing(false); return; }
+    }
+    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+    onSave(isNaN(n) ? s : n);
+    setEditing(false);
+  }
+
+  const isPercent = String(value ?? "").includes("%") || (typeof value === "number" && value > 0 && value <= 1);
+  const displayVal = value === "" || value == null ? null
+    : typeof value === "number" ? (isPercent && value <= 1 ? `${(value * 100).toFixed(1)}%` : value.toLocaleString())
+    : String(value);
 
   if (editing) {
     return (
       <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)}
-        onBlur={() => { onSave(draft.trim()); setEditing(false); }}
-        onKeyDown={e => { if (e.key === "Enter") { onSave(draft.trim()); setEditing(false); } if (e.key === "Escape") setEditing(false); }}
-        className="w-full bg-transparent text-xs text-white outline-none border-b border-white/20 pb-0.5"/>
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        placeholder="0 or =A*0.1"
+        className="w-full max-w-[100px] bg-white/[.04] border border-white/[.10] rounded px-2 py-0.5 text-xs text-white outline-none font-mono"/>
     );
   }
-  if (!value) return <button onClick={() => { setDraft(""); setEditing(true); }} className="text-slate-700 text-xs hover:text-slate-500 transition-colors">— add tag</button>;
-  const c = tagColor(value);
   return (
-    <button onClick={() => { setDraft(value); setEditing(true); }}
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${c.bg}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`}/>
-      {value}
+    <button onClick={() => setEditing(true)}
+      className="text-xs text-white/70 hover:text-white tabular-nums transition-colors text-left w-full">
+      {displayVal ?? <span className="text-slate-700">— number</span>}
     </button>
+  );
+}
+
+// ─── Category column cell ─────────────────────────────────────────────────────
+const CATEGORY_OPTIONS = [
+  { name: "Marketing",   icon: "📢", color: "#f97316" },
+  { name: "Sales",       icon: "💰", color: "#10b981" },
+  { name: "Engineering", icon: "⚙️",  color: "#6366f1" },
+  { name: "Design",      icon: "🎨", color: "#ec4899" },
+  { name: "Support",     icon: "🎧", color: "#3b82f6" },
+  { name: "Finance",     icon: "📊", color: "#f59e0b" },
+  { name: "Legal",       icon: "⚖️",  color: "#8b5cf6" },
+  { name: "Operations",  icon: "🔧", color: "#06b6d4" },
+  { name: "HR",          icon: "👥", color: "#84cc16" },
+  { name: "Product",     icon: "📦", color: "#ef4444" },
+  { name: "Other",       icon: "🏷️",  color: "#6b7280" },
+];
+
+function CategoryColCell({ value, onSave }: { value: unknown; onSave: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function h(e: MouseEvent) { if (!ref.current?.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const current = CATEGORY_OPTIONS.find(c => c.name === String(value ?? ""));
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs transition-colors hover:bg-white/[.04]"
+        style={current ? { color: current.color } : undefined}>
+        {current ? <><span>{current.icon}</span><span className="font-medium">{current.name}</span></>
+          : <span className="text-slate-700">— category</span>}
+      </button>
+      {open && createPortal(
+        <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
+          className="w-44 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl p-1" onClick={e => e.stopPropagation()}>
+          {CATEGORY_OPTIONS.map(opt => (
+            <button key={opt.name} onClick={() => { onSave(opt.name); setOpen(false); }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-white/[.04] transition-colors">
+              <span className="text-sm">{opt.icon}</span>
+              <span className="text-xs font-medium" style={{ color: opt.color }}>{opt.name}</span>
+              {current?.name === opt.name && <Check size={10} className="ml-auto" style={{ color: opt.color }}/>}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
   );
 }
 
@@ -1387,7 +1583,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setUndoToast(null);
   }
 
-  function saveCell(record: NodeRecord, col: string, newVal: string) {
+  function saveCell(record: NodeRecord, col: string, newVal: string | number) {
     const newData = { ...record.data, [col]: newVal };
     qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
       (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
@@ -1422,10 +1618,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       return <CountryCell value={String(val ?? "")} onSelect={v => saveCell(record, col, v)}/>;
     }
 
-    // Tag column — simple colored label
+    // Tag column — multi-tag chip picker synced to workspace tags
     if (customDef?.type === "tag") {
-      const tagVal = String(val ?? "");
-      return <TagCell value={tagVal} onSave={v => saveCell(record, col, v)}/>;
+      return <TagCell nodeId={record.id} col={col} colKey={customDef.key}/>;
+    }
+
+    // Number column — editable with formula support
+    if (customDef?.type === "number") {
+      return <NumberCell value={val} onSave={v => saveCell(record, col, v)}/>;
+    }
+
+    // Category column
+    if (customDef?.type === "category") {
+      return <CategoryColCell value={val} onSave={v => saveCell(record, col, v)}/>;
     }
 
     if (customDef?.type === "stage" || customDef?.type === "status") {
