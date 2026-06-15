@@ -1140,12 +1140,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto [contain:strict]">
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
         <table className="w-full border-separate border-spacing-0 text-left text-[12px]">
-          <thead className="sticky top-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+          <thead className="sticky top-0 z-20">
             <tr>
-              {/* Checkbox column */}
-              <th className="w-6 px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30" style={{}}>
+              {/* Checkbox column — tight fit around the 16px checkbox */}
+              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
                   className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-red-500 border-red-500" : someSelected ? "border-white/30 bg-white/[.06]" : "border-white/[.10] hover:border-white/30"}`}
@@ -1157,13 +1157,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {columns.map((col, colIdx) => (
                 <th
                   key={col}
-                  className={`px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-6 z-30" : ""}`}
-                  style={colIdx === 0 ? { transform: "translateZ(0)" } : undefined}
+                  className={`px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
                 >
                   <button onClick={() => handleHeaderSort(col)}
-                    className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors ${isNumeric(col) ? "ml-auto" : ""}`}>
+                    className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 ${isNumeric(col) ? "ml-auto" : ""}`}>
                     {getColumnIcon(col)}
-                    <span className="text-[10px] font-semibold tracking-widest uppercase">{col.replaceAll("_", " ")}</span>
+                    <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-normal leading-tight">{col.replaceAll("_", " ")}</span>
                     <SortIcon col={col}/>
                   </button>
                 </th>
@@ -1211,7 +1210,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03]`}
                 >
                   {/* Row checkbox */}
-                  <td className="w-6 px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 bg-inherit">
+                  <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 group-hover:bg-[#0f1115] ${selected.has(record.id) ? "bg-red-500/[.06]" : "bg-[#0b0d10]"}`}>
                     <div
                       onClick={() => toggleSelectRow(record.id)}
                       className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
@@ -1222,7 +1221,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {columns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-6 z-10 bg-[#0b0d10] group-hover:bg-[#0f1115] font-medium text-white/90" : ""}`}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-8 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 " + (selected.has(record.id) ? "bg-red-500/[.06] group-hover:bg-red-500/[.08]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
                     >
                       {renderCell(col, record)}
                     </td>
@@ -1243,13 +1242,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               ))
             )}
           </tbody>
-          <tfoot className="sticky bottom-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
+          <tfoot className="sticky bottom-0 z-20">
             <tr>
+              {/* Blank checkbox placeholder so name column aligns with body */}
+              <td className="w-8 min-w-[32px] max-w-[32px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-0 z-30" />
               {columns.map(col => (
                 <td
                   key={col}
-                  className={`px-3 py-[6px] bg-[#0d0f13] border-t border-t-zinc-800/60 ${isNumeric(col) ? "text-right" : ""} ${col === columns[0] ? "sticky left-0 z-30" : "border-r border-r-zinc-800/15"}`}
-                  style={col === columns[0] ? { transform: "translateZ(0)", willChange: "transform", boxShadow: "1px 0 0 0 rgba(63,63,70,0.45)" } : undefined}
+                  className={`px-3 py-2 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[11px] ${isNumeric(col) ? "text-right" : ""} ${col === columns[0] ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
