@@ -814,11 +814,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [nlpActive, setNlpActive] = useState(false);
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"export"|"addcol"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|null>(null);
 
   // ── Toolbar trigger refs (for portal positioning) ──
   const viewWrapRef   = useRef<HTMLDivElement>(null);
   const sortWrapRef   = useRef<HTMLDivElement>(null);
+  const filterWrapRef = useRef<HTMLDivElement>(null);
   const exportWrapRef = useRef<HTMLDivElement>(null);
   // Add column lives in the table header now
   const addColHeaderRef = useRef<HTMLTableCellElement>(null);
@@ -1145,6 +1146,70 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             )}
           </div>
 
+          {/* Filter panel */}
+          <div ref={filterWrapRef}>
+            <button
+              onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
+              className={openPanel === "filter" || quickFilters.length > 0 ? TOOL_BTN_ON : TOOL_BTN_IDLE}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              <span className="hidden sm:inline">Filter</span>
+              {quickFilters.length > 0 && <span className="rounded-full bg-red-500/80 px-1.5 text-[9px] text-white">{quickFilters.length}</span>}
+            </button>
+            {openPanel === "filter" && (
+              <PortalDropdown triggerRef={filterWrapRef} onClose={() => setOpenPanel(null)} align="right" className="w-64">
+                <div className="px-3 py-2 border-b border-white/[.06] flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Filter by</p>
+                  {quickFilters.length > 0 && (
+                    <button onClick={() => setQuickFilters([])} className="text-[10px] text-slate-500 hover:text-red-400 transition-colors">Clear all</button>
+                  )}
+                </div>
+                {(() => {
+                  const filterableCols = columns.filter(c =>
+                    c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
+                    c === "assigned_to" || c === "deal_owner" || c === "owner" || c === "type" || c === "priority" || c === "industry"
+                  );
+                  if (!filterableCols.length) return <p className="px-3 py-3 text-[11px] text-slate-600">No filterable columns found.</p>;
+                  return filterableCols.map(col => {
+                    const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 12);
+                    if (!vals.length) return null;
+                    const isStage = col.toLowerCase().includes("stage") || col === "status";
+                    return (
+                      <div key={col} className="border-b border-white/[.04] last:border-0">
+                        <div className="px-3 py-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">{col.replaceAll("_", " ")}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {vals.map(val => {
+                              const active = quickFilters.some(f => f.col === col && f.value === val);
+                              const s = isStage ? stageStyle(val) : null;
+                              return (
+                                <button
+                                  key={val}
+                                  onClick={() => toggleQuickFilter(col, val)}
+                                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-all ${
+                                    active
+                                      ? "border-red-500/50 bg-red-500/15 text-red-300"
+                                      : s
+                                        ? `${s.pill} hover:opacity-100 opacity-70`
+                                        : "border-white/[.08] bg-white/[.03] text-slate-400 hover:border-white/[.15] hover:text-slate-200"
+                                  }`}
+                                >
+                                  {s && <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-red-400" : s.dot}`}/>}
+                                  {val}
+                                  {active && <X size={8}/>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </PortalDropdown>
+            )}
+          </div>
+
           {/* Sort panel */}
           <div ref={sortWrapRef}>
             <button
@@ -1187,51 +1252,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </div>
         </div>
       </div>
-
-      {/* ── Quick filter chips ── */}
-      {(() => {
-        // Detect stage/status/owner columns that have values worth filtering
-        const chipCols = columns.filter(c =>
-          c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
-          c === "assigned_to" || c === "deal_owner" || c === "owner"
-        );
-        if (!chipCols.length) return null;
-        return (
-          <div className="flex items-center gap-1.5 px-6 pb-2 flex-wrap shrink-0">
-            {chipCols.map(col => {
-              const vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].slice(0, 8);
-              if (!vals.length) return null;
-              return vals.map(val => {
-                const active = quickFilters.some(f => f.col === col && f.value === val);
-                const isStage = col.toLowerCase().includes("stage") || col === "status";
-                const s = isStage ? stageStyle(val) : null;
-                return (
-                  <button
-                    key={`${col}:${val}`}
-                    onClick={() => toggleQuickFilter(col, val)}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-all ${
-                      active
-                        ? "border-red-500/40 bg-red-500/10 text-red-300"
-                        : s
-                          ? `${s.pill} opacity-60 hover:opacity-100`
-                          : "border-white/[.07] bg-white/[.03] text-slate-500 hover:border-white/[.12] hover:text-slate-300"
-                    }`}
-                  >
-                    {s && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${active ? "bg-red-400" : s.dot}`}/>}
-                    {val}
-                    {active && <X size={9} className="ml-0.5"/>}
-                  </button>
-                );
-              });
-            })}
-            {quickFilters.length > 0 && (
-              <button onClick={() => setQuickFilters([])} className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors ml-1">
-                Clear filters
-              </button>
-            )}
-          </div>
-        );
-      })()}
 
       {/* Bulk action bar */}
       {someSelected && (
