@@ -1249,7 +1249,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {columns.map(col => (
                 <td
                   key={col}
-                  className={`px-3 py-2 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[11px] ${isNumeric(col) ? "text-right" : ""} ${col === columns[0] ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${col === columns[0] ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : "border-r border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
@@ -1278,7 +1278,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   </div>
                 </td>
               ))}
-              <td className="px-3 py-[6px] text-[11px] text-zinc-700 tabular-nums bg-[#0d0f13] border-t border-t-zinc-800/60">{sorted.length} rows</td>
+              <td className="px-3 py-3 text-[12px] text-zinc-700 tabular-nums bg-[#0d0f13] border-t border-t-zinc-800/60">{sorted.length} rows</td>
               <td className="bg-[#0d0f13] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
             </tr>
           </tfoot>
