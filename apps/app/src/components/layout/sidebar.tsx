@@ -1,5 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone, Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users, ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp, GitBranch, Activity, Layers } from "lucide-react";
+import {
+  BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone,
+  Settings, Zap, ChevronLeft, ChevronRight, LogOut, Users,
+  ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp,
+  GitBranch, Activity, Layers,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
@@ -7,14 +12,10 @@ import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
 
-type NavGroup = {
-  label: string;
-  items: { to: string; label: string; icon: React.ElementType }[];
-};
-
-const navGroups: NavGroup[] = [
+// ─── Nav structure — 4 clean groups ──────────────────────────────────────────
+const NAV: { label: string; items: { to: string; label: string; icon: React.ElementType }[] }[] = [
   {
-    label: "Workspace",
+    label: "",
     items: [
       { to: "/home",          label: "Home",          icon: Home },
       { to: "/notifications", label: "Notifications", icon: Bell },
@@ -26,26 +27,16 @@ const navGroups: NavGroup[] = [
     items: [
       { to: "/tasks",  label: "Tasks",  icon: CheckSquare },
       { to: "/notes",  label: "Notes",  icon: FileText },
-    ],
-  },
-  {
-    label: "Communication",
-    items: [
       { to: "/emails", label: "Emails", icon: Mail },
       { to: "/calls",  label: "Calls",  icon: Phone },
     ],
   },
   {
-    label: "Sales",
+    label: "Revenue",
     items: [
-      { to: "/pipeline", label: "Pipeline", icon: TrendingUp },
-      { to: "/reports",  label: "Reports",  icon: BarChart2 },
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      { to: "/finance/invoices", label: "Invoices", icon: Receipt },
+      { to: "/pipeline",        label: "Pipeline", icon: TrendingUp },
+      { to: "/reports",         label: "Reports",  icon: BarChart2 },
+      { to: "/finance/invoices",label: "Invoices", icon: Receipt },
     ],
   },
   {
@@ -53,17 +44,13 @@ const navGroups: NavGroup[] = [
     items: [
       { to: "/automations", label: "Workflows",  icon: GitBranch },
       { to: "/sequences",   label: "Sequences",  icon: Activity },
-    ],
-  },
-  {
-    label: "Strategy",
-    items: [
-      { to: "/canvas", label: "Canvas", icon: Layers },
+      { to: "/canvas",      label: "Canvas",     icon: Layers },
     ],
   },
 ];
 
-function Logo({ size = 28 }: { size?: number }) {
+// ─── Logo ─────────────────────────────────────────────────────────────────────
+function Logo({ size = 24 }: { size?: number }) {
   const lineCount = 14;
   const lineH = size / lineCount;
   const radius = Math.max(2, size * 0.1);
@@ -86,22 +73,54 @@ function Logo({ size = 28 }: { size?: number }) {
   );
 }
 
-const GETTING_STARTED = [
-  { label: "Create your workspace", done: true },
-  { label: "Invite a team member",  done: false },
-  { label: "Add your first contact", done: false },
-  { label: "Create a task",         done: false },
-  { label: "Try Ask Mondaily",      done: false },
-];
-
-export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) {
+// ─── Single nav item ──────────────────────────────────────────────────────────
+function NavItem({
+  to, label, icon: Icon, collapsed,
+}: { to: string; label: string; icon: React.ElementType; collapsed: boolean }) {
   const location = useLocation();
+  const active = location.pathname.startsWith(to);
+
+  if (collapsed) {
+    return (
+      <Link
+        to={to}
+        title={label}
+        className={`mb-0.5 flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
+      >
+        <Icon size={14}/>
+      </Link>
+    );
+  }
+  return (
+    <Link
+      to={to}
+      className={`mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-white/[.07] text-white" : "text-slate-400 hover:bg-white/[.03] hover:text-slate-200"}`}
+    >
+      <Icon size={13} className={active ? "text-red-400" : "text-slate-600"}/>
+      {label}
+    </Link>
+  );
+}
+
+// ─── Section label ────────────────────────────────────────────────────────────
+function SectionLabel({ label }: { label: string }) {
+  if (!label) return null;
+  return (
+    <div className="mb-1 mt-3 px-2.5">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-700">{label}</span>
+    </div>
+  );
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) {
   const navigate = useNavigate();
   const { signOut } = useClerk();
   const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ Workspace: true, Work: true, Communication: false, Finance: false, Automation: false, Strategy: false });
-  const toggleGroup = (label: string) => setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
+  const [newWsName, setNewWsName] = useState("");
 
   useEffect(() => {
     const email = user?.primaryEmailAddress?.emailAddress;
@@ -110,58 +129,27 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     apiClient.post("/members/sync", { email, name: name || email, avatar_url: user.imageUrl || undefined }).catch(() => {});
   }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName]);
 
-  const [workspaceOpen,     setWorkspaceOpen]     = useState(false);
-  const [gettingStartedOpen, setGettingStartedOpen] = useState(false);
-  const [newWorkspaceOpen,  setNewWorkspaceOpen]  = useState(false);
-  const [newWsName,         setNewWsName]         = useState("");
-
-  const doneCount = GETTING_STARTED.filter(i => i.done).length;
-  const progress  = Math.round((doneCount / GETTING_STARTED.length) * 100);
   const org = user?.organizationMemberships?.[0]?.organization;
   const workspaceName    = org?.name || (user?.firstName ? `${user.firstName}'s Workspace` : "My Workspace");
   const workspaceLogo    = (org as any)?.imageUrl as string | null || null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
-  function NavItem({ to, label, icon: Icon }: { to: string; label: string; icon: React.ElementType }) {
-    const active = location.pathname.startsWith(to);
-    if (collapsed) {
-      return (
-        <Link
-          to={to}
-          title={label}
-          className={`mb-0.5 flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
-        >
-          <Icon size={15}/>
-        </Link>
-      );
-    }
-    return (
-      <Link
-        to={to}
-        className={`mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.03] hover:text-slate-300"}`}
-      >
-        <Icon size={14} className={active ? "text-red-400" : "text-slate-600"}/>
-        {label}
-      </Link>
-    );
-  }
-
   return (
     <>
       <aside
-        style={{ transition: "width 0.22s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-white/[.06] bg-[#0d0f13] ${collapsed ? "w-[52px]" : "w-[220px]"}`}
+        style={{ transition: "width 0.2s ease" }}
+        className={`relative flex h-full shrink-0 flex-col border-r border-white/[.05] bg-[#0b0d10] ${collapsed ? "w-[52px]" : "w-[216px]"}`}
       >
-        {/* Collapse / close toggle */}
+        {/* Collapse toggle */}
         <button
-          onClick={() => { if (onMobileClose) { onMobileClose(); } else { setCollapsed(c => !c); } }}
-          className="absolute -right-3 top-5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white/[.09] bg-[#0d0f13] text-slate-500 hover:text-white transition-colors"
+          onClick={() => { if (onMobileClose) onMobileClose(); else setCollapsed(c => !c); }}
+          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white/[.08] bg-[#0b0d10] text-slate-600 hover:text-white transition-colors shadow-md"
         >
           {onMobileClose ? <X size={10}/> : collapsed ? <ChevronRight size={10}/> : <ChevronLeft size={10}/>}
         </button>
 
-        {/* Workspace selector */}
-        <div className="relative border-b border-white/[.06]">
+        {/* Workspace header */}
+        <div className="relative shrink-0 border-b border-white/[.05]">
           <button
             onClick={() => !collapsed && setWorkspaceOpen(o => !o)}
             className={`flex w-full items-center gap-2.5 px-3 py-3 hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
@@ -173,10 +161,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {!collapsed && (
               <>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="truncate text-[13px] font-semibold text-white leading-tight">{workspaceName}</div>
-                  <div className="text-[11px] text-zinc-600">Pro workspace</div>
+                  <div className="truncate text-[13px] font-semibold text-white/90 leading-tight">{workspaceName}</div>
+                  <div className="text-[10px] text-slate-700">Pro workspace</div>
                 </div>
-                <ChevronsUpDown size={12} className="text-zinc-600 shrink-0"/>
+                <ChevronsUpDown size={11} className="text-slate-700 shrink-0"/>
               </>
             )}
           </button>
@@ -214,35 +202,27 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           )}
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto p-1.5">
+        {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
           {!collapsed && (
             <button
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
-              className="key-button sticky top-0 z-10 mb-1.5 flex w-full items-center justify-between bg-[#0d0f13] px-3 py-1.5 text-[12px]"
+              className="key-button mb-3 flex w-full items-center gap-2 px-3 py-2 text-[12px]"
             >
-              <div className="flex items-center gap-2"><Plus size={12}/> Quick create</div>
+              <Plus size={12}/> Quick create
             </button>
           )}
 
           {collapsed
-            ? navGroups.flatMap(g => g.items).map(item => <NavItem key={item.to} {...item}/>)
-            : navGroups.map(group => {
-                const isOpen = openGroups[group.label] ?? true;
-                const anyActive = group.items.some(i => location.pathname.startsWith(i.to));
-                return (
-                  <div key={group.label} className="mb-0.5">
-                    <button
-                      onClick={() => toggleGroup(group.label)}
-                      className={`flex w-full items-center justify-between px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${anyActive ? "text-slate-400" : "text-slate-600 hover:text-slate-400"}`}
-                    >
-                      {group.label}
-                      <ChevronDown size={10} className={`transition-transform ${isOpen ? "rotate-180" : ""}`}/>
-                    </button>
-                    {isOpen && group.items.map(item => <NavItem key={item.to} {...item}/>)}
-                  </div>
-                );
-              })
+            ? NAV.flatMap(g => g.items).map(item => (
+                <NavItem key={item.to} {...item} collapsed={true}/>
+              ))
+            : NAV.map(group => (
+                <div key={group.label || "__top"}>
+                  <SectionLabel label={group.label}/>
+                  {group.items.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
+                </div>
+              ))
           }
 
           {!collapsed && (
@@ -254,61 +234,48 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           )}
         </nav>
 
-        {/* Bottom section */}
-        {!collapsed && (
-          <div className="border-t border-white/[.06] p-1.5 space-y-0.5">
-            {/* Getting started */}
-            <button
-              onClick={() => setGettingStartedOpen(o => !o)}
-              className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[12px] text-slate-500 hover:bg-white/[.03] hover:text-slate-300 transition-colors"
-            >
-              <span>Getting started <span className="text-zinc-600">{doneCount}/{GETTING_STARTED.length}</span></span>
-              <ChevronDown size={11} className={`transition-transform text-zinc-600 ${gettingStartedOpen ? "rotate-180" : ""}`}/>
-            </button>
-
-            {/* Progress bar */}
-            <div className="mx-2.5 mb-1 h-0.5 rounded-full bg-white/[.06]">
-              <div className="h-0.5 rounded-full bg-red-500 transition-all" style={{ width: `${progress}%` }}/>
-            </div>
-
-            {gettingStartedOpen && (
-              <div className="mx-0.5 mt-0.5 space-y-0.5 mb-1">
-                {GETTING_STARTED.map((item, i) => (
-                  <div key={i} className={`flex items-center gap-2 rounded-lg px-2.5 py-1 text-[11px] ${item.done ? "text-zinc-700" : "text-slate-500"}`}>
-                    <div className={`h-3 w-3 rounded-full border flex items-center justify-center shrink-0 ${item.done ? "border-zinc-700 bg-zinc-700" : "border-zinc-700"}`}>
-                      {item.done && <div className="h-1.5 w-1.5 rounded-full bg-zinc-400"/>}
-                    </div>
-                    <span className={item.done ? "line-through" : ""}>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <Link
-              to="/settings/members"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-slate-500 hover:bg-white/[.03] hover:text-slate-300 transition-colors"
-            >
-              <Users size={13} className="text-zinc-600"/> Invite team members
+        {/* Bottom bar */}
+        <div className="shrink-0 border-t border-white/[.05] p-2">
+          {collapsed ? (
+            <Link to="/settings/account" title="Settings"
+              className="flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-white/[.04] hover:text-slate-300 transition-colors">
+              <Settings size={14}/>
             </Link>
+          ) : (
+            <div className="space-y-1">
+              {/* Trial chip */}
+              <div className="flex items-center justify-between rounded-lg border border-white/[.05] bg-white/[.02] px-2.5 py-2">
+                <div>
+                  <span className="text-[11px] text-slate-600">Trial</span>
+                  <span className="text-[11px] text-slate-500 ml-1">· 14 days left</span>
+                </div>
+                <Link
+                  to="/settings/billing"
+                  className="rounded-md border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-400 hover:bg-red-500/20 transition-colors whitespace-nowrap"
+                >
+                  Upgrade
+                </Link>
+              </div>
 
-            {/* Trial / upgrade */}
-            <div className="flex items-center justify-between rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1.5">
-              <span className="text-[11px] text-zinc-600">Trial · <span className="text-zinc-500">14 days left</span></span>
-              <Link
-                to="/settings/billing"
-                className="rounded-md border border-white/[.08] bg-white/[.04] px-2 py-0.5 text-[10px] font-medium text-zinc-400 hover:text-white hover:bg-white/[.07] transition-colors whitespace-nowrap"
-              >
-                Upgrade
-              </Link>
+              {/* User row */}
+              <div className="flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-white/[.03] transition-colors">
+                {user?.imageUrl
+                  ? <img src={user.imageUrl} className="h-5 w-5 rounded-full object-cover shrink-0" alt=""/>
+                  : <div className="h-5 w-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-semibold text-slate-300 shrink-0">
+                      {user?.firstName?.[0]?.toUpperCase() || "?"}
+                    </div>
+                }
+                <div className="flex-1 min-w-0">
+                  <div className="truncate text-[12px] text-slate-300 leading-tight">{user?.fullName || user?.firstName || "You"}</div>
+                  <div className="truncate text-[10px] text-slate-700">{user?.primaryEmailAddress?.emailAddress}</div>
+                </div>
+                <Link to="/settings/account" title="Settings" className="text-slate-700 hover:text-slate-400 transition-colors">
+                  <Settings size={12}/>
+                </Link>
+              </div>
             </div>
-          </div>
-        )}
-
-        {collapsed && (
-          <Link to="/settings/account" title="Settings" className="m-1.5 flex items-center justify-center rounded-lg p-2 text-slate-500 hover:bg-white/[.04] hover:text-slate-300 transition-colors">
-            <Settings size={14}/>
-          </Link>
-        )}
+          )}
+        </div>
       </aside>
 
       {/* Create workspace modal */}
@@ -326,15 +293,19 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             <input
               value={newWsName}
               onChange={e => setNewWsName(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && newWsName.trim()) { alert(`Workspace "${newWsName}" — coming soon!`); setNewWorkspaceOpen(false); setNewWsName(""); } }}
+              onKeyDown={e => {
+                if (e.key === "Enter" && newWsName.trim()) {
+                  alert(`Workspace "${newWsName}" — coming soon!`);
+                  setNewWorkspaceOpen(false);
+                  setNewWsName("");
+                }
+              }}
               placeholder="e.g. Acme Corp, Personal…"
               className="key-input w-full mb-4"
             />
             <div className="flex gap-2">
-              <button
-                onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
-                className="flex-1 rounded-xl border border-white/[.08] px-4 py-2 text-xs text-slate-400 hover:bg-white/[.04] transition-colors"
-              >
+              <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
+                className="flex-1 rounded-xl border border-white/[.08] px-4 py-2 text-xs text-slate-400 hover:bg-white/[.04] transition-colors">
                 Cancel
               </button>
               <button

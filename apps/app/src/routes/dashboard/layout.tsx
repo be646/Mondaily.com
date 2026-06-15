@@ -127,7 +127,7 @@ export function DashboardLayout() {
           </div>
         }/>
 
-        <main className={`min-h-0 flex-1 pb-16 md:pb-0 ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
+        <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
           <Outlet />
         </main>
       </div>
