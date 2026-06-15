@@ -125,14 +125,10 @@ export const enrichRecord = inngest.createFunction(
       // Merge enriched fields into node data
       const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
       const merged = { ...(node?.data ?? {}), ...fields };
-      await supabase
-        .from("nodes")
-        .update({
-          data: merged,
-          enriched_at: new Date().toISOString(),
-          enrichment_status: "done",
-        })
-        .eq("id", nodeId);
+      // Save data first (always works)
+      await supabase.from("nodes").update({ data: merged }).eq("id", nodeId);
+      // Save enrichment status columns (requires migration 0010)
+      await supabase.from("nodes").update({ enriched_at: new Date().toISOString(), enrichment_status: "done" }).eq("id", nodeId);
 
       // Create notification for the workspace
       const summary = Object.keys(fields).slice(0, 3).join(", ");
