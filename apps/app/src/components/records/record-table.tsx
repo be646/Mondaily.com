@@ -276,8 +276,10 @@ const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
 };
 
 const DEFAULT_STAGE_OPTIONS = [
-  "Lead","Qualified","Proposal","Negotiation","Closed Won","Closed Lost",
-  "In Progress","Not Started","Completed","On Hold","Cancelled",
+  "Lead","Qualified","Proposal","Negotiation","Closed Won","Closed Lost","On Hold",
+];
+const DEFAULT_STATUS_OPTIONS = [
+  "Not Started","In Progress","Completed","On Hold","Cancelled",
 ];
 
 function stageStyle(value: string) {
@@ -900,6 +902,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Toolbar dropdown open state ──
   const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|null>(null);
+  const [filterSearchOpen, setFilterSearchOpen] = useState(false);
+  const filterSearchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (filterSearchOpen) filterSearchRef.current?.focus(); }, [filterSearchOpen]);
 
   // ── Toolbar trigger refs (for portal positioning) ──
   const viewWrapRef   = useRef<HTMLDivElement>(null);
@@ -912,8 +917,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // ── Calc footer trigger refs (dynamic columns) ──
   const calcWrapRefs = useRef(new Map<string, HTMLDivElement>());
 
-  // ── Custom columns (appended by user) ──
-  const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>([]);
+  // ── Custom columns — persisted to localStorage per objectType ──
+  const customColsKey = `mondaily_custom_cols_${objectType}`;
+  const [customCols, setCustomCols] = useState<{ key: string; type: string }[]>(() => {
+    try { return JSON.parse(localStorage.getItem(customColsKey) ?? "[]"); } catch { return []; }
+  });
+  function saveCustomCols(next: { key: string; type: string }[]) {
+    setCustomCols(next);
+    localStorage.setItem(customColsKey, JSON.stringify(next));
+  }
   const allColumnsWithCustom = useMemo(() => [...allColumns, ...customCols.map(c => c.key)], [allColumns, customCols]);
   const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
 
@@ -1167,9 +1179,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     }
     if (customDef?.type === "stage" || customDef?.type === "status") {
       const shown = String(val ?? "");
-      const existingOptions = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))];
-      if (!shown) return <span className="text-slate-700 text-xs cursor-pointer hover:text-slate-400" onClick={() => saveCell(record, col, existingOptions[0] ?? (customDef.type === "stage" ? "Lead" : "New"))}>—</span>;
-      return <StagePill value={shown} options={existingOptions.length ? existingOptions : (customDef.type === "stage" ? DEFAULT_STAGE_OPTIONS : ["New","In Progress","Done","On Hold","Cancelled"])} onSelect={v => saveCell(record, col, v)}/>;
+      const defaults = customDef.type === "stage" ? DEFAULT_STAGE_OPTIONS : DEFAULT_STATUS_OPTIONS;
+      const existingOptions = [...new Set([...defaults, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+      if (!shown) return (
+        <button className="text-slate-700 text-xs hover:text-slate-400 transition-colors"
+          onClick={() => saveCell(record, col, defaults[0]!)}>
+          — set {customDef.type}
+        </button>
+      );
+      return <StagePill value={shown} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
     }
 
     // Custom column — empty by default
@@ -1192,9 +1210,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Lead score badge
     if (col === "lead_score" && val != null) return <LeadScoreBadge score={Number(val)} size="sm"/>;
 
-    // Stage pill
+    // Stage / Status pill
     if ((col.toLowerCase().includes("stage") || col === "status" || col === "deal_status") && typeof val === "string") {
-      const existingOptions = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+      const isStatusCol = col === "status" && !col.toLowerCase().includes("stage");
+      const defaults = isStatusCol ? DEFAULT_STATUS_OPTIONS : DEFAULT_STAGE_OPTIONS;
+      const existingOptions = [...new Set([...defaults, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
       return <StagePill value={val} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
     }
 
@@ -1278,19 +1298,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     <section className="flex flex-col h-full">
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 px-6 py-2 shrink-0">
-        {/* Filter */}
-        <div className="relative flex-1 max-w-xs">
-          <Search size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"/>
-          <input value={filterText} onChange={e => setFilterText(e.target.value)}
-            placeholder={`Filter ${objectType}…`}
-            className="key-input w-full py-1.5 pl-8 pr-8 text-xs"/>
-          {filterText && (
-            <button onClick={() => setFilterText("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
-              <X size={12}/>
-            </button>
-          )}
-        </div>
-
         {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
           <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
         )}
@@ -1389,7 +1396,29 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         });
         return (
           <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 shrink-0">Filter</span>
+            {/* Search — icon toggles input */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => { setFilterSearchOpen(o => !o); if (filterSearchOpen) setFilterText(""); }}
+                className={`flex items-center justify-center h-6 w-6 rounded-lg border transition-colors ${filterText ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-white/[.08] bg-white/[.03] text-white/30 hover:text-white/70"}`}
+                title="Search"
+              >
+                <Search size={11}/>
+              </button>
+              {filterSearchOpen && (
+                <input
+                  ref={filterSearchRef}
+                  value={filterText}
+                  onChange={e => setFilterText(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Escape") { setFilterText(""); setFilterSearchOpen(false); } }}
+                  placeholder={`Search ${objectType}…`}
+                  className="w-40 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-xs text-white placeholder-slate-700 outline-none focus:border-red-500/30 transition-all"
+                />
+              )}
+              {filterText && !filterSearchOpen && (
+                <span className="text-[10px] text-red-300 truncate max-w-[80px]">"{filterText}"</span>
+              )}
+            </div>
             <div className="h-3 w-px bg-white/[.08] shrink-0"/>
             {filterableCols.length === 0 && (
               <span className="text-xs text-slate-600">Add a Status, Stage, Assignee, or Date column to filter.</span>
@@ -1640,7 +1669,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 </button>
                 {openPanel === "addcol" && (
                   <AddColumnDropdown
-                    onAdd={(key, type) => { setCustomCols(prev => [...prev, { key, type }]); setOpenPanel(null); }}
+                    onAdd={(key, type) => { saveCustomCols([...customCols, { key, type }]); setOpenPanel(null); }}
                     onClose={() => setOpenPanel(null)}
                     triggerRef={addColHeaderRef}
                   />
@@ -1779,7 +1808,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               const col = colCtxMenu.col;
               // Hide data column OR remove custom column
               if (customCols.some(c => c.key === col)) {
-                setCustomCols(prev => prev.filter(c => c.key !== col));
+                saveCustomCols(customCols.filter(c => c.key !== col));
               } else {
                 toggleCol(col);
               }
