@@ -12,6 +12,8 @@ router.use("*", requireAuth);
 router.get("/", async (c) => {
   const userId = c.get("userId");
   const role = c.get("role");
+  const objectTypeFilter = c.req.query("object_type");
+
   let query = supabase
     .from("lists")
     .select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)")
@@ -20,6 +22,10 @@ router.get("/", async (c) => {
 
   if (!["owner", "admin"].includes(role)) {
     query = query.or(`visibility.eq.workspace,owner_id.eq.${userId},shared_with.cs.{${userId}}`);
+  }
+
+  if (objectTypeFilter) {
+    query = query.eq("object_type", objectTypeFilter);
   }
 
   const { data, error } = await query;
@@ -61,7 +67,11 @@ router.post("/:id/entries", zValidator("json", z.object({ node_id: z.string().uu
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
   if (!list) return c.json({ error: "List not found" }, 404);
   const { data: node } = await supabase.from("nodes").select("id,object_type").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.valid("json").node_id).maybeSingle();
-  if (!node || node.object_type !== list.object_type) return c.json({ error: "Record does not match this list type" }, 400);
+  if (!node) return c.json({ error: "Record not found" }, 404);
+  // Allow adding if list has no object_type set, or types match
+  if (list.object_type && node.object_type && node.object_type !== list.object_type) {
+    return c.json({ error: `Record type '${node.object_type}' does not match list type '${list.object_type}'` }, 400);
+  }
   const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", list.id);
   const { data, error } = await supabase.from("list_entries").upsert({ list_id: list.id, node_id: node.id, position: (count ?? 0) + 1 }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data, 201);

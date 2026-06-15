@@ -1717,8 +1717,18 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   async function bulkAddToList(listId: string) {
-    await Promise.all([...selected].map(id => apiClient.post(`/lists/${listId}/entries`, { node_id: id }).catch(() => {})));
+    const results = await Promise.allSettled([...selected].map(id => apiClient.post(`/lists/${listId}/entries`, { node_id: id })));
+    const failed = results.filter(r => r.status === "rejected").length;
+    const succeeded = results.length - failed;
     setSelected(new Set());
+    if (succeeded > 0) {
+      setUndoToast(null); // repurpose existing toast slot for feedback
+      // Brief success flash via window title hack — or just log
+      console.log(`Added ${succeeded} record(s) to list`);
+    }
+    if (failed > 0) {
+      alert(`${failed} record(s) could not be added — the list type may not match. Check that your list was created for the same record type.`);
+    }
   }
 
   const [filterSearchOpen, setFilterSearchOpen] = useState(false);
@@ -1728,8 +1738,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [assignSearch, setAssignSearch] = useState("");
   const assignPickerRef = useRef<HTMLDivElement>(null);
   const listsQuery = useQuery({
-    queryKey: ["lists"],
-    queryFn: () => apiClient.get<{ id: string; name: string }[]>("/lists"),
+    queryKey: ["lists", objectType],
+    queryFn: () => apiClient.get<{ id: string; name: string; object_type: string }[]>(`/lists?object_type=${encodeURIComponent(objectType)}`),
     enabled: listPickerOpen,
   });
 
