@@ -922,8 +922,35 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Lead score badge
     if (col === "lead_score" && val != null) return <LeadScoreBadge score={Number(val)} size="sm"/>;
 
-    // Stage pill (still editable via dropdown in the pill itself)
+    // Stage pill
     if (col.toLowerCase().includes("stage") && typeof val === "string") return <StagePill value={val}/>;
+
+    // Logo URL — render as image, skip base64
+    if ((col === "logo_url" || col === "avatar_url" || col === "image_url") && typeof val === "string" && val.startsWith("http")) {
+      return <img src={val} alt="" className="h-6 w-6 rounded object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}/>;
+    }
+    if ((col === "logo_url" || col === "avatar_url" || col === "image_url") && typeof val === "string" && val.startsWith("data:")) {
+      return <span className="text-white/20 text-[10px]">image</span>;
+    }
+
+    // Long text fields — truncate with tooltip
+    const isLong = col === "description" || col === "bio" || col === "notes" || col === "summary" || col === "address";
+    if (isLong && typeof val === "string" && val.length > 60) {
+      return (
+        <span title={val} className="block max-w-[220px] truncate text-white/40 text-[11px] cursor-help">
+          {val}
+        </span>
+      );
+    }
+
+    // URLs — show as clickable link, not raw
+    if (typeof val === "string" && (col === "linkedin" || col === "twitter" || col === "website" || col === "domain") && val.startsWith("http")) {
+      return (
+        <a href={val} target="_blank" rel="noreferrer" className="text-blue-400/70 hover:text-blue-400 text-[11px] underline underline-offset-2 truncate block max-w-[140px]" onClick={e => e.stopPropagation()}>
+          {val.replace(/^https?:\/\/(www\.)?/, "").slice(0, 30)}
+        </a>
+      );
+    }
 
     // Name column — editable text + open link on hover
     if (col === nameCol) return (
@@ -932,7 +959,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <EditableCell
           raw={val}
           onSave={v => saveCell(record, col, v)}
-          className="flex-1 font-medium text-white"
+          className="flex-1 font-medium text-white truncate"
         />
         {isEnriched && (
           <span className="inline-flex items-center gap-0.5 rounded-sm bg-zinc-800/60 border border-zinc-700/50 px-1.5 py-0.5 text-[9px] font-medium text-zinc-400 shrink-0">
@@ -945,13 +972,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       </div>
     );
 
-    // All other fields — inline editable
+    // All other fields — inline editable, truncated
     return (
-      <EditableCell
-        raw={val}
-        numeric={isNumeric(col)}
-        onSave={v => saveCell(record, col, v)}
-      />
+      <div className="max-w-[180px] truncate">
+        <EditableCell
+          raw={val}
+          numeric={isNumeric(col)}
+          onSave={v => saveCell(record, col, v)}
+        />
+      </div>
     );
   }
 
@@ -1116,7 +1145,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20" style={{ transform: "translateZ(0)", willChange: "transform" }}>
             <tr>
               {/* Checkbox column */}
-              <th className="w-6 px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30" style={{ transform: "translateZ(0)" }}>
+              <th className="w-6 px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30" style={{}}>
                 <div
                   onClick={toggleSelectAll}
                   className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-red-500 border-red-500" : someSelected ? "border-white/30 bg-white/[.06]" : "border-white/[.10] hover:border-white/30"}`}
@@ -1193,8 +1222,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   {columns.map((col, colIdx) => (
                     <td
                       key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-10 z-10 bg-[#0b0d10] group-hover:bg-[#0f1115] font-medium text-white/90" : ""}`}
-                      style={colIdx === 0 ? { transform: "translateZ(0)" } : undefined}
+                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? "sticky left-6 z-10 bg-[#0b0d10] group-hover:bg-[#0f1115] font-medium text-white/90" : ""}`}
                     >
                       {renderCell(col, record)}
                     </td>
