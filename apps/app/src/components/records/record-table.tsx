@@ -5,6 +5,8 @@ import {
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
   UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
   Rows3, BookmarkCheck, LayoutGrid, Percent,
+  Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
+  Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -101,30 +103,127 @@ function EditableCell({
   );
 }
 
-// ─── Category badges (read-only table cells) ──────────────────────────────────
-function CategoryBadges({ value }: { value: unknown }) {
-  let cats: { name: string; color: string }[] = [];
-  if (Array.isArray(value)) {
-    cats = value as { name: string; color: string }[];
-  } else if (typeof value === "string") {
-    try { cats = JSON.parse(value); } catch { return <span className="text-xs text-slate-600">—</span>; }
+// ─── Category cell — shared between built-in `categories` col and custom category cols ──
+// Uses the same INDUSTRY_TAXONOMY as the record profile so data is always in sync.
+// Format stored: [{ name: string; color: string }, ...] at data.categories
+
+function parseCats(value: unknown): { name: string; color: string }[] {
+  if (Array.isArray(value)) return value as { name: string; color: string }[];
+  if (typeof value === "string") { try { return JSON.parse(value); } catch { return []; } }
+  return [];
+}
+
+// Lucide icon per industry (no emojis)
+function IndustryIcon({ name, size = 11 }: { name: string; size?: number }) {
+  const map: Record<string, React.ReactNode> = {
+    "B2B":                   <Building2 size={size}/>,
+    "B2C":                   <User size={size}/>,
+    "SaaS":                  <Globe size={size}/>,
+    "Web Services & Apps":   <Globe size={size}/>,
+    "Consulting":            <Briefcase size={size}/>,
+    "FinTech":               <DollarSign size={size}/>,
+    "HealthTech":            <Heart size={size}/>,
+    "EdTech":                <BookOpen size={size}/>,
+    "E-commerce":            <ShoppingCart size={size}/>,
+    "AI / ML":               <Cpu size={size}/>,
+    "Cybersecurity":         <Shield size={size}/>,
+    "Marketplace":           <Store size={size}/>,
+    "Manufacturing":         <Factory size={size}/>,
+    "Real Estate":           <Home size={size}/>,
+    "Logistics & Supply":    <Truck size={size}/>,
+    "Media & Entertainment": <Tv size={size}/>,
+    "Legal":                 <Scale size={size}/>,
+    "Energy":                <Zap size={size}/>,
+    "Agency":                <Megaphone size={size}/>,
+    "Nonprofit":             <Heart size={size}/>,
+  };
+  return <>{map[name] ?? <LayoutGrid size={size}/>}</>;
+}
+
+type CatEntry = { name: string; color: string };
+
+function CategoryCell({ value, onSave }: {
+  value: unknown;
+  onSave: (cats: CatEntry[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    function h(e: MouseEvent) { if (!ref.current?.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const cats = parseCats(value);
+  const selected = new Set(cats.map(c => c.name));
+  const filtered = INDUSTRY_TAXONOMY.filter(t => t.name.toLowerCase().includes(search.toLowerCase()));
+
+  function toggle(t: typeof INDUSTRY_TAXONOMY[number]) {
+    if (selected.has(t.name)) onSave(cats.filter(c => c.name !== t.name));
+    else onSave([...cats, { name: t.name, color: t.border }]);
   }
-  if (!cats.length) return <span className="text-xs text-slate-600">—</span>;
+
   const MAX = 2;
   const overflow = cats.length - MAX;
+
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {cats.slice(0, MAX).map((cat, i) => {
-        const t = INDUSTRY_TAXONOMY.find(x => x.border === cat.color || x.name === cat.name) ?? INDUSTRY_TAXONOMY[0]!;
-        return (
-          <span key={i} style={{ background: t.bg, color: t.text, borderColor: t.border + "55" }}
-            className="inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold border whitespace-nowrap">
-            {cat.name}
-          </span>
-        );
-      })}
-      {overflow > 0 && (
-        <span className="rounded-full bg-white/[.05] border border-white/[.06] px-1.5 py-0.5 text-[9px] text-slate-500">+{overflow}</span>
+    <div ref={ref} className="relative min-w-0">
+      {/* Display */}
+      <div className="flex items-center gap-1 flex-wrap cursor-pointer" onClick={() => setOpen(o => !o)}>
+        {cats.length === 0
+          ? <span className="text-slate-700 text-xs hover:text-slate-500 transition-colors">+ category</span>
+          : <>
+              {cats.slice(0, MAX).map((cat) => {
+                const t = INDUSTRY_TAXONOMY.find(x => x.name === cat.name) ?? INDUSTRY_TAXONOMY[0]!;
+                return (
+                  <span key={cat.name} style={{ background: t.bg, color: t.text, borderColor: t.border + "55" }}
+                    className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold whitespace-nowrap">
+                    <IndustryIcon name={cat.name} size={9}/>
+                    {cat.name}
+                  </span>
+                );
+              })}
+              {overflow > 0 && <span className="rounded-full bg-white/[.05] border border-white/[.06] px-1.5 py-0.5 text-[9px] text-slate-500">+{overflow}</span>}
+            </>
+        }
+      </div>
+
+      {/* Picker portal */}
+      {open && createPortal(
+        <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
+          className="w-52 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="px-2 pt-2 pb-1">
+            <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
+              placeholder="Search categories…"
+              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-white/[.15] placeholder:text-white/20"/>
+          </div>
+          <div className="p-1 max-h-56 overflow-y-auto">
+            {filtered.map(t => {
+              const active = selected.has(t.name);
+              return (
+                <button key={t.name} onClick={() => toggle(t)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[.04] transition-colors">
+                  <span style={{ color: t.text }} className="shrink-0 opacity-70">
+                    <IndustryIcon name={t.name} size={11}/>
+                  </span>
+                  <span className="flex-1 text-left text-xs text-white/50" style={{ color: active ? t.text : undefined }}>
+                    {t.name}
+                  </span>
+                  {active && <Check size={10} style={{ color: t.border }} className="shrink-0"/>}
+                </button>
+              );
+            })}
+          </div>
+          {cats.length > 0 && (
+            <div className="border-t border-white/[.06] px-2 py-1.5">
+              <button onClick={() => { onSave([]); }} className="text-[10px] text-white/20 hover:text-red-400 transition-colors">Clear all</button>
+            </div>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -1091,58 +1190,6 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
   );
 }
 
-// ─── Category column cell ─────────────────────────────────────────────────────
-const CATEGORY_OPTIONS = [
-  { name: "Marketing",   icon: "📢", color: "#f97316" },
-  { name: "Sales",       icon: "💰", color: "#10b981" },
-  { name: "Engineering", icon: "⚙️",  color: "#6366f1" },
-  { name: "Design",      icon: "🎨", color: "#ec4899" },
-  { name: "Support",     icon: "🎧", color: "#3b82f6" },
-  { name: "Finance",     icon: "📊", color: "#f59e0b" },
-  { name: "Legal",       icon: "⚖️",  color: "#8b5cf6" },
-  { name: "Operations",  icon: "🔧", color: "#06b6d4" },
-  { name: "HR",          icon: "👥", color: "#84cc16" },
-  { name: "Product",     icon: "📦", color: "#ef4444" },
-  { name: "Other",       icon: "🏷️",  color: "#6b7280" },
-];
-
-function CategoryColCell({ value, onSave }: { value: unknown; onSave: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    function h(e: MouseEvent) { if (!ref.current?.contains(e.target as Node)) setOpen(false); }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
-
-  const current = CATEGORY_OPTIONS.find(c => c.name === String(value ?? ""));
-  return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs transition-colors hover:bg-white/[.04]"
-        style={current ? { color: current.color } : undefined}>
-        {current ? <><span>{current.icon}</span><span className="font-medium">{current.name}</span></>
-          : <span className="text-slate-700">— category</span>}
-      </button>
-      {open && createPortal(
-        <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-44 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl p-1" onClick={e => e.stopPropagation()}>
-          {CATEGORY_OPTIONS.map(opt => (
-            <button key={opt.name} onClick={() => { onSave(opt.name); setOpen(false); }}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-white/[.04] transition-colors">
-              <span className="text-sm">{opt.icon}</span>
-              <span className="text-xs font-medium" style={{ color: opt.color }}>{opt.name}</span>
-              {current?.name === opt.name && <Check size={10} className="ml-auto" style={{ color: opt.color }}/>}
-            </button>
-          ))}
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
-
 // ─── Filter column dropdown (inline bar style) ───────────────────────────────
 function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
   col: string;
@@ -1583,7 +1630,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setUndoToast(null);
   }
 
-  function saveCell(record: NodeRecord, col: string, newVal: string | number) {
+  function saveCell(record: NodeRecord, col: string, newVal: string | number | object) {
     const newData = { ...record.data, [col]: newVal };
     qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
       (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
@@ -1628,9 +1675,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       return <NumberCell value={val} onSave={v => saveCell(record, col, v)}/>;
     }
 
-    // Category column
+    // Category column — always reads/writes data.categories to stay in sync with profile
     if (customDef?.type === "category") {
-      return <CategoryColCell value={val} onSave={v => saveCell(record, col, v)}/>;
+      return <CategoryCell value={record.data["categories"]} onSave={cats => saveCell(record, "categories", cats)}/>;
     }
 
     if (customDef?.type === "stage" || customDef?.type === "status") {
@@ -1649,8 +1696,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Custom column — empty by default
     if (customDef) return <span className="text-slate-700 text-xs">—</span>;
 
-    // Categories
-    if (col === "categories") return <CategoryBadges value={val}/>;
+    // Built-in categories column — same component, same data.categories field
+    if (col === "categories") return <CategoryCell value={val} onSave={cats => saveCell(record, "categories", cats)}/>;
 
     // Owner/assigned_to columns — each col tracked independently
     if (col === "assigned_to" || col === "deal_owner" || col.toLowerCase().includes("owner") || col.toLowerCase().includes("assignee")) {
