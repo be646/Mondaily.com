@@ -1573,108 +1573,75 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     );
   }
 
-  const TOOL_BTN_BASE = "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150";
-  const TOOL_BTN_IDLE = `${TOOL_BTN_BASE} border-white/[.07] bg-white/[.02] text-white/40 hover:border-white/[.12] hover:text-white/80 hover:bg-white/[.04]`;
-  const TOOL_BTN_ON   = `${TOOL_BTN_BASE} border-white/[.12] bg-white/[.06] text-white`;
+  // Toolbar button styles — clean borderless pills
+  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none";
+  const TB_IDLE = `${TB} text-white/35 hover:text-white/70 hover:bg-white/[.04]`;
+  const TB_ON   = `${TB} text-white/80 bg-white/[.06]`;
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white/[.10] px-1 text-[9px] font-semibold text-white/60";
+  const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (
     <>
     <section className="flex flex-col h-full">
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2 px-6 py-2 shrink-0">
+      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-white/[.04] shrink-0">
         {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
-          <span className="text-xs text-slate-600 tabular-nums">{sorted.length} of {records.length}</span>
+          <span className="text-[11px] text-white/20 tabular-nums mr-2">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
-          <span className="flex items-center gap-1 rounded-md border border-zinc-700/60 bg-zinc-800/40 px-2 py-1 text-[10px] text-zinc-400">
+          <span className="flex items-center gap-1 rounded-md border border-zinc-700/60 bg-zinc-800/40 px-2 py-1 text-[10px] text-zinc-400 mr-1">
             <Sparkles size={9}/> AI active
           </span>
         )}
 
-        <div className="ml-auto flex items-center gap-1.5">
-          {/* View settings */}
+        <div className="ml-auto flex items-center gap-0.5">
+          {/* View */}
           <div ref={viewWrapRef}>
-            <button
-              onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
-              className={openPanel === "view" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <Settings2 size={12}/>
-              <span className="hidden sm:inline">View</span>
-              {hiddenCols.size > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white">{allColumns.length - hiddenCols.size}</span>}
+            <button onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
+              className={openPanel === "view" ? TB_ON : TB_IDLE}>
+              <Settings2 size={11}/>
+              <span>View</span>
+              {hiddenCols.size > 0 && <span className={TB_DOT}>{allColumns.length - hiddenCols.size}</span>}
             </button>
             {openPanel === "view" && (
-              <ViewSettingsDropdown
-                columns={allColumnsWithCustom}
-                hidden={hiddenCols}
-                onToggle={toggleCol}
-                onClose={() => setOpenPanel(null)}
-                triggerRef={viewWrapRef}
-              />
+              <ViewSettingsDropdown columns={allColumnsWithCustom} hidden={hiddenCols} onToggle={toggleCol} onClose={() => setOpenPanel(null)} triggerRef={viewWrapRef}/>
             )}
           </div>
 
-          {/* Filter button */}
+          <div className="w-px h-3 bg-white/[.07] mx-1"/>
+
+          {/* Filter */}
           <div ref={filterWrapRef}>
-            <button
-              onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
-              className={openPanel === "filter" || quickFilters.length > 0 ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
-              <span className="hidden sm:inline">Filter</span>
-              {quickFilters.length > 0 && <span className="rounded-full bg-red-500/80 px-1.5 text-[9px] text-white">{quickFilters.length}</span>}
+            <button onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
+              className={openPanel === "filter" || quickFilters.length > 0 || filterText ? TB_ON : TB_IDLE}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+              <span>Filter</span>
+              {(quickFilters.length > 0 || filterText) && <span className={TB_DOT_ACTIVE}>{quickFilters.length + (filterText ? 1 : 0)}</span>}
             </button>
           </div>
 
-          {/* Sort panel */}
+          {/* Sort */}
           <div ref={sortWrapRef}>
-            <button
-              onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
-              className={openPanel === "sort" || activeSortCount > 0 ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <ArrowUpDown size={12}/>
-              <span className="hidden sm:inline">Sort</span>
-              {activeSortCount > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white">{activeSortCount}</span>}
+            <button onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
+              className={openPanel === "sort" || activeSortCount > 0 ? TB_ON : TB_IDLE}>
+              <ArrowUpDown size={11}/>
+              <span>Sort</span>
+              {activeSortCount > 0 && <span className={TB_DOT}>{activeSortCount}</span>}
             </button>
             {openPanel === "sort" && (
-              <SortPanel
-                columns={[...allColumnsWithCustom, "__updated_at"]}
-                rules={sortRules}
+              <SortPanel columns={[...allColumnsWithCustom, "__updated_at"]} rules={sortRules}
                 onChange={rules => { setSortRules(rules); setQuickSortCol(null); }}
-                onClose={() => setOpenPanel(null)}
-                triggerRef={sortWrapRef}
-              />
+                onClose={() => setOpenPanel(null)} triggerRef={sortWrapRef}/>
             )}
           </div>
 
-          {/* Export */}
-          <div ref={exportWrapRef}>
-            <button
-              onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
-              className={openPanel === "export" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <Download size={12}/>
-              <span className="hidden sm:inline">Export</span>
-            </button>
-            {openPanel === "export" && (
-              <ExportDropdown
-                records={sorted}
-                columns={columns}
-                objectType={objectType}
-                onClose={() => setOpenPanel(null)}
-                triggerRef={exportWrapRef}
-              />
-            )}
-          </div>
-
-          {/* Group by */}
+          {/* Group */}
           <div className="relative">
-            <button
-              onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")}
-              className={groupByCol || openPanel === "groupby" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <Rows3 size={12}/>
-              <span className="hidden sm:inline">Group</span>
-              {groupByCol && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white max-w-[60px] truncate">{groupByCol.replace(/_/g," ")}</span>}
+            <button onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")}
+              className={groupByCol || openPanel === "groupby" ? TB_ON : TB_IDLE}>
+              <Rows3 size={11}/>
+              <span>Group</span>
+              {groupByCol && <span className={TB_DOT}>{groupByCol.replace(/_/g," ")}</span>}
             </button>
             {openPanel === "groupby" && (
               <>
@@ -1700,15 +1667,28 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             )}
           </div>
 
+          <div className="w-px h-3 bg-white/[.07] mx-1"/>
+
+          {/* Export */}
+          <div ref={exportWrapRef}>
+            <button onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
+              className={openPanel === "export" ? TB_ON : TB_IDLE}>
+              <Download size={11}/>
+              <span>Export</span>
+            </button>
+            {openPanel === "export" && (
+              <ExportDropdown records={sorted} columns={columns} objectType={objectType}
+                onClose={() => setOpenPanel(null)} triggerRef={exportWrapRef}/>
+            )}
+          </div>
+
           {/* Saved views */}
           <div className="relative">
-            <button
-              onClick={() => setOpenPanel(p => p === "views" ? null : "views")}
-              className={openPanel === "views" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
-            >
-              <BookmarkCheck size={12}/>
-              <span className="hidden sm:inline">Views</span>
-              {savedViews.length > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white">{savedViews.length}</span>}
+            <button onClick={() => setOpenPanel(p => p === "views" ? null : "views")}
+              className={openPanel === "views" || savedViews.length > 0 ? (openPanel === "views" ? TB_ON : TB_IDLE) : TB_IDLE}>
+              <BookmarkCheck size={11}/>
+              <span>Views</span>
+              {savedViews.length > 0 && <span className={TB_DOT}>{savedViews.length}</span>}
             </button>
             {openPanel === "views" && (
               <>
