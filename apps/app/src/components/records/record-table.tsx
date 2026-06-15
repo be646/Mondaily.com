@@ -1182,7 +1182,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
     // Stage pill
     if ((col.toLowerCase().includes("stage") || col === "status" || col === "deal_status") && typeof val === "string") {
-      const existingOptions = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))];
+      const existingOptions = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
       return <StagePill value={val} options={existingOptions} onSelect={v => saveCell(record, col, v)}/>;
     }
 
@@ -1367,12 +1367,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
       {/* ── Filter inline bar — same look as bulk action bar ── */}
       {openPanel === "filter" && (() => {
-        const filterableCols = orderedColumns.filter(c =>
-          c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
-          c === "assigned_to" || c === "deal_owner" || c === "owner" ||
-          c.toLowerCase().includes("owner") || c.toLowerCase().includes("assignee") ||
-          c === "type" || c === "priority" || c === "industry"
-        );
+        // Auto-detect filterable columns: any column with ≤15 unique non-empty values
+        // Skip free-text / high-cardinality columns like name, email, phone, url, description
+        const skipCols = new Set(["name","email","phone","website","linkedin","twitter","domain","description","bio","notes","summary","address","logo_url","avatar_url","image_url","lead_score","updated_at","created_at"]);
+        const filterableCols = orderedColumns.filter(c => {
+          if (skipCols.has(c) || c.toLowerCase().includes("url") || c.toLowerCase().includes("email") || c.toLowerCase().includes("phone")) return false;
+          const uniqueVals = new Set(records.map(r => String(r.data[c] ?? "")).filter(Boolean));
+          return uniqueVals.size >= 1 && uniqueVals.size <= 15;
+        });
         return (
           <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 shrink-0">Filter by</span>
@@ -1521,8 +1523,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
                     className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? "sticky left-8 z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]" : ""}`}
-                    draggable={colIdx > 0}
-                    onDragStart={() => { dragColRef.current = col; }}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -1537,14 +1537,27 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       setColOrder(next);
                       dragColRef.current = null;
                     }}
-                    onContextMenu={e => { e.preventDefault(); setColCtxMenu({ col, x: e.clientX, y: e.clientY }); }}
+                    onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setColCtxMenu({ col, x: e.clientX, y: e.clientY }); }}
                   >
-                    <button onClick={() => handleHeaderSort(col)}
-                      className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 w-full ${isNumeric(col) ? "ml-auto" : ""}`}>
-                      {getColumnIcon(col)}
-                      <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
-                      <SortIcon col={col}/>
-                    </button>
+                    <div className="flex items-center gap-1 min-w-0 w-full">
+                      {/* Drag handle — only on non-first columns */}
+                      {colIdx > 0 && (
+                        <div
+                          draggable
+                          onDragStart={e => { e.stopPropagation(); dragColRef.current = col; }}
+                          className="cursor-grab active:cursor-grabbing text-white/10 hover:text-white/30 shrink-0 pr-0.5"
+                          title="Drag to reorder"
+                        >
+                          <GripVertical size={11}/>
+                        </div>
+                      )}
+                      <button onClick={() => handleHeaderSort(col)}
+                        className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
+                        {getColumnIcon(col)}
+                        <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
+                        <SortIcon col={col}/>
+                      </button>
+                    </div>
                     {/* Resize handle */}
                     <div
                       onMouseDown={e => startResize(col, e, w ?? (e.currentTarget.parentElement?.offsetWidth ?? 160))}
