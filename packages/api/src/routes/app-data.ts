@@ -212,14 +212,24 @@ router.post("/emails/send", zValidator("json", z.object({
   body: z.string().min(1)
 })), async (c) => {
   const body = c.req.valid("json");
+  // Insert first to get the ID, then inject tracking pixel referencing that ID
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: c.get("workspaceId"),
     vertical: "sales",
     object_type: "email_outbox",
-    data: { ...body, status: "queued", requested_at: new Date().toISOString() },
+    data: { ...body, status: "queued", requested_at: new Date().toISOString(), opens: [], clicks: [] },
     created_by: c.get("userId")
   }).select().single();
   if (error) return c.json({ error: error.message }, 400);
+
+  const apiBase = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
+  const pixel = `<img src="${apiBase}/api/v1/emails/track/${data.id}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
+  const trackedBody = body.body.includes("</body>")
+    ? body.body.replace("</body>", `${pixel}</body>`)
+    : body.body + pixel;
+  // Update with tracked body
+  await supabase.from("nodes").update({ data: { ...body, status: "queued", requested_at: new Date().toISOString(), opens: [], clicks: [], tracked_body: trackedBody } }).eq("id", data.id);
+
   await supabase.from("activities").insert({
     node_id: data.id,
     workspace_id: c.get("workspaceId"),
@@ -228,7 +238,7 @@ router.post("/emails/send", zValidator("json", z.object({
     action: "email_queued",
     diff: { to: body.to, subject: body.subject }
   });
-  return c.json({ id: data.id, status: "queued" }, 202);
+  return c.json({ id: data.id, status: "queued", tracked_body: trackedBody }, 202);
 });
 
 for (const objectType of ["email_thread", "call"]) {

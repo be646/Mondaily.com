@@ -1,7 +1,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, ChevronDown, ChevronLeft, ChevronUp, Link2, Mail, Paperclip, Search, Send, Sparkles } from "lucide-react";
+import { Bot, ChevronDown, ChevronLeft, ChevronUp, Link2, Mail, MousePointerClick, Eye, Paperclip, Search, Send, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 
@@ -130,7 +130,89 @@ function MessageCard({ message, expanded, onToggle }: { message: EmailMessage; e
   );
 }
 
+// ─── Email tracking panel ──────────────────────────────────────────────────────
+interface OutboxEmail {
+  id: string;
+  to: string;
+  subject: string;
+  status: string;
+  sent_at?: string;
+  requested_at?: string;
+  open_count: number;
+  click_count: number;
+  last_opened_at?: string;
+  last_clicked_at?: string;
+}
+
+function SentTracker() {
+  const { data: emails = [], isLoading } = useQuery({
+    queryKey: ["email-outbox"],
+    queryFn: () => apiClient.get<OutboxEmail[]>("/emails/outbox"),
+    refetchInterval: 30_000,
+  });
+
+  if (isLoading) return (
+    <div className="p-6 space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="h-14 animate-pulse rounded-lg bg-white/[.04]"/>
+      ))}
+    </div>
+  );
+
+  if (emails.length === 0) return (
+    <div className="flex h-full min-h-80 flex-col items-center justify-center px-6 text-center">
+      <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-white/[.04] text-slate-600">
+        <Eye size={22}/>
+      </div>
+      <h2 className="text-sm font-medium text-slate-400">No sent emails yet</h2>
+      <p className="mt-1 text-xs text-slate-600">Emails you send will appear here with open and click tracking.</p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="mx-auto max-w-2xl space-y-2">
+        {emails.map(email => {
+          const opened = email.open_count > 0;
+          const clicked = email.click_count > 0;
+          const date = email.sent_at || email.requested_at;
+          return (
+            <div key={email.id} className="rounded-xl border border-white/[.07] bg-white/[.02] px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{email.subject || "(no subject)"}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">To: {email.to}</p>
+                  {date && <p className="text-[10px] text-slate-700 mt-1">{new Date(date).toLocaleString()}</p>}
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Open indicator */}
+                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium ${opened ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-white/[.03] text-slate-600 border border-white/[.06]"}`}>
+                    <Eye size={11}/>
+                    <span>{email.open_count > 0 ? `Opened ${email.open_count}×` : "Not opened"}</span>
+                  </div>
+                  {/* Click indicator */}
+                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium ${clicked ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-white/[.03] text-slate-600 border border-white/[.06]"}`}>
+                    <MousePointerClick size={11}/>
+                    <span>{email.click_count > 0 ? `${email.click_count} click${email.click_count !== 1 ? "s" : ""}` : "No clicks"}</span>
+                  </div>
+                </div>
+              </div>
+              {(email.last_opened_at || email.last_clicked_at) && (
+                <div className="mt-2 flex gap-4 text-[10px] text-slate-700">
+                  {email.last_opened_at && <span>Last opened: {new Date(email.last_opened_at).toLocaleString()}</span>}
+                  {email.last_clicked_at && <span>Last clicked: {new Date(email.last_clicked_at).toLocaleString()}</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function EmailsPage() {
+  const [tab, setTab] = useState<"inbox" | "tracking">("inbox");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<EmailFilter>("all");
   const [selectedId, setSelectedId] = useState<string>();
@@ -166,8 +248,26 @@ export function EmailsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b border-white/10 px-4 py-3 sm:px-6"><p className="text-sm text-slate-500">Synced Gmail and Outlook conversations.</p></header>
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <header className="border-b border-white/10 px-4 py-3 sm:px-6 flex items-center gap-4">
+        <p className="text-sm text-slate-500 flex-1">Synced Gmail and Outlook conversations.</p>
+        <div className="flex gap-1">
+          <button onClick={() => setTab("inbox")} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${tab === "inbox" ? "bg-white/[.07] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+            <Mail size={12}/> Inbox
+          </button>
+          <button onClick={() => setTab("tracking")} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${tab === "tracking" ? "bg-white/[.07] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+            <Eye size={12}/> Tracking
+          </button>
+        </div>
+      </header>
+      {tab === "tracking" ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="border-b border-white/10 px-4 py-2">
+            <p className="text-xs text-slate-600">Open and click events for emails you've sent from Mondaily.</p>
+          </div>
+          <SentTracker/>
+        </div>
+      ) : null}
+      <div className={`flex min-h-0 flex-1 overflow-hidden ${tab !== "inbox" ? "hidden" : ""}`}>
         <section className={`${mobileThreadOpen ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r border-white/10 md:w-80`}>
           <div className="space-y-3 border-b border-white/10 p-3">
             <label className="relative block"><Search className="absolute left-3 top-2.5 text-slate-600" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search email" className="h-9 w-full rounded-md border border-white/10 bg-transparent pl-9 pr-3 text-sm outline-none focus:border-white/20" /></label>

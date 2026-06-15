@@ -10,7 +10,63 @@ type WorkspaceSettings = {
   integrations?: Record<string, boolean | { connected?: boolean; grant_id?: string; email?: string }>;
 };
 
+// 1×1 transparent GIF
+const PIXEL_GIF = Buffer.from(
+  "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+  "base64"
+);
+
+const API_BASE = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
+
 const router = new Hono<{ Variables: Variables }>();
+
+// ── Public tracking routes — NO auth (called by email clients) ────────────────
+router.get("/track/:trackingId/open.gif", async (c) => {
+  const { trackingId } = c.req.param();
+  // Fire-and-forget: log the open event on the email_outbox node
+  supabase.from("nodes")
+    .select("id,data")
+    .eq("object_type", "email_outbox")
+    .eq("id", trackingId)
+    .maybeSingle()
+    .then(({ data: node }) => {
+      if (!node) return;
+      const opens: string[] = Array.isArray((node.data as Record<string,unknown>).opens)
+        ? (node.data as Record<string,unknown>).opens as string[]
+        : [];
+      const ts = new Date().toISOString();
+      opens.push(ts);
+      supabase.from("nodes").update({ data: { ...(node.data as object), opens, last_opened_at: ts } })
+        .eq("id", trackingId).then(() => {});
+    });
+  return new Response(PIXEL_GIF, {
+    status: 200,
+    headers: { "Content-Type": "image/gif", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" }
+  });
+});
+
+router.get("/track/:trackingId/click", async (c) => {
+  const { trackingId } = c.req.param();
+  const url = c.req.query("url") ?? "/";
+  // Fire-and-forget: log click
+  supabase.from("nodes")
+    .select("id,data")
+    .eq("object_type", "email_outbox")
+    .eq("id", trackingId)
+    .maybeSingle()
+    .then(({ data: node }) => {
+      if (!node) return;
+      const clicks: { url: string; at: string }[] = Array.isArray((node.data as Record<string,unknown>).clicks)
+        ? (node.data as Record<string,unknown>).clicks as { url: string; at: string }[]
+        : [];
+      clicks.push({ url, at: new Date().toISOString() });
+      supabase.from("nodes").update({ data: { ...(node.data as object), clicks, last_clicked_at: new Date().toISOString() } })
+        .eq("id", trackingId).then(() => {});
+    });
+  return c.redirect(url, 302);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 router.use("*", requireAuth);
 
 async function getSettings(workspaceId: string) {
@@ -120,6 +176,24 @@ router.get("/threads/:id", async (c) => {
   return data ? c.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c.json({ error: "Thread not found" }, 404);
 });
 
+// ── Inject tracking pixel + wrap links in HTML body ──────────────────────────
+function injectTracking(html: string, trackingId: string): string {
+  // Wrap all <a href="..."> links to go through click tracking
+  const withLinks = html.replace(
+    /<a\s+([^>]*?)href="([^"]+)"([^>]*?)>/gi,
+    (_, before, url, after) => {
+      if (url.startsWith(`${API_BASE}/api/v1/emails/track/`)) return _;
+      const tracked = `${API_BASE}/api/v1/emails/track/${trackingId}/click?url=${encodeURIComponent(url)}`;
+      return `<a ${before}href="${tracked}"${after}>`;
+    }
+  );
+  // Append 1×1 open tracking pixel before </body> or at the end
+  const pixel = `<img src="${API_BASE}/api/v1/emails/track/${trackingId}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
+  return withLinks.includes("</body>")
+    ? withLinks.replace("</body>", `${pixel}</body>`)
+    : withLinks + pixel;
+}
+
 router.post("/threads/:id/reply", zValidator("json", z.object({ body: z.string().min(1) })), async (c) => {
   const settings = await getSettings(c.get("workspaceId"));
   const grantId = getGrantId(settings);
@@ -128,11 +202,39 @@ router.post("/threads/:id/reply", zValidator("json", z.object({ body: z.string()
   const messageIds = Array.isArray(thread.data.message_ids) ? thread.data.message_ids.map(String) : [];
   const replyTo = messageIds.at(-1);
   if (!replyTo) return c.json({ error: "Thread has no message to reply to" }, 400);
+
+  // Create an outbox node to track opens/clicks for this reply
+  const { data: trackNode } = await supabase.from("nodes").insert({
+    workspace_id: c.get("workspaceId"),
+    vertical: "sales",
+    object_type: "email_outbox",
+    data: { thread_id: c.req.param("id"), subject: "(reply)", status: "sent", sent_at: new Date().toISOString(), opens: [], clicks: [] },
+    created_by: c.get("userId")
+  }).select("id").single();
+
+  const trackedBody = trackNode ? injectTracking(c.req.valid("json").body, trackNode.id) : c.req.valid("json").body;
   const result = await nylasRequest<{ data: Record<string, unknown> }>(grantId, "/messages/send", {
     method: "POST",
-    body: JSON.stringify({ body: c.req.valid("json").body, reply_to_message_id: replyTo })
+    body: JSON.stringify({ body: trackedBody, reply_to_message_id: replyTo })
   });
-  return c.json(result.data, 201);
+  return c.json({ ...result.data, tracking_id: trackNode?.id }, 201);
+});
+
+// ── List outbox (sent + tracked emails) ──────────────────────────────────────
+router.get("/outbox", async (c) => {
+  const { data } = await supabase.from("nodes")
+    .select("id,data,created_at")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("object_type", "email_outbox")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return c.json((data ?? []).map(n => ({
+    id: n.id,
+    created_at: n.created_at,
+    ...(n.data as object),
+    open_count: Array.isArray((n.data as Record<string,unknown>).opens) ? ((n.data as Record<string,unknown>).opens as unknown[]).length : 0,
+    click_count: Array.isArray((n.data as Record<string,unknown>).clicks) ? ((n.data as Record<string,unknown>).clicks as unknown[]).length : 0,
+  })));
 });
 
 router.post("/threads/:id/link", zValidator("json", z.object({ node_id: z.string().uuid() })), async (c) => {
