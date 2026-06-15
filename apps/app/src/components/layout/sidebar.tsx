@@ -202,16 +202,22 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           )}
         </div>
 
-        {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
-        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
-          {!collapsed && (
+        {/* Quick Action — frozen above the scroll area, always visible */}
+        {!collapsed && (
+          <div className="shrink-0 border-b border-white/[.05] px-2 py-2">
             <button
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
-              className="key-button mb-3 flex w-full items-center gap-2 px-3 py-2 text-[12px]"
+              className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
             >
-              <Plus size={12}/> Quick create
+              <Zap size={12} className="text-red-400 shrink-0"/>
+              <span>Quick action</span>
+              <Plus size={11} className="ml-auto text-slate-600"/>
             </button>
-          )}
+          </div>
+        )}
+
+        {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
           {collapsed
             ? NAV.flatMap(g => g.items).map(item => (
