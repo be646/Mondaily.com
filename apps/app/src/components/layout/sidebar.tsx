@@ -3,7 +3,7 @@ import {
   BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone,
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp,
-  GitBranch, Activity, Layers, Check,
+  GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +37,9 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Elem
     items: [
       { to: "/pipeline",        label: "Pipeline", icon: TrendingUp },
       { to: "/reports",         label: "Reports",  icon: BarChart2 },
-      { to: "/finance/invoices",label: "Invoices", icon: Receipt },
+      { to: "/finance/invoices",       label: "Invoices",     icon: Receipt      },
+      { to: "/finance/credit-notes",   label: "Credit Notes", icon: ReceiptText  },
+      { to: "/approvals",              label: "Approvals",    icon: ShieldCheck  },
     ],
   },
   {

@@ -25,4 +25,22 @@ export type Events = {
       fields: Record<string, unknown>;
     };
   };
+  "finance/credit_note.created": {
+    data: {
+      workspaceId: string;
+      nodeId: string;
+      status: string;
+      amount_cents: number;
+    };
+  };
+  "finance/dispute.email.received": {
+    data: {
+      workspaceId: string;
+      clientName?: string;
+      disputeBody: string;
+      invoiceId?: string;
+      suggestedAmountCents?: number;
+      currency?: string;
+    };
+  };
 };
