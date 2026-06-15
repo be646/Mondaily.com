@@ -70,7 +70,8 @@ app.route("/api/v1/workflows", workflowsRouter);
 app.route("/api/v1/invoices", invoicesRouter);
 app.route("/api/v1", appDataRouter);
 
-app.use("/api/inngest", serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth] }));
+const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth] });
+app.all("/api/inngest", inngestHandler);
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
 
