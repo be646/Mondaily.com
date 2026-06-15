@@ -1131,7 +1131,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           const v = String(r.data[col] ?? r.updated_at ?? "");
           return v <= f.value;
         }
-        return String(r.data[f.col] ?? "").toLowerCase() === f.value.toLowerCase();
+        // For owner/assignee columns use the owners state (same source as display)
+        const l = f.col.toLowerCase();
+        const isOwnerCol = l.includes("owner") || l.includes("assign");
+        const cellVal = isOwnerCol
+          ? (owners[r.id]?.[f.col] ?? String(r.data[f.col] ?? ""))
+          : String(r.data[f.col] ?? "");
+        return cellVal.toLowerCase() === f.value.toLowerCase();
       }));
     }
     return base;
@@ -1810,13 +1816,18 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
               // Options: use full defaults for stage/status, real member names for owner/assignee, data values for others
               const isCountry = l.includes("country") || customDef?.type === "country";
+              const isOwnerCol = l.includes("owner") || l.includes("assign") || customDef?.type === "assignee" || customDef?.type === "owner";
               let vals: string[];
               if (isStage) {
                 vals = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
               } else if (isStatus) {
                 vals = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+              } else if (isOwnerCol) {
+                // Use owners state (local display source) merged with data values, then fall back to member names
+                const fromOwners = records.map(r => owners[r.id]?.[col] ?? String(r.data[col] ?? "")).filter(Boolean);
+                const fromMembers = members.filter(m => { const lb = m.name || m.email; return lb && typeof lb === "string" && isNaN(Number(lb)); }).map(m => m.name || m.email || "");
+                vals = [...new Set([...fromOwners, ...fromMembers])].filter(Boolean).sort();
               } else if (isCountry) {
-                // Only show countries that actually exist in the data (not all 195)
                 vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
               } else {
                 vals = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort().slice(0, 20);
