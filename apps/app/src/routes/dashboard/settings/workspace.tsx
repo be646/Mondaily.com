@@ -11,7 +11,14 @@ interface WorkspaceData {
   slug?: string;
   currency?: string;
   logo_url?: string;
+  modules?: string[];
 }
+
+const AVAILABLE_MODULES = [
+  { id: "finance", label: "Finance & Billing", description: "Invoices, credit notes, payments, approval workflows" },
+  { id: "investments", label: "Investments", description: "Track investment portfolios, rounds, and returns" },
+  { id: "hr", label: "HR & People Ops", description: "Headcount, contracts, onboarding workflows" },
+];
 
 const timezones = [
   "UTC", "Europe/London", "Europe/Paris", "Europe/Warsaw",
@@ -29,7 +36,7 @@ export function WorkspaceSettings() {
     queryKey: ["workspace-settings"],
     queryFn: () => apiClient.get<WorkspaceData>("/settings/workspace"),
   });
-  const [form, setForm] = useState<WorkspaceData>({ name: "", slug: "", currency: "USD", timezone: "UTC" });
+  const [form, setForm] = useState<WorkspaceData>({ name: "", slug: "", currency: "USD", timezone: "UTC", modules: ["crm"] });
   const [logoPreview, setLogoPreview] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
@@ -40,6 +47,7 @@ export function WorkspaceSettings() {
       ...query.data,
       slug: query.data.slug ?? organization?.slug ?? "",
       currency: query.data.currency ?? "USD",
+      modules: query.data.modules ?? ["crm"],
     });
   }, [organization?.slug, query.data]);
 
@@ -148,6 +156,50 @@ export function WorkspaceSettings() {
                   : "border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 hover:bg-red-400 active:translate-y-[1px]"
               }`}>
               {saved ? <><Check size={14} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Modules ── */}
+      <section className="settings-section">
+        <div className="settings-section-header">
+          <h2 className="text-sm font-semibold text-white">Modules</h2>
+          <p className="text-xs text-slate-600 mt-0.5">Enable or disable product modules for your workspace.</p>
+        </div>
+        <div className="p-5 space-y-3">
+          {AVAILABLE_MODULES.map(mod => {
+            const enabled = (form.modules ?? ["crm"]).includes(mod.id);
+            return (
+              <div key={mod.id} className="flex items-center justify-between rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-white">{mod.label}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{mod.description}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = form.modules ?? ["crm"];
+                    const next = enabled
+                      ? current.filter(m => m !== mod.id)
+                      : [...current, mod.id];
+                    setForm({ ...form, modules: next });
+                  }}
+                  className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${enabled ? "bg-red-500" : "bg-white/[.10]"}`}
+                >
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`}/>
+                </button>
+              </div>
+            );
+          })}
+          <div className="flex justify-end pt-2">
+            <button onClick={() => save.mutate()} disabled={save.isPending}
+              className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50 ${
+                saved
+                  ? "bg-emerald-600 border border-emerald-500/30"
+                  : "border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 hover:bg-red-400 active:translate-y-[1px]"
+              }`}>
+              {saved ? <><Check size={14} /> Saved</> : save.isPending ? "Saving…" : "Save modules"}
             </button>
           </div>
         </div>

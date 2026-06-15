@@ -31,6 +31,7 @@ const creditNoteSchema = z.object({
   ai_summary:    z.string().optional(),
   notes:         z.string().optional(),
   client_name:   z.string().optional(),
+  linked_record_id: z.string().uuid().optional(),
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -71,6 +72,8 @@ async function getCreditNote(workspaceId: string, id: string) {
 router.get("/", async (c) => {
   const status = c.req.query("status");
   const search = c.req.query("search") ?? "";
+  const linkedRecordId = c.req.query("linked_record_id");
+  const appliedToInvoice = c.req.query("applied_to_invoice");
 
   let q = supabase
     .from("nodes")
@@ -80,6 +83,20 @@ router.get("/", async (c) => {
     .order("created_at", { ascending: false });
 
   if (status) q = q.eq("data->>status", status);
+  if (linkedRecordId) q = q.eq("data->>linked_record_id", linkedRecordId);
+
+  // applied_to_invoice: look up via edges
+  if (appliedToInvoice) {
+    const { data: edges } = await supabase
+      .from("edges")
+      .select("from_node_id")
+      .eq("workspace_id", c.get("workspaceId"))
+      .eq("to_node_id", appliedToInvoice)
+      .eq("relationship", "APPLIED_TO");
+    const ids = (edges ?? []).map(e => e.from_node_id);
+    if (ids.length === 0) return c.json([]);
+    q = q.in("id", ids);
+  }
 
   const { data, error } = await q;
   if (error) return c.json({ error: error.message }, 500);
@@ -149,6 +166,7 @@ router.post("/", zValidator("json", creditNoteSchema), async (c) => {
         ai_summary:    body.ai_summary ?? null,
         client_name:   body.client_name ?? null,
         created_at:    new Date().toISOString(),
+        ...(body.linked_record_id ? { linked_record_id: body.linked_record_id } : {}),
       },
       created_by: c.get("userId"),
     })

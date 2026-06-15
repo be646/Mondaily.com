@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
-import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -11,6 +11,14 @@ interface LineItem {
   quantity: number;
   unit_price: number;
   tax_rate: number;
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  method: string;
+  reference?: string | null;
+  paid_at: string;
 }
 
 interface Invoice {
@@ -30,6 +38,155 @@ interface Invoice {
   sent_at?: string;
   paid_at?: string;
   created_at: string;
+  payments?: Payment[];
+}
+
+interface CreditNote {
+  id: string;
+  amount_cents: number;
+  currency: string;
+  credit_reason: string;
+  status: string;
+}
+
+// ─── Payments section ─────────────────────────────────────────────────────────
+function PaymentsSection({ invoice }: { invoice: Invoice }) {
+  const qc = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("bank_transfer");
+  const [reference, setReference] = useState("");
+  const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const payments = invoice.payments ?? [];
+  const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+  const remaining = Math.max(0, invoice.total - totalPaid);
+
+  useEffect(() => {
+    if (expanded) setAmount(String(remaining.toFixed(2)));
+  }, [expanded, remaining]);
+
+  const recordPayment = useMutation({
+    mutationFn: () => apiClient.post<Invoice>(`/invoices/${invoice.id}/payments`, {
+      amount: parseFloat(amount) || 0,
+      method,
+      reference: reference || undefined,
+      paid_at: new Date(paidAt).toISOString(),
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["invoice", invoice.id] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      setExpanded(false);
+      setAmount("");
+      setReference("");
+    },
+  });
+
+  if (["draft", "cancelled"].includes(invoice.status)) return null;
+
+  return (
+    <div className="rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden">
+      <div className="border-b border-white/[.04] px-4 py-3 flex items-center justify-between">
+        <span className="text-[12px] font-medium text-white">Payments</span>
+        <button
+          onClick={() => setExpanded(o => !o)}
+          className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          <Plus size={11}/> Record payment
+          <ChevronDown size={11} className={`ml-0.5 transition-transform ${expanded ? "rotate-180" : ""}`}/>
+        </button>
+      </div>
+
+      {/* Payment list */}
+      {payments.length > 0 && (
+        <div className="px-4 py-2 space-y-1.5">
+          {payments.map(p => (
+            <div key={p.id} className="flex items-center justify-between py-1.5 text-[12px] border-b border-white/[.03] last:border-0">
+              <div className="flex items-center gap-2">
+                <span className="text-white font-medium">{formatCurrency(p.amount, invoice.currency)}</span>
+                <span className="text-zinc-600">·</span>
+                <span className="text-zinc-500 capitalize">{p.method.replace(/_/g, " ")}</span>
+                {p.reference && <><span className="text-zinc-700">·</span><span className="text-zinc-600">{p.reference}</span></>}
+              </div>
+              <span className="text-zinc-600">{new Date(p.paid_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Summary row */}
+      <div className="px-4 py-2.5 flex justify-end">
+        <div className="w-56 space-y-1.5">
+          <div className="flex justify-between text-[12px] text-zinc-500">
+            <span>Total paid</span>
+            <span className="text-emerald-400">{formatCurrency(totalPaid, invoice.currency)}</span>
+          </div>
+          {remaining > 0 && (
+            <div className="flex justify-between text-[12px] text-zinc-500 border-t border-white/[.06] pt-1.5">
+              <span>Remaining</span>
+              <span className="text-red-400 font-medium">{formatCurrency(remaining, invoice.currency)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Inline form */}
+      {expanded && (
+        <div className="border-t border-white/[.04] px-4 py-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] text-zinc-600">Amount</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                step="0.01"
+                className="key-input mt-1 w-full text-[13px]"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-zinc-600">Method</label>
+              <select value={method} onChange={e => setMethod(e.target.value)} className="key-input mt-1 w-full text-[13px]">
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Card</option>
+                <option value="cash">Cash</option>
+                <option value="cheque">Cheque</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] text-zinc-600">Reference</label>
+              <input
+                value={reference}
+                onChange={e => setReference(e.target.value)}
+                placeholder="e.g. TXN-12345"
+                className="key-input mt-1 w-full text-[13px]"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-zinc-600">Date</label>
+              <input
+                type="date"
+                value={paidAt}
+                onChange={e => setPaidAt(e.target.value)}
+                className="key-input mt-1 w-full text-[13px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setExpanded(false)} className="rounded-lg px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+            <button
+              onClick={() => recordPayment.mutate()}
+              disabled={recordPayment.isPending || !amount || parseFloat(amount) <= 0}
+              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50"
+            >
+              <CheckCircle size={11}/> {recordPayment.isPending ? "Recording…" : "Record Payment"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
@@ -59,6 +216,12 @@ export function InvoiceDetailPage() {
   const { data: invoice, isLoading } = useQuery<Invoice>({
     queryKey: ["invoice", invoiceId],
     queryFn: () => apiClient.get<Invoice>(`/invoices/${invoiceId}`),
+    enabled: !!invoiceId,
+  });
+
+  const { data: creditNotes = [] } = useQuery<CreditNote[]>({
+    queryKey: ["invoice-credit-notes", invoiceId],
+    queryFn: () => apiClient.get<CreditNote[]>(`/invoices/${invoiceId}/credit-notes`),
     enabled: !!invoiceId,
   });
 
@@ -371,7 +534,7 @@ export function InvoiceDetailPage() {
 
             {/* Totals */}
             <div className="flex justify-end border-t border-white/[.04] px-4 py-3">
-              <div className="w-56 space-y-1.5">
+              <div className="w-64 space-y-1.5">
                 <div className="flex justify-between text-[12px] text-zinc-500">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal, currency)}</span>
@@ -381,12 +544,43 @@ export function InvoiceDetailPage() {
                   <span>{formatCurrency(tax_total, currency)}</span>
                 </div>
                 <div className="flex justify-between border-t border-white/[.06] pt-1.5 text-[14px] font-semibold text-white">
-                  <span>Total</span>
+                  <span>Invoice total</span>
                   <span>{formatCurrency(total, currency)}</span>
                 </div>
+                {(() => {
+                  const creditsAmt = creditNotes
+                    .filter(cn => cn.status === "executed")
+                    .reduce((s, cn) => s + cn.amount_cents / 100, 0);
+                  const paymentsAmt = (invoice?.payments ?? []).reduce((s, p) => s + p.amount, 0);
+                  const netOwed = total - creditsAmt - paymentsAmt;
+                  if (creditsAmt === 0 && paymentsAmt === 0) return null;
+                  return (
+                    <>
+                      {creditsAmt > 0 && (
+                        <div className="flex justify-between text-[12px] text-violet-400">
+                          <span>Credits applied</span>
+                          <span>−{formatCurrency(creditsAmt, currency)}</span>
+                        </div>
+                      )}
+                      {paymentsAmt > 0 && (
+                        <div className="flex justify-between text-[12px] text-emerald-400">
+                          <span>Payments</span>
+                          <span>−{formatCurrency(paymentsAmt, currency)}</span>
+                        </div>
+                      )}
+                      <div className={`flex justify-between border-t border-white/[.06] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                        <span>Net owed</span>
+                        <span>{formatCurrency(Math.max(0, netOwed), currency)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
+
+          {/* Payments section */}
+          {invoice && <PaymentsSection invoice={invoice}/>}
 
           {/* Notes */}
           <div>

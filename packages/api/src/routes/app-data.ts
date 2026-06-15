@@ -307,12 +307,24 @@ router.delete("/settings/account/connections/:id", async (c) => {
 });
 router.get("/settings/workspace", async (c) => {
   const { data } = await supabase.from("workspaces").select("name, settings").eq("id", c.get("workspaceId")).single();
-  return c.json({ name: data?.name ?? "", timezone: data?.settings?.timezone ?? "UTC" });
+  const settings = (data?.settings ?? {}) as Record<string, unknown>;
+  return c.json({
+    name: data?.name ?? "",
+    timezone: settings.timezone ?? "UTC",
+    modules: (settings.modules as string[] | undefined) ?? ["crm"],
+  });
 });
 router.patch("/settings/workspace", async (c) => {
-  const body = await c.req.json<{ name?: string; timezone?: string }>();
+  const body = await c.req.json<{ name?: string; timezone?: string; modules?: string[] }>();
   const settings = await workspaceSettings(c.get("workspaceId"));
-  await supabase.from("workspaces").update({ name: body.name, settings: { ...settings, timezone: body.timezone } }).eq("id", c.get("workspaceId"));
+  await supabase.from("workspaces").update({
+    name: body.name,
+    settings: {
+      ...settings,
+      ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
+      ...(body.modules !== undefined ? { modules: body.modules } : {}),
+    },
+  }).eq("id", c.get("workspaceId"));
   return c.json({ ok: true });
 });
 router.get("/settings/members", async (c) => {

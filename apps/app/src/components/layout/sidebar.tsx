@@ -8,6 +8,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
+import { useModules } from "../../hooks/useModules";
 import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
@@ -324,6 +325,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const navigate = useNavigate();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { hasFinance } = useModules();
   const [collapsed, setCollapsed] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
@@ -434,21 +436,29 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
-          {collapsed
-            ? NAV.flatMap(g => g.items).map(item => (
-                <NavItem key={item.to} {...item} collapsed={true}
-                  badge={item.to === "/notifications" ? unreadCount : undefined}/>
-              ))
-            : NAV.map(group => (
-                <div key={group.label || "__top"}>
-                  <SectionLabel label={group.label}/>
-                  {group.items.map(item => (
-                    <NavItem key={item.to} {...item} collapsed={false}
-                      badge={item.to === "/notifications" ? unreadCount : undefined}/>
-                  ))}
-                </div>
-              ))
-          }
+          {(() => {
+            const FINANCE_ONLY = ["/finance/invoices", "/finance/credit-notes", "/approvals"];
+            const filteredNAV = NAV.map(group => {
+              if (group.label === "Revenue") {
+                return { ...group, items: group.items.filter(item => hasFinance || !FINANCE_ONLY.includes(item.to)) };
+              }
+              return group;
+            }).filter(group => group.items.length > 0);
+            return collapsed
+              ? filteredNAV.flatMap(g => g.items).map(item => (
+                  <NavItem key={item.to} {...item} collapsed={true}
+                    badge={item.to === "/notifications" ? unreadCount : undefined}/>
+                ))
+              : filteredNAV.map(group => (
+                  <div key={group.label || "__top"}>
+                    <SectionLabel label={group.label}/>
+                    {group.items.map(item => (
+                      <NavItem key={item.to} {...item} collapsed={false}
+                        badge={item.to === "/notifications" ? unreadCount : undefined}/>
+                    ))}
+                  </div>
+                ));
+          })()}
 
           {!collapsed && (
             <>

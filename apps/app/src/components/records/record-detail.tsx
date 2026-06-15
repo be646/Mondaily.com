@@ -66,8 +66,8 @@ const STAGE_DOT: Record<string, string> = {
 };
 function getTabsForType(type: string): string[] {
   const t = type.toLowerCase();
-  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Contact Log","Notes","Tasks","Files"];
-  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Contact Log","Notes","Tasks"];
+  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Contact Log","Finance","Notes","Tasks","Files"];
+  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Contact Log","Finance","Notes","Tasks"];
   if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Contact Log","Notes","Tasks"];
   if (t.includes("invest")) return ["Overview","Notes","Tasks"];
   if (t.includes("tax") || t.includes("cost")) return ["Overview","Notes","Files"];
@@ -1302,6 +1302,216 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
   );
 }
 
+// ─── Finance tab ──────────────────────────────────────────────────────────────
+interface InvoiceRecord { id: string; number: string; client_name: string; total: number; status: string; due_date?: string; currency: string }
+interface CreditNoteRecord { id: string; amount_cents: number; currency: string; credit_reason: string; status: string }
+
+const INVOICE_STATUS_COLORS: Record<string, string> = {
+  draft:     "text-zinc-400 bg-zinc-400/10",
+  sent:      "text-blue-400 bg-blue-400/10",
+  viewed:    "text-purple-400 bg-purple-400/10",
+  paid:      "text-emerald-400 bg-emerald-400/10",
+  overdue:   "text-red-400 bg-red-400/10",
+  cancelled: "text-zinc-600 bg-zinc-600/10",
+};
+const CN_STATUS_COLORS: Record<string, string> = {
+  draft:            "text-zinc-400 bg-zinc-400/10",
+  pending_review:   "text-amber-400 bg-amber-400/10",
+  manager_approved: "text-blue-400 bg-blue-400/10",
+  executed:         "text-emerald-400 bg-emerald-400/10",
+  void:             "text-zinc-600 bg-zinc-600/10",
+};
+
+function fmtCcy(amount: number, currency = "GBP") {
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+}
+
+function FinanceTab({ recordId, recordName, vertical }: { recordId: string; recordName: string; vertical: string }) {
+  const qc = useQueryClient();
+  const [showNewInvoice, setShowNewInvoice] = useState(false);
+  const [newInvAmount, setNewInvAmount] = useState("");
+  const [newInvCurrency, setNewInvCurrency] = useState("GBP");
+  const [newInvDueDate, setNewInvDueDate] = useState("");
+
+  const { data: invoices = [], isLoading: invLoading } = useQuery<InvoiceRecord[]>({
+    queryKey: ["record-invoices", recordId],
+    queryFn: () => apiClient.get<InvoiceRecord[]>(`/invoices?linked_record_id=${recordId}`),
+  });
+
+  const { data: creditNotes = [], isLoading: cnLoading } = useQuery<CreditNoteRecord[]>({
+    queryKey: ["record-credit-notes", recordId],
+    queryFn: () => apiClient.get<CreditNoteRecord[]>(`/credit-notes?linked_record_id=${recordId}`),
+  });
+
+  const totalBilled = invoices.reduce((s, inv) => s + (inv.total ?? 0), 0);
+  const creditsApplied = creditNotes
+    .filter(cn => cn.status === "executed")
+    .reduce((s, cn) => s + (cn.amount_cents ?? 0) / 100, 0);
+  const netOwed = totalBilled - creditsApplied;
+  const defaultCurrency = invoices[0]?.currency ?? "GBP";
+
+  const createInvoice = useMutation({
+    mutationFn: () => apiClient.post<InvoiceRecord>("/invoices", {
+      client_name: recordName,
+      line_items: [{ description: "Service", quantity: 1, unit_price: parseFloat(newInvAmount) || 0, tax_rate: 0 }],
+      currency: newInvCurrency,
+      due_date: newInvDueDate ? new Date(newInvDueDate).toISOString() : undefined,
+      status: "draft",
+      linked_record_id: recordId,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["record-invoices", recordId] });
+      setShowNewInvoice(false);
+      setNewInvAmount("");
+      setNewInvDueDate("");
+    },
+  });
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-white" },
+          { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-violet-400" },
+          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-red-400" : "text-emerald-400" },
+        ].map(card => (
+          <div key={card.label} className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">{card.label}</p>
+            <p className={`text-lg font-bold ${card.accent}`}>{card.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Invoices */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">Invoices</p>
+          <button
+            onClick={() => setShowNewInvoice(o => !o)}
+            className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors"
+          >
+            <Plus size={12}/> New Invoice
+          </button>
+        </div>
+
+        {showNewInvoice && (
+          <div className="rounded-xl border border-white/[.08] bg-white/[.02] p-4 mb-3 space-y-3">
+            <p className="text-xs font-medium text-white">New Invoice for {recordName}</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-600 mb-1 block">Amount</label>
+                <input
+                  type="number"
+                  value={newInvAmount}
+                  onChange={e => setNewInvAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="key-input w-full text-[12px]"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-600 mb-1 block">Currency</label>
+                <select value={newInvCurrency} onChange={e => setNewInvCurrency(e.target.value)} className="key-input w-full text-[12px]">
+                  <option value="GBP">GBP</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="AED">AED</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-600 mb-1 block">Due date</label>
+                <input
+                  type="date"
+                  value={newInvDueDate}
+                  onChange={e => setNewInvDueDate(e.target.value)}
+                  className="key-input w-full text-[12px]"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowNewInvoice(false)} className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">Cancel</button>
+              <button
+                onClick={() => createInvoice.mutate()}
+                disabled={createInvoice.isPending || !newInvAmount}
+                className="rounded-lg bg-red-500/20 border border-red-500/30 px-4 py-1.5 text-xs text-red-300 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+              >
+                {createInvoice.isPending ? "Creating…" : "Create Invoice"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {invLoading ? (
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-white/[.02] animate-pulse"/>)}</div>
+        ) : invoices.length === 0 ? (
+          <div className="flex min-h-24 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+            <Receipt size={16} className="mb-1.5 text-slate-700"/>
+            <p className="text-xs text-slate-600">No invoices yet for this record.</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[.04]">
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-zinc-600">Number</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-zinc-600">Amount</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-zinc-600">Status</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-zinc-600">Due Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map(inv => (
+                  <tr key={inv.id} className="border-b border-white/[.03] hover:bg-white/[.02] transition-colors">
+                    <td className="px-4 py-2.5">
+                      <Link to={`/finance/invoices/${inv.id}`} className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors">{inv.number}</Link>
+                    </td>
+                    <td className="px-4 py-2.5 text-[12px] text-white">{fmtCcy(inv.total, inv.currency)}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${INVOICE_STATUS_COLORS[inv.status] ?? "text-zinc-400 bg-zinc-400/10"}`}>
+                        {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-[12px] text-zinc-500">
+                      {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Credit Notes */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600 mb-3">Credit Notes</p>
+        {cnLoading ? (
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-white/[.02] animate-pulse"/>)}</div>
+        ) : creditNotes.length === 0 ? (
+          <div className="flex min-h-20 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+            <CreditCard size={16} className="mb-1.5 text-slate-700"/>
+            <p className="text-xs text-slate-600">No credit notes for this record.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {creditNotes.map(cn => (
+              <Link key={cn.id} to={`/finance/credit-notes/${cn.id}`}
+                className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-4 py-2.5 hover:border-white/[.10] transition-colors">
+                <CreditCard size={13} className="text-violet-400 shrink-0"/>
+                <span className="flex-1 text-[12px] text-white">{fmtCcy(cn.amount_cents / 100, cn.currency)}</span>
+                <span className="text-[11px] text-slate-500 capitalize">{cn.credit_reason.replace(/_/g, " ")}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CN_STATUS_COLORS[cn.status] ?? "text-zinc-400 bg-zinc-400/10"}`}>
+                  {cn.status.replace(/_/g, " ")}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Related records tab ──────────────────────────────────────────────────────
 function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string }) {
   const qc = useQueryClient();
@@ -1785,6 +1995,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {tab === "Notes"       && <NotesTab       recordId={recordId} vertical={record.vertical}/>}
             {tab === "Tasks"       && <TasksTab       recordId={recordId} vertical={record.vertical}/>}
             {tab === "Contact Log" && <ContactLogTab  recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Finance"     && <FinanceTab     recordId={recordId} recordName={name} vertical={record.vertical}/>}
             {tab === "Files"   && (
               <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
                 <FileText size={20} className="mb-2 text-slate-700"/>

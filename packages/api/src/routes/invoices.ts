@@ -26,6 +26,7 @@ const invoiceBodySchema = z.object({
   due_date: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["draft", "sent", "viewed", "paid", "overdue", "cancelled"]).default("draft"),
+  linked_record_id: z.string().uuid().optional(),
 });
 
 function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
@@ -48,6 +49,7 @@ async function nextInvoiceNumber(workspaceId: string): Promise<string> {
 router.get("/", async (c) => {
   const status = c.req.query("status");
   const search = c.req.query("search") ?? "";
+  const linkedRecordId = c.req.query("linked_record_id");
 
   let query = supabase
     .from("nodes")
@@ -58,6 +60,7 @@ router.get("/", async (c) => {
     .order("created_at", { ascending: false });
 
   if (status) query = query.eq("data->>status", status);
+  if (linkedRecordId) query = query.eq("data->>linked_record_id", linkedRecordId);
 
   const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 500);
@@ -110,6 +113,7 @@ router.post("/", zValidator("json", invoiceBodySchema), async (c) => {
     sent_at: null,
     paid_at: null,
     chase_count: 0,
+    ...(body.linked_record_id ? { linked_record_id: body.linked_record_id } : {}),
   };
 
   const { data, error } = await supabase
@@ -125,6 +129,16 @@ router.post("/", zValidator("json", invoiceBodySchema), async (c) => {
     .single();
 
   if (error) return c.json({ error: error.message }, 500);
+
+  if (body.linked_record_id) {
+    supabase.from("edges").insert({
+      workspace_id: c.get("workspaceId"),
+      from_node_id: data.id,
+      to_node_id: body.linked_record_id,
+      relationship: "BILLED_TO",
+    }).then(() => {});
+  }
+
   return c.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
 
@@ -181,6 +195,84 @@ router.delete("/:id", async (c) => {
     .eq("object_type", "invoice");
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
+});
+
+// ─── Record payment ───────────────────────────────────────────────────────────
+router.post("/:id/payments", zValidator("json", z.object({
+  amount: z.number().positive(),
+  method: z.enum(["bank_transfer", "card", "cash", "cheque", "other"]).default("bank_transfer"),
+  reference: z.string().optional(),
+  paid_at: z.string().optional(),
+})), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: existing, error: fetchErr } = await supabase
+    .from("nodes")
+    .select("id,data")
+    .eq("workspace_id", workspaceId)
+    .eq("id", c.req.param("id"))
+    .eq("vertical", "finance")
+    .eq("object_type", "invoice")
+    .maybeSingle();
+
+  if (fetchErr) return c.json({ error: fetchErr.message }, 500);
+  if (!existing) return c.json({ error: "Not found" }, 404);
+
+  const body = c.req.valid("json");
+  const current = existing.data as Record<string, unknown>;
+  const payments = Array.isArray(current.payments) ? (current.payments as Array<Record<string, unknown>>) : [];
+  const newPayment = {
+    id: crypto.randomUUID(),
+    amount: body.amount,
+    method: body.method,
+    reference: body.reference ?? null,
+    paid_at: body.paid_at ?? new Date().toISOString(),
+  };
+  const updatedPayments = [...payments, newPayment];
+  const totalPaid = updatedPayments.reduce((s, p) => s + Number(p.amount), 0);
+  const invoiceTotal = Number(current.total ?? 0);
+  const statusUpdates: Record<string, unknown> = {};
+  if (totalPaid >= invoiceTotal && current.status !== "paid") {
+    statusUpdates.status = "paid";
+    statusUpdates.paid_at = new Date().toISOString();
+  }
+
+  const updatedData = { ...current, payments: updatedPayments, ...statusUpdates };
+  const { data, error } = await supabase
+    .from("nodes")
+    .update({ data: updatedData, updated_at: new Date().toISOString() })
+    .eq("id", c.req.param("id"))
+    .select("id,data,updated_at")
+    .single();
+
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ id: data.id, ...data.data, updated_at: data.updated_at });
+});
+
+// ─── Get credit notes applied to this invoice ────────────────────────────────
+router.get("/:id/credit-notes", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const invoiceId = c.req.param("id");
+
+  const { data: edges, error: edgeErr } = await supabase
+    .from("edges")
+    .select("from_node_id")
+    .eq("workspace_id", workspaceId)
+    .eq("to_node_id", invoiceId)
+    .eq("relationship", "APPLIED_TO");
+
+  if (edgeErr) return c.json({ error: edgeErr.message }, 500);
+  if (!edges || edges.length === 0) return c.json([]);
+
+  const creditNoteIds = edges.map(e => e.from_node_id);
+  const { data, error } = await supabase
+    .from("nodes")
+    .select("id,data,created_at,updated_at,created_by")
+    .eq("workspace_id", workspaceId)
+    .eq("object_type", "credit_note")
+    .in("id", creditNoteIds);
+
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json((data ?? []).map(row => ({ id: row.id, ...(row.data as object), created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by })));
 });
 
 export { router as invoicesRouter };
