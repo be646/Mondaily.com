@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
   Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
   UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
+  Rows3, BookmarkCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
@@ -1020,7 +1021,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [nlpActive, setNlpActive] = useState(false);
 
   // ── Toolbar dropdown open state ──
-  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|null>(null);
+  const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|null>(null);
 
   // ── Toolbar trigger refs (for portal positioning) ──
   const viewWrapRef   = useRef<HTMLDivElement>(null);
@@ -1216,11 +1217,77 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setBulkEditField(null);
   }
 
-  // Columns suitable for bulk edit
-  const bulkEditCols = columns.filter(c =>
-    c.toLowerCase().includes("stage") || c === "status" || c === "deal_status" ||
-    c === "assigned_to" || c === "deal_owner" || c.toLowerCase().includes("owner") || c.toLowerCase().includes("assignee")
-  );
+  // Columns suitable for bulk edit — all except name/id/date/number
+  const bulkEditCols = orderedColumns.filter(c => {
+    const l = c.toLowerCase();
+    const customDef = customCols.find(cc => cc.key === c);
+    if (l === "id" || l === "created_at" || l === "updated_at") return false;
+    if (customDef?.type === "number" || customDef?.type === "date") return false;
+    return true;
+  });
+
+  // ── Group by ──
+  const groupByKey = `mondaily_groupby_${objectType}`;
+  const [groupByCol, setGroupByCol] = useState<string | null>(() => {
+    try { return localStorage.getItem(groupByKey) ?? null; } catch { return null; }
+  });
+  function setGroupBy(col: string | null) {
+    setGroupByCol(col);
+    if (col) localStorage.setItem(groupByKey, col); else localStorage.removeItem(groupByKey);
+  }
+
+  // ── Saved views ──
+  const savedViewsKey = `mondaily_views_${objectType}`;
+  interface SavedView { id: string; name: string; filters: typeof quickFilters; sortRules: typeof sortRules; hiddenCols: string[]; groupBy: string | null }
+  const [savedViews, setSavedViews] = useState<SavedView[]>(() => {
+    try { return JSON.parse(localStorage.getItem(savedViewsKey) ?? "[]"); } catch { return []; }
+  });
+  const [saveViewOpen, setSaveViewOpen] = useState(false);
+  const [newViewName, setNewViewName] = useState("");
+
+  function persistViews(next: SavedView[]) {
+    setSavedViews(next);
+    localStorage.setItem(savedViewsKey, JSON.stringify(next));
+  }
+  function saveCurrentView() {
+    if (!newViewName.trim()) return;
+    const view: SavedView = {
+      id: crypto.randomUUID(),
+      name: newViewName.trim(),
+      filters: quickFilters,
+      sortRules,
+      hiddenCols: [...hiddenCols],
+      groupBy: groupByCol,
+    };
+    persistViews([...savedViews, view]);
+    setNewViewName("");
+    setSaveViewOpen(false);
+  }
+  function applyView(view: SavedView) {
+    setQuickFilters(view.filters);
+    setSortRules(view.sortRules);
+    setHiddenCols(new Set(view.hiddenCols));
+    setGroupBy(view.groupBy ?? null);
+  }
+  function deleteView(id: string) {
+    persistViews(savedViews.filter(v => v.id !== id));
+  }
+
+  // ── Column metadata (defaults + required) ──
+  const colMetaKey = `mondaily_colmeta_${objectType}`;
+  const [colMeta, setColMeta] = useState<Record<string, { defaultValue?: string; required?: boolean }>>(() => {
+    try { return JSON.parse(localStorage.getItem(colMetaKey) ?? "{}"); } catch { return {}; }
+  });
+  function saveColMeta(next: typeof colMeta) {
+    setColMeta(next);
+    localStorage.setItem(colMetaKey, JSON.stringify(next));
+  }
+  function setColDefault(col: string, val: string) {
+    saveColMeta({ ...colMeta, [col]: { ...colMeta[col], defaultValue: val } });
+  }
+  function toggleColRequired(col: string) {
+    saveColMeta({ ...colMeta, [col]: { ...colMeta[col], required: !colMeta[col]?.required } });
+  }
 
   // ── Bulk selection ──
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1438,6 +1505,58 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     </div>
   );
 
+  function renderRow(record: NodeRecord, rowIdx: number) {
+    return (
+      <tr
+        key={record.id}
+        className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03] ${rowAccent(record)}`}
+      >
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
+          <div
+            onClick={() => toggleSelectRow(record.id)}
+            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
+          >
+            {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
+          </div>
+        </td>
+        {hasRecordIdCol && (
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
+            <RecordIdCell id={record.id}/>
+          </td>
+        )}
+        {orderedColumns.map((col, colIdx) => (
+          <td
+            key={col}
+            className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 ` + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+            onMouseEnter={(e) => {
+              const td = e.currentTarget;
+              if (td.scrollWidth > td.clientWidth + 2) {
+                const text = display(record.data[col]);
+                if (text && text !== "—") setCellTip({ text, x: e.clientX, y: e.clientY });
+              }
+            }}
+            onMouseMove={(e) => cellTip && setCellTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+            onMouseLeave={() => setCellTip(null)}
+          >
+            {renderCell(col, record)}
+          </td>
+        ))}
+        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04]">
+          {fmtDate(record.updated_at)}
+        </td>
+        <td className="border-b border-b-white/[.04] w-10 px-2">
+          <button
+            onClick={() => deleteRow(record)}
+            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
+            title="Delete row"
+          >
+            <Trash2 size={12}/>
+          </button>
+        </td>
+      </tr>
+    );
+  }
+
   const TOOL_BTN_BASE = "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all duration-150";
   const TOOL_BTN_IDLE = `${TOOL_BTN_BASE} border-white/[.07] bg-white/[.02] text-white/40 hover:border-white/[.12] hover:text-white/80 hover:bg-white/[.04]`;
   const TOOL_BTN_ON   = `${TOOL_BTN_BASE} border-white/[.12] bg-white/[.06] text-white`;
@@ -1528,6 +1647,93 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 onClose={() => setOpenPanel(null)}
                 triggerRef={exportWrapRef}
               />
+            )}
+          </div>
+
+          {/* Group by */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")}
+              className={groupByCol || openPanel === "groupby" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
+            >
+              <Rows3 size={12}/>
+              <span className="hidden sm:inline">Group</span>
+              {groupByCol && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white max-w-[60px] truncate">{groupByCol.replace(/_/g," ")}</span>}
+            </button>
+            {openPanel === "groupby" && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setOpenPanel(null)}/>
+                <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2.5 border-b border-white/[.05]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Group rows by</p>
+                  </div>
+                  <div className="p-1">
+                    <button onClick={() => { setGroupBy(null); setOpenPanel(null); }}
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors ${!groupByCol ? "text-white bg-white/[.06]" : "text-white/40 hover:text-white hover:bg-white/[.04]"}`}>
+                      None
+                    </button>
+                    {orderedColumns.map(col => (
+                      <button key={col} onClick={() => { setGroupBy(col); setOpenPanel(null); }}
+                        className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors capitalize ${groupByCol === col ? "text-white bg-white/[.06]" : "text-white/40 hover:text-white hover:bg-white/[.04]"}`}>
+                        {col.replace(/_/g," ")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Saved views */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPanel(p => p === "views" ? null : "views")}
+              className={openPanel === "views" ? TOOL_BTN_ON : TOOL_BTN_IDLE}
+            >
+              <BookmarkCheck size={12}/>
+              <span className="hidden sm:inline">Views</span>
+              {savedViews.length > 0 && <span className="rounded-full bg-zinc-700 px-1.5 text-[9px] text-white">{savedViews.length}</span>}
+            </button>
+            {openPanel === "views" && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setOpenPanel(null)}/>
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2.5 border-b border-white/[.05]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Saved views</p>
+                  </div>
+                  <div className="p-1 max-h-56 overflow-y-auto">
+                    {savedViews.length === 0 && <p className="px-3 py-3 text-xs text-white/20 text-center">No saved views yet</p>}
+                    {savedViews.map(v => (
+                      <div key={v.id} className="flex items-center gap-1 rounded-lg hover:bg-white/[.04] transition-colors pr-1">
+                        <button onClick={() => { applyView(v); setOpenPanel(null); }}
+                          className="flex-1 px-3 py-2 text-xs text-white/60 hover:text-white text-left truncate">
+                          {v.name}
+                        </button>
+                        <button onClick={() => deleteView(v.id)} className="p-1 text-white/20 hover:text-red-400 transition-colors shrink-0">
+                          <X size={11}/>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-white/[.05] p-2">
+                    {saveViewOpen ? (
+                      <div className="flex items-center gap-1.5">
+                        <input autoFocus value={newViewName} onChange={e => setNewViewName(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
+                          placeholder="View name…"
+                          className="flex-1 bg-white/[.04] border border-white/[.06] rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-white/[.12] placeholder:text-white/20"/>
+                        <button onClick={saveCurrentView} className="text-emerald-400 hover:text-emerald-300 p-1"><Check size={12}/></button>
+                        <button onClick={() => setSaveViewOpen(false)} className="text-white/20 hover:text-white/50 p-1"><X size={11}/></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setSaveViewOpen(true)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/40 hover:text-white hover:bg-white/[.04] transition-colors">
+                        <Plus size={11}/> Save current view
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -1767,36 +1973,97 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {bulkEditField && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
-                  <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-white/[.08] bg-[#0f1117] p-2 shadow-xl">
-                    <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Edit {selected.size} records</p>
-                    {bulkEditCols.map(col => {
-                      const isStage = col.toLowerCase().includes("stage") || col === "status";
-                      const isOwner = col.toLowerCase().includes("owner") || col.toLowerCase().includes("assign");
-                      const stageVals = isStage ? [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))] : [];
-                      return (
-                        <div key={col} className="mb-1">
-                          <p className="px-2 py-1 text-[10px] text-slate-600 uppercase tracking-wide">{col.replaceAll("_", " ")}</p>
-                          {isStage && stageVals.map(v => (
+                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
+                    <div className="px-3 py-2 border-b border-white/[.05] flex items-center gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 flex-1">Edit {selected.size} records</p>
+                    </div>
+                    {/* Column tabs */}
+                    {bulkEditCols.length > 1 && (
+                      <div className="flex gap-0.5 p-1.5 border-b border-white/[.05] overflow-x-auto">
+                        {bulkEditCols.map(col => (
+                          <button key={col} onClick={() => setBulkEditField(col)}
+                            className={`rounded-md px-2 py-1 text-[10px] capitalize whitespace-nowrap transition-colors ${bulkEditField === col ? "bg-white/[.08] text-white" : "text-white/30 hover:text-white/60"}`}>
+                            {col.replace(/_/g," ")}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="p-1 max-h-56 overflow-y-auto">
+                      {(() => {
+                        const col = bulkEditField;
+                        const l = col.toLowerCase();
+                        const customDef = customCols.find(c => c.key === col);
+                        const isStageCol = l.includes("stage") || col === "deal_status" || customDef?.type === "stage";
+                        const isStatusCol = col === "status" || customDef?.type === "status";
+                        const isOwnerCol = l.includes("owner") || l.includes("assign") || customDef?.type === "assignee" || customDef?.type === "owner";
+                        const isCountryCol = l.includes("country") || customDef?.type === "country";
+                        const isTagCol = customDef?.type === "tag";
+                        const validMembers = members.filter(m => { const lb = m.name || m.email; return lb && typeof lb === "string" && isNaN(Number(lb)) && lb.trim().length > 0; });
+
+                        if (isStageCol) {
+                          const opts = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+                          return opts.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
                               <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
                             </button>
-                          ))}
-                          {isOwner && members.filter(m => {
-                            const lb = m.name || m.email;
-                            return lb && typeof lb === "string" && isNaN(Number(lb)) && lb.trim().length > 0;
-                          }).map(m => {
-                            const label = m.name || m.email || "?";
+                          ));
+                        }
+                        if (isStatusCol) {
+                          const opts = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+                          return opts.map(v => (
+                            <button key={v} onClick={() => applyBulkEdit(col, v)}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
+                            </button>
+                          ));
+                        }
+                        if (isOwnerCol) {
+                          return validMembers.map(m => {
+                            const label = m.name || m.email || "";
                             return (
                               <button key={m.id} onClick={() => applyBulkEdit(col, label)}
-                                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
-                                <MemberAvatar name={label} size={4}/>{label}
+                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                                <MemberAvatar name={label} size={5}/>
+                                <div className="flex flex-col items-start min-w-0">
+                                  <span className="truncate text-white/70">{m.name || m.email}</span>
+                                  {m.name && m.email && <span className="text-[10px] text-white/25">{m.email}</span>}
+                                </div>
                               </button>
                             );
-                          })}
-                        </div>
-                      );
-                    })}
+                          });
+                        }
+                        if (isCountryCol) {
+                          const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
+                          return existing.length > 0 ? existing.map(v => (
+                            <button key={v} onClick={() => applyBulkEdit(col, v)}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              {v}
+                            </button>
+                          )) : <p className="px-3 py-3 text-xs text-white/20 text-center">No country values yet</p>;
+                        }
+                        if (isTagCol) {
+                          const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))];
+                          return existing.length > 0 ? existing.map(v => {
+                            const tc = tagColor(v);
+                            return (
+                              <button key={v} onClick={() => applyBulkEdit(col, v)}
+                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] ${tc.bg}`}>{v}</span>
+                              </button>
+                            );
+                          }) : <p className="px-3 py-3 text-xs text-white/20 text-center">No tags yet</p>;
+                        }
+                        // Generic text field
+                        const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].slice(0, 15);
+                        return existing.length > 0 ? existing.map(v => (
+                          <button key={v} onClick={() => applyBulkEdit(col, v)}
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors truncate">
+                            {v}
+                          </button>
+                        )) : <p className="px-3 py-3 text-xs text-white/20 text-center">No values yet</p>;
+                      })()}
+                    </div>
                   </div>
                 </>
               )}
@@ -1924,59 +2191,36 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
                 </td>
               </tr>
-            ) : (
-              sorted.map((record, rowIdx) => (
-                <tr
-                  key={record.id}
-                  className={`group transition-colors ${selected.has(record.id) ? "bg-red-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03] ${rowAccent(record)}`}
-                >
-                  {/* Row checkbox */}
-                  <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
-                    <div
-                      onClick={() => toggleSelectRow(record.id)}
-                      className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-red-500 border-red-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
-                    >
-                      {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
-                    </div>
-                  </td>
-                  {/* Record ID cell — locked between checkbox and name */}
-                  {hasRecordIdCol && (
-                    <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
-                      <RecordIdCell id={record.id}/>
-                    </td>
-                  )}
-                  {orderedColumns.map((col, colIdx) => (
-                    <td
-                      key={col}
-                      className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 ` + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
-                      onMouseEnter={(e) => {
-                        const td = e.currentTarget;
-                        if (td.scrollWidth > td.clientWidth + 2) {
-                          const text = display(record.data[col]);
-                          if (text && text !== "—") setCellTip({ text, x: e.clientX, y: e.clientY });
-                        }
-                      }}
-                      onMouseMove={(e) => cellTip && setCellTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
-                      onMouseLeave={() => setCellTip(null)}
-                    >
-                      {renderCell(col, record)}
-                    </td>
-                  ))}
-                  <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04]">
-                    {fmtDate(record.updated_at)}
-                  </td>
-                  <td className="border-b border-b-white/[.04] w-10 px-2">
-                    <button
-                      onClick={() => deleteRow(record)}
-                      className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                      title="Delete row"
-                    >
-                      <Trash2 size={12}/>
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ) : (() => {
+              // Build row list — optionally grouped
+              const rowsToRender: React.ReactNode[] = [];
+              if (groupByCol) {
+                const groups = new Map<string, NodeRecord[]>();
+                for (const r of sorted) {
+                  const key = String(r.data[groupByCol] ?? "—");
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key)!.push(r);
+                }
+                for (const [groupVal, groupRows] of groups) {
+                  const ss = stageStyle(groupVal);
+                  rowsToRender.push(
+                    <tr key={`grp-${groupVal}`}>
+                      <td colSpan={columns.length + 3} className="px-4 py-2 bg-white/[.015] border-y border-white/[.04]">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
+                          <span className="text-[11px] font-semibold text-white/50 capitalize">{groupVal}</span>
+                          <span className="text-[10px] text-white/20 ml-1">{groupRows.length}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                  groupRows.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
+                }
+              } else {
+                sorted.forEach((record, rowIdx) => rowsToRender.push(renderRow(record, rowIdx)));
+              }
+              return rowsToRender;
+            })()}
           </tbody>
           <tfoot className="sticky bottom-0 z-20">
             <tr>
