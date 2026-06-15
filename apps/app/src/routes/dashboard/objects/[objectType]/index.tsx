@@ -101,8 +101,8 @@ function CreateRecordModal({
       });
       queryClient.invalidateQueries({ queryKey: ["records", objectType] });
       const t = objectType.toLowerCase();
-      if ((t === "companies" || t.includes("compan")) && data.name) onEnrichStart(node.id, data.name);
-      else if ((t === "people" || t.includes("person") || t.includes("contact")) && data.email) onEnrichStart(node.id, data.name || data.email);
+      const isEnrichable = t.includes("compan") || t.includes("person") || t.includes("people") || t.includes("contact") || t.includes("lead") || t.includes("account");
+      if (isEnrichable && data.name) onEnrichStart(node.id, data.name);
       if (createMore) { resetForm(); } else { onClose(); }
     } catch (e: any) {
       const msg = e?.message || "Failed to create record";
@@ -660,33 +660,28 @@ export function ObjectIndexPage() {
   const [enriching, setEnriching] = useState<Record<string, { name: string; done: boolean }>>({});
   const enrichedIds = Object.entries(enriching).filter(([, v]) => v.done).map(([id]) => id);
 
-  const handleEnrichStart = useCallback(async (recordId: string, name: string) => {
+  const handleEnrichStart = useCallback((recordId: string, name: string) => {
     setEnriching(prev => ({ ...prev, [recordId]: { name, done: false } }));
-    try {
-      const t = objectType.toLowerCase();
-      let result;
-      if (t === "companies" || t.includes("compan")) {
-        const { enrichCompany: ec } = await import("../../../../lib/ai-enrichment");
-        result = await ec(name);
-      } else {
-        const email = name.includes("@") ? name : "";
-        if (!email) return;
-        const { enrichPerson: ep } = await import("../../../../lib/ai-enrichment");
-        result = await ep(email);
+    // Poll backend until enrichment_status === "done" (Inngest handles the actual enrichment)
+    const interval = setInterval(async () => {
+      try {
+        const node = await apiClient.get<{ enrichment_status?: string }>(`/nodes/${recordId}`);
+        if (node.enrichment_status === "done" || node.enrichment_status === "failed") {
+          clearInterval(interval);
+          queryClient.invalidateQueries({ queryKey: ["records", objectType] });
+          setEnriching(prev => ({ ...prev, [recordId]: { name, done: true } }));
+          setTimeout(() => setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; }), 6000);
+        }
+      } catch {
+        clearInterval(interval);
+        setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; });
       }
-
-      // Fetch current record, merge enriched fields, patch back
-      const current = await apiClient.get<{ id: string; data: Record<string, unknown> }>(`/nodes/${recordId}`);
-      const merged = { ...current.data, ...result.fields };
-      await apiClient.patch(`/nodes/${recordId}`, { data: merged });
-      queryClient.invalidateQueries({ queryKey: ["records", objectType] });
-
-      setEnriching(prev => ({ ...prev, [recordId]: { name, done: true } }));
-      // Clear banner after 6 seconds
-      setTimeout(() => setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; }), 6000);
-    } catch {
+    }, 3000);
+    // Stop polling after 60 seconds max
+    setTimeout(() => {
+      clearInterval(interval);
       setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; });
-    }
+    }, 60000);
   }, [objectType, queryClient]);
 
   return (
