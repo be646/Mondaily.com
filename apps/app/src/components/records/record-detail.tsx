@@ -7,7 +7,8 @@ import {
   ChevronDown, Sparkles, MapPin, TrendingUp, Square,
   CheckSquare, FileText, X, Link2, Search, UserCheck,
   Camera, ExternalLink, Briefcase, Percent, Receipt,
-  CreditCard, Star, List,
+  CreditCard, Star, List, Trash2, Pencil, PhoneCall,
+  MessageSquare, Video, AlignLeft,
 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
@@ -65,9 +66,9 @@ const STAGE_DOT: Record<string, string> = {
 };
 function getTabsForType(type: string): string[] {
   const t = type.toLowerCase();
-  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Notes","Tasks","Files"];
-  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Notes","Tasks"];
-  if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Notes","Tasks"];
+  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Contact Log","Notes","Tasks","Files"];
+  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Contact Log","Notes","Tasks"];
+  if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Contact Log","Notes","Tasks"];
   if (t.includes("invest")) return ["Overview","Notes","Tasks"];
   if (t.includes("tax") || t.includes("cost")) return ["Overview","Notes","Files"];
   if (t === "tasks" || t.includes("task")) return ["Overview","Notes"];
@@ -193,13 +194,15 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
 
 // ─── Industry category pills ───────────────────────────────────────────────────
 export function CategoryPills({ categories, onUpdate }: { categories: Category[]; onUpdate: (cats: Category[]) => void }) {
-  const [open, setOpen]   = useState(false);
-  const [query, setQuery] = useState("");
-  const ref    = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen]       = useState(false);
+  const [query, setQuery]     = useState("");
+  const [customName, setCustomName] = useState("");
+  const ref       = useRef<HTMLDivElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+  const customRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(""); } };
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(""); setCustomName(""); } };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
@@ -209,6 +212,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
   const overflow = categories.length - MAX;
   const selected = new Set(categories.map(c => c.name));
 
+  const CUSTOM_COLORS = ["#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#8b5cf6","#06b6d4"];
   const filtered = INDUSTRY_TAXONOMY.filter(t =>
     !query || t.name.toLowerCase().includes(query.toLowerCase())
   );
@@ -219,6 +223,15 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
     } else {
       onUpdate([...categories, { name: t.name, color: t.border }]);
     }
+  }
+
+  function addCustom() {
+    const n = customName.trim();
+    if (!n || selected.has(n)) return;
+    const color = CUSTOM_COLORS[(n.charCodeAt(0) || 0) % CUSTOM_COLORS.length]!;
+    onUpdate([...categories, { name: n, color }]);
+    setCustomName("");
+    customRef.current?.focus();
   }
 
   function styleFor(colorHex: string) {
@@ -256,7 +269,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
       </div>
 
       {open && (
-        <div className="dropdown-panel absolute left-0 top-full mt-2 w-60 z-50 p-2">
+        <div className="dropdown-panel absolute left-0 top-full mt-2 w-64 z-50 p-2">
           <div className="flex items-center gap-1.5 border border-white/[.07] rounded-md px-2 py-1.5 mb-2 bg-white/[.02]">
             <Search size={11} className="text-slate-600 shrink-0"/>
             <input
@@ -267,7 +280,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
               className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none"
             />
           </div>
-          <div className="max-h-52 overflow-y-auto space-y-0.5">
+          <div className="max-h-48 overflow-y-auto space-y-0.5 scrollbar-thin">
             {filtered.map(t => {
               const isOn = selected.has(t.name);
               return (
@@ -287,6 +300,27 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
               );
             })}
             {filtered.length === 0 && <p className="px-2 py-2 text-xs text-slate-600">No matches</p>}
+          </div>
+          {/* Create custom category */}
+          <div className="border-t border-white/[.06] mt-1 pt-2">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-600 px-1 mb-1.5">Create custom</p>
+            <div className="flex items-center gap-1.5">
+              <input
+                ref={customRef}
+                value={customName}
+                onChange={e => setCustomName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") addCustom(); }}
+                placeholder="Category name…"
+                className="flex-1 bg-white/[.03] border border-white/[.07] rounded-md px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-white/[.14]"
+              />
+              <button
+                onClick={addCustom}
+                disabled={!customName.trim() || selected.has(customName.trim())}
+                className="rounded-md bg-white/[.05] border border-white/[.08] px-2 py-1.5 text-[10px] text-slate-400 hover:text-white hover:bg-white/[.08] transition-colors disabled:opacity-30"
+              >
+                Add
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -858,6 +892,67 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
   );
 }
 
+// ─── Note card (editable) ─────────────────────────────────────────────────────
+function NoteCard({ note, onUpdate, onDelete }: {
+  note: NoteRecord;
+  onUpdate: (id: string, data: Record<string, unknown>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [title, setTitle]     = useState(String(note.data.title || ""));
+  const [content, setContent] = useState(String(note.data.content || ""));
+  const [hovered, setHovered] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => { setTitle(String(note.data.title || "")); }, [note.data.title]);
+  useEffect(() => { setContent(String(note.data.content || "")); }, [note.data.content]);
+
+  function autoGrow() {
+    const el = taRef.current; if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+  useEffect(() => { autoGrow(); }, [content]);
+
+  function saveTitle() { onUpdate(note.id, { ...note.data, title }); }
+  function saveContent() { onUpdate(note.id, { ...note.data, content }); }
+
+  return (
+    <div
+      className="group rounded-xl border border-white/[.06] bg-white/[.02] p-4 hover:border-white/[.10] transition-colors"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <input
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onBlur={saveTitle}
+            placeholder="Note title…"
+            className="w-full bg-transparent text-sm font-semibold text-white placeholder-slate-700 outline-none border-b border-transparent focus:border-white/[.08] pb-1 mb-2 transition-colors"
+          />
+          <textarea
+            ref={taRef}
+            value={content}
+            onChange={e => { setContent(e.target.value); autoGrow(); }}
+            onBlur={saveContent}
+            placeholder="Write something…"
+            rows={2}
+            className="w-full resize-none bg-transparent text-xs text-slate-400 placeholder-slate-700 outline-none leading-relaxed overflow-hidden"
+          />
+        </div>
+        <button
+          onClick={() => onDelete(note.id)}
+          className={`shrink-0 rounded-md p-1.5 text-slate-700 hover:text-red-400 hover:bg-red-400/10 transition-all ${hovered ? "opacity-100" : "opacity-0"}`}
+        >
+          <Trash2 size={12}/>
+        </button>
+      </div>
+      <p className="mt-2 text-[10px] text-slate-700">{relativeTime(String(note.data.created_at || note.updated_at))}</p>
+    </div>
+  );
+}
+
 // ─── Full notes tab ───────────────────────────────────────────────────────────
 function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }) {
   const qc = useQueryClient();
@@ -872,10 +967,20 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
     mutationFn: () => apiClient.post<NoteRecord>("/nodes", {
       vertical: vertical || "shared",
       object_type: "note",
-      data: { parent_id: recordId, title: "Untitled note", content: "", created_at: new Date().toISOString() },
+      data: { parent_id: recordId, title: "", content: "", created_at: new Date().toISOString() },
     }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notes", recordId] }),
   });
+  const updateNote = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
+      apiClient.patch(`/nodes/${id}`, { data }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notes", recordId] }),
+  });
+  const deleteNote = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notes", recordId] }),
+  });
+
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
@@ -884,19 +989,21 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
           <Plus size={12}/> New note
         </button>
       </div>
-      {createNote.isPending && <div className="rounded-lg border border-white/[.06] bg-white/[.02] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-white/[.05] mb-2"/><div className="h-2 w-48 rounded bg-white/[.04]"/></div>}
+      {createNote.isPending && <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-white/[.05] mb-2"/><div className="h-2 w-48 rounded bg-white/[.04]"/></div>}
       {notes.length === 0 && !isLoading && !createNote.isPending ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-white/[.05] bg-white/[.01] text-center">
           <FileText size={18} className="mb-2 text-slate-700"/>
           <p className="text-xs text-slate-600">No notes yet. Click "New note" to get started.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {notes.map(note => (
-            <div key={note.id} className="rounded-lg border border-white/[.06] bg-white/[.02] p-4 hover:border-white/[.09] transition-colors cursor-pointer">
-              <p className="text-sm font-medium text-white">{String(note.data.title || "Untitled note")}</p>
-              <p className="mt-0.5 text-xs text-slate-600">{String(note.data.content || "This note has no content")} • {relativeTime(String(note.data.created_at || note.updated_at))}</p>
-            </div>
+            <NoteCard
+              key={note.id}
+              note={note}
+              onUpdate={(id, data) => updateNote.mutate({ id, data })}
+              onDelete={id => deleteNote.mutate(id)}
+            />
           ))}
         </div>
       )}
@@ -909,7 +1016,11 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
   const qc = useQueryClient();
   const [adding, setAdding]     = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const editRef  = useRef<HTMLInputElement>(null);
+
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks", recordId],
     queryFn: async () => {
@@ -925,11 +1036,29 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks", recordId] }); setNewTitle(""); setAdding(false); },
   });
-  const toggleTask = useMutation({
+  const updateTask = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => apiClient.patch(`/nodes/${id}`, { data }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", recordId] }),
   });
+  const deleteTask = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", recordId] }),
+  });
+
   useEffect(() => { if (adding) setTimeout(() => inputRef.current?.focus(), 30); }, [adding]);
+  useEffect(() => { if (editingId) setTimeout(() => editRef.current?.focus(), 20); }, [editingId]);
+
+  function startEdit(task: TaskRecord) {
+    setEditingId(task.id);
+    setEditTitle(String(task.data.title || ""));
+  }
+  function commitEdit(task: TaskRecord) {
+    if (editTitle.trim() && editTitle.trim() !== String(task.data.title || "")) {
+      updateTask.mutate({ id: task.id, data: { ...task.data, title: editTitle.trim() } });
+    }
+    setEditingId(null);
+  }
+
   const sorted = [...tasks.filter(t => !t.data.done), ...tasks.filter(t => t.data.done)];
   return (
     <div className="space-y-4 max-w-2xl">
@@ -949,7 +1078,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
         </div>
       )}
       {tasks.length === 0 && !adding ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-white/[.05] bg-white/[.01] text-center">
           <CheckSquare size={18} className="mb-2 text-slate-700"/>
           <p className="text-xs text-slate-600">No tasks yet. Click "Add task" to get started.</p>
         </div>
@@ -957,18 +1086,218 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
         <div className="space-y-0.5">
           {sorted.map(task => {
             const isDone = Boolean(task.data.done);
+            const isEditing = editingId === task.id;
             return (
-              <div key={task.id} className="flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-white/[.02] transition-colors">
-                <button onClick={() => toggleTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
+              <div key={task.id} className="group flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-white/[.02] transition-colors">
+                <button onClick={() => updateTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone ? <CheckSquare size={15} className="text-emerald-400"/> : <Square size={15} className="text-slate-600 hover:text-slate-400 transition-colors"/>}
                 </button>
-                <span className={`flex-1 text-sm ${isDone ? "line-through text-slate-600" : "text-slate-300"}`}>{String(task.data.title || "Untitled task")}</span>
-                {task.data.assignee != null && <span className="text-[10px] text-slate-600 shrink-0 rounded bg-white/[.04] px-1.5 py-0.5">{String(task.data.assignee)}</span>}
+                {isEditing ? (
+                  <input
+                    ref={editRef}
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    onBlur={() => commitEdit(task)}
+                    onKeyDown={e => { if (e.key === "Enter") commitEdit(task); if (e.key === "Escape") setEditingId(null); }}
+                    className="flex-1 bg-transparent text-sm text-white outline-none border-b border-white/[.12]"
+                  />
+                ) : (
+                  <span
+                    onClick={() => !isDone && startEdit(task)}
+                    className={`flex-1 text-sm cursor-text ${isDone ? "line-through text-slate-600" : "text-slate-300 hover:text-white"}`}
+                  >
+                    {String(task.data.title || "Untitled task")}
+                  </span>
+                )}
+                {task.data.assignee != null && !isEditing && (
+                  <span className="text-[10px] text-slate-600 shrink-0 rounded bg-white/[.04] px-1.5 py-0.5">{String(task.data.assignee)}</span>
+                )}
+                <button
+                  onClick={() => deleteTask.mutate(task.id)}
+                  className="shrink-0 rounded p-1 text-slate-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
+                >
+                  <Trash2 size={11}/>
+                </button>
               </div>
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Description field (C) ───────────────────────────────────────────────────
+function DescriptionField({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { setDraft(value); }, [value]);
+  function autoGrow() {
+    const el = taRef.current; if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.max(72, el.scrollHeight) + "px";
+  }
+  useEffect(() => { autoGrow(); }, [draft]);
+  return (
+    <div className="rounded-xl border border-zinc-800/60 bg-zinc-900/20 p-4">
+      <div className="flex items-center gap-1.5 mb-2">
+        <AlignLeft size={11} className="text-slate-600"/>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">Description</p>
+      </div>
+      <textarea
+        ref={taRef}
+        value={draft}
+        onChange={e => { setDraft(e.target.value); autoGrow(); }}
+        onBlur={() => { if (draft !== value) onSave(draft); }}
+        placeholder="Add a description…"
+        className="w-full resize-none bg-transparent text-sm text-slate-300 placeholder-slate-700 outline-none leading-relaxed overflow-hidden"
+        rows={3}
+      />
+    </div>
+  );
+}
+
+// ─── Contact log tab (H) ─────────────────────────────────────────────────────
+const CONTACT_LOG_TYPES = [
+  { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-emerald-400", bg: "bg-emerald-400/10" },
+  { value: "email",   label: "Email",   icon: Mail,          color: "text-blue-400",    bg: "bg-blue-400/10" },
+  { value: "meeting", label: "Meeting", icon: Video,         color: "text-violet-400",  bg: "bg-violet-400/10" },
+  { value: "message", label: "Message", icon: MessageSquare, color: "text-amber-400",   bg: "bg-amber-400/10" },
+] as const;
+
+const CONTACT_OUTCOMES = ["Positive", "Neutral", "No answer", "Follow-up needed", "Closed"];
+
+interface ContactLogRecord { id: string; data: Record<string, unknown>; updated_at: string }
+
+function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: string }) {
+  const qc = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const [logType, setLogType] = useState<string>("call");
+  const [outcome, setOutcome] = useState(CONTACT_OUTCOMES[0]!);
+  const [notes, setNotes]   = useState("");
+  const [date, setDate]     = useState(() => new Date().toISOString().slice(0, 16));
+
+  const { data: logs = [], isLoading } = useQuery({
+    queryKey: ["contact-log", recordId],
+    queryFn: async () => {
+      const all = await apiClient.get<ContactLogRecord[]>("/nodes?object_type=contact_log&limit=200");
+      return all.filter(n => n.data.parent_id === recordId)
+        .sort((a, b) => new Date(b.data.logged_at as string || b.updated_at).getTime()
+                      - new Date(a.data.logged_at as string || a.updated_at).getTime());
+    },
+  });
+
+  const createLog = useMutation({
+    mutationFn: () => apiClient.post("/nodes", {
+      vertical: vertical || "shared",
+      object_type: "contact_log",
+      data: { parent_id: recordId, type: logType, outcome, notes, logged_at: date ? new Date(date).toISOString() : new Date().toISOString() },
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contact-log", recordId] });
+      setAdding(false); setNotes(""); setOutcome(CONTACT_OUTCOMES[0]!);
+      setDate(new Date().toISOString().slice(0, 16));
+    },
+  });
+
+  const deleteLog = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contact-log", recordId] }),
+  });
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">Contact Log</p>
+        <button onClick={() => setAdding(o => !o)} className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-white/[.06] transition-colors">
+          <Plus size={12}/> Log contact
+        </button>
+      </div>
+
+      {adding && (
+        <div className="rounded-xl border border-white/[.08] bg-white/[.02] p-4 space-y-3">
+          {/* Type picker */}
+          <div className="flex gap-2">
+            {CONTACT_LOG_TYPES.map(t => {
+              const Icon = t.icon;
+              const active = logType === t.value;
+              return (
+                <button key={t.value} onClick={() => setLogType(t.value)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-white/[.06] text-slate-500 hover:text-slate-300 hover:bg-white/[.02]"}`}>
+                  <Icon size={12}/> {t.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* Date + outcome row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] text-slate-600 mb-1">Date & time</p>
+              <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
+                className="w-full bg-white/[.03] border border-white/[.07] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-white/[.14]"/>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-600 mb-1">Outcome</p>
+              <select value={outcome} onChange={e => setOutcome(e.target.value)}
+                className="w-full bg-white/[.03] border border-white/[.07] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-white/[.14]">
+                {CONTACT_OUTCOMES.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+          {/* Notes */}
+          <div>
+            <p className="text-[10px] text-slate-600 mb-1">Notes</p>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+              placeholder="What was discussed?"
+              className="w-full resize-none bg-white/[.03] border border-white/[.07] rounded-lg px-3 py-2.5 text-xs text-white placeholder-slate-700 outline-none focus:border-white/[.14] leading-relaxed"/>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setAdding(false)} className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">Cancel</button>
+            <button onClick={() => createLog.mutate()} disabled={createLog.isPending}
+              className="rounded-lg bg-red-500/20 border border-red-500/30 px-4 py-1.5 text-xs text-red-300 hover:bg-red-500/30 transition-colors disabled:opacity-50">
+              {createLog.isPending ? "Saving…" : "Save log"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isLoading && <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-xl bg-white/[.02] animate-pulse"/>)}</div>}
+      {!isLoading && logs.length === 0 && !adding && (
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-white/[.05] bg-white/[.01] text-center">
+          <PhoneCall size={18} className="mb-2 text-slate-700"/>
+          <p className="text-xs text-slate-600">No contact logs yet.</p>
+          <p className="mt-1 text-xs text-slate-700">Click "Log contact" to record a call, email, or meeting.</p>
+        </div>
+      )}
+      <div className="space-y-2">
+        {logs.map(log => {
+          const typeDef = CONTACT_LOG_TYPES.find(t => t.value === log.data.type) ?? CONTACT_LOG_TYPES[0]!;
+          const Icon = typeDef.icon;
+          const loggedAt = log.data.logged_at ? relativeTime(String(log.data.logged_at)) : relativeTime(log.updated_at);
+          return (
+            <div key={log.id} className="group flex items-start gap-3 rounded-xl border border-white/[.06] bg-white/[.02] p-3.5 hover:border-white/[.09] transition-colors">
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${typeDef.bg}`}>
+                <Icon size={14} className={typeDef.color}/>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className={`text-xs font-medium ${typeDef.color}`}>{typeDef.label}</span>
+                  <span className="text-[10px] text-slate-600">·</span>
+                  <span className="text-[10px] text-slate-500">{String(log.data.outcome || "")}</span>
+                  <span className="text-[10px] text-slate-700 ml-auto">{loggedAt}</span>
+                </div>
+                {!!log.data.notes && (
+                  <p className="text-xs text-slate-400 leading-relaxed">{String(log.data.notes)}</p>
+                )}
+              </div>
+              <button onClick={() => deleteLog.mutate(log.id)}
+                className="shrink-0 rounded p-1 text-slate-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all">
+                <Trash2 size={11}/>
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1072,6 +1401,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   const [listOpen, setListOpen] = useState(false);
   const [tagOpen, setTagOpen]   = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [addedListIds, setAddedListIds] = useState<Set<string>>(new Set());
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1088,6 +1418,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   });
   const addToList = useMutation({
     mutationFn: (listId: string) => apiClient.post(`/lists/${listId}/entries`, { node_id: recordId }),
+    onSuccess: (_, listId) => setAddedListIds(s => new Set([...s, listId])),
   });
 
   // Members for owner/assignee fields in Record Details
@@ -1179,7 +1510,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   const assignedTo = data.assigned_to ? String(data.assigned_to) : null;
   const categories: Category[] = Array.isArray(data.categories) ? (data.categories as Category[]) : [];
   const leftFields = Object.entries(data).filter(([k]) =>
-    !["name","categories","assigned_to","logo_url"].includes(k)
+    !["name","categories","assigned_to","logo_url","description"].includes(k)
   );
 
   // Custom column definitions from localStorage (same key the table uses)
@@ -1274,16 +1605,25 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                   <ChevronDown size={10} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>
                 </button>
                 {listOpen && (
-                  <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 max-h-52 overflow-y-auto">
-                    {listsQuery.isLoading && <p className="px-3 py-2 text-xs text-slate-600">Loading…</p>}
+                  <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50">
+                    {listsQuery.isLoading && <p className="px-3 py-3 text-xs text-slate-600 text-center">Loading…</p>}
                     {!listsQuery.isLoading && (listsQuery.data ?? []).length === 0 && (
-                      <p className="px-3 py-2 text-xs text-slate-600">No lists yet</p>
+                      <p className="px-3 py-3 text-xs text-slate-600 text-center">No lists yet</p>
                     )}
-                    {(listsQuery.data ?? []).map(list => (
-                      <button key={list.id} onClick={() => { addToList.mutate(list.id); setListOpen(false); }} className="dropdown-item w-full">
-                        {list.name}
-                      </button>
-                    ))}
+                    <div className="max-h-48 overflow-y-auto">
+                      {(listsQuery.data ?? []).map(list => {
+                        const added = addedListIds.has(list.id);
+                        return (
+                          <button key={list.id}
+                            onClick={() => { if (!added) addToList.mutate(list.id); }}
+                            className={`dropdown-item w-full flex items-center gap-2 ${added ? "text-emerald-400 cursor-default" : ""}`}>
+                            <List size={11} className="shrink-0 opacity-50"/>
+                            <span className="flex-1 text-left">{list.name}</span>
+                            {added && <Check size={11} className="text-emerald-400 shrink-0"/>}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1400,6 +1740,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {tab === "Overview" && (
               <div className="space-y-7 max-w-3xl">
+                {/* Description — full-width editable */}
+                {(data.description != null && data.description !== "") && (
+                  <DescriptionField value={String(data.description)} onSave={v => save("description", v)}/>
+                )}
                 {/* Type-specific highlights */}
                 <div>
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-slate-600">Highlights</p>
@@ -1438,8 +1782,9 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               </div>
             )}
 
-            {tab === "Notes"   && <NotesTab    recordId={recordId} vertical={record.vertical}/>}
-            {tab === "Tasks"   && <TasksTab    recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Notes"       && <NotesTab       recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Tasks"       && <TasksTab       recordId={recordId} vertical={record.vertical}/>}
+            {tab === "Contact Log" && <ContactLogTab  recordId={recordId} vertical={record.vertical}/>}
             {tab === "Files"   && (
               <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
                 <FileText size={20} className="mb-2 text-slate-700"/>
