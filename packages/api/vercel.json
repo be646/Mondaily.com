@@ -1,7 +1,6 @@
 {
   "buildCommand": "npx tsup",
   "rewrites": [
-    { "source": "/api/inngest", "destination": "/api/inngest" },
     { "source": "/(.*)", "destination": "/api/handler" }
   ]
 }
