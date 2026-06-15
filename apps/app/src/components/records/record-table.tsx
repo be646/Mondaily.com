@@ -1047,11 +1047,6 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // ── Toolbar dropdown open state ──
   const [openPanel, setOpenPanel] = useState<"view"|"sort"|"filter"|"export"|"addcol"|"groupby"|"views"|null>(null);
 
-  // ── Toolbar trigger refs (for portal positioning) ──
-  const viewWrapRef   = useRef<HTMLDivElement>(null);
-  const sortWrapRef   = useRef<HTMLDivElement>(null);
-  const filterWrapRef = useRef<HTMLDivElement>(null);
-  const exportWrapRef = useRef<HTMLDivElement>(null);
   // Add column lives in the table header now
   const addColHeaderRef = useRef<HTMLTableCellElement>(null);
 
@@ -1619,145 +1614,185 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         )}
 
         <div className="ml-auto flex items-center gap-0.5">
-          {/* View */}
-          <div ref={viewWrapRef}>
-            <button onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
-              className={openPanel === "view" ? TB_ON : TB_IDLE}>
-              <Settings2 size={11}/>
-              <span>View</span>
-              {hiddenCols.size > 0 && <span className={TB_DOT}>{allColumns.length - hiddenCols.size}</span>}
-            </button>
-            {openPanel === "view" && (
-              <ViewSettingsDropdown columns={allColumnsWithCustom} hidden={hiddenCols} onToggle={toggleCol} onClose={() => setOpenPanel(null)} triggerRef={viewWrapRef}/>
-            )}
-          </div>
+          {/* Columns (was "View") */}
+          <button onClick={() => setOpenPanel(p => p === "view" ? null : "view")}
+            className={openPanel === "view" ? TB_ON : TB_IDLE}>
+            <Settings2 size={11}/>
+            <span>Columns</span>
+            {hiddenCols.size > 0 && <span className={TB_DOT}>{allColumnsWithCustom.length - hiddenCols.size}</span>}
+          </button>
 
           <div className="w-px h-3 bg-white/[.07] mx-1"/>
 
           {/* Filter */}
-          <div ref={filterWrapRef}>
-            <button onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
-              className={openPanel === "filter" || quickFilters.length > 0 || filterText ? TB_ON : TB_IDLE}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
-              <span>Filter</span>
-              {(quickFilters.length > 0 || filterText) && <span className={TB_DOT_ACTIVE}>{quickFilters.length + (filterText ? 1 : 0)}</span>}
-            </button>
-          </div>
+          <button onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
+            className={openPanel === "filter" || quickFilters.length > 0 || filterText ? TB_ON : TB_IDLE}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 2.5h10M3 6h6M5 9.5h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+            <span>Filter</span>
+            {(quickFilters.length > 0 || filterText) && <span className={TB_DOT_ACTIVE}>{quickFilters.length + (filterText ? 1 : 0)}</span>}
+          </button>
 
           {/* Sort */}
-          <div ref={sortWrapRef}>
-            <button onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
-              className={openPanel === "sort" || activeSortCount > 0 ? TB_ON : TB_IDLE}>
-              <ArrowUpDown size={11}/>
-              <span>Sort</span>
-              {activeSortCount > 0 && <span className={TB_DOT}>{activeSortCount}</span>}
-            </button>
-            {openPanel === "sort" && (
-              <SortPanel columns={[...allColumnsWithCustom, "__updated_at"]} rules={sortRules}
-                onChange={rules => { setSortRules(rules); setQuickSortCol(null); }}
-                onClose={() => setOpenPanel(null)} triggerRef={sortWrapRef}/>
-            )}
-          </div>
+          <button onClick={() => setOpenPanel(p => p === "sort" ? null : "sort")}
+            className={openPanel === "sort" || activeSortCount > 0 ? TB_ON : TB_IDLE}>
+            <ArrowUpDown size={11}/>
+            <span>Sort</span>
+            {activeSortCount > 0 && <span className={TB_DOT}>{activeSortCount}</span>}
+          </button>
 
           {/* Group */}
-          <div className="relative">
-            <button onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")}
-              className={groupByCol || openPanel === "groupby" ? TB_ON : TB_IDLE}>
-              <Rows3 size={11}/>
-              <span>Group</span>
-              {groupByCol && <span className={TB_DOT}>{groupByCol.replace(/_/g," ")}</span>}
-            </button>
-            {openPanel === "groupby" && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setOpenPanel(null)}/>
-                <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
-                  <div className="px-3 py-2.5 border-b border-white/[.05]">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Group rows by</p>
-                  </div>
-                  <div className="p-1">
-                    <button onClick={() => { setGroupBy(null); setOpenPanel(null); }}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors ${!groupByCol ? "text-white bg-white/[.06]" : "text-white/40 hover:text-white hover:bg-white/[.04]"}`}>
-                      None
-                    </button>
-                    {orderedColumns.map(col => (
-                      <button key={col} onClick={() => { setGroupBy(col); setOpenPanel(null); }}
-                        className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors capitalize ${groupByCol === col ? "text-white bg-white/[.06]" : "text-white/40 hover:text-white hover:bg-white/[.04]"}`}>
-                        {col.replace(/_/g," ")}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <button onClick={() => setOpenPanel(p => p === "groupby" ? null : "groupby")}
+            className={groupByCol || openPanel === "groupby" ? TB_ON : TB_IDLE}>
+            <Rows3 size={11}/>
+            <span>Group</span>
+            {groupByCol && <span className={TB_DOT}>{groupByCol.replace(/_/g," ")}</span>}
+          </button>
 
           <div className="w-px h-3 bg-white/[.07] mx-1"/>
 
           {/* Export */}
-          <div ref={exportWrapRef}>
-            <button onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
-              className={openPanel === "export" ? TB_ON : TB_IDLE}>
-              <Download size={11}/>
-              <span>Export</span>
-            </button>
-            {openPanel === "export" && (
-              <ExportDropdown records={sorted} columns={columns} objectType={objectType}
-                onClose={() => setOpenPanel(null)} triggerRef={exportWrapRef}/>
-            )}
-          </div>
+          <button onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
+            className={openPanel === "export" ? TB_ON : TB_IDLE}>
+            <Download size={11}/>
+            <span>Export</span>
+          </button>
 
-          {/* Saved views */}
-          <div className="relative">
-            <button onClick={() => setOpenPanel(p => p === "views" ? null : "views")}
-              className={openPanel === "views" || savedViews.length > 0 ? (openPanel === "views" ? TB_ON : TB_IDLE) : TB_IDLE}>
-              <BookmarkCheck size={11}/>
-              <span>Views</span>
-              {savedViews.length > 0 && <span className={TB_DOT}>{savedViews.length}</span>}
-            </button>
-            {openPanel === "views" && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setOpenPanel(null)}/>
-                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
-                  <div className="px-3 py-2.5 border-b border-white/[.05]">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Saved views</p>
-                  </div>
-                  <div className="p-1 max-h-56 overflow-y-auto">
-                    {savedViews.length === 0 && <p className="px-3 py-3 text-xs text-white/20 text-center">No saved views yet</p>}
-                    {savedViews.map(v => (
-                      <div key={v.id} className="flex items-center gap-1 rounded-lg hover:bg-white/[.04] transition-colors pr-1">
-                        <button onClick={() => { applyView(v); setOpenPanel(null); }}
-                          className="flex-1 px-3 py-2 text-xs text-white/60 hover:text-white text-left truncate">
-                          {v.name}
-                        </button>
-                        <button onClick={() => deleteView(v.id)} className="p-1 text-white/20 hover:text-red-400 transition-colors shrink-0">
-                          <X size={11}/>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t border-white/[.05] p-2">
-                    {saveViewOpen ? (
-                      <div className="flex items-center gap-1.5">
-                        <input autoFocus value={newViewName} onChange={e => setNewViewName(e.target.value)}
-                          onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
-                          placeholder="View name…"
-                          className="flex-1 bg-white/[.04] border border-white/[.06] rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-white/[.12] placeholder:text-white/20"/>
-                        <button onClick={saveCurrentView} className="text-emerald-400 hover:text-emerald-300 p-1"><Check size={12}/></button>
-                        <button onClick={() => setSaveViewOpen(false)} className="text-white/20 hover:text-white/50 p-1"><X size={11}/></button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setSaveViewOpen(true)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/40 hover:text-white hover:bg-white/[.04] transition-colors">
-                        <Plus size={11}/> Save current view
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          {/* Saved (was "Views") */}
+          <button onClick={() => setOpenPanel(p => p === "views" ? null : "views")}
+            className={openPanel === "views" ? TB_ON : TB_IDLE}>
+            <BookmarkCheck size={11}/>
+            <span>Saved</span>
+            {savedViews.length > 0 && <span className={TB_DOT}>{savedViews.length}</span>}
+          </button>
         </div>
       </div>
+
+      {/* ── Columns inline bar ── */}
+      {openPanel === "view" && (
+        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0 mr-2">Columns</span>
+          {allColumnsWithCustom.map(col => {
+            const visible = !hiddenCols.has(col);
+            return (
+              <button key={col} onClick={() => toggleCol(col)}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-white/[.10] bg-white/[.05] text-white/70" : "border-white/[.04] bg-transparent text-white/20 hover:text-white/40 hover:border-white/[.08]"}`}>
+                {visible && <Check size={9} className="text-red-400 shrink-0"/>}
+                <span className="capitalize">{col.replace(/_/g," ")}</span>
+              </button>
+            );
+          })}
+          <button onClick={() => allColumnsWithCustom.forEach(c => hiddenCols.has(c) && toggleCol(c))}
+            className="ml-2 text-[10px] text-white/25 hover:text-white/60 transition-colors shrink-0 whitespace-nowrap">
+            Show all
+          </button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+        </div>
+      )}
+
+      {/* ── Sort inline bar ── */}
+      {openPanel === "sort" && (
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0">Sort by</span>
+          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+          {sortRules.length === 0 && (
+            <span className="text-[11px] text-white/20">No sorts — add one below</span>
+          )}
+          {sortRules.map((rule, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 shrink-0">
+              <select value={rule.col} onChange={e => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: e.target.value } : x))}
+                className="bg-transparent text-[11px] text-white/70 outline-none capitalize max-w-[120px]">
+                {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[#13151a]">{c.replace(/_/g," ")}</option>)}
+              </select>
+              <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
+                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400"}`}>
+                {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
+              </button>
+              <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-red-400"><X size={10}/></button>
+            </div>
+          ))}
+          <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) { setSortRules(r => [...r, { col: unused, dir: "asc" }]); setQuickSortCol(null); } }}
+            className="flex items-center gap-1 text-[11px] text-white/30 hover:text-white/70 transition-colors shrink-0 whitespace-nowrap">
+            <Plus size={11}/> Add sort
+          </button>
+          {sortRules.length > 0 && (
+            <button onClick={() => { setSortRules([]); setQuickSortCol(null); }} className="text-[10px] text-red-400/50 hover:text-red-400 transition-colors shrink-0 whitespace-nowrap">
+              Clear
+            </button>
+          )}
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+        </div>
+      )}
+
+      {/* ── Group inline bar ── */}
+      {openPanel === "groupby" && (
+        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0 mr-1">Group by</span>
+          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+          <button onClick={() => { setGroupBy(null); }}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-white/30 hover:text-white/60 hover:border-white/[.08]"}`}>
+            {!groupByCol && <Check size={9} className="text-red-400"/>}None
+          </button>
+          {orderedColumns.map(col => (
+            <button key={col} onClick={() => setGroupBy(col)}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-white/30 hover:text-white/60 hover:border-white/[.08]"}`}>
+              {groupByCol === col && <Check size={9} className="text-red-400"/>}
+              {col.replace(/_/g," ")}
+            </button>
+          ))}
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+        </div>
+      )}
+
+      {/* ── Export inline bar ── */}
+      {openPanel === "export" && (
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0">Export</span>
+          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+          <button onClick={() => {
+            const rows = [columns.join(","), ...sorted.map(r => columns.map(c => JSON.stringify(r.data[c] ?? "")).join(","))].join("\n");
+            const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([rows], { type: "text/csv" })), download: `${objectType}.csv` });
+            a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
+          }} className="flex items-center gap-1.5 text-[11px] text-white/50 hover:text-white transition-colors">
+            <Download size={11}/> Export as CSV
+            <span className="text-[10px] text-white/20 ml-1">({sorted.length} rows)</span>
+          </button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0"><X size={13}/></button>
+        </div>
+      )}
+
+      {/* ── Saved views inline bar ── */}
+      {openPanel === "views" && (
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0">Saved</span>
+          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+          {savedViews.length === 0 && <span className="text-[11px] text-white/20">No saved views yet</span>}
+          {savedViews.map(v => (
+            <div key={v.id} className="flex items-center gap-0.5 rounded-lg border border-white/[.08] bg-white/[.03] pl-2.5 pr-1 py-1 shrink-0">
+              <button onClick={() => { applyView(v); setOpenPanel(null); }} className="text-[11px] text-white/60 hover:text-white transition-colors whitespace-nowrap">
+                {v.name}
+              </button>
+              <button onClick={() => deleteView(v.id)} className="p-0.5 text-white/15 hover:text-red-400 transition-colors ml-1"><X size={10}/></button>
+            </div>
+          ))}
+          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+          {saveViewOpen ? (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <input autoFocus value={newViewName} onChange={e => setNewViewName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
+                placeholder="Name this view…"
+                className="bg-white/[.04] border border-white/[.08] rounded-lg px-2.5 py-1 text-[11px] text-white outline-none focus:border-white/[.15] placeholder:text-white/20 w-36"/>
+              <button onClick={saveCurrentView} className="text-emerald-400 hover:text-emerald-300 transition-colors p-0.5"><Check size={12}/></button>
+              <button onClick={() => setSaveViewOpen(false)} className="text-white/20 hover:text-white/50 p-0.5"><X size={11}/></button>
+            </div>
+          ) : (
+            <button onClick={() => setSaveViewOpen(true)}
+              className="flex items-center gap-1.5 text-[11px] text-white/30 hover:text-white/70 transition-colors shrink-0 whitespace-nowrap">
+              <Plus size={11}/> Save current view
+            </button>
+          )}
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+        </div>
+      )}
 
       {/* ── Filter inline bar ── */}
       {openPanel === "filter" && (() => {
