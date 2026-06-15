@@ -122,25 +122,16 @@ export const enrichRecord = inngest.createFunction(
         return { enriched: false };
       }
 
-      // Merge enriched fields into node data and mark enriched
-      await supabase.rpc("merge_node_data", { node_id: nodeId, patch: fields }).catch(async () => {
-        // Fallback: manual merge
-        const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
-        const merged = { ...(node?.data ?? {}), ...fields };
-        await supabase
-          .from("nodes")
-          .update({
-            data: merged,
-            enriched_at: new Date().toISOString(),
-            enrichment_status: "done",
-          })
-          .eq("id", nodeId);
-      });
-
-      // Also set enrichment columns directly
+      // Merge enriched fields into node data
+      const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
+      const merged = { ...(node?.data ?? {}), ...fields };
       await supabase
         .from("nodes")
-        .update({ enriched_at: new Date().toISOString(), enrichment_status: "done" })
+        .update({
+          data: merged,
+          enriched_at: new Date().toISOString(),
+          enrichment_status: "done",
+        })
         .eq("id", nodeId);
 
       // Create notification for the workspace
