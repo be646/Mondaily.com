@@ -988,21 +988,21 @@ function AutomationFlow() {
   const [shownCount, setShownCount] = useState(0);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  function startFlow() {
-    // Clear any in-progress timers and restart from 0
-    timersRef.current.forEach(clearTimeout);
-    setShownCount(0);
-    timersRef.current = FLOW_NODES.map((n, i) =>
-      setTimeout(() => setShownCount(i + 1), n.delay + 200)
-    );
-  }
-
-  function resetFlow() {
-    timersRef.current.forEach(clearTimeout);
-    setShownCount(0);
-  }
-
-  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
+  useEffect(() => {
+    function runFlow() {
+      timersRef.current.forEach(clearTimeout);
+      setShownCount(0);
+      timersRef.current = FLOW_NODES.map((n, i) =>
+        setTimeout(() => setShownCount(i + 1), n.delay + 200)
+      );
+    }
+    runFlow();
+    const loop = setInterval(runFlow, 3100 + 200 + 2600);
+    return () => {
+      clearInterval(loop);
+      timersRef.current.forEach(clearTimeout);
+    };
+  }, []);
 
   const Connector = ({ active, short }: { active: boolean; short?: boolean }) => (
     <div className="flex justify-center">
@@ -1018,8 +1018,6 @@ function AutomationFlow() {
     <section
       ref={ref}
       className="mx-auto max-w-6xl px-6 py-20"
-      onMouseEnter={startFlow}
-      onMouseLeave={resetFlow}
     >
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// automation.flow</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
@@ -1028,7 +1026,6 @@ function AutomationFlow() {
       <p className="mb-6 font-mono text-[13px] text-zinc-500">
         Visual flows that trigger on real CRM events — no code, no ops overhead.
       </p>
-      <p className="mb-6 font-mono text-[14px] text-zinc-500">// hover to run the flow</p>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
         {/* Flow diagram */}
@@ -1959,14 +1956,17 @@ const TRUST_BADGES: { icon: React.ReactElement; label: string }[] = [
 function TrustBadges() {
   return (
     <div className="border-t border-black/[.04] bg-white">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-6 py-8">
+      <a
+        href="/security"
+        className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-6 py-8 transition-colors hover:bg-black/[.012]"
+      >
         {TRUST_BADGES.map(b => (
           <div key={b.label} className="flex items-center gap-2.5 text-zinc-500">
             <span className="text-zinc-400">{b.icon}</span>
             <span className="font-mono text-[12.5px]">{b.label}</span>
           </div>
         ))}
-      </div>
+      </a>
     </div>
   );
 }
