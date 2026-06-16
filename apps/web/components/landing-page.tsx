@@ -224,15 +224,17 @@ const TERM_STREAMS: { cmd: string; out: string }[][] = [
 ];
 
 function TermWindow({ lines, title, accent = "#4f46e5" }: { lines: { cmd: string; out: string }[]; title: string; accent?: string }) {
-  const [shown, setShown] = useState<{ cmd: string; out: string }[]>([]);
+  const [shown, setShown] = useState<{ id: number; cmd: string; out: string }[]>([]);
   const idx = useRef(0);
+  const nextId = useRef(0);
 
   useEffect(() => {
     idx.current = 0;
+    nextId.current = 0;
     setShown([]);
     const t = setInterval(() => {
       const line = lines[idx.current % lines.length];
-      if (line) setShown(prev => [...prev.slice(-3), line]);
+      if (line) setShown(prev => [...prev.slice(-2), { id: nextId.current++, ...line }]);
       idx.current++;
     }, 2200);
     return () => clearInterval(t);
@@ -248,10 +250,10 @@ function TermWindow({ lines, title, accent = "#4f46e5" }: { lines: { cmd: string
         <span className="text-zinc-700 text-[14px] font-medium">{title}</span>
         <motion.span animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 1.6, repeat: Infinity }} className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }}/>
       </div>
-      <div className="space-y-2 min-h-[80px]">
+      <div className="space-y-2 h-[120px] overflow-hidden">
         <AnimatePresence initial={false}>
-          {shown.map((l, i) => (
-            <motion.div key={i + l.cmd} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          {shown.map(l => (
+            <motion.div key={l.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
               <div style={{ color: accent }}>{l.cmd}</div>
               <div className="text-zinc-500">{l.out}</div>
             </motion.div>
@@ -432,11 +434,11 @@ const WORKFLOW_LOOP_MS = 3900 + 3000; // last step + pause before restart
 
 // ── How it's different — standalone comparison section ────────────────────────
 const REPLACES_ROWS = [
-  { before: "Manual scoring in a spreadsheet", after: "AI scores every deal in real-time", icon: "◈" },
-  { before: "Forgetting to follow up",         after: "Sequences enroll automatically",   icon: "◈" },
-  { before: "Chasing your team on Slack",      after: "Slack notified the moment it fires",icon: "◈" },
-  { before: "Finance chasing the deal owner",  after: "Quote created and sent instantly",  icon: "◈" },
-  { before: "Juggling five disconnected tools", after: "One AI workspace for everything",  icon: "◈" },
+  { before: "A spreadsheet for scoring deals",     after: "Built-in pipeline, scored by AI",        icon: "◈" },
+  { before: "A separate sequencing tool",          after: "Sequences live in the same workspace",   icon: "◈" },
+  { before: "Slack as your reminder system",        after: "Native alerts, no app-switching",        icon: "◈" },
+  { before: "A standalone finance/invoicing app",   after: "Quotes and invoices, built in",          icon: "◈" },
+  { before: "Five disconnected tools to maintain",  after: "One AI workspace for revenue & ops",     icon: "◈" },
 ];
 
 function ComparisonSection() {
@@ -1367,64 +1369,139 @@ function InvoiceBoardPreview() {
   );
 }
 
-type SheetRow = { id: string; company: string; stage: string; score: number; owner: string; status: string };
+type SheetCol = { key: string; label: string; type: "text" | "badge" | "score" | "avatar" };
+type SheetRow = { id: string; [key: string]: string | number };
+type SheetView = {
+  name: string;
+  accent: string;
+  columns: SheetCol[];
+  stageCol: string;
+  stageOrder: string[];
+  stageStyle: Record<string, { dot: string; text: string }>;
+  rows: SheetRow[];
+};
 
-const SHEET_STAGES = ["New", "Qualified", "Proposal", "Won"] as const;
-
-const SHEET_POOL: { id: string; company: string; owner: string }[] = [
-  { id: "vandelay", company: "Vandelay Industries", owner: "MK" },
-  { id: "stark",    company: "Stark Logistics",     owner: "JS" },
-  { id: "wayne",    company: "Wayne Analytics",      owner: "AR" },
-  { id: "wonka",    company: "Wonka Digital",        owner: "JS" },
+const SHEET_VIEWS: SheetView[] = [
+  {
+    name: "Sales pipeline", accent: "#4f46e5",
+    columns: [
+      { key: "company", label: "Company", type: "text" },
+      { key: "stage",   label: "Stage",    type: "badge" },
+      { key: "score",   label: "AI Score", type: "score" },
+      { key: "owner",   label: "Owner",    type: "avatar" },
+    ],
+    stageCol: "stage",
+    stageOrder: ["New", "Qualified", "Proposal", "Won"],
+    stageStyle: {
+      New:       { dot: "bg-zinc-400",    text: "text-zinc-600" },
+      Qualified: { dot: "bg-blue-500",    text: "text-blue-700" },
+      Proposal:  { dot: "bg-amber-500",   text: "text-amber-700" },
+      Won:       { dot: "bg-emerald-500", text: "text-emerald-700" },
+    },
+    rows: [
+      { id: "vandelay", company: "Vandelay Industries", stage: "New",       score: 58, owner: "MK" },
+      { id: "stark",    company: "Stark Logistics",     stage: "Qualified", score: 74, owner: "JS" },
+      { id: "wayne",    company: "Wayne Analytics",     stage: "Proposal",  score: 88, owner: "AR" },
+    ],
+  },
+  {
+    name: "Finance — quotes", accent: "#059669",
+    columns: [
+      { key: "company", label: "Company", type: "text" },
+      { key: "ref",     label: "Quote",   type: "text" },
+      { key: "stage",   label: "Stage",   type: "badge" },
+      { key: "amt",     label: "Amount",  type: "text" },
+    ],
+    stageCol: "stage",
+    stageOrder: ["Draft", "Sent", "Approved", "Paid"],
+    stageStyle: {
+      Draft:    { dot: "bg-zinc-400",    text: "text-zinc-600" },
+      Sent:     { dot: "bg-blue-500",    text: "text-blue-700" },
+      Approved: { dot: "bg-amber-500",   text: "text-amber-700" },
+      Paid:     { dot: "bg-emerald-500", text: "text-emerald-700" },
+    },
+    rows: [
+      { id: "globex",  company: "Globex Inc",  ref: "INV-0032", stage: "Draft",    amt: "£3,150" },
+      { id: "soylent",company: "Soylent",      ref: "INV-0034", stage: "Sent",     amt: "£2,200" },
+      { id: "hooli",   company: "Hooli",       ref: "INV-0035", stage: "Approved", amt: "£21,750" },
+    ],
+  },
+  {
+    name: "Relationship health", accent: "#d97706",
+    columns: [
+      { key: "contact",  label: "Contact",    type: "text" },
+      { key: "company",  label: "Company",    type: "text" },
+      { key: "status",   label: "Status",     type: "badge" },
+      { key: "score",    label: "Health",     type: "score" },
+    ],
+    stageCol: "status",
+    stageOrder: ["Healthy", "At risk", "Cold"],
+    stageStyle: {
+      Healthy: { dot: "bg-emerald-500", text: "text-emerald-700" },
+      "At risk": { dot: "bg-amber-500", text: "text-amber-700" },
+      Cold:    { dot: "bg-red-500",     text: "text-red-700" },
+    },
+    rows: [
+      { id: "priya",  contact: "Priya Anand",  company: "Initech",    status: "Healthy", score: 91 },
+      { id: "marcus", contact: "Marcus Lee",   company: "Globex Inc", status: "At risk", score: 54 },
+      { id: "sarah",  contact: "Sarah Johnson",company: "Acme Corp",  status: "Cold",    score: 22 },
+    ],
+  },
 ];
 
-const INITIAL_SHEET_ROWS: SheetRow[] = [
-  { id: "vandelay", company: "Vandelay Industries", stage: "New",       score: 58, owner: "MK", status: "Idle" },
-  { id: "stark",    company: "Stark Logistics",     stage: "Qualified", score: 74, owner: "JS", status: "Idle" },
-  { id: "wayne",    company: "Wayne Analytics",     stage: "Proposal",  score: 88, owner: "AR", status: "Idle" },
-];
+const VIEW_ROTATE_MS = 9000;
 
 function RecordsSheetPreview() {
-  const [rows, setRows] = useState<SheetRow[]>(INITIAL_SHEET_ROWS);
-  const [activity, setActivity] = useState("AI is watching the sheet…");
+  const [viewIdx, setViewIdx] = useState(0);
+  const view = SHEET_VIEWS[viewIdx]!;
+  const [rows, setRows] = useState<SheetRow[]>(view.rows);
+  const [activity, setActivity] = useState(`Watching ${view.name.toLowerCase()}…`);
   const [glowCell, setGlowCell] = useState<{ id: string; col: string } | null>(null);
+
+  useEffect(() => {
+    setRows(view.rows);
+    setActivity(`Watching ${view.name.toLowerCase()}…`);
+  }, [view]);
+
+  useEffect(() => {
+    const rotate = setInterval(() => setViewIdx(i => (i + 1) % SHEET_VIEWS.length), VIEW_ROTATE_MS);
+    return () => clearInterval(rotate);
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => {
       setRows(prev => {
         const pick = prev[Math.floor(Math.random() * prev.length)]!;
-        const action = Math.random();
+        const order = view.stageOrder;
+        const curStage = String(pick[view.stageCol]);
+        const stageIdx = order.indexOf(curStage);
+        const label = String(pick.company ?? pick.contact ?? pick.id);
+        const scoreCol = view.columns.find(c => c.type === "score")?.key;
 
-        if (pick.stage === "Won") {
-          const used = new Set(prev.map(r => r.id));
-          const fresh = SHEET_POOL.find(p => !used.has(p.id)) ?? SHEET_POOL[Math.floor(Math.random() * SHEET_POOL.length)]!;
-          setGlowCell({ id: pick.id, col: "company" });
-          setActivity(`${pick.company} closed — new record added`);
+        if (scoreCol && Math.random() < 0.5) {
+          setGlowCell({ id: pick.id, col: scoreCol });
+          setActivity(`AI updated ${view.columns.find(c => c.key === scoreCol)!.label.toLowerCase()} for ${label}`);
           setTimeout(() => setGlowCell(null), 1100);
-          return prev.map(r => (r.id === pick.id ? { id: pick.id, company: fresh.company, owner: fresh.owner, stage: "New", score: Math.floor(40 + Math.random() * 25), status: "Idle" } : r));
+          const cur = Number(pick[scoreCol]);
+          const next = Math.max(10, Math.min(99, cur + Math.floor(Math.random() * 12 - 5)));
+          return prev.map(r => (r.id === pick.id ? { ...r, [scoreCol]: next } : r));
         }
 
-        if (action < 0.4) {
-          setGlowCell({ id: pick.id, col: "score" });
-          setActivity(`AI rescored ${pick.company}`);
+        if (stageIdx === -1 || stageIdx === order.length - 1) {
+          setGlowCell({ id: pick.id, col: view.stageCol });
+          setActivity(`AI reviewed ${label}`);
           setTimeout(() => setGlowCell(null), 1100);
-          return prev.map(r => (r.id === pick.id ? { ...r, score: Math.min(99, r.score + Math.floor(2 + Math.random() * 8)), status: "Scoring…" } : r));
+          return prev;
         }
-        if (action < 0.7) {
-          const nextStage = SHEET_STAGES[Math.min(SHEET_STAGES.indexOf(pick.stage as typeof SHEET_STAGES[number]) + 1, SHEET_STAGES.length - 1)]!;
-          setGlowCell({ id: pick.id, col: "stage" });
-          setActivity(`AI moved ${pick.company} → ${nextStage}`);
-          setTimeout(() => setGlowCell(null), 1100);
-          return prev.map(r => (r.id === pick.id ? { ...r, stage: nextStage, status: "Synced" } : r));
-        }
-        setGlowCell({ id: pick.id, col: "status" });
-        setActivity(`AI enriching ${pick.company}…`);
+        const nextStage = order[stageIdx + 1]!;
+        setGlowCell({ id: pick.id, col: view.stageCol });
+        setActivity(`AI moved ${label} → ${nextStage}`);
         setTimeout(() => setGlowCell(null), 1100);
-        return prev.map(r => (r.id === pick.id ? { ...r, status: "Enriching…" } : r));
+        return prev.map(r => (r.id === pick.id ? { ...r, [view.stageCol]: nextStage } : r));
       });
     }, 2600);
     return () => clearInterval(t);
-  }, []);
+  }, [view]);
 
   const cellClass = (id: string, col: string) =>
     `px-3 py-2.5 text-[12px] transition-colors ${glowCell?.id === id && glowCell.col === col ? "bg-indigo-500/[.08]" : ""}`;
@@ -1440,16 +1517,27 @@ function RecordsSheetPreview() {
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
         </div>
-        <span className="font-mono text-[11px] text-zinc-500">records — sheet view</span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={view.name}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="font-mono text-[11px] text-zinc-500"
+          >
+            records — {view.name.toLowerCase()}
+          </motion.span>
+        </AnimatePresence>
         <motion.span
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity }}
-          className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+          className="ml-auto h-1.5 w-1.5 rounded-full"
+          style={{ background: view.accent }}
         />
-        <span className="font-mono text-[11px] text-indigo-500">live-edited by AI</span>
+        <span className="font-mono text-[11px]" style={{ color: view.accent }}>live-edited by AI</span>
       </div>
 
-      <div className="border-b border-black/[.05] bg-indigo-500/[.03] px-4 py-2 font-mono text-[11px] text-indigo-600">
+      <div className="border-b border-black/[.05] px-4 py-2 font-mono text-[11px]" style={{ background: `${view.accent}08`, color: view.accent }}>
         <AnimatePresence mode="wait">
           <motion.span
             key={activity}
@@ -1459,55 +1547,55 @@ function RecordsSheetPreview() {
             transition={{ duration: 0.3 }}
             className="inline-flex items-center gap-2"
           >
-            <span className="text-indigo-500">⚡</span>{activity}
+            <span>⚡</span>{activity}
           </motion.span>
         </AnimatePresence>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full font-mono text-left">
-          <thead>
-            <tr className="border-b border-black/[.05] bg-black/[.015]">
-              {["Company", "Stage", "AI Score", "Owner", "Status"].map(h => (
-                <th key={h} className="px-3 py-2 text-[10px] uppercase tracking-widest text-zinc-400 font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <AnimatePresence initial={false}>
+        <AnimatePresence mode="wait">
+          <motion.table
+            key={view.name}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="w-full font-mono text-left"
+          >
+            <thead>
+              <tr className="border-b border-black/[.05] bg-black/[.015]">
+                {view.columns.map(c => (
+                  <th key={c.key} className="px-3 py-2 text-[10px] uppercase tracking-widest text-zinc-400 font-medium">{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
               {rows.map(r => (
-                <motion.tr
-                  key={r.id}
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="border-b border-black/[.04] last:border-0"
-                >
-                  <td className={cellClass(r.id, "company")}>
-                    <span className="text-zinc-700">{r.company}</span>
-                  </td>
-                  <td className={cellClass(r.id, "stage")}>
-                    <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 text-[10px] font-semibold ${STAGE_STYLE[r.stage]?.text ?? "text-zinc-600"}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${STAGE_STYLE[r.stage]?.dot ?? "bg-zinc-400"}`}/>
-                      {r.stage}
-                    </span>
-                  </td>
-                  <td className={cellClass(r.id, "score")}>
-                    <span className="text-indigo-500">{r.score}%</span>
-                  </td>
-                  <td className={cellClass(r.id, "owner")}>
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[9px] text-zinc-500">{r.owner}</span>
-                  </td>
-                  <td className={cellClass(r.id, "status")}>
-                    <span className="text-zinc-500">{r.status}</span>
-                  </td>
-                </motion.tr>
+                <tr key={r.id} className="border-b border-black/[.04] last:border-0">
+                  {view.columns.map(c => {
+                    const val = r[c.key];
+                    return (
+                      <td key={c.key} className={cellClass(r.id, c.key)}>
+                        {c.type === "badge" ? (
+                          <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 text-[10px] font-semibold ${view.stageStyle[String(val)]?.text ?? "text-zinc-600"}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${view.stageStyle[String(val)]?.dot ?? "bg-zinc-400"}`}/>
+                            {val}
+                          </span>
+                        ) : c.type === "score" ? (
+                          <span style={{ color: view.accent }}>{val}{c.key === "score" ? "%" : ""}</span>
+                        ) : c.type === "avatar" ? (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[9px] text-zinc-500">{val}</span>
+                        ) : (
+                          <span className="text-zinc-700">{val}</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
               ))}
-            </AnimatePresence>
-          </tbody>
-        </table>
+            </tbody>
+          </motion.table>
+        </AnimatePresence>
       </div>
     </div>
   );
