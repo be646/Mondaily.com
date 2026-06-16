@@ -87,38 +87,101 @@ function Preloader({ onDone }: { onDone: () => void }) {
 
 // ── Feature section — node map + terminal windows ─────────────────────────────
 
-// Main nodes and their real sub-features
+// Wider layout — all nodes and sub-text stay inside viewBox
+// viewBox: 0 0 1100 320
+// Each node: w=110 h=30
 const MAIN_NODES = [
   {
-    id: "crm", label: "CRM", x: 60, y: 100,
-    subs: ["Contacts & companies","Activity timeline","Custom fields","Auto data sync"],
+    id: "crm", label: "CRM", x: 60, y: 145,
+    subs: [
+      { label: "Contacts & companies", dx: -8,  dy: -52 },
+      { label: "Activity timeline",    dx: -8,  dy: -34 },
+      { label: "Custom fields",        dx: -8,  dy: -16 },
+      { label: "Auto data sync",       dx: -8,  dy:  48 },
+      { label: "Smart dedup",          dx: -8,  dy:  66 },
+    ],
+    subDir: "left" as const,
   },
   {
-    id: "enrich", label: "Enrichment", x: 220, y: 30,
-    subs: ["ARR & headcount","Tech stack detect","News signals","Auto on record add"],
+    id: "enrich", label: "Enrichment", x: 280, y: 60,
+    subs: [
+      { label: "ARR & headcount",     dx: 8, dy: -36 },
+      { label: "Tech stack detect",   dx: 8, dy: -18 },
+      { label: "News signals",        dx: 8, dy:   0 },
+      { label: "Auto on record add",  dx: 8, dy:  18 },
+    ],
+    subDir: "right" as const,
   },
   {
-    id: "pipeline", label: "Pipeline", x: 220, y: 170,
-    subs: ["AI deal scoring","Stage automation","Health alerts","Win/loss analysis"],
+    id: "pipeline", label: "Pipeline", x: 280, y: 230,
+    subs: [
+      { label: "AI deal scoring",    dx: 8, dy: -18 },
+      { label: "Stage automation",   dx: 8, dy:   0 },
+      { label: "Health alerts",      dx: 8, dy:  18 },
+      { label: "Win/loss analysis",  dx: 8, dy:  36 },
+      { label: "Revenue forecast",   dx: 8, dy:  54 },
+    ],
+    subDir: "right" as const,
   },
   {
-    id: "sequences", label: "Sequences", x: 390, y: 30,
-    subs: ["Multi-step cadences","Behaviour triggers","A/B subject lines","Open & click tracking"],
+    id: "ask", label: "Ask AI", x: 510, y: 145,
+    subs: [
+      { label: "Natural language queries", dx: 8, dy: -36 },
+      { label: "Workspace actions",        dx: 8, dy: -18 },
+      { label: "AI summaries",             dx: 8, dy:   0 },
+      { label: "Data insights",            dx: 8, dy:  18 },
+    ],
+    subDir: "right" as const,
   },
   {
-    id: "automations", label: "Automations", x: 390, y: 170,
-    subs: ["Event-driven rules","Webhook actions","Slack & email notify","Conditional branching"],
+    id: "sequences", label: "Sequences", x: 510, y: 60,
+    subs: [
+      { label: "Multi-step cadences",  dx: 8, dy: -36 },
+      { label: "Behaviour triggers",   dx: 8, dy: -18 },
+      { label: "A/B subject lines",    dx: 8, dy:   0 },
+      { label: "Open & click tracking",dx: 8, dy:  18 },
+    ],
+    subDir: "right" as const,
   },
   {
-    id: "finance", label: "Finance", x: 560, y: 100,
-    subs: ["Invoices & quotes","Credit notes","Expense tracking","4-stage approvals"],
+    id: "automations", label: "Automations", x: 510, y: 230,
+    subs: [
+      { label: "Event-driven rules",   dx: 8, dy: -18 },
+      { label: "Webhook actions",      dx: 8, dy:   0 },
+      { label: "Slack & email notify", dx: 8, dy:  18 },
+      { label: "Conditional branching",dx: 8, dy:  36 },
+    ],
+    subDir: "right" as const,
+  },
+  {
+    id: "finance", label: "Finance", x: 800, y: 145,
+    subs: [
+      { label: "Invoices & quotes",  dx: 8, dy: -36 },
+      { label: "Credit notes",       dx: 8, dy: -18 },
+      { label: "Expense tracking",   dx: 8, dy:   0 },
+      { label: "4-stage approvals",  dx: 8, dy:  18 },
+      { label: "Revenue reporting",  dx: 8, dy:  36 },
+    ],
+    subDir: "right" as const,
+  },
+  {
+    id: "mcp", label: "MCP Server", x: 800, y: 60,
+    subs: [
+      { label: "Claude integration",  dx: 8, dy: -18 },
+      { label: "AI tool connect",     dx: 8, dy:   0 },
+      { label: "Native API access",   dx: 8, dy:  18 },
+    ],
+    subDir: "right" as const,
   },
 ];
 
 const MAIN_EDGES: [string,string][] = [
-  ["crm","enrich"],["crm","pipeline"],
-  ["enrich","sequences"],["pipeline","automations"],
+  ["crm","enrich"],["crm","pipeline"],["crm","ask"],
+  ["enrich","sequences"],["enrich","ask"],
+  ["pipeline","automations"],["pipeline","ask"],
   ["sequences","finance"],["automations","finance"],
+  ["ask","finance"],["ask","mcp"],
+  ["sequences","mcp"],
 ];
 
 // Terminal windows — 3 different panels
@@ -186,7 +249,6 @@ function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; t
 
 function FeatureSection() {
   const [active, setActive] = useState<Set<string>>(new Set());
-  const stepRef = useRef(0);
 
   const runSeq = useCallback(() => {
     const ids = MAIN_NODES.map(n => n.id);
@@ -197,17 +259,19 @@ function FeatureSection() {
       if (id) setActive(prev => { const s = new Set(prev); s.add(id); return s; });
       i++;
       if (i >= ids.length) clearInterval(t);
-    }, 380);
+    }, 350);
     return t;
   }, []);
 
   useEffect(() => {
     const t = runSeq();
-    const loop = setInterval(runSeq, 10000);
+    const loop = setInterval(runSeq, 11000);
     return () => { clearInterval(t); clearInterval(loop); };
   }, [runSeq]);
 
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
+  const NW = 110; // node width
+  const NH = 28;  // node height
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
@@ -216,105 +280,109 @@ function FeatureSection() {
         <span className="text-violet-600">{'>'}</span> One platform. Every signal.
       </h2>
 
-      {/* Node map */}
-      <div className="mb-10 overflow-x-auto">
-        <svg viewBox="0 0 680 240" className="w-full" style={{ minWidth: 560 }}>
-          {/* Edge lines */}
+      {/* Node map — viewBox wide enough to hold all sub-text */}
+      <div className="mb-10 w-full overflow-hidden">
+        <svg viewBox="0 0 1100 320" className="w-full" preserveAspectRatio="xMidYMid meet">
+          {/* Edges */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
             const lit = active.has(a) && active.has(b);
-            const mx = (na.x + 52 + nb.x) / 2;
+            const x1 = na.x + NW; const y1 = na.y + NH / 2;
+            const x2 = nb.x;      const y2 = nb.y + NH / 2;
+            const mx = (x1 + x2) / 2;
             return (
               <motion.path
                 key={i}
-                d={`M${na.x + 52},${na.y + 14} C${mx},${na.y + 14} ${mx},${nb.y + 14} ${nb.x},${nb.y + 14}`}
+                d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
                 fill="none"
-                stroke={lit ? "#5b21b6" : "#161616"}
-                strokeWidth="1"
+                stroke={lit ? "#3b0764" : "#141414"}
+                strokeWidth={lit ? 1.2 : 1}
                 strokeDasharray={lit ? undefined : "4 5"}
-                animate={{ opacity: lit ? 0.7 : 0.25 }}
-                transition={{ duration: 0.45 }}
+                animate={{ opacity: lit ? 0.8 : 0.3 }}
+                transition={{ duration: 0.4 }}
               />
             );
           })}
 
-          {/* Animated dot traveling along active edges */}
+          {/* Traveling dots on active edges */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
-            const lit = active.has(a) && active.has(b);
-            if (!lit) return null;
-            const mx = (na.x + 52 + nb.x) / 2;
+            if (!active.has(a) || !active.has(b)) return null;
+            const x1 = na.x + NW; const y1 = na.y + NH / 2;
+            const x2 = nb.x;      const y2 = nb.y + NH / 2;
+            const mx = (x1 + x2) / 2;
             return (
-              <motion.circle
-                key={`dot-${i}`}
-                r="3"
-                fill="#7c3aed"
-                opacity="0.8"
-              >
-                <animateMotion
-                  dur="1.8s"
-                  repeatCount="indefinite"
-                  path={`M${na.x + 52},${na.y + 14} C${mx},${na.y + 14} ${mx},${nb.y + 14} ${nb.x},${nb.y + 14}`}
-                />
-              </motion.circle>
+              <circle key={`dot-${i}`} r="2.5" fill="#6d28d9" opacity="0.7">
+                <animateMotion dur="2s" repeatCount="indefinite"
+                  path={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}/>
+              </circle>
             );
           })}
 
-          {/* Sub-feature branches */}
+          {/* Sub-feature branches — positioned using absolute dx/dy offsets */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
+            const cx = node.subDir === "left" ? node.x : node.x + NW;
+            const cy = node.y + NH / 2;
             return node.subs.map((sub, si) => {
-              const angle = -40 + si * 26;
-              const rad = (angle * Math.PI) / 180;
-              const ex = node.x + 54 + Math.cos(rad) * 72;
-              const ey = node.y + 14 + Math.sin(rad) * 36;
+              const tx = cx + sub.dx * (node.subDir === "left" ? 1 : 1);
+              const ty = cy + sub.dy;
+              const endX = node.subDir === "left" ? tx - 4 : tx + 4;
               return (
-                <g key={`${node.id}-sub-${si}`}>
+                <g key={`${node.id}-s${si}`}>
                   <motion.line
-                    x1={node.x + 54} y1={node.y + 14}
-                    x2={ex} y2={ey}
-                    stroke={on ? "#3b0764" : "#111"}
-                    strokeWidth="0.8"
-                    strokeDasharray="2 3"
-                    animate={{ opacity: on ? 0.6 : 0.1 }}
-                    transition={{ duration: 0.4, delay: si * 0.07 }}
+                    x1={cx} y1={cy} x2={endX} y2={ty}
+                    stroke="#2e1065" strokeWidth="0.8" strokeDasharray="2 3"
+                    animate={{ opacity: on ? 0.5 : 0.06 }}
+                    transition={{ duration: 0.35, delay: si * 0.05 }}
                   />
-                  <motion.circle cx={ex} cy={ey} r="1.5" fill={on ? "#6d28d9" : "#1a1a1a"} animate={{ opacity: on ? 0.7 : 0.1 }} transition={{ duration: 0.4 }}/>
+                  <motion.circle cx={endX} cy={ty} r="1.5" fill="#4c1d95"
+                    animate={{ opacity: on ? 0.6 : 0.05 }}
+                    transition={{ duration: 0.35 }}
+                  />
                   <motion.text
-                    x={ex + (Math.cos(rad) > 0 ? 4 : -4)}
-                    y={ey + 3}
-                    textAnchor={Math.cos(rad) > 0 ? "start" : "end"}
-                    fill={on ? "#4c1d95" : "#1a1a1a"}
-                    fontSize="7.5"
+                    x={node.subDir === "left" ? endX - 6 : endX + 6}
+                    y={ty + 3.5}
+                    textAnchor={node.subDir === "left" ? "end" : "start"}
+                    fill="#ffffff"
+                    fontSize="8"
                     fontFamily="'JetBrains Mono', monospace"
-                    animate={{ opacity: on ? 0.8 : 0.08 }}
-                    transition={{ duration: 0.4, delay: si * 0.07 }}
+                    animate={{ opacity: on ? 0.35 : 0.04 }}
+                    transition={{ duration: 0.35, delay: si * 0.05 }}
                   >
-                    {sub}
+                    {sub.label}
                   </motion.text>
                 </g>
               );
             });
           })}
 
-          {/* Main nodes */}
+          {/* Main nodes — clean dark bg, white border when active, no purple fill */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return (
               <g key={node.id} transform={`translate(${node.x},${node.y})`}>
-                {on && (
-                  <motion.rect x="-3" y="-3" width="110" height="34" rx="8" fill="#7c3aed" initial={{ opacity: 0 }} animate={{ opacity: 0.06 }}/>
-                )}
                 <motion.rect
-                  x="0" y="0" width="104" height="28" rx="6"
-                  fill={on ? "#0d0d0d" : "#090909"}
-                  stroke={on ? "#5b21b6" : "#141414"}
+                  x="0" y="0" width={NW} height={NH} rx="6"
+                  fill="#0a0a0a"
+                  stroke={on ? "rgba(255,255,255,0.18)" : "#1a1a1a"}
                   strokeWidth="1"
                   animate={{ opacity: on ? 1 : 0.3 }}
-                  transition={{ duration: 0.35 }}
+                  transition={{ duration: 0.3 }}
                 />
-                <motion.circle cx="10" cy="14" r="2.5" fill={on ? "#7c3aed" : "#1e1e1e"} animate={{ opacity: on ? [0.5,1,0.5] : 0.2 }} transition={{ duration: 1.8, repeat: Infinity }}/>
-                <text x="20" y="19" fill={on ? "#8b5cf6" : "#222"} fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight={on ? "500" : "400"}>
+                {/* Tiny violet dot indicator */}
+                <motion.circle cx="11" cy={NH / 2} r="2.5"
+                  fill={on ? "#7c3aed" : "#222"}
+                  animate={{ opacity: on ? [0.6,1,0.6] : 0.2 }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <text
+                  x="21" y={NH / 2 + 4}
+                  fill={on ? "#d4d4d8" : "#2a2a2a"}
+                  fontSize="9.5"
+                  fontFamily="'JetBrains Mono', monospace"
+                  fontWeight={on ? "500" : "400"}
+                >
                   {node.label}
                 </text>
               </g>
