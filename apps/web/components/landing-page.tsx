@@ -1311,14 +1311,18 @@ type InvoiceStage = typeof INVOICE_STAGE_NAMES[number];
 type Invoice = { id: string; co: string; amt: string; ref: string; stage: InvoiceStage };
 
 const INVOICE_POOL: Omit<Invoice, "stage">[] = [
-  { id: "acme",     co: "Acme Corp",     amt: "£8,400",  ref: "INV-0031" },
-  { id: "globex",   co: "Globex Inc",    amt: "£3,150",  ref: "INV-0032" },
-  { id: "initech",  co: "Initech",       amt: "£14,900", ref: "INV-0033" },
-  { id: "soylent",  co: "Soylent",       amt: "£2,200",  ref: "INV-0034" },
-  { id: "hooli",    co: "Hooli",         amt: "£21,750", ref: "INV-0035" },
-  { id: "vandelay", co: "Vandelay Ind.", amt: "£6,300",  ref: "INV-0036" },
-  { id: "umbrella", co: "Umbrella Group",amt: "£11,200", ref: "INV-0037" },
-  { id: "stark",    co: "Stark Logistics",amt: "£4,750", ref: "INV-0038" },
+  { id: "acme",     co: "Acme Corp",      amt: "£8,400",  ref: "INV-0031" },
+  { id: "globex",   co: "Globex Inc",     amt: "£3,150",  ref: "INV-0032" },
+  { id: "initech",  co: "Initech",        amt: "£14,900", ref: "INV-0033" },
+  { id: "soylent",  co: "Soylent",        amt: "£2,200",  ref: "INV-0034" },
+  { id: "hooli",    co: "Hooli",          amt: "£21,750", ref: "INV-0035" },
+  { id: "vandelay", co: "Vandelay Ind.",  amt: "£6,300",  ref: "INV-0036" },
+  { id: "umbrella", co: "Umbrella Group", amt: "£11,200", ref: "INV-0037" },
+  { id: "stark",    co: "Stark Logistics",amt: "£4,750",  ref: "INV-0038" },
+  { id: "wayne",    co: "Wayne Analytics",amt: "£9,900",  ref: "INV-0039" },
+  { id: "monarch",  co: "Monarch Co",     amt: "£5,600",  ref: "INV-0040" },
+  { id: "pied",     co: "Pied Piper",     amt: "£7,300",  ref: "INV-0041" },
+  { id: "massive",  co: "Massive Dynamic",amt: "£18,200", ref: "INV-0042" },
 ];
 
 const INITIAL_INVOICES: Invoice[] = [
@@ -1345,8 +1349,8 @@ function InvoiceBoardPreview() {
       setInvoices(prev => {
         const pick = prev[Math.floor(Math.random() * prev.length)]!;
         if (pick.stage === "Paid") {
-          const used = new Set(prev.map(d => d.id));
-          const fresh = INVOICE_POOL.find(p => !used.has(p.id)) ?? INVOICE_POOL[Math.floor(Math.random() * INVOICE_POOL.length)]!;
+          const usedCo = new Set(prev.filter(d => d.id !== pick.id).map(d => d.co));
+          const fresh = INVOICE_POOL.find(p => !usedCo.has(p.co)) ?? INVOICE_POOL.find(p => p.co !== pick.co)!;
           setGlowId(pick.id);
           setActivity(`${pick.co} paid — new quote opened for ${fresh.co}`);
           setTimeout(() => setGlowId(null), 1200);
