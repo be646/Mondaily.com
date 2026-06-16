@@ -1913,18 +1913,21 @@ function EmailSignup() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-md gap-2">
+    <form
+      onSubmit={handleSubmit}
+      className="mx-auto flex w-full flex-col gap-3 rounded-2xl border border-black/[.06] bg-white p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_rgba(0,0,0,0.06)] sm:flex-row sm:gap-2"
+    >
       <input
         type="email"
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="your@email.com"
-        className="flex-1 rounded-lg border border-black/[.07] bg-black/[.03] px-4 py-2.5 font-mono text-[14px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/30 transition-colors"
+        className="flex-1 rounded-xl border border-black/[.06] bg-black/[.02] px-5 py-3.5 font-mono text-[15px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 focus:bg-white transition-colors"
         required
       />
       <button
         type="submit"
-        className="rounded-lg border border-indigo-500/30 bg-indigo-600 px-5 py-2.5 font-mono text-[14px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all whitespace-nowrap"
+        className="shrink-0 rounded-xl border border-indigo-500/30 bg-indigo-600 px-6 py-3.5 font-mono text-[14px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all whitespace-nowrap"
       >
         Start free — takes 90 seconds →
       </button>
@@ -2040,6 +2043,19 @@ export function LandingPage() {
               >
                 <HeroChat />
               </motion.div>
+
+              {/* Email signup — directly under the feature lines, with breathing room */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 10 }}
+                transition={{ duration: 0.55, delay: 0.55 }}
+                className="mx-auto mt-12 max-w-xl"
+              >
+                <EmailSignup />
+                <p className="mt-3 text-center font-mono text-[13px] text-zinc-500">
+                  Free forever · no card required · upgrade anytime
+                </p>
+              </motion.div>
             </div>
 
             {/* Hero visual proof — stylized pipeline mockup */}
@@ -2050,19 +2066,6 @@ export function LandingPage() {
               className="mt-14"
             >
               <HeroPipelinePreview />
-            </motion.div>
-
-            {/* Email signup — placed after feature lines */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 10 }}
-              transition={{ duration: 0.55, delay: 0.65 }}
-              className="mx-auto mt-14 max-w-3xl"
-            >
-              <EmailSignup />
-              <p className="mt-2.5 font-mono text-[14px] text-zinc-600">
-                Free forever · no card required · upgrade anytime
-              </p>
             </motion.div>
           </section>
 
