@@ -49,7 +49,7 @@ function Preloader({ onDone }: { onDone: () => void }) {
     <motion.div
       animate={{ opacity: fade ? 0 : 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0d0d10] p-8"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8"
     >
       <div className="w-full max-w-lg">
         <div className="mb-8 flex items-center">
@@ -62,13 +62,13 @@ function Preloader({ onDone }: { onDone: () => void }) {
               <motion.div key={i} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex gap-3">
                 <span className="text-zinc-500">{l.stamp}</span>
                 <span style={{ color: l.col }}>{l.tag}</span>
-                <span className="text-zinc-400">{l.msg}</span>
+                <span className="text-zinc-500">{l.msg}</span>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
 
-        <div className="h-px w-full bg-white/[.04]">
+        <div className="h-px w-full bg-black/[.04]">
           <motion.div className="h-px bg-indigo-600" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }}/>
         </div>
         <div className="mt-2 flex justify-between font-mono text-[14px]">
@@ -239,12 +239,12 @@ function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; t
   }, [lines]);
 
   return (
-    <div className="rounded-xl border border-white/[.05] bg-[#101014] p-4 font-mono text-[13px]">
-      <div className="mb-3 flex items-center gap-2 border-b border-white/[.04] pb-2.5">
+    <div className="rounded-xl border border-black/[.05] bg-white p-4 font-mono text-[13px]">
+      <div className="mb-3 flex items-center gap-2 border-b border-black/[.04] pb-2.5">
         <div className="flex gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
         </div>
         <span className="text-zinc-500 text-[14px]">{title}</span>
         <motion.span animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 1.6, repeat: Infinity }} className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-800"/>
@@ -254,7 +254,7 @@ function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; t
           {shown.map((l, i) => (
             <motion.div key={i + l.cmd} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
               <div className="text-indigo-700">{l.cmd}</div>
-              <div className="text-zinc-400">{l.out}</div>
+              <div className="text-zinc-500">{l.out}</div>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -278,12 +278,12 @@ function FeatureSection() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// system.modules</div>
-      <h2 className="mb-4 font-sans text-4xl font-semibold tracking-tight text-zinc-100">
+      <h2 className="mb-4 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         <span className="text-indigo-500">{'>'}</span> One platform. Every signal.
       </h2>
 
       {/* Live stats bar — numbers pulse to signal the system is live */}
-      <div className="mb-10 flex gap-6 font-mono text-[14px] text-zinc-300">
+      <div className="mb-10 flex gap-6 font-mono text-[14px] text-zinc-600">
         <span>
           <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 0 }} className="text-indigo-600">8,420</motion.span>
           {" "}records enriched
@@ -304,7 +304,7 @@ function FeatureSection() {
       <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {MODULE_ZONES.map(z => (
           <div key={z.zone} className="flex flex-col gap-3">
-            <span className="font-mono text-[11px] text-zinc-600 uppercase tracking-widest">{z.zone}</span>
+            <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest">{z.zone}</span>
             {z.ids.map(id => {
               const node = getNode(id);
               const on = active === id;
@@ -314,12 +314,12 @@ function FeatureSection() {
                   onMouseEnter={() => setActive(id)}
                   onMouseLeave={() => setActive(null)}
                   className={`rounded-xl border p-4 transition-all cursor-default ${
-                    on ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-white/[.05] bg-white/[.015]"
+                    on ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-black/[.05] bg-black/[.015]"
                   }`}
                 >
                   <div className="mb-2.5 flex items-center gap-2.5">
-                    <span className={`h-1.5 w-1.5 rounded-full transition-colors ${on ? "bg-indigo-500" : "bg-zinc-700"}`}/>
-                    <span className={`font-mono text-[14px] font-semibold transition-colors ${on ? "text-zinc-100" : "text-zinc-300"}`}>{node.label}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full transition-colors ${on ? "bg-indigo-500" : "bg-zinc-300"}`}/>
+                    <span className={`font-mono text-[14px] font-semibold transition-colors ${on ? "text-zinc-800" : "text-zinc-600"}`}>{node.label}</span>
                   </div>
                   <ul className="flex flex-col gap-1">
                     {node.subs.slice(0, 3).map((sub, si) => (
@@ -422,8 +422,8 @@ function ComparisonSection() {
   return (
     <section className="mx-auto max-w-4xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how it&apos;s different</div>
-      <h2 className="mb-3 font-sans text-4xl font-semibold tracking-tight text-zinc-100">What Mondaily replaces</h2>
-      <p className="mb-10 font-mono text-[14px] text-zinc-400">
+      <h2 className="mb-3 font-sans text-4xl font-semibold tracking-tight text-zinc-800">What Mondaily replaces</h2>
+      <p className="mb-10 font-mono text-[14px] text-zinc-500">
         Stop stitching together a CRM, a sequencer, a spreadsheet, and Slack. One AI workspace runs all of it.
       </p>
 
@@ -435,13 +435,13 @@ function ComparisonSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="flex items-center gap-4 rounded-xl border border-white/[.04] bg-[#101014] px-5 py-4"
+            className="flex items-center gap-4 rounded-xl border border-black/[.04] bg-white px-5 py-4"
           >
             <span className="text-indigo-700 text-[14px] shrink-0">{row.icon}</span>
             <div className="flex flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4">
-              <div className="font-mono text-[14px] text-zinc-400 line-through sm:w-[46%]">{row.before}</div>
-              <span className="hidden text-zinc-600 sm:inline">→</span>
-              <div className="font-mono text-[14px] text-zinc-100">{row.after}</div>
+              <div className="font-mono text-[14px] text-zinc-500 line-through sm:w-[46%]">{row.before}</div>
+              <span className="hidden text-zinc-400 sm:inline">→</span>
+              <div className="font-mono text-[14px] text-zinc-800">{row.after}</div>
             </div>
           </motion.div>
         ))}
@@ -498,17 +498,17 @@ function FAQSection() {
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// faq</div>
-      <h2 className="mb-10 font-sans text-4xl font-semibold tracking-tight text-zinc-100">Ask Mondaily AI</h2>
+      <h2 className="mb-10 font-sans text-4xl font-semibold tracking-tight text-zinc-800">Ask Mondaily AI</h2>
 
       <div
         className="overflow-hidden rounded-2xl"
-        style={{ border: "1px solid rgba(99,102,241,0.12)", background: "rgba(12,12,14,0.85)" }}
+        style={{ border: "1px solid rgba(99,102,241,0.15)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
       >
-        <div className="flex items-center gap-2 border-b border-white/[.05] px-4 py-2.5">
+        <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
           <div className="flex gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
           </div>
           <span className="font-mono text-[11px] text-zinc-500">mondaily — faq.ask()</span>
           <motion.span
@@ -521,28 +521,28 @@ function FAQSection() {
         {/* Transcript */}
         <div className="px-5 py-5">
           <div className="flex justify-end mb-3">
-            <div className="max-w-[80%] rounded-xl rounded-tr-sm bg-indigo-600/15 border border-indigo-500/20 px-4 py-2.5 font-mono text-[13px] text-zinc-100">
+            <div className="max-w-[80%] rounded-xl rounded-tr-sm bg-indigo-600/15 border border-indigo-500/20 px-4 py-2.5 font-mono text-[13px] text-zinc-800">
               {FAQ_ITEMS[active]!.q}
             </div>
           </div>
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-xl rounded-tl-sm border border-white/[.06] bg-white/[.02] px-4 py-2.5 font-mono text-[13px] leading-relaxed text-zinc-300">
+            <div className="max-w-[85%] rounded-xl rounded-tl-sm border border-black/[.06] bg-black/[.02] px-4 py-2.5 font-mono text-[13px] leading-relaxed text-zinc-600">
               <FAQTypewriter key={active} text={FAQ_ITEMS[active]!.a} />
             </div>
           </div>
         </div>
 
         {/* Question list */}
-        <div className="border-t border-white/[.05] px-5 py-2">
+        <div className="border-t border-black/[.05] px-5 py-2">
           {FAQ_ITEMS.map((item, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`flex w-full items-center gap-3 border-b border-white/[.04] py-3 text-left font-mono text-[13px] transition-colors last:border-b-0 ${
-                active === i ? "text-indigo-300" : "text-zinc-500 hover:text-zinc-200"
+              className={`flex w-full items-center gap-3 border-b border-black/[.04] py-3 text-left font-mono text-[13px] transition-colors last:border-b-0 ${
+                active === i ? "text-indigo-600" : "text-zinc-500 hover:text-zinc-700"
               }`}
             >
-              <span className={active === i ? "text-indigo-500" : "text-zinc-700"}>{'>'}</span>
+              <span className={active === i ? "text-indigo-500" : "text-zinc-300"}>{'>'}</span>
               <span className="flex-1 truncate">{item.q}</span>
               {active === i && (
                 <motion.span
@@ -583,7 +583,7 @@ function WorkflowDemo() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.workflow</div>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-100">
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         <span className="text-indigo-500">{">"}</span> What happens when a record enters Mondaily
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
@@ -592,14 +592,14 @@ function WorkflowDemo() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── Left: enriched record card ── */}
-        <div className="rounded-2xl border border-white/[.05] bg-[#101014] p-6 font-mono">
+        <div className="rounded-2xl border border-black/[.05] bg-white p-6 font-mono">
           {/* Card header */}
-          <div className="mb-5 flex items-center justify-between border-b border-white/[.04] pb-4">
+          <div className="mb-5 flex items-center justify-between border-b border-black/[.04] pb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-600/10 text-[14px] text-indigo-500 font-bold">AC</div>
               <div>
-                <div className="text-[13px] text-white font-medium">Acme Corp</div>
-                <div className="text-[14px] text-zinc-300">acme.com</div>
+                <div className="text-[13px] text-zinc-900 font-medium">Acme Corp</div>
+                <div className="text-[14px] text-zinc-600">acme.com</div>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
@@ -623,7 +623,7 @@ function WorkflowDemo() {
                 className="flex items-baseline gap-3"
               >
                 <span className="w-24 shrink-0 text-[14px] text-zinc-500">{f.key}</span>
-                <span className={`text-[13px] ${f.key === "Signal" ? "text-indigo-500" : f.key === "AI Score" ? "text-indigo-400" : "text-zinc-300"}`}>
+                <span className={`text-[13px] ${f.key === "Signal" ? "text-indigo-500" : f.key === "AI Score" ? "text-indigo-400" : "text-zinc-600"}`}>
                   {f.val}
                 </span>
               </motion.div>
@@ -631,12 +631,12 @@ function WorkflowDemo() {
           </div>
 
           {/* Contact row */}
-          <div className="mt-5 border-t border-white/[.04] pt-4">
+          <div className="mt-5 border-t border-black/[.04] pt-4">
             <div className="text-[14px] text-zinc-500 mb-2">Contact</div>
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-zinc-800 flex items-center justify-center text-[11px] text-zinc-400">SJ</div>
+              <div className="h-6 w-6 rounded-full bg-zinc-200 flex items-center justify-center text-[11px] text-zinc-500">SJ</div>
               <div>
-                <div className="text-[13px] text-zinc-300">Sarah Johnson</div>
+                <div className="text-[13px] text-zinc-600">Sarah Johnson</div>
                 <div className="text-[14px] text-zinc-500">Head of IT · sarah@acme.com</div>
               </div>
             </div>
@@ -644,15 +644,15 @@ function WorkflowDemo() {
         </div>
 
         {/* ── Right: workflow log ── */}
-        <div className="rounded-2xl border border-white/[.05] bg-[#101014] p-6 font-mono">
+        <div className="rounded-2xl border border-black/[.05] bg-white p-6 font-mono">
           {/* Window chrome */}
-          <div className="mb-5 flex items-center gap-2 border-b border-white/[.04] pb-4">
+          <div className="mb-5 flex items-center gap-2 border-b border-black/[.04] pb-4">
             <div className="flex gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
-              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
-              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-200"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-200"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-200"/>
             </div>
-            <span className="ml-2 text-[14px] text-zinc-400">mondaily — workflow engine</span>
+            <span className="ml-2 text-[14px] text-zinc-500">mondaily — workflow engine</span>
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.4, repeat: Infinity }}
@@ -675,13 +675,13 @@ function WorkflowDemo() {
                   <div className="flex flex-col items-center">
                     <div className="h-2 w-2 rounded-full mt-1 shrink-0" style={{ background: step.tagCol === "#4f46e5" ? "#4f46e5" : "#27272a" }}/>
                     {i < shownSteps - 1 && (
-                      <div className="mt-1 flex-1 w-px bg-white/[.04] min-h-[20px]"/>
+                      <div className="mt-1 flex-1 w-px bg-black/[.04] min-h-[20px]"/>
                     )}
                   </div>
                   <div className="min-w-0 pb-1">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[14px]" style={{ color: step.tagCol }}>{step.tag}</span>
-                      <span className="text-[13px] text-zinc-300">{step.title}</span>
+                      <span className="text-[13px] text-zinc-600">{step.title}</span>
                     </div>
                     <div className="text-[14px] text-zinc-500 leading-relaxed">{step.detail}</div>
                   </div>
@@ -786,18 +786,18 @@ const FLOW_NODES = [
 function FlowNode({ node, active, alwaysShow = false }: { node: typeof FLOW_NODES[number]; active: boolean; alwaysShow?: boolean }) {
   const isVisible = active || alwaysShow;
   const borderCol = active
-    ? (node.type === "trigger" ? "border-indigo-500/40" : node.type === "condition" ? "border-zinc-600/60" : "border-white/[.1]")
-    : "border-white/[.04]";
+    ? (node.type === "trigger" ? "border-indigo-500/40" : node.type === "condition" ? "border-zinc-300/60" : "border-black/[.1]")
+    : "border-black/[.04]";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: active ? 1 : alwaysShow ? 0.55 : 0.22, y: 0 }}
       transition={{ duration: 0.35 }}
-      className={`rounded-xl border ${borderCol} bg-[#101014] px-5 py-3.5 font-mono`}
+      className={`rounded-xl border ${borderCol} bg-white px-5 py-3.5 font-mono`}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className={`text-[14px] ${active ? (node.type === "trigger" || node.type === "action" ? "text-indigo-500" : "text-zinc-400") : "text-zinc-400"}`}>
+        <span className={`text-[14px] ${active ? (node.type === "trigger" || node.type === "action" ? "text-indigo-500" : "text-zinc-500") : "text-zinc-500"}`}>
           {node.tag}
         </span>
         {active && node.type !== "condition" && (
@@ -809,8 +809,8 @@ function FlowNode({ node, active, alwaysShow = false }: { node: typeof FLOW_NODE
           <span className="text-[14px] text-indigo-600">branching →</span>
         )}
       </div>
-      <div className={`text-[14px] ${isVisible ? "text-white" : "text-zinc-300"}`}>{node.label}</div>
-      <div className="mt-0.5 text-[14px] text-zinc-300 leading-relaxed">{node.sub}</div>
+      <div className={`text-[14px] ${isVisible ? "text-zinc-900" : "text-zinc-600"}`}>{node.label}</div>
+      <div className="mt-0.5 text-[14px] text-zinc-600 leading-relaxed">{node.sub}</div>
     </motion.div>
   );
 }
@@ -854,7 +854,7 @@ function AutomationFlow() {
       onMouseLeave={resetFlow}
     >
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// automation.flow</div>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-100">
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         <span className="text-indigo-500">{">"}</span> Build once. Run on every deal, forever.
       </h2>
       <p className="mb-6 font-mono text-[13px] text-zinc-500">
@@ -882,7 +882,7 @@ function AutomationFlow() {
               <span className="rounded-full border border-indigo-500/20 bg-indigo-600/10 px-3 py-0.5 text-[14px] text-indigo-500">High intent</span>
             </div>
             <div className="flex justify-center">
-              <span className="rounded-full border border-zinc-600/30 bg-zinc-700/10 px-3 py-0.5 text-[14px] text-zinc-400">Nurture</span>
+              <span className="rounded-full border border-zinc-300/30 bg-zinc-300/10 px-3 py-0.5 text-[14px] text-zinc-500">Nurture</span>
             </div>
           </motion.div>
 
@@ -921,9 +921,9 @@ function AutomationFlow() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-6 flex items-center gap-3 font-mono"
             >
-              <div className="h-px flex-1 bg-white/[.04]"/>
+              <div className="h-px flex-1 bg-black/[.04]"/>
               <span className="text-[14px] text-indigo-800">[FLOW COMPLETE]</span>
-              <div className="h-px flex-1 bg-white/[.04]"/>
+              <div className="h-px flex-1 bg-black/[.04]"/>
             </motion.div>
           )}
         </div>
@@ -942,13 +942,13 @@ function AutomationFlow() {
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: shownCount >= i + 2 ? 1 : 0.1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="rounded-xl border border-white/[.04] bg-[#101014] p-4"
+              className="rounded-xl border border-black/[.04] bg-white p-4"
             >
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 text-indigo-700 text-[14px]">{row.icon}</span>
                 <div>
-                  <div className="text-[14px] text-zinc-300 line-through mb-0.5">{row.before}</div>
-                  <div className="text-[13px] text-zinc-200">{row.after}</div>
+                  <div className="text-[14px] text-zinc-600 line-through mb-0.5">{row.before}</div>
+                  <div className="text-[13px] text-zinc-700">{row.after}</div>
                 </div>
               </div>
             </motion.div>
@@ -972,7 +972,7 @@ function AutomationFlow() {
 // ── Email signup ──────────────────────────────────────────────────────────────
 // ── Hero visual proof — pipeline board, styled like the real app ──────────────
 const STAGE_STYLE: Record<string, { dot: string; text: string }> = {
-  New:       { dot: "bg-zinc-400",   text: "text-zinc-300" },
+  New:       { dot: "bg-zinc-400",   text: "text-zinc-600" },
   Qualified: { dot: "bg-blue-400",   text: "text-blue-300" },
   Proposal:  { dot: "bg-amber-400",  text: "text-amber-300" },
   Won:       { dot: "bg-emerald-400", text: "text-emerald-300" },
@@ -1024,13 +1024,13 @@ function HeroPipelinePreview() {
   return (
     <div
       className="mx-auto w-full max-w-4xl overflow-hidden rounded-2xl"
-      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(10,10,12,0.75)", backdropFilter: "blur(6px)" }}
+      style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
     >
-      <div className="flex items-center gap-2 border-b border-white/[.05] px-4 py-2.5">
+      <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
         <div className="flex gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
         </div>
         <span className="font-mono text-[11px] text-zinc-500">pipeline — live view</span>
         <motion.span
@@ -1042,14 +1042,14 @@ function HeroPipelinePreview() {
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-6 border-b border-white/[.05] bg-white/[.015] px-4 py-2.5 font-mono text-[11px]">
-        <span className="text-zinc-500">Pipeline value <span className="text-zinc-100">{totalValue}</span></span>
-        <span className="text-zinc-500">Open deals <span className="text-zinc-100">{openDeals}</span></span>
+      <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 font-mono text-[11px]">
+        <span className="text-zinc-500">Pipeline value <span className="text-zinc-800">{totalValue}</span></span>
+        <span className="text-zinc-500">Open deals <span className="text-zinc-800">{openDeals}</span></span>
         <span className="text-zinc-500">Won this month <span className="text-emerald-400">£40k</span></span>
       </div>
 
       {/* Live activity ticker */}
-      <div className="border-b border-white/[.05] bg-indigo-500/[.03] px-4 py-2 font-mono text-[11px] text-indigo-300">
+      <div className="border-b border-black/[.05] bg-indigo-500/[.03] px-4 py-2 font-mono text-[11px] text-indigo-600">
         <AnimatePresence mode="wait">
           <motion.span
             key={activity}
@@ -1069,13 +1069,13 @@ function HeroPipelinePreview() {
           const style = STAGE_STYLE[stageName]!;
           const colDeals = deals.filter(d => d.stage === stageName);
           return (
-            <div key={stageName} className="flex flex-col gap-2 rounded-lg border border-zinc-800/50 bg-white/[.01]">
-              <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-800/50">
-                <span className={`inline-flex items-center gap-1.5 rounded-md border border-white/[.05] bg-zinc-900/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
+            <div key={stageName} className="flex flex-col gap-2 rounded-lg border border-zinc-200/50 bg-black/[.01]">
+              <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-200/50">
+                <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`}/>
                   {stageName}
                 </span>
-                <span className="font-mono text-[10px] text-zinc-600">{colDeals.length}</span>
+                <span className="font-mono text-[10px] text-zinc-400">{colDeals.length}</span>
               </div>
               <div className="flex flex-col gap-2 px-2 pb-2.5 min-h-[80px]">
                 <AnimatePresence initial={false}>
@@ -1093,14 +1093,14 @@ function HeroPipelinePreview() {
                       }}
                       exit={{ opacity: 0, scale: 0.92 }}
                       transition={{ duration: 0.45, layout: { duration: 0.5, ease: "easeInOut" } }}
-                      className="rounded-md border border-zinc-800/60 bg-zinc-900/50 px-2.5 py-2.5"
+                      className="rounded-md border border-zinc-200/60 bg-zinc-100/50 px-2.5 py-2.5"
                     >
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="font-mono text-[11px] text-zinc-200 truncate">{d.co}</span>
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[8px] text-zinc-400">{d.who}</span>
+                        <span className="font-mono text-[11px] text-zinc-700 truncate">{d.co}</span>
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-mono text-[8px] text-zinc-500">{d.who}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] text-zinc-600">AI score {d.score}%</span>
+                        <span className="font-mono text-[10px] text-zinc-400">AI score {d.score}%</span>
                         <span className="font-mono text-[11px] text-indigo-400">{d.val}</span>
                       </div>
                     </motion.div>
@@ -1132,7 +1132,7 @@ function EmailSignup() {
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="your@email.com"
-        className="flex-1 rounded-lg border border-white/[.07] bg-white/[.03] px-4 py-2.5 font-mono text-[14px] text-white placeholder-zinc-700 outline-none focus:border-indigo-500/30 transition-colors"
+        className="flex-1 rounded-lg border border-black/[.07] bg-black/[.03] px-4 py-2.5 font-mono text-[14px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/30 transition-colors"
         required
       />
       <button
@@ -1186,11 +1186,11 @@ function CookieBanner() {
           transition={{ duration: 0.35 }}
           className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 w-full max-w-lg px-4"
         >
-          <div className="flex items-center gap-4 rounded-xl border border-white/[.05] bg-[#131316] px-5 py-3 shadow-[0_16px_48px_rgba(0,0,0,0.7)] font-mono text-[13px]">
+          <div className="flex items-center gap-4 rounded-xl border border-black/[.05] bg-zinc-50 px-5 py-3 shadow-[0_16px_48px_rgba(0,0,0,0.12)] font-mono text-[13px]">
             <span className="text-indigo-800">[GDPR]</span>
             <span className="flex-1 text-zinc-500">Essential cookies only. No tracking without consent.</span>
             <button onClick={accept} className="shrink-0 rounded border border-indigo-500/20 bg-indigo-500/[.07] px-3 py-1.5 text-indigo-600 hover:bg-indigo-500/[.12] transition-colors">Accept</button>
-            <button onClick={() => setVisible(false)} className="text-zinc-500 hover:text-zinc-500 transition-colors">✕</button>
+            <button onClick={() => setVisible(false)} className="text-zinc-500 hover:text-zinc-900 transition-colors">✕</button>
           </div>
         </motion.div>
       )}
@@ -1211,9 +1211,9 @@ export function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className="min-h-screen bg-[#0d0d10] text-white"
+        className="min-h-screen bg-white text-zinc-900"
       >
-        <header className="sticky top-0 z-40 border-b border-white/[.04] bg-[#0d0d10]/90 backdrop-blur-md">
+        <header className="sticky top-0 z-40 border-b border-black/[.04] bg-white/90 backdrop-blur-md">
           <Nav />
         </header>
 
@@ -1232,9 +1232,9 @@ export function LandingPage() {
               </div>
 
               {/* Slogan */}
-              <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-white" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
+              <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
                 One workspace.{" "}
-                <span className="text-zinc-400">Every signal.</span>{" "}
+                <span className="text-zinc-500">Every signal.</span>{" "}
                 <span className="text-indigo-500">Always thinking.</span>
               </h1>
 
@@ -1271,7 +1271,7 @@ export function LandingPage() {
               className="mt-14"
             >
               <EmailSignup />
-              <p className="mt-2.5 font-mono text-[14px] text-zinc-300">
+              <p className="mt-2.5 font-mono text-[14px] text-zinc-600">
                 Free forever · no card required · upgrade anytime
               </p>
             </motion.div>
@@ -1292,31 +1292,31 @@ export function LandingPage() {
           {/* ── Pricing ── */}
           <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
             <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// pricing.config</div>
-            <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-100">
+            <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
               <span className="text-indigo-500">{'>'}</span> Simple, transparent pricing
             </h2>
             <p className="mb-10 font-mono text-[14px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {PLANS.map(plan => (
-                <div key={plan.name} className={`flex flex-col rounded-2xl border p-5 ${plan.highlight ? "border-indigo-500/20 bg-indigo-500/[.025] shadow-[0_0_40px_rgba(99,102,241,0.05)]" : "border-white/[.04] bg-white/[.01]"}`}>
+                <div key={plan.name} className={`flex flex-col rounded-2xl border p-5 ${plan.highlight ? "border-indigo-500/20 bg-indigo-500/[.025] shadow-[0_0_40px_rgba(99,102,241,0.05)]" : "border-black/[.04] bg-black/[.01]"}`}>
                   {plan.highlight && (
                     <div className="mb-3 self-start rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2.5 py-0.5 font-mono text-[14px] text-indigo-600 uppercase tracking-wider">Most popular</div>
                   )}
-                  <div className="mb-1 font-mono text-[13px] text-zinc-300">{plan.name}</div>
+                  <div className="mb-1 font-mono text-[13px] text-zinc-600">{plan.name}</div>
                   <div className="mb-1 flex items-end gap-1">
-                    <span className="font-mono text-2xl font-light text-white">{plan.price}</span>
-                    {plan.price !== "Custom" && <span className="mb-1 font-mono text-[14px] text-zinc-400">/{plan.period}</span>}
+                    <span className="font-mono text-2xl font-light text-zinc-900">{plan.price}</span>
+                    {plan.price !== "Custom" && <span className="mb-1 font-mono text-[14px] text-zinc-500">/{plan.period}</span>}
                   </div>
-                  {plan.price === "Custom" && <div className="mb-1 font-mono text-[14px] text-zinc-400">{plan.period}</div>}
+                  {plan.price === "Custom" && <div className="mb-1 font-mono text-[14px] text-zinc-500">{plan.period}</div>}
                   <p className="mb-4 mt-1.5 font-mono text-[14px] leading-relaxed text-zinc-500">{plan.desc}</p>
                   <ul className="mb-5 flex-1 space-y-1.5">
                     {plan.features.map(f => (
-                      <li key={f} className="flex items-start gap-2 font-mono text-[14px] text-zinc-400">
+                      <li key={f} className="flex items-start gap-2 font-mono text-[14px] text-zinc-500">
                         <span className="mt-0.5 text-indigo-700">›</span>{f}
                       </li>
                     ))}
                   </ul>
-                  <a href={plan.href} className={`mt-auto rounded-lg py-2.5 text-center font-mono text-[13px] transition-all ${plan.highlight ? "border border-indigo-500/25 bg-indigo-600 text-white hover:bg-indigo-500 active:translate-y-[1px]" : "border border-white/[.05] bg-white/[.02] text-zinc-300 hover:text-white hover:bg-white/[.05]"}`}>
+                  <a href={plan.href} className={`mt-auto rounded-lg py-2.5 text-center font-mono text-[13px] transition-all ${plan.highlight ? "border border-indigo-500/25 bg-indigo-600 text-white hover:bg-indigo-500 active:translate-y-[1px]" : "border border-black/[.05] bg-black/[.02] text-zinc-600 hover:text-zinc-900 hover:bg-black/[.05]"}`}>
                     {plan.cta}
                   </a>
                 </div>
@@ -1329,7 +1329,7 @@ export function LandingPage() {
         </main>
 
         {/* ── Footer ── */}
-        <footer className="relative bg-[#060608]">
+        <footer className="relative bg-zinc-50">
           <div className="absolute top-0 left-1/2 h-px w-full max-w-3xl -translate-x-1/2" style={{ background: "linear-gradient(90deg, transparent, rgba(99,102,241,0.35), transparent)" }}/>
           <div className="mx-auto max-w-6xl px-6 py-14">
             <div className="mb-10 flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
@@ -1342,26 +1342,26 @@ export function LandingPage() {
 
               <div className="flex flex-wrap gap-x-14 gap-y-8 font-mono text-[13px]">
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-600 text-[11px] uppercase tracking-widest mb-1">Product</span>
-                  <a href="#pricing" className="text-zinc-400 hover:text-indigo-400 transition-colors">Pricing</a>
-                  <a href="/changelog" className="text-zinc-400 hover:text-indigo-400 transition-colors">Changelog</a>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Product</span>
+                  <a href="#pricing" className="text-zinc-500 hover:text-indigo-400 transition-colors">Pricing</a>
+                  <a href="/changelog" className="text-zinc-500 hover:text-indigo-400 transition-colors">Changelog</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-600 text-[11px] uppercase tracking-widest mb-1">Legal</span>
-                  <a href="/privacy" className="text-zinc-400 hover:text-indigo-400 transition-colors">Privacy</a>
-                  <a href="/terms" className="text-zinc-400 hover:text-indigo-400 transition-colors">Terms</a>
-                  <a href="/dpa" className="text-zinc-400 hover:text-indigo-400 transition-colors">DPA</a>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Legal</span>
+                  <a href="/privacy" className="text-zinc-500 hover:text-indigo-400 transition-colors">Privacy</a>
+                  <a href="/terms" className="text-zinc-500 hover:text-indigo-400 transition-colors">Terms</a>
+                  <a href="/dpa" className="text-zinc-500 hover:text-indigo-400 transition-colors">DPA</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-600 text-[11px] uppercase tracking-widest mb-1">Contact</span>
-                  <a href="mailto:support@mondaily.com" className="text-zinc-400 hover:text-indigo-400 transition-colors">Support</a>
-                  <a href="mailto:sales@mondaily.com" className="text-zinc-400 hover:text-indigo-400 transition-colors">Sales</a>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Contact</span>
+                  <a href="mailto:support@mondaily.com" className="text-zinc-500 hover:text-indigo-400 transition-colors">Support</a>
+                  <a href="mailto:sales@mondaily.com" className="text-zinc-500 hover:text-indigo-400 transition-colors">Sales</a>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-3 border-t border-white/[.05] pt-6 font-mono text-[12px] text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 font-mono text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
-              <span className="flex items-center gap-1.5 text-zinc-600">
+              <span className="flex items-center gap-1.5 text-zinc-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/>
                 All systems operational
               </span>

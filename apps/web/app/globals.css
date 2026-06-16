@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
   --font-orbitron: 'Orbitron', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
   margin: 0;
-  background: #080808;
-  color: #f8fafc;
+  background: #ffffff;
+  color: #18181b;
   font-family: var(--font-mono), ui-monospace, monospace;
 }

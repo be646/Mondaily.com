@@ -5,13 +5,13 @@ import { Logo } from "./logo";
 export function Nav() {
   return (
     <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-      <Link href="/" className="flex items-center text-white">
+      <Link href="/" className="flex items-center text-zinc-900">
         <Logo size={42} />
       </Link>
       <div className="flex items-center gap-2">
         <a
           href="https://app.mondaily.com/sign-in"
-          className="px-4 py-2 text-[11px] text-zinc-600 hover:text-zinc-300 transition-colors font-mono"
+          className="px-4 py-2 text-[11px] text-zinc-500 hover:text-zinc-900 transition-colors font-mono"
         >
           Sign in
         </a>

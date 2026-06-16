@@ -18,7 +18,7 @@ export function Logo({ size = 52 }: { size?: number }) {
           fontSize: `${fs}px`,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "white",
+          color: "#18181b",
           lineHeight: 1,
           whiteSpace: "nowrap",
         }}
