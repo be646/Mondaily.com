@@ -32,7 +32,7 @@ function Layout() {
   const current = Math.max(0, STEPS.findIndex(s => location.pathname.includes(s)));
 
   return (
-    <div className="grid min-h-screen" style={{ gridTemplateColumns: "480px 1fr" }}>
+    <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "480px 1fr" }}>
       {/* Left — form */}
       <div className="flex flex-col bg-white">
         {/* Header */}

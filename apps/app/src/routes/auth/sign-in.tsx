@@ -129,7 +129,7 @@ export function SignInPage() {
   const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
 
   return (
-    <div className="grid min-h-screen" style={{ gridTemplateColumns: "480px 1fr" }}>
+    <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "480px 1fr" }}>
 
       {/* Left — form */}
       <div className="flex flex-col justify-center bg-white px-10 py-12">
