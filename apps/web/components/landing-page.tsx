@@ -1100,8 +1100,6 @@ function HeroPipelinePreview() {
   const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS);
   const [activity, setActivity] = useState("AI is scanning open deals…");
   const [glowId, setGlowId] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef<{ x: number; left: number } | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -1125,24 +1123,12 @@ function HeroPipelinePreview() {
     return () => clearInterval(t);
   }, []);
 
-  function onPointerDown(e: React.PointerEvent) {
-    if (!scrollRef.current) return;
-    dragState.current = { x: e.clientX, left: scrollRef.current.scrollLeft };
-  }
-  function onPointerMove(e: React.PointerEvent) {
-    if (!dragState.current || !scrollRef.current) return;
-    scrollRef.current.scrollLeft = dragState.current.left - (e.clientX - dragState.current.x);
-  }
-  function onPointerUp() {
-    dragState.current = null;
-  }
-
   const totalValue = "£92.4k";
   const openDeals = deals.filter(d => d.stage !== "Won").length;
 
   return (
     <div
-      className="mx-auto w-full max-w-4xl overflow-hidden rounded-2xl"
+      className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl"
       style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
@@ -1183,14 +1169,7 @@ function HeroPipelinePreview() {
         </AnimatePresence>
       </div>
 
-      <div
-        ref={scrollRef}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
-        className="grid grid-flow-col auto-cols-[180px] gap-3 overflow-x-auto p-4 text-left cursor-grab active:cursor-grabbing select-none"
-      >
+      <div className="grid grid-cols-5 gap-3 p-4 text-left">
         {STAGE_NAMES.map(stageName => {
           const style = STAGE_STYLE[stageName]!;
           const colDeals = deals.filter(d => d.stage === stageName);
@@ -1388,6 +1367,167 @@ function InvoiceBoardPreview() {
   );
 }
 
+type SheetRow = { id: string; company: string; stage: string; score: number; owner: string; status: string };
+
+const SHEET_STAGES = ["New", "Qualified", "Proposal", "Won"] as const;
+
+const SHEET_POOL: { id: string; company: string; owner: string }[] = [
+  { id: "vandelay", company: "Vandelay Industries", owner: "MK" },
+  { id: "stark",    company: "Stark Logistics",     owner: "JS" },
+  { id: "wayne",    company: "Wayne Analytics",      owner: "AR" },
+  { id: "wonka",    company: "Wonka Digital",        owner: "JS" },
+];
+
+const INITIAL_SHEET_ROWS: SheetRow[] = [
+  { id: "vandelay", company: "Vandelay Industries", stage: "New",       score: 58, owner: "MK", status: "Idle" },
+  { id: "stark",    company: "Stark Logistics",     stage: "Qualified", score: 74, owner: "JS", status: "Idle" },
+  { id: "wayne",    company: "Wayne Analytics",     stage: "Proposal",  score: 88, owner: "AR", status: "Idle" },
+];
+
+function RecordsSheetPreview() {
+  const [rows, setRows] = useState<SheetRow[]>(INITIAL_SHEET_ROWS);
+  const [activity, setActivity] = useState("AI is watching the sheet…");
+  const [glowCell, setGlowCell] = useState<{ id: string; col: string } | null>(null);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setRows(prev => {
+        const pick = prev[Math.floor(Math.random() * prev.length)]!;
+        const action = Math.random();
+
+        if (pick.stage === "Won") {
+          const used = new Set(prev.map(r => r.id));
+          const fresh = SHEET_POOL.find(p => !used.has(p.id)) ?? SHEET_POOL[Math.floor(Math.random() * SHEET_POOL.length)]!;
+          setGlowCell({ id: pick.id, col: "company" });
+          setActivity(`${pick.company} closed — new record added`);
+          setTimeout(() => setGlowCell(null), 1100);
+          return prev.map(r => (r.id === pick.id ? { id: pick.id, company: fresh.company, owner: fresh.owner, stage: "New", score: Math.floor(40 + Math.random() * 25), status: "Idle" } : r));
+        }
+
+        if (action < 0.4) {
+          setGlowCell({ id: pick.id, col: "score" });
+          setActivity(`AI rescored ${pick.company}`);
+          setTimeout(() => setGlowCell(null), 1100);
+          return prev.map(r => (r.id === pick.id ? { ...r, score: Math.min(99, r.score + Math.floor(2 + Math.random() * 8)), status: "Scoring…" } : r));
+        }
+        if (action < 0.7) {
+          const nextStage = SHEET_STAGES[Math.min(SHEET_STAGES.indexOf(pick.stage as typeof SHEET_STAGES[number]) + 1, SHEET_STAGES.length - 1)]!;
+          setGlowCell({ id: pick.id, col: "stage" });
+          setActivity(`AI moved ${pick.company} → ${nextStage}`);
+          setTimeout(() => setGlowCell(null), 1100);
+          return prev.map(r => (r.id === pick.id ? { ...r, stage: nextStage, status: "Synced" } : r));
+        }
+        setGlowCell({ id: pick.id, col: "status" });
+        setActivity(`AI enriching ${pick.company}…`);
+        setTimeout(() => setGlowCell(null), 1100);
+        return prev.map(r => (r.id === pick.id ? { ...r, status: "Enriching…" } : r));
+      });
+    }, 2600);
+    return () => clearInterval(t);
+  }, []);
+
+  const cellClass = (id: string, col: string) =>
+    `px-3 py-2.5 text-[12px] transition-colors ${glowCell?.id === id && glowCell.col === col ? "bg-indigo-500/[.08]" : ""}`;
+
+  return (
+    <div
+      className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl"
+      style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
+    >
+      <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
+        <div className="flex gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+        </div>
+        <span className="font-mono text-[11px] text-zinc-500">records — sheet view</span>
+        <motion.span
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.8, repeat: Infinity }}
+          className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+        />
+        <span className="font-mono text-[11px] text-indigo-500">live-edited by AI</span>
+      </div>
+
+      <div className="border-b border-black/[.05] bg-indigo-500/[.03] px-4 py-2 font-mono text-[11px] text-indigo-600">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={activity}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="inline-flex items-center gap-2"
+          >
+            <span className="text-indigo-500">⚡</span>{activity}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full font-mono text-left">
+          <thead>
+            <tr className="border-b border-black/[.05] bg-black/[.015]">
+              {["Company", "Stage", "AI Score", "Owner", "Status"].map(h => (
+                <th key={h} className="px-3 py-2 text-[10px] uppercase tracking-widest text-zinc-400 font-medium">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <AnimatePresence initial={false}>
+              {rows.map(r => (
+                <motion.tr
+                  key={r.id}
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="border-b border-black/[.04] last:border-0"
+                >
+                  <td className={cellClass(r.id, "company")}>
+                    <span className="text-zinc-700">{r.company}</span>
+                  </td>
+                  <td className={cellClass(r.id, "stage")}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 text-[10px] font-semibold ${STAGE_STYLE[r.stage]?.text ?? "text-zinc-600"}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${STAGE_STYLE[r.stage]?.dot ?? "bg-zinc-400"}`}/>
+                      {r.stage}
+                    </span>
+                  </td>
+                  <td className={cellClass(r.id, "score")}>
+                    <span className="text-indigo-500">{r.score}%</span>
+                  </td>
+                  <td className={cellClass(r.id, "owner")}>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[9px] text-zinc-500">{r.owner}</span>
+                  </td>
+                  <td className={cellClass(r.id, "status")}>
+                    <span className="text-zinc-500">{r.status}</span>
+                  </td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RecordsSheetSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.sheet</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{">"}</span> Your records, kept current automatically
+      </h2>
+      <p className="mb-10 font-mono text-[13px] text-zinc-500">
+        No manual data entry — the AI rescoring, advancing, and enriching rows while you watch.
+      </p>
+      <RecordsSheetPreview />
+    </section>
+  );
+}
+
 function FinanceBoardSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
@@ -1404,15 +1544,104 @@ function FinanceBoardSection() {
 }
 
 const AGENTS = [
-  { icon: "◈", name: "Ask Mondaily", accent: "#4f46e5", desc: "Conversational AI that creates and searches records, builds lists, sets up workflows, and answers questions about your workspace in plain English." },
-  { icon: "◆", name: "Enrichment Agent", accent: "#7c3aed", desc: "Fires the moment a record is created — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web." },
-  { icon: "♥", name: "Relationship Health Agent", accent: "#d97706", desc: "Scores every contact 0–100 daily based on contact recency, open tasks and deals, and recent activity signals." },
-  { icon: "▲", name: "Deal Risk Agent", accent: "#dc2626", desc: "Watches the pipeline daily and flags deals that have gone 14+ days without activity, before they go cold." },
-  { icon: "▶", name: "Sequence Agent", accent: "#059669", desc: "Runs multi-step outreach cadences on autopilot — enrolls, paces sends, stops on reply, and reports back." },
-  { icon: "⚙", name: "Workflow Agent", accent: "#0891b2", desc: "Executes trigger → condition → action automations across the workspace, no code required." },
+  {
+    icon: "◈", name: "Ask Mondaily", accent: "#4f46e5",
+    desc: "Conversational AI that creates and searches records, builds lists, sets up workflows, and answers questions about your workspace in plain English.",
+    trace: [
+      "[INPUT]    \"show me deals over £10k stuck in proposal\"",
+      "[PARSE]    intent: query · entities: stage=Proposal, value>10000",
+      "[QUERY]    scanning pipeline records...",
+      "[REPLY]    3 deals found — rendering as a filtered list",
+    ],
+  },
+  {
+    icon: "◆", name: "Enrichment Agent", accent: "#7c3aed",
+    desc: "Fires the moment a record is created — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web.",
+    trace: [
+      "[TRIGGER]  new company record: globex.io",
+      "[SEARCH]   querying web for firmographic signals...",
+      "[EXTRACT]  ARR $1.6M · 64 employees · Seed · Berlin",
+      "[WRITE]    record updated · notification sent",
+    ],
+  },
+  {
+    icon: "♥", name: "Relationship Health Agent", accent: "#d97706",
+    desc: "Scores every contact 0–100 daily based on contact recency, open tasks and deals, and recent activity signals.",
+    trace: [
+      "[CRON]     daily run · 02:00 UTC",
+      "[SCAN]     8,420 contacts · checking last-touch + open items",
+      "[SCORE]    weighting recency, tasks, deals, activity",
+      "[WRITE]    relationship_health field updated on all records",
+    ],
+  },
+  {
+    icon: "▲", name: "Deal Risk Agent", accent: "#dc2626",
+    desc: "Watches the pipeline daily and flags deals that have gone 14+ days without activity, before they go cold.",
+    trace: [
+      "[CRON]     daily run · 08:00 UTC",
+      "[SCAN]     234 open deals · checking last activity date",
+      "[FLAG]     Initech deal idle 16 days — risk alert raised",
+      "[NOTIFY]   owner pinged · alert added to dashboard",
+    ],
+  },
+  {
+    icon: "▶", name: "Sequence Agent", accent: "#059669",
+    desc: "Runs multi-step outreach cadences on autopilot — enrolls, paces sends, stops on reply, and reports back.",
+    trace: [
+      "[ENROLL]   contact added to \"Enterprise Nurture\"",
+      "[STEP 1]   email sent · open tracked",
+      "[WAIT]     2 days · sending window respected",
+      "[STEP 2]   reply detected — sequence paused automatically",
+    ],
+  },
+  {
+    icon: "⚙", name: "Workflow Agent", accent: "#0891b2",
+    desc: "Executes trigger → condition → action automations across the workspace, no code required.",
+    trace: [
+      "[TRIGGER]  deal stage changed → Won",
+      "[CHECK]    condition: value > £5,000 — true",
+      "[ACTION]   Slack notified · quote drafted · CRM field updated",
+      "[DONE]     automation completed in 380ms",
+    ],
+  },
 ];
 
+function AgentTrace({ lines }: { lines: string[] }) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    setShown(0);
+    const timers = lines.map((_, i) => setTimeout(() => setShown(i + 1), 250 + i * 450));
+    return () => timers.forEach(clearTimeout);
+  }, [lines]);
+  return (
+    <div className="space-y-1.5 rounded-lg bg-black/[.02] p-3 font-mono text-[11px]">
+      <AnimatePresence initial={false}>
+        {lines.slice(0, shown).map((line, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.25 }}
+            className={line.startsWith("[") ? "text-indigo-600" : "text-zinc-600"}
+          >
+            {line}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+      {shown < lines.length && (
+        <motion.span
+          animate={{ opacity: [1, 0] }}
+          transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
+          className="inline-block h-[10px] w-[5px] bg-indigo-500/60 align-middle"
+        />
+      )}
+    </div>
+  );
+}
+
 function AgentsSection() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// agents.active</div>
@@ -1420,38 +1649,68 @@ function AgentsSection() {
         <span className="text-indigo-500">{">"}</span> Meet the agents running your workspace
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
-        Not bots bolted onto a CRM — a team of always-on agents already built into Mondaily.
+        Not bots bolted onto a CRM — a team of always-on agents already built into Mondaily. Click one to see it work.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {AGENTS.map((agent, i) => (
-          <motion.div
-            key={agent.name}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.4, delay: i * 0.07 }}
-            whileHover={{ y: -3 }}
-            className="rounded-xl border border-black/[.05] bg-white p-5"
-          >
-            <div className="mb-3 flex items-center gap-3">
-              <span
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px]"
-                style={{ background: `${agent.accent}12`, color: agent.accent, border: `1px solid ${agent.accent}30` }}
-              >
-                {agent.icon}
+        {AGENTS.map((agent, i) => {
+          const open = openIdx === i;
+          return (
+            <motion.div
+              key={agent.name}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.4, delay: i * 0.07 }}
+              whileHover={{ y: -3 }}
+              onClick={() => setOpenIdx(open ? null : i)}
+              className="cursor-pointer rounded-xl border p-5 transition-colors"
+              style={{
+                borderColor: open ? `${agent.accent}40` : "rgba(0,0,0,.05)",
+                background: open ? `${agent.accent}08` : "#ffffff",
+              }}
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <span
+                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px]"
+                  style={{ background: `${agent.accent}12`, color: agent.accent, border: `1px solid ${agent.accent}30` }}
+                >
+                  {agent.icon}
+                  <motion.span
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
+                    className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
+                    style={{ background: agent.accent }}
+                  />
+                </span>
+                <span className="font-mono text-[14px] font-semibold text-zinc-800">{agent.name}</span>
                 <motion.span
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
-                  className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
-                  style={{ background: agent.accent }}
-                />
-              </span>
-              <span className="font-mono text-[14px] font-semibold text-zinc-800">{agent.name}</span>
-            </div>
-            <p className="font-mono text-[12px] leading-relaxed text-zinc-500">{agent.desc}</p>
-          </motion.div>
-        ))}
+                  animate={{ rotate: open ? 180 : 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="ml-auto font-mono text-[11px] text-zinc-400"
+                >
+                  ▾
+                </motion.span>
+              </div>
+              <p className="font-mono text-[12px] leading-relaxed text-zinc-500">{agent.desc}</p>
+
+              <AnimatePresence initial={false}>
+                {open && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <AgentTrace lines={agent.trace} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
     </section>
   );
@@ -1561,39 +1820,41 @@ export function LandingPage() {
 
         <main>
           {/* ── Hero ── */}
-          <section className="mx-auto max-w-3xl px-6 pb-20 pt-16 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 14 }}
-              transition={{ duration: 0.55, delay: 0.2 }}
-            >
-              {/* Live badge */}
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 font-mono text-[13px] text-indigo-500">
-                <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-600"/>
-                Live AI workspace · no setup required
-              </div>
+          <section className="mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
+            <div className="mx-auto max-w-3xl">
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 14 }}
+                transition={{ duration: 0.55, delay: 0.2 }}
+              >
+                {/* Live badge */}
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 font-mono text-[13px] text-indigo-500">
+                  <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-600"/>
+                  Live AI workspace · no setup required
+                </div>
 
-              {/* Slogan */}
-              <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
-                One workspace.{" "}
-                <span className="text-zinc-500">Every signal.</span>{" "}
-                <span className="text-indigo-500">Always thinking.</span>
-              </h1>
+                {/* Slogan */}
+                <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
+                  One workspace.{" "}
+                  <span className="text-zinc-500">Every signal.</span>{" "}
+                  <span className="text-indigo-500">Always thinking.</span>
+                </h1>
 
-              {/* Subheading */}
-              <p className="mx-auto mb-8 font-mono text-[13px] text-zinc-500">
-                {"// "}<span className="text-zinc-500">autonomous · enriched · always on</span>
-              </p>
-            </motion.div>
+                {/* Subheading */}
+                <p className="mx-auto mb-8 font-mono text-[13px] text-zinc-500">
+                  {"// "}<span className="text-zinc-500">autonomous · enriched · always on</span>
+                </p>
+              </motion.div>
 
-            {/* Chat search bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 12 }}
-              transition={{ duration: 0.55, delay: 0.32 }}
-            >
-              <HeroChat />
-            </motion.div>
+              {/* Chat search bar */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 12 }}
+                transition={{ duration: 0.55, delay: 0.32 }}
+              >
+                <HeroChat />
+              </motion.div>
+            </div>
 
             {/* Hero visual proof — stylized pipeline mockup */}
             <motion.div
@@ -1610,7 +1871,7 @@ export function LandingPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 10 }}
               transition={{ duration: 0.55, delay: 0.65 }}
-              className="mt-14"
+              className="mx-auto mt-14 max-w-3xl"
             >
               <EmailSignup />
               <p className="mt-2.5 font-mono text-[14px] text-zinc-600">
@@ -1630,6 +1891,9 @@ export function LandingPage() {
 
           {/* ── Automation flow diagram ── */}
           <AutomationFlow />
+
+          {/* ── Records sheet demo ── */}
+          <RecordsSheetSection />
 
           {/* ── Finance / invoice board demo ── */}
           <FinanceBoardSection />
@@ -1695,6 +1959,14 @@ export function LandingPage() {
                   <a href="/changelog" className="text-zinc-500 hover:text-indigo-400 transition-colors">Changelog</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Platform</span>
+                  <a href="/status" className="text-zinc-500 hover:text-indigo-400 transition-colors">System status</a>
+                  <a href="/roadmap" className="text-zinc-500 hover:text-indigo-400 transition-colors">Roadmap</a>
+                  <a href="/security" className="text-zinc-500 hover:text-indigo-400 transition-colors">Security</a>
+                  <a href="/docs" className="text-zinc-500 hover:text-indigo-400 transition-colors">API docs</a>
+                  <a href="/help" className="text-zinc-500 hover:text-indigo-400 transition-colors">Help center</a>
+                </div>
+                <div className="flex flex-col gap-2.5">
                   <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Legal</span>
                   <a href="/privacy" className="text-zinc-500 hover:text-indigo-400 transition-colors">Privacy</a>
                   <a href="/terms" className="text-zinc-500 hover:text-indigo-400 transition-colors">Terms</a>
@@ -1709,10 +1981,10 @@ export function LandingPage() {
             </div>
             <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 font-mono text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
-              <span className="flex items-center gap-1.5 text-zinc-400">
+              <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/>
                 All systems operational
-              </span>
+              </a>
             </div>
           </div>
         </footer>

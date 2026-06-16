@@ -11,9 +11,12 @@ export function Logo({ size = 52 }: { size?: number }) {
         <circle cx="16" cy="16" r="13" stroke="#6366f1" strokeWidth="1.4" opacity="0.35"/>
         <circle cx="27" cy="9" r="2.4" fill="#6366f1" opacity="0.85">
           <animateMotion
-            dur="6s"
+            dur="2.4s"
             repeatCount="indefinite"
-            path="M11,9 A13,13 0 1 1 -11,23 A13,13 0 1 1 11,9"
+            keyPoints="0;1;0"
+            keyTimes="0;0.5;1"
+            calcMode="linear"
+            path="M11,9 A13,13 0 0 1 -7,5"
           />
         </circle>
       </svg>
