@@ -279,23 +279,25 @@ function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; t
 function FeatureSection() {
   const [active, setActive] = useState<Set<string>>(new Set());
 
-  const runSeq = useCallback(() => {
-    setActive(new Set());
-    let i = 0;
-    const t = setInterval(() => {
-      const id = FLOW_ORDER[i];
-      if (id) setActive(prev => { const s = new Set(prev); s.add(id); return s; });
-      i++;
-      if (i >= FLOW_ORDER.length) clearInterval(t);
-    }, 600);
-    return t;
+  // Build a lookup: nodeId → all nodeIds it connects to (both directions)
+  const connectedTo = useCallback((id: string): Set<string> => {
+    const result = new Set<string>();
+    MAIN_EDGES.forEach(([a, b]) => {
+      if (a === id) result.add(b);
+      if (b === id) result.add(a);
+    });
+    return result;
   }, []);
 
-  useEffect(() => {
-    const t = runSeq();
-    const loop = setInterval(runSeq, FLOW_ORDER.length * 600 + 3000);
-    return () => { clearInterval(t); clearInterval(loop); };
-  }, [runSeq]);
+  function handleNodeEnter(id: string) {
+    // Activate hovered node + all directly connected nodes
+    const group = new Set([id, ...connectedTo(id)]);
+    setActive(group);
+  }
+
+  function handleNodeLeave() {
+    setActive(new Set());
+  }
 
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
 
@@ -316,6 +318,7 @@ function FeatureSection() {
       </div>
 
       {/* Node map */}
+      <p className="mb-4 font-mono text-[10px] text-zinc-800">// hover any module to explore its connections</p>
       <div className="mb-10 w-full overflow-hidden">
         <svg viewBox="0 0 1300 420" className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Faint dot grid background */}
@@ -388,23 +391,31 @@ function FeatureSection() {
             });
           })}
 
-          {/* 4. Node boxes + indicator dots — on top of all lines */}
+          {/* 4. Node boxes + indicator dots — hover target, on top of all lines */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return (
-              <g key={node.id} transform={`translate(${node.x},${node.y})`}>
+              <g
+                key={node.id}
+                transform={`translate(${node.x},${node.y})`}
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => handleNodeEnter(node.id)}
+                onMouseLeave={handleNodeLeave}
+              >
+                {/* Larger invisible hit area so hover is easy to trigger */}
+                <rect x="-8" y="-8" width={NW + 16} height={NH + 16} fill="transparent"/>
                 <motion.rect
                   x="0" y="0" width={NW} height={NH} rx="6"
                   fill="#080808"
-                  stroke={on ? "rgba(255,255,255,0.2)" : "#1a1a1a"}
+                  stroke={on ? "rgba(255,255,255,0.25)" : "#1a1a1a"}
                   strokeWidth="1"
-                  animate={{ opacity: on ? 1 : 0.35 }}
-                  transition={{ duration: 0.4 }}
+                  animate={{ opacity: on ? 1 : 0.3, scale: on ? 1.03 : 1 }}
+                  transition={{ duration: 0.2 }}
                 />
                 <motion.circle cx="12" cy={NH / 2} r="3"
                   fill={on ? "#7c3aed" : "#222"}
-                  animate={{ opacity: on ? [0.6,1,0.6] : 0.2 }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  animate={{ opacity: on ? [0.6,1,0.6] : 0.15 }}
+                  transition={{ duration: 1.5, repeat: on ? Infinity : 0 }}
                 />
               </g>
             );
@@ -800,25 +811,26 @@ function FlowNode({ node, active }: { node: typeof FLOW_NODES[number]; active: b
   );
 }
 
-const FLOW_TOTAL_MS = 3900 + 800; // last step delay + buffer before reset
-
 function AutomationFlow() {
   const ref = useRef<HTMLDivElement>(null);
   const [shownCount, setShownCount] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const runSeq = useCallback(() => {
+  function startFlow() {
+    // Clear any in-progress timers and restart from 0
+    timersRef.current.forEach(clearTimeout);
     setShownCount(0);
-    const timers = FLOW_NODES.map((n, i) =>
+    timersRef.current = FLOW_NODES.map((n, i) =>
       setTimeout(() => setShownCount(i + 1), n.delay + 200)
     );
-    return timers;
-  }, []);
+  }
 
-  useEffect(() => {
-    const timers = runSeq();
-    const loop = setInterval(() => { runSeq(); }, FLOW_TOTAL_MS + 2000);
-    return () => { timers.forEach(clearTimeout); clearInterval(loop); };
-  }, [runSeq]);
+  function resetFlow() {
+    timersRef.current.forEach(clearTimeout);
+    setShownCount(0);
+  }
+
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
 
   const Connector = ({ active, short }: { active: boolean; short?: boolean }) => (
     <div className="flex justify-center">
@@ -831,7 +843,12 @@ function AutomationFlow() {
   );
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section
+      ref={ref}
+      className="mx-auto max-w-6xl px-6 py-20"
+      onMouseEnter={startFlow}
+      onMouseLeave={resetFlow}
+    >
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// automation.flow</div>
       <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{">"}</span> Build once. Run on every deal, forever.
@@ -860,7 +877,7 @@ function AutomationFlow() {
               <span className="rounded-full border border-violet-500/20 bg-violet-600/10 px-3 py-0.5 text-[10px] text-violet-500">High intent</span>
             </div>
             <div className="flex justify-center">
-              <span className="rounded-full border border-white/[.05] bg-white/[.02] px-3 py-0.5 text-[10px] text-zinc-700">Nurture</span>
+              <span className="rounded-full border border-zinc-600/30 bg-zinc-700/10 px-3 py-0.5 text-[10px] text-zinc-400">Nurture</span>
             </div>
           </motion.div>
 
