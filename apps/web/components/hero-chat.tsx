@@ -114,13 +114,20 @@ export function HeroChat() {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      {/* Chat card — thin clean frame */}
-      <div
+      {/* Chat card — animated violet glow border */}
+      <motion.div
         className="rounded-2xl"
+        animate={{
+          boxShadow: [
+            "0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
+            "0 0 0 1px rgba(124,58,237,0.38), 0 0 40px rgba(124,58,237,0.14), 0 24px 64px rgba(0,0,0,0.6)",
+            "0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
+          ],
+        }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
         style={{
-          border: "1px solid rgba(255,255,255,0.08)",
+          border: "1px solid rgba(124,58,237,0.18)",
           background: "rgba(12,12,12,0.95)",
-          boxShadow: "0 0 0 1px rgba(124,58,237,0.05), 0 24px 64px rgba(0,0,0,0.6)",
         }}
       >
         {/* Reply area */}
@@ -160,13 +167,13 @@ export function HeroChat() {
             onKeyDown={handleKey}
             placeholder="Ask Mondaily AI anything…"
             rows={3}
-            className="w-full resize-none bg-transparent font-mono text-[13px] text-white placeholder-zinc-800 outline-none leading-relaxed"
+            className="w-full resize-none bg-transparent font-mono text-[13px] text-white placeholder-zinc-600 outline-none leading-relaxed"
           />
         </div>
 
         {/* Bottom bar */}
         <div className="flex items-center justify-between px-5 pb-4">
-          <span className="font-mono text-[10px] text-zinc-800">Enter to send · Shift+Enter for new line</span>
+          <span className="font-mono text-[10px] text-zinc-600">Enter to send · Shift+Enter for new line</span>
           <button
             onClick={() => send()}
             disabled={!input.trim() || loading}
@@ -175,17 +182,21 @@ export function HeroChat() {
             <SendIcon />
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Feature lines — static, typewriter, coding font, no click */}
-      <div className="mt-8 space-y-3">
+      {/* Feature lines — hover to highlight */}
+      <div className="mt-8 space-y-1">
         {FEATURE_LINES.map((line, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <span className="mt-[5px] h-1 w-4 shrink-0 bg-violet-800/50" style={{ borderRadius: 1 }}/>
-            <span className="font-mono text-[12px] leading-snug text-zinc-600">
+          <motion.div
+            key={i}
+            className="group flex cursor-default items-center gap-3 rounded-lg px-3 py-2 transition-colors"
+            whileHover={{ backgroundColor: "rgba(124,58,237,0.07)" }}
+          >
+            <span className="h-1 w-4 shrink-0 bg-violet-700/50 group-hover:bg-violet-500 transition-colors" style={{ borderRadius: 1 }}/>
+            <span className="font-mono text-[12px] leading-snug text-zinc-500 group-hover:text-violet-300 transition-colors">
               <TypewriterLine text={line} delay={800 + i * 600} />
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

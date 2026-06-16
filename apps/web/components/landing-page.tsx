@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
+import { Logo } from "./logo";
 
 // ── Preloader ─────────────────────────────────────────────────────────────────
 const LOG_LINES = [
@@ -564,7 +565,7 @@ function WorkflowDemo() {
       <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{">"}</span> What happens when a record enters Mondaily
       </h2>
-      <p className="mb-10 font-mono text-[11px] text-zinc-700">
+      <p className="mb-10 font-mono text-[11px] text-zinc-500">
         Zero manual input. The platform enriches, scores, moves, and notifies — automatically.
       </p>
 
@@ -600,7 +601,7 @@ function WorkflowDemo() {
                 transition={{ duration: 0.3 }}
                 className="flex items-baseline gap-3"
               >
-                <span className="w-24 shrink-0 text-[10px] text-zinc-700">{f.key}</span>
+                <span className="w-24 shrink-0 text-[10px] text-zinc-500">{f.key}</span>
                 <span className={`text-[11px] ${f.key === "Signal" ? "text-violet-500" : f.key === "AI Score" ? "text-violet-400" : "text-zinc-300"}`}>
                   {f.val}
                 </span>
@@ -610,12 +611,12 @@ function WorkflowDemo() {
 
           {/* Contact row */}
           <div className="mt-5 border-t border-white/[.04] pt-4">
-            <div className="text-[10px] text-zinc-700 mb-2">Contact</div>
+            <div className="text-[10px] text-zinc-500 mb-2">Contact</div>
             <div className="flex items-center gap-2">
               <div className="h-6 w-6 rounded-full bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400">SJ</div>
               <div>
                 <div className="text-[11px] text-zinc-300">Sarah Johnson</div>
-                <div className="text-[10px] text-zinc-700">Head of IT · sarah@acme.com</div>
+                <div className="text-[10px] text-zinc-500">Head of IT · sarah@acme.com</div>
               </div>
             </div>
           </div>
@@ -661,7 +662,7 @@ function WorkflowDemo() {
                       <span className="text-[10px]" style={{ color: step.tagCol }}>{step.tag}</span>
                       <span className="text-[11px] text-zinc-300">{step.title}</span>
                     </div>
-                    <div className="text-[10px] text-zinc-700 leading-relaxed">{step.detail}</div>
+                    <div className="text-[10px] text-zinc-500 leading-relaxed">{step.detail}</div>
                   </div>
                 </motion.div>
               ))}
@@ -689,7 +690,7 @@ function WorkflowDemo() {
                 className="flex items-center gap-2 pl-5 pt-1"
               >
                 <span className="text-[10px] text-violet-700">[DONE]</span>
-                <span className="text-[10px] text-zinc-700">6 actions completed · 0 errors · 0 manual steps</span>
+                <span className="text-[10px] text-zinc-500">6 actions completed · 0 errors · 0 manual steps</span>
               </motion.div>
             )}
           </div>
@@ -835,7 +836,7 @@ function AutomationFlow() {
       <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{">"}</span> Build once. Run on every deal, forever.
       </h2>
-      <p className="mb-6 font-mono text-[11px] text-zinc-700">
+      <p className="mb-6 font-mono text-[11px] text-zinc-500">
         Visual flows that trigger on real CRM events — no code, no ops overhead.
       </p>
       <p className="mb-6 font-mono text-[10px] text-zinc-800">// hover to run the flow</p>
@@ -925,8 +926,8 @@ function AutomationFlow() {
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 text-violet-700 text-[10px]">{row.icon}</span>
                 <div>
-                  <div className="text-[10px] text-zinc-700 line-through mb-0.5">{row.before}</div>
-                  <div className="text-[11px] text-zinc-300">{row.after}</div>
+                  <div className="text-[10px] text-zinc-600 line-through mb-0.5">{row.before}</div>
+                  <div className="text-[11px] text-zinc-200">{row.after}</div>
                 </div>
               </div>
             </motion.div>
@@ -1059,7 +1060,7 @@ export function LandingPage() {
               transition={{ duration: 0.55, delay: 0.2 }}
             >
               {/* Live badge */}
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet-500/12 bg-violet-500/[.04] px-3.5 py-1.5 font-mono text-[11px] text-violet-600">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-violet-500/[.07] px-3.5 py-1.5 font-mono text-[11px] text-violet-500">
                 <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-violet-600"/>
                 Live AI workspace · no setup required
               </div>
@@ -1073,7 +1074,7 @@ export function LandingPage() {
 
               {/* Subheading */}
               <p className="mx-auto mb-8 font-mono text-[11px] text-zinc-800">
-                {"// "}<span className="text-zinc-700">autonomous · enriched · always on</span>
+                {"// "}<span className="text-zinc-500">autonomous · enriched · always on</span>
               </p>
             </motion.div>
 
@@ -1091,10 +1092,10 @@ export function LandingPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 10 }}
               transition={{ duration: 0.55, delay: 0.65 }}
-              className="mt-8"
+              className="mt-14"
             >
               <EmailSignup />
-              <p className="mt-2.5 font-mono text-[10px] text-zinc-800">
+              <p className="mt-2.5 font-mono text-[10px] text-zinc-600">
                 Free forever · no card required · upgrade anytime
               </p>
             </motion.div>
@@ -1115,7 +1116,7 @@ export function LandingPage() {
             <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
               <span className="text-violet-600">{'>'}</span> Simple, transparent pricing
             </h2>
-            <p className="mb-10 font-mono text-[12px] text-zinc-700">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
+            <p className="mb-10 font-mono text-[12px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {PLANS.map(plan => (
                 <div key={plan.name} className={`flex flex-col rounded-2xl border p-5 ${plan.highlight ? "border-violet-500/20 bg-violet-500/[.025] shadow-[0_0_40px_rgba(124,58,237,0.05)]" : "border-white/[.04] bg-white/[.01]"}`}>
@@ -1128,10 +1129,10 @@ export function LandingPage() {
                     {plan.price !== "Custom" && <span className="mb-1 font-mono text-[10px] text-zinc-700">/{plan.period}</span>}
                   </div>
                   {plan.price === "Custom" && <div className="mb-1 font-mono text-[10px] text-zinc-700">{plan.period}</div>}
-                  <p className="mb-4 mt-1.5 font-mono text-[10px] leading-relaxed text-zinc-700">{plan.desc}</p>
+                  <p className="mb-4 mt-1.5 font-mono text-[10px] leading-relaxed text-zinc-500">{plan.desc}</p>
                   <ul className="mb-5 flex-1 space-y-1.5">
                     {plan.features.map(f => (
-                      <li key={f} className="flex items-start gap-2 font-mono text-[10px] text-zinc-700">
+                      <li key={f} className="flex items-start gap-2 font-mono text-[10px] text-zinc-400">
                         <span className="mt-0.5 text-violet-700">›</span>{f}
                       </li>
                     ))}
@@ -1150,34 +1151,28 @@ export function LandingPage() {
           <div className="mx-auto max-w-6xl px-6 py-10">
             <div className="mb-8 flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="flex items-center gap-2.5 mb-3">
-                  <svg width="16" height="16" viewBox="0 0 200 200" fill="none" style={{ color: "rgba(255,255,255,0.2)" }}>
-                    <polygon points="100,8 176,52 176,148 100,192 24,148 24,52" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"/>
-                    <path d="M42,100 Q100,54 158,100 Q100,146 42,100Z" fill="none" stroke="currentColor" strokeWidth="3.5"/>
-                    <circle cx="100" cy="100" r="10" fill="currentColor"/>
-                    <circle cx="100" cy="100" r="6" fill="#5b21b6" opacity="0.5"/>
-                  </svg>
-                  <span className="font-orbitron text-[0.65rem]" style={{ letterSpacing: "0.16em", color: "rgba(255,255,255,0.18)", fontWeight: 400 }}>MONDAILY</span>
+                <div className="mb-3 opacity-60">
+                  <Logo size={42} />
                 </div>
-                <p className="font-mono text-[10px] text-zinc-800 max-w-[180px] leading-relaxed">Autonomous AI workspace platform. Built for teams that move fast.</p>
+                <p className="font-mono text-[10px] text-zinc-600 max-w-[200px] leading-relaxed">Autonomous AI workspace platform. Built for teams that move fast.</p>
               </div>
 
               <div className="flex flex-wrap gap-x-12 gap-y-6 font-mono text-[11px]">
                 <div className="flex flex-col gap-2">
-                  <span className="text-zinc-700 mb-0.5">Product</span>
-                  <a href="#pricing" className="text-zinc-800 hover:text-zinc-400 transition-colors">Pricing</a>
-                  <a href="/changelog" className="text-zinc-800 hover:text-zinc-400 transition-colors">Changelog</a>
+                  <span className="text-zinc-500 mb-0.5">Product</span>
+                  <a href="#pricing" className="text-zinc-600 hover:text-zinc-300 transition-colors">Pricing</a>
+                  <a href="/changelog" className="text-zinc-600 hover:text-zinc-300 transition-colors">Changelog</a>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <span className="text-zinc-700 mb-0.5">Legal</span>
-                  <a href="/privacy" className="text-zinc-800 hover:text-zinc-400 transition-colors">Privacy</a>
-                  <a href="/terms" className="text-zinc-800 hover:text-zinc-400 transition-colors">Terms</a>
-                  <a href="/dpa" className="text-zinc-800 hover:text-zinc-400 transition-colors">DPA</a>
+                  <span className="text-zinc-500 mb-0.5">Legal</span>
+                  <a href="/privacy" className="text-zinc-600 hover:text-zinc-300 transition-colors">Privacy</a>
+                  <a href="/terms" className="text-zinc-600 hover:text-zinc-300 transition-colors">Terms</a>
+                  <a href="/dpa" className="text-zinc-600 hover:text-zinc-300 transition-colors">DPA</a>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <span className="text-zinc-700 mb-0.5">Contact</span>
-                  <a href="mailto:support@mondaily.com" className="text-zinc-800 hover:text-zinc-400 transition-colors">Support</a>
-                  <a href="mailto:sales@mondaily.com" className="text-zinc-800 hover:text-zinc-400 transition-colors">Sales</a>
+                  <span className="text-zinc-500 mb-0.5">Contact</span>
+                  <a href="mailto:support@mondaily.com" className="text-zinc-600 hover:text-zinc-300 transition-colors">Support</a>
+                  <a href="mailto:sales@mondaily.com" className="text-zinc-600 hover:text-zinc-300 transition-colors">Sales</a>
                 </div>
               </div>
             </div>
