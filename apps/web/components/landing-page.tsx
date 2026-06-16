@@ -1311,17 +1311,24 @@ type InvoiceStage = typeof INVOICE_STAGE_NAMES[number];
 type Invoice = { id: string; co: string; amt: string; ref: string; stage: InvoiceStage };
 
 const INVOICE_POOL: Omit<Invoice, "stage">[] = [
-  { id: "acme",   co: "Acme Corp",  amt: "£8,400",  ref: "INV-0031" },
-  { id: "globex", co: "Globex Inc", amt: "£3,150",  ref: "INV-0032" },
-  { id: "initech",co: "Initech",    amt: "£14,900", ref: "INV-0033" },
-  { id: "soylent",co: "Soylent",    amt: "£2,200",  ref: "INV-0034" },
-  { id: "hooli",  co: "Hooli",      amt: "£21,750", ref: "INV-0035" },
+  { id: "acme",     co: "Acme Corp",     amt: "£8,400",  ref: "INV-0031" },
+  { id: "globex",   co: "Globex Inc",    amt: "£3,150",  ref: "INV-0032" },
+  { id: "initech",  co: "Initech",       amt: "£14,900", ref: "INV-0033" },
+  { id: "soylent",  co: "Soylent",       amt: "£2,200",  ref: "INV-0034" },
+  { id: "hooli",    co: "Hooli",         amt: "£21,750", ref: "INV-0035" },
+  { id: "vandelay", co: "Vandelay Ind.", amt: "£6,300",  ref: "INV-0036" },
+  { id: "umbrella", co: "Umbrella Group",amt: "£11,200", ref: "INV-0037" },
+  { id: "stark",    co: "Stark Logistics",amt: "£4,750", ref: "INV-0038" },
 ];
 
 const INITIAL_INVOICES: Invoice[] = [
   { ...INVOICE_POOL[0]!, stage: "Draft" },
-  { ...INVOICE_POOL[1]!, stage: "Sent" },
-  { ...INVOICE_POOL[2]!, stage: "Approved" },
+  { ...INVOICE_POOL[1]!, stage: "Draft" },
+  { ...INVOICE_POOL[2]!, stage: "Sent" },
+  { ...INVOICE_POOL[3]!, stage: "Sent" },
+  { ...INVOICE_POOL[4]!, stage: "Approved" },
+  { ...INVOICE_POOL[5]!, stage: "Approved" },
+  { ...INVOICE_POOL[6]!, stage: "Paid" },
 ];
 
 const NEXT_INVOICE_STAGE: Record<InvoiceStage, InvoiceStage | null> = {
