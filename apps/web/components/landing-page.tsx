@@ -201,6 +201,43 @@ const MAIN_EDGES: [string,string][] = [
 // Logical animation order (real workflow)
 const FLOW_ORDER = ["crm","enrich","pipeline","sequences","ask","automations","finance","mcp"];
 
+// Footer ticker — slow scrolling log-line stream, same mono/terminal language as the rest of the page
+const FOOTER_LOG_LINES: { tag: string; text: string; color: string }[] = [
+  { tag: "SYNC",     text: "record #48213 synced",              color: "text-indigo-500/70" },
+  { tag: "ENRICH",   text: "acme.com → ARR $4.2M",               color: "text-emerald-500/70" },
+  { tag: "PIPELINE", text: "deal #1482 → Negotiation",           color: "text-indigo-500/70" },
+  { tag: "FINANCE",  text: "INV-0031 → verified",                color: "text-amber-500/70" },
+  { tag: "SYNC",     text: "record #48214 synced",               color: "text-indigo-500/70" },
+  { tag: "AUTOMATE", text: "trigger deal_won → 3 actions run",   color: "text-emerald-500/70" },
+  { tag: "ASK",      text: "query resolved in 380ms",            color: "text-indigo-500/70" },
+  { tag: "SYNC",     text: "record #48215 synced",               color: "text-indigo-500/70" },
+];
+
+function FooterTicker() {
+  const line = (l: typeof FOOTER_LOG_LINES[number], i: number) => (
+    <span key={i} className="inline-flex items-center gap-2 px-6">
+      <span className="h-1 w-1 rounded-full bg-zinc-300"/>
+      <span className={`font-mono text-[11px] tracking-wide ${l.color}`}>[{l.tag}]</span>
+      <span className="font-mono text-[11px] text-zinc-400">{l.text}</span>
+    </span>
+  );
+  return (
+    <div className="relative h-7 overflow-hidden border-b border-black/[.04]" style={{
+      maskImage: "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
+      WebkitMaskImage: "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
+    }}>
+      <motion.div
+        className="absolute top-0 left-0 flex h-7 items-center whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+      >
+        {FOOTER_LOG_LINES.map(line)}
+        {FOOTER_LOG_LINES.map((l, i) => line(l, i + FOOTER_LOG_LINES.length))}
+      </motion.div>
+    </div>
+  );
+}
+
 // Terminal windows — 3 different panels
 const TERM_STREAMS: { cmd: string; out: string }[][] = [
   [
@@ -2031,6 +2068,7 @@ export function LandingPage() {
         {/* ── Footer ── */}
         <footer className="relative bg-zinc-50">
           <div className="absolute top-0 left-1/2 h-px w-full max-w-3xl -translate-x-1/2" style={{ background: "linear-gradient(90deg, transparent, rgba(99,102,241,0.35), transparent)" }}/>
+          <FooterTicker />
           <div className="mx-auto max-w-6xl px-6 py-14">
             <div className="mb-10 flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-[260px]">
