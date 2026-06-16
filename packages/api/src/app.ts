@@ -7,6 +7,7 @@ import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNote
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { askRouter } from "./routes/ask";
+import { publicAskRouter } from "./routes/public-ask";
 import { agentsRouter } from "./routes/agents";
 import { activitiesRouter } from "./routes/activities";
 import { webhooksRouter } from "./routes/webhooks";
@@ -51,6 +52,7 @@ app.route("/api/v1/generate", generateRouter);
 app.route("/api/v1/nodes", nodesRouter);
 app.route("/api/v1/search", searchRouter);
 app.route("/api/v1/ask", askRouter);
+app.route("/api/v1/public/ask", publicAskRouter);
 app.route("/api/v1/agents", agentsRouter);
 app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/webhooks", webhooksRouter);

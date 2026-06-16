@@ -1,11 +1,10 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://mondaily-com-api-neon.vercel.app";
-const WORKSPACE_ID = "8ccef088-6493-4cd9-a0cf-3214098f59a1";
 
-const COMMANDS = [
+const FEATURE_LINES = [
   "Enrich any company — ARR, headcount & signals in seconds",
   "Ask in plain English — get answers from your live data",
   "Trigger sequences, move deals, run workflows via AI",
@@ -14,28 +13,62 @@ const COMMANDS = [
 
 function SendIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
     </svg>
   );
 }
 
-function Typewriter({ text }: { text: string }) {
-  const [displayed, setDisplayed] = useState("");
+// Letter-by-letter typewriter for a single line
+function TypewriterLine({ text, delay = 0, className = "" }: { text: string; delay?: number; className?: string }) {
+  const [shown, setShown] = useState("");
+  const started = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      started.current = true;
+      let i = 0;
+      const t = setInterval(() => {
+        i++;
+        setShown(text.slice(0, i));
+        if (i >= text.length) clearInterval(t);
+      }, 28);
+      return () => clearInterval(t);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [text, delay]);
+
+  return (
+    <span className={className}>
+      {shown}
+      {shown.length < text.length && (
+        <span className="inline-block w-[1px] h-[0.85em] bg-violet-600 ml-[1px] opacity-70 animate-pulse align-middle"/>
+      )}
+    </span>
+  );
+}
+
+// Typewriter for AI reply
+function ReplyTypewriter({ text }: { text: string }) {
+  const [shown, setShown] = useState("");
   const i = useRef(0);
-  useState(() => {
+
+  useEffect(() => {
     i.current = 0;
-    setDisplayed("");
+    setShown("");
     const t = setInterval(() => {
-      if (i.current < text.length) { setDisplayed(text.slice(0, i.current + 1)); i.current++; }
+      if (i.current < text.length) { setShown(text.slice(0, i.current + 1)); i.current++; }
       else clearInterval(t);
-    }, 12);
+    }, 14);
     return () => clearInterval(t);
-  });
+  }, [text]);
+
   return (
     <>
-      {displayed}
-      <span className="inline-block w-[1px] h-[0.85em] bg-violet-500 ml-[1px] opacity-60 animate-pulse"/>
+      {shown}
+      {shown.length < text.length && (
+        <span className="inline-block w-[1px] h-[0.85em] bg-violet-500 ml-[1px] opacity-60 animate-pulse align-middle"/>
+      )}
     </>
   );
 }
@@ -58,17 +91,17 @@ export function HeroChat() {
       { role: "user" as const, content: msg },
     ];
     try {
-      const res = await fetch(`${API_BASE}/api/v1/ask`, {
+      const res = await fetch(`${API_BASE}/api/v1/public/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer demo", "X-Workspace-Id": WORKSPACE_ID },
-        body: JSON.stringify({ messages, stream: false }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages }),
       });
-      const data = res.ok ? await res.json() as { reply?: string; content?: string } : null;
-      const answer = data?.reply ?? data?.content ?? "Mondaily AI is here — ask me about CRM enrichment, pipeline automation, sequences, or finance.";
+      const data = res.ok ? await res.json() as { reply?: string } : null;
+      const answer = data?.reply ?? "Mondaily connects your data, enriches your records, and runs your workflows — ask me anything.";
       setReply(answer);
       setHistory(prev => [...prev, { q: msg, a: answer }]);
     } catch {
-      const answer = "I can walk you through Mondaily's features — CRM enrichment, AI pipelines, sequences, and more.";
+      const answer = "I can walk you through Mondaily — CRM enrichment, AI pipelines, sequences, finance, and more.";
       setReply(answer);
       setHistory(prev => [...prev, { q: msg, a: answer }]);
     }
@@ -81,91 +114,78 @@ export function HeroChat() {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-
-      {/* Chat card — slightly contrasted background */}
+      {/* Chat card — thin clean frame */}
       <div
-        className="rounded-2xl border border-white/[.07] p-1"
+        className="rounded-2xl"
         style={{
-          background: "rgba(255,255,255,0.03)",
-          boxShadow: "0 0 0 1px rgba(124,58,237,0.06), 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(12,12,12,0.95)",
+          boxShadow: "0 0 0 1px rgba(124,58,237,0.05), 0 24px 64px rgba(0,0,0,0.6)",
         }}
       >
-        {/* Textarea */}
-        <div className="rounded-xl border border-white/[.06] bg-[#0d0d0d] px-4 pt-4 pb-3">
-          {/* Reply area — shows above input when answered */}
-          <AnimatePresence mode="wait">
-            {loading && (
-              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="mb-3 flex items-center gap-2"
-              >
-                {[0,1,2].map(i => (
-                  <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-violet-700"
-                    animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
-                  />
-                ))}
-                <span className="font-mono text-[11px] text-zinc-700">thinking…</span>
-              </motion.div>
-            )}
-            {reply && !loading && (
-              <motion.div key="reply" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="mb-3 border-b border-white/[.04] pb-3"
-              >
-                <p className="font-mono text-[12px] leading-relaxed text-zinc-400">
-                  <Typewriter key={reply} text={reply} />
+        {/* Reply area */}
+        <AnimatePresence mode="wait">
+          {(reply || loading) && (
+            <motion.div
+              key="reply-area"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden border-b border-white/[.05] px-5 py-4"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  {[0,1,2].map(i => (
+                    <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-violet-700"
+                      animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
+                    />
+                  ))}
+                  <span className="font-mono text-[11px] text-zinc-700 ml-1">thinking…</span>
+                </div>
+              ) : reply ? (
+                <p className="font-mono text-[12px] leading-relaxed text-zinc-300">
+                  <ReplyTypewriter key={reply} text={reply} />
                 </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ) : null}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          {/* Input */}
+        {/* Textarea */}
+        <div className="px-5 pt-4 pb-2">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Ask anything — your workspace will answer…"
+            placeholder="Ask Mondaily AI anything…"
             rows={3}
             className="w-full resize-none bg-transparent font-mono text-[13px] text-white placeholder-zinc-800 outline-none leading-relaxed"
           />
+        </div>
 
-          {/* Bottom toolbar */}
-          <div className="mt-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-zinc-700">
-              {/* Attachment icon */}
-              <button className="hover:text-zinc-400 transition-colors p-1 rounded">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                </svg>
-              </button>
-              <span className="font-mono text-[10px] text-zinc-800">Shift+Enter for new line</span>
-            </div>
-
-            {/* Send button — circular, bottom right */}
-            <button
-              onClick={() => send()}
-              disabled={!input.trim() || loading}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-20 active:scale-95 transition-all"
-            >
-              <SendIcon />
-            </button>
-          </div>
+        {/* Bottom bar */}
+        <div className="flex items-center justify-between px-5 pb-4">
+          <span className="font-mono text-[10px] text-zinc-800">Enter to send · Shift+Enter for new line</span>
+          <button
+            onClick={() => send()}
+            disabled={!input.trim() || loading}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-20 active:scale-95 transition-all"
+          >
+            <SendIcon />
+          </button>
         </div>
       </div>
 
-      {/* Frameless command lines — outside the chat, coding style, each is clickable */}
-      <div className="mt-6 space-y-2.5">
-        {COMMANDS.map((cmd, i) => (
-          <motion.button
-            key={i}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.5 + i * 0.1 }}
-            onClick={() => { setInput(cmd); textareaRef.current?.focus(); }}
-            className="group flex w-full items-center gap-3 text-left transition-all"
-          >
-            <span className="font-mono text-[12px] text-violet-700 transition-colors group-hover:text-violet-500">→</span>
-            <span className="font-mono text-[12px] text-zinc-700 transition-colors group-hover:text-zinc-400">{cmd}</span>
-          </motion.button>
+      {/* Feature lines — static, typewriter, coding font, no click */}
+      <div className="mt-8 space-y-3">
+        {FEATURE_LINES.map((line, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <span className="mt-[5px] h-1 w-4 shrink-0 bg-violet-800/50" style={{ borderRadius: 1 }}/>
+            <span className="font-mono text-[12px] leading-snug text-zinc-600">
+              <TypewriterLine text={line} delay={800 + i * 600} />
+            </span>
+          </div>
         ))}
       </div>
     </div>
