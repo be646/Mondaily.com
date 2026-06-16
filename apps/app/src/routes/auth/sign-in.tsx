@@ -1,5 +1,5 @@
 import { useSignIn } from "@clerk/react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Logo } from "../../components/logo";
 
@@ -91,6 +91,15 @@ function LivePanel() {
 
 export function SignInPage() {
   const { isLoaded, signIn, setActive } = useSignIn();
+
+  useLayoutEffect(() => {
+    const prev = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = "light";
+    document.documentElement.classList.remove("dark");
+    return () => {
+      if (prev) document.documentElement.dataset.theme = prev;
+    };
+  }, []);
   const navigate = useNavigate();
 
   const [email, setEmail]       = useState("");

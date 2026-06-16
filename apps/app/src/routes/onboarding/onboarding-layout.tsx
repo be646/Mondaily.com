@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Logo } from "../../components/logo";
 import { PanelProvider, usePanelContext } from "./onboarding-context";
@@ -30,6 +31,15 @@ function RightPanel() {
 function Layout() {
   const location = useLocation();
   const current = Math.max(0, STEPS.findIndex(s => location.pathname.includes(s)));
+
+  useEffect(() => {
+    const prev = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = "light";
+    document.documentElement.classList.remove("dark");
+    return () => {
+      if (prev) document.documentElement.dataset.theme = prev;
+    };
+  }, []);
 
   return (
     <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "480px 1fr" }}>
