@@ -1,13 +1,12 @@
 "use client";
 
-// Abstract geometric logo: hexagon frame → infinity-knot loop → almond eye + pupil dot
-// Neon cyan (#00d4ff) on dark, thick strokes, pure inline SVG, no external deps.
-export function Logo({ size = 40 }: { size?: number }) {
-  const fs = Math.round(size * 0.38);
-  const id = "logo-glow";
+// Rounded square frame + almond eye with iris + pupil (monochrome)
+// Animated arc travels continuously around the outside of the square
+export function Logo({ size = 52 }: { size?: number }) {
+  const fs = Math.round(size * 0.36);
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-3">
       <svg
         width={size}
         height={size}
@@ -16,89 +15,85 @@ export function Logo({ size = 40 }: { size?: number }) {
         xmlns="http://www.w3.org/2000/svg"
         style={{ flexShrink: 0, display: "block" }}
       >
-        <defs>
-          <filter id={id} x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+        <style>{`
+          @keyframes orbit {
+            from { stroke-dashoffset: 0; }
+            to   { stroke-dashoffset: -1; }
+          }
+          .logo-orbit {
+            animation: orbit 2.8s linear infinite;
+          }
+        `}</style>
 
-        {/* ── Outer hexagon frame (flat-top, thin, subtle) ── */}
-        <polygon
-          points="96,50 73,91 27,91 4,50 27,9 73,9"
-          stroke="#00d4ff"
-          strokeOpacity="0.18"
-          fill="none"
-          strokeWidth="1.2"
-          strokeLinejoin="round"
-        />
-
-        {/*
-          ── Infinity knot ──
-          A single continuous figure-8 path, symmetric around (50,50).
-          Upper lobe: rises to y≈20, lower lobe: drops to y≈80.
-          The two lobes cross at the center (50,50) forming the classic
-          infinity/ouroboros crossover — representing non-stop workflow loops.
-        */}
-        <path
-          d={`
-            M 50,50
-            C 50,38 62,20 72,20
-            C 86,20 88,38 80,47
-            C 72,56 58,56 50,50
-            C 42,44 28,44 20,53
-            C 12,62 14,80 28,80
-            C 38,80 50,62 50,50
-            C 50,38 62,20 72,20
-          `}
-          stroke="#00d4ff"
-          fill="none"
-          strokeWidth="2.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          filter={`url(#${id})`}
-        />
-        <path
-          d={`
-            M 50,50
-            C 50,62 38,80 28,80
-            C 14,80 12,62 20,53
-            C 28,44 42,44 50,50
-            C 58,56 72,56 80,47
-            C 88,38 86,20 72,20
-            C 62,20 50,38 50,50
-          `}
-          stroke="#00d4ff"
-          fill="none"
-          strokeWidth="2.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          filter={`url(#${id})`}
-        />
-
-        {/*
-          ── Almond eye at center ──
-          Horizontal diamond/almond spanning ~20px either side of center.
-          Sharp pointed ends at left (30,50) and right (70,50).
-        */}
-        <path
-          d="M 34,50 Q 50,40 66,50 Q 50,60 34,50 Z"
-          stroke="#00d4ff"
-          fill="none"
+        {/* Offset shadow square — matte grey, slightly shifted down-right */}
+        <rect
+          x="16" y="18"
+          width="72" height="72"
+          rx="17"
+          stroke="#4b4b52"
           strokeWidth="1.8"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          filter={`url(#${id})`}
+          fill="none"
+          opacity="0.55"
         />
 
-        {/* Pupil — single solid dot, center of eye */}
+        {/* Main rounded square — white */}
+        <rect
+          x="10" y="10"
+          width="72" height="72"
+          rx="17"
+          stroke="white"
+          strokeWidth="2.8"
+          fill="none"
+        />
+
+        {/*
+          Traveling arc — same path as main square.
+          pathLength="1" lets us express dasharray in fractions of perimeter.
+          A 0.14 dash travels around the full square continuously.
+        */}
+        <rect
+          x="10" y="10"
+          width="72" height="72"
+          rx="17"
+          stroke="white"
+          strokeWidth="2.8"
+          fill="none"
+          pathLength="1"
+          strokeDasharray="0.14 0.86"
+          strokeLinecap="round"
+          className="logo-orbit"
+          opacity="0.9"
+        />
+
+        {/* Almond eye — centered in the square (square center: 46,46) */}
+        <path
+          d="M 24,46 Q 46,30 68,46 Q 46,62 24,46 Z"
+          stroke="white"
+          strokeWidth="2.5"
+          fill="none"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Iris ring — matte grey */}
         <circle
-          cx="50" cy="50" r="3.5"
-          fill="#00d4ff"
-          filter={`url(#${id})`}
+          cx="46" cy="46" r="11"
+          stroke="#a1a1aa"
+          strokeWidth="2"
+          fill="none"
+        />
+
+        {/* Pupil — solid white */}
+        <circle cx="46" cy="46" r="4.5" fill="white" />
+
+        {/* Glint — small arc top-right of iris */}
+        <path
+          d="M 52,41 Q 57,38 56,44"
+          stroke="white"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.55"
         />
       </svg>
 
@@ -108,9 +103,9 @@ export function Logo({ size = 40 }: { size?: number }) {
         style={{
           fontWeight: 600,
           fontSize: `${fs}px`,
-          letterSpacing: "0.12em",
+          letterSpacing: "0.13em",
           textTransform: "uppercase",
-          color: "#ffffff",
+          color: "white",
           lineHeight: 1,
           whiteSpace: "nowrap",
         }}

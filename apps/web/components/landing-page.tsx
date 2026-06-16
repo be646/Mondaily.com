@@ -52,18 +52,14 @@ function Preloader({ onDone }: { onDone: () => void }) {
     >
       <div className="w-full max-w-lg">
         <div className="mb-8 flex items-center gap-3">
-          <svg width="34" height="34" viewBox="0 0 100 100" fill="none">
-            <defs>
-              <filter id="pg" x="-40%" y="-40%" width="180%" height="180%">
-                <feGaussianBlur stdDeviation="2.2" result="blur"/>
-                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-              </filter>
-            </defs>
-            <polygon points="96,50 73,91 27,91 4,50 27,9 73,9" stroke="#00d4ff" strokeOpacity="0.18" fill="none" strokeWidth="1.2" strokeLinejoin="round"/>
-            <path d="M 50,50 C 50,38 62,20 72,20 C 86,20 88,38 80,47 C 72,56 58,56 50,50 C 42,44 28,44 20,53 C 12,62 14,80 28,80 C 38,80 50,62 50,50 C 50,38 62,20 72,20" stroke="#00d4ff" fill="none" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" filter="url(#pg)"/>
-            <path d="M 50,50 C 50,62 38,80 28,80 C 14,80 12,62 20,53 C 28,44 42,44 50,50 C 58,56 72,56 80,47 C 88,38 86,20 72,20 C 62,20 50,38 50,50" stroke="#00d4ff" fill="none" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" filter="url(#pg)"/>
-            <path d="M 34,50 Q 50,40 66,50 Q 50,60 34,50 Z" stroke="#00d4ff" fill="none" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" filter="url(#pg)"/>
-            <circle cx="50" cy="50" r="3.5" fill="#00d4ff" filter="url(#pg)"/>
+          <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
+            <style>{`@keyframes pl-orbit{from{stroke-dashoffset:0}to{stroke-dashoffset:-1}}.pl-orb{animation:pl-orbit 2.8s linear infinite}`}</style>
+            <rect x="16" y="18" width="72" height="72" rx="17" stroke="#4b4b52" strokeWidth="1.8" fill="none" opacity="0.55"/>
+            <rect x="10" y="10" width="72" height="72" rx="17" stroke="white" strokeWidth="2.8" fill="none"/>
+            <rect x="10" y="10" width="72" height="72" rx="17" stroke="white" strokeWidth="2.8" fill="none" pathLength="1" strokeDasharray="0.14 0.86" strokeLinecap="round" className="pl-orb" opacity="0.9"/>
+            <path d="M 24,46 Q 46,30 68,46 Q 46,62 24,46 Z" stroke="white" strokeWidth="2.5" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
+            <circle cx="46" cy="46" r="11" stroke="#a1a1aa" strokeWidth="2" fill="none"/>
+            <circle cx="46" cy="46" r="4.5" fill="white"/>
           </svg>
           <span className="font-orbitron text-white" style={{ fontWeight: 400, fontSize: "0.9rem", letterSpacing: "0.16em" }}>MONDAILY</span>
         </div>
