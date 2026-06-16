@@ -1922,6 +1922,55 @@ function AgentsSection() {
   );
 }
 
+const TRUST_BADGES: { icon: React.ReactElement; label: string }[] = [
+  {
+    label: "GDPR Compliant Architecture",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6l7-3z" strokeLinejoin="round"/>
+        <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    label: "CCPA Data Protected",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="5" y="11" width="14" height="9" rx="1.5"/>
+        <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round"/>
+        <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Hosting Infrastructure: ISO 27001 & SOC 2",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="4" y="4" width="16" height="5" rx="1.2"/>
+        <rect x="4" y="10.5" width="16" height="5" rx="1.2"/>
+        <rect x="4" y="17" width="16" height="3" rx="1"/>
+        <circle cx="7.5" cy="6.5" r="0.6" fill="currentColor" stroke="none"/>
+        <circle cx="7.5" cy="13" r="0.6" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
+  },
+];
+
+function TrustBadges() {
+  return (
+    <div className="border-t border-black/[.04] bg-white">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-6 py-8">
+        {TRUST_BADGES.map(b => (
+          <div key={b.label} className="flex items-center gap-2.5 text-zinc-500">
+            <span className="text-zinc-400">{b.icon}</span>
+            <span className="font-mono text-[12.5px]">{b.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EmailSignup() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
@@ -2164,6 +2213,9 @@ export function LandingPage() {
             </div>
           </section>
         </main>
+
+        {/* ── Trust & compliance ── */}
+        <TrustBadges />
 
         {/* ── Footer ── */}
         <footer className="relative bg-zinc-50">
