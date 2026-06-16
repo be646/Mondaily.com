@@ -24,7 +24,7 @@ function nowStamp() {
 }
 
 function Preloader({ onDone }: { onDone: () => void }) {
-  const [lines, setLines] = useState<{ stamp: string; tag: string; msg: string; col: string }[]>([]);
+  const [lines, setLines] = useState<{ id: number; stamp: string; tag: string; msg: string; col: string }[]>([]);
   const [progress, setProgress] = useState(0);
   const [fade, setFade] = useState(false);
   const idx = useRef(0);
@@ -33,7 +33,7 @@ function Preloader({ onDone }: { onDone: () => void }) {
     const interval = setInterval(() => {
       if (idx.current < LOG_LINES.length) {
         const item = LOG_LINES[idx.current]!;
-        setLines(prev => [...prev, { stamp: nowStamp(), ...item }]);
+        setLines(prev => [...prev, { id: idx.current, stamp: nowStamp(), ...item }]);
         setProgress(Math.round(((idx.current + 1) / LOG_LINES.length) * 100));
         idx.current++;
       } else {
@@ -56,13 +56,22 @@ function Preloader({ onDone }: { onDone: () => void }) {
           <Logo size={36} />
         </div>
 
-        <div className="mb-6 h-44 overflow-hidden font-mono text-[13px] leading-6">
+        <div className="mb-6 flex h-[180px] flex-col justify-end gap-3 overflow-hidden font-mono">
           <AnimatePresence initial={false}>
-            {lines.map((l, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="flex gap-3">
-                <span className="text-zinc-500">{l.stamp}</span>
-                <span style={{ color: l.col }}>{l.tag}</span>
-                <span className="text-zinc-500">{l.msg}</span>
+            {lines.slice(-5).map(l => (
+              <motion.div
+                key={l.id}
+                layout
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, position: "absolute" }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-zinc-400">{l.stamp}</span>
+                  <span className="font-medium" style={{ color: l.col }}>{l.tag}</span>
+                </div>
+                <div className="truncate text-[13px] leading-relaxed text-zinc-500">{l.msg}</div>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -2127,6 +2136,22 @@ export function LandingPage() {
 
           {/* ── FAQ ── */}
           <FAQSection />
+
+          {/* ── Final CTA ── */}
+          <section className="mx-auto max-w-6xl px-6 py-20 text-center">
+            <h2 className="mx-auto mb-3 max-w-2xl font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+              Ready to put your workspace on autopilot?
+            </h2>
+            <p className="mb-8 font-mono text-[14px] text-zinc-500">
+              Join the teams already running records, pipeline, and finance from one place.
+            </p>
+            <div className="mx-auto max-w-2xl">
+              <EmailSignup />
+              <p className="mt-3 text-center font-mono text-[13px] text-zinc-500">
+                Free forever · no card required · takes 90 seconds
+              </p>
+            </div>
+          </section>
         </main>
 
         {/* ── Footer ── */}
