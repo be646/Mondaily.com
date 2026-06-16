@@ -86,103 +86,125 @@ function Preloader({ onDone }: { onDone: () => void }) {
 }
 
 // ── Feature section — node map + terminal windows ─────────────────────────────
+// viewBox: 0 0 1300 420   Node: 128×32
+// Logical data flow order: crm → enrich → pipeline → sequences → ask → automations → finance → mcp
+// All sub-text anchored RIGHT of node so nothing goes off left edge
+// SVG render order: edges → dots → sub-text → nodes (text always on top)
 
-// Wider layout — all nodes and sub-text stay inside viewBox
-// viewBox: 0 0 1100 320
-// Each node: w=110 h=30
+const NW = 128;
+const NH = 32;
+
 const MAIN_NODES = [
   {
-    id: "crm", label: "CRM", x: 60, y: 145,
+    id: "crm", label: "CRM",
+    x: 60,  y: 194,
+    // CRM subs go ABOVE and BELOW to avoid left-edge overflow
     subs: [
-      { label: "Contacts & companies", dx: -8,  dy: -52 },
-      { label: "Activity timeline",    dx: -8,  dy: -34 },
-      { label: "Custom fields",        dx: -8,  dy: -16 },
-      { label: "Auto data sync",       dx: -8,  dy:  48 },
-      { label: "Smart dedup",          dx: -8,  dy:  66 },
+      { label: "Contacts & companies", ax: 60 + NW/2, ay: 154 },
+      { label: "Activity timeline",    ax: 60 + NW/2, ay: 170 },
+      { label: "Custom fields",        ax: 60 + NW/2, ay: 242 },
+      { label: "Auto data sync",       ax: 60 + NW/2, ay: 258 },
+      { label: "Smart dedup",          ax: 60 + NW/2, ay: 274 },
     ],
-    subDir: "left" as const,
+    subAnchor: "middle" as const,
   },
   {
-    id: "enrich", label: "Enrichment", x: 280, y: 60,
+    id: "enrich", label: "Enrichment",
+    x: 300, y: 80,
     subs: [
-      { label: "ARR & headcount",     dx: 8, dy: -36 },
-      { label: "Tech stack detect",   dx: 8, dy: -18 },
-      { label: "News signals",        dx: 8, dy:   0 },
-      { label: "Auto on record add",  dx: 8, dy:  18 },
+      { label: "ARR & headcount",    ax: 300 + NW + 10, ay:  72 },
+      { label: "Tech stack detect",  ax: 300 + NW + 10, ay:  88 },
+      { label: "News signals",       ax: 300 + NW + 10, ay: 104 },
+      { label: "Auto on record add", ax: 300 + NW + 10, ay: 120 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
   {
-    id: "pipeline", label: "Pipeline", x: 280, y: 230,
+    id: "pipeline", label: "Pipeline",
+    x: 300, y: 308,
     subs: [
-      { label: "AI deal scoring",    dx: 8, dy: -18 },
-      { label: "Stage automation",   dx: 8, dy:   0 },
-      { label: "Health alerts",      dx: 8, dy:  18 },
-      { label: "Win/loss analysis",  dx: 8, dy:  36 },
-      { label: "Revenue forecast",   dx: 8, dy:  54 },
+      { label: "AI deal scoring",   ax: 300 + NW + 10, ay: 300 },
+      { label: "Stage automation",  ax: 300 + NW + 10, ay: 316 },
+      { label: "Health alerts",     ax: 300 + NW + 10, ay: 332 },
+      { label: "Win/loss analysis", ax: 300 + NW + 10, ay: 348 },
+      { label: "Revenue forecast",  ax: 300 + NW + 10, ay: 364 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
   {
-    id: "ask", label: "Ask AI", x: 510, y: 145,
+    id: "sequences", label: "Sequences",
+    x: 560, y: 80,
     subs: [
-      { label: "Natural language queries", dx: 8, dy: -36 },
-      { label: "Workspace actions",        dx: 8, dy: -18 },
-      { label: "AI summaries",             dx: 8, dy:   0 },
-      { label: "Data insights",            dx: 8, dy:  18 },
+      { label: "Multi-step cadences",   ax: 560 + NW + 10, ay:  72 },
+      { label: "Behaviour triggers",    ax: 560 + NW + 10, ay:  88 },
+      { label: "A/B subject lines",     ax: 560 + NW + 10, ay: 104 },
+      { label: "Open & click tracking", ax: 560 + NW + 10, ay: 120 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
   {
-    id: "sequences", label: "Sequences", x: 510, y: 60,
+    id: "ask", label: "Ask AI",
+    x: 560, y: 194,
     subs: [
-      { label: "Multi-step cadences",  dx: 8, dy: -36 },
-      { label: "Behaviour triggers",   dx: 8, dy: -18 },
-      { label: "A/B subject lines",    dx: 8, dy:   0 },
-      { label: "Open & click tracking",dx: 8, dy:  18 },
+      { label: "Natural language queries", ax: 560 + NW + 10, ay: 186 },
+      { label: "Workspace actions",        ax: 560 + NW + 10, ay: 202 },
+      { label: "AI summaries",             ax: 560 + NW + 10, ay: 218 },
+      { label: "Data insights",            ax: 560 + NW + 10, ay: 234 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
   {
-    id: "automations", label: "Automations", x: 510, y: 230,
+    id: "automations", label: "Automations",
+    x: 560, y: 308,
     subs: [
-      { label: "Event-driven rules",   dx: 8, dy: -18 },
-      { label: "Webhook actions",      dx: 8, dy:   0 },
-      { label: "Slack & email notify", dx: 8, dy:  18 },
-      { label: "Conditional branching",dx: 8, dy:  36 },
+      { label: "Event-driven rules",    ax: 560 + NW + 10, ay: 300 },
+      { label: "Webhook actions",       ax: 560 + NW + 10, ay: 316 },
+      { label: "Slack & email notify",  ax: 560 + NW + 10, ay: 332 },
+      { label: "Conditional branching", ax: 560 + NW + 10, ay: 348 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
   {
-    id: "finance", label: "Finance", x: 800, y: 145,
+    id: "finance", label: "Finance",
+    x: 900, y: 194,
     subs: [
-      { label: "Invoices & quotes",  dx: 8, dy: -36 },
-      { label: "Credit notes",       dx: 8, dy: -18 },
-      { label: "Expense tracking",   dx: 8, dy:   0 },
-      { label: "4-stage approvals",  dx: 8, dy:  18 },
-      { label: "Revenue reporting",  dx: 8, dy:  36 },
+      { label: "Invoices & quotes", ax: 900 + NW + 10, ay: 178 },
+      { label: "Credit notes",      ax: 900 + NW + 10, ay: 194 },
+      { label: "Expense tracking",  ax: 900 + NW + 10, ay: 210 },
+      { label: "4-stage approvals", ax: 900 + NW + 10, ay: 226 },
+      { label: "Revenue reporting", ax: 900 + NW + 10, ay: 242 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
   {
-    id: "mcp", label: "MCP Server", x: 800, y: 60,
+    id: "mcp", label: "MCP Server",
+    x: 900, y: 80,
     subs: [
-      { label: "Claude integration",  dx: 8, dy: -18 },
-      { label: "AI tool connect",     dx: 8, dy:   0 },
-      { label: "Native API access",   dx: 8, dy:  18 },
+      { label: "Claude integration", ax: 900 + NW + 10, ay:  72 },
+      { label: "AI tool connect",    ax: 900 + NW + 10, ay:  88 },
+      { label: "Native API access",  ax: 900 + NW + 10, ay: 104 },
     ],
-    subDir: "right" as const,
+    subAnchor: "start" as const,
   },
 ];
 
+// Logical flow edges — ordered by real data flow
 const MAIN_EDGES: [string,string][] = [
-  ["crm","enrich"],["crm","pipeline"],["crm","ask"],
-  ["enrich","sequences"],["enrich","ask"],
-  ["pipeline","automations"],["pipeline","ask"],
-  ["sequences","finance"],["automations","finance"],
-  ["ask","finance"],["ask","mcp"],
+  ["crm","enrich"],
+  ["crm","pipeline"],
+  ["enrich","sequences"],
+  ["enrich","ask"],
+  ["pipeline","ask"],
+  ["pipeline","automations"],
+  ["sequences","finance"],
   ["sequences","mcp"],
+  ["ask","finance"],
+  ["ask","mcp"],
+  ["automations","finance"],
 ];
+
+// Logical animation order (real workflow)
+const FLOW_ORDER = ["crm","enrich","pipeline","sequences","ask","automations","finance","mcp"];
 
 // Terminal windows — 3 different panels
 const TERM_STREAMS: { cmd: string; out: string }[][] = [
@@ -251,39 +273,53 @@ function FeatureSection() {
   const [active, setActive] = useState<Set<string>>(new Set());
 
   const runSeq = useCallback(() => {
-    const ids = MAIN_NODES.map(n => n.id);
     setActive(new Set());
     let i = 0;
     const t = setInterval(() => {
-      const id = ids[i];
+      const id = FLOW_ORDER[i];
       if (id) setActive(prev => { const s = new Set(prev); s.add(id); return s; });
       i++;
-      if (i >= ids.length) clearInterval(t);
-    }, 350);
+      if (i >= FLOW_ORDER.length) clearInterval(t);
+    }, 600);
     return t;
   }, []);
 
   useEffect(() => {
     const t = runSeq();
-    const loop = setInterval(runSeq, 11000);
+    const loop = setInterval(runSeq, FLOW_ORDER.length * 600 + 3000);
     return () => { clearInterval(t); clearInterval(loop); };
   }, [runSeq]);
 
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
-  const NW = 110; // node width
-  const NH = 28;  // node height
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// system.modules</div>
-      <h2 className="mb-10 font-mono text-xl font-light text-zinc-400">
+      <h2 className="mb-4 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{'>'}</span> One platform. Every signal.
       </h2>
 
-      {/* Node map — viewBox wide enough to hold all sub-text */}
+      {/* Live stats bar */}
+      <div className="mb-8 flex gap-6 font-mono text-[10px] text-zinc-700">
+        <span><span className="text-violet-800">8,420</span> records enriched</span>
+        <span className="text-zinc-900">·</span>
+        <span><span className="text-violet-800">234</span> deals tracked</span>
+        <span className="text-zinc-900">·</span>
+        <span><span className="text-violet-800">12</span> sequences running</span>
+      </div>
+
+      {/* Node map */}
       <div className="mb-10 w-full overflow-hidden">
-        <svg viewBox="0 0 1100 320" className="w-full" preserveAspectRatio="xMidYMid meet">
-          {/* Edges */}
+        <svg viewBox="0 0 1300 420" className="w-full" preserveAspectRatio="xMidYMid meet">
+          {/* Faint dot grid background */}
+          <defs>
+            <pattern id="grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+              <circle cx="10" cy="10" r="0.8" fill="#1a1a1a"/>
+            </pattern>
+          </defs>
+          <rect width="1300" height="420" fill="url(#grid)" opacity="0.5"/>
+
+          {/* 1. EDGES first — so nodes and text always render on top */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
             const lit = active.has(a) && active.has(b);
@@ -295,16 +331,16 @@ function FeatureSection() {
                 key={i}
                 d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
                 fill="none"
-                stroke={lit ? "#3b0764" : "#141414"}
-                strokeWidth={lit ? 1.2 : 1}
+                stroke={lit ? "#4c1d95" : "#141414"}
+                strokeWidth={lit ? 1.5 : 1}
                 strokeDasharray={lit ? undefined : "4 5"}
-                animate={{ opacity: lit ? 0.8 : 0.3 }}
-                transition={{ duration: 0.4 }}
+                animate={{ opacity: lit ? 0.9 : 0.25 }}
+                transition={{ duration: 0.5 }}
               />
             );
           })}
 
-          {/* Traveling dots on active edges */}
+          {/* 2. Traveling dots on active edges */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
             if (!active.has(a) || !active.has(b)) return null;
@@ -312,43 +348,43 @@ function FeatureSection() {
             const x2 = nb.x;      const y2 = nb.y + NH / 2;
             const mx = (x1 + x2) / 2;
             return (
-              <circle key={`dot-${i}`} r="2.5" fill="#6d28d9" opacity="0.7">
-                <animateMotion dur="2s" repeatCount="indefinite"
+              <circle key={`dot-${i}`} r="3" fill="#7c3aed" opacity="0.75">
+                <animateMotion dur="2.5s" repeatCount="indefinite"
                   path={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}/>
               </circle>
             );
           })}
 
-          {/* Sub-feature branches — positioned using absolute dx/dy offsets */}
+          {/* 3. Sub-feature branches — using absolute ax/ay positions, rendered BEFORE nodes */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
-            const cx = node.subDir === "left" ? node.x : node.x + NW;
+            const cx = node.x + NW / 2;
             const cy = node.y + NH / 2;
             return node.subs.map((sub, si) => {
-              const tx = cx + sub.dx * (node.subDir === "left" ? 1 : 1);
-              const ty = cy + sub.dy;
-              const endX = node.subDir === "left" ? tx - 4 : tx + 4;
+              const { ax, ay } = sub as { label: string; ax: number; ay: number };
+              const anchor = node.subAnchor;
+              const dotX = anchor === "start" ? ax - 4 : ax + 4;
               return (
                 <g key={`${node.id}-s${si}`}>
                   <motion.line
-                    x1={cx} y1={cy} x2={endX} y2={ty}
+                    x1={cx} y1={cy} x2={dotX} y2={ay}
                     stroke="#2e1065" strokeWidth="0.8" strokeDasharray="2 3"
-                    animate={{ opacity: on ? 0.5 : 0.06 }}
-                    transition={{ duration: 0.35, delay: si * 0.05 }}
+                    animate={{ opacity: on ? 0.45 : 0.04 }}
+                    transition={{ duration: 0.4, delay: si * 0.06 }}
                   />
-                  <motion.circle cx={endX} cy={ty} r="1.5" fill="#4c1d95"
-                    animate={{ opacity: on ? 0.6 : 0.05 }}
-                    transition={{ duration: 0.35 }}
+                  <motion.circle cx={dotX} cy={ay} r="1.8" fill="#5b21b6"
+                    animate={{ opacity: on ? 0.7 : 0.04 }}
+                    transition={{ duration: 0.4 }}
                   />
                   <motion.text
-                    x={node.subDir === "left" ? endX - 6 : endX + 6}
-                    y={ty + 3.5}
-                    textAnchor={node.subDir === "left" ? "end" : "start"}
+                    x={anchor === "start" ? dotX + 5 : dotX - 5}
+                    y={ay + 3.5}
+                    textAnchor={anchor}
                     fill="#ffffff"
-                    fontSize="8"
+                    fontSize="8.5"
                     fontFamily="'JetBrains Mono', monospace"
-                    animate={{ opacity: on ? 0.35 : 0.04 }}
-                    transition={{ duration: 0.35, delay: si * 0.05 }}
+                    animate={{ opacity: on ? 0.38 : 0.04 }}
+                    transition={{ duration: 0.4, delay: si * 0.06 }}
                   >
                     {sub.label}
                   </motion.text>
@@ -357,29 +393,28 @@ function FeatureSection() {
             });
           })}
 
-          {/* Main nodes — clean dark bg, white border when active, no purple fill */}
+          {/* 4. Main nodes — rendered LAST so they always appear above edges and sub-text */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return (
               <g key={node.id} transform={`translate(${node.x},${node.y})`}>
                 <motion.rect
                   x="0" y="0" width={NW} height={NH} rx="6"
-                  fill="#0a0a0a"
-                  stroke={on ? "rgba(255,255,255,0.18)" : "#1a1a1a"}
+                  fill="#080808"
+                  stroke={on ? "rgba(255,255,255,0.2)" : "#1a1a1a"}
                   strokeWidth="1"
-                  animate={{ opacity: on ? 1 : 0.3 }}
-                  transition={{ duration: 0.3 }}
+                  animate={{ opacity: on ? 1 : 0.35 }}
+                  transition={{ duration: 0.4 }}
                 />
-                {/* Tiny violet dot indicator */}
-                <motion.circle cx="11" cy={NH / 2} r="2.5"
+                <motion.circle cx="12" cy={NH / 2} r="3"
                   fill={on ? "#7c3aed" : "#222"}
                   animate={{ opacity: on ? [0.6,1,0.6] : 0.2 }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
                 <text
-                  x="21" y={NH / 2 + 4}
-                  fill={on ? "#d4d4d8" : "#2a2a2a"}
-                  fontSize="9.5"
+                  x="24" y={NH / 2 + 4}
+                  fill={on ? "#d4d4d8" : "#282828"}
+                  fontSize="10"
                   fontFamily="'JetBrains Mono', monospace"
                   fontWeight={on ? "500" : "400"}
                 >
