@@ -719,7 +719,7 @@ const FLOW_NODES = [
     type: "action" as const,
     tag: "Automations",
     label: "Notify team on Slack",
-    sub: "#deals · "High-intent deal — acme.com · 84/100"",
+    sub: '#deals · "High-intent deal — acme.com · 84/100"',
     delay: 2500,
     branch: "left" as const,
   },
