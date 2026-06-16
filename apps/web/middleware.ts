@@ -1,12 +1,8 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
-
-export default clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
-  }
-});
+// apps/web is the public marketing site — no page here requires auth.
+// clerkMiddleware is kept (no-op gate) so Clerk context is available to /sign-in and /sign-up.
+export default clerkMiddleware();
 
 export const config = {
   matcher: [
