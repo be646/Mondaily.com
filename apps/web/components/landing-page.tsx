@@ -287,10 +287,17 @@ function TermWindow({ lines, title, accent = "#4f46e5" }: { lines: { cmd: string
         <span className="text-zinc-700 text-[14px] font-medium">{title}</span>
         <motion.span animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 1.6, repeat: Infinity }} className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }}/>
       </div>
-      <div className="space-y-2 h-[120px] overflow-hidden">
+      <div className="flex h-[120px] flex-col justify-end gap-2 overflow-hidden">
         <AnimatePresence initial={false}>
           {shown.map(l => (
-            <motion.div key={l.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+            <motion.div
+              key={l.id}
+              layout
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14, position: "absolute" }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
               <div style={{ color: accent }}>{l.cmd}</div>
               <div className="text-zinc-500">{l.out}</div>
             </motion.div>
@@ -476,6 +483,7 @@ const REPLACES_ROWS = [
   { before: "Slack as your reminder system",        after: "Native alerts, no app-switching",        icon: "◈" },
   { before: "A standalone finance/invoicing app",   after: "Quotes and invoices, built in",          icon: "◈" },
   { before: "Five disconnected tools to maintain",  after: "One AI workspace for revenue & ops",     icon: "◈" },
+  { before: "A contact directory that goes stale",  after: "Records enriched & kept current by AI",  icon: "◈" },
 ];
 
 function ComparisonSection() {
@@ -709,7 +717,7 @@ function WorkflowDemo() {
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.workflow</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> What happens when a record enters Mondaily
+        <span className="text-violet-500">{">"}</span> What happens when a record enters Mondaily
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
         Zero manual input. The platform enriches, scores, moves, and notifies — automatically.
@@ -982,7 +990,7 @@ function AutomationFlow() {
     >
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// automation.flow</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> Build once. Run on every deal, forever.
+        <span className="text-amber-500">{">"}</span> Build once. Run on every deal, forever.
       </h2>
       <p className="mb-6 font-mono text-[13px] text-zinc-500">
         Visual flows that trigger on real CRM events — no code, no ops overhead.
@@ -1428,17 +1436,20 @@ const SHEET_VIEWS: SheetView[] = [
       { key: "owner",   label: "Owner",    type: "avatar" },
     ],
     stageCol: "stage",
-    stageOrder: ["New", "Qualified", "Proposal", "Won"],
+    stageOrder: ["New", "Qualified", "Proposal", "Negotiation", "Won"],
     stageStyle: {
-      New:       { dot: "bg-zinc-400",    text: "text-zinc-600" },
-      Qualified: { dot: "bg-blue-500",    text: "text-blue-700" },
-      Proposal:  { dot: "bg-amber-500",   text: "text-amber-700" },
-      Won:       { dot: "bg-emerald-500", text: "text-emerald-700" },
+      New:         { dot: "bg-zinc-400",    text: "text-zinc-600" },
+      Qualified:   { dot: "bg-blue-500",    text: "text-blue-700" },
+      Proposal:    { dot: "bg-amber-500",   text: "text-amber-700" },
+      Negotiation: { dot: "bg-violet-500",  text: "text-violet-700" },
+      Won:         { dot: "bg-emerald-500", text: "text-emerald-700" },
     },
     rows: [
-      { id: "vandelay", company: "Vandelay Industries", stage: "New",       score: 58, owner: "MK" },
-      { id: "stark",    company: "Stark Logistics",     stage: "Qualified", score: 74, owner: "JS" },
-      { id: "wayne",    company: "Wayne Analytics",     stage: "Proposal",  score: 88, owner: "AR" },
+      { id: "vandelay", company: "Vandelay Industries", stage: "New",         score: 58, owner: "MK" },
+      { id: "stark",    company: "Stark Logistics",     stage: "Qualified",   score: 74, owner: "JS" },
+      { id: "wayne",    company: "Wayne Analytics",     stage: "Proposal",    score: 88, owner: "AR" },
+      { id: "umbrella", company: "Umbrella Group",      stage: "Negotiation", score: 81, owner: "JS" },
+      { id: "acme",     company: "Acme Corp",           stage: "Qualified",   score: 67, owner: "AR" },
     ],
   },
   {
@@ -1459,8 +1470,10 @@ const SHEET_VIEWS: SheetView[] = [
     },
     rows: [
       { id: "globex",  company: "Globex Inc",  ref: "INV-0032", stage: "Draft",    amt: "£3,150" },
-      { id: "soylent",company: "Soylent",      ref: "INV-0034", stage: "Sent",     amt: "£2,200" },
+      { id: "soylent", company: "Soylent",     ref: "INV-0034", stage: "Sent",     amt: "£2,200" },
       { id: "hooli",   company: "Hooli",       ref: "INV-0035", stage: "Approved", amt: "£21,750" },
+      { id: "acme2",   company: "Acme Corp",   ref: "INV-0031", stage: "Paid",     amt: "£8,400" },
+      { id: "initech", company: "Initech",     ref: "INV-0033", stage: "Sent",     amt: "£14,900" },
     ],
   },
   {
@@ -1482,6 +1495,8 @@ const SHEET_VIEWS: SheetView[] = [
       { id: "priya",  contact: "Priya Anand",  company: "Initech",    status: "Healthy", score: 91 },
       { id: "marcus", contact: "Marcus Lee",   company: "Globex Inc", status: "At risk", score: 54 },
       { id: "sarah",  contact: "Sarah Johnson",company: "Acme Corp",  status: "Cold",    score: 22 },
+      { id: "derek",  contact: "Derek Wayne",  company: "Wayne Analytics", status: "Healthy", score: 86 },
+      { id: "nina",   contact: "Nina Kapoor",  company: "Stark Logistics", status: "At risk", score: 49 },
     ],
   },
 ];
@@ -1491,13 +1506,22 @@ const VIEW_ROTATE_MS = 9000;
 function RecordsSheetPreview() {
   const [viewIdx, setViewIdx] = useState(0);
   const view = SHEET_VIEWS[viewIdx]!;
-  const [rows, setRows] = useState<SheetRow[]>(view.rows);
+  const [rows, setRows] = useState<SheetRow[]>([]);
   const [activity, setActivity] = useState(`Watching ${view.name.toLowerCase()}…`);
   const [glowCell, setGlowCell] = useState<{ id: string; col: string } | null>(null);
+  const allAdded = useRef(false);
 
   useEffect(() => {
-    setRows(view.rows);
+    allAdded.current = false;
+    setRows([]);
     setActivity(`Watching ${view.name.toLowerCase()}…`);
+    let i = 0;
+    const add = setInterval(() => {
+      if (i >= view.rows.length) { allAdded.current = true; clearInterval(add); return; }
+      setRows(prev => [...prev, view.rows[i]!]);
+      i++;
+    }, 450);
+    return () => clearInterval(add);
   }, [view]);
 
   useEffect(() => {
@@ -1507,6 +1531,7 @@ function RecordsSheetPreview() {
 
   useEffect(() => {
     const t = setInterval(() => {
+      if (!allAdded.current) return;
       setRows(prev => {
         const pick = prev[Math.floor(Math.random() * prev.length)]!;
         const order = view.stageOrder;
@@ -1607,8 +1632,15 @@ function RecordsSheetPreview() {
               </tr>
             </thead>
             <tbody>
+              <AnimatePresence initial={false}>
               {rows.map(r => (
-                <tr key={r.id} className="border-b border-black/[.04] last:border-0">
+                <motion.tr
+                  key={r.id}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-b border-black/[.04] last:border-0"
+                >
                   {view.columns.map(c => {
                     const val = r[c.key];
                     return (
@@ -1628,8 +1660,9 @@ function RecordsSheetPreview() {
                       </td>
                     );
                   })}
-                </tr>
+                </motion.tr>
               ))}
+              </AnimatePresence>
             </tbody>
           </motion.table>
         </AnimatePresence>
@@ -1643,7 +1676,7 @@ function RecordsSheetSection() {
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.sheet</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> Your records, kept current automatically
+        <span className="text-emerald-500">{">"}</span> Your records, kept current automatically
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
         No manual data entry — the AI rescoring, advancing, and enriching rows while you watch.
@@ -1771,7 +1804,7 @@ function AgentsSection() {
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// agents.active</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> Meet the agents running your workspace
+        <span className="text-violet-500">{">"}</span> Meet the agents running your workspace
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
         Not bots bolted onto a CRM — a team of always-on agents already built into Mondaily. Click one to see it work.
