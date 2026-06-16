@@ -5,6 +5,7 @@ import { SignInPage } from "./routes/auth/sign-in";
 import { SignUpPage } from "./routes/auth/sign-up";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { InviteAcceptPage } from "./routes/auth/invite-accept";
+import { SsoCallbackPage } from "./routes/auth/sso-callback";
 import { OnboardingLayout } from "./routes/onboarding/onboarding-layout";
 import { StepProfile } from "./routes/onboarding/step-profile";
 import { StepWorkspace } from "./routes/onboarding/step-workspace";
@@ -65,6 +66,7 @@ export function App() {
       <Route path="/sign-up/*" element={<SignUpPage />} />
       <Route path="/workspaces" element={<WorkspaceSelectPage />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
+      <Route path="/sso-callback" element={<SsoCallbackPage />} />
       <Route path="/onboarding-setup" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="profile" replace />} />
