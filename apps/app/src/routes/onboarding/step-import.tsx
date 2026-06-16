@@ -1,18 +1,41 @@
-import { Upload } from "lucide-react";
+import { Upload, ArrowRight, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function StepImport() {
   const navigate = useNavigate();
   const [file, setFile] = useState("");
+
   return (
-    <section>
-      <h1 className="text-2xl font-semibold">Import your data</h1><p className="mb-7 mt-1 text-sm text-slate-500">Bring contacts, companies, and deals. Mondaily will prepare a review before importing.</p>
-      <label className="mb-7 flex h-40 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-white/15 hover:bg-white/[.03]">
-        <input type="file" accept=".csv,.xlsx" className="hidden" onChange={(event) => setFile(event.target.files?.[0]?.name ?? "")} />
-        <Upload className="mb-2 text-slate-500" size={22} /><span className="text-sm text-slate-400">{file || "Drop CSV or Excel, or browse"}</span>
+    <div className="rounded-2xl border border-black/[.08] bg-white p-8">
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Import your data</h1>
+      <p className="mb-6 font-mono text-[12px] text-zinc-500">Bring contacts, companies, and deals. Mondaily prepares a review before anything is imported.</p>
+
+      <label className={`mb-6 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+        file ? "border-indigo-500/40 bg-indigo-500/[.03]" : "border-black/[.08] hover:border-indigo-500/30 hover:bg-zinc-50"
+      }`}>
+        <input type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setFile(e.target.files?.[0]?.name ?? "")} />
+        {file ? (
+          <>
+            <FileSpreadsheet size={22} className="mb-2 text-indigo-500" />
+            <span className="font-mono text-[12px] text-indigo-600">{file}</span>
+            <span className="mt-1 font-mono text-[11px] text-zinc-400">Click to change</span>
+          </>
+        ) : (
+          <>
+            <Upload size={22} className="mb-2 text-zinc-400" />
+            <span className="font-mono text-[12px] text-zinc-500">Drop CSV or Excel, or browse</span>
+            <span className="mt-1 font-mono text-[11px] text-zinc-400">.csv · .xlsx supported</span>
+          </>
+        )}
       </label>
-      <button onClick={() => navigate("/onboarding/plan")} className="h-10 w-full rounded-md bg-red-600 text-sm font-medium">{file ? "Continue" : "Skip for now"}</button>
-    </section>
+
+      <button
+        onClick={() => navigate("/onboarding/plan")}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+      >
+        {file ? "Continue" : "Skip for now"} <ArrowRight size={13} />
+      </button>
+    </div>
   );
 }

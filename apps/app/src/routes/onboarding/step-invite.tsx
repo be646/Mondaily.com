@@ -1,4 +1,4 @@
-import { Plus, X } from "lucide-react";
+import { Plus, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -8,19 +8,88 @@ export function StepInvite() {
   const [emails, setEmails] = useState([""]);
   const [role, setRole] = useState("member");
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   async function sendInvites() {
-    const valid = emails.filter((email) => email.includes("@"));
-    await Promise.all(valid.map((email) => apiClient.post("/invites", { email, role })));
+    setLoading(true);
+    const valid = emails.filter(e => e.includes("@"));
+    await Promise.all(valid.map(email => apiClient.post("/invites", { email, role }).catch(() => null)));
+    setLoading(false);
     setSent(true);
   }
-  if (sent) return <section className="text-center"><h1 className="text-2xl font-semibold">Invitations sent</h1><p className="mb-8 mt-2 text-sm text-slate-500">Your team can join securely from their invitation links.</p><button onClick={() => navigate("/onboarding/import")} className="rounded-md bg-red-600 px-6 py-2 text-sm font-medium">Continue</button></section>;
+
+  if (sent) {
+    return (
+      <div className="rounded-2xl border border-black/[.08] bg-white p-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
+          <CheckCircle2 size={22} className="text-indigo-500" />
+        </div>
+        <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invitations sent</h1>
+        <p className="mb-7 font-mono text-[12px] text-zinc-500">Your team can join securely from their invitation links.</p>
+        <button
+          onClick={() => navigate("/onboarding/import")}
+          className="mx-auto flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+        >
+          Continue <ArrowRight size={13} />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <section>
-      <h1 className="text-2xl font-semibold">Invite your team</h1><p className="mb-7 mt-1 text-sm text-slate-500">Add teammates now or continue on your own.</p>
-      <label className="mb-4 block text-sm">Role<select value={role} onChange={(event) => setRole(event.target.value)} className="ml-3 rounded-md border border-white/10 bg-[#0b0d10] px-3 py-2"><option value="member">Member</option><option value="admin">Admin</option></select></label>
-      <div className="space-y-2">{emails.map((email, index) => <div key={index} className="flex gap-2"><input value={email} onChange={(event) => setEmails((current) => current.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} placeholder="colleague@company.com" className="h-10 flex-1 rounded-md border border-white/10 bg-transparent px-3 text-sm" />{emails.length > 1 ? <button onClick={() => setEmails((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="grid w-10 place-items-center rounded-md border border-white/10"><X size={14} /></button> : null}</div>)}</div>
-      <button onClick={() => setEmails((current) => [...current, ""])} className="my-6 flex items-center gap-1 text-sm text-slate-400"><Plus size={14} /> Add another</button>
-      <div className="flex gap-3"><button onClick={sendInvites} disabled={!emails.some((email) => email.includes("@"))} className="h-10 flex-1 rounded-md bg-red-600 text-sm font-medium disabled:opacity-50">Send invites</button><button onClick={() => navigate("/onboarding/import")} className="rounded-md border border-white/10 px-4 text-sm">Skip</button></div>
-    </section>
+    <div className="rounded-2xl border border-black/[.08] bg-white p-8">
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invite your team</h1>
+      <p className="mb-6 font-mono text-[12px] text-zinc-500">Add teammates now or continue on your own.</p>
+
+      <div className="mb-4 flex items-center gap-2">
+        <p className="font-mono text-[11px] text-zinc-500">Role</p>
+        <select
+          value={role}
+          onChange={e => setRole(e.target.value)}
+          className="rounded-xl border border-black/[.08] bg-white px-3 py-1.5 font-mono text-[12px] text-zinc-700 outline-none focus:border-indigo-500/40 transition-colors"
+        >
+          <option value="member">Member</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <div className="mb-2 space-y-2">
+        {emails.map((email, i) => (
+          <div key={i} className="flex gap-2">
+            <input
+              value={email}
+              onChange={e => setEmails(curr => curr.map((v, j) => j === i ? e.target.value : v))}
+              placeholder="colleague@company.com"
+              className="h-10 flex-1 rounded-xl border border-black/[.08] bg-white px-4 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
+            />
+            {emails.length > 1 && (
+              <button
+                onClick={() => setEmails(curr => curr.filter((_, j) => j !== i))}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/[.08] text-zinc-400 hover:bg-zinc-50 transition-colors"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button onClick={() => setEmails(c => [...c, ""])} className="mb-6 flex items-center gap-1.5 font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
+        <Plus size={13} /> Add another
+      </button>
+
+      <div className="flex gap-3">
+        <button
+          onClick={sendInvites}
+          disabled={!emails.some(e => e.includes("@")) || loading}
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50"
+        >
+          {loading ? "Sending…" : "Send invites"} {!loading && <ArrowRight size={13} />}
+        </button>
+        <button onClick={() => navigate("/onboarding/import")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+          Skip
+        </button>
+      </div>
+    </div>
   );
 }

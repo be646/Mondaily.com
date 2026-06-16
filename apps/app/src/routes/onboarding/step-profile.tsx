@@ -1,6 +1,7 @@
 import { useUser } from "@clerk/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 
 export function StepProfile() {
   const { user } = useUser();
@@ -8,6 +9,7 @@ export function StepProfile() {
   const [name, setName] = useState(user?.fullName ?? "");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
+
   async function continueSetup() {
     setLoading(true);
     const [firstName, ...rest] = name.trim().split(/\s+/);
@@ -15,13 +17,43 @@ export function StepProfile() {
     localStorage.setItem("mondaily_job_title", title);
     navigate("/onboarding/workspace");
   }
+
+  const initial = name.charAt(0).toUpperCase() || "?";
+
   return (
-    <section>
-      <h1 className="text-2xl font-semibold">Your profile</h1><p className="mb-8 mt-1 text-sm text-slate-500">How should your teammates know you?</p>
-      <div className="mb-6 grid h-16 w-16 place-items-center rounded-full bg-red-500/10 text-xl font-semibold text-red-400">{name.charAt(0).toUpperCase() || "?"}</div>
-      <label className="mb-4 block text-sm">Full name<input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 h-10 w-full rounded-md border border-white/10 bg-transparent px-3 outline-none focus:border-red-500/50" /></label>
-      <label className="mb-8 block text-sm">Job title<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Founder, Head of Sales..." className="mt-2 h-10 w-full rounded-md border border-white/10 bg-transparent px-3 outline-none focus:border-red-500/50" /></label>
-      <button onClick={continueSetup} disabled={!name.trim() || loading} className="h-10 w-full rounded-md bg-red-600 text-sm font-medium disabled:opacity-50">{loading ? "Saving..." : "Continue"}</button>
-    </section>
+    <div className="rounded-2xl border border-black/[.08] bg-white p-8">
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Your profile</h1>
+      <p className="mb-7 font-mono text-[12px] text-zinc-500">How should your teammates know you?</p>
+
+      <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/10 font-sans text-xl font-semibold text-indigo-600">
+        {initial}
+      </div>
+
+      <div className="mb-4">
+        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Full name</p>
+        <input
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
+        />
+      </div>
+      <div className="mb-7">
+        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Job title</p>
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Founder, Head of Sales…"
+          className="w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
+        />
+      </div>
+
+      <button
+        onClick={continueSetup}
+        disabled={!name.trim() || loading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50"
+      >
+        {loading ? "Saving…" : "Continue"} {!loading && <ArrowRight size={13} />}
+      </button>
+    </div>
   );
 }
