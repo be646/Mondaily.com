@@ -5,8 +5,8 @@ import { Logo } from "./logo";
 export function Nav() {
   return (
     <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-      <Link href="/" className="flex items-center">
-        <Logo size={38} />
+      <Link href="/" className="flex items-center text-white">
+        <Logo size={36} />
       </Link>
       <div className="flex items-center gap-2">
         <a
