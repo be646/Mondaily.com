@@ -53,13 +53,10 @@ function Preloader({ onDone }: { onDone: () => void }) {
       <div className="w-full max-w-lg">
         <div className="mb-8 flex items-center gap-3">
           <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-            <polyline points="10,28 10,10 28,10" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            <polyline points="72,10 90,10 90,28" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            <polyline points="10,72 10,90 28,90" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            <polyline points="90,72 90,90 72,90" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M 14,50 Q 50,22 86,50 Q 50,78 14,50 Z" stroke="white" strokeWidth="2.8" fill="none" strokeLinejoin="round" strokeLinecap="round"/>
-            <circle cx="50" cy="50" r="14" stroke="#a1a1aa" strokeWidth="2" fill="none"/>
-            <circle cx="50" cy="50" r="5.5" fill="white"/>
+            <rect x="6" y="6" width="88" height="88" rx="14" stroke="white" strokeWidth="1.5" fill="none" opacity="0.18"/>
+            <polyline points="8,50 20,50 26,26 34,74 42,38 50,50 58,50 64,32 72,68 80,50 92,50" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="50" cy="50" r="5" fill="white"/>
+            <circle cx="50" cy="50" r="9" stroke="white" strokeWidth="1.2" fill="none" opacity="0.35"/>
           </svg>
           <span className="font-orbitron text-white" style={{ fontWeight: 400, fontSize: "0.9rem", letterSpacing: "0.16em" }}>MONDAILY</span>
         </div>
