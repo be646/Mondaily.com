@@ -91,7 +91,7 @@ const NH = 40;
 
 const MAIN_NODES = [
   {
-    id: "crm", label: "CRM",
+    id: "crm", label: "Records",
     x: 60,  y: 194,
     // CRM subs go ABOVE and BELOW to avoid left-edge overflow
     subs: [
@@ -407,7 +407,7 @@ const RECORD_SCENARIOS = [
 ];
 
 const STEP_TEMPLATE = [
-  { tag: "[CRM]",      tagCol: "#3f3f46", delay: 400,  title: "Record added" },
+  { tag: "[RECORD]",   tagCol: "#3f3f46", delay: 400,  title: "Record added" },
   { tag: "[ENRICH]",   tagCol: "#4f46e5", delay: 1100, title: "AI enrichment fired" },
   { tag: "[PIPELINE]", tagCol: "#4f46e5", delay: 1800, title: "Deal scored — moved to Proposal" },
   { tag: "[SEQ]",      tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
@@ -1241,6 +1241,222 @@ function HeroPipelinePreview() {
   );
 }
 
+const INVOICE_STAGE_STYLE: Record<string, { dot: string; text: string }> = {
+  Draft:    { dot: "bg-zinc-400",    text: "text-zinc-600" },
+  Sent:     { dot: "bg-blue-500",    text: "text-blue-700" },
+  Approved: { dot: "bg-amber-500",   text: "text-amber-700" },
+  Paid:     { dot: "bg-emerald-500", text: "text-emerald-700" },
+};
+const INVOICE_STAGE_NAMES = ["Draft", "Sent", "Approved", "Paid"] as const;
+type InvoiceStage = typeof INVOICE_STAGE_NAMES[number];
+type Invoice = { id: string; co: string; amt: string; ref: string; stage: InvoiceStage };
+
+const INVOICE_POOL: Omit<Invoice, "stage">[] = [
+  { id: "acme",   co: "Acme Corp",  amt: "£8,400",  ref: "INV-0031" },
+  { id: "globex", co: "Globex Inc", amt: "£3,150",  ref: "INV-0032" },
+  { id: "initech",co: "Initech",    amt: "£14,900", ref: "INV-0033" },
+  { id: "soylent",co: "Soylent",    amt: "£2,200",  ref: "INV-0034" },
+  { id: "hooli",  co: "Hooli",      amt: "£21,750", ref: "INV-0035" },
+];
+
+const INITIAL_INVOICES: Invoice[] = [
+  { ...INVOICE_POOL[0]!, stage: "Draft" },
+  { ...INVOICE_POOL[1]!, stage: "Sent" },
+  { ...INVOICE_POOL[2]!, stage: "Approved" },
+];
+
+const NEXT_INVOICE_STAGE: Record<InvoiceStage, InvoiceStage | null> = {
+  Draft: "Sent", Sent: "Approved", Approved: "Paid", Paid: null,
+};
+
+function InvoiceBoardPreview() {
+  const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
+  const [activity, setActivity] = useState("AI is tracking open quotes…");
+  const [glowId, setGlowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setInvoices(prev => {
+        const pick = prev[Math.floor(Math.random() * prev.length)]!;
+        if (pick.stage === "Paid") {
+          const used = new Set(prev.map(d => d.id));
+          const fresh = INVOICE_POOL.find(p => !used.has(p.id)) ?? INVOICE_POOL[Math.floor(Math.random() * INVOICE_POOL.length)]!;
+          setGlowId(pick.id);
+          setActivity(`${pick.co} paid — new quote opened for ${fresh.co}`);
+          setTimeout(() => setGlowId(null), 1200);
+          return prev.map(d => (d.id === pick.id ? { ...fresh, id: pick.id, stage: "Draft" } : d));
+        }
+        const next = NEXT_INVOICE_STAGE[pick.stage]!;
+        setGlowId(pick.id);
+        setActivity(`AI moved ${pick.ref} (${pick.co}) → ${next}`);
+        setTimeout(() => setGlowId(null), 1200);
+        return prev.map(d => (d.id === pick.id ? { ...d, stage: next } : d));
+      });
+    }, 3100);
+    return () => clearInterval(t);
+  }, []);
+
+  const totalOpen = invoices.filter(d => d.stage !== "Paid").length;
+
+  return (
+    <div
+      className="mx-auto w-full max-w-4xl overflow-hidden rounded-2xl"
+      style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
+    >
+      <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
+        <div className="flex gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+        </div>
+        <span className="font-mono text-[11px] text-zinc-500">finance — quotes &amp; invoices</span>
+        <motion.span
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.8, repeat: Infinity }}
+          className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-500"
+        />
+        <span className="font-mono text-[11px] text-emerald-600">auto-tracked by AI</span>
+      </div>
+
+      <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 font-mono text-[11px]">
+        <span className="text-zinc-500">Open quotes <span className="text-zinc-800">{totalOpen}</span></span>
+        <span className="text-zinc-500">Paid this month <span className="text-emerald-600">£18.6k</span></span>
+      </div>
+
+      <div className="border-b border-black/[.05] bg-emerald-500/[.04] px-4 py-2 font-mono text-[11px] text-emerald-700">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={activity}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="inline-flex items-center gap-2"
+          >
+            <span className="text-emerald-600">⚡</span>{activity}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3 p-4 text-left">
+        {INVOICE_STAGE_NAMES.map(stageName => {
+          const style = INVOICE_STAGE_STYLE[stageName]!;
+          const colInvoices = invoices.filter(d => d.stage === stageName);
+          return (
+            <div key={stageName} className="flex flex-col gap-2 rounded-lg border border-zinc-200/50 bg-black/[.01]">
+              <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-200/50">
+                <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`}/>
+                  {stageName}
+                </span>
+                <span className="font-mono text-[10px] text-zinc-400">{colInvoices.length}</span>
+              </div>
+              <div className="flex flex-col gap-2 px-2 pb-2.5 min-h-[100px]">
+                <AnimatePresence initial={false}>
+                  {colInvoices.map(d => (
+                    <motion.div
+                      key={d.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.92 }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                        boxShadow: glowId === d.id
+                          ? "0 0 0 1px rgba(16,185,129,0.6), 0 0 16px rgba(16,185,129,0.35)"
+                          : "0 0 0 0px rgba(16,185,129,0)",
+                      }}
+                      exit={{ opacity: 0, scale: 0.92 }}
+                      transition={{ duration: 0.45, layout: { duration: 0.5, ease: "easeInOut" } }}
+                      className="rounded-md border border-zinc-200/60 bg-zinc-100/50 px-2.5 py-2.5"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] text-zinc-700 truncate">{d.co}</span>
+                        <span className="font-mono text-[10px] text-zinc-400">{d.ref}</span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <span className="font-mono text-[11px] text-emerald-600">{d.amt}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FinanceBoardSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.finance</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-emerald-500">{">"}</span> Quotes to cash, on autopilot
+      </h2>
+      <p className="mb-10 font-mono text-[13px] text-zinc-500">
+        When a deal closes, Mondaily raises the quote and tracks it through to payment — no spreadsheet required.
+      </p>
+      <InvoiceBoardPreview />
+    </section>
+  );
+}
+
+const AGENTS = [
+  { icon: "◈", name: "Ask Mondaily", accent: "#4f46e5", desc: "Conversational AI that creates and searches records, builds lists, sets up workflows, and answers questions about your workspace in plain English." },
+  { icon: "◆", name: "Enrichment Agent", accent: "#7c3aed", desc: "Fires the moment a record is created — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web." },
+  { icon: "♥", name: "Relationship Health Agent", accent: "#d97706", desc: "Scores every contact 0–100 daily based on contact recency, open tasks and deals, and recent activity signals." },
+  { icon: "▲", name: "Deal Risk Agent", accent: "#dc2626", desc: "Watches the pipeline daily and flags deals that have gone 14+ days without activity, before they go cold." },
+  { icon: "▶", name: "Sequence Agent", accent: "#059669", desc: "Runs multi-step outreach cadences on autopilot — enrolls, paces sends, stops on reply, and reports back." },
+  { icon: "⚙", name: "Workflow Agent", accent: "#0891b2", desc: "Executes trigger → condition → action automations across the workspace, no code required." },
+];
+
+function AgentsSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// agents.active</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{">"}</span> Meet the agents running your workspace
+      </h2>
+      <p className="mb-10 font-mono text-[13px] text-zinc-500">
+        Not bots bolted onto a CRM — a team of always-on agents already built into Mondaily.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {AGENTS.map((agent, i) => (
+          <motion.div
+            key={agent.name}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.4, delay: i * 0.07 }}
+            whileHover={{ y: -3 }}
+            className="rounded-xl border border-black/[.05] bg-white p-5"
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <span
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px]"
+                style={{ background: `${agent.accent}12`, color: agent.accent, border: `1px solid ${agent.accent}30` }}
+              >
+                {agent.icon}
+                <motion.span
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
+                  className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
+                  style={{ background: agent.accent }}
+                />
+              </span>
+              <span className="font-mono text-[14px] font-semibold text-zinc-800">{agent.name}</span>
+            </div>
+            <p className="font-mono text-[12px] leading-relaxed text-zinc-500">{agent.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function EmailSignup() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
@@ -1277,7 +1493,7 @@ const PLANS = [
     name: "Starter", price: "$0", period: "forever",
     desc: "For solo founders exploring the AI workspace.",
     cta: "Start free — takes 90 seconds", href: "https://app.mondaily.com/sign-up", highlight: false,
-    features: ["1 user","500 contacts","CRM & pipeline","Ask Mondaily AI (100/mo)","1 email integration","Community support"],
+    features: ["1 user","500 contacts","Records & pipeline","Ask Mondaily AI (100/mo)","1 email integration","Community support"],
   },
   {
     name: "Pro", price: "$49", period: "per user / mo",
@@ -1409,8 +1625,14 @@ export function LandingPage() {
           {/* ── Workflow demo ── */}
           <WorkflowDemo />
 
+          {/* ── Agents ── */}
+          <AgentsSection />
+
           {/* ── Automation flow diagram ── */}
           <AutomationFlow />
+
+          {/* ── Finance / invoice board demo ── */}
+          <FinanceBoardSection />
 
           {/* ── Feature map + terminals ── */}
           <FeatureSection />
