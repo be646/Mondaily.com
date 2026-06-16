@@ -2,7 +2,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// Use the Next.js API route — runs on the same deployment, has the key
 const API_URL = "/api/ask";
 
 const FEATURE_LINES = [
@@ -12,6 +11,7 @@ const FEATURE_LINES = [
   "Connected to your CRM, pipeline, and finance module",
 ];
 
+// Suggestion chips shown inside the chat when idle
 const SUGGESTIONS = [
   "How does AI enrichment work?",
   "Walk me through the pipeline",
@@ -19,12 +19,14 @@ const SUGGESTIONS = [
   "How do automations work?",
 ];
 
+// Process log — each step appears on a delay, loops last line until reply arrives
 const PROCESS_STEPS = [
-  { tag: "[PARSE]",    msg: "reading intent from query…",            delay: 0 },
-  { tag: "[CONTEXT]",  msg: "loading workspace & record schema…",    delay: 900 },
-  { tag: "[SEARCH]",   msg: "scanning 8,420 enriched records…",      delay: 1900 },
-  { tag: "[REASON]",   msg: "building multi-hop context chain…",     delay: 3100 },
-  { tag: "[GENERATE]", msg: "composing response with live data…",    delay: 4500 },
+  { lines: ["> mondaily.ai.process(query)", "  parsing intent from natural language..."] ,          delay: 0 },
+  { lines: ["  intent: query_type=workspace_info", "  entities: extracted 3 concepts"] ,            delay: 1100 },
+  { lines: ["[CONTEXT]  loading workspace schema...", "  records: 8,420 enriched · modules: 6"] ,   delay: 2400 },
+  { lines: ["[SEARCH]   scanning record graph...", "  candidates: 42 · top_score: 0.94"] ,          delay: 3800 },
+  { lines: ["[REASON]   building context chain...", "  hops: 3 · confidence: 0.91"] ,               delay: 5400 },
+  { lines: ["[GENERATE] streaming response...", "  tokens: — · latency: —"] ,                       delay: 7000 },
 ];
 
 function SendIcon() {
@@ -37,20 +39,15 @@ function SendIcon() {
 
 function TypewriterLine({ text, delay = 0 }: { text: string; delay?: number }) {
   const [shown, setShown] = useState("");
-
   useEffect(() => {
+    setShown("");
     const timer = setTimeout(() => {
       let i = 0;
-      const t = setInterval(() => {
-        i++;
-        setShown(text.slice(0, i));
-        if (i >= text.length) clearInterval(t);
-      }, 28);
+      const t = setInterval(() => { i++; setShown(text.slice(0, i)); if (i >= text.length) clearInterval(t); }, 28);
       return () => clearInterval(t);
     }, delay);
     return () => clearTimeout(timer);
   }, [text, delay]);
-
   return (
     <span>
       {shown}
@@ -64,17 +61,14 @@ function TypewriterLine({ text, delay = 0 }: { text: string; delay?: number }) {
 function ReplyTypewriter({ text }: { text: string }) {
   const [shown, setShown] = useState("");
   const i = useRef(0);
-
   useEffect(() => {
-    i.current = 0;
-    setShown("");
+    i.current = 0; setShown("");
     const t = setInterval(() => {
       if (i.current < text.length) { setShown(text.slice(0, i.current + 1)); i.current++; }
       else clearInterval(t);
     }, 14);
     return () => clearInterval(t);
   }, [text]);
-
   return (
     <>
       {shown}
@@ -85,77 +79,96 @@ function ReplyTypewriter({ text }: { text: string }) {
   );
 }
 
-// Processing panel — appears to the right of the chat while loading
+// Code-style process panel — stays until reply arrives, loops last step
 function ProcessPanel({ visible }: { visible: boolean }) {
-  const [shownSteps, setShownSteps] = useState<number>(0);
+  const [shownBlocks, setShownBlocks] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     timers.current.forEach(clearTimeout);
     if (visible) {
-      setShownSteps(0);
+      setShownBlocks(0);
       timers.current = PROCESS_STEPS.map((s, i) =>
-        setTimeout(() => setShownSteps(i + 1), s.delay)
+        setTimeout(() => setShownBlocks(i + 1), s.delay)
       );
     } else {
-      setShownSteps(0);
+      setShownBlocks(0);
     }
     return () => timers.current.forEach(clearTimeout);
   }, [visible]);
+
+  const allLines = PROCESS_STEPS.slice(0, shownBlocks).flatMap(s => s.lines);
+  const isAtLastStep = shownBlocks >= PROCESS_STEPS.length;
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, x: 12 }}
+          initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 12 }}
-          transition={{ duration: 0.3 }}
-          className="hidden lg:block absolute top-0 left-[calc(100%+1.25rem)] w-60 rounded-xl font-mono text-[11px]"
-          style={{ border: "1px solid rgba(124,58,237,0.12)", background: "rgba(8,8,8,0.95)" }}
+          exit={{ opacity: 0, x: 16 }}
+          transition={{ duration: 0.35 }}
+          className="hidden lg:flex absolute top-0 left-[calc(100%+1.5rem)] w-64 flex-col rounded-xl overflow-hidden"
+          style={{ border: "1px solid rgba(124,58,237,0.14)", background: "rgba(6,6,6,0.97)" }}
         >
-          <div className="border-b border-white/[.04] px-4 py-2.5 flex items-center gap-2">
+          {/* Terminal title bar */}
+          <div className="flex items-center gap-2 border-b border-white/[.05] px-3 py-2">
+            <div className="flex gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+            </div>
+            <span className="font-mono text-[9px] text-zinc-700 tracking-wider">mondaily — inference engine</span>
             <motion.span
-              animate={{ opacity: [0.3,1,0.3] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="h-1.5 w-1.5 rounded-full bg-violet-600"
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 0.9, repeat: Infinity }}
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-600"
             />
-            <span className="text-zinc-600 text-[10px] tracking-wider">mondaily — inference</span>
           </div>
-          <div className="px-4 py-3 space-y-2.5">
+
+          {/* Code output */}
+          <div className="flex-1 px-3 py-3 font-mono text-[10px] leading-[1.7] space-y-0 min-h-[160px]">
             <AnimatePresence initial={false}>
-              {PROCESS_STEPS.slice(0, shownSteps).map((step, i) => (
+              {allLines.map((line, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 4 }}
+                  initial={{ opacity: 0, y: 3 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-start gap-2"
+                  transition={{ duration: 0.18 }}
+                  className={
+                    line.startsWith(">")
+                      ? "text-violet-400"
+                      : line.startsWith("[GENERATE]")
+                      ? "text-violet-500"
+                      : line.startsWith("[")
+                      ? "text-violet-600"
+                      : "text-zinc-500"
+                  }
                 >
-                  <span className={`shrink-0 ${i < shownSteps - 1 ? "text-violet-600" : "text-violet-400"}`}>
-                    {step.tag}
-                  </span>
-                  <span className="text-zinc-600 leading-snug">{step.msg}</span>
-                  {i === shownSteps - 1 && (
-                    <motion.span
-                      animate={{ opacity: [0.3,1,0.3] }}
-                      transition={{ duration: 0.6, repeat: Infinity }}
-                      className="ml-auto shrink-0 text-[9px] text-violet-700"
-                    >
-                      ●
-                    </motion.span>
-                  )}
+                  {line}
                 </motion.div>
               ))}
             </AnimatePresence>
-            {/* completion line */}
-            {shownSteps >= PROCESS_STEPS.length && (
+
+            {/* Blinking cursor — loops at the end until reply */}
+            {shownBlocks > 0 && (
+              <motion.span
+                animate={{ opacity: [1, 0, 1] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+                className="inline-block w-[6px] h-[10px] bg-violet-600 align-middle"
+              />
+            )}
+
+            {/* Streaming indicator once all steps shown */}
+            {isAtLastStep && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="border-t border-white/[.04] pt-2 text-[10px] text-violet-700"
+                className="mt-1 text-[9px] text-zinc-700"
               >
-                [DONE] streaming reply…
+                <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                  awaiting model response…
+                </motion.span>
               </motion.div>
             )}
           </div>
@@ -194,7 +207,7 @@ export function HeroChat() {
       setHistory(prev => [...prev, { q: msg, a: answer }]);
     } catch {
       setReply("Mondaily connects your data, enriches your records, and runs your workflows automatically.");
-      setHistory(prev => [...prev, { q: msg, a: "Mondaily connects your data, enriches your records, and runs your workflows automatically." }]);
+      setHistory(prev => [...prev, { q: msg, a: "Mondaily connects your data." }]);
     }
     setLoading(false);
   }, [input, loading, history]);
@@ -203,61 +216,56 @@ export function HeroChat() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
   }
 
-  const isEmpty = !reply && !loading && !input;
+  const showSuggestions = !reply && !loading && history.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-2xl">
-      {/* Suggestion pills — above the chat card */}
-      <AnimatePresence>
-        {isEmpty && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.25 }}
-            className="mb-3 flex flex-wrap justify-center gap-2"
-          >
-            {SUGGESTIONS.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => void send(s)}
-                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] text-zinc-500 hover:text-violet-300 transition-all"
-                style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)")}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
-              >
-                <span className="text-violet-600">→</span> {s}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Outer wrapper — relative for process panel absolute positioning */}
       <div className="relative">
-        {/* Chat card — animated violet glow border */}
+        {/* Chat card */}
         <motion.div
           className="rounded-2xl"
           animate={{
             boxShadow: loading
-              ? [
-                  "0 0 0 1px rgba(124,58,237,0.4), 0 0 40px rgba(124,58,237,0.18), 0 24px 64px rgba(0,0,0,0.6)",
-                  "0 0 0 1px rgba(124,58,237,0.6), 0 0 60px rgba(124,58,237,0.28), 0 24px 64px rgba(0,0,0,0.6)",
-                  "0 0 0 1px rgba(124,58,237,0.4), 0 0 40px rgba(124,58,237,0.18), 0 24px 64px rgba(0,0,0,0.6)",
-                ]
-              : [
-                  "0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
-                  "0 0 0 1px rgba(124,58,237,0.32), 0 0 40px rgba(124,58,237,0.12), 0 24px 64px rgba(0,0,0,0.6)",
-                  "0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
-                ],
+              ? ["0 0 0 1px rgba(124,58,237,0.45), 0 0 50px rgba(124,58,237,0.2), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(124,58,237,0.7), 0 0 70px rgba(124,58,237,0.3), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(124,58,237,0.45), 0 0 50px rgba(124,58,237,0.2), 0 24px 64px rgba(0,0,0,0.6)"]
+              : ["0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(124,58,237,0.32), 0 0 40px rgba(124,58,237,0.12), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)"],
           }}
-          transition={{ duration: loading ? 1.2 : 3.5, repeat: Infinity, ease: "easeInOut" }}
-          style={{
-            border: "1px solid rgba(124,58,237,0.18)",
-            background: "rgba(12,12,12,0.95)",
-          }}
+          transition={{ duration: loading ? 1.0 : 3.5, repeat: Infinity, ease: "easeInOut" }}
+          style={{ border: "1px solid rgba(124,58,237,0.18)", background: "rgba(12,12,12,0.95)" }}
         >
-          {/* Reply area */}
+          {/* Suggestions inside chat — shown when idle, no history */}
+          <AnimatePresence>
+            {showSuggestions && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden border-b border-white/[.05] px-5 py-4"
+              >
+                <p className="font-mono text-[10px] text-zinc-600 mb-3">// try asking:</p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTIONS.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => void send(s)}
+                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] text-zinc-400 hover:text-violet-300 transition-all"
+                      style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,58,237,0.35)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"; }}
+                    >
+                      <span className="text-violet-600 text-[9px]">→</span> {s}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Reply / loading area */}
           <AnimatePresence mode="wait">
             {(reply || loading) && (
               <motion.div
@@ -302,7 +310,7 @@ export function HeroChat() {
           <div className="flex items-center justify-between px-5 pb-4">
             <span className="font-mono text-[10px] text-zinc-600">Enter ↵ to send</span>
             <button
-              onClick={() => send()}
+              onClick={() => void send()}
               disabled={!input.trim() || loading}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-20 active:scale-95 transition-all"
             >
@@ -311,7 +319,7 @@ export function HeroChat() {
           </div>
         </motion.div>
 
-        {/* Process panel — absolutely to the right on large screens */}
+        {/* Process panel — absolute right, desktop only */}
         <ProcessPanel visible={loading} />
       </div>
 
