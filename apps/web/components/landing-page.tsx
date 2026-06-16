@@ -264,29 +264,15 @@ function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; t
   );
 }
 
+const MODULE_ZONES: { zone: string; ids: string[] }[] = [
+  { zone: "Data",         ids: ["crm", "enrich"] },
+  { zone: "Intelligence", ids: ["pipeline", "ask"] },
+  { zone: "Action",       ids: ["sequences", "automations"] },
+  { zone: "Operations",   ids: ["finance", "mcp"] },
+];
+
 function FeatureSection() {
-  const [active, setActive] = useState<Set<string>>(new Set());
-
-  // Build a lookup: nodeId → all nodeIds it connects to (both directions)
-  const connectedTo = useCallback((id: string): Set<string> => {
-    const result = new Set<string>();
-    MAIN_EDGES.forEach(([a, b]) => {
-      if (a === id) result.add(b);
-      if (b === id) result.add(a);
-    });
-    return result;
-  }, []);
-
-  function handleNodeEnter(id: string) {
-    // Activate hovered node + all directly connected nodes
-    const group = new Set([id, ...connectedTo(id)]);
-    setActive(group);
-  }
-
-  function handleNodeLeave() {
-    setActive(new Set());
-  }
-
+  const [active, setActive] = useState<string | null>(null);
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
 
   return (
@@ -297,7 +283,7 @@ function FeatureSection() {
       </h2>
 
       {/* Live stats bar — numbers pulse to signal the system is live */}
-      <div className="mb-8 flex gap-6 font-mono text-[14px] text-zinc-300">
+      <div className="mb-10 flex gap-6 font-mono text-[14px] text-zinc-300">
         <span>
           <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 0 }} className="text-indigo-600">8,420</motion.span>
           {" "}records enriched
@@ -314,161 +300,37 @@ function FeatureSection() {
         </span>
       </div>
 
-      {/* Node map */}
-      <p className="mb-4 font-mono text-[14px] text-zinc-500">// hover any module to explore its connections</p>
-      <div className="mb-10 w-full overflow-hidden rounded-2xl border border-white/[.04] bg-[#0a0a0c] p-2">
-        <svg viewBox="-20 -10 1340 460" className="w-full" preserveAspectRatio="xMidYMid meet">
-          {/* Faint dot grid background */}
-          <defs>
-            <pattern id="grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-              <circle cx="10" cy="10" r="0.8" fill="#1a1a1a"/>
-            </pattern>
-          </defs>
-          <rect x="-20" y="-10" width="1340" height="460" fill="url(#grid)" opacity="0.5"/>
-
-          {/* Zone panels — group columns into readable clusters */}
-          {[
-            { label: "DATA",          x: 35,  w: 200 },
-            { label: "INTELLIGENCE",  x: 275, w: 200 },
-            { label: "ACTION",        x: 535, w: 200 },
-            { label: "OPERATIONS",    x: 875, w: 200 },
-          ].map(z => (
-            <g key={z.label}>
-              <rect x={z.x} y="20" width={z.w} height="380" rx="14"
-                fill="rgba(99,102,241,0.025)" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
-              <text x={z.x + z.w / 2} y="14" textAnchor="middle" fill="#52525b" fontSize="10"
-                fontFamily="'JetBrains Mono', monospace" letterSpacing="2">{z.label}</text>
-            </g>
-          ))}
-
-          {/* 1. EDGES */}
-          {MAIN_EDGES.map(([a, b], i) => {
-            const na = getNode(a); const nb = getNode(b);
-            const anyHovered = active.size > 0;
-            const lit = active.has(a) && active.has(b);
-            const x1 = na.x + NW; const y1 = na.y + NH / 2;
-            const x2 = nb.x;      const y2 = nb.y + NH / 2;
-            const mx = (x1 + x2) / 2;
-            // resting: visible dashed lines; hover: active edges go solid+bright, others dim
-            const op = anyHovered ? (lit ? 0.85 : 0.08) : 0.28;
-            return (
-              <path key={i}
-                d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
-                fill="none"
-                stroke={lit ? "#6366f1" : "#444"}
-                strokeWidth={lit ? 1.5 : 1}
-                strokeDasharray={lit ? undefined : "4 6"}
-                style={{ opacity: op, transition: "all 0.2s ease" }}
-              />
-            );
-          })}
-
-          {/* 2. Traveling dots */}
-          {MAIN_EDGES.map(([a, b], i) => {
-            const na = getNode(a); const nb = getNode(b);
-            const lit = active.has(a) && active.has(b);
-            const x1 = na.x + NW; const y1 = na.y + NH / 2;
-            const x2 = nb.x;      const y2 = nb.y + NH / 2;
-            const mx = (x1 + x2) / 2;
-            return (
-              <circle key={`dot-${i}`} r="3" fill="#6366f1"
-                style={{ opacity: lit ? 0.85 : 0, transition: "opacity 0.2s ease" }}>
-                <animateMotion dur="2s" repeatCount="indefinite"
-                  path={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}/>
-              </circle>
-            );
-          })}
-
-          {/* 3. Sub-branch lines + dots */}
-          {MAIN_NODES.map(node => {
-            const anyHovered = active.size > 0;
-            const on = active.has(node.id);
-            const cx = node.x + NW / 2;
-            const cy = node.y + NH / 2;
-            return node.subs.map((sub, si) => {
-              const { ax, ay } = sub as { label: string; ax: number; ay: number };
-              const anchor = node.subAnchor;
-              const dotX = anchor === "start" ? ax - 4 : ax + 4;
-              const lineOp = anyHovered ? (on ? 0.5 : 0.02) : 0.12;
-              const dotOp  = anyHovered ? (on ? 0.7 : 0.02) : 0.15;
+      {/* Module grid — grouped by zone */}
+      <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {MODULE_ZONES.map(z => (
+          <div key={z.zone} className="flex flex-col gap-3">
+            <span className="font-mono text-[11px] text-zinc-600 uppercase tracking-widest">{z.zone}</span>
+            {z.ids.map(id => {
+              const node = getNode(id);
+              const on = active === id;
               return (
-                <g key={`${node.id}-sl${si}`}>
-                  <line x1={cx} y1={cy} x2={dotX} y2={ay}
-                    stroke="#6d28d9" strokeWidth="0.8" strokeDasharray="2 3"
-                    style={{ opacity: lineOp, transition: "opacity 0.2s ease" }}
-                  />
-                  <circle cx={dotX} cy={ay} r="1.8" fill="#6d28d9"
-                    style={{ opacity: dotOp, transition: "opacity 0.2s ease" }}
-                  />
-                </g>
-              );
-            });
-          })}
-
-          {/* 4. Node boxes */}
-          {MAIN_NODES.map(node => {
-            const anyHovered = active.size > 0;
-            const on = active.has(node.id);
-            const nodeOp = anyHovered ? (on ? 1 : 0.25) : 0.75;
-            return (
-              <g key={node.id} transform={`translate(${node.x},${node.y})`}
-                style={{ cursor: "pointer" }}
-                onMouseEnter={() => handleNodeEnter(node.id)}
-                onMouseLeave={handleNodeLeave}
-              >
-                <rect x="-8" y="-8" width={NW + 16} height={NH + 16} fill="transparent"/>
-                <rect x="0" y="0" width={NW} height={NH} rx="6"
-                  fill="#0d0d0d"
-                  stroke={on ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.07)"}
-                  strokeWidth="1"
-                  style={{ opacity: nodeOp, transition: "all 0.15s ease" }}
-                />
-                <circle cx="12" cy={NH / 2} r="3"
-                  fill={on ? "#6366f1" : "#333"}
-                  style={{ transition: "fill 0.15s ease" }}
-                />
-              </g>
-            );
-          })}
-
-          {/* 5. ALL text — final layer */}
-          {MAIN_NODES.map(node => {
-            const anyHovered = active.size > 0;
-            const on = active.has(node.id);
-            const col = on ? "#e4e4e7" : anyHovered ? "#2a2a2a" : "#666";
-            return (
-              <text key={`${node.id}-lbl`}
-                x={node.x + 24} y={node.y + NH / 2 + 5}
-                fill={col} fontSize="13" fontWeight="600"
-                fontFamily="'JetBrains Mono', monospace"
-                style={{ transition: "fill 0.15s ease" }}
-              >
-                {node.label}
-              </text>
-            );
-          })}
-          {MAIN_NODES.map(node => {
-            const anyHovered = active.size > 0;
-            const on = active.has(node.id);
-            const subOp = anyHovered ? (on ? 0.5 : 0.02) : 0.18;
-            return node.subs.map((sub, si) => {
-              const { ax, ay } = sub as { label: string; ax: number; ay: number };
-              const anchor = node.subAnchor;
-              const dotX = anchor === "start" ? ax - 4 : ax + 4;
-              return (
-                <text key={`${node.id}-st${si}`}
-                  x={anchor === "start" ? dotX + 6 : dotX - 6}
-                  y={ay + 3.5} textAnchor={anchor}
-                  fill="#fff" fontSize="11"
-                  fontFamily="'JetBrains Mono', monospace"
-                  style={{ opacity: subOp, transition: "opacity 0.15s ease" }}
+                <div
+                  key={id}
+                  onMouseEnter={() => setActive(id)}
+                  onMouseLeave={() => setActive(null)}
+                  className={`rounded-xl border p-4 transition-all cursor-default ${
+                    on ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-white/[.05] bg-white/[.015]"
+                  }`}
                 >
-                  {sub.label}
-                </text>
+                  <div className="mb-2.5 flex items-center gap-2.5">
+                    <span className={`h-1.5 w-1.5 rounded-full transition-colors ${on ? "bg-indigo-500" : "bg-zinc-700"}`}/>
+                    <span className={`font-mono text-[14px] font-semibold transition-colors ${on ? "text-zinc-100" : "text-zinc-300"}`}>{node.label}</span>
+                  </div>
+                  <ul className="flex flex-col gap-1">
+                    {node.subs.slice(0, 3).map((sub, si) => (
+                      <li key={si} className="font-mono text-[11px] text-zinc-500 leading-relaxed">{sub.label}</li>
+                    ))}
+                  </ul>
+                </div>
               );
-            });
-          })}
-        </svg>
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Three terminal windows */}
@@ -510,14 +372,14 @@ const WORKFLOW_STEPS = [
   },
   {
     tag: "[ENRICH]",
-    tagCol: "#6d28d9",
+    tagCol: "#4f46e5",
     title: "AI enrichment fired",
     detail: "ARR $4.2M · 210 emp · Series B · London · Tech: Stripe, AWS",
     delay: 1100,
   },
   {
     tag: "[PIPELINE]",
-    tagCol: "#6d28d9",
+    tagCol: "#4f46e5",
     title: "Deal scored 84/100 — moved to Proposal",
     detail: "High intent · stage: Discovery → Proposal · owner: you",
     delay: 1800,
@@ -531,7 +393,7 @@ const WORKFLOW_STEPS = [
   },
   {
     tag: "[AUTO]",
-    tagCol: "#6d28d9",
+    tagCol: "#4f46e5",
     title: "Automation triggered on deal stage change",
     detail: "Slack notified · CRM updated · owner pinged",
     delay: 3200,
@@ -805,7 +667,7 @@ function WorkflowDemo() {
                 >
                   {/* Step connector */}
                   <div className="flex flex-col items-center">
-                    <div className="h-2 w-2 rounded-full mt-1 shrink-0" style={{ background: step.tagCol === "#6d28d9" ? "#6d28d9" : "#27272a" }}/>
+                    <div className="h-2 w-2 rounded-full mt-1 shrink-0" style={{ background: step.tagCol === "#4f46e5" ? "#4f46e5" : "#27272a" }}/>
                     {i < shownSteps - 1 && (
                       <div className="mt-1 flex-1 w-px bg-white/[.04] min-h-[20px]"/>
                     )}
@@ -882,7 +744,7 @@ const FLOW_NODES = [
     sub: "Route high-intent vs nurture",
     delay: 1200,
     branches: [
-      { label: "High intent", col: "#6d28d9" },
+      { label: "High intent", col: "#4f46e5" },
       { label: "Nurture", col: "#27272a" },
     ],
   },
