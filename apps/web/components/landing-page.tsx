@@ -298,8 +298,8 @@ function FeatureSection() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// system.modules</div>
-      <h2 className="mb-4 font-mono text-xl font-light text-zinc-400">
-        <span className="text-violet-600">{'>'}</span> One platform. Every signal.
+      <h2 className="mb-4 font-mono text-2xl font-light text-zinc-300">
+        <span className="text-violet-500">{'>'}</span> One platform. Every signal.
       </h2>
 
       {/* Live stats bar — numbers pulse to signal the system is live */}
@@ -562,8 +562,8 @@ function WorkflowDemo() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// live.workflow</div>
-      <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
-        <span className="text-violet-600">{">"}</span> What happens when a record enters Mondaily
+      <h2 className="mb-2 font-mono text-2xl font-light text-zinc-300">
+        <span className="text-violet-500">{">"}</span> What happens when a record enters Mondaily
       </h2>
       <p className="mb-10 font-mono text-[11px] text-zinc-500">
         Zero manual input. The platform enriches, scores, moves, and notifies — automatically.
@@ -833,8 +833,8 @@ function AutomationFlow() {
       onMouseLeave={resetFlow}
     >
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// automation.flow</div>
-      <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
-        <span className="text-violet-600">{">"}</span> Build once. Run on every deal, forever.
+      <h2 className="mb-2 font-mono text-2xl font-light text-zinc-300">
+        <span className="text-violet-500">{">"}</span> Build once. Run on every deal, forever.
       </h2>
       <p className="mb-6 font-mono text-[11px] text-zinc-500">
         Visual flows that trigger on real CRM events — no code, no ops overhead.
@@ -1068,7 +1068,7 @@ export function LandingPage() {
               {/* Slogan */}
               <h1 className="mx-auto mb-3 max-w-2xl font-light leading-[1.2] tracking-tight text-white" style={{ fontFamily: "var(--font-mono)", fontSize: "clamp(1.5rem, 3.5vw, 2.4rem)" }}>
                 One workspace.{" "}
-                <span className="text-zinc-600">Every signal.</span>{" "}
+                <span className="text-zinc-400">Every signal.</span>{" "}
                 <span className="text-violet-500">Always thinking.</span>
               </h1>
 
@@ -1113,8 +1113,8 @@ export function LandingPage() {
           {/* ── Pricing ── */}
           <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
             <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// pricing.config</div>
-            <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
-              <span className="text-violet-600">{'>'}</span> Simple, transparent pricing
+            <h2 className="mb-2 font-mono text-2xl font-light text-zinc-300">
+              <span className="text-violet-500">{'>'}</span> Simple, transparent pricing
             </h2>
             <p className="mb-10 font-mono text-[12px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
