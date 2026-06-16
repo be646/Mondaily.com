@@ -48,7 +48,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+    <ClerkProvider
+      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      appearance={{ elements: { badge: "hidden", logoBox: "hidden" } }}
+    >
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthGate>

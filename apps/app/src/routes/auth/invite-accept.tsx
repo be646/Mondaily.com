@@ -1,11 +1,20 @@
+import { useAuth } from "@clerk/react";
 import { CheckCircle, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 
 export function InviteAcceptPage() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const { isLoaded, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      navigate(`/sign-in?redirect_url=/invite/${token}`, { replace: true });
+    }
+  }, [isLoaded, isSignedIn, token, navigate]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   async function acceptInvite() {

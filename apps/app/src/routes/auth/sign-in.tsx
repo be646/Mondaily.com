@@ -13,13 +13,15 @@ export function SignInPage() {
           routing="path"
           path="/sign-in"
           signUpUrl="/sign-up"
-          forceRedirectUrl="/onboarding"
+          fallbackRedirectUrl="/home"
           appearance={{
             elements: {
               rootBox: "w-full",
               card: "shadow-none border border-white/10 rounded-lg bg-[#111419] p-6",
               headerTitle: "hidden",
               headerSubtitle: "hidden",
+              logoBox: "hidden",
+              badge: "hidden",
               socialButtonsBlockButton: "border border-white/10 rounded-md h-10 text-sm font-medium hover:bg-white/[.04]",
               dividerLine: "bg-white/10",
               dividerText: "text-slate-500 text-xs",

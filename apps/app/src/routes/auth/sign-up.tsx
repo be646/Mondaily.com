@@ -23,6 +23,8 @@ export function SignUpPage() {
               card: "shadow-none border border-white/10 rounded-lg bg-[#111419] p-6",
               headerTitle: "hidden",
               headerSubtitle: "hidden",
+              logoBox: "hidden",
+              badge: "hidden",
               socialButtonsBlockButton: "border border-white/10 rounded-md h-10 text-sm font-medium hover:bg-white/[.04]",
               formFieldInput: "border border-white/10 rounded-md h-10 px-3 text-sm bg-[#0b0d10]",
               formButtonPrimary: "bg-red-600 text-white rounded-md h-10 text-sm font-medium",
