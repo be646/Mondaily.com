@@ -532,19 +532,25 @@ function FAQSection() {
           </div>
         </div>
 
-        {/* Question chips */}
-        <div className="flex flex-wrap gap-2 border-t border-white/[.05] px-5 py-4">
+        {/* Question list */}
+        <div className="border-t border-white/[.05] px-5 py-2">
           {FAQ_ITEMS.map((item, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`rounded-full border px-3.5 py-1.5 font-mono text-[12px] transition-all ${
-                active === i
-                  ? "border-indigo-500/40 bg-indigo-600/15 text-indigo-300"
-                  : "border-white/[.06] bg-white/[.02] text-zinc-500 hover:border-indigo-500/20 hover:text-zinc-300"
+              className={`flex w-full items-center gap-3 border-b border-white/[.04] py-3 text-left font-mono text-[13px] transition-colors last:border-b-0 ${
+                active === i ? "text-indigo-300" : "text-zinc-500 hover:text-zinc-200"
               }`}
             >
-              {item.q}
+              <span className={active === i ? "text-indigo-500" : "text-zinc-700"}>{'>'}</span>
+              <span className="flex-1 truncate">{item.q}</span>
+              {active === i && (
+                <motion.span
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"
+                />
+              )}
             </button>
           ))}
         </div>
@@ -972,20 +978,52 @@ const STAGE_STYLE: Record<string, { dot: string; text: string }> = {
   Won:       { dot: "bg-emerald-400", text: "text-emerald-300" },
 };
 
-const PIPELINE_COLUMNS = [
-  { name: "New", deals: [{ co: "Acme Co", val: "£4.2k", who: "JS" }, { co: "Globex", val: "£1.8k", who: "MK" }] },
-  { name: "Qualified", deals: [{ co: "Initech", val: "£12k", who: "AR" }] },
-  { name: "Proposal", deals: [{ co: "Umbrella", val: "£28k", who: "JS" }, { co: "Vandelay", val: "£6.4k", who: "MK" }] },
-  { name: "Won", deals: [{ co: "Hooli", val: "£40k", who: "AR" }] },
+const STAGE_NAMES = ["New", "Qualified", "Proposal", "Won"] as const;
+type StageName = typeof STAGE_NAMES[number];
+
+type Deal = { id: string; co: string; val: string; who: string; score: number; stage: StageName };
+
+const INITIAL_DEALS: Deal[] = [
+  { id: "acme",      co: "Acme Co",    val: "£4.2k",  who: "JS", score: 62, stage: "New" },
+  { id: "globex",    co: "Globex",     val: "£1.8k",  who: "MK", score: 54, stage: "New" },
+  { id: "initech",   co: "Initech",    val: "£12k",   who: "AR", score: 81, stage: "Qualified" },
+  { id: "soylent",   co: "Soylent",    val: "£3.6k",  who: "JS", score: 71, stage: "Qualified" },
+  { id: "umbrella",  co: "Umbrella",   val: "£28k",   who: "JS", score: 92, stage: "Proposal" },
+  { id: "vandelay",  co: "Vandelay",   val: "£6.4k",  who: "MK", score: 76, stage: "Proposal" },
+  { id: "hooli",     co: "Hooli",      val: "£40k",   who: "AR", score: 97, stage: "Won" },
 ];
 
+const NEXT_STAGE: Record<StageName, StageName | null> = {
+  New: "Qualified", Qualified: "Proposal", Proposal: "Won", Won: null,
+};
+
 function HeroPipelinePreview() {
+  const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS);
+  const [activity, setActivity] = useState("AI is scanning open deals…");
+  const [glowId, setGlowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setDeals(prev => {
+        const movable = prev.filter(d => NEXT_STAGE[d.stage]);
+        if (movable.length === 0) return prev;
+        const pick = movable[Math.floor(Math.random() * movable.length)]!;
+        const next = NEXT_STAGE[pick.stage]!;
+        setGlowId(pick.id);
+        setActivity(`AI moved ${pick.co} → ${next}`);
+        setTimeout(() => setGlowId(null), 1200);
+        return prev.map(d => (d.id === pick.id ? { ...d, stage: next, score: Math.min(99, d.score + 6) } : d));
+      });
+    }, 3200);
+    return () => clearInterval(t);
+  }, []);
+
   const totalValue = "£92.4k";
-  const totalDeals = PIPELINE_COLUMNS.reduce((n, c) => n + c.deals.length, 0);
+  const openDeals = deals.filter(d => d.stage !== "Won").length;
 
   return (
     <div
-      className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl"
+      className="mx-auto w-full max-w-4xl overflow-hidden rounded-2xl"
       style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(10,10,12,0.75)", backdropFilter: "blur(6px)" }}
     >
       <div className="flex items-center gap-2 border-b border-white/[.05] px-4 py-2.5">
@@ -1006,42 +1044,68 @@ function HeroPipelinePreview() {
       {/* Stats bar */}
       <div className="flex items-center gap-6 border-b border-white/[.05] bg-white/[.015] px-4 py-2.5 font-mono text-[11px]">
         <span className="text-zinc-500">Pipeline value <span className="text-zinc-100">{totalValue}</span></span>
-        <span className="text-zinc-500">Open deals <span className="text-zinc-100">{totalDeals}</span></span>
+        <span className="text-zinc-500">Open deals <span className="text-zinc-100">{openDeals}</span></span>
         <span className="text-zinc-500">Won this month <span className="text-emerald-400">£40k</span></span>
       </div>
 
+      {/* Live activity ticker */}
+      <div className="border-b border-white/[.05] bg-indigo-500/[.03] px-4 py-2 font-mono text-[11px] text-indigo-300">
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={activity}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="inline-flex items-center gap-2"
+          >
+            <span className="text-indigo-500">⚡</span>{activity}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+
       <div className="grid grid-cols-4 gap-3 p-4 text-left">
-        {PIPELINE_COLUMNS.map(col => {
-          const style = STAGE_STYLE[col.name]!;
+        {STAGE_NAMES.map(stageName => {
+          const style = STAGE_STYLE[stageName]!;
+          const colDeals = deals.filter(d => d.stage === stageName);
           return (
-            <div key={col.name} className="flex flex-col gap-2 rounded-lg border border-zinc-800/50 bg-white/[.01]">
+            <div key={stageName} className="flex flex-col gap-2 rounded-lg border border-zinc-800/50 bg-white/[.01]">
               <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-800/50">
                 <span className={`inline-flex items-center gap-1.5 rounded-md border border-white/[.05] bg-zinc-900/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`}/>
-                  {col.name}
+                  {stageName}
                 </span>
-                <span className="font-mono text-[10px] text-zinc-600">{col.deals.length}</span>
+                <span className="font-mono text-[10px] text-zinc-600">{colDeals.length}</span>
               </div>
-              <div className="flex flex-col gap-2 px-2 pb-2.5">
-                {col.deals.map((d, i) => (
-                  <motion.div
-                    key={d.co}
-                    initial={{ opacity: 0, y: 6 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.35, delay: i * 0.08 }}
-                    className="rounded-md border border-zinc-800/60 bg-zinc-900/50 px-2.5 py-2.5 hover:border-indigo-500/25 transition-colors"
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] text-zinc-200 truncate">{d.co}</span>
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[8px] text-zinc-400">{d.who}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] text-zinc-600">AI score 9{i}%</span>
-                      <span className="font-mono text-[11px] text-indigo-400">{d.val}</span>
-                    </div>
-                  </motion.div>
-                ))}
+              <div className="flex flex-col gap-2 px-2 pb-2.5 min-h-[80px]">
+                <AnimatePresence initial={false}>
+                  {colDeals.map(d => (
+                    <motion.div
+                      key={d.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.92 }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                        boxShadow: glowId === d.id
+                          ? "0 0 0 1px rgba(99,102,241,0.6), 0 0 16px rgba(99,102,241,0.35)"
+                          : "0 0 0 0px rgba(99,102,241,0)",
+                      }}
+                      exit={{ opacity: 0, scale: 0.92 }}
+                      transition={{ duration: 0.45, layout: { duration: 0.5, ease: "easeInOut" } }}
+                      className="rounded-md border border-zinc-800/60 bg-zinc-900/50 px-2.5 py-2.5"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-[11px] text-zinc-200 truncate">{d.co}</span>
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[8px] text-zinc-400">{d.who}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] text-zinc-600">AI score {d.score}%</span>
+                        <span className="font-mono text-[11px] text-indigo-400">{d.val}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
           );
