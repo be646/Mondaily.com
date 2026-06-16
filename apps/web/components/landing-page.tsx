@@ -852,20 +852,18 @@ function AutomationFlow() {
               <FlowNode node={FLOW_NODES[5]!} active={shownCount >= 6} />
             </div>
 
-            {/* Right branch — nurture (dimmed placeholder) */}
-            <div className="opacity-25">
-              <Connector active={false} short />
-              <div className="rounded-xl border border-white/[.04] bg-[#0a0a0a] px-5 py-3.5 font-mono">
-                <div className="text-[10px] text-zinc-700 mb-1">Sequences</div>
-                <div className="text-[12px] text-zinc-600">Enroll in Cold Nurture</div>
-                <div className="mt-0.5 text-[10px] text-zinc-800">6-step · 21-day cadence</div>
-              </div>
-              <Connector active={false} short />
-              <div className="rounded-xl border border-white/[.04] bg-[#0a0a0a] px-5 py-3.5 font-mono">
-                <div className="text-[10px] text-zinc-700 mb-1">Automations</div>
-                <div className="text-[12px] text-zinc-600">Tag as low-priority</div>
-                <div className="mt-0.5 text-[10px] text-zinc-800">Updates CRM field automatically</div>
-              </div>
+            {/* Right branch — nurture (fully active, same animation timing) */}
+            <div>
+              <Connector active={shownCount >= 4} short />
+              <FlowNode
+                node={{ id: "nurture-seq", type: "action", tag: "Sequences", label: "Enroll in Cold Nurture", sub: "6-step · 21-day cadence · re-engagement flow", delay: 1900 }}
+                active={shownCount >= 4}
+              />
+              <Connector active={shownCount >= 5} short />
+              <FlowNode
+                node={{ id: "nurture-auto", type: "action", tag: "Automations", label: "Tag as low-priority", sub: "CRM field updated · owner notified · review in 30d", delay: 2500 }}
+                active={shownCount >= 5}
+              />
             </div>
           </div>
 
