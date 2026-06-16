@@ -1517,9 +1517,10 @@ function RecordsSheetPreview() {
     setActivity(`Watching ${view.name.toLowerCase()}…`);
     let i = 0;
     const add = setInterval(() => {
-      if (i >= view.rows.length) { allAdded.current = true; clearInterval(add); return; }
+      if (i >= view.rows.length) { clearInterval(add); return; }
       setRows(prev => [...prev, view.rows[i]!]);
       i++;
+      if (i >= view.rows.length) allAdded.current = true;
     }, 450);
     return () => clearInterval(add);
   }, [view]);
@@ -1533,7 +1534,9 @@ function RecordsSheetPreview() {
     const t = setInterval(() => {
       if (!allAdded.current) return;
       setRows(prev => {
-        const pick = prev[Math.floor(Math.random() * prev.length)]!;
+        if (prev.length === 0) return prev;
+        const pick = prev[Math.floor(Math.random() * prev.length)];
+        if (!pick) return prev;
         const order = view.stageOrder;
         const curStage = String(pick[view.stageCol]);
         const stageIdx = order.indexOf(curStage);
