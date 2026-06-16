@@ -1,15 +1,30 @@
-import {ClerkProvider} from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
+import { Orbitron, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-orbitron",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata = {
-  title: "Mondaily — Your entire business, run by AI",
-  description: "A fully AI business operating system for sales, real estate, HR, finance, investments, and operations."
+  title: "Mondaily — One workspace. Every signal. Always thinking.",
+  description: "Autonomous AI workspace platform — CRM enrichment, deal pipeline, sequences, automations, and finance. All connected, always running.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${orbitron.variable} ${jetbrainsMono.variable}`}>
       <body>
         <ClerkProvider>
           {children}
