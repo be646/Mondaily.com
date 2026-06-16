@@ -122,7 +122,7 @@ function ProcessPanel({ visible }: { visible: boolean }) {
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
             </div>
-            <span className="font-mono text-[9px] text-zinc-700 tracking-wider">mondaily — inference</span>
+            <span className="font-mono text-[11px] text-zinc-400 tracking-wider">mondaily — inference</span>
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 0.9, repeat: Infinity }}
@@ -131,7 +131,7 @@ function ProcessPanel({ visible }: { visible: boolean }) {
           </div>
 
           {/* Code lines */}
-          <div className="px-3 py-3 font-mono text-[10px] leading-[1.75] min-h-[150px]">
+          <div className="px-3 py-3 font-mono text-[14px] leading-[1.75] min-h-[150px]">
             <AnimatePresence initial={false}>
               {allLines.map((line, i) => (
                 <motion.div
@@ -146,7 +146,7 @@ function ProcessPanel({ visible }: { visible: boolean }) {
                       ? "text-violet-400"
                       : line.startsWith("[")
                       ? "text-violet-600/80"
-                      : "text-zinc-600"
+                      : "text-zinc-300"
                   }
                 >
                   {line}
@@ -236,7 +236,7 @@ export function HeroChat() {
                 transition={{ duration: 0.2 }}
                 className="border-b border-white/[.05] px-4 py-3 space-y-1.5"
               >
-                <p className="font-mono text-[9px] text-zinc-700 mb-2 tracking-widest uppercase">// try asking</p>
+                <p className="font-mono text-[11px] text-zinc-400 mb-2 tracking-widest uppercase">// try asking</p>
                 {SUGGESTIONS.map((s, i) => (
                   <motion.button
                     key={i}
@@ -244,14 +244,14 @@ export function HeroChat() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.07 }}
                     onClick={() => void send(s.text)}
-                    className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left font-mono text-[11px] transition-all"
+                    className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left font-mono text-[13px] transition-all"
                     style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,58,237,0.25)"; (e.currentTarget as HTMLElement).style.background = "rgba(124,58,237,0.05)"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
                   >
-                    <span className="text-violet-700 text-[10px] shrink-0">{s.icon}</span>
+                    <span className="text-violet-700 text-[14px] shrink-0">{s.icon}</span>
                     <span className="text-zinc-400 group-hover:text-violet-300 transition-colors">{s.text}</span>
-                    <span className="ml-auto text-[10px] text-zinc-800 group-hover:text-violet-700 transition-colors shrink-0">↵</span>
+                    <span className="ml-auto text-[14px] text-zinc-500 group-hover:text-violet-700 transition-colors shrink-0">↵</span>
                   </motion.button>
                 ))}
               </motion.div>
@@ -275,10 +275,10 @@ export function HeroChat() {
                         animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
                       />
                     ))}
-                    <span className="font-mono text-[11px] text-zinc-500 ml-1">processing…</span>
+                    <span className="font-mono text-[13px] text-zinc-500 ml-1">processing…</span>
                   </div>
                 ) : reply ? (
-                  <p className="font-mono text-[12px] leading-relaxed text-zinc-300">
+                  <p className="font-mono text-[14px] leading-relaxed text-zinc-300">
                     <ReplyTypewriter key={reply} text={reply} />
                   </p>
                 ) : null}
@@ -301,7 +301,7 @@ export function HeroChat() {
 
           {/* Bottom bar */}
           <div className="flex items-center justify-between px-5 pb-4">
-            <span className="font-mono text-[10px] text-zinc-600">Enter ↵ to send</span>
+            <span className="font-mono text-[14px] text-zinc-300">Enter ↵ to send</span>
             <button
               onClick={() => void send()}
               disabled={!input.trim() || loading}
@@ -325,7 +325,7 @@ export function HeroChat() {
             whileHover={{ backgroundColor: "rgba(124,58,237,0.07)" }}
           >
             <span className="h-1 w-4 shrink-0 bg-violet-700/50 group-hover:bg-violet-500 transition-colors" style={{ borderRadius: 1 }}/>
-            <span className="font-mono text-[12px] leading-snug text-zinc-500 group-hover:text-violet-300 transition-colors">
+            <span className="font-mono text-[14px] leading-snug text-zinc-500 group-hover:text-violet-300 transition-colors">
               <TypewriterLine text={line} delay={800 + i * 600} />
             </span>
           </motion.div>
