@@ -304,13 +304,22 @@ function FeatureSection() {
         <span className="text-violet-600">{'>'}</span> One platform. Every signal.
       </h2>
 
-      {/* Live stats bar */}
-      <div className="mb-8 flex gap-6 font-mono text-[10px] text-zinc-700">
-        <span><span className="text-violet-800">8,420</span> records enriched</span>
-        <span className="text-zinc-900">·</span>
-        <span><span className="text-violet-800">234</span> deals tracked</span>
-        <span className="text-zinc-900">·</span>
-        <span><span className="text-violet-800">12</span> sequences running</span>
+      {/* Live stats bar — numbers pulse to signal the system is live */}
+      <div className="mb-8 flex gap-6 font-mono text-[10px] text-zinc-600">
+        <span>
+          <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 0 }} className="text-violet-600">8,420</motion.span>
+          {" "}records enriched
+        </span>
+        <span className="text-zinc-800">·</span>
+        <span>
+          <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 1 }} className="text-violet-600">234</motion.span>
+          {" "}deals tracked
+        </span>
+        <span className="text-zinc-800">·</span>
+        <span>
+          <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 2 }} className="text-violet-600">12</motion.span>
+          {" "}sequences running
+        </span>
       </div>
 
       {/* Node map */}
@@ -325,27 +334,29 @@ function FeatureSection() {
           </defs>
           <rect width="1300" height="420" fill="url(#grid)" opacity="0.5"/>
 
-          {/* 1. EDGES — CSS transition, no Framer Motion */}
+          {/* 1. EDGES */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
+            const anyHovered = active.size > 0;
             const lit = active.has(a) && active.has(b);
             const x1 = na.x + NW; const y1 = na.y + NH / 2;
             const x2 = nb.x;      const y2 = nb.y + NH / 2;
             const mx = (x1 + x2) / 2;
+            // resting: visible dashed lines; hover: active edges go solid+bright, others dim
+            const op = anyHovered ? (lit ? 0.85 : 0.08) : 0.28;
             return (
-              <path
-                key={i}
+              <path key={i}
                 d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
                 fill="none"
-                stroke={lit ? "#6d28d9" : "#1a1a1a"}
+                stroke={lit ? "#7c3aed" : "#444"}
                 strokeWidth={lit ? 1.5 : 1}
-                strokeDasharray={lit ? undefined : "4 5"}
-                style={{ opacity: lit ? 0.9 : 0.3, transition: "all 0.2s ease" }}
+                strokeDasharray={lit ? undefined : "4 6"}
+                style={{ opacity: op, transition: "all 0.2s ease" }}
               />
             );
           })}
 
-          {/* 2. Traveling dots — always mounted, opacity toggled via CSS */}
+          {/* 2. Traveling dots */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
             const lit = active.has(a) && active.has(b);
@@ -354,15 +365,16 @@ function FeatureSection() {
             const mx = (x1 + x2) / 2;
             return (
               <circle key={`dot-${i}`} r="3" fill="#7c3aed"
-                style={{ opacity: lit ? 0.8 : 0, transition: "opacity 0.2s ease" }}>
+                style={{ opacity: lit ? 0.85 : 0, transition: "opacity 0.2s ease" }}>
                 <animateMotion dur="2s" repeatCount="indefinite"
                   path={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}/>
               </circle>
             );
           })}
 
-          {/* 3. Sub-branch lines + dots — CSS transition */}
+          {/* 3. Sub-branch lines + dots */}
           {MAIN_NODES.map(node => {
+            const anyHovered = active.size > 0;
             const on = active.has(node.id);
             const cx = node.x + NW / 2;
             const cy = node.y + NH / 2;
@@ -370,57 +382,57 @@ function FeatureSection() {
               const { ax, ay } = sub as { label: string; ax: number; ay: number };
               const anchor = node.subAnchor;
               const dotX = anchor === "start" ? ax - 4 : ax + 4;
+              const lineOp = anyHovered ? (on ? 0.5 : 0.02) : 0.12;
+              const dotOp  = anyHovered ? (on ? 0.7 : 0.02) : 0.15;
               return (
                 <g key={`${node.id}-sl${si}`}>
-                  <line
-                    x1={cx} y1={cy} x2={dotX} y2={ay}
-                    stroke="#4c1d95" strokeWidth="0.8" strokeDasharray="2 3"
-                    style={{ opacity: on ? 0.5 : 0.04, transition: "opacity 0.2s ease" }}
+                  <line x1={cx} y1={cy} x2={dotX} y2={ay}
+                    stroke="#6d28d9" strokeWidth="0.8" strokeDasharray="2 3"
+                    style={{ opacity: lineOp, transition: "opacity 0.2s ease" }}
                   />
                   <circle cx={dotX} cy={ay} r="1.8" fill="#6d28d9"
-                    style={{ opacity: on ? 0.7 : 0.04, transition: "opacity 0.2s ease" }}
+                    style={{ opacity: dotOp, transition: "opacity 0.2s ease" }}
                   />
                 </g>
               );
             });
           })}
 
-          {/* 4. Node boxes — hover target, CSS transition */}
+          {/* 4. Node boxes */}
           {MAIN_NODES.map(node => {
+            const anyHovered = active.size > 0;
             const on = active.has(node.id);
+            const nodeOp = anyHovered ? (on ? 1 : 0.25) : 0.75;
             return (
-              <g
-                key={node.id}
-                transform={`translate(${node.x},${node.y})`}
+              <g key={node.id} transform={`translate(${node.x},${node.y})`}
                 style={{ cursor: "pointer" }}
                 onMouseEnter={() => handleNodeEnter(node.id)}
                 onMouseLeave={handleNodeLeave}
               >
                 <rect x="-8" y="-8" width={NW + 16} height={NH + 16} fill="transparent"/>
-                <rect
-                  x="0" y="0" width={NW} height={NH} rx="6"
-                  fill="#0a0a0a"
-                  stroke={on ? "rgba(255,255,255,0.22)" : "#1e1e1e"}
+                <rect x="0" y="0" width={NW} height={NH} rx="6"
+                  fill="#0d0d0d"
+                  stroke={on ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.07)"}
                   strokeWidth="1"
-                  style={{ opacity: on ? 1 : 0.35, transition: "all 0.15s ease" }}
+                  style={{ opacity: nodeOp, transition: "all 0.15s ease" }}
                 />
                 <circle cx="12" cy={NH / 2} r="3"
-                  fill={on ? "#7c3aed" : "#2a2a2a"}
+                  fill={on ? "#7c3aed" : "#333"}
                   style={{ transition: "fill 0.15s ease" }}
                 />
               </g>
             );
           })}
 
-          {/* 5. ALL text — final layer, CSS transition, no stagger */}
+          {/* 5. ALL text — final layer */}
           {MAIN_NODES.map(node => {
+            const anyHovered = active.size > 0;
             const on = active.has(node.id);
+            const col = on ? "#e4e4e7" : anyHovered ? "#2a2a2a" : "#666";
             return (
-              <text
-                key={`${node.id}-lbl`}
+              <text key={`${node.id}-lbl`}
                 x={node.x + 24} y={node.y + NH / 2 + 4}
-                fill={on ? "#e4e4e7" : "#333"}
-                fontSize="10"
+                fill={col} fontSize="10"
                 fontFamily="'JetBrains Mono', monospace"
                 style={{ transition: "fill 0.15s ease" }}
               >
@@ -429,21 +441,20 @@ function FeatureSection() {
             );
           })}
           {MAIN_NODES.map(node => {
+            const anyHovered = active.size > 0;
             const on = active.has(node.id);
+            const subOp = anyHovered ? (on ? 0.5 : 0.02) : 0.18;
             return node.subs.map((sub, si) => {
               const { ax, ay } = sub as { label: string; ax: number; ay: number };
               const anchor = node.subAnchor;
               const dotX = anchor === "start" ? ax - 4 : ax + 4;
               return (
-                <text
-                  key={`${node.id}-st${si}`}
+                <text key={`${node.id}-st${si}`}
                   x={anchor === "start" ? dotX + 6 : dotX - 6}
-                  y={ay + 3.5}
-                  textAnchor={anchor}
-                  fill="#fff"
-                  fontSize="9"
+                  y={ay + 3.5} textAnchor={anchor}
+                  fill="#fff" fontSize="9"
                   fontFamily="'JetBrains Mono', monospace"
-                  style={{ opacity: on ? 0.45 : 0.03, transition: "opacity 0.15s ease" }}
+                  style={{ opacity: subOp, transition: "opacity 0.15s ease" }}
                 >
                   {sub.label}
                 </text>
@@ -527,39 +538,31 @@ const WORKFLOW_STEPS = [
   },
 ];
 
+const WORKFLOW_LOOP_MS = 3900 + 3000; // last step + pause before restart
+
 function WorkflowDemo() {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
   const [shownFields, setShownFields] = useState<number>(0);
   const [shownSteps, setShownSteps] = useState<number>(0);
 
-  // Trigger animation when section scrolls into view
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e?.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.2 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+  const runSeq = useCallback(() => {
+    setShownFields(0);
+    setShownSteps(0);
+    const timers = [
+      ...RECORD_FIELDS.map((f, i) => setTimeout(() => setShownFields(i + 1), 200 + f.delay)),
+      ...WORKFLOW_STEPS.map((s, i) => setTimeout(() => setShownSteps(i + 1), s.delay)),
+    ];
+    return timers;
   }, []);
 
   useEffect(() => {
-    if (!visible) return;
-    // Animate record fields
-    const timers = RECORD_FIELDS.map((f, i) =>
-      setTimeout(() => setShownFields(i + 1), 200 + f.delay)
-    );
-    // Animate workflow steps
-    const stepTimers = WORKFLOW_STEPS.map((s, i) =>
-      setTimeout(() => setShownSteps(i + 1), s.delay)
-    );
-    return () => { [...timers, ...stepTimers].forEach(clearTimeout); };
-  }, [visible]);
+    const timers = runSeq();
+    const loop = setInterval(runSeq, WORKFLOW_LOOP_MS);
+    return () => { timers.forEach(clearTimeout); clearInterval(loop); };
+  }, [runSeq]);
 
   return (
-    <section ref={ref} className="mx-auto max-w-6xl px-6 py-20">
+    <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// live.workflow</div>
       <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{">"}</span> What happens when a record enters Mondaily
@@ -761,31 +764,25 @@ const FLOW_NODES = [
   },
 ];
 
-function FlowNode({ node, active }: { node: typeof FLOW_NODES[number]; active: boolean }) {
-  const borderCol = node.type === "trigger"
-    ? "border-violet-500/30"
-    : node.type === "condition"
-    ? "border-zinc-700/50"
-    : "border-white/[.06]";
-  const tagCol = node.type === "trigger" || (active && node.type === "action")
-    ? "text-violet-600"
-    : "text-zinc-700";
+function FlowNode({ node, active, alwaysShow = false }: { node: typeof FLOW_NODES[number]; active: boolean; alwaysShow?: boolean }) {
+  const isVisible = active || alwaysShow;
+  const borderCol = active
+    ? (node.type === "trigger" ? "border-violet-500/40" : node.type === "condition" ? "border-zinc-600/60" : "border-white/[.1]")
+    : "border-white/[.04]";
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: active ? 1 : 0.15, y: 0 }}
-      transition={{ duration: 0.4 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: active ? 1 : alwaysShow ? 0.55 : 0.22, y: 0 }}
+      transition={{ duration: 0.35 }}
       className={`rounded-xl border ${borderCol} bg-[#0a0a0a] px-5 py-3.5 font-mono`}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className={`text-[10px] ${tagCol}`}>{node.tag}</span>
+        <span className={`text-[10px] ${active ? (node.type === "trigger" || node.type === "action" ? "text-violet-500" : "text-zinc-400") : "text-zinc-700"}`}>
+          {node.tag}
+        </span>
         {active && node.type !== "condition" && (
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-[10px] text-violet-800"
-          >
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] text-violet-800">
             ✓ completed
           </motion.span>
         )}
@@ -793,7 +790,7 @@ function FlowNode({ node, active }: { node: typeof FLOW_NODES[number]; active: b
           <span className="text-[10px] text-violet-600">branching →</span>
         )}
       </div>
-      <div className="text-[12px] text-white">{node.label}</div>
+      <div className={`text-[12px] ${isVisible ? "text-white" : "text-zinc-600"}`}>{node.label}</div>
       <div className="mt-0.5 text-[10px] text-zinc-600 leading-relaxed">{node.sub}</div>
     </motion.div>
   );
@@ -841,15 +838,16 @@ function AutomationFlow() {
       <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{">"}</span> Build once. Run on every deal, forever.
       </h2>
-      <p className="mb-10 font-mono text-[11px] text-zinc-700">
+      <p className="mb-6 font-mono text-[11px] text-zinc-700">
         Visual flows that trigger on real CRM events — no code, no ops overhead.
       </p>
+      <p className="mb-6 font-mono text-[10px] text-zinc-800">// hover to run the flow</p>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
         {/* Flow diagram */}
         <div className="min-w-0">
-          {/* Trigger */}
-          <FlowNode node={FLOW_NODES[0]!} active={shownCount >= 1} />
+          {/* Trigger — always visible as anchor */}
+          <FlowNode node={FLOW_NODES[0]!} active={shownCount >= 1} alwaysShow />
           <Connector active={shownCount >= 2} />
           <FlowNode node={FLOW_NODES[1]!} active={shownCount >= 2} />
           <Connector active={shownCount >= 3} />
