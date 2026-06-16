@@ -1,16 +1,22 @@
 "use client";
 
 export function Logo({ size = 52 }: { size?: number }) {
-  const fs = Math.round(size * 0.46);
+  const fs = Math.round(size * 0.42);
+  const mark = Math.round(size * 0.62);
 
   return (
-    <div className="flex items-center" style={{ lineHeight: 1 }}>
+    <div className="flex items-center" style={{ gap: Math.round(size * 0.14), lineHeight: 1 }}>
+      <svg width={mark} height={mark} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block" }}>
+        <circle cx="16" cy="16" r="6.5" fill="#6366f1"/>
+        <circle cx="16" cy="16" r="13" stroke="#6366f1" strokeWidth="1.4" opacity="0.35"/>
+        <circle cx="27" cy="9" r="2.4" fill="#6366f1" opacity="0.85"/>
+      </svg>
       <span
         className="font-orbitron"
         style={{
-          fontWeight: 700,
+          fontWeight: 500,
           fontSize: `${fs}px`,
-          letterSpacing: "0.1em",
+          letterSpacing: "0.08em",
           textTransform: "uppercase",
           color: "white",
           lineHeight: 1,
@@ -19,19 +25,6 @@ export function Logo({ size = 52 }: { size?: number }) {
       >
         MONDAILY
       </span>
-      <span
-        aria-hidden
-        style={{
-          display: "inline-block",
-          width: Math.max(5, Math.round(size * 0.09)),
-          height: Math.max(5, Math.round(size * 0.09)),
-          borderRadius: "50%",
-          background: "#7c3aed",
-          marginLeft: Math.max(3, Math.round(size * 0.06)),
-          marginBottom: Math.round(fs * 0.32),
-          boxShadow: "0 0 8px rgba(124,58,237,0.7)",
-        }}
-      />
     </div>
   );
 }

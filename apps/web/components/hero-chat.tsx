@@ -51,7 +51,7 @@ function TypewriterLine({ text, delay = 0 }: { text: string; delay?: number }) {
     <span>
       {shown}
       {shown.length < text.length && (
-        <span className="inline-block w-[1px] h-[0.85em] bg-violet-600 ml-[1px] opacity-70 animate-pulse align-middle"/>
+        <span className="inline-block w-[1px] h-[0.85em] bg-indigo-600 ml-[1px] opacity-70 animate-pulse align-middle"/>
       )}
     </span>
   );
@@ -72,7 +72,7 @@ function ReplyTypewriter({ text }: { text: string }) {
     <>
       {shown}
       {shown.length < text.length && (
-        <span className="inline-block w-[1px] h-[0.85em] bg-violet-500 ml-[1px] opacity-60 animate-pulse align-middle"/>
+        <span className="inline-block w-[1px] h-[0.85em] bg-indigo-500 ml-[1px] opacity-60 animate-pulse align-middle"/>
       )}
     </>
   );
@@ -110,7 +110,7 @@ function ProcessPanel({ visible }: { visible: boolean }) {
           transition={{ duration: 0.4 }}
           className="hidden lg:flex absolute top-0 left-[calc(100%+1.5rem)] w-60 flex-col rounded-xl overflow-hidden"
           style={{
-            border: "1px solid rgba(124,58,237,0.1)",
+            border: "1px solid rgba(99,102,241,0.1)",
             background: "rgba(6,6,6,0.55)",
             backdropFilter: "blur(8px)",
           }}
@@ -126,7 +126,7 @@ function ProcessPanel({ visible }: { visible: boolean }) {
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 0.9, repeat: Infinity }}
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-700"
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-700"
             />
           </div>
 
@@ -141,11 +141,11 @@ function ProcessPanel({ visible }: { visible: boolean }) {
                   transition={{ duration: 0.22 }}
                   className={
                     line.startsWith(">")
-                      ? "text-violet-500"
+                      ? "text-indigo-500"
                       : line.startsWith("[GENERATE]")
-                      ? "text-violet-400"
+                      ? "text-indigo-400"
                       : line.startsWith("[")
-                      ? "text-violet-600/80"
+                      ? "text-indigo-600/80"
                       : "text-zinc-300"
                   }
                 >
@@ -158,7 +158,7 @@ function ProcessPanel({ visible }: { visible: boolean }) {
               <motion.span
                 animate={{ opacity: [1, 0] }}
                 transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
-                className="inline-block w-[5px] h-[9px] bg-violet-700/60 align-middle mt-0.5"
+                className="inline-block w-[5px] h-[9px] bg-indigo-700/60 align-middle mt-0.5"
               />
             )}
           </div>
@@ -216,15 +216,15 @@ export function HeroChat() {
           className="rounded-2xl"
           animate={{
             boxShadow: loading
-              ? ["0 0 0 1px rgba(124,58,237,0.45), 0 0 50px rgba(124,58,237,0.2), 0 24px 64px rgba(0,0,0,0.6)",
-                 "0 0 0 1px rgba(124,58,237,0.7),  0 0 70px rgba(124,58,237,0.3), 0 24px 64px rgba(0,0,0,0.6)",
-                 "0 0 0 1px rgba(124,58,237,0.45), 0 0 50px rgba(124,58,237,0.2), 0 24px 64px rgba(0,0,0,0.6)"]
-              : ["0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
-                 "0 0 0 1px rgba(124,58,237,0.32), 0 0 40px rgba(124,58,237,0.12), 0 24px 64px rgba(0,0,0,0.6)",
-                 "0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)"],
+              ? ["0 0 0 1px rgba(99,102,241,0.45), 0 0 50px rgba(99,102,241,0.2), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(99,102,241,0.7),  0 0 70px rgba(99,102,241,0.3), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(99,102,241,0.45), 0 0 50px rgba(99,102,241,0.2), 0 24px 64px rgba(0,0,0,0.6)"]
+              : ["0 0 0 1px rgba(99,102,241,0.12), 0 0 24px rgba(99,102,241,0.06), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(99,102,241,0.32), 0 0 40px rgba(99,102,241,0.12), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(99,102,241,0.12), 0 0 24px rgba(99,102,241,0.06), 0 24px 64px rgba(0,0,0,0.6)"],
           }}
           transition={{ duration: loading ? 1.0 : 3.5, repeat: Infinity, ease: "easeInOut" }}
-          style={{ border: "1px solid rgba(124,58,237,0.18)", background: "rgba(12,12,12,0.95)" }}
+          style={{ border: "1px solid rgba(99,102,241,0.18)", background: "rgba(12,12,12,0.95)" }}
         >
           {/* Suggestion messages — shown when idle, no history */}
           <AnimatePresence>
@@ -246,12 +246,12 @@ export function HeroChat() {
                     onClick={() => void send(s.text)}
                     className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left font-mono text-[13px] transition-all"
                     style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,58,237,0.25)"; (e.currentTarget as HTMLElement).style.background = "rgba(124,58,237,0.05)"; }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.25)"; (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.05)"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
                   >
-                    <span className="text-violet-700 text-[14px] shrink-0">{s.icon}</span>
-                    <span className="text-zinc-400 group-hover:text-violet-300 transition-colors">{s.text}</span>
-                    <span className="ml-auto text-[14px] text-zinc-500 group-hover:text-violet-700 transition-colors shrink-0">↵</span>
+                    <span className="text-indigo-700 text-[14px] shrink-0">{s.icon}</span>
+                    <span className="text-zinc-400 group-hover:text-indigo-300 transition-colors">{s.text}</span>
+                    <span className="ml-auto text-[14px] text-zinc-500 group-hover:text-indigo-700 transition-colors shrink-0">↵</span>
                   </motion.button>
                 ))}
               </motion.div>
@@ -271,7 +271,7 @@ export function HeroChat() {
                 {loading ? (
                   <div className="flex items-center gap-2">
                     {[0,1,2].map(i => (
-                      <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-violet-700"
+                      <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-indigo-700"
                         animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
                       />
                     ))}
@@ -305,7 +305,7 @@ export function HeroChat() {
             <button
               onClick={() => void send()}
               disabled={!input.trim() || loading}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 disabled:opacity-20 active:scale-95 transition-all"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-20 active:scale-95 transition-all"
             >
               <SendIcon />
             </button>
@@ -322,10 +322,10 @@ export function HeroChat() {
           <motion.div
             key={i}
             className="group flex cursor-default items-center gap-3 rounded-lg px-3 py-2"
-            whileHover={{ backgroundColor: "rgba(124,58,237,0.07)" }}
+            whileHover={{ backgroundColor: "rgba(99,102,241,0.07)" }}
           >
-            <span className="h-1 w-4 shrink-0 bg-violet-700/50 group-hover:bg-violet-500 transition-colors" style={{ borderRadius: 1 }}/>
-            <span className="font-mono text-[14px] leading-snug text-zinc-500 group-hover:text-violet-300 transition-colors">
+            <span className="h-1 w-4 shrink-0 bg-indigo-700/50 group-hover:bg-indigo-500 transition-colors" style={{ borderRadius: 1 }}/>
+            <span className="font-mono text-[14px] leading-snug text-zinc-500 group-hover:text-indigo-300 transition-colors">
               <TypewriterLine text={line} delay={800 + i * 600} />
             </span>
           </motion.div>
