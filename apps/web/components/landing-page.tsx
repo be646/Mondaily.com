@@ -672,6 +672,259 @@ function WorkflowDemo() {
   );
 }
 
+// ── Automation flow diagram ───────────────────────────────────────────────────
+// Vertical flow: trigger → condition → branches → outcomes
+// Mirrors Attio's workflow builder but in our dark/violet/mono aesthetic
+
+const FLOW_NODES = [
+  {
+    id: "trigger",
+    type: "trigger" as const,
+    tag: "Trigger",
+    label: "Deal stage updated",
+    sub: "When any deal moves to Proposal or beyond",
+    delay: 0,
+  },
+  {
+    id: "score",
+    type: "action" as const,
+    tag: "AI · Score",
+    label: "Score deal intent",
+    sub: "AI reads activity, signals, ARR — outputs 0–100",
+    delay: 600,
+  },
+  {
+    id: "condition",
+    type: "condition" as const,
+    tag: "Condition",
+    label: "Score ≥ 70?",
+    sub: "Route high-intent vs nurture",
+    delay: 1200,
+    branches: [
+      { label: "High intent", col: "#6d28d9" },
+      { label: "Nurture", col: "#27272a" },
+    ],
+  },
+  {
+    id: "sequence",
+    type: "action" as const,
+    tag: "Sequences",
+    label: "Enroll in Enterprise Nurture",
+    sub: "4-step cadence · personalised by AI · open tracked",
+    delay: 1900,
+    branch: "left" as const,
+  },
+  {
+    id: "slack",
+    type: "action" as const,
+    tag: "Automations",
+    label: "Notify team on Slack",
+    sub: "#deals · "High-intent deal — acme.com · 84/100"",
+    delay: 2500,
+    branch: "left" as const,
+  },
+  {
+    id: "finance",
+    type: "action" as const,
+    tag: "Finance",
+    label: "Create quote",
+    sub: "INV-0031 · £8,400 · sent to sarah@acme.com",
+    delay: 3100,
+    branch: "left" as const,
+  },
+];
+
+function FlowNode({ node, active }: { node: typeof FLOW_NODES[number]; active: boolean }) {
+  const borderCol = node.type === "trigger"
+    ? "border-violet-500/30"
+    : node.type === "condition"
+    ? "border-zinc-700/50"
+    : "border-white/[.06]";
+  const tagCol = node.type === "trigger" || (active && node.type === "action")
+    ? "text-violet-600"
+    : "text-zinc-700";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: active ? 1 : 0.15, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className={`rounded-xl border ${borderCol} bg-[#0a0a0a] px-5 py-3.5 font-mono`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className={`text-[10px] ${tagCol}`}>{node.tag}</span>
+        {active && node.type !== "condition" && (
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[10px] text-violet-800"
+          >
+            ✓ completed
+          </motion.span>
+        )}
+        {active && node.type === "condition" && (
+          <span className="text-[10px] text-violet-600">branching →</span>
+        )}
+      </div>
+      <div className="text-[12px] text-white">{node.label}</div>
+      <div className="mt-0.5 text-[10px] text-zinc-600 leading-relaxed">{node.sub}</div>
+    </motion.div>
+  );
+}
+
+function AutomationFlow() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [shownCount, setShownCount] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e?.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.2 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const timers = FLOW_NODES.map((n, i) =>
+      setTimeout(() => setShownCount(i + 1), n.delay)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [visible]);
+
+  const Connector = ({ active, short }: { active: boolean; short?: boolean }) => (
+    <div className="flex justify-center">
+      <motion.div
+        animate={{ opacity: active ? 1 : 0.08 }}
+        transition={{ duration: 0.4 }}
+        className={`w-px ${short ? "h-5" : "h-8"} bg-gradient-to-b from-violet-800/60 to-transparent`}
+      />
+    </div>
+  );
+
+  return (
+    <section ref={ref} className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// automation.flow</div>
+      <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
+        <span className="text-violet-600">{">"}</span> Build once. Run on every deal, forever.
+      </h2>
+      <p className="mb-10 font-mono text-[11px] text-zinc-700">
+        Visual flows that trigger on real CRM events — no code, no ops overhead.
+      </p>
+
+      <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
+        {/* Flow diagram */}
+        <div className="min-w-0">
+          {/* Trigger */}
+          <FlowNode node={FLOW_NODES[0]!} active={shownCount >= 1} />
+          <Connector active={shownCount >= 2} />
+          <FlowNode node={FLOW_NODES[1]!} active={shownCount >= 2} />
+          <Connector active={shownCount >= 3} />
+          <FlowNode node={FLOW_NODES[2]!} active={shownCount >= 3} />
+
+          {/* Branch labels */}
+          <motion.div
+            animate={{ opacity: shownCount >= 3 ? 1 : 0.06 }}
+            transition={{ duration: 0.4 }}
+            className="my-3 grid grid-cols-2 gap-4 font-mono"
+          >
+            <div className="flex justify-center">
+              <span className="rounded-full border border-violet-500/20 bg-violet-600/10 px-3 py-0.5 text-[10px] text-violet-500">High intent</span>
+            </div>
+            <div className="flex justify-center">
+              <span className="rounded-full border border-white/[.05] bg-white/[.02] px-3 py-0.5 text-[10px] text-zinc-700">Nurture</span>
+            </div>
+          </motion.div>
+
+          {/* Two-column branch */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left branch — high intent */}
+            <div>
+              <Connector active={shownCount >= 4} short />
+              <FlowNode node={FLOW_NODES[3]!} active={shownCount >= 4} />
+              <Connector active={shownCount >= 5} short />
+              <FlowNode node={FLOW_NODES[4]!} active={shownCount >= 5} />
+              <Connector active={shownCount >= 6} short />
+              <FlowNode node={FLOW_NODES[5]!} active={shownCount >= 6} />
+            </div>
+
+            {/* Right branch — nurture (dimmed placeholder) */}
+            <div className="opacity-25">
+              <Connector active={false} short />
+              <div className="rounded-xl border border-white/[.04] bg-[#0a0a0a] px-5 py-3.5 font-mono">
+                <div className="text-[10px] text-zinc-700 mb-1">Sequences</div>
+                <div className="text-[12px] text-zinc-600">Enroll in Cold Nurture</div>
+                <div className="mt-0.5 text-[10px] text-zinc-800">6-step · 21-day cadence</div>
+              </div>
+              <Connector active={false} short />
+              <div className="rounded-xl border border-white/[.04] bg-[#0a0a0a] px-5 py-3.5 font-mono">
+                <div className="text-[10px] text-zinc-700 mb-1">Automations</div>
+                <div className="text-[12px] text-zinc-600">Tag as low-priority</div>
+                <div className="mt-0.5 text-[10px] text-zinc-800">Updates CRM field automatically</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Done state */}
+          {shownCount >= FLOW_NODES.length && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-6 flex items-center gap-3 font-mono"
+            >
+              <div className="h-px flex-1 bg-white/[.04]"/>
+              <span className="text-[10px] text-violet-800">[FLOW COMPLETE]</span>
+              <div className="h-px flex-1 bg-white/[.04]"/>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Right: stat callouts */}
+        <div className="flex flex-col gap-4 font-mono">
+          <div className="text-[10px] text-zinc-800 uppercase tracking-widest mb-2">// what this replaces</div>
+          {[
+            { before: "Manual scoring in a spreadsheet", after: "AI scores every deal in real-time", icon: "◈" },
+            { before: "Forgetting to follow up",         after: "Sequences enroll automatically",   icon: "◈" },
+            { before: "Chasing your team on Slack",      after: "Slack notified the moment it fires",icon: "◈" },
+            { before: "Finance chasing the deal owner",  after: "Quote created and sent instantly",  icon: "◈" },
+          ].map((row, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: shownCount >= i + 2 ? 1 : 0.1, x: 0 }}
+              transition={{ duration: 0.4 }}
+              className="rounded-xl border border-white/[.04] bg-[#0a0a0a] p-4"
+            >
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 text-violet-700 text-[10px]">{row.icon}</span>
+                <div>
+                  <div className="text-[10px] text-zinc-700 line-through mb-0.5">{row.before}</div>
+                  <div className="text-[11px] text-zinc-300">{row.after}</div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+
+          <motion.a
+            href="https://app.mondaily.com/sign-up"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: shownCount >= FLOW_NODES.length ? 1 : 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-2 rounded-xl border border-violet-500/25 bg-violet-600/10 px-5 py-3 text-center text-[11px] text-violet-400 hover:bg-violet-600/20 hover:text-violet-200 transition-all"
+          >
+            Build your first flow →
+          </motion.a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Email signup ──────────────────────────────────────────────────────────────
 function EmailSignup() {
   const [email, setEmail] = useState("");
@@ -827,6 +1080,9 @@ export function LandingPage() {
 
           {/* ── Workflow demo ── */}
           <WorkflowDemo />
+
+          {/* ── Automation flow diagram ── */}
+          <AutomationFlow />
 
           {/* ── Feature map + terminals ── */}
           <FeatureSection />
