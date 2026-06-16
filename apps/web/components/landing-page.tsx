@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
@@ -223,7 +223,7 @@ const TERM_STREAMS: { cmd: string; out: string }[][] = [
   ],
 ];
 
-function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; title: string }) {
+function TermWindow({ lines, title, accent = "#4f46e5" }: { lines: { cmd: string; out: string }[]; title: string; accent?: string }) {
   const [shown, setShown] = useState<{ cmd: string; out: string }[]>([]);
   const idx = useRef(0);
 
@@ -239,36 +239,35 @@ function TermWindow({ lines, title }: { lines: { cmd: string; out: string }[]; t
   }, [lines]);
 
   return (
-    <div className="rounded-xl border border-black/[.05] bg-white p-4 font-mono text-[13px]">
+    <div
+      className="rounded-xl border border-black/[.05] bg-white p-4 font-mono text-[13px]"
+      style={{ borderLeft: `2px solid ${accent}` }}
+    >
       <div className="mb-3 flex items-center gap-2 border-b border-black/[.04] pb-2.5">
-        <div className="flex gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
-        </div>
-        <span className="text-zinc-500 text-[14px]">{title}</span>
-        <motion.span animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 1.6, repeat: Infinity }} className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-800"/>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }}/>
+        <span className="text-zinc-700 text-[14px] font-medium">{title}</span>
+        <motion.span animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 1.6, repeat: Infinity }} className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }}/>
       </div>
       <div className="space-y-2 min-h-[80px]">
         <AnimatePresence initial={false}>
           {shown.map((l, i) => (
             <motion.div key={i + l.cmd} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-              <div className="text-indigo-700">{l.cmd}</div>
+              <div style={{ color: accent }}>{l.cmd}</div>
               <div className="text-zinc-500">{l.out}</div>
             </motion.div>
           ))}
         </AnimatePresence>
-        <motion.span animate={{ opacity: [0,1,0] }} transition={{ duration: 1, repeat: Infinity }} className="inline-block h-3 w-1 bg-indigo-800 align-middle"/>
+        <motion.span animate={{ opacity: [0,1,0] }} transition={{ duration: 1, repeat: Infinity }} className="inline-block h-3 w-1 align-middle" style={{ background: accent }}/>
       </div>
     </div>
   );
 }
 
-const MODULE_ZONES: { zone: string; ids: string[] }[] = [
-  { zone: "Data",         ids: ["crm", "enrich"] },
-  { zone: "Intelligence", ids: ["pipeline", "ask"] },
-  { zone: "Action",       ids: ["sequences", "automations"] },
-  { zone: "Operations",   ids: ["finance", "mcp"] },
+const MODULE_ZONES: { zone: string; ids: string[]; accent: string }[] = [
+  { zone: "Data",         ids: ["crm", "enrich"],          accent: "#4f46e5" },
+  { zone: "Intelligence", ids: ["pipeline", "ask"],        accent: "#7c3aed" },
+  { zone: "Action",       ids: ["sequences", "automations"], accent: "#d97706" },
+  { zone: "Operations",   ids: ["finance", "mcp"],         accent: "#059669" },
 ];
 
 function FeatureSection() {
@@ -302,23 +301,30 @@ function FeatureSection() {
 
       {/* Module grid — grouped by zone */}
       <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {MODULE_ZONES.map(z => (
+        {MODULE_ZONES.map((z, zi) => (
           <div key={z.zone} className="flex flex-col gap-3">
-            <span className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest">{z.zone}</span>
-            {z.ids.map(id => {
+            <span className="font-mono text-[11px] uppercase tracking-widest" style={{ color: z.accent }}>{z.zone}</span>
+            {z.ids.map((id, ii) => {
               const node = getNode(id);
               const on = active === id;
               return (
-                <div
+                <motion.div
                   key={id}
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.35, delay: (zi * 2 + ii) * 0.06 }}
+                  whileHover={{ y: -2 }}
                   onMouseEnter={() => setActive(id)}
                   onMouseLeave={() => setActive(null)}
-                  className={`rounded-xl border p-4 transition-all cursor-default ${
-                    on ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-black/[.05] bg-black/[.015]"
-                  }`}
+                  className="rounded-xl border p-4 transition-colors cursor-default"
+                  style={{
+                    borderColor: on ? `${z.accent}4d` : "rgba(0,0,0,.05)",
+                    background: on ? `${z.accent}0a` : "rgba(0,0,0,.015)",
+                  }}
                 >
                   <div className="mb-2.5 flex items-center gap-2.5">
-                    <span className={`h-1.5 w-1.5 rounded-full transition-colors ${on ? "bg-indigo-500" : "bg-zinc-300"}`}/>
+                    <span className="h-1.5 w-1.5 rounded-full transition-colors" style={{ background: on ? z.accent : "#d4d4d8" }}/>
                     <span className={`font-mono text-[14px] font-semibold transition-colors ${on ? "text-zinc-800" : "text-zinc-600"}`}>{node.label}</span>
                   </div>
                   <ul className="flex flex-col gap-1">
@@ -326,7 +332,7 @@ function FeatureSection() {
                       <li key={si} className="font-mono text-[11px] text-zinc-500 leading-relaxed">{sub.label}</li>
                     ))}
                   </ul>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -340,6 +346,7 @@ function FeatureSection() {
             key={i}
             lines={stream}
             title={["mondaily — enrichment", "mondaily — pipeline & AI", "mondaily — finance & ops"][i]!}
+            accent={["#4f46e5", "#7c3aed", "#059669"][i]!}
           />
         ))}
       </div>
@@ -351,61 +358,75 @@ function FeatureSection() {
 // Real Mondaily workflow: company added → enriched → scored → pipeline moved
 // → sequence enrolled → automation fires → finance invoice created
 
-const RECORD_FIELDS = [
-  { key: "Company",    val: "Acme Corp",                delay: 0 },
-  { key: "Domain",     val: "acme.com",                 delay: 120 },
-  { key: "ARR",        val: "$4.2M",                    delay: 240 },
-  { key: "Headcount",  val: "210 employees",            delay: 360 },
-  { key: "Stage",      val: "Series B · London",        delay: 480 },
-  { key: "Tech stack", val: "Stripe · AWS · HubSpot",   delay: 600 },
-  { key: "Signal",     val: "→ Hiring 3 engineers (2d ago)", delay: 720 },
-  { key: "AI Score",   val: "84 / 100  ████████░░",    delay: 840 },
+const RECORD_SCENARIOS = [
+  {
+    company: "Acme Corp", domain: "acme.com", initials: "AC",
+    contact: { name: "Sarah Johnson", role: "Head of IT", email: "sarah@acme.com" },
+    quoteId: "INV-0031", quoteAmount: "£8,400",
+    fields: [
+      { key: "Company",    val: "Acme Corp" },
+      { key: "Domain",     val: "acme.com" },
+      { key: "ARR",        val: "$4.2M" },
+      { key: "Headcount",  val: "210 employees" },
+      { key: "Stage",      val: "Series B · London" },
+      { key: "Tech stack", val: "Stripe · AWS · HubSpot" },
+      { key: "Signal",     val: "→ Hiring 3 engineers (2d ago)" },
+      { key: "AI Score",   val: "84 / 100  ████████░░" },
+    ],
+  },
+  {
+    company: "Globex Inc", domain: "globex.io", initials: "GX",
+    contact: { name: "Marcus Lee", role: "VP Revenue", email: "marcus@globex.io" },
+    quoteId: "INV-0032", quoteAmount: "£3,150",
+    fields: [
+      { key: "Company",    val: "Globex Inc" },
+      { key: "Domain",     val: "globex.io" },
+      { key: "ARR",        val: "$1.6M" },
+      { key: "Headcount",  val: "64 employees" },
+      { key: "Stage",      val: "Seed · Berlin" },
+      { key: "Tech stack", val: "Notion · GCP · Intercom" },
+      { key: "Signal",     val: "→ Raised new round (5d ago)" },
+      { key: "AI Score",   val: "71 / 100  ███████░░░" },
+    ],
+  },
+  {
+    company: "Initech", domain: "initech.com", initials: "IN",
+    contact: { name: "Priya Anand", role: "COO", email: "priya@initech.com" },
+    quoteId: "INV-0033", quoteAmount: "£14,900",
+    fields: [
+      { key: "Company",    val: "Initech" },
+      { key: "Domain",     val: "initech.com" },
+      { key: "ARR",        val: "$9.8M" },
+      { key: "Headcount",  val: "480 employees" },
+      { key: "Stage",      val: "Series C · Austin" },
+      { key: "Tech stack", val: "Salesforce · AWS · Zendesk" },
+      { key: "Signal",     val: "→ Visited pricing page 3x (1d ago)" },
+      { key: "AI Score",   val: "92 / 100  █████████░" },
+    ],
+  },
 ];
 
-const WORKFLOW_STEPS = [
-  {
-    tag: "[CRM]",
-    tagCol: "#3f3f46",
-    title: "Record added",
-    detail: "acme.com · Sarah Johnson, Head of IT",
-    delay: 400,
-  },
-  {
-    tag: "[ENRICH]",
-    tagCol: "#4f46e5",
-    title: "AI enrichment fired",
-    detail: "ARR $4.2M · 210 emp · Series B · London · Tech: Stripe, AWS",
-    delay: 1100,
-  },
-  {
-    tag: "[PIPELINE]",
-    tagCol: "#4f46e5",
-    title: "Deal scored 84/100 — moved to Proposal",
-    detail: "High intent · stage: Discovery → Proposal · owner: you",
-    delay: 1800,
-  },
-  {
-    tag: "[SEQ]",
-    tagCol: "#3f3f46",
-    title: "Sequence enrolled: Enterprise Nurture",
-    detail: "Step 1 sent · 4-step cadence · open tracked",
-    delay: 2500,
-  },
-  {
-    tag: "[AUTO]",
-    tagCol: "#4f46e5",
-    title: "Automation triggered on deal stage change",
-    detail: "Slack notified · CRM updated · owner pinged",
-    delay: 3200,
-  },
-  {
-    tag: "[FINANCE]",
-    tagCol: "#3f3f46",
-    title: "Quote INV-0031 created",
-    detail: "£8,400 · sent to sarah@acme.com · pending review",
-    delay: 3900,
-  },
+const STEP_TEMPLATE = [
+  { tag: "[CRM]",      tagCol: "#3f3f46", delay: 400,  title: "Record added" },
+  { tag: "[ENRICH]",   tagCol: "#4f46e5", delay: 1100, title: "AI enrichment fired" },
+  { tag: "[PIPELINE]", tagCol: "#4f46e5", delay: 1800, title: "Deal scored — moved to Proposal" },
+  { tag: "[SEQ]",      tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
+  { tag: "[AUTO]",     tagCol: "#4f46e5", delay: 3200, title: "Automation triggered on deal stage change" },
+  { tag: "[FINANCE]",  tagCol: "#3f3f46", delay: 3900, title: "Quote created" },
 ];
+
+function buildWorkflowSteps(scenario: typeof RECORD_SCENARIOS[number]) {
+  const f = scenario.fields;
+  const details = [
+    `${scenario.domain} · ${scenario.contact.name}, ${scenario.contact.role}`,
+    `ARR ${f[2]!.val} · ${f[3]!.val} · ${f[4]!.val} · Tech: ${f[5]!.val.split(" · ")[0]}`,
+    `Score ${f[7]!.val.split(" ")[0]}/100 · High intent · stage: Discovery → Proposal · owner: you`,
+    "Step 1 sent · 4-step cadence · open tracked",
+    "Slack notified · CRM updated · owner pinged",
+    `${scenario.quoteId} created · ${scenario.quoteAmount} · sent to ${scenario.contact.email} · pending review`,
+  ];
+  return STEP_TEMPLATE.map((s, i) => ({ ...s, detail: details[i]! }));
+}
 
 const WORKFLOW_LOOP_MS = 3900 + 3000; // last step + pause before restart
 
@@ -420,28 +441,58 @@ const REPLACES_ROWS = [
 
 function ComparisonSection() {
   return (
-    <section className="mx-auto max-w-4xl px-6 py-20">
+    <section className="mx-auto max-w-5xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how it&apos;s different</div>
       <h2 className="mb-3 font-sans text-4xl font-semibold tracking-tight text-zinc-800">What Mondaily replaces</h2>
       <p className="mb-10 font-mono text-[14px] text-zinc-500">
         Stop stitching together a CRM, a sequencer, a spreadsheet, and Slack. One AI workspace runs all of it.
       </p>
 
-      <div className="flex flex-col gap-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {REPLACES_ROWS.map((row, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="flex items-center gap-4 rounded-xl border border-black/[.04] bg-white px-5 py-4"
+            transition={{ duration: 0.4, delay: i * 0.08 }}
+            className="relative overflow-hidden rounded-xl border border-black/[.05] bg-white p-4"
           >
-            <span className="text-indigo-700 text-[14px] shrink-0">{row.icon}</span>
-            <div className="flex flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-4">
-              <div className="font-mono text-[14px] text-zinc-500 line-through sm:w-[46%]">{row.before}</div>
-              <span className="hidden text-zinc-400 sm:inline">→</span>
-              <div className="font-mono text-[14px] text-zinc-800">{row.after}</div>
+            {/* Old way */}
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] text-zinc-400">✕</span>
+              <span className="font-mono text-[13px] text-zinc-400 line-through">{row.before}</span>
+            </div>
+
+            {/* Animated connector */}
+            <div className="my-2 flex items-center gap-2 pl-[10px]">
+              <motion.div
+                className="h-px flex-1 origin-left bg-gradient-to-r from-indigo-400/50 to-emerald-500/50"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 + 0.2 }}
+              />
+              <motion.span
+                animate={{ y: [0, 2, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                className="text-[11px] text-zinc-400"
+              >
+                ↓ now
+              </motion.span>
+            </div>
+
+            {/* New way */}
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-[10px] text-emerald-600">
+                ✓
+                <motion.span
+                  animate={{ opacity: [0, 0.6, 0], scale: [1, 1.6, 1.6] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                  className="absolute inset-0 rounded-full bg-emerald-500/40"
+                />
+              </span>
+              <span className="font-mono text-[13px] font-medium text-zinc-800">{row.after}</span>
             </div>
           </motion.div>
         ))}
@@ -467,6 +518,30 @@ const FAQ_ITEMS = [
   {
     q: "Is there a contract, or is it month-to-month?",
     a: "Monthly and annual billing are both available, but neither requires a contract. Annual just gets you a discount — you're never locked into a multi-year term.",
+  },
+  {
+    q: "Is Mondaily a CRM?",
+    a: "Not exactly — Mondaily is an autonomous, AI-native operating system for revenue and operations. It includes pipeline and contact records, but it also enriches, scores, sequences, automates, and handles finance — work a CRM alone leaves to you and a stack of other tools.",
+  },
+  {
+    q: "How does the AI enrichment actually work?",
+    a: "When a record is added, Mondaily looks up the company's domain and pulls firmographic data — ARR, headcount, funding stage, tech stack — plus live signals like hiring activity or recent funding. It's attached to the record automatically, no manual research required.",
+  },
+  {
+    q: "Can I build my own automations and sequences?",
+    a: "Yes. Automations trigger on any record or pipeline event — stage change, new signal, field update — and can notify a channel, update a record, or kick off a sequence. Sequences are multi-step outreach cadences you design once and Mondaily runs continuously.",
+  },
+  {
+    q: "Does Mondaily handle invoicing and finance, or is that a separate tool?",
+    a: "It's built in. Quotes, invoices, and expense tracking live in the same workspace as your pipeline, so a won deal can trigger a quote automatically without exporting anything to a separate finance app.",
+  },
+  {
+    q: "What integrations does Mondaily support?",
+    a: "Mondaily connects to your inbox, calendar, and common finance and communication tools out of the box, plus an API and MCP server for custom integrations. If you use a tool we don't yet support natively, talk to us — most requests are quick to add.",
+  },
+  {
+    q: "How long does it take to get set up?",
+    a: "Most teams are live within a day. Import your existing contacts and deals via CSV, connect your inbox, and the AI starts enriching records immediately — there's no lengthy implementation process.",
   },
 ];
 
@@ -561,24 +636,35 @@ function FAQSection() {
 
 function WorkflowDemo() {
   const ref = useRef<HTMLDivElement>(null);
+  const [scenarioIdx, setScenarioIdx] = useState(0);
   const [shownFields, setShownFields] = useState<number>(0);
   const [shownSteps, setShownSteps] = useState<number>(0);
 
-  const runSeq = useCallback(() => {
+  const scenario = RECORD_SCENARIOS[scenarioIdx]!;
+  const fields = scenario.fields;
+  const steps = useMemo(() => buildWorkflowSteps(scenario), [scenario]);
+
+  const runSeq = useCallback((s: typeof scenario, f: typeof fields, st: typeof steps) => {
     setShownFields(0);
     setShownSteps(0);
     const timers = [
-      ...RECORD_FIELDS.map((f, i) => setTimeout(() => setShownFields(i + 1), 200 + f.delay)),
-      ...WORKFLOW_STEPS.map((s, i) => setTimeout(() => setShownSteps(i + 1), s.delay)),
+      ...f.map((_field, i) => setTimeout(() => setShownFields(i + 1), 200 + i * 120)),
+      ...st.map((step, i) => setTimeout(() => setShownSteps(i + 1), step.delay)),
     ];
     return timers;
   }, []);
 
   useEffect(() => {
-    const timers = runSeq();
-    const loop = setInterval(runSeq, WORKFLOW_LOOP_MS);
-    return () => { timers.forEach(clearTimeout); clearInterval(loop); };
-  }, [runSeq]);
+    const timers = runSeq(scenario, fields, steps);
+    return () => { timers.forEach(clearTimeout); };
+  }, [scenario, fields, steps, runSeq]);
+
+  useEffect(() => {
+    const loop = setInterval(() => {
+      setScenarioIdx(i => (i + 1) % RECORD_SCENARIOS.length);
+    }, WORKFLOW_LOOP_MS);
+    return () => clearInterval(loop);
+  }, []);
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
@@ -596,10 +682,10 @@ function WorkflowDemo() {
           {/* Card header */}
           <div className="mb-5 flex items-center justify-between border-b border-black/[.04] pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-600/10 text-[14px] text-indigo-500 font-bold">AC</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-600/10 text-[14px] text-indigo-500 font-bold">{scenario.initials}</div>
               <div>
-                <div className="text-[13px] text-zinc-900 font-medium">Acme Corp</div>
-                <div className="text-[14px] text-zinc-600">acme.com</div>
+                <div className="text-[13px] text-zinc-900 font-medium">{scenario.company}</div>
+                <div className="text-[14px] text-zinc-600">{scenario.domain}</div>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
@@ -614,7 +700,7 @@ function WorkflowDemo() {
 
           {/* Fields */}
           <div className="space-y-3">
-            {RECORD_FIELDS.map((f, i) => (
+            {fields.map((f, i) => (
               <motion.div
                 key={f.key}
                 initial={{ opacity: 0, x: -6 }}
@@ -634,10 +720,12 @@ function WorkflowDemo() {
           <div className="mt-5 border-t border-black/[.04] pt-4">
             <div className="text-[14px] text-zinc-500 mb-2">Contact</div>
             <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-zinc-200 flex items-center justify-center text-[11px] text-zinc-500">SJ</div>
+              <div className="h-6 w-6 rounded-full bg-zinc-200 flex items-center justify-center text-[11px] text-zinc-500">
+                {scenario.contact.name.split(" ").map(p => p[0]).join("")}
+              </div>
               <div>
-                <div className="text-[13px] text-zinc-600">Sarah Johnson</div>
-                <div className="text-[14px] text-zinc-500">Head of IT · sarah@acme.com</div>
+                <div className="text-[13px] text-zinc-600">{scenario.contact.name}</div>
+                <div className="text-[14px] text-zinc-500">{scenario.contact.role} · {scenario.contact.email}</div>
               </div>
             </div>
           </div>
@@ -663,7 +751,7 @@ function WorkflowDemo() {
           {/* Steps */}
           <div className="space-y-4">
             <AnimatePresence initial={false}>
-              {WORKFLOW_STEPS.slice(0, shownSteps).map((step, i) => (
+              {steps.slice(0, shownSteps).map((step, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 8 }}
@@ -690,7 +778,7 @@ function WorkflowDemo() {
             </AnimatePresence>
 
             {/* Blinking cursor while running */}
-            {shownSteps < WORKFLOW_STEPS.length && shownSteps > 0 && (
+            {shownSteps < steps.length && shownSteps > 0 && (
               <div className="flex items-center gap-2 pl-5">
                 {[0,1,2].map(i => (
                   <motion.span key={i} className="h-1 w-1 rounded-full bg-indigo-800"
@@ -703,7 +791,7 @@ function WorkflowDemo() {
             )}
 
             {/* All done */}
-            {shownSteps >= WORKFLOW_STEPS.length && (
+            {shownSteps >= steps.length && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -972,51 +1060,82 @@ function AutomationFlow() {
 // ── Email signup ──────────────────────────────────────────────────────────────
 // ── Hero visual proof — pipeline board, styled like the real app ──────────────
 const STAGE_STYLE: Record<string, { dot: string; text: string }> = {
-  New:       { dot: "bg-zinc-400",   text: "text-zinc-600" },
-  Qualified: { dot: "bg-blue-400",   text: "text-blue-300" },
-  Proposal:  { dot: "bg-amber-400",  text: "text-amber-300" },
-  Won:       { dot: "bg-emerald-400", text: "text-emerald-300" },
+  New:         { dot: "bg-zinc-400",    text: "text-zinc-600" },
+  Qualified:   { dot: "bg-blue-500",    text: "text-blue-700" },
+  Proposal:    { dot: "bg-amber-500",   text: "text-amber-700" },
+  Negotiation: { dot: "bg-violet-500",  text: "text-violet-700" },
+  Won:         { dot: "bg-emerald-500", text: "text-emerald-700" },
 };
 
-const STAGE_NAMES = ["New", "Qualified", "Proposal", "Won"] as const;
+const STAGE_NAMES = ["New", "Qualified", "Proposal", "Negotiation", "Won"] as const;
 type StageName = typeof STAGE_NAMES[number];
 
 type Deal = { id: string; co: string; val: string; who: string; score: number; stage: StageName };
 
+const DEAL_POOL: Omit<Deal, "stage" | "score">[] = [
+  { id: "acme",     co: "Acme Co",    val: "£4.2k",  who: "JS" },
+  { id: "globex",   co: "Globex",     val: "£1.8k",  who: "MK" },
+  { id: "initech",  co: "Initech",    val: "£12k",   who: "AR" },
+  { id: "soylent",  co: "Soylent",    val: "£3.6k",  who: "JS" },
+  { id: "umbrella", co: "Umbrella",   val: "£28k",   who: "JS" },
+  { id: "vandelay", co: "Vandelay",   val: "£6.4k",  who: "MK" },
+  { id: "hooli",    co: "Hooli",      val: "£40k",   who: "AR" },
+];
+
 const INITIAL_DEALS: Deal[] = [
-  { id: "acme",      co: "Acme Co",    val: "£4.2k",  who: "JS", score: 62, stage: "New" },
-  { id: "globex",    co: "Globex",     val: "£1.8k",  who: "MK", score: 54, stage: "New" },
-  { id: "initech",   co: "Initech",    val: "£12k",   who: "AR", score: 81, stage: "Qualified" },
-  { id: "soylent",   co: "Soylent",    val: "£3.6k",  who: "JS", score: 71, stage: "Qualified" },
-  { id: "umbrella",  co: "Umbrella",   val: "£28k",   who: "JS", score: 92, stage: "Proposal" },
-  { id: "vandelay",  co: "Vandelay",   val: "£6.4k",  who: "MK", score: 76, stage: "Proposal" },
-  { id: "hooli",     co: "Hooli",      val: "£40k",   who: "AR", score: 97, stage: "Won" },
+  { ...DEAL_POOL[0]!, score: 62, stage: "New" },
+  { ...DEAL_POOL[1]!, score: 54, stage: "New" },
+  { ...DEAL_POOL[2]!, score: 81, stage: "Qualified" },
+  { ...DEAL_POOL[3]!, score: 71, stage: "Qualified" },
+  { ...DEAL_POOL[4]!, score: 92, stage: "Proposal" },
+  { ...DEAL_POOL[5]!, score: 76, stage: "Negotiation" },
+  { ...DEAL_POOL[6]!, score: 97, stage: "Won" },
 ];
 
 const NEXT_STAGE: Record<StageName, StageName | null> = {
-  New: "Qualified", Qualified: "Proposal", Proposal: "Won", Won: null,
+  New: "Qualified", Qualified: "Proposal", Proposal: "Negotiation", Negotiation: "Won", Won: null,
 };
 
 function HeroPipelinePreview() {
   const [deals, setDeals] = useState<Deal[]>(INITIAL_DEALS);
   const [activity, setActivity] = useState("AI is scanning open deals…");
   const [glowId, setGlowId] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ x: number; left: number } | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => {
       setDeals(prev => {
-        const movable = prev.filter(d => NEXT_STAGE[d.stage]);
-        if (movable.length === 0) return prev;
-        const pick = movable[Math.floor(Math.random() * movable.length)]!;
+        const pick = prev[Math.floor(Math.random() * prev.length)]!;
+        if (pick.stage === "Won") {
+          // Recycle won deals back into the top of the funnel — keeps the board alive forever
+          const fresh = DEAL_POOL[Math.floor(Math.random() * DEAL_POOL.length)]!;
+          setGlowId(pick.id);
+          setActivity(`AI logged ${pick.co} as won — starting a new deal`);
+          setTimeout(() => setGlowId(null), 1200);
+          return prev.map(d => (d.id === pick.id ? { ...fresh, id: pick.id, score: Math.floor(40 + Math.random() * 25), stage: "New" } : d));
+        }
         const next = NEXT_STAGE[pick.stage]!;
         setGlowId(pick.id);
         setActivity(`AI moved ${pick.co} → ${next}`);
         setTimeout(() => setGlowId(null), 1200);
         return prev.map(d => (d.id === pick.id ? { ...d, stage: next, score: Math.min(99, d.score + 6) } : d));
       });
-    }, 3200);
+    }, 2800);
     return () => clearInterval(t);
   }, []);
+
+  function onPointerDown(e: React.PointerEvent) {
+    if (!scrollRef.current) return;
+    dragState.current = { x: e.clientX, left: scrollRef.current.scrollLeft };
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragState.current || !scrollRef.current) return;
+    scrollRef.current.scrollLeft = dragState.current.left - (e.clientX - dragState.current.x);
+  }
+  function onPointerUp() {
+    dragState.current = null;
+  }
 
   const totalValue = "£92.4k";
   const openDeals = deals.filter(d => d.stage !== "Won").length;
@@ -1045,7 +1164,7 @@ function HeroPipelinePreview() {
       <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 font-mono text-[11px]">
         <span className="text-zinc-500">Pipeline value <span className="text-zinc-800">{totalValue}</span></span>
         <span className="text-zinc-500">Open deals <span className="text-zinc-800">{openDeals}</span></span>
-        <span className="text-zinc-500">Won this month <span className="text-emerald-400">£40k</span></span>
+        <span className="text-zinc-500">Won this month <span className="text-emerald-600">£40k</span></span>
       </div>
 
       {/* Live activity ticker */}
@@ -1064,7 +1183,14 @@ function HeroPipelinePreview() {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 p-4 text-left">
+      <div
+        ref={scrollRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        className="grid grid-flow-col auto-cols-[180px] gap-3 overflow-x-auto p-4 text-left cursor-grab active:cursor-grabbing select-none"
+      >
         {STAGE_NAMES.map(stageName => {
           const style = STAGE_STYLE[stageName]!;
           const colDeals = deals.filter(d => d.stage === stageName);
@@ -1101,7 +1227,7 @@ function HeroPipelinePreview() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-[10px] text-zinc-400">AI score {d.score}%</span>
-                        <span className="font-mono text-[11px] text-indigo-400">{d.val}</span>
+                        <span className="font-mono text-[11px] text-indigo-500">{d.val}</span>
                       </div>
                     </motion.div>
                   ))}

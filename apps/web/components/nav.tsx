@@ -4,9 +4,9 @@ import { Logo } from "./logo";
 
 export function Nav() {
   return (
-    <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+    <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-10 py-5">
       <Link href="/" className="flex items-center text-zinc-900">
-        <Logo size={42} />
+        <Logo size={50} />
       </Link>
       <div className="flex items-center gap-2">
         <a
@@ -17,7 +17,7 @@ export function Nav() {
         </a>
         <a
           href="https://app.mondaily.com/sign-up"
-          className="rounded-lg border border-indigo-500/25 bg-indigo-600/12 px-4 py-2 text-[11px] text-indigo-400 hover:bg-indigo-600/20 hover:text-indigo-200 transition-all font-mono"
+          className="rounded-lg border border-indigo-500/25 bg-indigo-600/12 px-4 py-2 text-[11px] text-indigo-600 hover:bg-indigo-600/20 hover:text-indigo-700 transition-all font-mono"
         >
           Start free →
         </a>
