@@ -17,7 +17,7 @@ export function Nav() {
         </a>
         <a
           href="https://app.mondaily.com/sign-up"
-          className="rounded-lg border border-violet-500/25 bg-violet-600/12 px-4 py-2 text-[11px] text-violet-400 hover:bg-violet-600/20 hover:text-violet-200 transition-all font-mono"
+          className="rounded-lg border border-indigo-500/25 bg-indigo-600/12 px-4 py-2 text-[11px] text-indigo-400 hover:bg-indigo-600/20 hover:text-indigo-200 transition-all font-mono"
         >
           Start free →
         </a>

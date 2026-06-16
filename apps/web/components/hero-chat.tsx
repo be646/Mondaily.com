@@ -5,10 +5,10 @@ import { useState, useRef, useCallback, useEffect } from "react";
 const API_URL = "/api/ask";
 
 const FEATURE_LINES = [
-  "Enrich any company — ARR, headcount & signals in seconds",
-  "Ask in plain English — get answers from your live data",
-  "Trigger sequences, move deals, run workflows via AI",
-  "Connected to your CRM, pipeline, and finance module",
+  { icon: "◆", text: "Enrich any company — ARR, headcount & signals in seconds" },
+  { icon: "▣", text: "Ask in plain English — get answers from your live data" },
+  { icon: "▶", text: "Trigger sequences, move deals, run workflows via AI" },
+  { icon: "◈", text: "Connected to your CRM, pipeline, and finance module" },
 ];
 
 // Shown as fake user message bubbles — click to fire
@@ -317,16 +317,23 @@ export function HeroChat() {
       </div>
 
       {/* Feature lines */}
-      <div className="mt-8 space-y-1">
+      <div className="mt-8 flex flex-col gap-1.5">
         {FEATURE_LINES.map((line, i) => (
           <motion.div
             key={i}
-            className="group flex cursor-default items-center gap-3 rounded-lg px-3 py-2"
-            whileHover={{ backgroundColor: "rgba(99,102,241,0.07)" }}
+            className="group flex cursor-default items-center gap-3 rounded-lg border border-transparent px-3 py-2.5"
+            whileHover={{ backgroundColor: "rgba(99,102,241,0.06)", borderColor: "rgba(99,102,241,0.15)" }}
           >
-            <span className="h-1 w-4 shrink-0 bg-indigo-700/50 group-hover:bg-indigo-500 transition-colors" style={{ borderRadius: 1 }}/>
+            <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/[.06] bg-white/[.02] text-[11px] text-indigo-500 group-hover:border-indigo-500/30 group-hover:text-indigo-300 transition-colors">
+              {line.icon}
+              <motion.span
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.6 }}
+                className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500"
+              />
+            </span>
             <span className="font-mono text-[14px] leading-snug text-zinc-500 group-hover:text-indigo-300 transition-colors">
-              <TypewriterLine text={line} delay={800 + i * 600} />
+              <TypewriterLine text={line.text} delay={800 + i * 600} />
             </span>
           </motion.div>
         ))}

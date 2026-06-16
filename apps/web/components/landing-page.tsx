@@ -86,8 +86,8 @@ function Preloader({ onDone }: { onDone: () => void }) {
 // All sub-text anchored RIGHT of node so nothing goes off left edge
 // SVG render order: edges → dots → sub-text → nodes (text always on top)
 
-const NW = 128;
-const NH = 32;
+const NW = 150;
+const NH = 40;
 
 const MAIN_NODES = [
   {
@@ -316,15 +316,30 @@ function FeatureSection() {
 
       {/* Node map */}
       <p className="mb-4 font-mono text-[14px] text-zinc-500">// hover any module to explore its connections</p>
-      <div className="mb-10 w-full overflow-hidden">
-        <svg viewBox="0 0 1300 420" className="w-full" preserveAspectRatio="xMidYMid meet">
+      <div className="mb-10 w-full overflow-hidden rounded-2xl border border-white/[.04] bg-[#0a0a0c] p-2">
+        <svg viewBox="-20 -10 1340 460" className="w-full" preserveAspectRatio="xMidYMid meet">
           {/* Faint dot grid background */}
           <defs>
             <pattern id="grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
               <circle cx="10" cy="10" r="0.8" fill="#1a1a1a"/>
             </pattern>
           </defs>
-          <rect width="1300" height="420" fill="url(#grid)" opacity="0.5"/>
+          <rect x="-20" y="-10" width="1340" height="460" fill="url(#grid)" opacity="0.5"/>
+
+          {/* Zone panels — group columns into readable clusters */}
+          {[
+            { label: "DATA",          x: 35,  w: 200 },
+            { label: "INTELLIGENCE",  x: 275, w: 200 },
+            { label: "ACTION",        x: 535, w: 200 },
+            { label: "OPERATIONS",    x: 875, w: 200 },
+          ].map(z => (
+            <g key={z.label}>
+              <rect x={z.x} y="20" width={z.w} height="380" rx="14"
+                fill="rgba(99,102,241,0.025)" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+              <text x={z.x + z.w / 2} y="14" textAnchor="middle" fill="#52525b" fontSize="10"
+                fontFamily="'JetBrains Mono', monospace" letterSpacing="2">{z.label}</text>
+            </g>
+          ))}
 
           {/* 1. EDGES */}
           {MAIN_EDGES.map(([a, b], i) => {
@@ -423,8 +438,8 @@ function FeatureSection() {
             const col = on ? "#e4e4e7" : anyHovered ? "#2a2a2a" : "#666";
             return (
               <text key={`${node.id}-lbl`}
-                x={node.x + 24} y={node.y + NH / 2 + 4}
-                fill={col} fontSize="10"
+                x={node.x + 24} y={node.y + NH / 2 + 5}
+                fill={col} fontSize="13" fontWeight="600"
                 fontFamily="'JetBrains Mono', monospace"
                 style={{ transition: "fill 0.15s ease" }}
               >
@@ -444,7 +459,7 @@ function FeatureSection() {
                 <text key={`${node.id}-st${si}`}
                   x={anchor === "start" ? dotX + 6 : dotX - 6}
                   y={ay + 3.5} textAnchor={anchor}
-                  fill="#fff" fontSize="9"
+                  fill="#fff" fontSize="11"
                   fontFamily="'JetBrains Mono', monospace"
                   style={{ opacity: subOp, transition: "opacity 0.15s ease" }}
                 >
@@ -593,42 +608,84 @@ const FAQ_ITEMS = [
   },
 ];
 
+function FAQTypewriter({ text }: { text: string }) {
+  const [shown, setShown] = useState("");
+  useEffect(() => {
+    setShown("");
+    let i = 0;
+    const t = setInterval(() => {
+      i++;
+      setShown(text.slice(0, i));
+      if (i >= text.length) clearInterval(t);
+    }, 12);
+    return () => clearInterval(t);
+  }, [text]);
+  return (
+    <>
+      {shown}
+      {shown.length < text.length && (
+        <span className="inline-block w-[1px] h-[0.85em] bg-indigo-500 ml-[1px] opacity-60 animate-pulse align-middle"/>
+      )}
+    </>
+  );
+}
+
 function FAQSection() {
-  const [open, setOpen] = useState<number | null>(0);
+  const [active, setActive] = useState(0);
 
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// faq</div>
-      <h2 className="mb-10 font-sans text-4xl font-semibold tracking-tight text-zinc-100">Questions, answered</h2>
+      <h2 className="mb-10 font-sans text-4xl font-semibold tracking-tight text-zinc-100">Ask Mondaily AI</h2>
 
-      <div className="flex flex-col gap-2">
-        {FAQ_ITEMS.map((item, i) => {
-          const isOpen = open === i;
-          return (
-            <div key={i} className="rounded-xl border border-white/[.05] bg-white/[.015] overflow-hidden">
-              <button
-                onClick={() => setOpen(isOpen ? null : i)}
-                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-              >
-                <span className="font-mono text-[14px] text-zinc-200">{item.q}</span>
-                <span className={`shrink-0 font-mono text-[14px] text-indigo-500 transition-transform ${isOpen ? "rotate-45" : ""}`}>+</span>
-              </button>
-              <AnimatePresence initial={false}>
-                {isOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <p className="px-5 pb-4 font-mono text-[13px] leading-relaxed text-zinc-400">{item.a}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+      <div
+        className="overflow-hidden rounded-2xl"
+        style={{ border: "1px solid rgba(99,102,241,0.12)", background: "rgba(12,12,14,0.85)" }}
+      >
+        <div className="flex items-center gap-2 border-b border-white/[.05] px-4 py-2.5">
+          <div className="flex gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
+          </div>
+          <span className="font-mono text-[11px] text-zinc-500">mondaily — faq.ask()</span>
+          <motion.span
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.8, repeat: Infinity }}
+            className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+          />
+        </div>
+
+        {/* Transcript */}
+        <div className="px-5 py-5">
+          <div className="flex justify-end mb-3">
+            <div className="max-w-[80%] rounded-xl rounded-tr-sm bg-indigo-600/15 border border-indigo-500/20 px-4 py-2.5 font-mono text-[13px] text-zinc-100">
+              {FAQ_ITEMS[active]!.q}
             </div>
-          );
-        })}
+          </div>
+          <div className="flex justify-start">
+            <div className="max-w-[85%] rounded-xl rounded-tl-sm border border-white/[.06] bg-white/[.02] px-4 py-2.5 font-mono text-[13px] leading-relaxed text-zinc-300">
+              <FAQTypewriter key={active} text={FAQ_ITEMS[active]!.a} />
+            </div>
+          </div>
+        </div>
+
+        {/* Question chips */}
+        <div className="flex flex-wrap gap-2 border-t border-white/[.05] px-5 py-4">
+          {FAQ_ITEMS.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              className={`rounded-full border px-3.5 py-1.5 font-mono text-[12px] transition-all ${
+                active === i
+                  ? "border-indigo-500/40 bg-indigo-600/15 text-indigo-300"
+                  : "border-white/[.06] bg-white/[.02] text-zinc-500 hover:border-indigo-500/20 hover:text-zinc-300"
+              }`}
+            >
+              {item.q}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1061,6 +1118,9 @@ const PIPELINE_COLUMNS = [
 ];
 
 function HeroPipelinePreview() {
+  const totalValue = "£92.4k";
+  const totalDeals = PIPELINE_COLUMNS.reduce((n, c) => n + c.deals.length, 0);
+
   return (
     <div
       className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl"
@@ -1073,14 +1133,26 @@ function HeroPipelinePreview() {
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-700"/>
         </div>
         <span className="font-mono text-[11px] text-zinc-500">pipeline — live view</span>
-        <span className="ml-auto font-mono text-[11px] text-indigo-500">auto-scored by AI</span>
+        <motion.span
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.8, repeat: Infinity }}
+          className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+        />
+        <span className="font-mono text-[11px] text-indigo-500">auto-scored by AI</span>
       </div>
 
-      <div className="grid grid-cols-4 gap-2.5 p-3 text-left">
+      {/* Stats bar */}
+      <div className="flex items-center gap-6 border-b border-white/[.05] bg-white/[.015] px-4 py-2.5 font-mono text-[11px]">
+        <span className="text-zinc-500">Pipeline value <span className="text-zinc-100">{totalValue}</span></span>
+        <span className="text-zinc-500">Open deals <span className="text-zinc-100">{totalDeals}</span></span>
+        <span className="text-zinc-500">Won this month <span className="text-emerald-400">£40k</span></span>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3 p-4 text-left">
         {PIPELINE_COLUMNS.map(col => {
           const style = STAGE_STYLE[col.name]!;
           return (
-            <div key={col.name} className="flex flex-col gap-2 rounded-lg border border-zinc-800/50 bg-transparent">
+            <div key={col.name} className="flex flex-col gap-2 rounded-lg border border-zinc-800/50 bg-white/[.01]">
               <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-800/50">
                 <span className={`inline-flex items-center gap-1.5 rounded-md border border-white/[.05] bg-zinc-900/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`}/>
@@ -1088,15 +1160,25 @@ function HeroPipelinePreview() {
                 </span>
                 <span className="font-mono text-[10px] text-zinc-600">{col.deals.length}</span>
               </div>
-              <div className="flex flex-col gap-1.5 px-2 pb-2">
-                {col.deals.map(d => (
-                  <div key={d.co} className="rounded-md border border-zinc-800/60 bg-zinc-900/40 px-2.5 py-2">
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-2 px-2 pb-2.5">
+                {col.deals.map((d, i) => (
+                  <motion.div
+                    key={d.co}
+                    initial={{ opacity: 0, y: 6 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.35, delay: i * 0.08 }}
+                    className="rounded-md border border-zinc-800/60 bg-zinc-900/50 px-2.5 py-2.5 hover:border-indigo-500/25 transition-colors"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="font-mono text-[11px] text-zinc-200 truncate">{d.co}</span>
                       <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-mono text-[8px] text-zinc-400">{d.who}</span>
                     </div>
-                    <div className="font-mono text-[11px] text-right text-indigo-400">{d.val}</div>
-                  </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] text-zinc-600">AI score 9{i}%</span>
+                      <span className="font-mono text-[11px] text-indigo-400">{d.val}</span>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -1321,37 +1403,42 @@ export function LandingPage() {
         </main>
 
         {/* ── Footer ── */}
-        <footer className="border-t border-white/[.04] bg-[#060606]">
-          <div className="mx-auto max-w-6xl px-6 py-10">
-            <div className="mb-8 flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="mb-3 opacity-60">
-                  <Logo size={42} />
+        <footer className="relative bg-[#060608]">
+          <div className="absolute top-0 left-1/2 h-px w-full max-w-3xl -translate-x-1/2" style={{ background: "linear-gradient(90deg, transparent, rgba(99,102,241,0.35), transparent)" }}/>
+          <div className="mx-auto max-w-6xl px-6 py-14">
+            <div className="mb-10 flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
+              <div className="max-w-[260px]">
+                <div className="mb-4">
+                  <Logo size={38} />
                 </div>
-                <p className="font-mono text-[14px] text-zinc-300 max-w-[200px] leading-relaxed">Autonomous AI workspace platform. Built for teams that move fast.</p>
+                <p className="font-mono text-[13px] text-zinc-500 leading-relaxed">Autonomous AI workspace platform. Built for teams that move fast.</p>
               </div>
 
-              <div className="flex flex-wrap gap-x-12 gap-y-6 font-mono text-[13px]">
-                <div className="flex flex-col gap-2">
-                  <span className="text-zinc-500 mb-0.5">Product</span>
-                  <a href="#pricing" className="text-zinc-300 hover:text-zinc-300 transition-colors">Pricing</a>
-                  <a href="/changelog" className="text-zinc-300 hover:text-zinc-300 transition-colors">Changelog</a>
+              <div className="flex flex-wrap gap-x-14 gap-y-8 font-mono text-[13px]">
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-zinc-600 text-[11px] uppercase tracking-widest mb-1">Product</span>
+                  <a href="#pricing" className="text-zinc-400 hover:text-indigo-400 transition-colors">Pricing</a>
+                  <a href="/changelog" className="text-zinc-400 hover:text-indigo-400 transition-colors">Changelog</a>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-zinc-500 mb-0.5">Legal</span>
-                  <a href="/privacy" className="text-zinc-300 hover:text-zinc-300 transition-colors">Privacy</a>
-                  <a href="/terms" className="text-zinc-300 hover:text-zinc-300 transition-colors">Terms</a>
-                  <a href="/dpa" className="text-zinc-300 hover:text-zinc-300 transition-colors">DPA</a>
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-zinc-600 text-[11px] uppercase tracking-widest mb-1">Legal</span>
+                  <a href="/privacy" className="text-zinc-400 hover:text-indigo-400 transition-colors">Privacy</a>
+                  <a href="/terms" className="text-zinc-400 hover:text-indigo-400 transition-colors">Terms</a>
+                  <a href="/dpa" className="text-zinc-400 hover:text-indigo-400 transition-colors">DPA</a>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-zinc-500 mb-0.5">Contact</span>
-                  <a href="mailto:support@mondaily.com" className="text-zinc-300 hover:text-zinc-300 transition-colors">Support</a>
-                  <a href="mailto:sales@mondaily.com" className="text-zinc-300 hover:text-zinc-300 transition-colors">Sales</a>
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-zinc-600 text-[11px] uppercase tracking-widest mb-1">Contact</span>
+                  <a href="mailto:support@mondaily.com" className="text-zinc-400 hover:text-indigo-400 transition-colors">Support</a>
+                  <a href="mailto:sales@mondaily.com" className="text-zinc-400 hover:text-indigo-400 transition-colors">Sales</a>
                 </div>
               </div>
             </div>
-            <div className="border-t border-white/[.03] pt-5 font-mono text-[14px] text-zinc-900">
-              © {new Date().getFullYear()} Mondaily. All rights reserved.
+            <div className="flex flex-col gap-3 border-t border-white/[.05] pt-6 font-mono text-[12px] text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
+              <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
+              <span className="flex items-center gap-1.5 text-zinc-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/>
+                All systems operational
+              </span>
             </div>
           </div>
         </footer>
