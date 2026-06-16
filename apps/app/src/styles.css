@@ -78,6 +78,16 @@ html[data-theme="light"] body {
   }
 }
 
+/* ── Clerk auth overrides ────────────────────────────────────────────────── */
+.cl-logoBox,
+.cl-logoImage,
+.cl-badge,
+.cl-internal-badge,
+[data-localization-key="badge__dev_mode"],
+[data-localization-key="badge__secured_by_clerk"] {
+  display: none !important;
+}
+
 /* Tactile Minimalist — global border & radius tokens */
 @layer base {
   *[class*="border-white/"] {

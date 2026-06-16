@@ -22,23 +22,25 @@ export function SignUpPage() {
           signInUrl="/sign-in"
           forceRedirectUrl="/onboarding-setup"
           appearance={{
+            variables: {
+              colorPrimary: "#4f46e5",
+              colorBackground: "#ffffff",
+              colorText: "#18181b",
+              colorTextSecondary: "#71717a",
+              colorInputBackground: "#ffffff",
+              colorInputText: "#18181b",
+              colorNeutral: "#18181b",
+              borderRadius: "0.75rem",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontSize: "13px",
+            },
             elements: {
-              rootBox: "w-full",
-              card: "shadow-none border border-black/[.08] rounded-2xl bg-white p-6",
+              card: "shadow-none border border-black/[.08] bg-white",
               headerTitle: "hidden",
               headerSubtitle: "hidden",
               logoBox: "hidden",
               badge: "hidden",
-              socialButtonsBlockButton: "border border-black/[.08] rounded-xl h-11 text-sm font-mono text-zinc-700 hover:bg-zinc-50 transition-colors",
-              dividerLine: "bg-black/[.06]",
-              dividerText: "text-zinc-400 text-xs font-mono",
-              formFieldLabel: "text-zinc-600 text-xs font-mono mb-1",
-              formFieldInput: "border border-black/[.08] rounded-xl h-11 px-4 text-sm bg-white text-zinc-900 font-mono outline-none focus:border-indigo-500/40 transition-colors",
-              formButtonPrimary: "bg-indigo-600 text-white rounded-xl h-11 text-sm font-mono font-medium hover:bg-indigo-500 transition-colors",
-              footerActionLink: "text-indigo-600 hover:underline font-mono text-xs",
-              footerActionText: "text-zinc-500 font-mono text-xs",
-              alertText: "text-red-600 text-xs font-mono",
-            }
+            },
           }}
         />
         <p className="mt-4 text-center font-mono text-xs text-zinc-400">
