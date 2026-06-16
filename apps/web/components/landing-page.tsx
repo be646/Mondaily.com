@@ -2035,21 +2035,51 @@ const PLANS = [
 // ── Cookie banner ─────────────────────────────────────────────────────────────
 function CookieBanner() {
   const [visible, setVisible] = useState(false);
-  useEffect(() => { if (!localStorage.getItem("mondaily_cookies")) setTimeout(() => setVisible(true), 2000); }, []);
-  function accept() { localStorage.setItem("mondaily_cookies", "1"); setVisible(false); }
+  useEffect(() => {
+    if (localStorage.getItem("mondaily_cookies")) return;
+    const t = setTimeout(() => setVisible(true), 4500);
+    return () => clearTimeout(t);
+  }, []);
+  function accept() { localStorage.setItem("mondaily_cookies", "accepted"); setVisible(false); }
+  function decline() { localStorage.setItem("mondaily_cookies", "declined"); setVisible(false); }
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 80, opacity: 0 }}
-          transition={{ duration: 0.35 }}
-          className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 w-full max-w-lg px-4"
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 w-full max-w-xl px-4"
         >
-          <div className="flex items-center gap-4 rounded-xl border border-black/[.05] bg-zinc-50 px-5 py-3 shadow-[0_16px_48px_rgba(0,0,0,0.12)] font-mono text-[13px]">
-            <span className="text-indigo-800">[GDPR]</span>
-            <span className="flex-1 text-zinc-500">Essential cookies only. No tracking without consent.</span>
-            <button onClick={accept} className="shrink-0 rounded border border-indigo-500/20 bg-indigo-500/[.07] px-3 py-1.5 text-indigo-600 hover:bg-indigo-500/[.12] transition-colors">Accept</button>
-            <button onClick={() => setVisible(false)} className="text-zinc-500 hover:text-zinc-900 transition-colors">✕</button>
+          <div className="rounded-2xl border border-black/[.07] bg-white shadow-[0_24px_64px_rgba(0,0,0,0.10)] overflow-hidden">
+            <div className="flex items-start gap-4 px-6 py-5">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500/10">
+                <span className="font-mono text-[11px] font-semibold text-indigo-600">EU</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="mb-1 font-mono text-[12px] font-semibold text-zinc-800">We respect your privacy</p>
+                <p className="font-mono text-[12px] text-zinc-500 leading-relaxed">
+                  We use essential cookies only — no tracking, no ads, no third-party analytics without your consent. Your data stays yours.
+                </p>
+              </div>
+              <button onClick={decline} className="shrink-0 text-zinc-300 hover:text-zinc-500 transition-colors mt-0.5">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+            <div className="flex items-center gap-2 border-t border-black/[.05] px-6 py-3">
+              <a href="/legal/privacy" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Privacy policy</a>
+              <span className="text-zinc-200">·</span>
+              <a href="/legal/terms" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Terms</a>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={decline} className="rounded-xl border border-black/[.08] px-4 py-1.5 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+                  Decline
+                </button>
+                <button onClick={accept} className="rounded-xl bg-indigo-600 px-4 py-1.5 font-mono text-[12px] font-medium text-white hover:bg-indigo-500 transition-colors">
+                  Accept all
+                </button>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}
