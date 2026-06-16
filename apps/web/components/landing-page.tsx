@@ -1517,8 +1517,9 @@ function RecordsSheetPreview() {
     setActivity(`Watching ${view.name.toLowerCase()}…`);
     let i = 0;
     const add = setInterval(() => {
-      if (i >= view.rows.length) { clearInterval(add); return; }
-      setRows(prev => [...prev, view.rows[i]!]);
+      const next = view.rows[i];
+      if (!next) { allAdded.current = true; clearInterval(add); return; }
+      setRows(prev => [...prev, next]);
       i++;
       if (i >= view.rows.length) allAdded.current = true;
     }, 450);
@@ -1636,7 +1637,7 @@ function RecordsSheetPreview() {
             </thead>
             <tbody>
               <AnimatePresence initial={false}>
-              {rows.map(r => (
+              {rows.filter((r): r is SheetRow => Boolean(r)).map(r => (
                 <motion.tr
                   key={r.id}
                   initial={{ opacity: 0, y: -6 }}
