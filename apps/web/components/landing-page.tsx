@@ -440,6 +440,238 @@ function FeatureSection() {
   );
 }
 
+// ── Workflow demo section ─────────────────────────────────────────────────────
+// Real Mondaily workflow: company added → enriched → scored → pipeline moved
+// → sequence enrolled → automation fires → finance invoice created
+
+const RECORD_FIELDS = [
+  { key: "Company",    val: "Acme Corp",                delay: 0 },
+  { key: "Domain",     val: "acme.com",                 delay: 120 },
+  { key: "ARR",        val: "$4.2M",                    delay: 240 },
+  { key: "Headcount",  val: "210 employees",            delay: 360 },
+  { key: "Stage",      val: "Series B · London",        delay: 480 },
+  { key: "Tech stack", val: "Stripe · AWS · HubSpot",   delay: 600 },
+  { key: "Signal",     val: "→ Hiring 3 engineers (2d ago)", delay: 720 },
+  { key: "AI Score",   val: "84 / 100  ████████░░",    delay: 840 },
+];
+
+const WORKFLOW_STEPS = [
+  {
+    tag: "[CRM]",
+    tagCol: "#3f3f46",
+    title: "Record added",
+    detail: "acme.com · Sarah Johnson, Head of IT",
+    delay: 400,
+  },
+  {
+    tag: "[ENRICH]",
+    tagCol: "#6d28d9",
+    title: "AI enrichment fired",
+    detail: "ARR $4.2M · 210 emp · Series B · London · Tech: Stripe, AWS",
+    delay: 1100,
+  },
+  {
+    tag: "[PIPELINE]",
+    tagCol: "#6d28d9",
+    title: "Deal scored 84/100 — moved to Proposal",
+    detail: "High intent · stage: Discovery → Proposal · owner: you",
+    delay: 1800,
+  },
+  {
+    tag: "[SEQ]",
+    tagCol: "#3f3f46",
+    title: "Sequence enrolled: Enterprise Nurture",
+    detail: "Step 1 sent · 4-step cadence · open tracked",
+    delay: 2500,
+  },
+  {
+    tag: "[AUTO]",
+    tagCol: "#6d28d9",
+    title: "Automation triggered on deal stage change",
+    detail: "Slack notified · CRM updated · owner pinged",
+    delay: 3200,
+  },
+  {
+    tag: "[FINANCE]",
+    tagCol: "#3f3f46",
+    title: "Quote INV-0031 created",
+    detail: "£8,400 · sent to sarah@acme.com · pending review",
+    delay: 3900,
+  },
+];
+
+function WorkflowDemo() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [shownFields, setShownFields] = useState<number>(0);
+  const [shownSteps, setShownSteps] = useState<number>(0);
+
+  // Trigger animation when section scrolls into view
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e?.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.2 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    // Animate record fields
+    const timers = RECORD_FIELDS.map((f, i) =>
+      setTimeout(() => setShownFields(i + 1), 200 + f.delay)
+    );
+    // Animate workflow steps
+    const stepTimers = WORKFLOW_STEPS.map((s, i) =>
+      setTimeout(() => setShownSteps(i + 1), s.delay)
+    );
+    return () => { [...timers, ...stepTimers].forEach(clearTimeout); };
+  }, [visible]);
+
+  return (
+    <section ref={ref} className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// live.workflow</div>
+      <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
+        <span className="text-violet-600">{">"}</span> What happens when a record enters Mondaily
+      </h2>
+      <p className="mb-10 font-mono text-[11px] text-zinc-700">
+        Zero manual input. The platform enriches, scores, moves, and notifies — automatically.
+      </p>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* ── Left: enriched record card ── */}
+        <div className="rounded-2xl border border-white/[.05] bg-[#0a0a0a] p-6 font-mono">
+          {/* Card header */}
+          <div className="mb-5 flex items-center justify-between border-b border-white/[.04] pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-violet-500/20 bg-violet-600/10 text-[10px] text-violet-500 font-bold">AC</div>
+              <div>
+                <div className="text-[13px] text-white font-medium">Acme Corp</div>
+                <div className="text-[10px] text-zinc-600">acme.com</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <motion.span
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+                className="h-1.5 w-1.5 rounded-full bg-violet-600"
+              />
+              <span className="text-[10px] text-violet-700">enriched</span>
+            </div>
+          </div>
+
+          {/* Fields */}
+          <div className="space-y-3">
+            {RECORD_FIELDS.map((f, i) => (
+              <motion.div
+                key={f.key}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: i < shownFields ? 1 : 0, x: i < shownFields ? 0 : -6 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-baseline gap-3"
+              >
+                <span className="w-24 shrink-0 text-[10px] text-zinc-700">{f.key}</span>
+                <span className={`text-[11px] ${f.key === "Signal" ? "text-violet-500" : f.key === "AI Score" ? "text-violet-400" : "text-zinc-300"}`}>
+                  {f.val}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Contact row */}
+          <div className="mt-5 border-t border-white/[.04] pt-4">
+            <div className="text-[10px] text-zinc-700 mb-2">Contact</div>
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-zinc-800 flex items-center justify-center text-[9px] text-zinc-400">SJ</div>
+              <div>
+                <div className="text-[11px] text-zinc-300">Sarah Johnson</div>
+                <div className="text-[10px] text-zinc-700">Head of IT · sarah@acme.com</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Right: workflow log ── */}
+        <div className="rounded-2xl border border-white/[.05] bg-[#0a0a0a] p-6 font-mono">
+          {/* Window chrome */}
+          <div className="mb-5 flex items-center gap-2 border-b border-white/[.04] pb-4">
+            <div className="flex gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+            </div>
+            <span className="ml-2 text-[10px] text-zinc-700">mondaily — workflow engine</span>
+            <motion.span
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.4, repeat: Infinity }}
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-700"
+            />
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-4">
+            <AnimatePresence initial={false}>
+              {WORKFLOW_STEPS.slice(0, shownSteps).map((step, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35 }}
+                  className="flex gap-3"
+                >
+                  {/* Step connector */}
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full mt-1 shrink-0" style={{ background: step.tagCol === "#6d28d9" ? "#6d28d9" : "#27272a" }}/>
+                    {i < shownSteps - 1 && (
+                      <div className="mt-1 flex-1 w-px bg-white/[.04] min-h-[20px]"/>
+                    )}
+                  </div>
+                  <div className="min-w-0 pb-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px]" style={{ color: step.tagCol }}>{step.tag}</span>
+                      <span className="text-[11px] text-zinc-300">{step.title}</span>
+                    </div>
+                    <div className="text-[10px] text-zinc-700 leading-relaxed">{step.detail}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {/* Blinking cursor while running */}
+            {shownSteps < WORKFLOW_STEPS.length && visible && (
+              <div className="flex items-center gap-2 pl-5">
+                {[0,1,2].map(i => (
+                  <motion.span key={i} className="h-1 w-1 rounded-full bg-violet-800"
+                    animate={{ opacity: [0.2, 1, 0.2] }}
+                    transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
+                  />
+                ))}
+                <span className="text-[10px] text-zinc-800 ml-1">processing…</span>
+              </div>
+            )}
+
+            {/* All done */}
+            {shownSteps >= WORKFLOW_STEPS.length && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="flex items-center gap-2 pl-5 pt-1"
+              >
+                <span className="text-[10px] text-violet-700">[DONE]</span>
+                <span className="text-[10px] text-zinc-700">6 actions completed · 0 errors · 0 manual steps</span>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Email signup ──────────────────────────────────────────────────────────────
 function EmailSignup() {
   const [email, setEmail] = useState("");
@@ -592,6 +824,9 @@ export function LandingPage() {
               </p>
             </motion.div>
           </section>
+
+          {/* ── Workflow demo ── */}
+          <WorkflowDemo />
 
           {/* ── Feature map + terminals ── */}
           <FeatureSection />
