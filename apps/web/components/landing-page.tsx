@@ -300,7 +300,7 @@ function FeatureSection() {
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section className="mx-auto max-w-7xl px-4 py-20">
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// system.modules</div>
       <h2 className="mb-4 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{'>'}</span> One platform. Every signal.
@@ -362,7 +362,7 @@ function FeatureSection() {
             );
           })}
 
-          {/* 3. Sub-feature branches — using absolute ax/ay positions, rendered BEFORE nodes */}
+          {/* 3. Sub-branch lines + dots (no text yet) */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             const cx = node.x + NW / 2;
@@ -372,7 +372,7 @@ function FeatureSection() {
               const anchor = node.subAnchor;
               const dotX = anchor === "start" ? ax - 4 : ax + 4;
               return (
-                <g key={`${node.id}-s${si}`}>
+                <g key={`${node.id}-sl${si}`}>
                   <motion.line
                     x1={cx} y1={cy} x2={dotX} y2={ay}
                     stroke="#2e1065" strokeWidth="0.8" strokeDasharray="2 3"
@@ -383,24 +383,12 @@ function FeatureSection() {
                     animate={{ opacity: on ? 0.7 : 0.04 }}
                     transition={{ duration: 0.4 }}
                   />
-                  <motion.text
-                    x={anchor === "start" ? dotX + 5 : dotX - 5}
-                    y={ay + 3.5}
-                    textAnchor={anchor}
-                    fill="#ffffff"
-                    fontSize="8.5"
-                    fontFamily="'JetBrains Mono', monospace"
-                    animate={{ opacity: on ? 0.38 : 0.04 }}
-                    transition={{ duration: 0.4, delay: si * 0.06 }}
-                  >
-                    {sub.label}
-                  </motion.text>
                 </g>
               );
             });
           })}
 
-          {/* 4. Main nodes — rendered LAST so they always appear above edges and sub-text */}
+          {/* 4. Node boxes + indicator dots — on top of all lines */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return (
@@ -418,17 +406,50 @@ function FeatureSection() {
                   animate={{ opacity: on ? [0.6,1,0.6] : 0.2 }}
                   transition={{ duration: 2, repeat: Infinity }}
                 />
-                <text
-                  x="24" y={NH / 2 + 4}
-                  fill={on ? "#d4d4d8" : "#282828"}
-                  fontSize="10"
-                  fontFamily="'JetBrains Mono', monospace"
-                  fontWeight={on ? "500" : "400"}
-                >
-                  {node.label}
-                </text>
               </g>
             );
+          })}
+
+          {/* 5. ALL text labels — absolute final layer, never covered by any line */}
+          {/* Node labels */}
+          {MAIN_NODES.map(node => {
+            const on = active.has(node.id);
+            return (
+              <text
+                key={`${node.id}-lbl`}
+                x={node.x + 24} y={node.y + NH / 2 + 4}
+                fill={on ? "#d4d4d8" : "#282828"}
+                fontSize="10"
+                fontFamily="'JetBrains Mono', monospace"
+                fontWeight={on ? "500" : "400"}
+              >
+                {node.label}
+              </text>
+            );
+          })}
+          {/* Sub-feature labels */}
+          {MAIN_NODES.map(node => {
+            const on = active.has(node.id);
+            return node.subs.map((sub, si) => {
+              const { ax, ay } = sub as { label: string; ax: number; ay: number };
+              const anchor = node.subAnchor;
+              const dotX = anchor === "start" ? ax - 4 : ax + 4;
+              return (
+                <motion.text
+                  key={`${node.id}-st${si}`}
+                  x={anchor === "start" ? dotX + 6 : dotX - 6}
+                  y={ay + 3.5}
+                  textAnchor={anchor}
+                  fill="#ffffff"
+                  fontSize="9"
+                  fontFamily="'JetBrains Mono', monospace"
+                  animate={{ opacity: on ? 0.42 : 0.03 }}
+                  transition={{ duration: 0.4, delay: si * 0.06 }}
+                >
+                  {sub.label}
+                </motion.text>
+              );
+            });
           })}
         </svg>
       </div>
@@ -779,29 +800,25 @@ function FlowNode({ node, active }: { node: typeof FLOW_NODES[number]; active: b
   );
 }
 
+const FLOW_TOTAL_MS = 3900 + 800; // last step delay + buffer before reset
+
 function AutomationFlow() {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
   const [shownCount, setShownCount] = useState(0);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e?.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold: 0.2 }
+  const runSeq = useCallback(() => {
+    setShownCount(0);
+    const timers = FLOW_NODES.map((n, i) =>
+      setTimeout(() => setShownCount(i + 1), n.delay + 200)
     );
-    obs.observe(el);
-    return () => obs.disconnect();
+    return timers;
   }, []);
 
   useEffect(() => {
-    if (!visible) return;
-    const timers = FLOW_NODES.map((n, i) =>
-      setTimeout(() => setShownCount(i + 1), n.delay)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [visible]);
+    const timers = runSeq();
+    const loop = setInterval(() => { runSeq(); }, FLOW_TOTAL_MS + 2000);
+    return () => { timers.forEach(clearTimeout); clearInterval(loop); };
+  }, [runSeq]);
 
   const Connector = ({ active, short }: { active: boolean; short?: boolean }) => (
     <div className="flex justify-center">
@@ -814,7 +831,7 @@ function AutomationFlow() {
   );
 
   return (
-    <section ref={ref} className="mx-auto max-w-6xl px-6 py-20">
+    <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[10px] text-zinc-800 tracking-widest uppercase">// automation.flow</div>
       <h2 className="mb-2 font-mono text-xl font-light text-zinc-400">
         <span className="text-violet-600">{">"}</span> Build once. Run on every deal, forever.
