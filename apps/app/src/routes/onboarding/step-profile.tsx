@@ -2,13 +2,16 @@ import { useUser } from "@clerk/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { usePanelState } from "./onboarding-context";
 
 export function StepProfile() {
   const { user } = useUser();
   const navigate = useNavigate();
-  const [name, setName] = useState(user?.fullName ?? "");
+  const [name,  setName]  = useState(user?.fullName ?? "");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
+
+  usePanelState({ name, title });
 
   async function continueSetup() {
     setLoading(true);
@@ -18,33 +21,20 @@ export function StepProfile() {
     navigate("/onboarding/workspace");
   }
 
-  const initial = name.charAt(0).toUpperCase() || "?";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
 
   return (
-    <div className="rounded-2xl border border-black/[.08] bg-white p-8">
+    <div>
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Your profile</h1>
       <p className="mb-7 font-mono text-[12px] text-zinc-500">How should your teammates know you?</p>
 
-      <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/10 font-sans text-xl font-semibold text-indigo-600">
-        {initial}
-      </div>
-
       <div className="mb-4">
         <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Full name</p>
-        <input
-          value={name}
-          onChange={e => setName(e.target.value)}
-          className="w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
-        />
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" className={inputCls} />
       </div>
-      <div className="mb-7">
+      <div className="mb-8">
         <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Job title</p>
-        <input
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Founder, Head of Sales…"
-          className="w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
-        />
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Founder, Head of Sales…" className={inputCls} />
       </div>
 
       <button

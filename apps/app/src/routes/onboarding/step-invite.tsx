@@ -2,13 +2,16 @@ import { Plus, X, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
+import { usePanelState } from "./onboarding-context";
 
 export function StepInvite() {
   const navigate = useNavigate();
-  const [emails, setEmails] = useState([""]);
-  const [role, setRole] = useState("member");
-  const [sent, setSent] = useState(false);
+  const [emails,  setEmails]  = useState([""]);
+  const [role,    setRole]    = useState("member");
+  const [sent,    setSent]    = useState(false);
   const [loading, setLoading] = useState(false);
+
+  usePanelState({ emails, sent });
 
   async function sendInvites() {
     setLoading(true);
@@ -20,7 +23,7 @@ export function StepInvite() {
 
   if (sent) {
     return (
-      <div className="rounded-2xl border border-black/[.08] bg-white p-8 text-center">
+      <div className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
           <CheckCircle2 size={22} className="text-indigo-500" />
         </div>
@@ -37,17 +40,13 @@ export function StepInvite() {
   }
 
   return (
-    <div className="rounded-2xl border border-black/[.08] bg-white p-8">
+    <div>
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invite your team</h1>
       <p className="mb-6 font-mono text-[12px] text-zinc-500">Add teammates now or continue on your own.</p>
 
       <div className="mb-4 flex items-center gap-2">
         <p className="font-mono text-[11px] text-zinc-500">Role</p>
-        <select
-          value={role}
-          onChange={e => setRole(e.target.value)}
-          className="rounded-xl border border-black/[.08] bg-white px-3 py-1.5 font-mono text-[12px] text-zinc-700 outline-none focus:border-indigo-500/40 transition-colors"
-        >
+        <select value={role} onChange={e => setRole(e.target.value)} className="rounded-xl border border-black/[.08] bg-white px-3 py-1.5 font-mono text-[12px] text-zinc-700 outline-none focus:border-indigo-500/40 transition-colors">
           <option value="member">Member</option>
           <option value="admin">Admin</option>
         </select>
@@ -58,15 +57,12 @@ export function StepInvite() {
           <div key={i} className="flex gap-2">
             <input
               value={email}
-              onChange={e => setEmails(curr => curr.map((v, j) => j === i ? e.target.value : v))}
+              onChange={e => setEmails(c => c.map((v, j) => j === i ? e.target.value : v))}
               placeholder="colleague@company.com"
               className="h-10 flex-1 rounded-xl border border-black/[.08] bg-white px-4 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
             />
             {emails.length > 1 && (
-              <button
-                onClick={() => setEmails(curr => curr.filter((_, j) => j !== i))}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/[.08] text-zinc-400 hover:bg-zinc-50 transition-colors"
-              >
+              <button onClick={() => setEmails(c => c.filter((_, j) => j !== i))} className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/[.08] text-zinc-400 hover:bg-zinc-50 transition-colors">
                 <X size={13} />
               </button>
             )}
@@ -74,7 +70,7 @@ export function StepInvite() {
         ))}
       </div>
 
-      <button onClick={() => setEmails(c => [...c, ""])} className="mb-6 flex items-center gap-1.5 font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
+      <button onClick={() => setEmails(c => [...c, ""])} className="mb-7 flex items-center gap-1.5 font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
         <Plus size={13} /> Add another
       </button>
 
