@@ -11,22 +11,21 @@ const FEATURE_LINES = [
   "Connected to your CRM, pipeline, and finance module",
 ];
 
-// Suggestion chips shown inside the chat when idle
-const SUGGESTIONS = [
-  "How does AI enrichment work?",
-  "Walk me through the pipeline",
-  "What can Ask AI do?",
-  "How do automations work?",
+// Shown as fake user message bubbles — click to fire
+const SUGGESTIONS: { text: string; icon: string }[] = [
+  { icon: "◈", text: "How does AI enrichment work?" },
+  { icon: "◈", text: "Walk me through the pipeline" },
+  { icon: "◈", text: "What can Ask AI do?" },
+  { icon: "◈", text: "How do automations work?" },
 ];
 
-// Process log — each step appears on a delay, loops last line until reply arrives
 const PROCESS_STEPS = [
-  { lines: ["> mondaily.ai.process(query)", "  parsing intent from natural language..."] ,          delay: 0 },
-  { lines: ["  intent: query_type=workspace_info", "  entities: extracted 3 concepts"] ,            delay: 1100 },
-  { lines: ["[CONTEXT]  loading workspace schema...", "  records: 8,420 enriched · modules: 6"] ,   delay: 2400 },
-  { lines: ["[SEARCH]   scanning record graph...", "  candidates: 42 · top_score: 0.94"] ,          delay: 3800 },
-  { lines: ["[REASON]   building context chain...", "  hops: 3 · confidence: 0.91"] ,               delay: 5400 },
-  { lines: ["[GENERATE] streaming response...", "  tokens: — · latency: —"] ,                       delay: 7000 },
+  { lines: ["> mondaily.ai.process(query)", "  parsing intent..."] ,                               delay: 0 },
+  { lines: ["  intent: workspace_info", "  entities: 3 concepts extracted"] ,                      delay: 1200 },
+  { lines: ["[CONTEXT]  loading schema...", "  records: 8,420 · modules: 6"] ,                     delay: 2600 },
+  { lines: ["[SEARCH]   scanning record graph...", "  candidates: 42 · score: 0.94"] ,             delay: 4200 },
+  { lines: ["[REASON]   building context...", "  hops: 3 · confidence: 0.91"] ,                    delay: 5900 },
+  { lines: ["[GENERATE] streaming response...", "  awaiting model output..."] ,                     delay: 7800 },
 ];
 
 function SendIcon() {
@@ -79,7 +78,7 @@ function ReplyTypewriter({ text }: { text: string }) {
   );
 }
 
-// Code-style process panel — stays until reply arrives, loops last step
+// Transparent, persistent process panel — fades gently, stays until reply
 function ProcessPanel({ visible }: { visible: boolean }) {
   const [shownBlocks, setShownBlocks] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -92,57 +91,62 @@ function ProcessPanel({ visible }: { visible: boolean }) {
         setTimeout(() => setShownBlocks(i + 1), s.delay)
       );
     } else {
-      setShownBlocks(0);
+      // Don't immediately reset — let the exit animation play (handled by AnimatePresence)
+      const t = setTimeout(() => setShownBlocks(0), 600);
+      timers.current = [t];
     }
     return () => timers.current.forEach(clearTimeout);
   }, [visible]);
 
   const allLines = PROCESS_STEPS.slice(0, shownBlocks).flatMap(s => s.lines);
-  const isAtLastStep = shownBlocks >= PROCESS_STEPS.length;
 
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, x: 16 }}
+          initial={{ opacity: 0, x: 14 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 16 }}
-          transition={{ duration: 0.35 }}
-          className="hidden lg:flex absolute top-0 left-[calc(100%+1.5rem)] w-64 flex-col rounded-xl overflow-hidden"
-          style={{ border: "1px solid rgba(124,58,237,0.14)", background: "rgba(6,6,6,0.97)" }}
+          exit={{ opacity: 0, x: 6, transition: { duration: 1.2, ease: "easeOut" } }}
+          transition={{ duration: 0.4 }}
+          className="hidden lg:flex absolute top-0 left-[calc(100%+1.5rem)] w-60 flex-col rounded-xl overflow-hidden"
+          style={{
+            border: "1px solid rgba(124,58,237,0.1)",
+            background: "rgba(6,6,6,0.55)",
+            backdropFilter: "blur(8px)",
+          }}
         >
-          {/* Terminal title bar */}
-          <div className="flex items-center gap-2 border-b border-white/[.05] px-3 py-2">
+          {/* Title bar */}
+          <div className="flex items-center gap-2 border-b border-white/[.04] px-3 py-2">
             <div className="flex gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
-              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
-              <span className="h-2 w-2 rounded-full bg-zinc-800"/>
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-800"/>
             </div>
-            <span className="font-mono text-[9px] text-zinc-700 tracking-wider">mondaily — inference engine</span>
+            <span className="font-mono text-[9px] text-zinc-700 tracking-wider">mondaily — inference</span>
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 0.9, repeat: Infinity }}
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-600"
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-700"
             />
           </div>
 
-          {/* Code output */}
-          <div className="flex-1 px-3 py-3 font-mono text-[10px] leading-[1.7] space-y-0 min-h-[160px]">
+          {/* Code lines */}
+          <div className="px-3 py-3 font-mono text-[10px] leading-[1.75] min-h-[150px]">
             <AnimatePresence initial={false}>
               {allLines.map((line, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 3 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.18 }}
+                  transition={{ duration: 0.22 }}
                   className={
                     line.startsWith(">")
-                      ? "text-violet-400"
-                      : line.startsWith("[GENERATE]")
                       ? "text-violet-500"
+                      : line.startsWith("[GENERATE]")
+                      ? "text-violet-400"
                       : line.startsWith("[")
-                      ? "text-violet-600"
-                      : "text-zinc-500"
+                      ? "text-violet-600/80"
+                      : "text-zinc-600"
                   }
                 >
                   {line}
@@ -150,26 +154,12 @@ function ProcessPanel({ visible }: { visible: boolean }) {
               ))}
             </AnimatePresence>
 
-            {/* Blinking cursor — loops at the end until reply */}
             {shownBlocks > 0 && (
               <motion.span
-                animate={{ opacity: [1, 0, 1] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
-                className="inline-block w-[6px] h-[10px] bg-violet-600 align-middle"
+                animate={{ opacity: [1, 0] }}
+                transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
+                className="inline-block w-[5px] h-[9px] bg-violet-700/60 align-middle mt-0.5"
               />
-            )}
-
-            {/* Streaming indicator once all steps shown */}
-            {isAtLastStep && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-1 text-[9px] text-zinc-700"
-              >
-                <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
-                  awaiting model response…
-                </motion.span>
-              </motion.div>
             )}
           </div>
         </motion.div>
@@ -227,7 +217,7 @@ export function HeroChat() {
           animate={{
             boxShadow: loading
               ? ["0 0 0 1px rgba(124,58,237,0.45), 0 0 50px rgba(124,58,237,0.2), 0 24px 64px rgba(0,0,0,0.6)",
-                 "0 0 0 1px rgba(124,58,237,0.7), 0 0 70px rgba(124,58,237,0.3), 0 24px 64px rgba(0,0,0,0.6)",
+                 "0 0 0 1px rgba(124,58,237,0.7),  0 0 70px rgba(124,58,237,0.3), 0 24px 64px rgba(0,0,0,0.6)",
                  "0 0 0 1px rgba(124,58,237,0.45), 0 0 50px rgba(124,58,237,0.2), 0 24px 64px rgba(0,0,0,0.6)"]
               : ["0 0 0 1px rgba(124,58,237,0.12), 0 0 24px rgba(124,58,237,0.06), 0 24px 64px rgba(0,0,0,0.6)",
                  "0 0 0 1px rgba(124,58,237,0.32), 0 0 40px rgba(124,58,237,0.12), 0 24px 64px rgba(0,0,0,0.6)",
@@ -236,31 +226,34 @@ export function HeroChat() {
           transition={{ duration: loading ? 1.0 : 3.5, repeat: Infinity, ease: "easeInOut" }}
           style={{ border: "1px solid rgba(124,58,237,0.18)", background: "rgba(12,12,12,0.95)" }}
         >
-          {/* Suggestions inside chat — shown when idle, no history */}
+          {/* Suggestion messages — shown when idle, no history */}
           <AnimatePresence>
             {showSuggestions && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0, height: 0 }}
+                exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden border-b border-white/[.05] px-5 py-4"
+                className="border-b border-white/[.05] px-4 py-3 space-y-1.5"
               >
-                <p className="font-mono text-[10px] text-zinc-600 mb-3">// try asking:</p>
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTIONS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => void send(s)}
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] text-zinc-400 hover:text-violet-300 transition-all"
-                      style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,58,237,0.35)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)"; }}
-                    >
-                      <span className="text-violet-600 text-[9px]">→</span> {s}
-                    </button>
-                  ))}
-                </div>
+                <p className="font-mono text-[9px] text-zinc-700 mb-2 tracking-widest uppercase">// try asking</p>
+                {SUGGESTIONS.map((s, i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    onClick={() => void send(s.text)}
+                    className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left font-mono text-[11px] transition-all"
+                    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,58,237,0.25)"; (e.currentTarget as HTMLElement).style.background = "rgba(124,58,237,0.05)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
+                  >
+                    <span className="text-violet-700 text-[10px] shrink-0">{s.icon}</span>
+                    <span className="text-zinc-400 group-hover:text-violet-300 transition-colors">{s.text}</span>
+                    <span className="ml-auto text-[10px] text-zinc-800 group-hover:text-violet-700 transition-colors shrink-0">↵</span>
+                  </motion.button>
+                ))}
               </motion.div>
             )}
           </AnimatePresence>
@@ -319,11 +312,11 @@ export function HeroChat() {
           </div>
         </motion.div>
 
-        {/* Process panel — absolute right, desktop only */}
+        {/* Process panel — right side, desktop only */}
         <ProcessPanel visible={loading} />
       </div>
 
-      {/* Feature lines — hover to highlight */}
+      {/* Feature lines */}
       <div className="mt-8 space-y-1">
         {FEATURE_LINES.map((line, i) => (
           <motion.div
