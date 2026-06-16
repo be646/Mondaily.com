@@ -2,8 +2,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// Always use the Vercel API — ignore env var pointing to dead Render service
-const API_BASE = "https://mondaily-com-api-neon.vercel.app";
+// Use the Next.js API route — runs on the same deployment, has the key
+const API_URL = "/api/ask";
 
 const FEATURE_LINES = [
   "Enrich any company — ARR, headcount & signals in seconds",
@@ -21,10 +21,10 @@ const SUGGESTIONS = [
 
 const PROCESS_STEPS = [
   { tag: "[PARSE]",    msg: "reading intent from query…",            delay: 0 },
-  { tag: "[CONTEXT]",  msg: "loading workspace & record schema…",    delay: 420 },
-  { tag: "[SEARCH]",   msg: "scanning 8,420 enriched records…",      delay: 840 },
-  { tag: "[REASON]",   msg: "building multi-hop context chain…",     delay: 1260 },
-  { tag: "[GENERATE]", msg: "composing response with live data…",    delay: 1680 },
+  { tag: "[CONTEXT]",  msg: "loading workspace & record schema…",    delay: 900 },
+  { tag: "[SEARCH]",   msg: "scanning 8,420 enriched records…",      delay: 1900 },
+  { tag: "[REASON]",   msg: "building multi-hop context chain…",     delay: 3100 },
+  { tag: "[GENERATE]", msg: "composing response with live data…",    delay: 4500 },
 ];
 
 function SendIcon() {
@@ -183,7 +183,7 @@ export function HeroChat() {
       { role: "user" as const, content: msg },
     ];
     try {
-      const res = await fetch(`${API_BASE}/api/v1/public/ask`, {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
@@ -207,6 +207,32 @@ export function HeroChat() {
 
   return (
     <div className="mx-auto w-full max-w-2xl">
+      {/* Suggestion pills — above the chat card */}
+      <AnimatePresence>
+        {isEmpty && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+            className="mb-3 flex flex-wrap justify-center gap-2"
+          >
+            {SUGGESTIONS.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => void send(s)}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] text-zinc-500 hover:text-violet-300 transition-all"
+                style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
+              >
+                <span className="text-violet-600">→</span> {s}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Outer wrapper — relative for process panel absolute positioning */}
       <div className="relative">
         {/* Chat card — animated violet glow border */}
@@ -231,33 +257,6 @@ export function HeroChat() {
             background: "rgba(12,12,12,0.95)",
           }}
         >
-          {/* Suggestion pills — shown when empty */}
-          <AnimatePresence>
-            {isEmpty && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden border-b border-white/[.04] px-4 pt-4 pb-3"
-              >
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTIONS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setInput(s); void send(s); }}
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[10px] text-zinc-500 hover:text-violet-300 transition-all"
-                      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.02)" }}
-                      onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(124,58,237,0.3)")}
-                      onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")}
-                    >
-                      <span className="text-violet-700">→</span> {s}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Reply area */}
           <AnimatePresence mode="wait">
             {(reply || loading) && (
