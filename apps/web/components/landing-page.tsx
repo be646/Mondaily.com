@@ -329,7 +329,7 @@ function FeatureSection() {
           </defs>
           <rect width="1300" height="420" fill="url(#grid)" opacity="0.5"/>
 
-          {/* 1. EDGES first — so nodes and text always render on top */}
+          {/* 1. EDGES — CSS transition, no Framer Motion */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
             const lit = active.has(a) && active.has(b);
@@ -337,35 +337,35 @@ function FeatureSection() {
             const x2 = nb.x;      const y2 = nb.y + NH / 2;
             const mx = (x1 + x2) / 2;
             return (
-              <motion.path
+              <path
                 key={i}
                 d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
                 fill="none"
-                stroke={lit ? "#4c1d95" : "#141414"}
+                stroke={lit ? "#6d28d9" : "#1a1a1a"}
                 strokeWidth={lit ? 1.5 : 1}
                 strokeDasharray={lit ? undefined : "4 5"}
-                animate={{ opacity: lit ? 0.9 : 0.25 }}
-                transition={{ duration: 0.5 }}
+                style={{ opacity: lit ? 0.9 : 0.3, transition: "all 0.2s ease" }}
               />
             );
           })}
 
-          {/* 2. Traveling dots on active edges */}
+          {/* 2. Traveling dots — always mounted, opacity toggled via CSS */}
           {MAIN_EDGES.map(([a, b], i) => {
             const na = getNode(a); const nb = getNode(b);
-            if (!active.has(a) || !active.has(b)) return null;
+            const lit = active.has(a) && active.has(b);
             const x1 = na.x + NW; const y1 = na.y + NH / 2;
             const x2 = nb.x;      const y2 = nb.y + NH / 2;
             const mx = (x1 + x2) / 2;
             return (
-              <circle key={`dot-${i}`} r="3" fill="#7c3aed" opacity="0.75">
-                <animateMotion dur="2.5s" repeatCount="indefinite"
+              <circle key={`dot-${i}`} r="3" fill="#7c3aed"
+                style={{ opacity: lit ? 0.8 : 0, transition: "opacity 0.2s ease" }}>
+                <animateMotion dur="2s" repeatCount="indefinite"
                   path={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}/>
               </circle>
             );
           })}
 
-          {/* 3. Sub-branch lines + dots (no text yet) */}
+          {/* 3. Sub-branch lines + dots — CSS transition */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             const cx = node.x + NW / 2;
@@ -376,22 +376,20 @@ function FeatureSection() {
               const dotX = anchor === "start" ? ax - 4 : ax + 4;
               return (
                 <g key={`${node.id}-sl${si}`}>
-                  <motion.line
+                  <line
                     x1={cx} y1={cy} x2={dotX} y2={ay}
-                    stroke="#2e1065" strokeWidth="0.8" strokeDasharray="2 3"
-                    animate={{ opacity: on ? 0.45 : 0.04 }}
-                    transition={{ duration: 0.4, delay: si * 0.06 }}
+                    stroke="#4c1d95" strokeWidth="0.8" strokeDasharray="2 3"
+                    style={{ opacity: on ? 0.5 : 0.04, transition: "opacity 0.2s ease" }}
                   />
-                  <motion.circle cx={dotX} cy={ay} r="1.8" fill="#5b21b6"
-                    animate={{ opacity: on ? 0.7 : 0.04 }}
-                    transition={{ duration: 0.4 }}
+                  <circle cx={dotX} cy={ay} r="1.8" fill="#6d28d9"
+                    style={{ opacity: on ? 0.7 : 0.04, transition: "opacity 0.2s ease" }}
                   />
                 </g>
               );
             });
           })}
 
-          {/* 4. Node boxes + indicator dots — hover target, on top of all lines */}
+          {/* 4. Node boxes — hover target, CSS transition */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return (
@@ -402,43 +400,38 @@ function FeatureSection() {
                 onMouseEnter={() => handleNodeEnter(node.id)}
                 onMouseLeave={handleNodeLeave}
               >
-                {/* Larger invisible hit area so hover is easy to trigger */}
                 <rect x="-8" y="-8" width={NW + 16} height={NH + 16} fill="transparent"/>
-                <motion.rect
+                <rect
                   x="0" y="0" width={NW} height={NH} rx="6"
-                  fill="#080808"
-                  stroke={on ? "rgba(255,255,255,0.25)" : "#1a1a1a"}
+                  fill="#0a0a0a"
+                  stroke={on ? "rgba(255,255,255,0.22)" : "#1e1e1e"}
                   strokeWidth="1"
-                  animate={{ opacity: on ? 1 : 0.3, scale: on ? 1.03 : 1 }}
-                  transition={{ duration: 0.2 }}
+                  style={{ opacity: on ? 1 : 0.35, transition: "all 0.15s ease" }}
                 />
-                <motion.circle cx="12" cy={NH / 2} r="3"
-                  fill={on ? "#7c3aed" : "#222"}
-                  animate={{ opacity: on ? [0.6,1,0.6] : 0.15 }}
-                  transition={{ duration: 1.5, repeat: on ? Infinity : 0 }}
+                <circle cx="12" cy={NH / 2} r="3"
+                  fill={on ? "#7c3aed" : "#2a2a2a"}
+                  style={{ transition: "fill 0.15s ease" }}
                 />
               </g>
             );
           })}
 
-          {/* 5. ALL text labels — absolute final layer, never covered by any line */}
-          {/* Node labels */}
+          {/* 5. ALL text — final layer, CSS transition, no stagger */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return (
               <text
                 key={`${node.id}-lbl`}
                 x={node.x + 24} y={node.y + NH / 2 + 4}
-                fill={on ? "#d4d4d8" : "#282828"}
+                fill={on ? "#e4e4e7" : "#333"}
                 fontSize="10"
                 fontFamily="'JetBrains Mono', monospace"
-                fontWeight={on ? "500" : "400"}
+                style={{ transition: "fill 0.15s ease" }}
               >
                 {node.label}
               </text>
             );
           })}
-          {/* Sub-feature labels */}
           {MAIN_NODES.map(node => {
             const on = active.has(node.id);
             return node.subs.map((sub, si) => {
@@ -446,19 +439,18 @@ function FeatureSection() {
               const anchor = node.subAnchor;
               const dotX = anchor === "start" ? ax - 4 : ax + 4;
               return (
-                <motion.text
+                <text
                   key={`${node.id}-st${si}`}
                   x={anchor === "start" ? dotX + 6 : dotX - 6}
                   y={ay + 3.5}
                   textAnchor={anchor}
-                  fill="#ffffff"
+                  fill="#fff"
                   fontSize="9"
                   fontFamily="'JetBrains Mono', monospace"
-                  animate={{ opacity: on ? 0.42 : 0.03 }}
-                  transition={{ duration: 0.4, delay: si * 0.06 }}
+                  style={{ opacity: on ? 0.45 : 0.03, transition: "opacity 0.15s ease" }}
                 >
                   {sub.label}
-                </motion.text>
+                </text>
               );
             });
           })}
