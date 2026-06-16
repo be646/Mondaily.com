@@ -26,7 +26,7 @@ export function SignUpPage() {
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) { setError("Auth is loading, please try again."); return; }
     setLoading(true);
     setError("");
     try {
@@ -43,7 +43,7 @@ export function SignUpPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) { setError("Auth is loading, please try again."); return; }
     setLoading(true);
     setError("");
     try {
@@ -62,7 +62,7 @@ export function SignUpPage() {
   }
 
   async function handleGoogle() {
-    if (!isLoaded) return;
+    if (!isLoaded || !signUp) { return; }
     await signUp.authenticateWithRedirect({
       strategy: "oauth_google",
       redirectUrl: "/sso-callback",
@@ -94,7 +94,7 @@ export function SignUpPage() {
 
               <button
                 onClick={handleGoogle}
-                disabled={!isLoaded}
+                disabled={loading}
                 className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-zinc-700 hover:bg-zinc-50 active:translate-y-[1px] transition-all disabled:opacity-50"
               >
                 <svg width="15" height="15" viewBox="0 0 48 48" fill="none">
@@ -127,7 +127,7 @@ export function SignUpPage() {
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
 
-                <button type="submit" disabled={loading || !isLoaded} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50">
+                <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50">
                   {loading ? "Creating account…" : "Create account →"}
                 </button>
               </form>

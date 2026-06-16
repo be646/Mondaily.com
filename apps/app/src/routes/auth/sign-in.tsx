@@ -109,7 +109,7 @@ export function SignInPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isLoaded) return;
+    if (!isLoaded || !signIn) { setError("Auth is loading, please wait a moment and try again."); return; }
     setLoading(true);
     setError("");
     try {
@@ -127,7 +127,7 @@ export function SignInPage() {
   }
 
   async function handleGoogle() {
-    if (!isLoaded) return;
+    if (!isLoaded || !signIn) { setError("Auth is loading, please try again."); return; }
     await signIn.authenticateWithRedirect({
       strategy: "oauth_google",
       redirectUrl: "/sso-callback",
@@ -154,7 +154,7 @@ export function SignInPage() {
           {/* Google */}
           <button
             onClick={handleGoogle}
-            disabled={!isLoaded}
+            disabled={loading}
             className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-zinc-700 hover:bg-zinc-50 active:translate-y-[1px] transition-all disabled:opacity-50"
           >
             <svg width="15" height="15" viewBox="0 0 48 48" fill="none">
@@ -191,7 +191,7 @@ export function SignInPage() {
 
             <button
               type="submit"
-              disabled={loading || !isLoaded}
+              disabled={loading}
               className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50"
             >
               {loading ? "Signing in…" : "Sign in →"}

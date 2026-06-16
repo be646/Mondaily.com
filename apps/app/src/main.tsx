@@ -15,23 +15,30 @@ const queryClient = new QueryClient({
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { getToken, isSignedIn, isLoaded } = useAuth();
-  const { organization } = useOrganization();
+  const { organization, isLoaded: orgLoaded } = useOrganization();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
       localStorage.removeItem("mondaily_session_token");
+      localStorage.removeItem("mondaily_workspace_id");
       setTokenProvider(() => Promise.resolve(null));
       setReady(true);
       return;
     }
-    // Wire api-client to always call getToken() fresh — Clerk caches internally
-    // and only network-fetches when < 10s remain, so this is fast but never stale.
+    // Wait for org to load before deciding workspace
+    if (!orgLoaded) return;
     setTokenProvider(() => getToken());
-    localStorage.setItem("mondaily_workspace_id", "8ccef088-6493-4cd9-a0cf-3214098f59a1");
+    // Use the user's active Clerk organization as workspace ID.
+    // Never fall back to a hardcoded ID — that would expose another user's data.
+    if (organization?.id) {
+      localStorage.setItem("mondaily_workspace_id", organization.id);
+    } else {
+      localStorage.removeItem("mondaily_workspace_id");
+    }
     setReady(true);
-  }, [isLoaded, isSignedIn, getToken]);
+  }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
   if (!ready) return null;
   return <>{children}</>;
