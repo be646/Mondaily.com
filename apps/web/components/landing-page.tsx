@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
@@ -2057,14 +2057,65 @@ function CookieBanner() {
   );
 }
 
+// ── Sticky start-free nudge ─────────────────────────────────────────────────
+function StickyStartBar() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setShow(window.scrollY > 800);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.a
+          href="https://app.mondaily.com/sign-up"
+          initial={{ y: 16, opacity: 0, scale: 0.96 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: 16, opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.3 }}
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-600 px-5 py-3 font-mono text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(79,70,229,0.35)] hover:bg-indigo-500 transition-colors"
+        >
+          <motion.span
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.8, repeat: Infinity }}
+            className="h-1.5 w-1.5 rounded-full bg-white/90"
+          />
+          Start free →
+        </motion.a>
+      )}
+    </AnimatePresence>
+  );
+}
+
+const PRELOADER_SESSION_KEY = "mondaily_preloader_seen";
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export function LandingPage() {
   const [ready, setReady] = useState(false);
-  const handleDone = useCallback(() => setReady(true), []);
+  const [skipPreloader, setSkipPreloader] = useState(false);
+
+  useLayoutEffect(() => {
+    if (sessionStorage.getItem(PRELOADER_SESSION_KEY)) {
+      setSkipPreloader(true);
+      setReady(true);
+    }
+  }, []);
+
+  const handleDone = useCallback(() => {
+    setReady(true);
+    sessionStorage.setItem(PRELOADER_SESSION_KEY, "1");
+  }, []);
 
   return (
     <>
-      {!ready && <Preloader onDone={handleDone} />}
+      {!ready && !skipPreloader && <Preloader onDone={handleDone} />}
+      <StickyStartBar />
 
       <motion.div
         initial={{ opacity: 0 }}
