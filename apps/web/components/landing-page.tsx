@@ -316,6 +316,30 @@ const MODULE_ZONES: { zone: string; ids: string[]; accent: string }[] = [
   { zone: "Operations",   ids: ["finance", "mcp"],         accent: "#059669" },
 ];
 
+function LiveStat({ start, step, intervalMs }: { start: number; step: [number, number]; intervalMs: number }) {
+  const [value, setValue] = useState(start);
+  const [bump, setBump] = useState(false);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setValue(v => v + (step[0] + Math.floor(Math.random() * (step[1] - step[0] + 1))));
+      setBump(true);
+      setTimeout(() => setBump(false), 400);
+    }, intervalMs);
+    return () => clearInterval(t);
+  }, [step, intervalMs]);
+
+  return (
+    <motion.span
+      animate={{ opacity: [0.5, 1, 0.5], scale: bump ? [1, 1.08, 1] : 1 }}
+      transition={{ opacity: { duration: 3, repeat: Infinity }, scale: { duration: 0.4 } }}
+      className="text-indigo-600"
+    >
+      {value.toLocaleString()}
+    </motion.span>
+  );
+}
+
 function FeatureSection() {
   const [active, setActive] = useState<string | null>(null);
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
@@ -330,17 +354,17 @@ function FeatureSection() {
       {/* Live stats bar — numbers pulse to signal the system is live */}
       <div className="mb-10 flex gap-6 font-mono text-[14px] text-zinc-600">
         <span>
-          <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 0 }} className="text-indigo-600">8,420</motion.span>
+          <LiveStat start={8420} step={[1, 3]} intervalMs={4200} />
           {" "}records enriched
         </span>
         <span className="text-zinc-500">·</span>
         <span>
-          <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 1 }} className="text-indigo-600">234</motion.span>
+          <LiveStat start={234} step={[0, 1]} intervalMs={6500} />
           {" "}deals tracked
         </span>
         <span className="text-zinc-500">·</span>
         <span>
-          <motion.span animate={{ opacity: [0.5,1,0.5] }} transition={{ duration: 3, repeat: Infinity, delay: 2 }} className="text-indigo-600">12</motion.span>
+          <LiveStat start={12} step={[0, 1]} intervalMs={9000} />
           {" "}sequences running
         </span>
       </div>
