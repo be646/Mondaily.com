@@ -19,25 +19,46 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      localStorage.removeItem("mondaily_session_token");
-      localStorage.removeItem("mondaily_workspace_id");
-      setTokenProvider(() => Promise.resolve(null));
+    let cancelled = false;
+
+    async function syncAuth() {
+      if (!isLoaded) return;
+
+      if (!isSignedIn) {
+        localStorage.removeItem("mondaily_session_token");
+        localStorage.removeItem("mondaily_workspace_id");
+        setTokenProvider(() => Promise.resolve(null));
+        setReady(true);
+        return;
+      }
+
+      if (!orgLoaded) return;
+
+      setTokenProvider(() => getToken());
+
+      const token = await getToken();
+      if (cancelled) return;
+
+      if (token) {
+        localStorage.setItem("mondaily_session_token", token);
+      } else {
+        localStorage.removeItem("mondaily_session_token");
+      }
+
+      if (organization?.id) {
+        localStorage.setItem("mondaily_workspace_id", organization.id);
+      } else {
+        localStorage.removeItem("mondaily_workspace_id");
+      }
+
       setReady(true);
-      return;
     }
-    // Wait for org to load before deciding workspace
-    if (!orgLoaded) return;
-    setTokenProvider(() => getToken());
-    // Use the user's active Clerk organization as workspace ID.
-    // Never fall back to a hardcoded ID — that would expose another user's data.
-    if (organization?.id) {
-      localStorage.setItem("mondaily_workspace_id", organization.id);
-    } else {
-      localStorage.removeItem("mondaily_workspace_id");
-    }
-    setReady(true);
+
+    void syncAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
   if (!ready) return null;
