@@ -150,6 +150,8 @@ export function SignUpPage() {
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
 
+                <div id="clerk-captcha" className="flex justify-center" />
+
                 <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50">
                   {loading ? "Creating account…" : "Create account →"}
                 </button>
