@@ -210,7 +210,7 @@ export function AskMondaily() {
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; web_search = s.webSearch === "allow"; } catch {}
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
       if (!token) throw new Error("Please sign in again before using Ask Mondaily.");
       if (!workspaceId) throw new Error("Please finish onboarding and create a workspace before using Ask Mondaily.");
 
@@ -281,7 +281,7 @@ export function AskMondaily() {
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
       await fetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },

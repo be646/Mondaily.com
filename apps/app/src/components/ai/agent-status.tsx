@@ -13,7 +13,7 @@ import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMes
 async function callAsk(message: string): Promise<string> {
   const token = localStorage.getItem("mondaily_session_token");
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
   if (!token) return "Please sign in again before using Ask Mondaily.";
   if (!workspaceId) return "Please finish onboarding and create a workspace before using Ask Mondaily.";
 
@@ -56,7 +56,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.VITE_API_URL || "";
+      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
       await fetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
         headers: {

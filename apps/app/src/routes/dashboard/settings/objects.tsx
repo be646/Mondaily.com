@@ -45,7 +45,7 @@ const EXAMPLES = [
 async function generateSchema(prompt: string): Promise<GeneratedSchema> {
   const token = localStorage.getItem("mondaily_session_token");
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
 
   const res = await fetch(`${apiUrl}/api/v1/generate/schema`, {
     method: "POST",

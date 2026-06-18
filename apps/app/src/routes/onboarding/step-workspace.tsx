@@ -26,7 +26,7 @@ export function StepWorkspace() {
         await setActive?.({ organization: org.id });
 
         const token = await getToken();
-        const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+        const apiUrl = (import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "")).replace(/\/$/, "");
         const res = await fetch(`${apiUrl}/api/v1/onboarding/bootstrap`, {
           method: "POST",
           headers: {
