@@ -211,11 +211,24 @@ export function AskMondaily() {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
       const apiUrl = import.meta.env.VITE_API_URL || "";
+      if (!token) throw new Error("Please sign in again before using Ask Mondaily.");
+      if (!workspaceId) throw new Error("Please finish onboarding and create a workspace before using Ask Mondaily.");
+
       const res = await fetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-Workspace-Id": workspaceId
+        },
         body: JSON.stringify({ message: text, model, web_search })
       });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || "Ask Mondaily failed.");
+      }
+
       const data = await res.json() as { reply?: string; suggestions?: string[] };
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };

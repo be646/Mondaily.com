@@ -16,6 +16,13 @@ export function StepPlan() {
   usePanelState({ selected });
 
   function start() {
+    const workspaceId = localStorage.getItem("mondaily_workspace_id");
+
+    if (!workspaceId) {
+      navigate("/onboarding/workspace");
+      return;
+    }
+
     if (selected === "free") navigate("/home");
     else if (selected === "enterprise") window.location.href = "mailto:sales@mondaily.com";
     else window.location.href = "/api/v1/billing/checkout?plan=pro&interval=year";

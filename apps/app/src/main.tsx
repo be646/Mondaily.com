@@ -49,6 +49,21 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         localStorage.setItem("mondaily_workspace_id", organization.id);
       } else {
         localStorage.removeItem("mondaily_workspace_id");
+
+        const path = window.location.pathname;
+        const authPath = path.startsWith("/sign-in") || path.startsWith("/sign-up");
+        const onboardingPath = path.startsWith("/onboarding");
+        const workspacePath = path.startsWith("/workspaces");
+
+        if (!onboardingPath && !workspacePath) {
+          window.location.replace("/onboarding/profile");
+          return;
+        }
+
+        if (authPath) {
+          window.location.replace("/onboarding/profile");
+          return;
+        }
       }
 
       setReady(true);
