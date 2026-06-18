@@ -1,21 +1,31 @@
+import { useAuth } from "@clerk/react";
 import { useSignUp } from "@clerk/react/legacy";
-import { useState, useLayoutEffect } from "react";
+import { useEffect, useState, useLayoutEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Logo } from "../../components/logo";
 import { SignUpPanel } from "../onboarding/onboarding-panels";
 
 export function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
 
   useLayoutEffect(() => {
     const prev = document.documentElement.dataset.theme;
     document.documentElement.dataset.theme = "light";
     document.documentElement.classList.remove("dark");
+    document.body.style.background = "#f4f5f8";
+    document.body.style.color = "#0f172a";
     return () => {
       if (prev) document.documentElement.dataset.theme = prev;
+      document.body.style.background = "";
+      document.body.style.color = "";
     };
   }, []);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (authLoaded && isSignedIn) navigate("/onboarding/profile", { replace: true });
+  }, [authLoaded, isSignedIn, navigate]);
 
   const [stage,    setStage]    = useState<"form" | "verify" | "done">("form");
   const [email,    setEmail]    = useState("");
@@ -35,7 +45,11 @@ export function SignUpPage() {
       setStage("verify");
     } catch (err: unknown) {
       const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
-      setError(msg ?? "Sign up failed. Please try again.");
+      if ((msg ?? "").toLowerCase().includes("session already exists")) {
+        navigate("/onboarding/profile", { replace: true });
+      } else {
+        setError(msg ?? "Sign up failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -48,14 +62,23 @@ export function SignUpPage() {
     setError("");
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
-      if (result.status === "complete") {
+      if (result.status === "complete" && result.createdSessionId) {
         setStage("done");
         await setActive({ session: result.createdSessionId });
-        navigate("/onboarding/profile");
+        navigate("/onboarding/profile", { replace: true });
+        return;
       }
+
+      setError("Email verified, but Clerk still needs one more step. Please go to sign in with this email.");
     } catch (err: unknown) {
       const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
-      setError(msg ?? "Invalid code. Please try again.");
+      if ((msg ?? "").toLowerCase().includes("already verified")) {
+        setError("This email is already verified. Please sign in with this email to continue.");
+      } else if ((msg ?? "").toLowerCase().includes("session already exists")) {
+        navigate("/onboarding/profile", { replace: true });
+      } else {
+        setError(msg ?? "Invalid code. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
