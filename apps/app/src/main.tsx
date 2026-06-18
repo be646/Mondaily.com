@@ -57,7 +57,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      domain={import.meta.env.VITE_CLERK_FRONTEND_API_URL}
       appearance={{ elements: { badge: "hidden", logoBox: "hidden" } }}
     >
       <QueryClientProvider client={queryClient}>
