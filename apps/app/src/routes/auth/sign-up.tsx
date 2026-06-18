@@ -24,7 +24,7 @@ export function SignUpPage() {
 
   useEffect(() => {
     if (authLoaded && isSignedIn) window.location.assign("/onboarding/profile");
-  }, [authLoaded, isSignedIn, navigate]);
+  }, [authLoaded, isSignedIn]);
 
   const [stage,    setStage]    = useState<"form" | "verify" | "done">("form");
   const [email,    setEmail]    = useState("");

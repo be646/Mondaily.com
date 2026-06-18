@@ -109,7 +109,7 @@ export function SignInPage() {
 
   useEffect(() => {
     if (authLoaded && isSignedIn) window.location.assign("/home");
-  }, [authLoaded, isSignedIn, navigate]);
+  }, [authLoaded, isSignedIn]);
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
