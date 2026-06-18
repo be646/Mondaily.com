@@ -96,7 +96,17 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     };
   }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
-  if (!ready) return null;
+  const currentPath = window.location.pathname;
+  const allowWhileSyncing =
+    currentPath.startsWith("/sign-in") ||
+    currentPath.startsWith("/sign-up") ||
+    currentPath.startsWith("/onboarding") ||
+    currentPath.startsWith("/workspaces");
+
+  if (!ready && !allowWhileSyncing) {
+    return <div className="min-h-screen bg-[#0b0d10]" />;
+  }
+
   return <>{children}</>;
 }
 

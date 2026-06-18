@@ -44,17 +44,30 @@ router.post("/bootstrap", requireJwt, async (c) => {
     workspace = created.data;
   }
 
-  const { error: memberError } = await supabase
+  const { data: existingMember, error: memberFindError } = await supabase
     .from("workspace_members")
-    .upsert({
-      workspace_id: workspace.id,
-      user_id: userId,
-      role: "owner",
-      finance_role: "none",
-    }, { onConflict: "workspace_id,user_id" });
+    .select("id")
+    .eq("workspace_id", workspace.id)
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (memberError) {
-    return c.json({ error: memberError.message }, 500);
+  if (memberFindError) {
+    return c.json({ error: memberFindError.message }, 500);
+  }
+
+  if (!existingMember) {
+    const { error: memberInsertError } = await supabase
+      .from("workspace_members")
+      .insert({
+        workspace_id: workspace.id,
+        user_id: userId,
+        role: "owner",
+        finance_role: "none",
+      });
+
+    if (memberInsertError) {
+      return c.json({ error: memberInsertError.message }, 500);
+    }
   }
 
   return c.json({
