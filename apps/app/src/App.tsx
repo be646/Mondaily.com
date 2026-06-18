@@ -1,4 +1,4 @@
-import { Show } from "@clerk/react";
+import { useAuth } from "@clerk/react";
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { SignInPage } from "./routes/auth/sign-in";
@@ -56,7 +56,12 @@ import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+
+  return <>{children}</>;
 }
 
 export function App() {

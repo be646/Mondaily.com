@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/react";
 import { useSignUp } from "@clerk/react/legacy";
 import { useEffect, useState, useLayoutEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Logo } from "../../components/logo";
 import { SignUpPanel } from "../onboarding/onboarding-panels";
 
@@ -21,10 +21,9 @@ export function SignUpPage() {
       document.body.style.color = "";
     };
   }, []);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (authLoaded && isSignedIn) navigate("/onboarding/profile", { replace: true });
+    if (authLoaded && isSignedIn) window.location.assign("/onboarding/profile");
   }, [authLoaded, isSignedIn, navigate]);
 
   const [stage,    setStage]    = useState<"form" | "verify" | "done">("form");
@@ -46,7 +45,7 @@ export function SignUpPage() {
     } catch (err: unknown) {
       const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
       if ((msg ?? "").toLowerCase().includes("session already exists")) {
-        navigate("/onboarding/profile", { replace: true });
+        window.location.assign("/onboarding/profile");
       } else {
         setError(msg ?? "Sign up failed. Please try again.");
       }
@@ -65,7 +64,7 @@ export function SignUpPage() {
       if (result.status === "complete" && result.createdSessionId) {
         setStage("done");
         await setActive({ session: result.createdSessionId });
-        navigate("/onboarding/profile", { replace: true });
+        window.location.assign("/onboarding/profile");
         return;
       }
 
@@ -75,7 +74,7 @@ export function SignUpPage() {
       if ((msg ?? "").toLowerCase().includes("already verified")) {
         setError("This email is already verified. Please sign in with this email to continue.");
       } else if ((msg ?? "").toLowerCase().includes("session already exists")) {
-        navigate("/onboarding/profile", { replace: true });
+        window.location.assign("/onboarding/profile");
       } else {
         setError(msg ?? "Invalid code. Please try again.");
       }

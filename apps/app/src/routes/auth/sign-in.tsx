@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/react";
 import { useSignIn } from "@clerk/react/legacy";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Logo } from "../../components/logo";
 
 // ── Live panel data ───────────────────────────────────────────────────────────
@@ -106,10 +106,9 @@ export function SignInPage() {
       document.body.style.color = "";
     };
   }, []);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (authLoaded && isSignedIn) navigate("/home", { replace: true });
+    if (authLoaded && isSignedIn) window.location.assign("/home");
   }, [authLoaded, isSignedIn, navigate]);
 
   const [email, setEmail]       = useState("");
@@ -126,12 +125,12 @@ export function SignInPage() {
       const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        navigate("/home");
+        window.location.assign("/home");
       }
     } catch (err: unknown) {
       const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
       if ((msg ?? "").toLowerCase().includes("session already exists")) {
-        navigate("/home", { replace: true });
+        window.location.assign("/home");
       } else {
         setError(msg ?? "Sign in failed. Please try again.");
       }
