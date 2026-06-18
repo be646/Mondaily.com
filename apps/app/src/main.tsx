@@ -57,6 +57,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      signInForceRedirectUrl="/home"
+      signInFallbackRedirectUrl="/home"
+      signUpForceRedirectUrl="/onboarding/profile"
+      signUpFallbackRedirectUrl="/onboarding/profile"
       appearance={{ elements: { badge: "hidden", logoBox: "hidden" } }}
     >
       <QueryClientProvider client={queryClient}>

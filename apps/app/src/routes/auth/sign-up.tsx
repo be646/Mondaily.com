@@ -1,5 +1,5 @@
-import { SignUp } from "@clerk/react";
-import { useLayoutEffect } from "react";
+import { SignUp, useAuth } from "@clerk/react";
+import { useEffect, useLayoutEffect } from "react";
 import { Logo } from "../../components/logo";
 
 function useLightAuthTheme() {
@@ -20,6 +20,14 @@ function useLightAuthTheme() {
 
 export function SignUpPage() {
   useLightAuthTheme();
+
+  const { isLoaded, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      window.location.replace("/onboarding/profile");
+    }
+  }, [isLoaded, isSignedIn]);
 
   return (
     <div className="min-h-screen bg-[#f4f5f8] text-slate-900">
