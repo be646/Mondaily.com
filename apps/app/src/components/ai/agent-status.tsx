@@ -13,16 +13,13 @@ import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMes
 async function callAsk(message: string): Promise<string> {
   const token = localStorage.getItem("mondaily_session_token");
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
-  if (!token) return "Please sign in again before using Ask Mondaily.";
-  if (!workspaceId) return "Please finish onboarding and create a workspace before using Ask Mondaily.";
-
+  const apiUrl = import.meta.env.VITE_API_URL || "";
   const res = await fetch(`${apiUrl}/api/v1/ask`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      "X-Workspace-Id": workspaceId,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
     },
     body: JSON.stringify({
       message,
@@ -30,13 +27,8 @@ async function callAsk(message: string): Promise<string> {
       web_search: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").webSearch === "allow"; } catch { return false; } })(),
     }),
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    return text || "Ask Mondaily failed.";
-  }
-
   const data = await res.json() as any;
-  return data.reply || data.message || "No response.";
+  return data.reply || "No response.";
 }
 
 // ─── Ask side panel ───────────────────────────────────────────────────────────
@@ -56,7 +48,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
+      const apiUrl = import.meta.env.VITE_API_URL || "";
       await fetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
         headers: {

@@ -13,32 +13,16 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
-      if (!token) {
-        onResponse?.("Please sign in again before using Ask Mondaily.");
-        return;
-      }
-
-      if (!workspaceId) {
-        onResponse?.("Please finish onboarding and create a workspace before using Ask Mondaily.");
-        return;
-      }
-
+      const apiUrl = import.meta.env.VITE_API_URL || "";
       const response = await fetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "X-Workspace-Id": workspaceId
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
         },
         body: JSON.stringify({ message })
       });
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        onResponse?.(text || "Ask Mondaily failed.");
-        return;
-      }
-
       const data = await response.json();
       onResponse?.(data.reply || data.message || "No response.");
     } catch (err: any) {

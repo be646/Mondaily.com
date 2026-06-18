@@ -141,7 +141,7 @@ function CreateRecordModal({
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : ((import.meta.env.VITE_API_URL as string) || "");
+      const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
       const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
         method: "POST",
         headers: {
@@ -429,7 +429,7 @@ function AIFillModal({
     try {
       const token = localStorage.getItem("mondaily_session_token");
       const workspaceId = localStorage.getItem("mondaily_workspace_id");
-      const apiUrl = import.meta.env.PROD ? "https://api.mondaily.com" : ((import.meta.env.VITE_API_URL as string) || "");
+      const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
       const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
         method: "POST",
         headers: {

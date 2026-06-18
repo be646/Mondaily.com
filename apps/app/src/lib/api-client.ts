@@ -1,4 +1,4 @@
-const BASE_URL = (import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "")).replace(/\/$/, "");
+const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_URL = `${BASE_URL}/api/v1`;
 
 // Clerk's getToken function — set once by AuthGate on mount so the api client

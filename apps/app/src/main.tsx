@@ -19,102 +19,28 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function syncAuth() {
-      if (!isLoaded) return;
-
-      if (!isSignedIn) {
-        localStorage.removeItem("mondaily_session_token");
-        localStorage.removeItem("mondaily_workspace_id");
-        setTokenProvider(() => Promise.resolve(null));
-        setReady(true);
-        return;
-      }
-
-      if (!orgLoaded) return;
-
-      setTokenProvider(() => getToken());
-
-      const token = await getToken();
-      if (cancelled) return;
-
-      if (token) {
-        localStorage.setItem("mondaily_session_token", token);
-      } else {
-        localStorage.removeItem("mondaily_session_token");
-      }
-
-      if (organization?.id) {
-        try {
-          const apiUrl = (import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "")).replace(/\/$/, "");
-          const res = await fetch(`${apiUrl}/api/v1/onboarding/bootstrap`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              clerk_org_id: organization.id,
-              name: organization.name,
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json() as { workspace_id?: string };
-            if (data.workspace_id) {
-              localStorage.setItem("mondaily_workspace_id", data.workspace_id);
-            }
-          } else {
-            localStorage.removeItem("mondaily_workspace_id");
-          }
-        } catch {
-          localStorage.removeItem("mondaily_workspace_id");
-        }
-      } else {
-        localStorage.removeItem("mondaily_workspace_id");
-
-        const path = window.location.pathname;
-        const authPath = path.startsWith("/sign-in") || path.startsWith("/sign-up");
-        const onboardingPath = path.startsWith("/onboarding");
-        const workspacePath = path.startsWith("/workspaces");
-
-        if (!onboardingPath && !workspacePath) {
-          window.location.replace("/onboarding/profile");
-          return;
-        }
-
-        if (authPath) {
-          window.location.replace("/onboarding/profile");
-          return;
-        }
-      }
-
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      localStorage.removeItem("mondaily_session_token");
+      localStorage.removeItem("mondaily_workspace_id");
+      setTokenProvider(() => Promise.resolve(null));
       setReady(true);
+      return;
     }
-
-    void syncAuth();
-
-    return () => {
-      cancelled = true;
-    };
+    // Wait for org to load before deciding workspace
+    if (!orgLoaded) return;
+    setTokenProvider(() => getToken());
+    // Use the user's active Clerk organization as workspace ID.
+    // Never fall back to a hardcoded ID — that would expose another user's data.
+    if (organization?.id) {
+      localStorage.setItem("mondaily_workspace_id", organization.id);
+    } else {
+      localStorage.removeItem("mondaily_workspace_id");
+    }
+    setReady(true);
   }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
-  const currentPath = window.location.pathname;
-  const allowWhileSyncing =
-    currentPath.startsWith("/sign-in") ||
-    currentPath.startsWith("/sign-up") ||
-    currentPath.startsWith("/onboarding") ||
-    currentPath.startsWith("/workspaces");
-
-  if (!ready && !allowWhileSyncing) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[#f4f5f8] text-sm text-slate-500">
-        Loading Mondaily...
-      </div>
-    );
-  }
-
+  if (!ready) return null;
   return <>{children}</>;
 }
 
@@ -131,10 +57,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ClerkProvider
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
-      signInForceRedirectUrl="/home"
-      signInFallbackRedirectUrl="/home"
-      signUpForceRedirectUrl="/onboarding/profile"
-      signUpFallbackRedirectUrl="/onboarding/profile"
       appearance={{ elements: { badge: "hidden", logoBox: "hidden" } }}
     >
       <QueryClientProvider client={queryClient}>

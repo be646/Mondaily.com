@@ -126,7 +126,7 @@ export function CallDetailPage() {
     setActiveTemplate(templateId);
     setAnalysisResults((current) => ({ ...current, [templateId]: "" }));
     setAnalyzing(true);
-    const API_URL = (import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "/api/v1")).replace(/\/$/, "");
+    const API_URL = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
     const response = await fetch(`${API_URL}/calls/${id}/analyze`, {
       method: "POST",
       headers: {

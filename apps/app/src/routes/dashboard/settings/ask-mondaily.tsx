@@ -56,7 +56,7 @@ export function AskMondailySettings() {
   useEffect(() => {
     const token = localStorage.getItem("mondaily_session_token");
     const workspaceId = localStorage.getItem("mondaily_workspace_id");
-    const apiUrl = (window as any).__VITE_API_URL__ || import.meta.env.PROD ? "https://api.mondaily.com" : (import.meta.env.VITE_API_URL || "");
+    const apiUrl = (window as any).__VITE_API_URL__ || import.meta.env.VITE_API_URL || "";
     fetch(`${apiUrl}/api/v1/ask/credits`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
