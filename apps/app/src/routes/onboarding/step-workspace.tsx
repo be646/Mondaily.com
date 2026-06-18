@@ -1,4 +1,4 @@
-import { useOrganizationList } from "@clerk/react";
+import { useAuth, useOrganizationList } from "@clerk/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ const INDUSTRIES = ["Technology", "Real Estate", "Finance", "Professional Servic
 export function StepWorkspace() {
   const navigate = useNavigate();
   const { createOrganization, setActive } = useOrganizationList();
+  const { getToken } = useAuth();
   const [name,     setName]     = useState("");
   const [size,     setSize]     = useState("");
   const [industry, setIndustry] = useState("");
@@ -23,7 +24,28 @@ export function StepWorkspace() {
       const org = await createOrganization?.({ name });
       if (org) {
         await setActive?.({ organization: org.id });
-        localStorage.setItem("mondaily_workspace_id", org.id);
+
+        const token = await getToken();
+        const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+        const res = await fetch(`${apiUrl}/api/v1/onboarding/bootstrap`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            clerk_org_id: org.id,
+            name,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json() as { workspace_id?: string };
+          if (data.workspace_id) {
+            localStorage.setItem("mondaily_workspace_id", data.workspace_id);
+          }
+        }
+
         localStorage.setItem("mondaily_workspace_profile", JSON.stringify({ size, industry }));
       }
     } catch { /* continue */ }

@@ -1,15 +1,38 @@
-import { useOrganizationList } from "@clerk/react";
+import { useAuth, useOrganizationList } from "@clerk/react";
 import { ArrowRight, Building2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function WorkspaceSelectPage() {
   const navigate = useNavigate();
   const { userMemberships, setActive } = useOrganizationList({ userMemberships: { infinite: true } });
+  const { getToken } = useAuth();
   const memberships = userMemberships?.data ?? [];
 
   async function selectWorkspace(organizationId: string) {
     await setActive?.({ organization: organizationId });
-    localStorage.setItem("mondaily_workspace_id", organizationId);
+
+    const membership = memberships.find(item => item.organization.id === organizationId);
+    const token = await getToken();
+    const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    const res = await fetch(`${apiUrl}/api/v1/onboarding/bootstrap`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        clerk_org_id: organizationId,
+        name: membership?.organization.name,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json() as { workspace_id?: string };
+      if (data.workspace_id) {
+        localStorage.setItem("mondaily_workspace_id", data.workspace_id);
+      }
+    }
+
     navigate("/home");
   }
 

@@ -46,7 +46,27 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       }
 
       if (organization?.id) {
-        localStorage.setItem("mondaily_workspace_id", organization.id);
+        const apiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+        const res = await fetch(`${apiUrl}/api/v1/onboarding/bootstrap`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            clerk_org_id: organization.id,
+            name: organization.name,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json() as { workspace_id?: string };
+          if (data.workspace_id) {
+            localStorage.setItem("mondaily_workspace_id", data.workspace_id);
+          }
+        } else {
+          localStorage.removeItem("mondaily_workspace_id");
+        }
       } else {
         localStorage.removeItem("mondaily_workspace_id");
 
