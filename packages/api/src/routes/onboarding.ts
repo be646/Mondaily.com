@@ -84,7 +84,8 @@ router.post("/bootstrap", requireJwt, async (c) => {
   return c.json({ workspace_id: workspaceId });
 });
 
-// GET /onboarding/status — returns which steps are complete based on real data
+// GET /onboarding/status — returns which steps are complete based on real data.
+// Only queries tables confirmed to exist in migrations (0001, 0010).
 router.get("/status", requireAuth, async (c) => {
   const workspaceId = c.get("workspaceId");
 
@@ -92,62 +93,42 @@ router.get("/status", requireAuth, async (c) => {
     { count: contactCount },
     { count: dealCount },
     { count: memberCount },
-    { count: sequenceCount },
-    { count: workflowCount },
-    { count: reportCount },
     { count: threadCount },
     { count: emailCount },
-    { count: importCount },
-    { count: integrationCount },
   ] = await Promise.all([
-    // contacts: person or company nodes
+    // contacts/companies: nodes with object_type in ('person','company')
     supabase.from("nodes").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .in("type", ["person", "company"]),
+      .in("object_type", ["person", "company"]),
     // deals
     supabase.from("nodes").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId)
-      .eq("type", "deal"),
-    // team members (> 1 means someone else was invited)
+      .eq("object_type", "deal"),
+    // team members (> 1 means at least one other member)
     supabase.from("workspace_members").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId),
-    // sequences
-    supabase.from("sequences").select("id", { count: "exact", head: true })
+    // ask AI threads (table: chat_threads from migration 0001)
+    supabase.from("chat_threads").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId),
-    // workflows / automations
-    supabase.from("workflows").select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
-    // reports
-    supabase.from("reports").select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
-    // ask AI threads
-    supabase.from("ask_threads").select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
-    // email connections (synced email accounts)
-    supabase.from("email_accounts").select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId),
-    // imports completed
-    supabase.from("import_jobs").select("id", { count: "exact", head: true })
-      .eq("workspace_id", workspaceId)
-      .eq("status", "done"),
-    // integrations / apps connected
-    supabase.from("integrations").select("id", { count: "exact", head: true })
+    // email connections (table: email_connections from migration 0010)
+    supabase.from("email_connections").select("id", { count: "exact", head: true })
       .eq("workspace_id", workspaceId),
   ]);
 
   return c.json({
-    workspace:  true,                            // always done — they're logged in
-    contact:    (contactCount   ?? 0) > 0,
-    email:      (emailCount     ?? 0) > 0,
-    import:     (importCount    ?? 0) > 0,
-    deal:       (dealCount      ?? 0) > 0,
-    member:     (memberCount    ?? 0) > 1,       // > 1 means at least one invite accepted
-    extension:  false,                           // detected client-side via localStorage flag
-    report:     (reportCount    ?? 0) > 0,
-    workflow:   (workflowCount  ?? 0) > 0,
-    sequence:   (sequenceCount  ?? 0) > 0,
-    ai:         (threadCount    ?? 0) > 0,
-    apps:       (integrationCount ?? 0) > 0,
+    workspace:  true,
+    contact:    (contactCount ?? 0) > 0,
+    deal:       (dealCount    ?? 0) > 0,
+    member:     (memberCount  ?? 0) > 1,
+    ai:         (threadCount  ?? 0) > 0,
+    email:      (emailCount   ?? 0) > 0,
+    // Not yet tracked server-side — default false
+    import:    false,
+    extension: false,
+    report:    false,
+    workflow:  false,
+    sequence:  false,
+    apps:      false,
   });
 });
 

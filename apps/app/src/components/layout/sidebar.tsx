@@ -51,7 +51,7 @@ const NAV: { label: string; items: { to: string; label: string; icon: React.Elem
     label: "Automation",
     items: [
       { to: "/automations", label: "Workflows",  icon: GitBranch },
-      { to: "/sequences",   label: "Sequences",  icon: Activity },
+      { to: "/automations", label: "Sequences",  icon: Activity },
       { to: "/canvas",      label: "Canvas",     icon: Layers },
     ],
   },
@@ -117,7 +117,7 @@ const CHECKLIST = [
     id: "sequence",
     label: "Create a sequence",
     hint: "Set up a multi-step email drip campaign to nurture leads automatically over days or weeks.",
-    to: "/sequences",
+    to: "/automations",
   },
   {
     id: "ai",

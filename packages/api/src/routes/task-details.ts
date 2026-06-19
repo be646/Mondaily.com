@@ -1,81 +1,124 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { HTTPException } from "hono/http-exception";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
 
+// Verify a task belongs to the current workspace before any child-table access.
+async function assertTaskOwnership(taskId: string, workspaceId: string) {
+  const { data } = await supabase
+    .from("tasks")
+    .select("id")
+    .eq("id", taskId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (!data) throw new HTTPException(404, { message: "Task not found" });
+}
+
 // ── Labels ──────────────────────────────────────────────
 router.patch("/:id/labels", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
   const { labels } = await c.req.json() as { labels: string[] };
+  const update: Record<string, unknown> = { labels };
+  if (labels.includes("Need Review")) update.status = "review";
   const { data, error } = await supabase
-    .from("tasks").update({ labels, status: labels.includes("Need Review") ? "review" : undefined })
-    .eq("id", c.req.param("id")).select().single();
+    .from("tasks").update(update).eq("id", taskId).eq("workspace_id", workspaceId).select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data);
 });
 
 // ── Assignees ────────────────────────────────────────────
 router.get("/:id/assignees", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { data, error } = await supabase
-    .from("task_assignees").select("*").eq("task_id", c.req.param("id"));
+    .from("task_assignees").select("*").eq("task_id", taskId);
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
 
 router.post("/:id/assignees", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
   const body = await c.req.json() as { user_id: string; email: string; name: string; permission: string };
   const { data, error } = await supabase
     .from("task_assignees")
-    .upsert({ task_id: c.req.param("id"), ...body }, { onConflict: "task_id,user_id" })
+    .upsert({ task_id: taskId, workspace_id: workspaceId, ...body }, { onConflict: "task_id,user_id" })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
-  await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.name || body.email, action: `was added as collaborator` });
+  await supabase.from("task_activity").insert({
+    task_id: taskId, workspace_id: workspaceId,
+    user_id: c.get("userId"), user_name: body.name || body.email,
+    action: "was added as collaborator",
+  });
   return c.json(data);
 });
 
 router.delete("/:id/assignees/:userId", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { error } = await supabase
     .from("task_assignees")
-    .delete().eq("task_id", c.req.param("id")).eq("user_id", c.req.param("userId"));
+    .delete().eq("task_id", taskId).eq("user_id", c.req.param("userId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
 });
 
 // ── Checklist ────────────────────────────────────────────
 router.get("/:id/checklist", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { data, error } = await supabase
-    .from("task_checklist").select("*").eq("task_id", c.req.param("id")).order("created_at");
+    .from("task_checklist").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
 
 router.post("/:id/checklist", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
   const body = await c.req.json() as { text: string; added_by_name: string };
   const { data, error } = await supabase
     .from("task_checklist")
-    .insert({ task_id: c.req.param("id"), text: body.text, added_by_user_id: c.get("userId"), added_by_name: body.added_by_name })
+    .insert({ task_id: taskId, workspace_id: workspaceId, text: body.text, added_by_user_id: c.get("userId"), added_by_name: body.added_by_name })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
-  await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.added_by_name, action: `added checklist item: "${body.text}"` });
+  await supabase.from("task_activity").insert({
+    task_id: taskId, workspace_id: workspaceId,
+    user_id: c.get("userId"), user_name: body.added_by_name,
+    action: `added checklist item: "${body.text}"`,
+  });
   return c.json(data, 201);
 });
 
 router.patch("/:id/checklist/:itemId", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
   const body = await c.req.json() as { completed: boolean; _user_name?: string };
   const { _user_name, ...updateBody } = body;
   const { data, error } = await supabase
     .from("task_checklist").update(updateBody).eq("id", c.req.param("itemId")).select().single();
   if (error) return c.json({ error: error.message }, 500);
   if (body.completed !== undefined) {
-    const userId = c.get("userId");
-    const userName = _user_name || "Someone";
-    await supabase.from("task_activity").insert({ task_id: c.req.param("id"), user_id: userId, user_name: userName, action: body.completed ? `completed: "${data?.text}"` : `unchecked: "${data?.text}"` });
+    await supabase.from("task_activity").insert({
+      task_id: taskId, workspace_id: workspaceId,
+      user_id: c.get("userId"), user_name: _user_name ?? "Someone",
+      action: body.completed ? `completed: "${data?.text}"` : `unchecked: "${data?.text}"`,
+    });
   }
   return c.json(data);
 });
 
 router.delete("/:id/checklist/:itemId", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { error } = await supabase
     .from("task_checklist").delete().eq("id", c.req.param("itemId"));
   if (error) return c.json({ error: error.message }, 500);
@@ -84,201 +127,158 @@ router.delete("/:id/checklist/:itemId", async (c) => {
 
 // ── Comments ─────────────────────────────────────────────
 router.get("/:id/comments", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { data, error } = await supabase
-    .from("task_comments").select("*").eq("task_id", c.req.param("id")).order("created_at");
+    .from("task_comments").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
 
 router.post("/:id/comments", async (c) => {
-  const body = await c.req.json() as { content: string; user_name: string };
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
+  const body = await c.req.json() as { body: string; user_name: string };
   const { data, error } = await supabase
     .from("task_comments")
-    .insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.user_name, content: body.content })
+    .insert({ task_id: taskId, workspace_id: workspaceId, user_id: userId, user_name: body.user_name, body: body.body })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
 
-  // Get task details for notifications
-  const { data: task } = await supabase.from("tasks").select("title, assignee_id, workspace_id").eq("id", c.req.param("id")).single();
-  const workspaceId = c.get("workspaceId");
-  const userId = c.get("userId");
-
-  if (task) {
-    // Notify task owner if commenter is not the owner
-    if (task.assignee_id && task.assignee_id !== userId) {
-      await supabase.from("notifications").insert({
-        workspace_id: workspaceId,
-        user_id: task.assignee_id,
-        title: `New comment on "${task.title}"`,
-        body: `${body.user_name}: ${body.content.slice(0, 80)}${body.content.length > 80 ? "..." : ""}`,
-        type: "comment",
-        task_id: c.req.param("id"),
-        is_read: false
-      });
-    }
-
-    // Parse @ mentions and notify mentioned users
-    const mentions = body.content.match(/@([\w\s]+?)(?=\s|$|[^a-zA-Z\s])/g) || [];
-    for (const mention of mentions) {
-      const mentionedName = mention.slice(1).trim();
-      const { data: mentionedMember } = await supabase
-        .from("workspace_members")
-        .select("user_id")
-        .eq("workspace_id", workspaceId)
-        .ilike("name", mentionedName)
-        .single();
-      if (mentionedMember && mentionedMember.user_id !== userId) {
-        await supabase.from("notifications").insert({
-          workspace_id: workspaceId,
-          user_id: mentionedMember.user_id,
-          title: `${body.user_name} mentioned you in "${task.title}"`,
-          body: body.content.slice(0, 100),
-          type: "mention",
-          task_id: c.req.param("id"),
-          is_read: false
-        });
-      }
-    }
+  // Notify assignee on new comment (if different user)
+  const { data: task } = await supabase.from("tasks").select("title,assignee_id").eq("id", taskId).single();
+  if (task?.assignee_id && task.assignee_id !== userId) {
+    await supabase.from("notifications").insert({
+      workspace_id: workspaceId,
+      user_id: task.assignee_id,
+      message: `New comment on "${task.title}"`,
+      title: `New comment on "${task.title}"`,
+      body: `${body.user_name}: ${body.body.slice(0, 80)}`,
+      type: "comment",
+      task_id: taskId,
+      is_read: false,
+    });
   }
 
   return c.json(data, 201);
 });
 
 router.delete("/:id/comments/:commentId", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { error } = await supabase
-    .from("task_comments").delete().eq("id", c.req.param("commentId")).eq("user_id", c.get("userId"));
+    .from("task_comments").delete()
+    .eq("id", c.req.param("commentId"))
+    .eq("user_id", c.get("userId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
 });
 
+// ── Comment Reactions ─────────────────────────────────────
+router.get("/:id/comments/:commentId/reactions", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
+  const { data } = await supabase
+    .from("task_comment_reactions").select("*").eq("comment_id", c.req.param("commentId"));
+  return c.json(data ?? []);
+});
+
+router.post("/:id/comments/:commentId/reactions", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
+  const { emoji } = await c.req.json() as { emoji: string };
+  const userId = c.get("userId");
+  const commentId = c.req.param("commentId");
+  const { data: existing } = await supabase
+    .from("task_comment_reactions").select("id")
+    .eq("comment_id", commentId).eq("user_id", userId).eq("emoji", emoji).maybeSingle();
+  if (existing) {
+    await supabase.from("task_comment_reactions").delete().eq("id", existing.id);
+    return c.json({ removed: true });
+  }
+  const { data, error } = await supabase
+    .from("task_comment_reactions")
+    .insert({ comment_id: commentId, user_id: userId, emoji })
+    .select().single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data);
+});
+
 // ── Attachments ──────────────────────────────────────────
 router.get("/:id/attachments", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { data, error } = await supabase
-    .from("task_attachments").select("*").eq("task_id", c.req.param("id")).order("created_at");
+    .from("task_attachments").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
 
 router.post("/:id/attachments", async (c) => {
-  const body = await c.req.json() as { file_name: string; file_url: string; file_type: string; file_size: number; user_name: string };
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
+  const body = await c.req.json() as { name: string; url: string; mime_type?: string; size?: number };
   const { data, error } = await supabase
     .from("task_attachments")
-    .insert({ task_id: c.req.param("id"), user_id: c.get("userId"), user_name: body.user_name, file_name: body.file_name, file_url: body.file_url, file_type: body.file_type, file_size: body.file_size })
+    .insert({ task_id: taskId, workspace_id: workspaceId, name: body.name, url: body.url, mime_type: body.mime_type, size: body.size, uploaded_by: c.get("userId") })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data, 201);
 });
 
 router.delete("/:id/attachments/:attachmentId", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { error } = await supabase
-    .from("task_attachments").delete().eq("id", c.req.param("attachmentId")).eq("user_id", c.get("userId"));
+    .from("task_attachments").delete()
+    .eq("id", c.req.param("attachmentId"))
+    .eq("uploaded_by", c.get("userId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
 });
 
-// ── File Upload ──────────────────────────────────────────
-router.post("/:id/upload", async (c) => {
-  const taskId = c.req.param("id");
-  const userId = c.get("userId");
-  const formData = await c.req.formData();
-  const file = formData.get("file") as File;
-  const userName = formData.get("user_name") as string || "Unknown";
-
-  if (!file) return c.json({ error: "No file provided" }, 400);
-
-  const fileExt = file.name.split(".").pop() || "bin";
-  const filePath = `${taskId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-
-  const arrayBuffer = await file.arrayBuffer();
-  const { error: uploadError } = await supabase.storage
-    .from("task-attachments")
-    .upload(filePath, arrayBuffer, { contentType: file.type });
-
-  if (uploadError) return c.json({ error: uploadError.message }, 500);
-
-  const { data: urlData } = supabase.storage
-    .from("task-attachments")
-    .getPublicUrl(filePath);
-
-  const { data, error } = await supabase
-    .from("task_attachments")
-    .insert({
-      task_id: taskId,
-      user_id: userId,
-      user_name: userName,
-      file_name: file.name,
-      file_url: urlData.publicUrl,
-      file_type: file.type,
-      file_size: file.size
-    })
-    .select().single();
-
-  if (error) return c.json({ error: error.message }, 500);
-  return c.json(data, 201);
-});
-
 // ── Views ────────────────────────────────────────────────
 router.post("/:id/view", async (c) => {
-  const { user_name } = await c.req.json() as { user_name: string };
-  await supabase.from("task_views").upsert({
-    task_id: c.req.param("id"),
-    user_id: c.get("userId"),
-    user_name,
-    viewed_at: new Date().toISOString()
-  }, { onConflict: "task_id,user_id" });
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
+  await supabase.from("task_views").upsert(
+    { task_id: taskId, user_id: c.get("userId"), viewed_at: new Date().toISOString() },
+    { onConflict: "task_id,user_id" }
+  );
   return c.json({ ok: true });
 });
 
 router.get("/:id/views", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { data } = await supabase
-    .from("task_views").select("user_id, user_name, viewed_at")
-    .eq("task_id", c.req.param("id"))
-    .order("viewed_at", { ascending: false });
+    .from("task_views").select("user_id, viewed_at")
+    .eq("task_id", taskId).order("viewed_at", { ascending: false });
   return c.json(data ?? []);
-});
-
-// ── Comment Reactions ─────────────────────────────────────
-router.get("/:id/comments/:commentId/reactions", async (c) => {
-  const { data } = await supabase
-    .from("task_comment_reactions").select("*")
-    .eq("comment_id", c.req.param("commentId"));
-  return c.json(data ?? []);
-});
-
-router.post("/:id/comments/:commentId/reactions", async (c) => {
-  const { emoji, user_name } = await c.req.json() as { emoji: string; user_name: string };
-  const existing = await supabase.from("task_comment_reactions")
-    .select("id").eq("comment_id", c.req.param("commentId"))
-    .eq("user_id", c.get("userId")).eq("emoji", emoji).maybeSingle();
-  if (existing.data) {
-    await supabase.from("task_comment_reactions").delete().eq("id", existing.data.id);
-    return c.json({ removed: true });
-  }
-  const { data, error } = await supabase.from("task_comment_reactions")
-    .insert({ comment_id: c.req.param("commentId"), user_id: c.get("userId"), user_name, emoji })
-    .select().single();
-  if (error) return c.json({ error: error.message }, 500);
-  return c.json(data);
 });
 
 // ── Activity ─────────────────────────────────────────────
 router.get("/:id/activity", async (c) => {
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, c.get("workspaceId"));
   const { data } = await supabase
-    .from("task_activity")
-    .select("*")
-    .eq("task_id", c.req.param("id"))
-    .order("created_at", { ascending: true });
+    .from("task_activity").select("*")
+    .eq("task_id", taskId).order("created_at", { ascending: true });
   return c.json(data ?? []);
 });
 
 router.post("/:id/activity", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
   const { action, user_name } = await c.req.json() as { action: string; user_name: string };
-  const { data, error } = await supabase.from("task_activity").insert({
-    task_id: c.req.param("id"),
-    user_id: c.get("userId"),
-    user_name,
-    action
-  }).select().single();
+  const { data, error } = await supabase
+    .from("task_activity")
+    .insert({ task_id: taskId, workspace_id: workspaceId, user_id: c.get("userId"), user_name, action })
+    .select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data, 201);
 });

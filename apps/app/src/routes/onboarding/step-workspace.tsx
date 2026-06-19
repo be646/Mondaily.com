@@ -1,4 +1,4 @@
-import { useOrganizationList } from "@clerk/react";
+import { useAuth, useOrganizationList } from "@clerk/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -7,45 +7,57 @@ import { usePanelState } from "./onboarding-context";
 const SIZES = ["1–10", "11–50", "51–200", "201–500", "500+"];
 const INDUSTRIES = ["Technology", "Real Estate", "Finance", "Professional Services", "Healthcare", "Other"];
 
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 export function StepWorkspace() {
   const navigate = useNavigate();
+  const { getToken } = useAuth();
   const { createOrganization, setActive } = useOrganizationList();
   const [name,     setName]     = useState("");
   const [size,     setSize]     = useState("");
   const [industry, setIndustry] = useState("");
   const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
 
   usePanelState({ name, size, industry });
 
+  async function callBootstrap(clerkOrgId: string, orgName: string): Promise<string | null> {
+    const token = await getToken();
+    if (!token) return null;
+    const res = await fetch(`${API_BASE}/api/v1/onboarding/bootstrap`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ clerk_org_id: clerkOrgId, name: orgName }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as { workspace_id?: string };
+    return json.workspace_id ?? null;
+  }
+
   async function continueSetup() {
+    if (!name.trim()) return;
     setLoading(true);
+    setError("");
     try {
       const org = await createOrganization?.({ name });
-      if (org) {
-        localStorage.setItem("mondaily_workspace_profile", JSON.stringify({ size, industry }));
-        // Exchange Clerk org ID for a Supabase workspace UUID via bootstrap endpoint
-        try {
-          const token = await (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string | null> } } }).Clerk?.session?.getToken();
-          const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-          const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ clerk_org_id: org.id, name }),
-          });
-          if (res.ok) {
-            const { workspace_id } = await res.json() as { workspace_id: string };
-            localStorage.setItem("mondaily_workspace_id", workspace_id);
-          }
-        } catch { /* non-fatal: workspace_id stays unset, AuthGate will retry */ }
-        navigate("/onboarding/connect-email");
-        setActive?.({ organization: org.id });
-        return;
+      if (!org) throw new Error("Could not create organisation");
+
+      localStorage.setItem("mondaily_workspace_profile", JSON.stringify({ size, industry }));
+
+      const workspaceId = await callBootstrap(org.id, name);
+      if (workspaceId) {
+        localStorage.setItem("mondaily_workspace_id", workspaceId);
+      } else {
+        setError("Workspace created but could not link to database. Continue anyway — it will auto-connect on next sign in.");
       }
-    } catch { /* continue to next step anyway */ }
-    navigate("/onboarding/connect-email");
+
+      // setActive first so Clerk context is current before navigation
+      await setActive?.({ organization: org.id });
+      navigate("/onboarding/connect-email");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+      setLoading(false);
+    }
   }
 
   const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
@@ -73,6 +85,10 @@ export function StepWorkspace() {
           {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
         </select>
       </div>
+
+      {error && (
+        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 font-mono text-[12px] text-amber-700">{error}</p>
+      )}
 
       <div className="flex gap-3">
         <button

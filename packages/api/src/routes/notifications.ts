@@ -5,42 +5,59 @@ import { supabase } from "@mondaily/db/client";
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
 
-// GET /notifications
+// GET /notifications — scoped to workspace + requesting user
 router.get("/", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
+    .eq("workspace_id", workspaceId)
+    .or(`user_id.eq.${userId},user_id.is.null`)
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data ?? []);
 });
 
-// POST /notifications - create notification
+// POST /notifications
 router.post("/", async (c) => {
-  const body = await c.req.json() as { user_id?: string; title: string; body: string; type?: string; task_id?: string };
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const body = await c.req.json() as {
+    user_id?: string;
+    title: string;
+    body?: string;
+    type?: string;
+    task_id?: string;
+  };
   const { data, error } = await supabase
     .from("notifications")
     .insert({
-      workspace_id: c.get("workspaceId"),
-      user_id: body.user_id || c.get("userId"),
+      workspace_id: workspaceId,
+      user_id: body.user_id ?? userId,
       title: body.title,
-      body: body.body,
-      type: body.type || "system",
-      task_id: body.task_id || null,
-      is_read: false
+      body: body.body ?? null,
+      message: body.title,        // keep legacy column populated
+      type: body.type ?? "system",
+      task_id: body.task_id ?? null,
+      is_read: false,
     })
-    .select().single();
+    .select()
+    .single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data, 201);
 });
 
 // PATCH /notifications/read-all — must be before /:id/read
 router.patch("/read-all", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
   const { error } = await supabase
     .from("notifications")
     .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq("workspace_id", c.get("workspaceId"))
+    .eq("workspace_id", workspaceId)
+    .or(`user_id.eq.${userId},user_id.is.null`)
     .eq("is_read", false);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
@@ -48,22 +65,28 @@ router.patch("/read-all", async (c) => {
 
 // PATCH /notifications/:id/read
 router.patch("/:id/read", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
   const { error } = await supabase
     .from("notifications")
     .update({ is_read: true, read_at: new Date().toISOString() })
     .eq("id", c.req.param("id"))
-    .eq("workspace_id", c.get("workspaceId"));
+    .eq("workspace_id", workspaceId)
+    .or(`user_id.eq.${userId},user_id.is.null`);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
 
 // DELETE /notifications/:id
 router.delete("/:id", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
   const { error } = await supabase
     .from("notifications")
     .delete()
     .eq("id", c.req.param("id"))
-    .eq("workspace_id", c.get("workspaceId"));
+    .eq("workspace_id", workspaceId)
+    .or(`user_id.eq.${userId},user_id.is.null`);
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });
