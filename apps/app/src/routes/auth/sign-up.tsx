@@ -55,8 +55,9 @@ export function SignUpPage() {
       if (result.status === "complete") {
         setStage("done");
         await setActive({ session: result.createdSessionId });
-        // Hard redirect so Clerk re-initialises from cookies before any route guard runs
-        window.location.replace("/onboarding/profile");
+        // Hard redirect to /home — DashboardRoute will forward new users to onboarding
+        // via the mondaily_needs_onboarding flag set by bootstrap in AuthGate
+        window.location.replace("/home");
         return;
       } else {
         setError(`Verification incomplete (status: ${result.status}). Please try again.`);

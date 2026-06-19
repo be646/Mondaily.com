@@ -34,6 +34,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("mondaily_session_token");
       localStorage.removeItem("mondaily_workspace_id");
       localStorage.removeItem("mondaily_onboarding_done");
+      localStorage.removeItem("mondaily_needs_onboarding");
       setTokenProvider(() => Promise.resolve(null));
       prevSignedIn.current = false;
       setReady(true);
@@ -80,8 +81,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
             body: JSON.stringify(body),
           });
           if (res.ok) {
-            const { workspace_id } = (await res.json()) as { workspace_id: string };
+            const { workspace_id, is_new } = (await res.json()) as { workspace_id: string; is_new?: boolean };
             localStorage.setItem("mondaily_workspace_id", workspace_id);
+            if (is_new) localStorage.setItem("mondaily_needs_onboarding", "1");
           }
         }
       } catch { /* non-fatal */ }

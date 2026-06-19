@@ -66,10 +66,14 @@ function DashboardRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/sign-in" replace />;
-  // A valid workspace UUID is a 36-char string (UUID v4 format)
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
   const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
   if (!hasWorkspace) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
+  // New users (bootstrap returned is_new=true) go through onboarding before the dashboard
+  if (localStorage.getItem("mondaily_needs_onboarding") === "1") {
+    localStorage.removeItem("mondaily_needs_onboarding");
+    return <Navigate to="/onboarding/profile" replace />;
+  }
   return <>{children}</>;
 }
 

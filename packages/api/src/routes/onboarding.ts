@@ -20,6 +20,7 @@ router.post("/bootstrap", requireJwt, async (c) => {
   const workspaceName = body.name ?? "My Workspace";
 
   let workspaceId: string | null = null;
+  let isNew = false;
 
   // 1. Prefer the workspace that matches the Clerk org ID (org members share a workspace)
   if (clerk_org_id) {
@@ -47,6 +48,7 @@ router.post("/bootstrap", requireJwt, async (c) => {
 
   // 3. Create a new workspace
   if (!workspaceId) {
+    isNew = true;
     const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
       + "-" + Math.random().toString(36).slice(2, 7);
     const insertPayload: Record<string, unknown> = { name: workspaceName, slug };
@@ -85,7 +87,7 @@ router.post("/bootstrap", requireJwt, async (c) => {
       : Promise.resolve(),
   ]);
 
-  return c.json({ workspace_id: workspaceId });
+  return c.json({ workspace_id: workspaceId, is_new: isNew });
 });
 
 // GET /onboarding/status — returns which steps are complete based on real data.
