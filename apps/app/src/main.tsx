@@ -32,14 +32,27 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, [isLoaded, isSignedIn, getToken]);
 
-  // Phase 2: update workspace ID whenever org loads/changes — never blocks render
+  // Phase 2: exchange Clerk org ID for Supabase workspace UUID via bootstrap endpoint.
+  // Runs silently on every org load/change; never blocks render.
   useEffect(() => {
-    if (!isSignedIn || !orgLoaded) return;
-    if (organization?.id) {
-      localStorage.setItem("mondaily_workspace_id", organization.id);
-    }
-    // Don't clear workspace_id if org not loaded yet — onboarding sets it directly
-  }, [isSignedIn, orgLoaded, organization]);
+    if (!isSignedIn || !orgLoaded || !organization?.id) return;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+        const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ clerk_org_id: organization.id, name: organization.name }),
+        });
+        if (res.ok) {
+          const { workspace_id } = (await res.json()) as { workspace_id: string };
+          localStorage.setItem("mondaily_workspace_id", workspace_id);
+        }
+      } catch { /* non-fatal */ }
+    })();
+  }, [isSignedIn, orgLoaded, organization, getToken]);
 
   if (!ready) return null;
   return <>{children}</>;

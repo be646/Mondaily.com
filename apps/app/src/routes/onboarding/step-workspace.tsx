@@ -22,11 +22,24 @@ export function StepWorkspace() {
     try {
       const org = await createOrganization?.({ name });
       if (org) {
-        // Set workspace_id immediately so API calls work on next steps
-        localStorage.setItem("mondaily_workspace_id", org.id);
         localStorage.setItem("mondaily_workspace_profile", JSON.stringify({ size, industry }));
-        // Navigate first — setActive causes Clerk to re-render the tree which
-        // can race with navigation and push the user out of onboarding
+        // Exchange Clerk org ID for a Supabase workspace UUID via bootstrap endpoint
+        try {
+          const token = await (window as unknown as { Clerk?: { session?: { getToken: () => Promise<string | null> } } }).Clerk?.session?.getToken();
+          const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+          const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ clerk_org_id: org.id, name }),
+          });
+          if (res.ok) {
+            const { workspace_id } = await res.json() as { workspace_id: string };
+            localStorage.setItem("mondaily_workspace_id", workspace_id);
+          }
+        } catch { /* non-fatal: workspace_id stays unset, AuthGate will retry */ }
         navigate("/onboarding/connect-email");
         setActive?.({ organization: org.id });
         return;
