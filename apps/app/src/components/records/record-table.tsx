@@ -394,21 +394,21 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
 
 // ─── Stage / Status colours ───────────────────────────────────────────────────
 const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
-  "Lead":         { pill: "bg-zinc-900/60 text-zinc-400 border-zinc-700/50",       dot: "bg-zinc-500" },
-  "New":          { pill: "bg-zinc-900/60 text-zinc-400 border-zinc-700/50",       dot: "bg-zinc-500" },
-  "Qualified":    { pill: "bg-sky-950/40 text-sky-400 border-sky-900/40",          dot: "bg-sky-400" },
-  "In Progress":  { pill: "bg-amber-950/30 text-amber-400 border-amber-900/40",    dot: "bg-amber-400" },
-  "Not Started":  { pill: "bg-zinc-900/60 text-zinc-500 border-zinc-700/50",       dot: "bg-zinc-600" },
-  "Completed":    { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
-  "Complete":     { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
-  "Proposal":     { pill: "bg-violet-950/40 text-violet-400 border-violet-900/40", dot: "bg-violet-400" },
-  "Negotiation":  { pill: "bg-orange-950/40 text-orange-400 border-orange-900/40", dot: "bg-orange-400" },
-  "Closed Won":   { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
-  "Closed Lost":  { pill: "bg-rose-950/40 text-rose-400 border-rose-900/50",       dot: "bg-rose-400" },
-  "On Hold":      { pill: "bg-yellow-950/40 text-yellow-400 border-yellow-900/40", dot: "bg-yellow-400" },
-  "Cancelled":    { pill: "bg-rose-950/30 text-rose-400 border-rose-900/40",       dot: "bg-rose-400" },
-  "Active":       { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-900/50", dot: "bg-emerald-400" },
-  "Churned":      { pill: "bg-rose-950/30 text-rose-400 border-rose-900/40",       dot: "bg-rose-400" },
+  "Lead":         { pill: "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-900/60 dark:text-zinc-400 dark:border-zinc-700/50",       dot: "bg-zinc-500" },
+  "New":          { pill: "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-900/60 dark:text-zinc-400 dark:border-zinc-700/50",       dot: "bg-zinc-500" },
+  "Qualified":    { pill: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-900/40",          dot: "bg-sky-400" },
+  "In Progress":  { pill: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40",    dot: "bg-amber-400" },
+  "Not Started":  { pill: "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-900/60 dark:text-zinc-500 dark:border-zinc-700/50",       dot: "bg-zinc-600" },
+  "Completed":    { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
+  "Complete":     { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
+  "Proposal":     { pill: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-400 dark:border-violet-900/40", dot: "bg-violet-400" },
+  "Negotiation":  { pill: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/40", dot: "bg-orange-400" },
+  "Closed Won":   { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
+  "Closed Lost":  { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50",       dot: "bg-rose-400" },
+  "On Hold":      { pill: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-900/40", dot: "bg-yellow-400" },
+  "Cancelled":    { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",       dot: "bg-rose-400" },
+  "Active":       { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
+  "Churned":      { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",       dot: "bg-rose-400" },
 };
 
 export const DEFAULT_STAGE_OPTIONS = [
@@ -1943,25 +1943,25 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     return (
       <tr
         key={record.id}
-        className={`group transition-colors ${selected.has(record.id) ? "bg-indigo-500/[.05]" : rowIdx % 2 === 1 ? "bg-white/[.008]" : ""} hover:bg-white/[.03] ${rowAccent(record)}`}
+        className={`group transition-colors ${selected.has(record.id) ? "bg-indigo-50 dark:bg-indigo-500/[.05]" : rowIdx % 2 === 1 ? "bg-zinc-50/60 dark:bg-white/[.008]" : "bg-white dark:bg-transparent"} hover:bg-zinc-50 dark:hover:bg-white/[.03] ${rowAccent(record)}`}
       >
-        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-zinc-100 dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-zinc-50 dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
           <div
             onClick={() => toggleSelectRow(record.id)}
-            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-indigo-500 border-indigo-500" : "border-white/[.10] opacity-0 group-hover:opacity-100 hover:border-white/30"}`}
+            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-indigo-500 border-indigo-500" : "border-zinc-300 opacity-0 group-hover:opacity-100 hover:border-zinc-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
           >
             {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
           </div>
         </td>
         {hasRecordIdCol && (
-          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]"}`}>
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-zinc-100 dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-zinc-50 dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
             <RecordIdCell id={record.id}/>
           </td>
         )}
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-2.5 text-white/70 border-b border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-white/90 ` + (selected.has(record.id) ? "bg-[#130d0d] group-hover:bg-[#170f0f]" : "bg-[#0b0d10] group-hover:bg-[#0f1115]") : ""}`}
+            className={`px-4 py-2.5 text-zinc-900 dark:text-white/70 border-b border-b-zinc-100 dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-zinc-500 dark:text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-zinc-900 dark:text-white/90 ` + (selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-zinc-50 dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -1993,9 +1993,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // Toolbar button styles — clean borderless pills
   const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none";
-  const TB_IDLE = `${TB} text-white/35 hover:text-white/70 hover:bg-white/[.04]`;
-  const TB_ON   = `${TB} text-white/80 bg-white/[.06]`;
-  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white/[.10] px-1 text-[9px] font-semibold text-white/60";
+  const TB_IDLE = `${TB} text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-white/35 dark:hover:text-white/70 dark:hover:bg-white/[.04]`;
+  const TB_ON   = `${TB} text-zinc-900 bg-zinc-100 dark:text-white/80 dark:bg-white/[.06]`;
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-200 px-1 text-[9px] font-semibold text-zinc-600 dark:bg-white/[.10] dark:text-white/60";
   const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (
@@ -2563,19 +2563,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Checkbox column */}
-              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-0 z-30">
+              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
-                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-indigo-500 border-indigo-500" : someSelected ? "border-white/30 bg-white/[.06]" : "border-white/[.10] hover:border-white/30"}`}
+                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-indigo-500 border-indigo-500" : someSelected ? "border-indigo-300 bg-indigo-50 dark:border-white/30 dark:bg-white/[.06]" : "border-zinc-300 hover:border-zinc-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
                 >
                   {allSelected && <Check size={10} className="text-white" strokeWidth={3}/>}
-                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-white/60" />}
+                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-indigo-400 dark:bg-white/60" />}
                 </div>
               </th>
               {/* Record ID locked column — only when added via Add Column */}
               {hasRecordIdCol && (
-                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] sticky left-8 z-30">
-                  <span className="text-[10px] font-semibold tracking-widest uppercase text-white/20">ID</span>
+                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] sticky left-8 z-30">
+                  <span className="text-[10px] font-semibold tracking-widest uppercase text-zinc-500 dark:text-white/20">ID</span>
                 </th>
               )}
               {orderedColumns.map((col, colIdx) => {
@@ -2584,7 +2584,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
+                    className={`relative px-4 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -2607,14 +2607,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         <div
                           draggable
                           onDragStart={e => { e.stopPropagation(); dragColRef.current = col; }}
-                          className="cursor-grab active:cursor-grabbing text-white/10 hover:text-white/30 shrink-0 pr-0.5"
+                          className="cursor-grab active:cursor-grabbing text-zinc-300 hover:text-zinc-500 dark:text-white/10 dark:hover:text-white/30 shrink-0 pr-0.5"
                           title="Drag to reorder"
                         >
                           <GripVertical size={11}/>
                         </div>
                       )}
                       <button onClick={() => handleHeaderSort(col)}
-                        className={`flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
+                        className={`flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-white/30 dark:hover:text-white/70 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
                         <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
                         {colMeta[col]?.required && <span className="text-indigo-400/70 text-[10px] leading-none">*</span>}
@@ -2626,13 +2626,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       onMouseDown={e => startResize(col, e, w ?? (e.currentTarget.parentElement?.offsetWidth ?? 160))}
                       className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/resize z-10"
                     >
-                      <div className="w-px h-4 bg-white/[.06] group-hover/resize:bg-indigo-400/50 transition-colors"/>
+                      <div className="w-px h-4 bg-zinc-200 dark:bg-white/[.06] group-hover/resize:bg-indigo-400/50 transition-colors"/>
                     </div>
                   </th>
                 );
               })}
-              <th className="px-4 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06]">
-                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-white/30 hover:text-white/70 transition-colors">
+              <th className="px-4 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06]">
+                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-white/30 dark:hover:text-white/70 transition-colors">
                   <Calendar size={11}/>
                   <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
                   <SortIcon col="__updated_at"/>
@@ -2641,11 +2641,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {/* Add column */}
               <th
                 ref={addColHeaderRef}
-                className="w-10 px-3 py-2.5 bg-[#0b0d10] border-b border-b-white/[.06] relative"
+                className="w-10 px-3 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] relative"
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-                  className="flex h-6 w-6 items-center justify-center rounded-lg text-white/20 hover:text-white/60 hover:bg-white/[.05] transition-all"
+                  className="flex h-6 w-6 items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-white/20 dark:hover:text-white/60 dark:hover:bg-white/[.05] transition-all"
                   title="Add column"
                 >
                   <Plus size={13}/>
@@ -2665,7 +2665,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs text-white/20">
+                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs text-zinc-400 dark:text-white/20">
                   No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
                 </td>
               </tr>
@@ -2683,11 +2683,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   const ss = stageStyle(groupVal);
                   rowsToRender.push(
                     <tr key={`grp-${groupVal}`}>
-                      <td colSpan={columns.length + 3} className="px-4 py-2 bg-white/[.015] border-y border-white/[.04]">
+                      <td colSpan={columns.length + 3} className="px-4 py-2 bg-zinc-50 dark:bg-white/[.015] border-y border-zinc-200 dark:border-white/[.04]">
                         <div className="flex items-center gap-2">
                           <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
-                          <span className="text-[11px] font-semibold text-white/50 capitalize">{groupVal}</span>
-                          <span className="text-[10px] text-white/20 ml-1">{groupRows.length}</span>
+                          <span className="text-[11px] font-semibold text-zinc-600 dark:text-white/50 capitalize">{groupVal}</span>
+                          <span className="text-[10px] text-zinc-400 dark:text-white/20 ml-1">{groupRows.length}</span>
                         </div>
                       </td>
                     </tr>
@@ -2702,12 +2702,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </tbody>
           <tfoot className="sticky bottom-0 z-20">
             <tr>
-              <td className="w-8 min-w-[32px] max-w-[32px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-0 z-30" />
-              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-[#0d0f13] border-t border-t-zinc-800/60 sticky left-8 z-30"/>}
+              <td className="w-8 min-w-[32px] max-w-[32px] bg-zinc-50 dark:bg-[#0d0f13] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-30" />
+              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-zinc-50 dark:bg-[#0d0f13] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-30"/>}
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-[#0d0f13] border-t border-t-zinc-800/60 text-[12px] ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-zinc-50 dark:bg-[#0d0f13] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-zinc-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}

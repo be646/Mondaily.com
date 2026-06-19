@@ -710,24 +710,24 @@ export function ObjectIndexPage() {
       <div className="flex h-full flex-col overflow-hidden">
 
       {/* Page header — title + view toggle + actions */}
-      <div className="flex items-center justify-between border-b border-zinc-800/40 px-6 py-2.5 shrink-0">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/40 px-6 py-2.5 shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-zinc-500 select-none">
             {objectType.replace(/[-_]/g, " ")}
           </span>
           {/* View toggle */}
-          <div className="flex items-center rounded-md border border-white/[.06] bg-white/[.02] p-0.5 gap-0.5">
+          <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50 dark:border-white/[.06] dark:bg-white/[.02] p-0.5 gap-0.5">
             <button
               onClick={() => setView("table")}
               title="Table view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white/[.08] text-white" : "text-zinc-600 hover:text-zinc-300"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-600 dark:hover:text-zinc-300"}`}
             >
               <LayoutList size={11}/> Table
             </button>
             <button
               onClick={() => setView("board")}
               title="Board view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white/[.08] text-white" : "text-zinc-600 hover:text-zinc-300"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-600 dark:hover:text-zinc-300"}`}
             >
               <Kanban size={11}/> Board
             </button>
@@ -736,38 +736,38 @@ export function ObjectIndexPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowDeleteSheet(true)}
-            className="flex items-center gap-1.5 rounded-md border border-zinc-800/60 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:border-indigo-500/30 hover:text-indigo-400"
+            className="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-800/60 dark:text-zinc-600 dark:hover:border-indigo-500/30 dark:hover:text-indigo-400"
             title="Delete this sheet"
           >
             <Trash2 size={11}/>
           </button>
           <button
             onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-indigo-500/30 bg-indigo-500/8 px-2.5 py-1.5 text-[11px] font-medium text-indigo-400 transition-all hover:border-indigo-500/50 hover:bg-indigo-500/15 hover:text-indigo-300"
+            className="flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-medium text-violet-700 transition-all hover:bg-violet-100 dark:border-indigo-500/30 dark:bg-indigo-500/8 dark:text-indigo-400 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-300"
           >
             <Sparkles size={11}/> Fill with AI
           </button>
           <button
             onClick={() => setDedupOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-800/80 bg-zinc-900/20 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition-all hover:border-indigo-500/40 hover:text-indigo-400"
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-900/20 dark:text-zinc-400 dark:hover:border-indigo-500/40 dark:hover:text-indigo-400 dark:hover:bg-zinc-900/20"
           >
             <ScanSearch size={11}/> Clean & Lists
           </button>
           <button
             onClick={() => setSegmentOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-800/80 bg-zinc-900/20 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition-all hover:border-violet-500/40 hover:text-violet-400"
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-900/20 dark:text-zinc-400 dark:hover:border-violet-500/40 dark:hover:text-violet-400 dark:hover:bg-zinc-900/20"
           >
             <Filter size={11}/> Segment
           </button>
           <button
             onClick={() => setImportOpen(p => !p)}
-            className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-600/60 bg-zinc-800/50 text-zinc-200" : "border-zinc-800/80 bg-zinc-900/20 text-zinc-400 hover:border-zinc-700/60 hover:text-zinc-200"}`}
+            className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-400 bg-zinc-100 text-zinc-700 dark:border-zinc-600/60 dark:bg-zinc-800/50 dark:text-zinc-200" : "border-zinc-300 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-900/20 dark:text-zinc-400 dark:hover:border-zinc-700/60 dark:hover:text-zinc-200 dark:hover:bg-zinc-900/20"}`}
           >
             <Plus size={11}/> Import CSV
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-md border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 active:border-b active:border-b-red-500/50"
+            className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-700"
           >
             <Plus size={11}/> New record
           </button>

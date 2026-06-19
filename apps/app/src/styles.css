@@ -66,10 +66,12 @@ html[data-theme="light"] body {
 /* ── Flat inputs and buttons (no 3D key effect) ─────────────────────────── */
 @layer components {
   .key-input {
-    @apply rounded-lg border border-white/[.12] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-indigo-500/50 focus:bg-white/[.06];
+    @apply rounded-lg border border-zinc-200 bg-white text-[#111827] placeholder-[#9ca3af] outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
+           dark:border-white/[.12] dark:bg-white/[.04] dark:text-slate-300 dark:placeholder-slate-600 dark:focus:border-indigo-500/50 dark:focus:ring-0 dark:focus:bg-white/[.06];
   }
   .key-button {
-    @apply rounded-lg border border-white/[.10] bg-white/[.04] text-slate-400 transition-all hover:bg-white/[.06] hover:text-white active:translate-y-[1px];
+    @apply rounded-lg border border-zinc-200 bg-white text-[#52525b] transition-all hover:bg-[#f4f4f5] hover:text-[#18181b]
+           dark:border-white/[.10] dark:bg-white/[.04] dark:text-slate-400 dark:hover:bg-white/[.06] dark:hover:text-white;
   }
 }
 
@@ -239,24 +241,7 @@ html:not(.dark) .dropdown-item-active {
   color: #18181b !important;
 }
 
-/* 8. Flat key-input / key-button in light mode */
-html:not(.dark) .key-input {
-  border-color: #e4e4e7 !important;
-  background-color: #ffffff !important;
-  color: #18181b !important;
-}
-html:not(.dark) .key-input:focus {
-  border-color: #6366f1 !important;
-}
-html:not(.dark) .key-button {
-  border-color: #e4e4e7 !important;
-  background-color: #ffffff !important;
-  color: #52525b !important;
-}
-html:not(.dark) .key-button:hover {
-  background-color: #f4f4f5 !important;
-  color: #18181b !important;
-}
+/* 8. key-input / key-button now use native dark: variants — see @layer components above */
 
 /* 9. Settings sections */
 html:not(.dark) .settings-section {

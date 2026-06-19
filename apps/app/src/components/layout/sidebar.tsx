@@ -190,12 +190,12 @@ function GettingStarted() {
                   onMouseEnter={() => setHoverId(item.id)}
                   onMouseLeave={() => setHoverId(null)}
                 >
-                  <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.06]" : ""}`}>
+                  <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-zinc-100 dark:bg-white/[.06]" : ""}`}>
                     <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-indigo-500 border-indigo-500" : "border-indigo-500/30"}`}>
                       {checked && <Check size={7} className="text-white" strokeWidth={3.5}/>}
                     </div>
                     <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
-                      <span className={`text-[11px] leading-tight ${checked ? "line-through text-white/20" : "text-white/55"}`}>
+                      <span className={`text-[11px] leading-tight ${checked ? "line-through text-zinc-400 dark:text-white/20" : "text-zinc-600 dark:text-white/55"}`}>
                         {item.label}
                       </span>
                     </Link>
@@ -204,11 +204,11 @@ function GettingStarted() {
                   {/* Tooltip — pops right */}
                   {hovered && !checked && (
                     <div className="absolute left-full top-0 z-[210] ml-2.5 w-56 pointer-events-none">
-                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-indigo-500/20 bg-[#1a1118]"/>
-                      <div className="rounded-xl border border-indigo-500/20 bg-[#1a1118] px-3 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
-                        <div className="text-[12px] font-semibold text-white mb-1.5">{item.label}</div>
-                        <div className="text-[11px] text-white/40 leading-relaxed">{item.hint}</div>
-                        <div className="mt-2.5 text-[10px] font-semibold text-indigo-400">→ Go there</div>
+                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-indigo-200 bg-white dark:border-indigo-500/20 dark:bg-[#1a1118]"/>
+                      <div className="rounded-xl border border-indigo-200 bg-white px-3 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)] dark:border-indigo-500/20 dark:bg-[#1a1118] dark:shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
+                        <div className="text-[12px] font-semibold text-[#111827] dark:text-white mb-1.5">{item.label}</div>
+                        <div className="text-[11px] text-zinc-500 dark:text-white/40 leading-relaxed">{item.hint}</div>
+                        <div className="mt-2.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">→ Go there</div>
                       </div>
                     </div>
                   )}
@@ -218,8 +218,8 @@ function GettingStarted() {
 
             {/* Dismiss */}
             <div className="border-t border-indigo-500/10 mt-1 px-1 py-2 flex items-center justify-between">
-              <span className="text-[10px] text-white/20">Auto-detected · updates live</span>
-              <button onClick={dismiss} className="text-[10px] font-semibold text-indigo-400/50 hover:text-indigo-400 transition-colors">
+              <span className="text-[10px] text-zinc-400 dark:text-white/20">Auto-detected · updates live</span>
+              <button onClick={dismiss} className="text-[10px] font-semibold text-indigo-400/70 hover:text-indigo-600 dark:text-indigo-400/50 dark:hover:text-indigo-400 transition-colors">
                 Mark all done
               </button>
             </div>
@@ -244,8 +244,8 @@ function GettingStarted() {
             <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-indigo-400">{doneCount}</span>
           </div>
           <div className="flex-1 text-left min-w-0">
-            <div className="text-[12px] font-semibold text-white/80">Getting started</div>
-            <div className="text-[10px] text-white/25">{doneCount} of {total} done</div>
+            <div className="text-[12px] font-semibold text-zinc-700 dark:text-white/80">Getting started</div>
+            <div className="text-[10px] text-zinc-400 dark:text-white/25">{doneCount} of {total} done</div>
           </div>
           <ChevronDown size={11} className={`text-indigo-400/40 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
         </button>
@@ -295,7 +295,7 @@ function NavItem({
       <Link
         to={to}
         title={label}
-        className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
+        className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-[#eef2ff] text-[#312e81] dark:bg-white/[.06] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-500 dark:hover:bg-white/[.04] dark:hover:text-slate-300"}`}
       >
         <Icon size={14}/>
         {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-indigo-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
@@ -305,9 +305,9 @@ function NavItem({
   return (
     <Link
       to={to}
-      className={`mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-white/[.07] text-white" : "text-slate-400 hover:bg-white/[.03] hover:text-slate-200"}`}
+      className={`mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-[#eef2ff] text-[#312e81] dark:bg-white/[.07] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-400 dark:hover:bg-white/[.03] dark:hover:text-slate-200"}`}
     >
-      <Icon size={13} className={active ? "text-indigo-400" : "text-slate-600"}/>
+      <Icon size={13} className={active ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 dark:text-slate-600"}/>
       {label}
       {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-indigo-500 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none">{badge > 99 ? "99+" : badge}</span>}
     </Link>
@@ -319,7 +319,7 @@ function SectionLabel({ label }: { label: string }) {
   if (!label) return null;
   return (
     <div className="mb-1 mt-3 px-2.5">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-700">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-slate-700">{label}</span>
     </div>
   );
 }
@@ -370,10 +370,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         </button>
 
         {/* Workspace header */}
-        <div className="relative shrink-0 border-b border-white/[.05]">
+        <div className="relative shrink-0 border-b border-zinc-200 dark:border-white/[.05]">
           <button
             onClick={() => !collapsed && setWorkspaceOpen(o => !o)}
-            className={`flex w-full items-center gap-2.5 px-3 py-3 hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
+            className={`flex w-full items-center gap-2.5 px-3 py-3 hover:bg-[#f4f4f5] dark:hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
           >
             {workspaceLogo
               ? <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover shrink-0"/>
@@ -382,10 +382,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {!collapsed && (
               <>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="truncate text-[13px] font-semibold text-white/90 leading-tight">{workspaceName}</div>
-                  <div className="text-[10px] text-slate-700">Pro workspace</div>
+                  <div className="truncate text-[13px] font-semibold text-[#18181b] dark:text-white/90 leading-tight">{workspaceName}</div>
+                  <div className="text-[10px] text-zinc-400 dark:text-slate-700">Pro workspace</div>
                 </div>
-                <ChevronsUpDown size={11} className="text-slate-700 shrink-0"/>
+                <ChevronsUpDown size={11} className="text-zinc-400 dark:text-slate-700 shrink-0"/>
               </>
             )}
           </button>
@@ -394,14 +394,14 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             <>
               <div className="fixed inset-0 z-40" onClick={() => setWorkspaceOpen(false)}/>
               <div className="dropdown-panel absolute left-2 right-2 top-full z-50">
-                <div className="flex items-center gap-2.5 border-b border-white/[.06] px-3 py-2.5">
+                <div className="flex items-center gap-2.5 border-b border-zinc-100 dark:border-white/[.06] px-3 py-2.5">
                   {workspaceLogo
                     ? <img src={workspaceLogo} alt={workspaceName} className="h-5 w-5 rounded-md object-cover shrink-0"/>
-                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-500/20 text-[10px] font-semibold text-indigo-400">{workspaceInitial}</div>
+                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-500/20 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">{workspaceInitial}</div>
                   }
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-[12px] font-medium text-white">{workspaceName}</div>
-                    <div className="text-[10px] text-zinc-600">Pro</div>
+                    <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-white">{workspaceName}</div>
+                    <div className="text-[10px] text-zinc-500 dark:text-zinc-600">Pro</div>
                   </div>
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0"/>
                 </div>
@@ -414,8 +414,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="dropdown-item">
                   <Settings size={12}/> Workspace settings
                 </Link>
-                <div className="mx-2 my-1 border-t border-white/[.05]"/>
-                <button onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-red-400 hover:text-red-300">
+                <div className="mx-2 my-1 border-t border-zinc-100 dark:border-white/[.05]"/>
+                <button onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-rose-600 hover:text-rose-700 dark:text-red-400 dark:hover:text-red-300">
                   <LogOut size={12}/> Sign out
                 </button>
               </div>
@@ -425,14 +425,14 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
 
         {/* Quick Action — frozen above the scroll area, always visible */}
         {!collapsed && (
-          <div className="shrink-0 border-b border-white/[.05] px-2 py-2">
+          <div className="shrink-0 border-b border-zinc-200 dark:border-white/[.05] px-2 py-2">
             <button
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
               className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
             >
-              <Zap size={12} className="text-indigo-400 shrink-0"/>
+              <Zap size={12} className="text-indigo-500 dark:text-indigo-400 shrink-0"/>
               <span>Quick action</span>
-              <Plus size={11} className="ml-auto text-slate-600"/>
+              <Plus size={11} className="ml-auto text-zinc-400 dark:text-slate-600"/>
             </button>
           </div>
         )}
@@ -477,41 +477,41 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {!collapsed && <GettingStarted />}
 
         {/* Bottom bar */}
-        <div className="shrink-0 border-t border-white/[.05] p-2">
+        <div className="shrink-0 border-t border-zinc-200 dark:border-white/[.05] p-2">
           {collapsed ? (
             <Link to="/settings/account" title="Settings"
-              className="flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-white/[.04] hover:text-slate-300 transition-colors">
+              className="flex items-center justify-center rounded-lg p-2 text-zinc-400 hover:bg-[#f4f4f5] hover:text-zinc-700 dark:text-slate-600 dark:hover:bg-white/[.04] dark:hover:text-slate-300 transition-colors">
               <Settings size={14}/>
             </Link>
           ) : (
             <div className="space-y-1">
               {/* Trial chip */}
-              <div className="flex items-center justify-between rounded-lg border border-white/[.05] bg-white/[.02] px-2.5 py-2">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 dark:border-white/[.05] dark:bg-white/[.02] px-2.5 py-2">
                 <div>
-                  <span className="text-[11px] text-slate-600">Trial</span>
-                  <span className="text-[11px] text-slate-500 ml-1">· 14 days left</span>
+                  <span className="text-[11px] text-zinc-500 dark:text-slate-600">Trial</span>
+                  <span className="text-[11px] text-zinc-400 dark:text-slate-500 ml-1">· 14 days left</span>
                 </div>
                 <Link
                   to="/settings/billing"
-                  className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-semibold text-indigo-400 hover:bg-indigo-500/20 transition-colors whitespace-nowrap"
+                  className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 transition-colors whitespace-nowrap"
                 >
                   Upgrade
                 </Link>
               </div>
 
               {/* User row */}
-              <div className="flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-white/[.03] transition-colors">
+              <div className="flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-[#f4f4f5] dark:hover:bg-white/[.03] transition-colors">
                 {user?.imageUrl
                   ? <img src={user.imageUrl} className="h-5 w-5 rounded-full object-cover shrink-0" alt=""/>
-                  : <div className="h-5 w-5 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-semibold text-slate-300 shrink-0">
+                  : <div className="h-5 w-5 rounded-full bg-zinc-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold text-zinc-600 dark:text-slate-300 shrink-0">
                       {user?.firstName?.[0]?.toUpperCase() || "?"}
                     </div>
                 }
                 <div className="flex-1 min-w-0">
-                  <div className="truncate text-[12px] text-slate-300 leading-tight">{user?.fullName || user?.firstName || "You"}</div>
-                  <div className="truncate text-[10px] text-slate-700">{user?.primaryEmailAddress?.emailAddress}</div>
+                  <div className="truncate text-[12px] text-[#18181b] dark:text-slate-300 leading-tight">{user?.fullName || user?.firstName || "You"}</div>
+                  <div className="truncate text-[10px] text-zinc-400 dark:text-slate-700">{user?.primaryEmailAddress?.emailAddress}</div>
                 </div>
-                <Link to="/settings/account" title="Settings" className="text-slate-700 hover:text-slate-400 transition-colors">
+                <Link to="/settings/account" title="Settings" className="text-zinc-400 hover:text-zinc-700 dark:text-slate-700 dark:hover:text-slate-400 transition-colors">
                   <Settings size={12}/>
                 </Link>
               </div>
@@ -523,15 +523,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       {/* Create workspace modal */}
       {newWorkspaceOpen && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setNewWorkspaceOpen(false)}/>
-          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-[2px]" onClick={() => setNewWorkspaceOpen(false)}/>
+          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-white/[.09] dark:bg-[#0d0f13] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-semibold text-white">Create workspace</span>
-              <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+              <span className="text-sm font-semibold text-[#111827] dark:text-white">Create workspace</span>
+              <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-slate-500 dark:hover:bg-white/[.05] dark:hover:text-white transition-colors">
                 <X size={13}/>
               </button>
             </div>
-            <p className="mb-4 text-[11px] text-zinc-600">Each workspace has its own contacts, deals, and settings.</p>
+            <p className="mb-4 text-[11px] text-zinc-500 dark:text-zinc-600">Each workspace has its own contacts, deals, and settings.</p>
             <input
               value={newWsName}
               onChange={e => setNewWsName(e.target.value)}
@@ -547,12 +547,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             />
             <div className="flex gap-2">
               <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
-                className="flex-1 rounded-xl border border-white/[.08] px-4 py-2 text-xs text-slate-400 hover:bg-white/[.04] transition-colors">
+                className="flex-1 rounded-xl border border-zinc-200 px-4 py-2 text-xs text-zinc-500 hover:bg-zinc-100 dark:border-white/[.08] dark:text-slate-400 dark:hover:bg-white/[.04] transition-colors">
                 Cancel
               </button>
               <button
                 onClick={() => { if (newWsName.trim()) { alert(`Workspace "${newWsName}" will be created. Coming soon!`); setNewWorkspaceOpen(false); setNewWsName(""); } }}
-                className="flex-1 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-indigo-700 bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+                className="flex-1 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors"
               >
                 Create
               </button>
