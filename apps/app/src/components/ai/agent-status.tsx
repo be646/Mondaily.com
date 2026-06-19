@@ -8,6 +8,7 @@ import {
   ThumbsUp, ThumbsDown,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
+import { MondailyLogo } from "./mondaily-logo";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { getAuthHeaders } from "../../lib/api-client";
 
@@ -135,8 +136,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "assistant" && (
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 mt-0.5">
-                <Sparkles size={9} className="text-indigo-400"/>
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
+                <MondailyLogo size={16}/>
               </div>
             )}
             <div className="flex flex-col gap-1 max-w-[85%]">
@@ -171,8 +172,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         ))}
         {loading && (
           <div className="flex gap-2 justify-start">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 mt-0.5">
-              <Sparkles size={9} className="text-indigo-400"/>
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
+              <MondailyLogo size={16} thinking/>
             </div>
             <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:0ms]"/>

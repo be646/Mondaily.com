@@ -480,7 +480,9 @@ export function HomePage() {
                 return (
                   <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                     {m.role === "assistant" && (
-                      <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${accent.dot}`}/>
+                      <div className="mt-0.5 shrink-0 text-indigo-400">
+                        <MondailyLogo size={16}/>
+                      </div>
                     )}
                     {m.role === "user" ? (
                       <div className={`max-w-[72%] rounded-2xl rounded-tr-sm border bg-transparent px-3.5 py-2.5 text-sm leading-relaxed ${accent.userBorder} ${accent.userText}`}>

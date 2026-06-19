@@ -339,7 +339,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
           {error && <p className="pt-2 text-xs text-indigo-400">{error}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-white/[.06] px-5 py-3.5">
-          <button onClick={onClose} className="rounded-lg border-x border-t border-white/[.08] border-b-2 border-b-white/[.14] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-all">Cancel</button>
+          <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
             className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}

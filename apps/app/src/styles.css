@@ -24,16 +24,12 @@ html[data-theme="light"] {
   0%   { transform: translateY(0); }
   100% { transform: translateY(-50%); }
 }
-.logo-scan {
-  animation: scanUp 1.6s linear infinite;
-}
+.logo-scan { animation: scanUp 1.6s linear infinite; }
 @keyframes pulseDot {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
-.logo-dot {
-  animation: pulseDot 2s ease-in-out infinite;
-}
+.logo-dot { animation: pulseDot 2s ease-in-out infinite; }
 
 body {
   margin: 0;
@@ -46,16 +42,15 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Light mode — override body background and text */
 html[data-theme="light"] body {
   background: #f4f5f8;
   color: #0f172a;
 }
 
-/* Excel-grid dropdown system */
+/* ── Dropdown system ─────────────────────────────────────────────────────── */
 @layer components {
   .dropdown-panel {
-    @apply absolute z-50 mt-1 overflow-hidden rounded border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm;
+    @apply absolute z-50 mt-1 overflow-hidden rounded-lg border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.5)];
   }
   .dropdown-item {
     @apply flex w-full items-center gap-2 px-3 py-[6px] text-[12px] text-zinc-400
@@ -68,46 +63,37 @@ html[data-theme="light"] body {
   }
 }
 
-/* Tactile Minimalist — keyboard key style inputs */
+/* ── Flat inputs and buttons (no 3D key effect) ─────────────────────────── */
 @layer components {
   .key-input {
-    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-x-white/[.15] focus:border-t-white/[.15] focus:border-b-indigo-500/40 focus:bg-white/[.06];
+    @apply rounded-lg border border-white/[.12] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-indigo-500/50 focus:bg-white/[.06];
   }
   .key-button {
-    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-400 transition-all hover:bg-white/[.06] hover:text-white active:translate-y-[1px] active:border-b active:border-b-white/[.10];
+    @apply rounded-lg border border-white/[.10] bg-white/[.04] text-slate-400 transition-all hover:bg-white/[.06] hover:text-white active:translate-y-[1px];
   }
 }
 
-/* ── Clerk auth overrides ────────────────────────────────────────────────── */
-.cl-logoBox,
-.cl-logoImage,
-.cl-badge,
-.cl-internal-badge,
+/* ── Clerk auth overrides ─────────────────────────────────────────────── */
+.cl-logoBox, .cl-logoImage, .cl-badge, .cl-internal-badge,
 [data-localization-key="badge__dev_mode"],
 [data-localization-key="badge__secured_by_clerk"] {
   display: none !important;
 }
 
-/* Tactile Minimalist — global border & radius tokens */
+/* ── Global border & radius tokens ───────────────────────────────────────── */
 @layer base {
-  *[class*="border-white/"] {
-    border-width: 1px;
-  }
-
   .rounded-xl  { border-radius: 8px; }
   .rounded-2xl { border-radius: 10px; }
   .rounded-3xl { border-radius: 12px; }
 
-  h1, h2, h3, h4 {
-    letter-spacing: -0.02em;
-  }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; }
 
   .text-xs, .text-\[10px\], .text-\[11px\], .text-\[12px\] {
     letter-spacing: 0.01em;
   }
 }
 
-/* ── Styled toggle switch ────────────────────────────────────────────────── */
+/* ── Toggle switch ────────────────────────────────────────────────────────── */
 .md-toggle {
   position: relative;
   display: inline-flex;
@@ -136,7 +122,7 @@ html[data-theme="light"] body {
 .md-toggle[aria-checked="true"]  .md-toggle-thumb { transform: translateX(1rem); }
 .md-toggle[aria-checked="false"] .md-toggle-thumb { transform: translateX(0); }
 
-/* ── Settings page shared layout classes ─────────────────────────────────── */
+/* ── Settings page layout ─────────────────────────────────────────────────── */
 .settings-section {
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.07);
@@ -160,113 +146,179 @@ html[data-theme="light"] body {
 }
 .settings-row:last-child { border-bottom: none; }
 
-/* ── Light mode structural overrides ─────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPREHENSIVE LIGHT MODE OVERRIDES
+   Strategy: target Tailwind utility class strings with attribute selectors.
+   Specificity beats single-class Tailwind utilities so !important is minimal.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Sidebar: fix white-on-white text problem.
-   text-white, text-white/90 etc are invisible on a white bg.
-   We boost specificity to override Tailwind utilities without !important on everything. */
-html:not(.dark) aside [class*="text-white"] {
-  color: #18181b !important;
+/* 1. Dark hardcoded hex backgrounds → white / light panels */
+html:not(.dark) [class*="bg-[#0b0d10]"],
+html:not(.dark) [class*="bg-[#0d0f13]"],
+html:not(.dark) [class*="bg-[#0f1114]"],
+html:not(.dark) [class*="bg-[#0f1115]"],
+html:not(.dark) [class*="bg-[#0f1117]"],
+html:not(.dark) [class*="bg-[#111419]"],
+html:not(.dark) [class*="bg-[#13151a]"],
+html:not(.dark) [class*="bg-[#1a1118]"] {
+  background-color: #ffffff !important;
 }
-/* Muted text: keep slate tones readable but slightly darker */
-html:not(.dark) aside .text-slate-400 { color: #52525b !important; }
-html:not(.dark) aside .text-slate-500 { color: #52525b !important; }
-html:not(.dark) aside .text-slate-600 { color: #71717a !important; }
-html:not(.dark) aside .text-slate-700 { color: #a1a1aa !important; }
-html:not(.dark) aside .text-zinc-600  { color: #71717a !important; }
-
-/* Nav item active background: nearly-transparent white is invisible in light mode */
-html:not(.dark) aside a:hover,
-html:not(.dark) aside button:hover {
+/* Red-tinted selected rows → indigo tint */
+html:not(.dark) [class*="bg-[#130d0d]"],
+html:not(.dark) [class*="bg-[#170f0f]"] {
   background-color: rgba(99,102,241,0.06) !important;
 }
-html:not(.dark) aside [class*="bg-white\/\["] {
-  background-color: rgba(99,102,241,0.08) !important;
+
+/* 2. Semi-transparent white backgrounds → light zinc/indigo */
+html:not(.dark) [class*="bg-white/[.01]"],
+html:not(.dark) [class*="bg-white/[.02]"],
+html:not(.dark) [class*="bg-white/[.03]"],
+html:not(.dark) [class*="bg-white/[.04]"] {
+  background-color: rgba(0,0,0,0.03) !important;
+}
+html:not(.dark) [class*="bg-white/[.06]"],
+html:not(.dark) [class*="bg-white/[.07]"],
+html:not(.dark) [class*="bg-white/[.08]"] {
+  background-color: rgba(99,102,241,0.07) !important;
+}
+html:not(.dark) [class*="bg-white/[.09]"],
+html:not(.dark) [class*="bg-white/[.10]"],
+html:not(.dark) [class*="bg-white/[.15]"] {
+  background-color: rgba(99,102,241,0.10) !important;
 }
 
-/* Section label in light mode */
-html:not(.dark) aside .text-slate-700 { color: #a1a1aa !important; }
-
-/* Bottom bar / trial chip borders in light mode */
-html:not(.dark) aside [class*="border-white\/\["] {
+/* 3. All borders using white/opacity → zinc-200 */
+html:not(.dark) [class*="border-white/"],
+html:not(.dark) [class*="border-zinc-8"],
+html:not(.dark) [class*="border-zinc-7"] {
   border-color: #e4e4e7 !important;
 }
 
-/* Getting started card background text */
-html:not(.dark) aside [class*="text-white\/"] {
+/* 4. White text → near-black */
+html:not(.dark) [class*="text-white"] {
   color: #18181b !important;
 }
 
-/* Dropdown panel: keep dark (it's positioned outside aside so bg stays dark, text readable) */
+/* 5. Slate muted text → readable dark grays */
+html:not(.dark) [class*="text-slate-3"],
+html:not(.dark) [class*="text-slate-4"],
+html:not(.dark) [class*="text-slate-5"] {
+  color: #52525b !important;
+}
+html:not(.dark) [class*="text-slate-6"],
+html:not(.dark) [class*="text-slate-7"] {
+  color: #71717a !important;
+}
+html:not(.dark) [class*="text-zinc-5"],
+html:not(.dark) [class*="text-zinc-6"],
+html:not(.dark) [class*="text-zinc-7"] {
+  color: #71717a !important;
+}
 
-/* Top bar background in light mode — targeted via .md-topbar class added in component */
+/* 6. Placeholder colors */
+html:not(.dark) ::placeholder {
+  color: #a1a1aa !important;
+}
+
+/* 7. Dropdown panels — override the @layer components dark styles */
+html:not(.dark) .dropdown-panel {
+  background-color: #ffffff !important;
+  border-color: #e4e4e7 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
+}
+html:not(.dark) .dropdown-item {
+  color: #3f3f46 !important;
+  border-bottom-color: #f4f4f5 !important;
+}
+html:not(.dark) .dropdown-item:hover {
+  background-color: #f4f4f5 !important;
+  color: #18181b !important;
+}
+html:not(.dark) .dropdown-item-active {
+  background-color: rgba(99,102,241,0.08) !important;
+  color: #18181b !important;
+}
+
+/* 8. Flat key-input / key-button in light mode */
+html:not(.dark) .key-input {
+  border-color: #e4e4e7 !important;
+  background-color: #ffffff !important;
+  color: #18181b !important;
+}
+html:not(.dark) .key-input:focus {
+  border-color: #6366f1 !important;
+}
+html:not(.dark) .key-button {
+  border-color: #e4e4e7 !important;
+  background-color: #ffffff !important;
+  color: #52525b !important;
+}
+html:not(.dark) .key-button:hover {
+  background-color: #f4f4f5 !important;
+  color: #18181b !important;
+}
+
+/* 9. Settings sections */
+html:not(.dark) .settings-section {
+  border-color: #e4e4e7 !important;
+  background-color: #ffffff !important;
+}
+html:not(.dark) .settings-section-header { border-bottom-color: #f4f4f5 !important; }
+html:not(.dark) .settings-row { border-bottom-color: #f4f4f5 !important; }
+
+/* 10. Toggle off-state in light mode */
+html:not(.dark) .md-toggle[aria-checked="false"] {
+  background-color: rgba(0,0,0,0.12) !important;
+}
+
+/* 11. Top bar */
 html:not(.dark) .md-topbar {
   background-color: #ffffff !important;
   border-bottom-color: #e4e4e7 !important;
 }
-html:not(.dark) .md-topbar [class*="text-white"] {
-  color: #18181b !important;
-}
-html:not(.dark) .md-topbar [class*="border-white\/\["] {
-  border-color: #e4e4e7 !important;
-}
-html:not(.dark) .md-topbar [class*="bg-white\/\["] {
-  background-color: rgba(0,0,0,0.04) !important;
+
+/* 12. Hover backgrounds (pseudo-class can't be targeted by attribute selector,
+   so we use generic hover rules scoped to light mode) */
+html:not(.dark) a:hover [class*="bg-white"],
+html:not(.dark) button:hover [class*="bg-white"] {
+  background-color: rgba(99,102,241,0.06) !important;
 }
 
-/* ── Record table — rock-solid scroll container ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE — preserve existing dark theme as-is.
+   The rules above are all scoped to html:not(.dark) so they don't interfere.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Record table scroll container ───────────────────────────────────────── */
 .record-scroll {
-  /* Smooth GPU-composited scrolling — no jank */
   -webkit-overflow-scrolling: touch;
   scroll-behavior: auto;
-  /* Prevent iOS bounce that makes the frame feel unstable */
   overscroll-behavior: none;
 }
-
-/* Custom scrollbars — thin, dark, matches the app */
-.record-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.record-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+.record-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.record-scroll::-webkit-scrollbar-track { background: transparent; }
 .record-scroll::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,0.12);
   border-radius: 9999px;
 }
-.record-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.22);
-}
-.record-scroll::-webkit-scrollbar-corner {
-  background: transparent;
-}
-/* Firefox */
-.record-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
-}
+.record-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+.record-scroll::-webkit-scrollbar-corner { background: transparent; }
+.record-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
 
-/* Sidebar nav — same stable scroll, even thinner bar */
+html:not(.dark) .record-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+html:not(.dark) .record-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+html:not(.dark) .record-scroll { scrollbar-color: rgba(0,0,0,0.15) transparent; }
+
+/* ── Sidebar scroll ───────────────────────────────────────────────────────── */
 .sidebar-scroll {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
 }
-.sidebar-scroll::-webkit-scrollbar {
-  width: 3px;
-}
-.sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
+.sidebar-scroll::-webkit-scrollbar { width: 3px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
 .sidebar-scroll::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,0.08);
   border-radius: 9999px;
 }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.15);
-}
-.sidebar-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
-}
-
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+.sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }

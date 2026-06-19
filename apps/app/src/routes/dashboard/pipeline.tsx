@@ -354,7 +354,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
         <div className="flex items-center justify-end gap-2 border-t border-white/[.06] px-5 py-3.5">
           <button
             onClick={onClose}
-            className="rounded-lg border-x border-t border-white/[.08] border-b-2 border-b-white/[.14] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white active:translate-y-[1px]"
+            className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white"
           >
             Cancel
           </button>

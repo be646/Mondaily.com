@@ -1,6 +1,7 @@
 import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { getAuthHeaders } from "../../lib/api-client";
+import { MondailyLogo } from "./mondaily-logo";
 
 export function AskMondailyInline({ placeholder, onResponse }: { placeholder: string; onResponse?: (text: string) => void }) {
   const [value, setValue] = useState("");
@@ -30,9 +31,12 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
 
   return (
     <form
-      className="flex items-center gap-2 rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] px-3 py-2 focus-within:border-b-red-500/40 transition-colors"
+      className="flex items-center gap-2 rounded-lg border border-white/[.10] bg-white/[.04] px-3 py-2 focus-within:border-indigo-500/40 transition-colors"
       onSubmit={(e) => { e.preventDefault(); void submit(); }}
     >
+      <span className="shrink-0 text-indigo-400">
+        <MondailyLogo size={16} thinking={loading}/>
+      </span>
       <input
         className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600"
         value={value}

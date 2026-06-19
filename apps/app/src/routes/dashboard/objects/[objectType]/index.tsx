@@ -258,10 +258,10 @@ function CreateRecordModal({
                 Create more
               </label>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="rounded-lg border-x border-t border-white/[.08] border-b-2 border-b-white/[.14] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white active:translate-y-[1px]">
+                <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
                   <kbd className="rounded border border-indigo-400/40 bg-indigo-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
                 </button>
@@ -313,13 +313,13 @@ function CreateRecordModal({
                 {aiError && <p className="text-xs text-indigo-400">{aiError}</p>}
               </div>
               <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3.5">
-                <button onClick={onClose} className="rounded-lg border-x border-t border-white/[.08] border-b-2 border-b-white/[.14] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
+                <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
                   Cancel
                 </button>
                 <button
                   onClick={generateWithAI}
                   disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50"
                 >
                   {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><Sparkles size={11}/> Generate {aiCount} records</>}
                 </button>
@@ -767,7 +767,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-md border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+            className="flex items-center gap-1.5 rounded-md border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 active:border-b active:border-b-red-500/50"
           >
             <Plus size={11}/> New record
           </button>

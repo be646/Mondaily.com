@@ -15,6 +15,7 @@ import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { getAuthHeaders } from "../../lib/api-client";
+import { MondailyLogo } from "./mondaily-logo";
 
 // ── Markdown renderer (same as home) ─────────────────────────────────────────
 function renderMarkdown(text: string): React.ReactNode {
@@ -346,7 +347,9 @@ export function AskMondaily() {
             return (
               <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                 {m.role === "assistant" && (
-                  <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${accent.dot}`}/>
+                  <div className="mt-0.5 shrink-0 text-indigo-400">
+                    <MondailyLogo size={16}/>
+                  </div>
                 )}
 
                 {m.role === "user" ? (
