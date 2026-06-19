@@ -16,37 +16,46 @@ const queryClient = new QueryClient({
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const { organization, isLoaded: orgLoaded } = useOrganization();
-  const [ready, setReady] = useState(false);
+  // bootstrapped: true once we've either confirmed no session or resolved a workspace UUID
+  const [bootstrapped, setBootstrapped] = useState(false);
 
-  // Phase 1: unblock render as soon as we know auth state
   useEffect(() => {
     if (!isLoaded) return;
+
     if (!isSignedIn) {
+      // Signed out — clear everything and unblock immediately
       localStorage.removeItem("mondaily_session_token");
       localStorage.removeItem("mondaily_workspace_id");
       localStorage.removeItem("mondaily_onboarding_done");
       setTokenProvider(() => Promise.resolve(null));
-      setReady(true);
+      setBootstrapped(true);
       return;
     }
-    setTokenProvider(() => getToken());
-    setReady(true);
-  }, [isLoaded, isSignedIn, getToken]);
 
-  // Phase 2: resolve Supabase workspace UUID via bootstrap.
-  // Runs when user is signed in and org state is known (org may be null for personal accounts).
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || !orgLoaded) return;
-    // Skip if we already have a workspace UUID stored (avoid redundant calls on every render)
+    // Signed in — register token provider immediately
+    setTokenProvider(() => getToken());
+
+    // If org state isn't known yet, wait
+    if (!orgLoaded) return;
+
+    // If we already have a valid workspace UUID, no bootstrap needed
     const existing = localStorage.getItem("mondaily_workspace_id");
-    if (existing && existing.length === 36) return;
+    if (existing && existing.length === 36) {
+      setBootstrapped(true);
+      return;
+    }
+
+    // Call bootstrap to resolve/create the Supabase workspace UUID
     (async () => {
       try {
         const token = await getToken();
-        if (!token) return;
+        if (!token) { setBootstrapped(true); return; }
         const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
         const body: Record<string, string> = {};
-        if (organization?.id) { body.clerk_org_id = organization.id; body.name = organization.name ?? "My Workspace"; }
+        if (organization?.id) {
+          body.clerk_org_id = organization.id;
+          body.name = organization.name ?? "My Workspace";
+        }
         const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -56,11 +65,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
           const { workspace_id } = (await res.json()) as { workspace_id: string };
           localStorage.setItem("mondaily_workspace_id", workspace_id);
         }
-      } catch { /* non-fatal */ }
+      } catch { /* non-fatal — let DashboardRoute handle missing workspace */ }
+      setBootstrapped(true);
     })();
   }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
-  if (!ready) return null;
+  // Block all rendering until we know session state and (for signed-in users) workspace
+  if (!bootstrapped) return null;
   return <>{children}</>;
 }
 

@@ -56,10 +56,17 @@ export function SignUpPage() {
         setStage("done");
         await setActive({ session: result.createdSessionId });
         navigate("/onboarding/profile");
+      } else {
+        setError(`Verification incomplete (status: ${result.status}). Please try again.`);
       }
     } catch (err: unknown) {
-      const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
-      setError(msg ?? "Invalid code. Please try again.");
+      const clerkErr = err as { errors?: { code?: string; message: string }[] };
+      const first = clerkErr?.errors?.[0];
+      if (first?.code === "session_exists" || first?.message?.toLowerCase().includes("session already exists")) {
+        navigate("/home");
+        return;
+      }
+      setError(first?.message ?? "Invalid code. Please try again.");
     } finally {
       setLoading(false);
     }

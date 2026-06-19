@@ -129,8 +129,14 @@ export function SignInPage() {
         setError(`Sign in incomplete (status: ${result.status}). Please try again or contact support.`);
       }
     } catch (err: unknown) {
-      const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
-      setError(msg ?? "Sign in failed. Please check your email and password.");
+      const clerkErr = err as { errors?: { code?: string; message: string }[] };
+      const first = clerkErr?.errors?.[0];
+      // "session_exists" means Clerk already has an active session — just navigate
+      if (first?.code === "session_exists" || first?.message?.toLowerCase().includes("session already exists")) {
+        navigate("/home");
+        return;
+      }
+      setError(first?.message ?? "Sign in failed. Please check your email and password.");
     } finally {
       setLoading(false);
     }
