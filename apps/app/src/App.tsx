@@ -1,6 +1,6 @@
-import { Show } from "@clerk/react";
+import { Show, useAuth } from "@clerk/react";
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SignInPage } from "./routes/auth/sign-in";
 import { SignUpPage } from "./routes/auth/sign-up";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
@@ -59,6 +59,18 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
 }
 
+// Redirects signed-in users to onboarding if they haven't completed it yet.
+// Onboarding is complete when mondaily_onboarding_done is set in localStorage.
+function DashboardRoute({ children }: { children: ReactNode }) {
+  const { isSignedIn, isLoaded } = useAuth();
+  const location = useLocation();
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  const done = localStorage.getItem("mondaily_onboarding_done");
+  if (!done) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <Routes>
@@ -77,7 +89,7 @@ export function App() {
         <Route path="import" element={<StepImport />} />
         <Route path="plan" element={<StepPlan />} />
       </Route>
-      <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+      <Route path="/" element={<DashboardRoute><DashboardLayout /></DashboardRoute>}>
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<HomePage />} />
         <Route path="notifications" element={<NotificationsPage />} />

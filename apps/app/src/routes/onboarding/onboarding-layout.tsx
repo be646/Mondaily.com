@@ -42,7 +42,7 @@ function Layout() {
   }, []);
 
   return (
-    <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "480px 1fr" }}>
+    <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "440px 1fr" }}>
       {/* Left — form */}
       <div className="flex flex-col bg-white">
         {/* Header */}

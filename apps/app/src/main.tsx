@@ -18,6 +18,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const [ready, setReady] = useState(false);
 
+  // Phase 1: unblock render as soon as we know auth state
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
@@ -27,18 +28,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       setReady(true);
       return;
     }
-    // Wait for org to load before deciding workspace
-    if (!orgLoaded) return;
     setTokenProvider(() => getToken());
-    // Use the user's active Clerk organization as workspace ID.
-    // Never fall back to a hardcoded ID — that would expose another user's data.
+    setReady(true);
+  }, [isLoaded, isSignedIn, getToken]);
+
+  // Phase 2: update workspace ID whenever org loads/changes — never blocks render
+  useEffect(() => {
+    if (!isSignedIn || !orgLoaded) return;
     if (organization?.id) {
       localStorage.setItem("mondaily_workspace_id", organization.id);
-    } else {
-      localStorage.removeItem("mondaily_workspace_id");
     }
-    setReady(true);
-  }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
+    // Don't clear workspace_id if org not loaded yet — onboarding sets it directly
+  }, [isSignedIn, orgLoaded, organization]);
 
   if (!ready) return null;
   return <>{children}</>;

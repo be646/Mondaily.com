@@ -578,26 +578,27 @@ export function ImportPanel({ file }: { file: string }) {
 
 // ── Plan panel ────────────────────────────────────────────────────────────────
 
-const PLANS: Record<string, { price: string; color: string; features: string[] }> = {
-  free: {
-    price: "Free forever",
-    color: "#6366f1",
-    features: ["3 seats", "50K records", "Basic AI enrichment", "CRM module", "Email integration"],
+const PLANS: Record<string, { price: string; period: string; features: string[] }> = {
+  starter: {
+    price: "$0", period: "forever",
+    features: ["1 user", "500 contacts", "Records & pipeline", "Ask Mondaily AI (100/mo)", "1 email integration"],
   },
   pro: {
-    price: "$55 / user / mo",
-    color: "#6366f1",
-    features: ["Unlimited seats", "Full AI agents", "All verticals", "Priority support", "Custom automations", "Advanced analytics"],
+    price: "$49", period: "per user / mo",
+    features: ["Unlimited contacts", "Full pipeline + AI scoring", "Sequences & automations", "Ask Mondaily AI (unlimited)", "AI enrichment (5,000/mo)"],
+  },
+  business: {
+    price: "$89", period: "per user / mo",
+    features: ["Everything in Pro", "Custom objects & fields", "Role-based access", "Finance module", "Webhook & API"],
   },
   enterprise: {
-    price: "Custom pricing",
-    color: "#6366f1",
-    features: ["SSO & SAML", "Audit logs", "SLA guarantee", "Dedicated CSM", "Custom contracts", "On-premise option"],
+    price: "Custom", period: "talk to us",
+    features: ["Everything in Business", "SAML SSO & SCIM", "Audit log", "Data residency", "Dedicated CSM"],
   },
 };
 
 export function PlanPanel({ selected }: { selected: string }) {
-  const plan = PLANS[selected] ?? PLANS.free!;
+  const plan = PLANS[selected] ?? PLANS.starter!;
   const [unlockedCount, setUnlockedCount] = useState(0);
   const prevSelected = useRef(selected);
 

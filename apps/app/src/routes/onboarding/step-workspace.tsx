@@ -22,11 +22,16 @@ export function StepWorkspace() {
     try {
       const org = await createOrganization?.({ name });
       if (org) {
-        await setActive?.({ organization: org.id });
+        // Set workspace_id immediately so API calls work on next steps
         localStorage.setItem("mondaily_workspace_id", org.id);
         localStorage.setItem("mondaily_workspace_profile", JSON.stringify({ size, industry }));
+        // Navigate first — setActive causes Clerk to re-render the tree which
+        // can race with navigation and push the user out of onboarding
+        navigate("/onboarding/connect-email");
+        setActive?.({ organization: org.id });
+        return;
       }
-    } catch { /* continue */ }
+    } catch { /* continue to next step anyway */ }
     navigate("/onboarding/connect-email");
   }
 

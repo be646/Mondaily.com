@@ -4,21 +4,59 @@ import { useNavigate } from "react-router-dom";
 import { usePanelState } from "./onboarding-context";
 
 const plans = [
-  { id: "free",       name: "Free",       price: "Free",        features: ["3 seats", "50K records", "Basic AI"] },
-  { id: "pro",        name: "Pro",         price: "$55/user/mo", features: ["Unlimited seats", "Full AI agents", "All verticals"] },
-  { id: "enterprise", name: "Enterprise",  price: "Custom",      features: ["SSO", "Audit logs", "Dedicated support"] },
+  {
+    id: "starter",
+    name: "Starter",
+    price: "$0",
+    period: "forever",
+    desc: "For solo founders exploring the AI workspace.",
+    features: ["1 user", "500 contacts", "Records & pipeline", "Ask Mondaily AI (100/mo)", "1 email integration"],
+    highlight: false,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "$49",
+    period: "per user / mo",
+    desc: "For growing teams that want AI doing the heavy lifting.",
+    features: ["Unlimited contacts", "Full pipeline + AI scoring", "Sequences & automations", "Ask Mondaily AI (unlimited)", "AI enrichment (5,000/mo)"],
+    highlight: true,
+  },
+  {
+    id: "business",
+    name: "Business",
+    price: "$89",
+    period: "per user / mo",
+    desc: "For teams needing advanced controls and collaboration.",
+    features: ["Everything in Pro", "Custom objects & fields", "Role-based access", "Finance module", "Webhook & API"],
+    highlight: false,
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: "Custom",
+    period: "talk to us",
+    desc: "For large organisations needing SSO and compliance.",
+    features: ["Everything in Business", "SAML SSO & SCIM", "Audit log", "Data residency", "Dedicated CSM"],
+    highlight: false,
+  },
 ];
 
 export function StepPlan() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState("free");
+  const [selected, setSelected] = useState("starter");
 
   usePanelState({ selected });
 
   function start() {
-    if (selected === "free") navigate("/home");
-    else if (selected === "enterprise") window.location.href = "mailto:sales@mondaily.com";
-    else window.location.href = "/api/v1/billing/checkout?plan=pro&interval=year";
+    localStorage.setItem("mondaily_onboarding_done", "1");
+    if (selected === "enterprise") {
+      window.location.href = "mailto:sales@mondaily.com";
+    } else if (selected === "pro" || selected === "business") {
+      window.location.href = `/api/v1/billing/checkout?plan=${selected}&interval=month`;
+    } else {
+      navigate("/home");
+    }
   }
 
   return (
@@ -26,21 +64,29 @@ export function StepPlan() {
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Choose your plan</h1>
       <p className="mb-6 font-mono text-[12px] text-zinc-500">Start free and upgrade when your team is ready.</p>
 
-      <div className="mb-7 space-y-3">
+      <div className="mb-7 space-y-2.5">
         {plans.map(plan => (
           <button
             key={plan.id}
             onClick={() => setSelected(plan.id)}
             className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-indigo-500/40 bg-indigo-500/[.04] ring-1 ring-indigo-500/20" : "border-black/[.08] hover:bg-zinc-50"}`}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-[13px] font-medium text-zinc-800">{plan.name}</span>
-              <span className="font-mono text-[12px] text-zinc-500">{plan.price}</span>
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[13px] font-semibold text-zinc-800">{plan.name}</span>
+                {plan.highlight && (
+                  <span className="rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2 py-0.5 font-mono text-[9px] text-indigo-600 uppercase tracking-wider">Popular</span>
+                )}
+              </div>
+              <span className="shrink-0 font-mono text-[12px] text-zinc-500">
+                {plan.price}{plan.price !== "Custom" && <span className="text-zinc-400"> / {plan.period}</span>}
+              </span>
             </div>
-            <div className="flex flex-wrap gap-3">
-              {plan.features.map(f => (
-                <span key={f} className="flex items-center gap-1 font-mono text-[11px] text-zinc-500">
-                  <Check size={10} className="text-indigo-500" /> {f}
+            <p className="mb-2 font-mono text-[11px] text-zinc-400">{plan.desc}</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {plan.features.slice(0, 3).map(f => (
+                <span key={f} className="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
+                  <Check size={9} className="text-indigo-500 shrink-0" /> {f}
                 </span>
               ))}
             </div>
@@ -52,9 +98,10 @@ export function StepPlan() {
         onClick={start}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all"
       >
-        {selected === "free" ? "Start for free" : selected === "enterprise" ? "Talk to sales" : "Start Pro"}
+        {selected === "starter" ? "Start for free" : selected === "enterprise" ? "Talk to sales" : `Start ${plans.find(p => p.id === selected)?.name} trial`}
         <ArrowRight size={13} />
       </button>
+      <p className="mt-3 text-center font-mono text-[11px] text-zinc-400">No credit card required for free plan</p>
     </div>
   );
 }
