@@ -125,9 +125,17 @@ export function SignInPage() {
         window.location.replace("/home");
         return;
       } else if (result.status === "needs_client_trust") {
-        // Clerk requires email verification on this new browser/device
-        await signIn.prepareFirstFactor({ strategy: "email_code" });
-        setStage("verify");
+        // Clerk requires email verification on this new browser/device.
+        // Must pass the emailAddressId from supportedFirstFactors.
+        const emailFactor = result.supportedFirstFactors?.find(
+          (f: { strategy: string }) => f.strategy === "email_code"
+        ) as { strategy: "email_code"; emailAddressId: string } | undefined;
+        if (!emailFactor?.emailAddressId) {
+          setError("Email verification unavailable. Please use Google sign-in or contact support.");
+        } else {
+          await signIn.prepareFirstFactor({ strategy: "email_code", emailAddressId: emailFactor.emailAddressId });
+          setStage("verify");
+        }
       } else if (result.status === "needs_second_factor") {
         setError("Two-factor authentication is required. Please use the Mondaily account portal to sign in.");
       } else if (result.status === "needs_new_password") {

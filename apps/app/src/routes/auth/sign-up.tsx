@@ -136,6 +136,9 @@ export function SignUpPage() {
                   <p className="mt-1.5 font-mono text-[10px] text-zinc-400">Minimum 8 characters</p>
                 </div>
 
+                {/* Required by Clerk bot-protection for custom sign-up flows */}
+                <div id="clerk-captcha" />
+
                 {error && (
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
