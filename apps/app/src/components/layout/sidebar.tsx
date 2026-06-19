@@ -168,8 +168,8 @@ function GettingStarted() {
 
   if (dismissed || doneCount === total) return null;
 
-  const cardBg = "linear-gradient(160deg, rgba(239,68,68,0.11) 0%, rgba(239,68,68,0.04) 100%)";
-  const cardBorder = "1px solid rgba(239,68,68,0.18)";
+  const cardBg = "linear-gradient(160deg, rgba(99,102,241,0.11) 0%, rgba(99,102,241,0.04) 100%)";
+  const cardBorder = "1px solid rgba(99,102,241,0.18)";
 
   return (
     <div className="shrink-0 px-2 pb-2">
@@ -191,7 +191,7 @@ function GettingStarted() {
                   onMouseLeave={() => setHoverId(null)}
                 >
                   <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-white/[.06]" : ""}`}>
-                    <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-red-500 border-red-500" : "border-red-500/30"}`}>
+                    <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-indigo-500 border-indigo-500" : "border-indigo-500/30"}`}>
                       {checked && <Check size={7} className="text-white" strokeWidth={3.5}/>}
                     </div>
                     <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
@@ -204,11 +204,11 @@ function GettingStarted() {
                   {/* Tooltip — pops right */}
                   {hovered && !checked && (
                     <div className="absolute left-full top-0 z-[210] ml-2.5 w-56 pointer-events-none">
-                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-red-500/20 bg-[#1a1118]"/>
-                      <div className="rounded-xl border border-red-500/20 bg-[#1a1118] px-3 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
+                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-indigo-500/20 bg-[#1a1118]"/>
+                      <div className="rounded-xl border border-indigo-500/20 bg-[#1a1118] px-3 py-3 shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
                         <div className="text-[12px] font-semibold text-white mb-1.5">{item.label}</div>
                         <div className="text-[11px] text-white/40 leading-relaxed">{item.hint}</div>
-                        <div className="mt-2.5 text-[10px] font-semibold text-red-400">→ Go there</div>
+                        <div className="mt-2.5 text-[10px] font-semibold text-indigo-400">→ Go there</div>
                       </div>
                     </div>
                   )}
@@ -217,9 +217,9 @@ function GettingStarted() {
             })}
 
             {/* Dismiss */}
-            <div className="border-t border-red-500/10 mt-1 px-1 py-2 flex items-center justify-between">
+            <div className="border-t border-indigo-500/10 mt-1 px-1 py-2 flex items-center justify-between">
               <span className="text-[10px] text-white/20">Auto-detected · updates live</span>
-              <button onClick={dismiss} className="text-[10px] font-semibold text-red-400/50 hover:text-red-400 transition-colors">
+              <button onClick={dismiss} className="text-[10px] font-semibold text-indigo-400/50 hover:text-indigo-400 transition-colors">
                 Mark all done
               </button>
             </div>
@@ -233,26 +233,26 @@ function GettingStarted() {
         >
           <div className="relative shrink-0 h-7 w-7">
             <svg viewBox="0 0 28 28" className="h-7 w-7 -rotate-90">
-              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(239,68,68,0.15)" strokeWidth="2.5"/>
-              <circle cx="14" cy="14" r="11" fill="none" stroke="#ef4444" strokeWidth="2.5"
+              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="2.5"/>
+              <circle cx="14" cy="14" r="11" fill="none" stroke="#6366f1" strokeWidth="2.5"
                 strokeDasharray={`${2 * Math.PI * 11}`}
                 strokeDashoffset={`${2 * Math.PI * 11 * (1 - pct / 100)}`}
                 strokeLinecap="round"
                 style={{ transition: "stroke-dashoffset 0.5s ease" }}
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-red-400">{doneCount}</span>
+            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-indigo-400">{doneCount}</span>
           </div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-[12px] font-semibold text-white/80">Getting started</div>
             <div className="text-[10px] text-white/25">{doneCount} of {total} done</div>
           </div>
-          <ChevronDown size={11} className={`text-red-400/40 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
+          <ChevronDown size={11} className={`text-indigo-400/40 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
         </button>
 
         {/* Progress bar */}
-        <div className="mx-3 mb-2.5 h-[3px] rounded-full bg-red-500/10 overflow-hidden">
-          <div className="h-full rounded-full bg-red-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
+        <div className="mx-3 mb-2.5 h-[3px] rounded-full bg-indigo-500/10 overflow-hidden">
+          <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
         </div>
       </div>
     </div>
@@ -298,7 +298,7 @@ function NavItem({
         className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-white/[.06] text-white" : "text-slate-500 hover:bg-white/[.04] hover:text-slate-300"}`}
       >
         <Icon size={14}/>
-        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-red-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
+        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-indigo-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
       </Link>
     );
   }
@@ -307,9 +307,9 @@ function NavItem({
       to={to}
       className={`mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-white/[.07] text-white" : "text-slate-400 hover:bg-white/[.03] hover:text-slate-200"}`}
     >
-      <Icon size={13} className={active ? "text-red-400" : "text-slate-600"}/>
+      <Icon size={13} className={active ? "text-indigo-400" : "text-slate-600"}/>
       {label}
-      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-red-500 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none">{badge > 99 ? "99+" : badge}</span>}
+      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-indigo-500 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none">{badge > 99 ? "99+" : badge}</span>}
     </Link>
   );
 }
@@ -359,12 +359,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     <>
       <aside
         style={{ transition: "width 0.2s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-white/[.05] bg-[#0b0d10] ${collapsed ? "w-[52px]" : "w-[216px]"}`}
+        className={`relative flex h-full shrink-0 flex-col border-r border-zinc-200 dark:border-white/[.05] bg-white dark:bg-[#0b0d10] ${collapsed ? "w-[52px]" : "w-[216px]"}`}
       >
         {/* Collapse toggle */}
         <button
           onClick={() => { if (onMobileClose) onMobileClose(); else setCollapsed(c => !c); }}
-          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white/[.08] bg-[#0b0d10] text-slate-600 hover:text-white transition-colors shadow-md"
+          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-200 dark:border-white/[.08] bg-white dark:bg-[#0b0d10] text-slate-600 hover:text-zinc-900 dark:hover:text-white transition-colors shadow-md"
         >
           {onMobileClose ? <X size={10}/> : collapsed ? <ChevronRight size={10}/> : <ChevronLeft size={10}/>}
         </button>
@@ -397,7 +397,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <div className="flex items-center gap-2.5 border-b border-white/[.06] px-3 py-2.5">
                   {workspaceLogo
                     ? <img src={workspaceLogo} alt={workspaceName} className="h-5 w-5 rounded-md object-cover shrink-0"/>
-                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-red-500/20 text-[10px] font-semibold text-red-400">{workspaceInitial}</div>
+                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-500/20 text-[10px] font-semibold text-indigo-400">{workspaceInitial}</div>
                   }
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-[12px] font-medium text-white">{workspaceName}</div>
@@ -430,7 +430,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
               className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
             >
-              <Zap size={12} className="text-red-400 shrink-0"/>
+              <Zap size={12} className="text-indigo-400 shrink-0"/>
               <span>Quick action</span>
               <Plus size={11} className="ml-auto text-slate-600"/>
             </button>
@@ -493,7 +493,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 </div>
                 <Link
                   to="/settings/billing"
-                  className="rounded-md border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-400 hover:bg-red-500/20 transition-colors whitespace-nowrap"
+                  className="rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-semibold text-indigo-400 hover:bg-indigo-500/20 transition-colors whitespace-nowrap"
                 >
                   Upgrade
                 </Link>
@@ -552,7 +552,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </button>
               <button
                 onClick={() => { if (newWsName.trim()) { alert(`Workspace "${newWsName}" will be created. Coming soon!`); setNewWorkspaceOpen(false); setNewWsName(""); } }}
-                className="flex-1 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 transition-colors"
+                className="flex-1 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-indigo-700 bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
               >
                 Create
               </button>

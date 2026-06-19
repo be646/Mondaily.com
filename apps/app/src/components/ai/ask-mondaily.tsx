@@ -1,5 +1,16 @@
 import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks } from "lucide-react";
-import { MondailyLogo } from "./mondaily-logo";
+
+function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="6.5" fill="#6366f1" />
+      <circle cx="16" cy="16" r="13" stroke="#6366f1" strokeWidth="1.4" opacity="0.35" />
+      <circle cx="0" cy="0" r="2.4" fill="#6366f1" opacity="0.85">
+        <animateMotion dur={thinking ? "1.2s" : "6s"} repeatCount="indefinite" path="M27,9 A13,13 0 1 1 5,23 A13,13 0 1 1 27,9" />
+      </circle>
+    </svg>
+  );
+}
 import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
@@ -284,7 +295,7 @@ export function AskMondaily() {
       {/* ── Header ── */}
       <div className="shrink-0 flex items-center justify-between border-b border-white/[.06] px-6 py-4">
         <div className="flex items-center gap-3 text-white">
-          <MondailyLogo size={28} thinking={loading} />
+          <LogoSymbol size={28} thinking={loading} />
           <div>
             <h1 className="text-sm font-semibold text-white tracking-wide">Ask Mondaily</h1>
             <p className="text-[11px] text-slate-500">{loading ? "Thinking…" : "Your AI business assistant"}</p>
@@ -311,7 +322,7 @@ export function AskMondaily() {
           <div className="flex h-full items-center justify-center">
             <div className="w-full max-w-md text-center">
               <div className="mx-auto mb-5 flex items-center justify-center text-white/80">
-                <MondailyLogo size={52} showWordmark />
+                <LogoSymbol size={52} />
               </div>
               <p className="text-sm font-medium text-white mb-1">How can I help you today?</p>
               <p className="text-xs text-slate-500 mb-6">Ask about your pipeline, contacts, tasks, or anything business-related.</p>
@@ -378,7 +389,7 @@ export function AskMondaily() {
         {/* Thinking */}
         {loading && (
           <div className="flex items-center gap-3 pl-1 text-slate-400">
-            <MondailyLogo size={22} thinking />
+            <LogoSymbol size={36} thinking />
             <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
           </div>
         )}
@@ -413,8 +424,8 @@ export function AskMondaily() {
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => sendSuggestion(prompt)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
-                      <Icon size={13} className="text-red-400"/>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors">
+                      <Icon size={13} className="text-indigo-400"/>
                     </span>
                     <span>
                       <span className="block text-sm text-slate-200 group-hover:text-white transition-colors">{label}</span>
@@ -429,7 +440,7 @@ export function AskMondaily() {
           {/* Input */}
           <div className="flex items-center gap-2 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3.5 focus-within:border-white/[.15] focus-within:bg-white/[.04] transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-500/20 text-indigo-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
@@ -443,7 +454,7 @@ export function AskMondaily() {
               </button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/30" : "bg-white/[.04] text-slate-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/30" : "bg-white/[.04] text-slate-600"}`}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>

@@ -52,12 +52,12 @@ function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#0b0d10] px-2 pb-safe md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 dark:border-white/10 border-zinc-200 bg-white dark:bg-[#0b0d10] px-2 pb-safe md:hidden">
       <div className="flex items-center justify-around">
         {tabs.map(({ to, icon: Icon, label }) => {
           const active = location.pathname.startsWith(to.split("/").slice(0, 2).join("/"));
           return (
-            <Link key={to} to={to} className={`flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors ${active ? "text-red-400" : "text-slate-500"}`}>
+            <Link key={to} to={to} className={`flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors ${active ? "text-indigo-500" : "text-slate-500"}`}>
               <Icon size={20}/>
               <span>{label}</span>
             </Link>
@@ -73,7 +73,7 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={onClose}/>
-      <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-[#0b0d10] md:hidden">
+      <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-white dark:bg-[#0b0d10] md:hidden">
         <Sidebar onMobileClose={onClose} />
       </div>
     </>
@@ -107,7 +107,7 @@ export function DashboardLayout() {
   const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0d0f13]">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-100 dark:bg-[#0d0f13]">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />

@@ -71,7 +71,7 @@ html[data-theme="light"] body {
 /* Tactile Minimalist — keyboard key style inputs */
 @layer components {
   .key-input {
-    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-x-white/[.15] focus:border-t-white/[.15] focus:border-b-red-500/40 focus:bg-white/[.06];
+    @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-300 placeholder-slate-600 outline-none transition-all focus:border-x-white/[.15] focus:border-t-white/[.15] focus:border-b-indigo-500/40 focus:bg-white/[.06];
   }
   .key-button {
     @apply rounded-lg border-x border-t border-white/[.10] border-b-2 border-b-white/[.18] bg-white/[.04] text-slate-400 transition-all hover:bg-white/[.06] hover:text-white active:translate-y-[1px] active:border-b active:border-b-white/[.10];
@@ -131,7 +131,7 @@ html[data-theme="light"] body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   transition: transform 0.2s ease-in-out;
 }
-.md-toggle[aria-checked="true"]  { background-color: #ef4444; }
+.md-toggle[aria-checked="true"]  { background-color: #6366f1; }
 .md-toggle[aria-checked="false"] { background-color: rgba(255,255,255,0.12); }
 .md-toggle[aria-checked="true"]  .md-toggle-thumb { transform: translateX(1rem); }
 .md-toggle[aria-checked="false"] .md-toggle-thumb { transform: translateX(0); }
@@ -159,6 +159,20 @@ html[data-theme="light"] body {
   padding: 1rem 1.25rem;
 }
 .settings-row:last-child { border-bottom: none; }
+
+/* ── Light mode structural overrides ─────────────────────────────────────── */
+html[data-theme="light"] aside,
+html[data-theme="light"] .md-sidebar {
+  background: #ffffff !important;
+  border-right-color: #e4e4e7 !important;
+}
+html[data-theme="light"] .md-topbar {
+  background: #ffffff;
+  border-bottom-color: #e4e4e7;
+}
+html[data-theme="light"] .md-main {
+  background: #f4f5f8;
+}
 
 /* ── Record table — rock-solid scroll container ─────────────────────────── */
 .record-scroll {
