@@ -1,4 +1,5 @@
-import { useSignUp, useAuth } from "@clerk/react/legacy";
+import { useSignUp } from "@clerk/react/legacy";
+import { useAuth } from "@clerk/react";
 import { useState, useLayoutEffect } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { Logo } from "../../components/logo";
