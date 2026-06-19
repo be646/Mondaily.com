@@ -122,7 +122,8 @@ export function SignInPage() {
       const result = await signIn.create({ identifier: email, strategy: "password", password });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        navigate("/home");
+        window.location.replace("/home");
+        return;
       } else if (result.status === "needs_client_trust") {
         // Clerk requires email verification on this new browser/device
         await signIn.prepareFirstFactor({ strategy: "email_code" });
@@ -156,7 +157,8 @@ export function SignInPage() {
       const result = await signIn.attemptFirstFactor({ strategy: "email_code", code });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        navigate("/home");
+        window.location.replace("/home");
+        return;
       } else {
         setError(`Verification incomplete (status: ${result.status}). Please try again.`);
       }

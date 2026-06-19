@@ -55,7 +55,9 @@ export function SignUpPage() {
       if (result.status === "complete") {
         setStage("done");
         await setActive({ session: result.createdSessionId });
-        navigate("/onboarding/profile");
+        // Hard redirect so Clerk re-initialises from cookies before any route guard runs
+        window.location.replace("/onboarding/profile");
+        return;
       } else {
         setError(`Verification incomplete (status: ${result.status}). Please try again.`);
       }
