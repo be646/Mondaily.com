@@ -95,8 +95,10 @@ export function SignInPage() {
   const { isSignedIn } = useAuth();
   const { isLoaded, signIn, setActive } = useSignIn();
   const navigate = useNavigate();
+  const [stage, setStage]       = useState<"form" | "verify">("form");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode]         = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
@@ -121,6 +123,10 @@ export function SignInPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         navigate("/home");
+      } else if (result.status === "needs_client_trust") {
+        // Clerk requires email verification on this new browser/device
+        await signIn.prepareFirstFactor({ strategy: "email_code" });
+        setStage("verify");
       } else if (result.status === "needs_second_factor") {
         setError("Two-factor authentication is required. Please use the Mondaily account portal to sign in.");
       } else if (result.status === "needs_new_password") {
@@ -131,12 +137,32 @@ export function SignInPage() {
     } catch (err: unknown) {
       const clerkErr = err as { errors?: { code?: string; message: string }[] };
       const first = clerkErr?.errors?.[0];
-      // "session_exists" means Clerk already has an active session — just navigate
       if (first?.code === "session_exists" || first?.message?.toLowerCase().includes("session already exists")) {
         navigate("/home");
         return;
       }
       setError(first?.message ?? "Sign in failed. Please check your email and password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!isLoaded || !signIn) return;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await signIn.attemptFirstFactor({ strategy: "email_code", code });
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        navigate("/home");
+      } else {
+        setError(`Verification incomplete (status: ${result.status}). Please try again.`);
+      }
+    } catch (err: unknown) {
+      const first = (err as { errors?: { message: string }[] })?.errors?.[0];
+      setError(first?.message ?? "Invalid code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -164,6 +190,36 @@ export function SignInPage() {
             <Logo size={40} />
           </div>
 
+          {stage === "verify" ? (
+            <>
+              <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-zinc-900">Check your email</h1>
+              <p className="mb-2 font-mono text-[13px] text-zinc-500">We sent a 6-digit code to</p>
+              <p className="mb-8 font-mono text-[13px] font-medium text-indigo-600">{email}</p>
+              <form onSubmit={handleVerify} className="space-y-3">
+                <div>
+                  <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Verification code</p>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    maxLength={6}
+                    required
+                    autoFocus
+                    className={`${inputCls} text-center text-xl tracking-[0.5em]`}
+                  />
+                </div>
+                {error && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>}
+                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50">
+                  {loading ? "Verifying…" : "Verify & sign in →"}
+                </button>
+              </form>
+              <button onClick={() => { setStage("form"); setError(""); setCode(""); }} className="mt-4 w-full text-center font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
+                ← Back to sign in
+              </button>
+            </>
+          ) : (
+          <>
           <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-zinc-900">Welcome back</h1>
           <p className="mb-8 font-mono text-[13px] text-zinc-500">Sign in to your workspace</p>
 
@@ -218,6 +274,8 @@ export function SignInPage() {
             No account?{" "}
             <Link to="/sign-up" className="text-indigo-600 hover:underline">Start free</Link>
           </p>
+          </>
+          )}
         </div>
       </div>
 
