@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
@@ -16,62 +16,81 @@ const queryClient = new QueryClient({
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const { organization, isLoaded: orgLoaded } = useOrganization();
-  // bootstrapped: true once we've either confirmed no session or resolved a workspace UUID
-  const [bootstrapped, setBootstrapped] = useState(false);
+
+  // ready: true once Clerk has loaded and we've either confirmed no session or
+  // completed bootstrap. Starts false — nothing renders until we know what's going on.
+  const [ready, setReady] = useState(false);
+
+  // Track previous sign-in state so we know when a fresh sign-in occurs
+  const prevSignedIn = useRef<boolean | null>(null);
+  // Guard against concurrent bootstrap calls
+  const bootstrapping = useRef(false);
 
   useEffect(() => {
     if (!isLoaded) return;
 
+    // ── Signed out ────────────────────────────────────────────────────────────
     if (!isSignedIn) {
-      // Signed out — clear everything and unblock immediately
       localStorage.removeItem("mondaily_session_token");
       localStorage.removeItem("mondaily_workspace_id");
       localStorage.removeItem("mondaily_onboarding_done");
       setTokenProvider(() => Promise.resolve(null));
-      setBootstrapped(true);
+      prevSignedIn.current = false;
+      setReady(true);
       return;
     }
 
-    // Signed in — register token provider immediately
+    // ── Signed in ─────────────────────────────────────────────────────────────
     setTokenProvider(() => getToken());
 
-    // If org state isn't known yet, wait
+    // Wait until Clerk has resolved org membership before bootstrapping.
+    // orgLoaded=true even when the user has no org (organization will be null).
     if (!orgLoaded) return;
 
-    // If we already have a valid workspace UUID, no bootstrap needed
+    // If a fresh sign-in just happened (transition false→true), always bootstrap
+    // so the workspace UUID is guaranteed to be set before the app renders.
+    const freshSignIn = prevSignedIn.current === false;
+    prevSignedIn.current = true;
+
+    // Already have a UUID and this isn't a fresh sign-in — nothing to do.
     const existing = localStorage.getItem("mondaily_workspace_id");
-    if (existing && existing.length === 36) {
-      setBootstrapped(true);
+    if (!freshSignIn && existing && existing.length === 36) {
+      setReady(true);
       return;
     }
 
-    // Call bootstrap to resolve/create the Supabase workspace UUID
+    // Need to (re-)bootstrap. Block render while we resolve.
+    if (bootstrapping.current) return;
+    bootstrapping.current = true;
+    setReady(false); // hide the app while we resolve the workspace UUID
+
     (async () => {
       try {
         const token = await getToken();
-        if (!token) { setBootstrapped(true); return; }
-        const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-        const body: Record<string, string> = {};
-        if (organization?.id) {
-          body.clerk_org_id = organization.id;
-          body.name = organization.name ?? "My Workspace";
+        if (token) {
+          const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+          const body: Record<string, string> = {};
+          if (organization?.id) {
+            body.clerk_org_id = organization.id;
+            body.name = organization.name ?? "My Workspace";
+          }
+          const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(body),
+          });
+          if (res.ok) {
+            const { workspace_id } = (await res.json()) as { workspace_id: string };
+            localStorage.setItem("mondaily_workspace_id", workspace_id);
+          }
         }
-        const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify(body),
-        });
-        if (res.ok) {
-          const { workspace_id } = (await res.json()) as { workspace_id: string };
-          localStorage.setItem("mondaily_workspace_id", workspace_id);
-        }
-      } catch { /* non-fatal — let DashboardRoute handle missing workspace */ }
-      setBootstrapped(true);
+      } catch { /* non-fatal */ }
+      bootstrapping.current = false;
+      setReady(true);
     })();
   }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
-  // Block all rendering until we know session state and (for signed-in users) workspace
-  if (!bootstrapped) return null;
+  if (!ready) return null;
   return <>{children}</>;
 }
 
