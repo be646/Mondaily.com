@@ -1,11 +1,13 @@
-import { useSignUp } from "@clerk/react/legacy";
+import { useSignUp, useAuth } from "@clerk/react/legacy";
 import { useState, useLayoutEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { Logo } from "../../components/logo";
 import { SignUpPanel } from "../onboarding/onboarding-panels";
 
 export function SignUpPage() {
+  const { isSignedIn } = useAuth();
   const { isLoaded, signUp, setActive } = useSignUp();
+  if (isSignedIn) return <Navigate to="/home" replace />;
 
   useLayoutEffect(() => {
     const prev = document.documentElement.dataset.theme;

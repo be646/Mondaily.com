@@ -59,13 +59,16 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
 }
 
-// Redirects signed-in users to onboarding if they haven't completed it yet.
-// Onboarding is complete when mondaily_onboarding_done is set in localStorage.
+// Redirects signed-in users to onboarding only if they have no workspace yet.
+// If they have a workspace ID (existing users), mark onboarding done and let them through.
 function DashboardRoute({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  // Existing users already have a workspace — mark onboarding done automatically
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  if (workspaceId) localStorage.setItem("mondaily_onboarding_done", "1");
   const done = localStorage.getItem("mondaily_onboarding_done");
   if (!done) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
   return <>{children}</>;

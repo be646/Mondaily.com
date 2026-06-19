@@ -1,6 +1,6 @@
-import { useSignIn } from "@clerk/react/legacy";
+import { useSignIn, useAuth } from "@clerk/react/legacy";
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { Logo } from "../../components/logo";
 
 // ── Live panel data ───────────────────────────────────────────────────────────
@@ -90,7 +90,9 @@ function LivePanel() {
 // ── Sign-in form ──────────────────────────────────────────────────────────────
 
 export function SignInPage() {
+  const { isSignedIn } = useAuth();
   const { isLoaded, signIn, setActive } = useSignIn();
+  if (isSignedIn) return <Navigate to="/home" replace />;
 
   useLayoutEffect(() => {
     const prev = document.documentElement.dataset.theme;
