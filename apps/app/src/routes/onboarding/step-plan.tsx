@@ -2,6 +2,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePanelState } from "./onboarding-context";
+import { getAuthHeaders } from "../../lib/api-client";
 
 const plans = [
   {
@@ -48,8 +49,15 @@ export function StepPlan() {
 
   usePanelState({ selected });
 
-  function start() {
+  async function start() {
     localStorage.setItem("mondaily_onboarding_done", "1");
+    // Mark onboarding complete server-side (non-fatal if it fails)
+    try {
+      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+      const headers = await getAuthHeaders();
+      await fetch(`${apiBase}/api/v1/settings/complete-onboarding`, { method: "POST", headers });
+    } catch { /* non-fatal */ }
+
     if (selected === "enterprise") {
       window.location.href = "mailto:sales@mondaily.com";
     } else if (selected === "pro" || selected === "business") {

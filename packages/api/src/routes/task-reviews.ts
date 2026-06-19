@@ -5,8 +5,16 @@ import { supabase } from "@mondaily/db/client";
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
 
+async function assertTaskOwnership(taskId: string, workspaceId: string) {
+  const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).single();
+  if (!data) throw new Error("Task not found or access denied");
+}
+
 // GET /:id/reviews - get all review rounds for a task
 router.get("/:id/reviews", async (c) => {
+  try { await assertTaskOwnership(c.req.param("id"), c.get("workspaceId")); }
+  catch { return c.json({ error: "Not found" }, 404); }
+
   const { data, error } = await supabase
     .from("task_reviews")
     .select("*")
@@ -20,6 +28,8 @@ router.get("/:id/reviews", async (c) => {
 router.post("/:id/reviews", async (c) => {
   const userId = c.get("userId");
   const workspaceId = c.get("workspaceId");
+  try { await assertTaskOwnership(c.req.param("id"), workspaceId); }
+  catch { return c.json({ error: "Not found" }, 404); }
   const body = await c.req.json() as {
     reviewer_id: string; reviewer_name: string;
     sent_by_name: string; context: string;
@@ -87,6 +97,8 @@ router.post("/:id/reviews", async (c) => {
 router.patch("/:id/reviews/:reviewId", async (c) => {
   const userId = c.get("userId");
   const workspaceId = c.get("workspaceId");
+  try { await assertTaskOwnership(c.req.param("id"), workspaceId); }
+  catch { return c.json({ error: "Not found" }, 404); }
   const body = await c.req.json() as {
     action: "approved" | "changes_requested" | "reassigned";
     action_note?: string;
