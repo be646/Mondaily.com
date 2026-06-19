@@ -116,14 +116,20 @@ export function SignInPage() {
     setLoading(true);
     setError("");
     try {
-      const result = await signIn.create({ identifier: email, password });
+      const result = await signIn.create({ identifier: email, strategy: "password", password });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         navigate("/home");
+      } else if (result.status === "needs_second_factor") {
+        setError("Two-factor authentication is required. Please use the Mondaily account portal to sign in.");
+      } else if (result.status === "needs_new_password") {
+        setError("Your password has expired. Please use the 'Forgot?' link to reset it.");
+      } else {
+        setError(`Sign in incomplete (status: ${result.status}). Please try again or contact support.`);
       }
     } catch (err: unknown) {
       const msg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message;
-      setError(msg ?? "Sign in failed. Please try again.");
+      setError(msg ?? "Sign in failed. Please check your email and password.");
     } finally {
       setLoading(false);
     }
