@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
-import { MondailyLogo } from "../../components/ai/mondaily-logo";
+import { LogoMark } from "../../components/logo";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -481,7 +481,7 @@ export function HomePage() {
                   <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                     {m.role === "assistant" && (
                       <div className="mt-0.5 shrink-0 text-indigo-400">
-                        <MondailyLogo size={16}/>
+                        <LogoMark size={16}/>
                       </div>
                     )}
                     {m.role === "user" ? (
@@ -500,7 +500,7 @@ export function HomePage() {
             })()}
             {loading && (
               <div className="flex items-center gap-3 pl-1 text-slate-400">
-                <MondailyLogo size={22} thinking />
+                <LogoMark size={22} thinking />
                 <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
               </div>
             )}
@@ -741,7 +741,7 @@ export function HomePage() {
             <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1">
               {scanLoading ? (
                 <div className="flex items-center gap-3 text-slate-400 py-4">
-                  <MondailyLogo size={22} thinking />
+                  <LogoMark size={22} thinking />
                   <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
                 </div>
               ) : scanReport ? renderMarkdown(scanReport) : null}

@@ -1,7 +1,7 @@
 import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { getAuthHeaders } from "../../lib/api-client";
-import { MondailyLogo } from "./mondaily-logo";
+import { LogoMark } from "../logo";
 
 export function AskMondailyInline({ placeholder, onResponse }: { placeholder: string; onResponse?: (text: string) => void }) {
   const [value, setValue] = useState("");
@@ -35,7 +35,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
       onSubmit={(e) => { e.preventDefault(); void submit(); }}
     >
       <span className="shrink-0 text-indigo-400">
-        <MondailyLogo size={16} thinking={loading}/>
+        <LogoMark size={16} thinking={loading}/>
       </span>
       <input
         className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600"
