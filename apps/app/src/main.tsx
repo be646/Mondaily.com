@@ -24,6 +24,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!isSignedIn) {
       localStorage.removeItem("mondaily_session_token");
       localStorage.removeItem("mondaily_workspace_id");
+      localStorage.removeItem("mondaily_onboarding_done");
       setTokenProvider(() => Promise.resolve(null));
       setReady(true);
       return;
@@ -32,19 +33,24 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, [isLoaded, isSignedIn, getToken]);
 
-  // Phase 2: exchange Clerk org ID for Supabase workspace UUID via bootstrap endpoint.
-  // Runs silently on every org load/change; never blocks render.
+  // Phase 2: resolve Supabase workspace UUID via bootstrap.
+  // Runs when user is signed in and org state is known (org may be null for personal accounts).
   useEffect(() => {
-    if (!isSignedIn || !orgLoaded || !organization?.id) return;
+    if (!isLoaded || !isSignedIn || !orgLoaded) return;
+    // Skip if we already have a workspace UUID stored (avoid redundant calls on every render)
+    const existing = localStorage.getItem("mondaily_workspace_id");
+    if (existing && existing.length === 36) return;
     (async () => {
       try {
         const token = await getToken();
         if (!token) return;
         const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+        const body: Record<string, string> = {};
+        if (organization?.id) { body.clerk_org_id = organization.id; body.name = organization.name ?? "My Workspace"; }
         const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ clerk_org_id: organization.id, name: organization.name }),
+          body: JSON.stringify(body),
         });
         if (res.ok) {
           const { workspace_id } = (await res.json()) as { workspace_id: string };
@@ -52,7 +58,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         }
       } catch { /* non-fatal */ }
     })();
-  }, [isSignedIn, orgLoaded, organization, getToken]);
+  }, [isLoaded, isSignedIn, orgLoaded, organization, getToken]);
 
   if (!ready) return null;
   return <>{children}</>;

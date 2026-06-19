@@ -6,9 +6,16 @@ import { Logo } from "../../components/logo";
 import { SignUpPanel } from "../onboarding/onboarding-panels";
 
 export function SignUpPage() {
+  // All hooks must be called unconditionally before any early returns
   const { isSignedIn } = useAuth();
   const { isLoaded, signUp, setActive } = useSignUp();
-  if (isSignedIn) return <Navigate to="/home" replace />;
+  const navigate = useNavigate();
+  const [stage,    setStage]    = useState<"form" | "verify" | "done">("form");
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [code,     setCode]     = useState("");
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
 
   useLayoutEffect(() => {
     const prev = document.documentElement.dataset.theme;
@@ -18,14 +25,8 @@ export function SignUpPage() {
       if (prev) document.documentElement.dataset.theme = prev;
     };
   }, []);
-  const navigate = useNavigate();
 
-  const [stage,    setStage]    = useState<"form" | "verify" | "done">("form");
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [code,     setCode]     = useState("");
-  const [error,    setError]    = useState("");
-  const [loading,  setLoading]  = useState(false);
+  if (isSignedIn) return <Navigate to="/home" replace />;
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();

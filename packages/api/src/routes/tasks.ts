@@ -175,9 +175,10 @@ tasks.patch("/:id/review-action", async (c) => {
 
   await supabase.from("task_comments").insert({
     task_id: c.req.param("id"),
+    workspace_id: workspaceId,
     user_id: userId,
     user_name: reviewer_name,
-    content: commentText
+    body: commentText
   });
 
   // Notify task owner

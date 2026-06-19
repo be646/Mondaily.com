@@ -91,9 +91,14 @@ function LivePanel() {
 // ── Sign-in form ──────────────────────────────────────────────────────────────
 
 export function SignInPage() {
+  // All hooks must be called unconditionally before any early returns
   const { isSignedIn } = useAuth();
   const { isLoaded, signIn, setActive } = useSignIn();
-  if (isSignedIn) return <Navigate to="/home" replace />;
+  const navigate = useNavigate();
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
 
   useLayoutEffect(() => {
     const prev = document.documentElement.dataset.theme;
@@ -103,12 +108,8 @@ export function SignInPage() {
       if (prev) document.documentElement.dataset.theme = prev;
     };
   }, []);
-  const navigate = useNavigate();
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  if (isSignedIn) return <Navigate to="/home" replace />;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

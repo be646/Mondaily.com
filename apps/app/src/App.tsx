@@ -59,18 +59,17 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
 }
 
-// Redirects signed-in users to onboarding only if they have no workspace yet.
-// If they have a workspace ID (existing users), mark onboarding done and let them through.
+// Redirects signed-in users to onboarding only if they have no Supabase workspace UUID yet.
+// AuthGate in main.tsx is responsible for resolving and storing this UUID via bootstrap.
 function DashboardRoute({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth();
   const location = useLocation();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/sign-in" replace />;
-  // Existing users already have a workspace — mark onboarding done automatically
+  // A valid workspace UUID is a 36-char string (UUID v4 format)
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  if (workspaceId) localStorage.setItem("mondaily_onboarding_done", "1");
-  const done = localStorage.getItem("mondaily_onboarding_done");
-  if (!done) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
+  const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
+  if (!hasWorkspace) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
   return <>{children}</>;
 }
 
