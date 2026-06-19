@@ -135,7 +135,7 @@ export function SecuritySettings() {
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => save({ saml_enabled: true, saml_provider: data.saml_provider, saml_metadata: data.saml_metadata })}
-              className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 active:translate-y-[1px] transition-all">
+              className="flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition-all">
               {data.saml_enabled ? "Update SSO" : "Configure SSO"}
             </button>
             <button className="rounded-lg border border-white/[.08] px-4 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">

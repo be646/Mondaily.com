@@ -50,7 +50,7 @@ export function StepConnectEmail() {
       <div className="flex gap-3">
         <button
           onClick={() => navigate("/onboarding/invite")}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
         >
           Continue <ArrowRight size={13} />
         </button>

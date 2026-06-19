@@ -104,7 +104,7 @@ export function StepPlan() {
 
       <button
         onClick={start}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
       >
         {selected === "starter" ? "Start for free" : selected === "enterprise" ? "Talk to sales" : `Start ${plans.find(p => p.id === selected)?.name} trial`}
         <ArrowRight size={13} />

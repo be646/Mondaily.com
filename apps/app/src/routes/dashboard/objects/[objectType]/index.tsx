@@ -261,7 +261,7 @@ function CreateRecordModal({
                 <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
                   <kbd className="rounded border border-indigo-400/40 bg-indigo-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
                 </button>
@@ -319,7 +319,7 @@ function CreateRecordModal({
                 <button
                   onClick={generateWithAI}
                   disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50"
                 >
                   {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><Sparkles size={11}/> Generate {aiCount} records</>}
                 </button>
@@ -366,7 +366,7 @@ function CreateRecordModal({
                     <button
                       onClick={importSelected}
                       disabled={aiSelected.size === 0}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 py-2 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-40"
+                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500 py-2 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-40"
                     >
                       <Check size={11}/> Import {aiSelected.size} record{aiSelected.size !== 1 ? "s" : ""}
                     </button>
@@ -530,7 +530,7 @@ function AIFillModal({
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
-                className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50 transition-all">
+                className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50 transition-all">
                 {loading
                   ? <><Loader2 size={12} className="animate-spin"/> Generating {count} records…</>
                   : <><Sparkles size={12}/> Generate {count} records</>}
@@ -573,7 +573,7 @@ function AIFillModal({
                   </div>
                 ) : (
                   <button onClick={importSelected} disabled={selected.size === 0}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 py-2.5 text-[11px] font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-all">
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500 py-2.5 text-[11px] font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-all">
                     <Check size={11}/> Import {selected.size} record{selected.size !== 1 ? "s" : ""}
                   </button>
                 )}
@@ -720,14 +720,14 @@ export function ObjectIndexPage() {
             <button
               onClick={() => setView("table")}
               title="Table view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-600 dark:hover:text-zinc-300"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-400 dark:hover:text-slate-200"}`}
             >
               <LayoutList size={11}/> Table
             </button>
             <button
               onClick={() => setView("board")}
               title="Board view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-600 dark:hover:text-zinc-300"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-400 dark:hover:text-slate-200"}`}
             >
               <Kanban size={11}/> Board
             </button>
@@ -736,7 +736,7 @@ export function ObjectIndexPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowDeleteSheet(true)}
-            className="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-800/60 dark:text-zinc-600 dark:hover:border-indigo-500/30 dark:hover:text-indigo-400"
+            className="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:border-indigo-300 hover:text-indigo-600 dark:border-white/[.08] dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/[.05] dark:hover:border-white/[.10]"
             title="Delete this sheet"
           >
             <Trash2 size={11}/>
@@ -767,7 +767,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-700"
+            className="flex items-center gap-1.5 rounded-md border border-transparent bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-700 dark:border-indigo-400/40 dark:bg-indigo-500 dark:hover:bg-indigo-400"
           >
             <Plus size={11}/> New record
           </button>
@@ -829,7 +829,7 @@ export function ObjectIndexPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-all"
               >
                 <Sparkles size={13}/> Fill with AI
               </button>

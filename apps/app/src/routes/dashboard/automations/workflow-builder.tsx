@@ -460,7 +460,7 @@ export function WorkflowBuilderPage() {
 
         <button
           onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}
-          className={`flex items-center gap-1.5 rounded-lg border-x border-t border-b-[3px] px-3 py-1.5 text-xs font-semibold transition-all active:translate-y-[1px] ${status === "active" ? "border-yellow-500/40 border-b-yellow-700 bg-yellow-500/80 text-white" : "border-indigo-500/50 border-b-red-700 bg-indigo-500 text-white hover:bg-indigo-400"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-white" : "border-indigo-400/40 bg-indigo-500 text-white hover:bg-indigo-400"}`}
         >
           {status === "active" ? "Pause" : <><Play size={11}/> Activate</>}
         </button>

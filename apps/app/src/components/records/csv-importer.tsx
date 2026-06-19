@@ -249,7 +249,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           </button>
           <button
             onClick={runImport}
-            className="flex items-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-all active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-all"
           >
             <Upload size={11}/> Import {rows.length} rows
           </button>

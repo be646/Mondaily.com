@@ -359,7 +359,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     <>
       <aside
         style={{ transition: "width 0.2s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-zinc-200 dark:border-white/[.05] bg-white dark:bg-[#0b0d10] ${collapsed ? "w-[52px]" : "w-[216px]"}`}
+        className={`relative flex h-full shrink-0 flex-col border-r border-zinc-200 dark:border-white/[.07] bg-white dark:bg-[#0b0d10] ${collapsed ? "w-[52px]" : "w-[216px]"}`}
       >
         {/* Collapse toggle */}
         <button
@@ -370,7 +370,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         </button>
 
         {/* Workspace header */}
-        <div className="relative shrink-0 border-b border-zinc-200 dark:border-white/[.05]">
+        <div className="relative shrink-0 border-b border-zinc-200 dark:border-white/[.07]">
           <button
             onClick={() => !collapsed && setWorkspaceOpen(o => !o)}
             className={`flex w-full items-center gap-2.5 px-3 py-3 hover:bg-[#f4f4f5] dark:hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
@@ -414,7 +414,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="dropdown-item">
                   <Settings size={12}/> Workspace settings
                 </Link>
-                <div className="mx-2 my-1 border-t border-zinc-100 dark:border-white/[.05]"/>
+                <div className="mx-2 my-1 border-t border-zinc-100 dark:border-white/[.07]"/>
                 <button onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-rose-600 hover:text-rose-700 dark:text-red-400 dark:hover:text-red-300">
                   <LogOut size={12}/> Sign out
                 </button>
@@ -425,7 +425,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
 
         {/* Quick Action — frozen above the scroll area, always visible */}
         {!collapsed && (
-          <div className="shrink-0 border-b border-zinc-200 dark:border-white/[.05] px-2 py-2">
+          <div className="shrink-0 border-b border-zinc-200 dark:border-white/[.07] px-2 py-2">
             <button
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
               className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
@@ -477,7 +477,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {!collapsed && <GettingStarted />}
 
         {/* Bottom bar */}
-        <div className="shrink-0 border-t border-zinc-200 dark:border-white/[.05] p-2">
+        <div className="shrink-0 border-t border-zinc-200 dark:border-white/[.07] p-2">
           {collapsed ? (
             <Link to="/settings/account" title="Settings"
               className="flex items-center justify-center rounded-lg p-2 text-zinc-400 hover:bg-[#f4f4f5] hover:text-zinc-700 dark:text-slate-600 dark:hover:bg-white/[.04] dark:hover:text-slate-300 transition-colors">
@@ -486,7 +486,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           ) : (
             <div className="space-y-1">
               {/* Trial chip */}
-              <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 dark:border-white/[.05] dark:bg-white/[.02] px-2.5 py-2">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 dark:border-white/[.07] dark:bg-white/[.02] px-2.5 py-2">
                 <div>
                   <span className="text-[11px] text-zinc-500 dark:text-slate-600">Trial</span>
                   <span className="text-[11px] text-zinc-400 dark:text-slate-500 ml-1">· 14 days left</span>

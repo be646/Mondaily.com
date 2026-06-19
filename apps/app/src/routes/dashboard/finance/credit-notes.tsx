@@ -140,7 +140,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50">
               {loading ? "Creating…" : "Create"}
             </button>
           </div>
@@ -181,7 +181,7 @@ export function CreditNotesPage() {
             <p className="text-[12px] text-zinc-500 mt-0.5">Manage refunds, billing corrections and goodwill credits</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-colors">
+            className="flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-colors">
             <Plus size={13}/> New Credit Note
           </button>
         </div>

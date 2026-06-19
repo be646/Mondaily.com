@@ -33,7 +33,7 @@ export function StepImport() {
 
       <button
         onClick={() => navigate("/onboarding/plan")}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
       >
         {file ? "Continue" : "Skip for now"} <ArrowRight size={13} />
       </button>

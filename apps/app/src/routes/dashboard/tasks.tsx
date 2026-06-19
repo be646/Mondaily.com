@@ -211,10 +211,10 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
           {/* Actions — always visible but subtle, no opacity-0 */}
           <div className="flex gap-0.5 shrink-0">
             <button onPointerDown={e => e.stopPropagation()} onClick={() => onEdit(task)}
-              className="rounded-md p-1 text-slate-600 hover:text-slate-300 hover:bg-white/[.06] transition-colors"><Pencil size={10}/></button>
+              className="rounded-md p-1 text-slate-400 hover:text-slate-100 hover:bg-white/[.05] transition-colors"><Pencil size={10}/></button>
             {(task.assignee_id === currentUserId || !task.assignee_id) && (
               <button onPointerDown={e => e.stopPropagation()} onClick={() => onDelete(task.id)}
-                className="rounded-md p-1 text-slate-600 hover:text-indigo-400 hover:bg-indigo-400/10 transition-colors"><Trash2 size={10}/></button>
+                className="rounded-md p-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 transition-colors"><Trash2 size={10}/></button>
             )}
           </div>
         </div>
@@ -636,17 +636,17 @@ export function TasksPage() {
                     <div className="flex items-center gap-0.5 shrink-0">
                       {task.completed && (
                         <button onClick={() => toggle.mutate(task)} title="Reactivate"
-                          className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors"><RotateCcw size={12}/></button>
+                          className="rounded-lg p-1.5 text-slate-400 hover:text-slate-100 hover:bg-white/[.05] transition-colors"><RotateCcw size={12}/></button>
                       )}
                       <button onClick={() => setExpandedId(expanded ? null : task.id)}
-                        className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors">
+                        className="rounded-lg p-1.5 text-slate-400 hover:text-slate-100 hover:bg-white/[.05] transition-colors">
                         <ChevronDown size={13} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/>
                       </button>
                       <button onClick={() => setEditTask(task)} title="Edit"
-                        className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300 hover:bg-white/[.05] transition-colors"><Pencil size={12}/></button>
+                        className="rounded-lg p-1.5 text-slate-400 hover:text-slate-100 hover:bg-white/[.05] transition-colors"><Pencil size={12}/></button>
                       {(task.assignee_id === currentUserId || !task.assignee_id) && (
                         <button onClick={() => setConfirmDeleteId(task.id)} title="Delete"
-                          className="rounded-lg p-1.5 text-slate-600 hover:text-indigo-400 hover:bg-indigo-400/10 transition-colors"><Trash2 size={12}/></button>
+                          className="rounded-lg p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 transition-colors"><Trash2 size={12}/></button>
                       )}
                     </div>
                   </div>
@@ -710,9 +710,9 @@ export function TasksPage() {
             <div className="overflow-auto rounded-2xl border border-zinc-200 dark:border-white/[.07]">
               <table className="min-w-full border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-200 bg-[#f9fafb] dark:border-white/[.05] dark:bg-white/[.01]">
+                  <tr className="border-b border-zinc-200 bg-[#f9fafb] dark:border-white/[.06] dark:bg-white/[.01]">
                     {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
-                      <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#6b7280] dark:text-slate-600">{h}</th>
+                      <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#6b7280] dark:text-slate-400">{h}</th>
                     ))}
                     <th className="px-4 py-2.5"/>
                   </tr>
@@ -760,9 +760,9 @@ export function TasksPage() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-slate-600 dark:hover:text-slate-300 dark:hover:bg-white/[.05] transition-colors"><Pencil size={12}/></button>
+                            <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/[.05] transition-colors"><Pencil size={12}/></button>
                             {(task.assignee_id === currentUserId || !task.assignee_id) && (
-                              <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-600 dark:hover:text-indigo-400 dark:hover:bg-indigo-400/10 transition-colors"><Trash2 size={12}/></button>
+                              <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-400/10 transition-colors"><Trash2 size={12}/></button>
                             )}
                           </div>
                         </td>
@@ -780,7 +780,7 @@ export function TasksPage() {
       {viewMode === "list" && doneTasks.length > 0 && !labelFilter && sortBy === "created_at" && (
         <div className="mt-6">
           <button onClick={() => setShowDone(!showDone)}
-            className="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-400 transition-colors mb-3">
+            className="flex items-center gap-2 text-xs text-slate-400 hover:text-slate-200 transition-colors mb-3">
             <ChevronDown size={13} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
             Completed
             <span className="rounded-full bg-white/[.06] px-2 py-0.5 text-[10px] text-slate-500">{doneTasks.length}</span>

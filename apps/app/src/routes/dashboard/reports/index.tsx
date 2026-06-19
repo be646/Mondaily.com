@@ -40,7 +40,7 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
         <button
           onClick={() => { if (name.trim()) onCreate(name.trim()); }}
           disabled={!name.trim()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-indigo-400 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-indigo-400 transition-colors"
         >
           Create dashboard
         </button>

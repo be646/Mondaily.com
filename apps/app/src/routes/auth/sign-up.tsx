@@ -109,7 +109,7 @@ export function SignUpPage() {
               <button
                 onClick={handleGoogle}
                 disabled={loading}
-                className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-zinc-700 hover:bg-zinc-50 active:translate-y-[1px] transition-all disabled:opacity-50"
+                className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-zinc-700 hover:bg-zinc-50 transition-all disabled:opacity-50"
               >
                 <svg width="15" height="15" viewBox="0 0 48 48" fill="none">
                   <path d="M47.532 24.552c0-1.636-.132-3.2-.38-4.704H24.48v8.897h12.987c-.56 3.018-2.254 5.573-4.8 7.29v6.057h7.773c4.547-4.19 7.092-10.36 7.092-17.54z" fill="#4285F4"/>
@@ -144,7 +144,7 @@ export function SignUpPage() {
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
 
-                <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50">
+                <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50">
                   {loading ? "Creating account…" : "Create account →"}
                 </button>
               </form>
@@ -188,7 +188,7 @@ export function SignUpPage() {
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
 
-                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50">
+                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50">
                   {loading ? "Verifying…" : "Verify & continue →"}
                 </button>
               </form>

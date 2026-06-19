@@ -383,7 +383,7 @@ export function SequenceBuilderPage() {
         <button
           onClick={toggleStatus}
           disabled={patchSeq.isPending}
-          className={`flex items-center gap-1.5 rounded-lg border-x border-t border-b-[3px] px-3 py-1.5 text-xs font-semibold transition-all active:translate-y-[1px] disabled:opacity-50 ${seq.status === "active" ? "border-yellow-500/40 border-b-yellow-700 bg-yellow-500/80 text-white hover:bg-yellow-400" : "border-indigo-500/50 border-b-red-700 bg-indigo-500 text-white hover:bg-indigo-400"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-white hover:bg-yellow-400" : "border-indigo-400/40 bg-indigo-500 text-white hover:bg-indigo-400"}`}
         >
           {seq.status === "active" ? <><Pause size={11}/> Pause</> : <><Play size={11}/> Activate</>}
         </button>

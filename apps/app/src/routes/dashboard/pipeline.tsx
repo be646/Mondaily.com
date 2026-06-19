@@ -361,7 +361,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50"
           >
             {saving ? "Creating…" : "Create deal"}
             <kbd className="rounded border border-indigo-400/40 bg-indigo-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
@@ -461,7 +461,7 @@ export function PipelinePage() {
         </div>
         <button
           onClick={() => setCreateForStage(stages[0] ?? "Lead")}
-          className="flex items-center gap-1.5 rounded-md border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+          className="flex items-center gap-1.5 rounded-md border border-indigo-400/40 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400"
         >
           <Plus size={11}/> New deal
         </button>

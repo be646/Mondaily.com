@@ -94,7 +94,7 @@ export function StepWorkspace() {
         <button
           onClick={continueSetup}
           disabled={!name.trim() || loading}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all disabled:opacity-50"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50"
         >
           {loading ? "Saving…" : "Continue"} {!loading && <ArrowRight size={13} />}
         </button>

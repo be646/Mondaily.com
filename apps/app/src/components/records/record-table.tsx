@@ -356,7 +356,7 @@ function RecordIdCell({ id }: { id: string }) {
       </span>
       <button
         onClick={copy}
-        className="opacity-0 group-hover/id:opacity-100 transition-opacity text-white/30 hover:text-white/70"
+        className="opacity-0 group-hover/id:opacity-100 transition-opacity text-slate-400 hover:text-slate-100"
         title="Copy ID"
       >
         {copied
@@ -1975,13 +1975,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {renderCell(col, record)}
           </td>
         ))}
-        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-white/20 tabular-nums border-b border-b-white/[.04]">
+        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-zinc-500 dark:text-white/45 tabular-nums border-b border-b-zinc-100 dark:border-b-white/[.04]">
           {fmtDate(record.updated_at)}
         </td>
-        <td className="border-b border-b-white/[.04] w-10 px-2">
+        <td className="border-b border-b-zinc-100 dark:border-b-white/[.04] w-10 px-2">
           <button
             onClick={() => deleteRow(record)}
-            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-white/20 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-zinc-400 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all"
             title="Delete row"
           >
             <Trash2 size={12}/>
@@ -1992,10 +1992,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   // Toolbar button styles — clean borderless pills
-  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none";
-  const TB_IDLE = `${TB} text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-white/35 dark:hover:text-white/70 dark:hover:bg-white/[.04]`;
-  const TB_ON   = `${TB} text-zinc-900 bg-zinc-100 dark:text-white/80 dark:bg-white/[.06]`;
-  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-200 px-1 text-[9px] font-semibold text-zinc-600 dark:bg-white/[.10] dark:text-white/60";
+  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border border-transparent";
+  const TB_IDLE = `${TB} text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
+  const TB_ON   = `${TB} text-zinc-900 bg-zinc-100 dark:text-white dark:bg-white/[.06] dark:border-white/[.08]`;
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-200 px-1 text-[9px] font-semibold text-zinc-600 dark:bg-white/[.10] dark:text-slate-300";
   const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (
@@ -2110,7 +2110,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             </div>
           ))}
           <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) { setSortRules(r => [...r, { col: unused, dir: "asc" }]); setQuickSortCol(null); } }}
-            className="flex items-center gap-1 text-[11px] text-white/30 hover:text-white/70 transition-colors shrink-0 whitespace-nowrap">
+            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-100 transition-colors shrink-0 whitespace-nowrap">
             <Plus size={11}/> Add sort
           </button>
           {sortRules.length > 0 && (
@@ -2128,12 +2128,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0 mr-1">Group by</span>
           <div className="h-3 w-px bg-white/[.08] shrink-0"/>
           <button onClick={() => { setGroupBy(null); }}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-white/30 hover:text-white/60 hover:border-white/[.08]"}`}>
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-slate-400 hover:text-slate-100 hover:border-white/[.08]"}`}>
             {!groupByCol && <Check size={9} className="text-indigo-400"/>}None
           </button>
           {orderedColumns.map(col => (
             <button key={col} onClick={() => setGroupBy(col)}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-white/30 hover:text-white/60 hover:border-white/[.08]"}`}>
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-slate-400 hover:text-slate-100 hover:border-white/[.08]"}`}>
               {groupByCol === col && <Check size={9} className="text-indigo-400"/>}
               {col.replace(/_/g," ")}
             </button>
@@ -2185,7 +2185,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             </div>
           ) : (
             <button onClick={() => setSaveViewOpen(true)}
-              className="flex items-center gap-1.5 text-[11px] text-white/30 hover:text-white/70 transition-colors shrink-0 whitespace-nowrap">
+              className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-100 transition-colors shrink-0 whitespace-nowrap">
               <Plus size={11}/> Save current view
             </button>
           )}
@@ -2237,7 +2237,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               ) : (
                 <button
                   onClick={() => setFilterSearchOpen(true)}
-                  className={`flex items-center justify-center h-6 w-6 rounded-md transition-colors ${filterText ? "text-white bg-white/[.08]" : "text-white/30 hover:text-white/70 hover:bg-white/[.04]"}`}
+                  className={`flex items-center justify-center h-6 w-6 rounded-md transition-colors ${filterText ? "text-white bg-white/[.08]" : "text-slate-400 hover:text-slate-100 hover:bg-white/[.04]"}`}
                   title="Search records"
                 >
                   <Search size={12}/>
@@ -2457,7 +2457,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       <div className="flex gap-0.5 p-1.5 border-b border-white/[.05] overflow-x-auto">
                         {bulkEditCols.map(col => (
                           <button key={col} onClick={() => setBulkEditField(col)}
-                            className={`rounded-md px-2 py-1 text-[10px] capitalize whitespace-nowrap transition-colors ${bulkEditField === col ? "bg-white/[.08] text-white" : "text-white/30 hover:text-white/60"}`}>
+                            className={`rounded-md px-2 py-1 text-[10px] capitalize whitespace-nowrap transition-colors ${bulkEditField === col ? "bg-white/[.08] text-white" : "text-slate-400 hover:text-slate-100"}`}>
                             {col.replace(/_/g," ")}
                           </button>
                         ))}
@@ -2552,7 +2552,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           >
             <Trash2 size={12} /> Delete {selected.size}
           </button>
-          <button onClick={() => setSelected(new Set())} className="text-white/30 hover:text-white/60">
+          <button onClick={() => setSelected(new Set())} className="text-slate-400 hover:text-slate-100">
             <X size={13} />
           </button>
         </div>
@@ -2614,7 +2614,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         </div>
                       )}
                       <button onClick={() => handleHeaderSort(col)}
-                        className={`flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-white/30 dark:hover:text-white/70 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
+                        className={`flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
                         <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
                         {colMeta[col]?.required && <span className="text-indigo-400/70 text-[10px] leading-none">*</span>}
@@ -2632,7 +2632,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 );
               })}
               <th className="px-4 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06]">
-                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-white/30 dark:hover:text-white/70 transition-colors">
+                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors">
                   <Calendar size={11}/>
                   <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
                   <SortIcon col="__updated_at"/>

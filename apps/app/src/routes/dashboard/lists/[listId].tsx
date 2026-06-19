@@ -390,7 +390,7 @@ export function ListPage() {
         )}
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border-x border-t border-white/[.08] border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors"
         >
           <Plus size={13}/> Add record
         </button>
@@ -699,7 +699,7 @@ export function ListPage() {
               </button>
               <button
                 onClick={() => removeList.mutate()}
-                className="rounded-lg border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-800 bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+                className="rounded-lg border border-indigo-400/40 bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
               >
                 Delete list
               </button>
