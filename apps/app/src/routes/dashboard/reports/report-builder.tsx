@@ -60,7 +60,7 @@ export function ReportBuilderPage() {
         <select
           value={report.type}
           onChange={e => setReport({ ...report, type: e.target.value as ReportType })}
-          className="h-9 rounded-lg border border-white/[.08] bg-[#0d0f13] px-3 text-sm text-white outline-none focus:border-red-500/40"
+          className="h-9 rounded-lg border border-white/[.08] bg-[#0d0f13] px-3 text-sm text-white outline-none focus:border-indigo-500/40"
         >
           <option value="insight">Insight</option>
           <option value="funnel">Funnel</option>
@@ -69,7 +69,7 @@ export function ReportBuilderPage() {
         </select>
         <button
           onClick={() => save.mutate(report)}
-          className="flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-medium text-white hover:bg-red-500"
+          className="flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3 text-sm font-medium text-white hover:bg-indigo-500"
         >
           <Save size={14} /> {save.isPending ? "Saving…" : "Save report"}
         </button>
@@ -135,7 +135,7 @@ function ConfigPanel({ report, update, objects }: {
           <div className="grid grid-cols-3 gap-1">
             {(["line","bar","number"] as const).map(t => (
               <button key={t} onClick={() => update({ chart_type: t })}
-                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-red-500 bg-red-500/10 text-white" : "border-white/10 text-slate-400"}`}>
+                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-slate-400"}`}>
                 {t}
               </button>
             ))}
@@ -168,13 +168,13 @@ function ConfigPanel({ report, update, objects }: {
               >
                 <GripVertical size={13} className="cursor-grab text-slate-600" />
                 <input value={stage} onChange={e => update({ stages: config.stages.map((v, j) => j === i ? e.target.value : v) })} className="input flex-1" />
-                <button onClick={() => update({ stages: config.stages.filter((_,j) => j !== i) })} className="text-slate-600 hover:text-red-400">
+                <button onClick={() => update({ stages: config.stages.filter((_,j) => j !== i) })} className="text-slate-600 hover:text-indigo-400">
                   <Trash2 size={13} />
                 </button>
               </div>
             ))}
             <button onClick={() => update({ stages: [...config.stages, `Stage ${config.stages.length + 1}`] })}
-              className="flex items-center gap-2 text-xs text-red-400 hover:text-red-300">
+              className="flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300">
               <Plus size={12} /> Add stage
             </button>
           </div>
@@ -232,7 +232,7 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
       <div>
         <p className="text-6xl font-semibold text-white">{result?.total ?? 0}</p>
         {config.compare && (
-          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-emerald-400" : "text-indigo-400"}`}>
             {(result?.change ?? 0) >= 0 ? "+" : ""}{result?.change ?? 0}% vs previous period
           </p>
         )}

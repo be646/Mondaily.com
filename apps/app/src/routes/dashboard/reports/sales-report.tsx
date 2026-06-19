@@ -132,7 +132,7 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
   if (delta == null) return null;
   const up = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"}`}>
       {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
       {up ? "+" : ""}{delta}%
     </span>
@@ -175,7 +175,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
         {sub && (
           <div className="flex items-center gap-1 text-[11px] text-white/50 print:text-gray-500">
             {trend === "up"      && <TrendingUp  size={11} className="text-emerald-400"/>}
-            {trend === "down"    && <TrendingDown size={11} className="text-red-400"/>}
+            {trend === "down"    && <TrendingDown size={11} className="text-indigo-400"/>}
             {trend === "neutral" && <Minus size={11}/>}
             {sub}
           </div>
@@ -224,7 +224,7 @@ function ObjectPicker({ objects, value, onChange }: {
               <button
                 key={o.slug}
                 onClick={() => { onChange(o.slug); setOpen(false); }}
-                className={`dropdown-item w-full text-sm ${o.slug === value ? "text-red-400 font-medium" : ""}`}
+                className={`dropdown-item w-full text-sm ${o.slug === value ? "text-indigo-400 font-medium" : ""}`}
               >
                 {o.name_plural}
               </button>
@@ -318,7 +318,7 @@ interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"
 const CONFIDENCE_STYLE: Record<string, string> = {
   high:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
   medium: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  low:    "border-red-500/30 bg-red-500/10 text-red-400",
+  low:    "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
 };
 
 function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData }: {
@@ -399,7 +399,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
         ) : error ? (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-red-400 max-w-[160px] truncate">{error}</span>
+            <span className="text-[11px] text-indigo-400 max-w-[160px] truncate">{error}</span>
             <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-slate-500 hover:text-white">Retry</button>
           </div>
         ) : result ? (
@@ -491,7 +491,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   const CATEGORY_META = {
     performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/[.06]", text: "text-emerald-400" },
     opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/25",    bg: "bg-blue-500/[.06]",    text: "text-blue-400"    },
-    risk:        { label: "Risk",        dot: "bg-red-400",     border: "border-red-500/25",     bg: "bg-red-500/[.06]",     text: "text-red-400"     },
+    risk:        { label: "Risk",        dot: "bg-indigo-400",     border: "border-indigo-500/25",     bg: "bg-indigo-500/[.06]",     text: "text-indigo-400"     },
     summary:     { label: "Summary",     dot: "bg-violet-400",  border: "border-violet-500/25",  bg: "bg-violet-500/[.06]",  text: "text-violet-400"  },
   } as const;
   type Cat = keyof typeof CATEGORY_META;
@@ -563,7 +563,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
         ) : error ? (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-red-400 max-w-[160px] truncate">{error}</span>
+            <span className="text-[11px] text-indigo-400 max-w-[160px] truncate">{error}</span>
             <button onClick={() => { setError(null); run(); }} className="text-[11px] text-slate-500 hover:text-white">Retry</button>
           </div>
         ) : insights ? (
@@ -593,7 +593,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                       <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
                     </div>
                     {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
-                    {ins.trend === "down" && <TrendingDown size={12} className="text-red-400 shrink-0"/>}
+                    {ins.trend === "down" && <TrendingDown size={12} className="text-indigo-400 shrink-0"/>}
                   </div>
                   <div>
                     <p className="text-[11px] text-slate-500 mb-0.5">{ins.title}</p>
@@ -683,7 +683,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors"
       >
-        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-red-500/20 text-red-400 border border-red-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
+        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
       </button>
 
       {open && (
@@ -698,7 +698,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="px-5 py-3 space-y-2 border-b border-white/[.06]">
               {digests.map(d => (
                 <div key={d.id} className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5">
-                  <Mail size={12} className="text-red-400 shrink-0"/>
+                  <Mail size={12} className="text-indigo-400 shrink-0"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white truncate">{FREQ_LABELS[d.frequency]} · {d.period} view</p>
                     <p className="text-[10px] text-slate-500 truncate">{d.recipients.join(", ")}</p>
@@ -713,7 +713,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   >
                     {sending === d.id ? <Loader2 size={11} className="animate-spin"/> : "Send now"}
                   </button>
-                  <button onClick={() => remove.mutate(d.id)} className="text-slate-600 hover:text-red-400 transition-colors">
+                  <button onClick={() => remove.mutate(d.id)} className="text-slate-600 hover:text-indigo-400 transition-colors">
                     <Trash2 size={12}/>
                   </button>
                 </div>
@@ -728,7 +728,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[.08] text-slate-500 hover:text-white"}`}>
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] text-slate-500 hover:text-white"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -770,7 +770,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); } }}
                   placeholder="email@example.com"
-                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 placeholder-slate-700 focus:outline-none focus:border-red-500/40"
+                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 placeholder-slate-700 focus:outline-none focus:border-indigo-500/40"
                 />
                 <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/[.08] text-slate-500 hover:text-white transition-colors">
                   <Plus size={12}/>
@@ -781,7 +781,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   {emails.map(e => (
                     <span key={e} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2 py-0.5 text-[10px] text-slate-400">
                       {e}
-                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-slate-600 hover:text-red-400"><X size={9}/></button>
+                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-slate-600 hover:text-indigo-400"><X size={9}/></button>
                     </span>
                   ))}
                 </div>
@@ -791,7 +791,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <button
               onClick={() => create.mutate({ object_type: objectType, period, frequency: freq, day_of_week: freq === "weekly" ? dayOfWeek : undefined, hour, recipients: emails })}
               disabled={emails.length === 0 || create.isPending}
-              className="w-full rounded-lg bg-red-600 py-2.5 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors"
+              className="w-full rounded-lg bg-indigo-600 py-2.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
             >
               {create.isPending ? "Creating…" : "Create digest"}
             </button>
@@ -1226,7 +1226,7 @@ export function SalesReportPage() {
                   onClick={() => applyPreset(p)}>
                   {p.name}
                   <button onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
-                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-slate-600 hover:text-red-400 transition-all">
+                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-slate-600 hover:text-indigo-400 transition-all">
                     <X size={9}/>
                   </button>
                 </span>
@@ -1270,7 +1270,7 @@ export function SalesReportPage() {
                   <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 ml-0.5">
                     {Object.values(activeFilters).filter(Boolean).length}
                   </span>
-                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-red-400 transition-colors">
+                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">
                     Clear
                   </button>
                 </>
@@ -1307,12 +1307,12 @@ export function SalesReportPage() {
 
         {recordsQ.isLoading ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500/30 border-t-red-500"/>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500/30 border-t-red-500"/>
           </div>
         ) : records.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
             <p className="text-slate-400 text-sm">No {objLabel} records found.</p>
-            <Link to={`/objects/${activeSlug}`} className="text-sm text-red-400 hover:text-red-300">
+            <Link to={`/objects/${activeSlug}`} className="text-sm text-indigo-400 hover:text-indigo-300">
               Go to {objLabel} →
             </Link>
             {objects.length > 1 && (
@@ -1335,7 +1335,7 @@ export function SalesReportPage() {
                     className="key-input w-full mb-3"
                   />
                   <div className="flex gap-2">
-                    <button onClick={saveGoal} className="flex-1 rounded-md bg-red-600 py-2 text-xs font-medium text-white hover:bg-red-500">Set goal</button>
+                    <button onClick={saveGoal} className="flex-1 rounded-md bg-indigo-600 py-2 text-xs font-medium text-white hover:bg-indigo-500">Set goal</button>
                     <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-xs text-slate-400 hover:text-white">Cancel</button>
                     {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-600 hover:text-slate-400">Clear</button>}
                   </div>
@@ -1504,7 +1504,7 @@ export function SalesReportPage() {
                         <span style={{ color: a.color }}>◆</span>
                         <span className="text-slate-400">{a.bucket_label}:</span>
                         {a.text}
-                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all">
+                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-indigo-400 transition-all">
                           <X size={9}/>
                         </button>
                       </span>
@@ -1663,7 +1663,7 @@ export function SalesReportPage() {
                             </div>
                             {/* Stage badge */}
                             {hasStage && (
-                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-red-500/10 text-red-400 border-red-500/20" : color.badge} print:bg-transparent print:text-gray-600 print:border-gray-300`}>
+                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : color.badge} print:bg-transparent print:text-gray-600 print:border-gray-300`}>
                                 {stage}
                               </span>
                             )}

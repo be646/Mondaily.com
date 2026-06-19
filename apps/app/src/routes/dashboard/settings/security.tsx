@@ -135,7 +135,7 @@ export function SecuritySettings() {
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => save({ saml_enabled: true, saml_provider: data.saml_provider, saml_metadata: data.saml_metadata })}
-              className="flex items-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 active:translate-y-[1px] transition-all">
+              className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 active:translate-y-[1px] transition-all">
               {data.saml_enabled ? "Update SSO" : "Configure SSO"}
             </button>
             <button className="rounded-lg border border-white/[.08] px-4 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
@@ -158,7 +158,7 @@ export function SecuritySettings() {
           <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><Smartphone size={14} /> Active sessions</h2>
           <button
             onClick={() => Promise.all(data.sessions.filter(s => !s.current).map(s => revoke.mutateAsync(s.id)))}
-            className="text-xs text-red-400 hover:text-red-300 transition-colors"
+            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
           >
             Revoke all other sessions
           </button>
@@ -185,7 +185,7 @@ export function SecuritySettings() {
                     <td className="px-4 py-3.5 text-slate-600">{s.ip ?? "Hidden"}</td>
                     <td className="px-4 py-3.5 text-slate-600">{s.last_active ?? "Now"}</td>
                     <td className="px-4 py-3.5 text-right">
-                      {!s.current && <button onClick={() => revoke.mutate(s.id)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Revoke</button>}
+                      {!s.current && <button onClick={() => revoke.mutate(s.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Revoke</button>}
                     </td>
                   </tr>
                 ))}
@@ -212,7 +212,7 @@ export function SecuritySettings() {
                 <span key={r} className="flex items-center gap-1.5 rounded-full bg-white/[.05] px-3 py-1.5 text-xs text-slate-400">
                   {r}
                   <button onClick={() => save({ protected_recipients: data.protected_recipients.filter(x => x !== r) })}
-                    className="text-slate-600 hover:text-red-400 transition-colors"><X size={10} /></button>
+                    className="text-slate-600 hover:text-indigo-400 transition-colors"><X size={10} /></button>
                 </span>
               ))}
             </div>
@@ -273,7 +273,7 @@ export function SecuritySettings() {
             <h2 className="text-sm font-semibold text-white">Audit log</h2>
             <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-300">Enterprise</span>
           </div>
-          <button className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+          <button className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
             <Download size={12} /> Export CSV
           </button>
         </div>

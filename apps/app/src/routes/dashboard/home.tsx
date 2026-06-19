@@ -126,7 +126,7 @@ interface Meeting { id: string; title: string; start_time: string; attendees?: s
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: "bg-red-400/10 text-red-400",
+  urgent: "bg-indigo-400/10 text-indigo-400",
   high:   "bg-orange-400/10 text-orange-400",
   medium: "bg-blue-400/10 text-blue-400",
   low:    "bg-slate-400/10 text-slate-400",
@@ -437,7 +437,7 @@ export function HomePage() {
             </Link>
           )}
           {overdueCount > 0 && (
-            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/[.07] px-3 py-1 text-xs text-red-400 hover:bg-red-500/[.12] transition-colors">
+            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-3 py-1 text-xs text-indigo-400 hover:bg-indigo-500/[.12] transition-colors">
               <Clock size={11}/>
               {overdueCount} overdue
             </Link>
@@ -528,8 +528,8 @@ export function HomePage() {
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => firePrompt(prompt)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/10 group-hover:bg-red-500/20 transition-colors">
-                      <Icon size={13} className="text-red-400"/>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors">
+                      <Icon size={13} className="text-indigo-400"/>
                     </span>
                     <span>
                       <span className="block text-sm text-slate-200 group-hover:text-white transition-colors">{label}</span>
@@ -543,7 +543,7 @@ export function HomePage() {
 
           <div className="flex items-center gap-2 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3.5 focus-within:border-white/[.15] focus-within:bg-white/[.04] transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-red-500/20 text-red-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-500/20 text-indigo-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
@@ -554,7 +554,7 @@ export function HomePage() {
               <button onClick={newChat} className="shrink-0 text-xs text-slate-600 hover:text-slate-400 transition-colors mr-1">Clear</button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-red-600 text-white hover:bg-red-500 shadow-lg shadow-red-900/30" : "bg-white/[.04] text-slate-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/30" : "bg-white/[.04] text-slate-600"}`}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>
@@ -565,15 +565,15 @@ export function HomePage() {
           <div className="mt-2.5 flex items-center gap-2 flex-wrap">
             <span className="text-[11px] text-slate-700">Recent:</span>
             {recentThreads.map(t => (
-              <Link key={t.id} to={`/ask/${t.id}`} className="text-[11px] text-slate-600 hover:text-red-400 transition-colors truncate max-w-[180px]">{t.title}</Link>
+              <Link key={t.id} to={`/ask/${t.id}`} className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors truncate max-w-[180px]">{t.title}</Link>
             ))}
             <span className="text-slate-800 text-xs">·</span>
-            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-red-400 transition-colors">Full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">Full chat →</Link>
           </div>
         )}
         {!isChatting && recentThreads.length === 0 && (
           <div className="mt-2 flex justify-end">
-            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-red-400 transition-colors">Open full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">Open full chat →</Link>
           </div>
         )}
       </section>
@@ -587,7 +587,7 @@ export function HomePage() {
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-emerald-400"/>
               <span className="text-sm font-medium text-white">Tasks</span>
-              <span className="flex items-center gap-1 rounded-full bg-red-500/10 border border-red-500/15 px-1.5 py-px text-[9px] text-red-400">
+              <span className="flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/15 px-1.5 py-px text-[9px] text-indigo-400">
                 <Sparkles size={8}/> AI sorted
               </span>
             </div>
@@ -621,7 +621,7 @@ export function HomePage() {
                           <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
                         )}
                         {item.due_date && (
-                          <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-red-400" : "text-slate-600"}`}>
+                          <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-indigo-400" : "text-slate-600"}`}>
                             <Clock size={9}/>
                             {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
@@ -642,7 +642,7 @@ export function HomePage() {
           {/* Task AI footer */}
           <div className="border-t border-white/[.05] px-3 py-2.5" ref={taskPickerRef}>
             <div className="relative flex items-center gap-2 rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2 focus-within:border-white/[.12] transition-colors">
-              <Sparkles size={11} className="text-red-400 shrink-0"/>
+              <Sparkles size={11} className="text-indigo-400 shrink-0"/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
@@ -657,7 +657,7 @@ export function HomePage() {
                     {scanLoading ? <Loader2 size={9} className="animate-spin"/> : "Scan"}
                   </button>
                   <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()}
-                    className="shrink-0 text-red-400 hover:text-red-300 disabled:opacity-30 transition-colors">
+                    className="shrink-0 text-indigo-400 hover:text-indigo-300 disabled:opacity-30 transition-colors">
                     <Send size={11}/>
                   </button>
                 </>
@@ -717,8 +717,8 @@ export function HomePage() {
           <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#111419] shadow-2xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06] shrink-0">
               <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500/15">
-                  <Sparkles size={11} className="text-red-400"/>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/15">
+                  <Sparkles size={11} className="text-indigo-400"/>
                 </div>
                 <div>
                   <p className="text-sm font-medium">AI Scan Report</p>

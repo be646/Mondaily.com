@@ -245,7 +245,7 @@ export function ListPage() {
             onClick={() => setAssignOpen(o => !o)}
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] transition-colors ${
               list.data.assignee_id
-                ? "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15"
+                ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/15"
                 : "border-white/[.08] bg-white/[.02] text-slate-500 hover:text-white hover:border-white/[.15]"
             }`}
           >
@@ -285,7 +285,7 @@ export function ListPage() {
                       return (
                         <button
                           onClick={() => setAssignee(isAssigned ? null : userId)}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-red-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-indigo-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
                         >
                           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[.10] text-[9px] font-bold">
                             {me ? memberInitials(me) : "Me"}
@@ -299,7 +299,7 @@ export function ListPage() {
                       return (
                         <button key={m.user_id}
                           onClick={() => setAssignee(isAssigned ? null : m.user_id)}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-red-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-indigo-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
                         >
                           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[.10] text-[9px] font-bold">
                             {memberInitials(m)}
@@ -317,7 +317,7 @@ export function ListPage() {
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (
                     <button key={v} onClick={() => apiClient.patch(`/lists/${list.data!.id}`, { visibility: v }).then(() => list.refetch())}
-                      className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium capitalize transition-colors ${(list.data!.visibility ?? "workspace") === v ? "bg-red-500/20 text-red-300" : "bg-white/[.04] text-slate-500 hover:text-slate-300"}`}>
+                      className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium capitalize transition-colors ${(list.data!.visibility ?? "workspace") === v ? "bg-indigo-500/20 text-indigo-300" : "bg-white/[.04] text-slate-500 hover:text-slate-300"}`}>
                       {v}
                     </button>
                   ))}
@@ -390,7 +390,7 @@ export function ListPage() {
         )}
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border-x border-t border-white/[.08] border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border-x border-t border-white/[.08] border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors"
         >
           <Plus size={13}/> Add record
         </button>
@@ -425,7 +425,7 @@ export function ListPage() {
               <div className="mx-2 my-1 border-t border-white/[.06]"/>
               <button
                 onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }}
-                className="dropdown-item w-full text-red-400 hover:text-red-300"
+                className="dropdown-item w-full text-indigo-400 hover:text-indigo-300"
               >
                 <Trash2 size={12}/> Delete list
               </button>
@@ -488,7 +488,7 @@ export function ListPage() {
                           ? (
                             <Link
                               to={`/objects/${record.object_type}/${record.id}`}
-                              className="font-medium text-zinc-100 hover:text-red-400 transition-colors"
+                              className="font-medium text-zinc-100 hover:text-indigo-400 transition-colors"
                             >
                               {display(record.data[c])}
                             </Link>
@@ -503,7 +503,7 @@ export function ListPage() {
                       <button
                         onClick={() => removeEntry.mutate(record.id)}
                         title="Remove from list"
-                        className="opacity-0 group-hover:opacity-100 grid h-6 w-6 place-items-center rounded text-zinc-700 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                        className="opacity-0 group-hover:opacity-100 grid h-6 w-6 place-items-center rounded text-zinc-700 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
                       >
                         <X size={12} />
                       </button>
@@ -586,7 +586,7 @@ export function ListPage() {
           </div>
           <Link
             to={`/objects/${list.data.object_type}`}
-            className="mt-3 block text-[11px] text-zinc-500 hover:text-red-400 transition-colors"
+            className="mt-3 block text-[11px] text-zinc-500 hover:text-indigo-400 transition-colors"
           >
             Go to {list.data.object_type} sheet →
           </Link>
@@ -699,7 +699,7 @@ export function ListPage() {
               </button>
               <button
                 onClick={() => removeList.mutate()}
-                className="rounded-lg border-x border-t border-red-500/40 border-b-[3px] border-b-red-800 bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500 transition-colors"
+                className="rounded-lg border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-800 bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
               >
                 Delete list
               </button>

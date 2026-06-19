@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon:
   sent:      { label: "Sent",      color: "text-blue-400 bg-blue-400/10",     icon: Send },
   viewed:    { label: "Viewed",    color: "text-purple-400 bg-purple-400/10", icon: Clock },
   paid:      { label: "Paid",      color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle },
-  overdue:   { label: "Overdue",   color: "text-red-400 bg-red-400/10",       icon: AlertTriangle },
+  overdue:   { label: "Overdue",   color: "text-indigo-400 bg-indigo-400/10",       icon: AlertTriangle },
   cancelled: { label: "Cancelled", color: "text-zinc-600 bg-zinc-600/10",     icon: XCircle },
 };
 
@@ -96,7 +96,7 @@ export function InvoicesPage() {
           <button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
-            className="flex items-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-red-400 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50"
           >
             <Plus size={13}/> New Invoice
           </button>
@@ -155,7 +155,7 @@ export function InvoicesPage() {
             <div className="text-[13px] text-zinc-500">No invoices yet</div>
             <button
               onClick={() => createMutation.mutate()}
-              className="text-[12px] text-red-400 hover:text-red-300 transition-colors"
+              className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               Create your first invoice
             </button>
@@ -192,7 +192,7 @@ export function InvoicesPage() {
                         <Icon size={10}/>{cfg.label}
                       </span>
                     </td>
-                    <td className={`px-4 py-3 text-[12px] ${inv.status === "overdue" ? "text-red-400" : "text-zinc-400"}`}>
+                    <td className={`px-4 py-3 text-[12px] ${inv.status === "overdue" ? "text-indigo-400" : "text-zinc-400"}`}>
                       {formatDate(inv.due_date)}
                     </td>
                     <td className="px-4 py-3">

@@ -51,7 +51,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { window.location.href = "/api/v1/billing/portal"; }}
-              className="flex shrink-0 items-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 active:translate-y-[1px] transition-all"
+              className="flex shrink-0 items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 active:translate-y-[1px] transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
             </button>
@@ -67,12 +67,12 @@ export function BillingSettings() {
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[.08]">
               <div
-                className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-red-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
+                className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-indigo-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
                 style={{ width: `${seatPct}%` }}
               />
             </div>
             {seatPct >= 90 && (
-              <p className="mt-2 text-xs text-red-400">You're nearly at your seat limit. Upgrade to add more members.</p>
+              <p className="mt-2 text-xs text-indigo-400">You're nearly at your seat limit. Upgrade to add more members.</p>
             )}
           </div>
         </div>
@@ -94,7 +94,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { window.location.href = "/api/v1/billing/portal"; }}
-              className="ml-auto text-xs text-red-400 hover:text-red-300 transition-colors"
+              className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               Update
             </button>

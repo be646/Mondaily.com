@@ -15,7 +15,7 @@ interface TaskReview {
 type Screen = "idle" | "send" | "action" | "reassign";
 
 function Avatar({ name, size = 7 }: { name: string; size?: number }) {
-  const colors = ["bg-red-500/20 text-red-400","bg-blue-500/20 text-blue-400","bg-green-500/20 text-green-400","bg-purple-500/20 text-purple-400","bg-orange-500/20 text-orange-400"];
+  const colors = ["bg-indigo-500/20 text-indigo-400","bg-blue-500/20 text-blue-400","bg-green-500/20 text-green-400","bg-purple-500/20 text-purple-400","bg-orange-500/20 text-orange-400"];
   const color = colors[name.charCodeAt(0) % colors.length];
   return <div className={`h-${size} w-${size} rounded-full ${color} flex items-center justify-center text-xs font-semibold shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
 }

@@ -127,7 +127,7 @@ export function IntegrationsSettings() {
               </div>
               <button
                 onClick={() => toggleIntegration.mutate({ id: item.id, connected: !item.connected })}
-                className={`mt-auto self-start text-xs transition-colors ${item.connected ? "text-red-400 hover:text-red-300" : "text-emerald-400 hover:text-emerald-300"}`}
+                className={`mt-auto self-start text-xs transition-colors ${item.connected ? "text-indigo-400 hover:text-indigo-300" : "text-emerald-400 hover:text-emerald-300"}`}
               >
                 {item.connected ? "Disconnect" : "Connect"}
               </button>
@@ -163,7 +163,7 @@ export function IntegrationsSettings() {
                     <td className="px-4 py-3 text-slate-600">{key.created_at ? new Date(key.created_at).toLocaleDateString() : "Recently"}</td>
                     <td className="px-4 py-3 text-slate-600">{key.last_used_at ? new Date(key.last_used_at).toLocaleDateString() : "Never"}</td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => revokeKey.mutate(key.id)} className="text-xs text-red-400 hover:text-red-300 transition-colors">Revoke</button>
+                      <button onClick={() => revokeKey.mutate(key.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Revoke</button>
                     </td>
                   </tr>
                 ))}
@@ -196,7 +196,7 @@ export function IntegrationsSettings() {
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-400">{hook.status ?? "Active"}</span>
-                  <button onClick={() => deleteWebhook.mutate(hook.id)} className="text-red-400 hover:text-red-300 transition-colors"><Trash2 size={13} /></button>
+                  <button onClick={() => deleteWebhook.mutate(hook.id)} className="text-indigo-400 hover:text-indigo-300 transition-colors"><Trash2 size={13} /></button>
                 </div>
               </div>
             ))}
@@ -237,14 +237,14 @@ export function IntegrationsSettings() {
                   <RotateCw size={12} /> Rotate token
                 </button>
                 <button onClick={() => toggleIntegration.mutate({ id: "mcp", connected: false })}
-                  className="rounded-lg border border-red-500/20 px-3 py-2 text-xs text-red-400 hover:bg-red-500/[.08] transition-colors">
+                  className="rounded-lg border border-indigo-500/20 px-3 py-2 text-xs text-indigo-400 hover:bg-indigo-500/[.08] transition-colors">
                   Revoke
                 </button>
               </div>
             </>
           ) : (
             <button onClick={() => generateMcp.mutate()}
-              className="flex items-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 active:translate-y-[1px] transition-all">
+              className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 active:translate-y-[1px] transition-all">
               <ExternalLink size={13} /> Generate token
             </button>
           )}
@@ -278,7 +278,7 @@ export function IntegrationsSettings() {
                 <input autoFocus value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="e.g. Production, CI/CD" className="key-input h-10 w-full px-3 text-sm" />
               </label>
               <button type="submit" disabled={!keyName.trim() || createKey.isPending}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-40 transition-all">
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-all">
                 {createKey.isPending ? "Generating…" : "Generate key"}
               </button>
             </form>
@@ -316,7 +316,7 @@ export function IntegrationsSettings() {
               </div>
             </div>
             <button type="submit" disabled={!webhook.url.startsWith("https://") || createWebhook.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 py-2.5 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-40 transition-all">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-all">
               {createWebhook.isPending ? "Creating…" : "Create webhook"}
             </button>
           </form>

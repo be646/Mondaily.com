@@ -10,7 +10,7 @@ interface SearchResult { id: string; object_type: string; data: Record<string, u
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>;
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"));
-  return <>{parts.map((part, index) => part.toLowerCase() === query.toLowerCase() ? <mark key={index} className="bg-red-500/20 text-red-200">{part}</mark> : part)}</>;
+  return <>{parts.map((part, index) => part.toLowerCase() === query.toLowerCase() ? <mark key={index} className="bg-indigo-500/20 text-red-200">{part}</mark> : part)}</>;
 }
 
 export function SearchPage() {

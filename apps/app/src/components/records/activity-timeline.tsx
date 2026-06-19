@@ -26,7 +26,7 @@ function actorIcon(type: string) {
 
 function actionColor(action: string) {
   if (action === "created") return "text-emerald-400";
-  if (action === "deleted") return "text-red-400";
+  if (action === "deleted") return "text-indigo-400";
   if (action === "enriched") return "text-violet-400";
   return "text-slate-400";
 }

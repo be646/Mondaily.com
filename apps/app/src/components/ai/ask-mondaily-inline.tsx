@@ -40,7 +40,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
         placeholder={placeholder}
       />
       <button
-        className="grid h-8 w-8 place-items-center text-red-400 disabled:opacity-40"
+        className="grid h-8 w-8 place-items-center text-indigo-400 disabled:opacity-40"
         type="submit"
         disabled={loading || !value.trim()}
       >

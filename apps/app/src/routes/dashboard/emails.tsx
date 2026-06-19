@@ -102,11 +102,11 @@ function ReplyComposer({ threadId }: { threadId: string }) {
         <EditorContent editor={editor} />
         <div className="flex flex-wrap items-center gap-2 border-t border-white/10 p-2">
           <button type="button" title="Attach file" className="grid h-8 w-8 place-items-center rounded text-slate-500 hover:bg-white/[.05] hover:text-white"><Paperclip size={14} /></button>
-          <button type="button" onClick={improveDraft} disabled={improving || editor.isEmpty} className="flex h-8 items-center gap-2 rounded px-2 text-xs text-red-400 hover:bg-red-500/10 disabled:opacity-40"><Sparkles size={13} /> {improving ? "Improving..." : "AI improve"}</button>
-          <button type="button" onClick={() => reply.mutate()} disabled={reply.isPending || editor.isEmpty} className="ml-auto flex h-8 items-center gap-2 rounded bg-red-600 px-3 text-xs font-medium text-white disabled:opacity-50"><Send size={13} /> {reply.isPending ? "Sending..." : "Send reply"}</button>
+          <button type="button" onClick={improveDraft} disabled={improving || editor.isEmpty} className="flex h-8 items-center gap-2 rounded px-2 text-xs text-indigo-400 hover:bg-indigo-500/10 disabled:opacity-40"><Sparkles size={13} /> {improving ? "Improving..." : "AI improve"}</button>
+          <button type="button" onClick={() => reply.mutate()} disabled={reply.isPending || editor.isEmpty} className="ml-auto flex h-8 items-center gap-2 rounded bg-indigo-600 px-3 text-xs font-medium text-white disabled:opacity-50"><Send size={13} /> {reply.isPending ? "Sending..." : "Send reply"}</button>
         </div>
       </div>
-      {reply.isError ? <p className="mt-2 text-xs text-red-400">{reply.error.message}</p> : null}
+      {reply.isError ? <p className="mt-2 text-xs text-indigo-400">{reply.error.message}</p> : null}
     </div>
   );
 }
@@ -274,7 +274,7 @@ export function EmailsPage() {
             <div className="flex gap-1 overflow-x-auto">{filters.map((item) => <button key={item} onClick={() => setFilter(item)} className={`shrink-0 rounded-md px-2.5 py-1.5 text-xs capitalize ${filter === item ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>{item}</button>)}</div>
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
-            {threadsQuery.isLoading ? <ThreadSkeletons /> : threads.length === 0 ? <div className="flex h-full min-h-80 flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-white/[.04] text-slate-600"><Mail size={22} /></div><h2 className="text-sm font-medium">Connect your email to see threads here</h2><button onClick={connectGmail} className="mt-4 rounded-md bg-red-600 px-3 py-2 text-sm font-medium">Connect Gmail</button></div> : threads.map((thread) => {
+            {threadsQuery.isLoading ? <ThreadSkeletons /> : threads.length === 0 ? <div className="flex h-full min-h-80 flex-col items-center justify-center px-6 text-center"><div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-white/[.04] text-slate-600"><Mail size={22} /></div><h2 className="text-sm font-medium">Connect your email to see threads here</h2><button onClick={connectGmail} className="mt-4 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium">Connect Gmail</button></div> : threads.map((thread) => {
               const contactName = thread.contact?.name || thread.participants[0]?.name || thread.participants[0]?.email || "Unknown";
               return <button key={thread.id} onClick={() => { setSelectedId(thread.id); setMobileThreadOpen(true); }} className={`relative flex w-full gap-3 border-b border-white/10 p-4 text-left hover:bg-white/[.025] ${selectedId === thread.id ? "bg-white/[.04]" : ""}`}>
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-semibold">{initials(contactName)}</div>

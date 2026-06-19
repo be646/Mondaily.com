@@ -14,8 +14,8 @@ export function PageSkeleton({ rows = 6 }: { rows?: number }) {
 
 export function ErrorState({ error, onRetry }: { error?: Error | null; onRetry?: () => void }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-red-500/10 bg-red-500/[.03] px-6 text-center">
-      <AlertTriangle className="mb-3 text-red-400/60" size={26} />
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-indigo-500/10 bg-indigo-500/[.03] px-6 text-center">
+      <AlertTriangle className="mb-3 text-indigo-400/60" size={26} />
       <h2 className="text-sm font-medium text-slate-200">Something went wrong</h2>
       <p className="mt-1 max-w-sm text-sm text-slate-500">
         {error?.message ?? "An unexpected error occurred. Please try again."}

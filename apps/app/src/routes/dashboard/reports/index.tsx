@@ -40,7 +40,7 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
         <button
           onClick={() => { if (name.trim()) onCreate(name.trim()); }}
           disabled={!name.trim()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-red-400 transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-indigo-400 transition-colors"
         >
           Create dashboard
         </button>
@@ -170,7 +170,7 @@ export function ReportsPage() {
                             </span>
                           )}
                           {reportCount > 0 && (
-                            <span className="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400">
+                            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium text-indigo-400">
                               {reportCount} chart{reportCount !== 1 ? "s" : ""}
                             </span>
                           )}
@@ -195,7 +195,7 @@ export function ReportsPage() {
                   </div>
                   {/* Info row */}
                   <div className="flex items-center gap-2 px-4 py-3 border-t border-white/[.05]">
-                    <LayoutDashboard size={13} className="text-red-400 shrink-0"/>
+                    <LayoutDashboard size={13} className="text-indigo-400 shrink-0"/>
                     <h3 className="flex-1 truncate text-sm font-medium text-white">{dashboard.name || "Untitled dashboard"}</h3>
                     <span className="shrink-0 text-[10px] text-slate-600">
                       {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}
@@ -211,7 +211,7 @@ export function ReportsPage() {
             title="No dashboards yet"
             description="Create a dashboard to pin live object widgets and custom charts side by side."
             action={
-              <button onClick={() => setCreating(true)} className="rounded-md bg-red-600 px-3 py-2 text-sm text-white">
+              <button onClick={() => setCreating(true)} className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white">
                 Create dashboard
               </button>
             }

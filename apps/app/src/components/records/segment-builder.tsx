@@ -205,7 +205,7 @@ export function SegmentBuilder({
                       <button
                         onClick={() => removeRule(rule.id)}
                         disabled={rules.length === 1}
-                        className="text-white/20 hover:text-red-400 transition-colors disabled:pointer-events-none"
+                        className="text-white/20 hover:text-indigo-400 transition-colors disabled:pointer-events-none"
                       >
                         <X size={13} />
                       </button>

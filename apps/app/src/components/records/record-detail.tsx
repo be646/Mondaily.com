@@ -53,7 +53,7 @@ export const INDUSTRY_TAXONOMY: { name: string; bg: string; text: string; border
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  "from-red-500/30 to-red-600/10 text-red-300 border-red-500/20",
+  "from-red-500/30 to-red-600/10 text-indigo-300 border-indigo-500/20",
   "from-blue-500/30 to-blue-600/10 text-blue-300 border-blue-500/20",
   "from-emerald-500/30 to-emerald-600/10 text-emerald-300 border-emerald-500/20",
   "from-purple-500/30 to-purple-600/10 text-purple-300 border-purple-500/20",
@@ -157,14 +157,14 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
             onChange={e => { setUrl(e.target.value); setError(""); }}
             onKeyDown={e => { if (e.key === "Enter") applyUrl(urlDraft); if (e.key === "Escape") setOpen(false); }}
             placeholder="Paste image URL…"
-            className="w-full rounded border border-white/[.08] bg-white/[.04] px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-red-500/30 mb-1"
+            className="w-full rounded border border-white/[.08] bg-white/[.04] px-2 py-1.5 text-xs text-white placeholder-slate-600 outline-none focus:border-indigo-500/30 mb-1"
           />
-          {error && <p className="text-[10px] text-red-400 mb-1">{error}</p>}
+          {error && <p className="text-[10px] text-indigo-400 mb-1">{error}</p>}
 
           <div className="flex gap-2 mt-2">
             <button
               onClick={() => applyUrl(urlDraft)}
-              className="flex-1 rounded-md bg-red-500/20 border border-red-500/30 text-red-300 text-xs py-1.5 hover:bg-red-500/30 transition-colors"
+              className="flex-1 rounded-md bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs py-1.5 hover:bg-indigo-500/30 transition-colors"
             >
               <ExternalLink size={10} className="inline mr-1"/>Apply URL
             </button>
@@ -179,7 +179,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
           {logoUrl && (
             <button
               onClick={() => { onSave(""); setOpen(false); }}
-              className="mt-2 w-full text-center text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+              className="mt-2 w-full text-center text-[10px] text-slate-600 hover:text-indigo-400 transition-colors"
             >
               Remove logo
             </button>
@@ -350,7 +350,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
             onChange={e => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setEditing(false); setDraft(fmt(value)); } }}
-            className="w-full rounded border border-red-500/30 bg-white/[.05] px-2 py-0.5 text-xs text-white outline-none"
+            className="w-full rounded border border-indigo-500/30 bg-white/[.05] px-2 py-0.5 text-xs text-white outline-none"
           />
         ) : (
           <button
@@ -369,7 +369,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
 // ─── Highlight card (fully editable) ─────────────────────────────────────────
 type Accent = "slate"|"red"|"blue"|"emerald"|"amber"|"purple";
 const ACCENT_MAP: Record<Accent, string> = {
-  slate: "text-slate-400", red: "text-red-400", blue: "text-blue-400",
+  slate: "text-slate-400", red: "text-indigo-400", blue: "text-blue-400",
   emerald: "text-emerald-400", amber: "text-amber-400", purple: "text-purple-400",
 };
 
@@ -402,12 +402,12 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
           onChange={e => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setEditing(false); setDraft(fmt(value)); } }}
-          className="w-full rounded border border-red-500/30 bg-white/[.05] px-2 py-1 text-sm text-white outline-none"
+          className="w-full rounded border border-indigo-500/30 bg-white/[.05] px-2 py-1 text-sm text-white outline-none"
         />
       ) : (
         <button
           onClick={() => onSave && setEditing(true)}
-          className={`text-left text-sm font-semibold text-white truncate w-full ${onSave ? "hover:text-red-300 transition-colors" : "cursor-default"}`}
+          className={`text-left text-sm font-semibold text-white truncate w-full ${onSave ? "hover:text-indigo-300 transition-colors" : "cursor-default"}`}
           title={onSave ? "Click to edit" : undefined}
         >
           {fmt(value)}
@@ -431,7 +431,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
         </div>
         <div className="flex gap-1.5">
           <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "text-slate-600 border-white/[.06] hover:text-emerald-300 hover:border-emerald-500/20"}`}>Won</button>
-          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-red-500/20 text-red-300 border-red-500/30" : "text-slate-600 border-white/[.06] hover:text-red-300 hover:border-red-500/20"}`}>Lost</button>
+          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" : "text-slate-600 border-white/[.06] hover:text-indigo-300 hover:border-indigo-500/20"}`}>Lost</button>
         </div>
       </div>
       <div className="flex items-start">
@@ -455,7 +455,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
         })}
       </div>
       {(isWon || isLost) && (
-        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
+        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"}`}>
           {isWon ? "✓ Deal Won" : "✗ Deal Lost"}
         </div>
       )}
@@ -492,7 +492,7 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
         >
           {current ? (
             <>
-              <div className="h-6 w-6 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[10px] font-bold text-red-300 shrink-0">
+              <div className="h-6 w-6 rounded-full bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-300 shrink-0">
                 {initials(current.name)}
               </div>
               <div className="flex-1 min-w-0 text-left">
@@ -517,7 +517,7 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
             >
               <UserCheck size={12} className="text-slate-600"/>
               Unassigned
-              {!assignedTo && <Check size={10} className="ml-auto text-red-400"/>}
+              {!assignedTo && <Check size={10} className="ml-auto text-indigo-400"/>}
             </button>
             {members.map(m => (
               <button
@@ -525,14 +525,14 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
                 onClick={() => { onAssign(m.id); setOpen(false); }}
                 className={`dropdown-item w-full ${assignedTo === m.id ? "dropdown-item-active" : ""}`}
               >
-                <div className="h-5 w-5 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[9px] font-bold text-red-300 shrink-0">
+                <div className="h-5 w-5 rounded-full bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center text-[9px] font-bold text-indigo-300 shrink-0">
                   {initials(m.name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="truncate block text-xs">{m.name}</span>
                   {m.role && <span className="text-[10px] text-slate-600 capitalize">{m.role}</span>}
                 </div>
-                {assignedTo === m.id && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+                {assignedTo === m.id && <Check size={10} className="ml-auto text-indigo-400 shrink-0"/>}
               </button>
             ))}
             {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members yet</p>}
@@ -564,7 +564,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
       <button onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-2 rounded-lg border border-zinc-800/50 bg-zinc-900/20 px-2.5 py-1.5 text-xs hover:bg-zinc-800/30 transition-colors">
         {currentName
-          ? <><div className="h-5 w-5 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[9px] font-bold text-red-300 shrink-0">{initials(currentName)}</div><span className="text-slate-300 truncate">{currentName}</span></>
+          ? <><div className="h-5 w-5 rounded-full bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center text-[9px] font-bold text-indigo-300 shrink-0">{initials(currentName)}</div><span className="text-slate-300 truncate">{currentName}</span></>
           : <><UserCheck size={12} className="text-slate-600 shrink-0"/><span className="text-slate-600">Unassigned</span></>
         }
         <ChevronDown size={10} className="ml-auto text-slate-600 shrink-0"/>
@@ -576,9 +576,9 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
           </button>
           {members.map(m => (
             <button key={m.id} onClick={() => { onSelect(m.name); setOpen(false); }} className="dropdown-item w-full">
-              <div className="h-5 w-5 rounded-full bg-red-500/20 border border-red-500/20 flex items-center justify-center text-[9px] font-bold text-red-300 shrink-0">{initials(m.name)}</div>
+              <div className="h-5 w-5 rounded-full bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center text-[9px] font-bold text-indigo-300 shrink-0">{initials(m.name)}</div>
               <span className="truncate">{m.name}</span>
-              {currentName === m.name && <Check size={10} className="ml-auto text-red-400 shrink-0"/>}
+              {currentName === m.name && <Check size={10} className="ml-auto text-indigo-400 shrink-0"/>}
             </button>
           ))}
           {members.length === 0 && <p className="px-3 py-2 text-xs text-slate-600">No members</p>}
@@ -833,7 +833,7 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
     <div>
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-600">
-          Tasks {todo.length > 0 && <span className="ml-1 rounded-full bg-red-500/20 text-red-300 px-1.5 py-0.5 text-[9px] font-bold">{todo.length}</span>}
+          Tasks {todo.length > 0 && <span className="ml-1 rounded-full bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 text-[9px] font-bold">{todo.length}</span>}
         </p>
         <button
           onClick={() => setAdding(true)}
@@ -844,7 +844,7 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
       </div>
 
       {adding && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-white/[.02] px-2.5 py-2 mb-1.5">
+        <div className="flex items-center gap-2 rounded-lg border border-indigo-500/20 bg-white/[.02] px-2.5 py-2 mb-1.5">
           <Square size={13} className="text-slate-600 shrink-0"/>
           <input
             ref={inputRef} value={newTitle}
@@ -943,7 +943,7 @@ function NoteCard({ note, onUpdate, onDelete }: {
         </div>
         <button
           onClick={() => onDelete(note.id)}
-          className={`shrink-0 rounded-md p-1.5 text-slate-700 hover:text-red-400 hover:bg-red-400/10 transition-all ${hovered ? "opacity-100" : "opacity-0"}`}
+          className={`shrink-0 rounded-md p-1.5 text-slate-700 hover:text-indigo-400 hover:bg-indigo-400/10 transition-all ${hovered ? "opacity-100" : "opacity-0"}`}
         >
           <Trash2 size={12}/>
         </button>
@@ -1069,7 +1069,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
         </button>
       </div>
       {adding && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-red-500/20 bg-white/[.02] px-3 py-2.5">
+        <div className="flex items-center gap-2.5 rounded-lg border border-indigo-500/20 bg-white/[.02] px-3 py-2.5">
           <Square size={14} className="text-slate-600 shrink-0"/>
           <input ref={inputRef} value={newTitle} onChange={e => setNewTitle(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && newTitle.trim()) createTask.mutate(newTitle.trim()); if (e.key === "Escape") { setAdding(false); setNewTitle(""); } }}
@@ -1114,7 +1114,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
                 )}
                 <button
                   onClick={() => deleteTask.mutate(task.id)}
-                  className="shrink-0 rounded p-1 text-slate-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
+                  className="shrink-0 rounded p-1 text-slate-700 hover:text-indigo-400 hover:bg-indigo-400/10 opacity-0 group-hover:opacity-100 transition-all"
                 >
                   <Trash2 size={11}/>
                 </button>
@@ -1254,7 +1254,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
           <div className="flex justify-end gap-2">
             <button onClick={() => setAdding(false)} className="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">Cancel</button>
             <button onClick={() => createLog.mutate()} disabled={createLog.isPending}
-              className="rounded-lg bg-red-500/20 border border-red-500/30 px-4 py-1.5 text-xs text-red-300 hover:bg-red-500/30 transition-colors disabled:opacity-50">
+              className="rounded-lg bg-indigo-500/20 border border-indigo-500/30 px-4 py-1.5 text-xs text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-50">
               {createLog.isPending ? "Saving…" : "Save log"}
             </button>
           </div>
@@ -1291,7 +1291,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
                 )}
               </div>
               <button onClick={() => deleteLog.mutate(log.id)}
-                className="shrink-0 rounded p-1 text-slate-700 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all">
+                className="shrink-0 rounded p-1 text-slate-700 hover:text-indigo-400 hover:bg-indigo-400/10 opacity-0 group-hover:opacity-100 transition-all">
                 <Trash2 size={11}/>
               </button>
             </div>
@@ -1311,7 +1311,7 @@ const INVOICE_STATUS_COLORS: Record<string, string> = {
   sent:      "text-blue-400 bg-blue-400/10",
   viewed:    "text-purple-400 bg-purple-400/10",
   paid:      "text-emerald-400 bg-emerald-400/10",
-  overdue:   "text-red-400 bg-red-400/10",
+  overdue:   "text-indigo-400 bg-indigo-400/10",
   cancelled: "text-zinc-600 bg-zinc-600/10",
 };
 const CN_STATUS_COLORS: Record<string, string> = {
@@ -1374,7 +1374,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         {[
           { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-white" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-violet-400" },
-          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-red-400" : "text-emerald-400" },
+          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-indigo-400" : "text-emerald-400" },
         ].map(card => (
           <div key={card.label} className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">{card.label}</p>
@@ -1433,7 +1433,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
               <button
                 onClick={() => createInvoice.mutate()}
                 disabled={createInvoice.isPending || !newInvAmount}
-                className="rounded-lg bg-red-500/20 border border-red-500/30 px-4 py-1.5 text-xs text-red-300 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                className="rounded-lg bg-indigo-500/20 border border-indigo-500/30 px-4 py-1.5 text-xs text-indigo-300 hover:bg-indigo-500/30 transition-colors disabled:opacity-50"
               >
                 {createInvoice.isPending ? "Creating…" : "Create Invoice"}
               </button>
@@ -1571,7 +1571,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
                   className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-white/[.04] transition-colors group">
                   <div className={`h-6 w-6 rounded-lg border bg-gradient-to-br flex items-center justify-center text-[9px] font-bold shrink-0 ${avatarColor(rname(r))}`}>{initials(rname(r))}</div>
                   <div className="min-w-0 text-left"><p className="text-xs text-slate-300 truncate">{rname(r)}</p><p className="text-[10px] text-slate-600 capitalize">{r.object_type}</p></div>
-                  <Link2 size={11} className="text-slate-700 group-hover:text-red-400 ml-auto shrink-0 transition-colors"/>
+                  <Link2 size={11} className="text-slate-700 group-hover:text-indigo-400 ml-auto shrink-0 transition-colors"/>
                 </button>
               ))}
             </div>
@@ -1940,7 +1940,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 <button key={t} onClick={() => setTab(t)}
                   className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-white" : "text-slate-500 hover:text-slate-300"}`}>
                   {label}
-                  {tab === t && <span className="absolute bottom-0 left-0 right-0 h-px bg-red-500"/>}
+                  {tab === t && <span className="absolute bottom-0 left-0 right-0 h-px bg-indigo-500"/>}
                 </button>
               );
             })}

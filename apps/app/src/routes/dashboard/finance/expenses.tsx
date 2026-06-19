@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   draft:     { label: "Draft",     color: "text-zinc-400 bg-zinc-400/10",     icon: Receipt      },
   submitted: { label: "Submitted", color: "text-blue-400 bg-blue-400/10",     icon: Clock        },
   approved:  { label: "Approved",  color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle2 },
-  rejected:  { label: "Rejected",  color: "text-red-400 bg-red-400/10",       icon: XCircle      },
+  rejected:  { label: "Rejected",  color: "text-indigo-400 bg-indigo-400/10",       icon: XCircle      },
 };
 
 const CATEGORIES = Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({ key: k, label: v.label }));
@@ -125,11 +125,11 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
                 placeholder="e.g. British Airways" className="key-input w-full text-sm"/>
             </div>
           </div>
-          {error && <p className="text-[11px] text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[11px] text-indigo-400 bg-indigo-400/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50">
               {loading ? "Saving…" : "Log Expense"}
             </button>
           </div>
@@ -176,7 +176,7 @@ export function ExpensesPage() {
             <p className="text-[12px] text-zinc-500 mt-0.5">Track and manage business expenses</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-xl border-x border-t border-red-500/40 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-red-400 transition-colors">
+            className="flex items-center gap-2 rounded-xl border-x border-t border-indigo-500/40 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-colors">
             <Plus size={13}/> Log Expense
           </button>
         </div>
@@ -226,7 +226,7 @@ export function ExpensesPage() {
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <Receipt size={32} className="text-zinc-700"/>
             <div className="text-[13px] text-zinc-500">No expenses {categoryFilter ? `in category "${categoryFilter}"` : "yet"}</div>
-            <button onClick={() => setShowNew(true)} className="text-[12px] text-red-400 hover:text-red-300 transition-colors">Log your first expense</button>
+            <button onClick={() => setShowNew(true)} className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">Log your first expense</button>
           </div>
         ) : (
           <table className="w-full">

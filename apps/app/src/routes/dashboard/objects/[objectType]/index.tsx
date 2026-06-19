@@ -19,7 +19,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${checked ? "bg-red-500" : "bg-white/[.10]"}`}
+      className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${checked ? "bg-indigo-500" : "bg-white/[.10]"}`}
     >
       <span className={`block h-3 w-3 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-3.5" : "translate-x-0.5"}`}/>
     </button>
@@ -210,7 +210,7 @@ function CreateRecordModal({
               >Manual</button>
               <button
                 onClick={() => { setTab("ai"); setTimeout(() => promptRef.current?.focus(), 50); }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-red-500/20 text-red-300" : "text-zinc-500 hover:text-zinc-300"}`}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-indigo-500/20 text-indigo-300" : "text-zinc-500 hover:text-zinc-300"}`}
               >
                 <Sparkles size={10}/> Generate with AI
               </button>
@@ -233,13 +233,13 @@ function CreateRecordModal({
                   <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-white/[.04] last:border-0">
                     <span className={`text-[11px] font-medium uppercase tracking-wide select-none truncate flex items-center gap-1 ${isRequired ? "text-slate-400" : "text-slate-600"}`}>
                       {label(k)}
-                      {isRequired && <span className="text-red-400 text-[10px]">*</span>}
+                      {isRequired && <span className="text-indigo-400 text-[10px]">*</span>}
                     </span>
                     <input
                       value={values[k] ?? ""}
                       onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
                       placeholder={hasDefault && isEmpty ? `Default: ${colMeta[k]!.defaultValue}` : "—"}
-                      className={`w-full rounded-md border bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-slate-700 outline-none transition-colors focus:bg-white/[.05] ${isRequired && isEmpty ? "border-red-500/20 focus:border-red-500/40" : "border-white/[.07] focus:border-red-500/30"}`}
+                      className={`w-full rounded-md border bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-slate-700 outline-none transition-colors focus:bg-white/[.05] ${isRequired && isEmpty ? "border-indigo-500/20 focus:border-indigo-500/40" : "border-white/[.07] focus:border-indigo-500/30"}`}
                     />
                   </div>
                 );
@@ -250,7 +250,7 @@ function CreateRecordModal({
                   <CategoryPills categories={selectedCats} onUpdate={setCats}/>
                 </div>
               </div>
-              {error && <p className="pt-2 text-xs text-red-400">{error}</p>}
+              {error && <p className="pt-2 text-xs text-indigo-400">{error}</p>}
             </div>
             <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3.5">
               <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500 select-none">
@@ -261,9 +261,9 @@ function CreateRecordModal({
                 <button onClick={onClose} className="rounded-lg border-x border-t border-white/[.08] border-b-2 border-b-white/[.14] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white active:translate-y-[1px]">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
-                  <kbd className="rounded border border-red-400/40 bg-red-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
+                  <kbd className="rounded border border-indigo-400/40 bg-indigo-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
                 </button>
               </div>
             </div>
@@ -286,7 +286,7 @@ function CreateRecordModal({
                   onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generateWithAI(); } }}
                   placeholder={`e.g. "10 tax expense categories for a SaaS startup including software subscriptions, travel, and office costs"`}
                   rows={4}
-                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-red-500/30 focus:bg-white/[.05] transition-colors"
+                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
                 />
                 {/* Example chips */}
                 <div className="flex flex-wrap gap-1.5">
@@ -304,13 +304,13 @@ function CreateRecordModal({
                       <button
                         key={n}
                         onClick={() => setAiCount(n)}
-                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-red-500/50 bg-red-500/10 text-red-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}
+                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}
                       >{n}</button>
                     ))}
                   </div>
                   <span className="text-[11px] text-zinc-500">records</span>
                 </div>
-                {aiError && <p className="text-xs text-red-400">{aiError}</p>}
+                {aiError && <p className="text-xs text-indigo-400">{aiError}</p>}
               </div>
               <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3.5">
                 <button onClick={onClose} className="rounded-lg border-x border-t border-white/[.08] border-b-2 border-b-white/[.14] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
@@ -319,7 +319,7 @@ function CreateRecordModal({
                 <button
                   onClick={generateWithAI}
                   disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] disabled:opacity-50"
                 >
                   {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><Sparkles size={11}/> Generate {aiCount} records</>}
                 </button>
@@ -340,9 +340,9 @@ function CreateRecordModal({
                     <div
                       key={i}
                       onClick={() => toggleSelect(i)}
-                      className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${aiSelected.has(i) ? "bg-red-500/5" : "opacity-40"}`}
+                      className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${aiSelected.has(i) ? "bg-indigo-500/5" : "opacity-40"}`}
                     >
-                      <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors ${aiSelected.has(i) ? "border-red-500 bg-red-500" : "border-zinc-600"}`}>
+                      <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors ${aiSelected.has(i) ? "border-indigo-500 bg-indigo-500" : "border-zinc-600"}`}>
                         {aiSelected.has(i) && <Check size={10} className="text-white m-auto mt-[1px]"/>}
                       </div>
                       <div className="min-w-0">
@@ -358,7 +358,7 @@ function CreateRecordModal({
                   {aiSaving ? (
                     <div className="space-y-1.5">
                       <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
-                        <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${aiSaveProgress}%` }}/>
+                        <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${aiSaveProgress}%` }}/>
                       </div>
                       <p className="text-center text-[10px] text-zinc-500">Saving… {aiSaveProgress}%</p>
                     </div>
@@ -366,7 +366,7 @@ function CreateRecordModal({
                     <button
                       onClick={importSelected}
                       disabled={aiSelected.size === 0}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 py-2 text-[11px] font-semibold text-white transition-all hover:bg-red-400 disabled:opacity-40"
+                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 py-2 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-40"
                     >
                       <Check size={11}/> Import {aiSelected.size} record{aiSelected.size !== 1 ? "s" : ""}
                     </button>
@@ -477,8 +477,8 @@ function AIFillModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[.06] px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
-              <Sparkles size={13} className="text-red-400"/>
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+              <Sparkles size={13} className="text-indigo-400"/>
             </div>
             <div>
               <p className="text-[13px] font-semibold text-white capitalize">Fill "{cleanName}" with AI</p>
@@ -504,7 +504,7 @@ function AIFillModal({
                   onChange={e => setPrompt(e.target.value)}
                   onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); void generate(); } }}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-red-500/30 focus:bg-white/[.05] transition-colors"
+                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
                 />
                 <p className="mt-1 text-[10px] text-zinc-700">e.g. "20 tax expense categories for a SaaS company" or "realistic employee records for a 50-person startup"</p>
               </div>
@@ -515,14 +515,14 @@ function AIFillModal({
                 <div className="flex items-center gap-1">
                   {[10, 20, 30, 50].map(n => (
                     <button key={n} onClick={() => setCount(n)}
-                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-red-500/50 bg-red-500/10 text-red-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}>
+                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}>
                       {n}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {error && <p className="text-xs text-red-400">{error}</p>}
+              {error && <p className="text-xs text-indigo-400">{error}</p>}
             </div>
 
             <div className="flex items-center justify-between border-t border-white/[.06] px-6 py-4">
@@ -530,7 +530,7 @@ function AIFillModal({
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
-                className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-4 py-2 text-xs font-semibold text-white hover:bg-red-400 disabled:opacity-50 transition-all">
+                className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50 transition-all">
                 {loading
                   ? <><Loader2 size={12} className="animate-spin"/> Generating {count} records…</>
                   : <><Sparkles size={12}/> Generate {count} records</>}
@@ -550,8 +550,8 @@ function AIFillModal({
               <div className="flex-1 overflow-auto" style={{ maxHeight: 320 }}>
                 {records.map((rec, i) => (
                   <div key={i} onClick={() => toggleSelect(i)}
-                    className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${selected.has(i) ? "bg-red-500/5" : "opacity-35"}`}>
-                    <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors flex items-center justify-center ${selected.has(i) ? "border-red-500 bg-red-500" : "border-zinc-600"}`}>
+                    className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${selected.has(i) ? "bg-indigo-500/5" : "opacity-35"}`}>
+                    <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors flex items-center justify-center ${selected.has(i) ? "border-indigo-500 bg-indigo-500" : "border-zinc-600"}`}>
                       {selected.has(i) && <Check size={9} className="text-white"/>}
                     </div>
                     <div className="min-w-0">
@@ -567,13 +567,13 @@ function AIFillModal({
                 {saving ? (
                   <div className="space-y-1.5">
                     <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
-                      <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${progress}%` }}/>
+                      <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }}/>
                     </div>
                     <p className="text-center text-[10px] text-zinc-500">Importing {progress}%</p>
                   </div>
                 ) : (
                   <button onClick={importSelected} disabled={selected.size === 0}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 py-2.5 text-[11px] font-semibold text-white hover:bg-red-400 disabled:opacity-40 transition-all">
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 py-2.5 text-[11px] font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-all">
                     <Check size={11}/> Import {selected.size} record{selected.size !== 1 ? "s" : ""}
                   </button>
                 )}
@@ -621,26 +621,26 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
       <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
         <div className="px-6 py-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 shrink-0">
-              <Trash2 size={15} className="text-red-400"/>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 shrink-0">
+              <Trash2 size={15} className="text-indigo-400"/>
             </div>
             <div>
               <p className="text-[13px] font-semibold text-white capitalize">Delete "{cleanName}"?</p>
               <p className="text-[11px] text-zinc-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
             </div>
           </div>
-          <div className="rounded-lg border border-red-500/15 bg-red-500/5 px-4 py-3 mb-4">
-            <p className="text-[11px] text-red-300 leading-relaxed">
+          <div className="rounded-lg border border-indigo-500/15 bg-indigo-500/5 px-4 py-3 mb-4">
+            <p className="text-[11px] text-indigo-300 leading-relaxed">
               ⚠️ This action cannot be undone. All records in <strong className="capitalize">{cleanName}</strong> will be permanently deleted along with the object definition.
             </p>
           </div>
-          {error && <p className="mb-3 text-xs text-red-400">{error}</p>}
+          {error && <p className="mb-3 text-xs text-indigo-400">{error}</p>}
           <div className="flex items-center gap-2 justify-end">
             <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-zinc-400 hover:text-white transition-all">
               Cancel
             </button>
             <button onClick={confirm} disabled={deleting}
-              className="flex items-center gap-2 rounded-lg border border-red-600/60 bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50 transition-all">
+              className="flex items-center gap-2 rounded-lg border border-red-600/60 bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 transition-all">
               {deleting ? "Deleting…" : "Yes, delete sheet"}
             </button>
           </div>
@@ -736,14 +736,14 @@ export function ObjectIndexPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowDeleteSheet(true)}
-            className="flex items-center gap-1.5 rounded-md border border-zinc-800/60 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:border-red-500/30 hover:text-red-400"
+            className="flex items-center gap-1.5 rounded-md border border-zinc-800/60 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-600 transition-all hover:border-indigo-500/30 hover:text-indigo-400"
             title="Delete this sheet"
           >
             <Trash2 size={11}/>
           </button>
           <button
             onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/8 px-2.5 py-1.5 text-[11px] font-medium text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/15 hover:text-red-300"
+            className="flex items-center gap-1.5 rounded-md border border-indigo-500/30 bg-indigo-500/8 px-2.5 py-1.5 text-[11px] font-medium text-indigo-400 transition-all hover:border-indigo-500/50 hover:bg-indigo-500/15 hover:text-indigo-300"
           >
             <Sparkles size={11}/> Fill with AI
           </button>
@@ -767,7 +767,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-md border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-red-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+            className="flex items-center gap-1.5 rounded-md border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400 active:translate-y-[1px] active:border-b active:border-b-red-500/50"
           >
             <Plus size={11}/> New record
           </button>
@@ -815,8 +815,8 @@ export function ObjectIndexPage() {
           <div className="flex flex-1 flex-col items-center justify-center gap-6">
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20">
-                  <Sparkles size={22} className="text-red-400"/>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                  <Sparkles size={22} className="text-indigo-400"/>
                 </div>
               </div>
               <h3 className="text-[15px] font-semibold text-white capitalize">
@@ -829,7 +829,7 @@ export function ObjectIndexPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-red-400 transition-all"
+                className="flex items-center gap-2 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-all"
               >
                 <Sparkles size={13}/> Fill with AI
               </button>

@@ -61,7 +61,7 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
 };
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: "text-zinc-400", sent: "text-blue-400", viewed: "text-purple-400",
-  paid: "text-emerald-400", overdue: "text-red-400", cancelled: "text-zinc-600",
+  paid: "text-emerald-400", overdue: "text-indigo-400", cancelled: "text-zinc-600",
 };
 
 const REASON_LABELS: Record<string, string> = {
@@ -173,7 +173,7 @@ export function FinanceReportsPage() {
                 <DollarSign size={11} className="text-white/60"/>
                 <span className="text-[11px] text-zinc-500">Net Revenue</span>
               </div>
-              <div className={`text-[20px] font-semibold ${netRevenue >= 0 ? "text-white" : "text-red-400"}`}>{fmt(netRevenue, currency)}</div>
+              <div className={`text-[20px] font-semibold ${netRevenue >= 0 ? "text-white" : "text-indigo-400"}`}>{fmt(netRevenue, currency)}</div>
               <div className="text-[10px] text-zinc-700 mt-0.5">after credits</div>
             </div>
           </div>

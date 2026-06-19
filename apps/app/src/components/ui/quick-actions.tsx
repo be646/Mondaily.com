@@ -27,7 +27,7 @@ const ACTIONS: Action[] = [
 // Shared input style matching CommandPalette
 const inputCls = "h-9 w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 text-sm text-white placeholder-slate-600 outline-none focus:border-white/20 transition-colors";
 const selectCls = "h-9 flex-1 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 outline-none focus:border-white/20";
-const btnPrimary = "flex-1 h-9 rounded-lg bg-red-600 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors";
+const btnPrimary = "flex-1 h-9 rounded-lg bg-indigo-600 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors";
 const btnSecondary = "flex-1 h-9 rounded-lg border border-white/[.08] text-xs text-slate-400 hover:text-white transition-colors";
 
 function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {

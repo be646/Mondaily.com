@@ -50,7 +50,7 @@ const OBJECT_COLORS: Record<string, string> = {
 const NOTE_COLORS: Record<string, { ring: string; bg: string; dot: string }> = {
   default: { ring: "ring-white/[.07]",     bg: "bg-white/[.02]",        dot: "bg-slate-600"   },
   amber:   { ring: "ring-amber-500/25",    bg: "bg-amber-500/[.04]",    dot: "bg-amber-400"   },
-  red:     { ring: "ring-red-500/25",      bg: "bg-red-500/[.04]",      dot: "bg-red-400"     },
+  red:     { ring: "ring-red-500/25",      bg: "bg-indigo-500/[.04]",      dot: "bg-indigo-400"     },
   emerald: { ring: "ring-emerald-500/25",  bg: "bg-emerald-500/[.04]",  dot: "bg-emerald-400" },
   blue:    { ring: "ring-blue-500/25",     bg: "bg-blue-500/[.04]",     dot: "bg-blue-400"    },
   violet:  { ring: "ring-violet-500/25",   bg: "bg-violet-500/[.04]",   dot: "bg-violet-400"  },
@@ -149,7 +149,7 @@ function NoteCard({
       className={`group relative flex flex-col gap-3 rounded-2xl border p-4 ring-1 transition-all
         ${scheme.bg} ${scheme.ring}
         ${isPinned ? "border-orange-500/30" : "border-white/[.07] hover:border-white/[.12]"}
-        ${isAI ? "border-red-500/20" : ""}`}
+        ${isAI ? "border-indigo-500/20" : ""}`}
     >
       {/* AI accent */}
       {isAI && (
@@ -160,7 +160,7 @@ function NoteCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {isAI ? (
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-red-500/25 bg-red-500/10 text-red-400">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-indigo-500/25 bg-indigo-500/10 text-indigo-400">
               <Bot size={12} />
             </div>
           ) : (
@@ -171,7 +171,7 @@ function NoteCard({
           <div className="min-w-0">
             <p className="truncate text-xs font-medium text-white leading-tight">
               {note.author_name}
-              {isAI && <span className="ml-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-1.5 py-px text-[9px] font-semibold text-red-400">AI</span>}
+              {isAI && <span className="ml-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-px text-[9px] font-semibold text-indigo-400">AI</span>}
             </p>
             <p className="text-[10px] text-slate-600">{relTime(note.updated_at)}</p>
           </div>
@@ -214,7 +214,7 @@ function NoteCard({
           )}
           {isOwner && onDelete && (
             <button onClick={onDelete} title="Delete"
-              className="grid h-6 w-6 place-items-center rounded-lg text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-lg text-slate-500 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors">
               <Trash2 size={11} />
             </button>
           )}
@@ -251,7 +251,7 @@ function NoteCard({
 function DroppableCol({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={`min-h-[100px] space-y-3 rounded-2xl border-2 border-dashed p-2 transition-colors ${isOver ? "border-red-500/40 bg-red-500/[.03]" : "border-transparent"}`}>
+    <div ref={setNodeRef} className={`min-h-[100px] space-y-3 rounded-2xl border-2 border-dashed p-2 transition-colors ${isOver ? "border-indigo-500/40 bg-indigo-500/[.03]" : "border-transparent"}`}>
       {children}
     </div>
   );
@@ -391,8 +391,8 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
                     <div className="mx-auto mt-1 w-px bg-white/[.04]" style={{ height: LANE_H - 20 }} />
                   </div>
                 ))}
-                <div className="absolute top-0 z-[6] w-px bg-red-500/40" style={{ left: todayX, height: LANE_H }}>
-                  {laneIdx === 0 && <span className="absolute top-1 left-1 whitespace-nowrap rounded bg-red-500/20 px-1 py-px text-[9px] font-semibold text-red-400">Today</span>}
+                <div className="absolute top-0 z-[6] w-px bg-indigo-500/40" style={{ left: todayX, height: LANE_H }}>
+                  {laneIdx === 0 && <span className="absolute top-1 left-1 whitespace-nowrap rounded bg-indigo-500/20 px-1 py-px text-[9px] font-semibold text-indigo-400">Today</span>}
                 </div>
                 {laneNotes.map(note => (
                   <div key={note.id} className="absolute" style={{ left: dayOffset(note.created_at), top: LANE_HEADER, width: CARD_W }}>
@@ -524,7 +524,7 @@ export function NotesPage() {
         </p>
         <div className="flex items-center gap-2">
           <button onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500 transition-colors">
+            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors">
             <Plus size={13} /> New Note
           </button>
         </div>
@@ -580,7 +580,7 @@ export function NotesPage() {
           description="Capture meeting context, call summaries, and decisions linked to any record."
           action={
             <button onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 transition-colors">
+              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
               <Plus size={14} /> Add first note
             </button>
           }

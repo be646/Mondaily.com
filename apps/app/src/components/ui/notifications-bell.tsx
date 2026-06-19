@@ -58,7 +58,7 @@ export function NotificationsBell() {
       >
         <Bell size={15}/>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-red-500 text-[9px] font-semibold text-white flex items-center justify-center leading-none">
+          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-indigo-500 text-[9px] font-semibold text-white flex items-center justify-center leading-none">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -73,7 +73,7 @@ export function NotificationsBell() {
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold text-white">Notifications</span>
                 {unread > 0 && (
-                  <span className="rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">{unread}</span>
+                  <span className="rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400">{unread}</span>
                 )}
               </div>
               {unread > 0 && (
@@ -100,7 +100,7 @@ export function NotificationsBell() {
                     onClick={() => handleClick(n)}
                     className={`flex w-full items-start gap-3 px-4 py-3 border-b border-white/[.04] last:border-0 hover:bg-white/[.03] transition-colors text-left ${!n.is_read ? "bg-white/[.02]" : ""}`}
                   >
-                    <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-red-400" : "bg-transparent"}`}/>
+                    <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-indigo-400" : "bg-transparent"}`}/>
                     <div className="flex-1 min-w-0">
                       <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-white" : "text-zinc-400"}`}>{n.title}</p>
                       {n.body && <p className="text-[11px] text-zinc-600 mt-0.5 truncate">{n.body}</p>}

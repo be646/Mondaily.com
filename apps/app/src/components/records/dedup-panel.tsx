@@ -218,7 +218,7 @@ export function DedupPanel({
             </div>
             <span className="text-sm font-semibold text-white">AI Data Cleaner</span>
             {step === "review" && groups.length > 0 && (
-              <span className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-full px-2 py-0.5">
+              <span className="text-xs text-indigo-400 bg-indigo-400/10 border border-indigo-400/20 rounded-full px-2 py-0.5">
                 {groups.length} duplicate{groups.length > 1 ? "s" : ""} found
               </span>
             )}
@@ -389,7 +389,7 @@ export function DedupPanel({
                   <button
                     onClick={mergeAll}
                     disabled={merging}
-                    className="flex items-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500 transition-colors disabled:opacity-60"
+                    className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-60"
                   >
                     {merging ? <><Loader2 size={12} className="animate-spin" /> Merging…</> : <><Merge size={12} /> Merge {groups.reduce((a, g) => a + g.records.length - 1, 0)} duplicates</>}
                   </button>

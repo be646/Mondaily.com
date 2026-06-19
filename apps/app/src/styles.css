@@ -161,17 +161,57 @@ html[data-theme="light"] body {
 .settings-row:last-child { border-bottom: none; }
 
 /* ── Light mode structural overrides ─────────────────────────────────────── */
-html[data-theme="light"] aside,
-html[data-theme="light"] .md-sidebar {
-  background: #ffffff !important;
-  border-right-color: #e4e4e7 !important;
+
+/* Sidebar: fix white-on-white text problem.
+   text-white, text-white/90 etc are invisible on a white bg.
+   We boost specificity to override Tailwind utilities without !important on everything. */
+html:not(.dark) aside [class*="text-white"] {
+  color: #18181b !important;
 }
-html[data-theme="light"] .md-topbar {
-  background: #ffffff;
-  border-bottom-color: #e4e4e7;
+/* Muted text: keep slate tones readable but slightly darker */
+html:not(.dark) aside .text-slate-400 { color: #52525b !important; }
+html:not(.dark) aside .text-slate-500 { color: #52525b !important; }
+html:not(.dark) aside .text-slate-600 { color: #71717a !important; }
+html:not(.dark) aside .text-slate-700 { color: #a1a1aa !important; }
+html:not(.dark) aside .text-zinc-600  { color: #71717a !important; }
+
+/* Nav item active background: nearly-transparent white is invisible in light mode */
+html:not(.dark) aside a:hover,
+html:not(.dark) aside button:hover {
+  background-color: rgba(99,102,241,0.06) !important;
 }
-html[data-theme="light"] .md-main {
-  background: #f4f5f8;
+html:not(.dark) aside [class*="bg-white\/\["] {
+  background-color: rgba(99,102,241,0.08) !important;
+}
+
+/* Section label in light mode */
+html:not(.dark) aside .text-slate-700 { color: #a1a1aa !important; }
+
+/* Bottom bar / trial chip borders in light mode */
+html:not(.dark) aside [class*="border-white\/\["] {
+  border-color: #e4e4e7 !important;
+}
+
+/* Getting started card background text */
+html:not(.dark) aside [class*="text-white\/"] {
+  color: #18181b !important;
+}
+
+/* Dropdown panel: keep dark (it's positioned outside aside so bg stays dark, text readable) */
+
+/* Top bar background in light mode — targeted via .md-topbar class added in component */
+html:not(.dark) .md-topbar {
+  background-color: #ffffff !important;
+  border-bottom-color: #e4e4e7 !important;
+}
+html:not(.dark) .md-topbar [class*="text-white"] {
+  color: #18181b !important;
+}
+html:not(.dark) .md-topbar [class*="border-white\/\["] {
+  border-color: #e4e4e7 !important;
+}
+html:not(.dark) .md-topbar [class*="bg-white\/\["] {
+  background-color: rgba(0,0,0,0.04) !important;
 }
 
 /* ── Record table — rock-solid scroll container ─────────────────────────── */

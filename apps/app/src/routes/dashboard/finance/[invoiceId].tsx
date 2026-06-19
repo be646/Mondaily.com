@@ -124,7 +124,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
           {remaining > 0 && (
             <div className="flex justify-between text-[12px] text-zinc-500 border-t border-white/[.06] pt-1.5">
               <span>Remaining</span>
-              <span className="text-red-400 font-medium">{formatCurrency(remaining, invoice.currency)}</span>
+              <span className="text-indigo-400 font-medium">{formatCurrency(remaining, invoice.currency)}</span>
             </div>
           )}
         </div>
@@ -194,7 +194,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
   sent:      "text-blue-400 bg-blue-400/10",
   viewed:    "text-purple-400 bg-purple-400/10",
   paid:      "text-emerald-400 bg-emerald-400/10",
-  overdue:   "text-red-400 bg-red-400/10",
+  overdue:   "text-indigo-400 bg-indigo-400/10",
   cancelled: "text-zinc-600 bg-zinc-600/10",
 };
 
@@ -348,7 +348,7 @@ export function InvoiceDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <div className="text-[13px] text-zinc-500">Invoice not found</div>
-        <Link to="/finance/invoices" className="text-[12px] text-red-400 hover:text-red-300">← Back to invoices</Link>
+        <Link to="/finance/invoices" className="text-[12px] text-indigo-400 hover:text-indigo-300">← Back to invoices</Link>
       </div>
     );
   }
@@ -410,7 +410,7 @@ export function InvoiceDetailPage() {
         <div className="mx-auto max-w-4xl px-6 py-6 space-y-6">
 
           {invoice.status === "overdue" && (
-            <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-[12px] text-red-400">
+            <div className="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 text-[12px] text-indigo-400">
               <AlertTriangle size={13}/>
               This invoice is overdue. Consider sending a payment reminder.
             </div>
@@ -565,7 +565,7 @@ export function InvoiceDetailPage() {
                           <button
                             onClick={() => removeItem(i)}
                             disabled={items.length === 1}
-                            className="rounded p-1 text-zinc-700 hover:text-red-400 disabled:opacity-20 transition-colors"
+                            className="rounded p-1 text-zinc-700 hover:text-indigo-400 disabled:opacity-20 transition-colors"
                           >
                             <Trash2 size={11}/>
                           </button>
@@ -613,7 +613,7 @@ export function InvoiceDetailPage() {
                           <span>−{formatCurrency(paymentsAmt, currency)}</span>
                         </div>
                       )}
-                      <div className={`flex justify-between border-t border-white/[.06] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-red-400" : "text-emerald-400"}`}>
+                      <div className={`flex justify-between border-t border-white/[.06] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-indigo-400" : "text-emerald-400"}`}>
                         <span>Net owed</span>
                         <span>{formatCurrency(Math.max(0, netOwed), currency)}</span>
                       </div>
@@ -646,7 +646,7 @@ export function InvoiceDetailPage() {
               <button
                 onClick={() => { if (confirm("Delete this invoice?")) deleteMutation.mutate(); }}
                 disabled={deleteMutation.isPending}
-                className="text-[11px] text-zinc-700 hover:text-red-400 transition-colors"
+                className="text-[11px] text-zinc-700 hover:text-indigo-400 transition-colors"
               >
                 Delete invoice
               </button>

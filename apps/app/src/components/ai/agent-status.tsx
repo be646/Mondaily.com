@@ -86,8 +86,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       {/* Panel header */}
       <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-red-500/15">
-            <Sparkles size={10} className="text-red-400"/>
+          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-500/15">
+            <Sparkles size={10} className="text-indigo-400"/>
           </div>
           <span className="text-[13px] font-semibold text-white">Ask Mondaily</span>
         </div>
@@ -135,8 +135,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             {m.role === "assistant" && (
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
-                <Sparkles size={9} className="text-red-400"/>
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 mt-0.5">
+                <Sparkles size={9} className="text-indigo-400"/>
               </div>
             )}
             <div className="flex flex-col gap-1 max-w-[85%]">
@@ -157,7 +157,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                   </button>
                   <button
                     onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
-                    className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-red-400" : "text-zinc-700 hover:text-red-400"}`}
+                    className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-zinc-700 hover:text-indigo-400"}`}
                   >
                     <ThumbsDown size={10}/>
                   </button>
@@ -171,8 +171,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         ))}
         {loading && (
           <div className="flex gap-2 justify-start">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 mt-0.5">
-              <Sparkles size={9} className="text-red-400"/>
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 mt-0.5">
+              <Sparkles size={9} className="text-indigo-400"/>
             </div>
             <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
               <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:0ms]"/>
@@ -197,7 +197,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="text-zinc-600 hover:text-red-400 disabled:opacity-30 transition-colors"
+            className="text-zinc-600 hover:text-indigo-400 disabled:opacity-30 transition-colors"
           >
             {loading ? <Loader2 size={12} className="animate-spin"/> : <Send size={12}/>}
           </button>
@@ -267,7 +267,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   return (
     <>
       {/* Top bar */}
-      <div className="relative flex items-center justify-between border-b border-white/[.06] bg-[#0d0f13] px-4 py-1.5 shrink-0">
+      <div className="md-topbar relative flex items-center justify-between border-b border-white/[.06] bg-[#0d0f13] dark:bg-[#0d0f13] px-4 py-1.5 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
           {leftSlot ?? <span className="text-xs text-zinc-700">AI status: idle</span>}
@@ -298,11 +298,11 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             onClick={() => setAskOpen(o => !o)}
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
               askOpen
-                ? "border-red-500/40 bg-red-500/10 text-white"
-                : "border-white/[.07] text-zinc-500 hover:border-red-500/25 hover:bg-red-500/[.05] hover:text-white"
+                ? "border-indigo-500/40 bg-indigo-500/10 text-white"
+                : "border-white/[.07] text-zinc-500 hover:border-indigo-500/25 hover:bg-indigo-500/[.05] hover:text-white"
             }`}
           >
-            <MessageCircle size={12} className="text-red-400"/>
+            <MessageCircle size={12} className="text-indigo-400"/>
             Ask AI
           </button>
 
@@ -310,7 +310,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <div className="relative ml-0.5">
             <button
               onClick={() => setUserMenuOpen(o => !o)}
-              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-[11px] font-semibold text-red-400 hover:ring-2 hover:ring-red-500/25 transition-all"
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20 text-[11px] font-semibold text-indigo-400 hover:ring-2 hover:ring-red-500/25 transition-all"
             >
               {avatarUrl
                 ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
@@ -323,7 +323,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                 <div className="dropdown-panel absolute right-0 top-full mt-2 w-56 z-50">
                   {/* User info header */}
                   <div className="flex items-center gap-2.5 border-b border-white/[.06] px-3 py-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-red-500/20 text-[11px] font-semibold text-red-400">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20 text-[11px] font-semibold text-indigo-400">
                       {avatarUrl
                         ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
                         : initials}
@@ -342,7 +342,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                   <div className="mx-2 my-1 border-t border-white/[.05]"/>
                   <button
                     onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }}
-                    className="dropdown-item text-red-400 hover:text-red-300"
+                    className="dropdown-item text-indigo-400 hover:text-indigo-300"
                   >
                     <LogOut size={12}/> Sign out
                   </button>

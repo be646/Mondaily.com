@@ -141,19 +141,19 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       onClick={() => inputRef.current?.click()}
       className={`group relative flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-5 transition-all ${
         dragging
-          ? "border-red-400/60 bg-red-500/[.06]"
+          ? "border-indigo-400/60 bg-indigo-500/[.06]"
           : "border-white/[.08] hover:border-white/[.16] hover:bg-white/[.02]"
       }`}
     >
       <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFileChange}/>
-      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-red-400/40 bg-red-500/10 text-red-400" : "border-white/[.08] bg-white/[.03] text-slate-500 group-hover:text-slate-300"}`}>
+      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-indigo-400/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] bg-white/[.03] text-slate-500 group-hover:text-slate-300"}`}>
         <Upload size={16}/>
       </div>
       <div className="text-center">
         <p className="text-xs font-medium text-slate-300">Drop a CSV file or click to browse</p>
         <p className="mt-0.5 text-[10px] text-slate-600">Claude will auto-detect column types</p>
       </div>
-      {phase === "error" && <p className="text-xs text-red-400">{error}</p>}
+      {phase === "error" && <p className="text-xs text-indigo-400">{error}</p>}
     </div>
   );
 
@@ -249,7 +249,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           </button>
           <button
             onClick={runImport}
-            className="flex items-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-all active:translate-y-[1px] active:border-b active:border-b-red-500/50"
+            className="flex items-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-all active:translate-y-[1px] active:border-b active:border-b-red-500/50"
           >
             <Upload size={11}/> Import {rows.length} rows
           </button>
@@ -261,7 +261,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
   // ── Importing ────────────────────────────────────────────────────────────────
   if (phase === "importing") return (
     <div className="flex items-center gap-3 rounded-xl border border-white/[.08] bg-white/[.02] px-4 py-4">
-      <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-red-500/30 border-t-red-500"/>
+      <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-indigo-500/30 border-t-red-500"/>
       <div>
         <p className="text-xs font-medium text-white">Importing {rows.length} rows…</p>
         <p className="text-[10px] text-slate-600">Creating records in {objectType}</p>

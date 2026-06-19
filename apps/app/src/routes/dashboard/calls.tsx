@@ -53,7 +53,7 @@ export function CallsPage() {
             <div className="flex shrink-0 items-center justify-between gap-5 pl-13 text-xs text-slate-500 sm:pl-0">
               <span>{new Date(call.occurred_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
               <span className="flex items-center gap-1"><Clock3 size={11} /> {Math.max(1, Math.round(call.duration_seconds / 60))} min</span>
-              <span className={`rounded-full px-2 py-1 capitalize ${call.status === "processed" ? "bg-emerald-500/10 text-emerald-400" : call.status === "failed" ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400"}`}>{call.status}</span>
+              <span className={`rounded-full px-2 py-1 capitalize ${call.status === "processed" ? "bg-emerald-500/10 text-emerald-400" : call.status === "failed" ? "bg-indigo-500/10 text-indigo-400" : "bg-amber-500/10 text-amber-400"}`}>{call.status}</span>
             </div>
           </Link>)}
         </div>

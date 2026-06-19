@@ -86,7 +86,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
               ))}
             </div>
           </div>
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-indigo-400">{error}</p>}
         </div>
 
         {preview && (
@@ -143,7 +143,7 @@ function StatusBadge({ status }: { status: string }) {
     active:   "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     draft:    "bg-slate-700/50 text-slate-400 border-slate-600/30",
     paused:   "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    archived: "bg-red-500/10 text-red-400 border-red-500/20",
+    archived: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
   };
   return (
     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${map[status] ?? map.draft}`}>
@@ -270,7 +270,7 @@ export function AutomationsPage() {
                 key={item.id}
                 className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-white/[.02] transition-colors ${i < items.length - 1 ? "border-b border-white/[.06]" : ""}`}
               >
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-purple-500/20 bg-purple-500/[.08] text-purple-400" : "border-red-500/20 bg-red-500/[.08] text-red-400"}`}>
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-purple-500/20 bg-purple-500/[.08] text-purple-400" : "border-indigo-500/20 bg-indigo-500/[.08] text-indigo-400"}`}>
                   <Icon size={14}/>
                 </div>
 
@@ -308,7 +308,7 @@ export function AutomationsPage() {
                         <button
                           onClick={() => deleteItem.mutate({ id: item.id, type: title.toLowerCase().includes("sequence") ? "sequence" : "workflow" })}
                           disabled={deleteItem.isPending}
-                          className="dropdown-item flex w-full items-center gap-2 text-red-400 hover:text-red-300 disabled:opacity-50">
+                          className="dropdown-item flex w-full items-center gap-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50">
                           <Trash2 size={11}/> Delete
                         </button>
                       </div>
@@ -327,7 +327,7 @@ export function AutomationsPage() {
     <div className="flex min-h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
-        <Zap size={16} className="text-red-400"/>
+        <Zap size={16} className="text-indigo-400"/>
         <h1 className="flex-1 text-[15px] font-semibold text-white tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/30 transition-colors">
@@ -336,7 +336,7 @@ export function AutomationsPage() {
         <button
           onClick={() => createSequence.mutate()}
           disabled={createSequence.isPending}
-          className="flex items-center gap-1.5 rounded-lg border-x border-t border-red-500/50 border-b-[3px] border-b-red-700 bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-400 transition-all active:translate-y-[1px] disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border-x border-t border-indigo-500/50 border-b-[3px] border-b-red-700 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-all active:translate-y-[1px] disabled:opacity-50"
         >
           <Plus size={13}/> New sequence
         </button>
@@ -344,7 +344,7 @@ export function AutomationsPage() {
 
       {seqQuery.isLoading ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-500/30 border-t-red-500"/>
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500/30 border-t-red-500"/>
         </div>
       ) : (
         <div className="flex-1 overflow-auto px-6 py-6 max-w-4xl">

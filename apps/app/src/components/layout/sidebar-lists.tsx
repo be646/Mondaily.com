@@ -255,7 +255,7 @@ export function SidebarLists() {
                       {/* "Me" option */}
                       <button type="button"
                         onClick={() => setAssigneeId(prev => prev === (userId ?? "") ? "" : (userId ?? ""))}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === userId ? "border-red-500/40 bg-red-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === userId ? "border-indigo-500/40 bg-indigo-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
                         <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                           {(members.find(m => m.user_id === userId)?.name ?? "Me").slice(0, 2).toUpperCase()}
                         </span>
@@ -264,7 +264,7 @@ export function SidebarLists() {
                       {members.filter(m => m.user_id !== userId).map(m => (
                         <button key={m.user_id} type="button"
                           onClick={() => setAssigneeId(prev => prev === m.user_id ? "" : m.user_id)}
-                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === m.user_id ? "border-red-500/40 bg-red-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
+                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === m.user_id ? "border-indigo-500/40 bg-indigo-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
                           <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                             {memberInitials(m)}
                           </span>
@@ -295,7 +295,7 @@ export function SidebarLists() {
                 )}
 
                 <button type="submit" disabled={!name.trim() || create.isPending}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-red-500 transition-colors">
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-indigo-500 transition-colors">
                   {create.isPending ? "Creating…" : "Create list"}
                 </button>
               </form>
@@ -305,7 +305,7 @@ export function SidebarLists() {
                 <textarea autoFocus value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4}
                   placeholder={`e.g. "High-value fintech companies" or "Leads from referrals not yet contacted"`}
                   className="w-full resize-none rounded-xl border border-white/[.08] bg-white/[.02] px-3 py-2.5 text-[12px] text-white placeholder-slate-700 outline-none focus:border-violet-500/40 transition-colors" />
-                {aiError && <p className="text-[11px] text-red-400">{aiError}</p>}
+                {aiError && <p className="text-[11px] text-indigo-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-violet-500 transition-colors">
                   {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><Sparkles size={13} /> Create with AI</>}

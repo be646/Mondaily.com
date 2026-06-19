@@ -16,9 +16,9 @@ interface TaskView { user_id: string; user_name: string; viewed_at: string; }
 
 const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-blue-400 bg-blue-400/10 border-blue-400/30",
-  "Blocked":     "text-red-400 bg-red-400/10 border-red-400/30",
+  "Blocked":     "text-indigo-400 bg-indigo-400/10 border-indigo-400/30",
   "Waiting":     "text-slate-400 bg-slate-400/10 border-slate-400/30",
-  "Bug":         "text-red-500 bg-red-500/10 border-red-500/30",
+  "Bug":         "text-red-500 bg-indigo-500/10 border-indigo-500/30",
   "Feature":     "text-purple-400 bg-purple-400/10 border-purple-400/30",
   "Research":    "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
 };
@@ -36,7 +36,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-red-500/20 text-red-400","bg-blue-500/20 text-blue-400","bg-emerald-500/20 text-emerald-400","bg-purple-500/20 text-purple-400","bg-amber-500/20 text-amber-400","bg-cyan-500/20 text-cyan-400"];
+  const colors = ["bg-indigo-500/20 text-indigo-400","bg-blue-500/20 text-blue-400","bg-emerald-500/20 text-emerald-400","bg-purple-500/20 text-purple-400","bg-amber-500/20 text-amber-400","bg-cyan-500/20 text-cyan-400"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -66,7 +66,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
   const renderContent = (text: string) =>
     text.split(/(@\w[\w\s]*)/g).map((part, i) =>
-      part.startsWith("@") ? <span key={i} className="font-medium text-red-400">{part}</span> : <span key={i}>{part}</span>
+      part.startsWith("@") ? <span key={i} className="font-medium text-indigo-400">{part}</span> : <span key={i}>{part}</span>
     );
 
   return (
@@ -103,7 +103,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
               const iMine = users.some(u => u.user_id === userId);
               return (
                 <button key={emoji} onClick={() => toggleReaction.mutate(emoji)} title={users.map(u => u.user_name).join(", ")}
-                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[.04] border-white/10 text-slate-400 hover:border-white/20"}`}>
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400" : "bg-white/[.04] border-white/10 text-slate-400 hover:border-white/20"}`}>
                   <span>{emoji}</span><span>{users.length}</span>
                 </button>
               );
@@ -138,7 +138,7 @@ const STATUS_META: Record<string, { label: string; dot: string }> = {
   done:        { label: "Done",         dot: "bg-emerald-400" },
 };
 const PRIORITY_META: Record<string, { label: string; dot: string }> = {
-  urgent: { label: "Urgent", dot: "bg-red-500" },
+  urgent: { label: "Urgent", dot: "bg-indigo-500" },
   high:   { label: "High",   dot: "bg-orange-400" },
   medium: { label: "Medium", dot: "bg-yellow-400" },
   low:    { label: "Low",    dot: "bg-slate-400" },
@@ -313,7 +313,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <button key={val} onClick={() => { setLocalStatus(val); updateTask.mutate({ status: val }); setStatusOpen(false); }}
                           className={`dropdown-item ${localStatus === val ? "dropdown-item-active" : ""}`}>
                           <span className={`h-2 w-2 rounded-full shrink-0 ${meta.dot}`}/>{meta.label}
-                          {localStatus === val && <Check size={11} className="ml-auto text-red-400"/>}
+                          {localStatus === val && <Check size={11} className="ml-auto text-indigo-400"/>}
                         </button>
                       ))}
                     </div>
@@ -334,7 +334,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <button key={val} onClick={() => { setLocalPriority(val); updateTask.mutate({ priority: val }); setPriorityOpen(false); }}
                           className={`dropdown-item ${localPriority === val ? "dropdown-item-active" : ""}`}>
                           <span className={`h-2 w-2 rounded-full shrink-0 ${meta.dot}`}/>{meta.label}
-                          {localPriority === val && <Check size={11} className="ml-auto text-red-400"/>}
+                          {localPriority === val && <Check size={11} className="ml-auto text-indigo-400"/>}
                         </button>
                       ))}
                     </div>
@@ -390,7 +390,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
         <div className="shrink-0 flex border-b border-white/[.06] overflow-x-auto px-1" style={{ scrollbarWidth: "none" }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setActiveTab(t.key as any)}
-              className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === t.key ? "border-red-500 text-white" : "border-transparent text-slate-500 hover:text-slate-300"}`}>
+              className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium border-b-2 transition-colors ${activeTab === t.key ? "border-indigo-500 text-white" : "border-transparent text-slate-500 hover:text-slate-300"}`}>
               {t.label}
               {t.count ? <span className="rounded-full bg-white/[.07] px-1.5 py-0.5 text-[10px] text-slate-500">{t.count}</span> : null}
             </button>
@@ -454,7 +454,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     placeholder="Message… @ to mention" rows={1}
                     className="flex-1 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/[.15] transition-colors max-h-32"/>
                   <button onClick={() => newComment.trim() && addComment.mutate()} disabled={!newComment.trim()}
-                    className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center transition-all ${newComment.trim() ? "bg-red-600 text-white hover:bg-red-500" : "bg-white/[.04] text-slate-600"}`}>
+                    className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center transition-all ${newComment.trim() ? "bg-indigo-600 text-white hover:bg-indigo-500" : "bg-white/[.04] text-slate-600"}`}>
                     <Send size={13}/>
                   </button>
                 </div>
@@ -491,7 +491,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className="text-[10px] text-slate-600 mt-0.5">{item.added_by_name} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
                     <button onClick={() => deleteCheckItem.mutate(item.id)}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 text-slate-700 hover:text-red-400 transition-all">
+                      className="opacity-0 group-hover:opacity-100 shrink-0 text-slate-700 hover:text-indigo-400 transition-all">
                       <Trash2 size={12}/>
                     </button>
                   </div>
@@ -504,7 +504,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   placeholder="Add item… Enter to save"
                   className="flex-1 h-9 rounded-xl border border-white/[.08] bg-white/[.03] px-3 text-sm text-white placeholder-slate-600 outline-none focus:border-white/[.15] transition-colors"/>
                 <button onClick={() => newCheckItem.trim() && addCheckItem.mutate()} disabled={!newCheckItem.trim()}
-                  className="h-9 w-9 rounded-xl bg-red-600 flex items-center justify-center text-white disabled:opacity-40 hover:bg-red-500 transition-colors shrink-0">
+                  className="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white disabled:opacity-40 hover:bg-indigo-500 transition-colors shrink-0">
                   <Plus size={14}/>
                 </button>
               </div>
@@ -527,7 +527,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         </div>
                         {isOwner && (
                           <button onClick={() => removeAssignee.mutate(a.user_id)}
-                            className="text-slate-600 hover:text-red-400 transition-colors"><X size={13}/></button>
+                            className="text-slate-600 hover:text-indigo-400 transition-colors"><X size={13}/></button>
                         )}
                       </div>
                     ))}
@@ -543,7 +543,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <Avatar name={m.name || m.email}/>
                         <span className="flex-1 text-sm text-slate-300 truncate">{m.name || m.email}</span>
                         <button onClick={() => addAssignee.mutate(m)}
-                          className="rounded-lg border border-white/[.08] px-2.5 py-1 text-xs text-slate-400 hover:border-red-500/40 hover:text-red-400 hover:bg-red-500/5 transition-colors">
+                          className="rounded-lg border border-white/[.08] px-2.5 py-1 text-xs text-slate-400 hover:border-indigo-500/40 hover:text-indigo-400 hover:bg-indigo-500/5 transition-colors">
                           Add
                         </button>
                       </div>
@@ -599,7 +599,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className="text-[11px] text-slate-600 mt-0.5">{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)} KB` : "link"}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
-                      className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all shrink-0">
+                      className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-indigo-400 transition-all shrink-0">
                       <Trash2 size={12}/>
                     </button>
                   </div>

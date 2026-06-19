@@ -106,7 +106,7 @@ export function NotificationsPage() {
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border transition-colors capitalize ${typeFilter === t ? "border-red-500/40 bg-red-500/10 text-red-300" : "border-white/[.07] text-slate-600 hover:text-slate-400"}`}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border transition-colors capitalize ${typeFilter === t ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] text-slate-600 hover:text-slate-400"}`}
                 >
                   {t === "all" ? "All types" : (TYPE_LABELS[t] ?? t)}
                 </button>
@@ -138,14 +138,14 @@ export function NotificationsPage() {
               key={n.id}
               className={`group flex w-full items-start gap-3 rounded-xl border p-4 transition-colors ${
                 !n.is_read
-                  ? isRisk ? "border-amber-500/20 bg-amber-500/[.05]" : "border-red-500/15 bg-red-500/5"
+                  ? isRisk ? "border-amber-500/20 bg-amber-500/[.05]" : "border-indigo-500/15 bg-indigo-500/5"
                   : "border-white/[.04] hover:bg-white/[.02]"
               }`}
             >
               {/* Unread indicator */}
               {isRisk && !n.is_read
                 ? <ShieldAlert size={14} className="mt-1 shrink-0 text-amber-400"/>
-                : <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-red-400" : "bg-transparent"}`}/>
+                : <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-indigo-400" : "bg-transparent"}`}/>
               }
 
               {/* Content */}
@@ -176,7 +176,7 @@ export function NotificationsPage() {
                 <button
                   onClick={() => deleteOne.mutate(n.id)}
                   title="Delete"
-                  className="rounded-md p-1.5 text-slate-600 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                  className="rounded-md p-1.5 text-slate-600 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors"
                 >
                   <Trash2 size={12}/>
                 </button>

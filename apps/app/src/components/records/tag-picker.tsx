@@ -109,7 +109,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
         <div className="p-1 max-h-44 overflow-y-auto">
           {allTags.isLoading && <p className="text-xs text-white/20 text-center py-4">Loading…</p>}
           {allTags.isError && (
-            <p className="text-xs text-red-400/70 text-center py-3 px-2">{(allTags.error as Error).message}</p>
+            <p className="text-xs text-indigo-400/70 text-center py-3 px-2">{(allTags.error as Error).message}</p>
           )}
           {filtered.map(tag => {
             const active = nodeTagIds.has(tag.id);
@@ -153,7 +153,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
         {error && (
           <div className="px-3 pb-3">
-            <p className="text-[11px] text-red-400 bg-red-400/10 rounded-lg px-2 py-1.5">{error}</p>
+            <p className="text-[11px] text-indigo-400 bg-indigo-400/10 rounded-lg px-2 py-1.5">{error}</p>
           </div>
         )}
       </div>

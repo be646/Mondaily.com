@@ -32,10 +32,10 @@ export function SidebarObjects() {
             key={obj.id}
             to={`/objects/${obj.slug}`}
             className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-              active ? "bg-red-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"
+              active ? "bg-indigo-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"
             }`}
           >
-            <span className={active ? "text-red-400" : "text-slate-600"}>
+            <span className={active ? "text-indigo-400" : "text-slate-600"}>
               {objectIcon(obj.slug)}
             </span>
             {obj.name_plural}

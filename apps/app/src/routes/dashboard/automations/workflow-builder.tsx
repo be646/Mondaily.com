@@ -44,7 +44,7 @@ const ACTIONS = [
 ];
 
 const KIND_STYLES: Record<NodeKind, { border: string; bg: string; text: string; icon: string }> = {
-  trigger:   { border: "border-red-500/30",    bg: "bg-red-500/[.06]",    text: "text-red-400",    icon: "border-red-500/20 bg-red-500/[.08] text-red-400" },
+  trigger:   { border: "border-indigo-500/30",    bg: "bg-indigo-500/[.06]",    text: "text-indigo-400",    icon: "border-indigo-500/20 bg-indigo-500/[.08] text-indigo-400" },
   condition: { border: "border-yellow-500/30", bg: "bg-yellow-500/[.05]", text: "text-yellow-400", icon: "border-yellow-500/20 bg-yellow-500/[.08] text-yellow-400" },
   action:    { border: "border-blue-500/30",   bg: "bg-blue-500/[.05]",   text: "text-blue-400",   icon: "border-blue-500/20 bg-blue-500/[.08] text-blue-400" },
 };
@@ -146,7 +146,7 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
             <span
               role="button"
               onClick={e => { e.stopPropagation(); onDelete(node.id); }}
-              className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-slate-700 hover:bg-red-500/10 hover:text-red-400 transition-all"
+              className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-slate-700 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
             >
               <X size={12}/>
             </span>
@@ -165,7 +165,7 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
         <div className="h-5 w-px bg-white/[.08]"/>
         <button
           onClick={() => onAddAfter(node.id)}
-          className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-slate-600 hover:border-red-500/30 hover:bg-red-500/[.08] hover:text-red-400 transition-all"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-slate-600 hover:border-indigo-500/30 hover:bg-indigo-500/[.08] hover:text-indigo-400 transition-all"
         >
           <Plus size={11}/>
         </button>
@@ -201,7 +201,7 @@ function NodePicker({ onPick, onClose }: {
             <button
               key={k}
               onClick={() => setSection(k)}
-              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${section === k ? "border-b-2 border-red-500 text-white" : "text-slate-500 hover:text-slate-300"}`}
+              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${section === k ? "border-b-2 border-indigo-500 text-white" : "text-slate-500 hover:text-slate-300"}`}
             >
               {kindLabel(k)}
             </button>
@@ -290,7 +290,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
             className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
           />
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p className="text-xs text-indigo-400">{error}</p>}
         </div>
 
         {preview && (
@@ -432,11 +432,11 @@ export function WorkflowBuilderPage() {
             onChange={e => setName(e.target.value)}
             onBlur={() => setNameEdit(false)}
             onKeyDown={e => { if (e.key === "Enter" || e.key === "Escape") setNameEdit(false); }}
-            className="flex-1 bg-transparent text-[15px] font-semibold text-white outline-none border-b border-red-500/40 pb-0.5"
+            className="flex-1 bg-transparent text-[15px] font-semibold text-white outline-none border-b border-indigo-500/40 pb-0.5"
           />
         ) : (
           <h1
-            className="flex-1 cursor-pointer text-[15px] font-semibold text-white hover:text-red-400 transition-colors"
+            className="flex-1 cursor-pointer text-[15px] font-semibold text-white hover:text-indigo-400 transition-colors"
             onClick={() => setNameEdit(true)}
           >
             {name}
@@ -460,7 +460,7 @@ export function WorkflowBuilderPage() {
 
         <button
           onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}
-          className={`flex items-center gap-1.5 rounded-lg border-x border-t border-b-[3px] px-3 py-1.5 text-xs font-semibold transition-all active:translate-y-[1px] ${status === "active" ? "border-yellow-500/40 border-b-yellow-700 bg-yellow-500/80 text-white" : "border-red-500/50 border-b-red-700 bg-red-500 text-white hover:bg-red-400"}`}
+          className={`flex items-center gap-1.5 rounded-lg border-x border-t border-b-[3px] px-3 py-1.5 text-xs font-semibold transition-all active:translate-y-[1px] ${status === "active" ? "border-yellow-500/40 border-b-yellow-700 bg-yellow-500/80 text-white" : "border-indigo-500/50 border-b-red-700 bg-indigo-500 text-white hover:bg-indigo-400"}`}
         >
           {status === "active" ? "Pause" : <><Play size={11}/> Activate</>}
         </button>
@@ -472,20 +472,20 @@ export function WorkflowBuilderPage() {
           <div className="flex flex-col items-center">
 
             {/* Trigger config */}
-            <div className="mb-2 w-72 rounded-xl border border-red-500/30 bg-red-500/[.06] overflow-hidden">
+            <div className="mb-2 w-72 rounded-xl border border-indigo-500/30 bg-indigo-500/[.06] overflow-hidden">
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/[.08] text-red-400">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-500/[.08] text-indigo-400">
                   <TriggerIcon size={13}/>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-semibold uppercase tracking-widest text-red-400/60">Trigger</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-widest text-indigo-400/60">Trigger</p>
                   <p className="text-xs font-medium text-white">When this happens…</p>
                 </div>
                 <ChevronDown size={13} className="text-slate-600"/>
               </div>
               <div className="border-t border-white/[.06] px-4 py-2.5">
                 <select
-                  className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500/30"
+                  className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500/30"
                   value={triggerType}
                   onChange={e => {
                     const type = e.target.value;
@@ -502,7 +502,7 @@ export function WorkflowBuilderPage() {
             <div className="h-5 w-px bg-white/[.08]"/>
             <button
               onClick={() => setPicking("trigger-1")}
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-slate-600 hover:border-red-500/30 hover:bg-red-500/[.08] hover:text-red-400 transition-all"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-slate-600 hover:border-indigo-500/30 hover:bg-indigo-500/[.08] hover:text-indigo-400 transition-all"
             >
               <Plus size={11}/>
             </button>

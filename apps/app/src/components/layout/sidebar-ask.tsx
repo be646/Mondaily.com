@@ -52,7 +52,7 @@ export function SidebarAsk() {
           </Link>
           <button
             onClick={(e) => deleteThread(e, t.id)}
-            className="absolute right-2 hidden rounded p-0.5 text-slate-600 hover:text-red-400 group-hover:flex"
+            className="absolute right-2 hidden rounded p-0.5 text-slate-600 hover:text-indigo-400 group-hover:flex"
             title="Delete chat"
           >
             <Trash2 size={11}/>
