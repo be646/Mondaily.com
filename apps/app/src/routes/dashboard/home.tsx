@@ -425,31 +425,35 @@ export function HomePage() {
 
       {/* ── Hero greeting ── */}
       <div className="mb-8">
-        <p className="text-xs font-medium text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
-        <h1 className="text-[28px] font-semibold tracking-tight text-white">{greeting}, {user?.firstName || "there"}.</h1>
+        <p className="text-xs font-medium text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
+        <h1 className="text-[28px] font-semibold tracking-tight text-[#111827] dark:text-white">{greeting}, {user?.firstName || "there"}.</h1>
 
         {/* Quick stat pills */}
         <div className="mt-4 flex flex-wrap gap-2">
           {activeTasks.length > 0 && (
-            <Link to="/tasks" className="flex items-center gap-1.5 rounded-full border border-white/[.07] bg-white/[.03] px-3 py-1 text-xs text-slate-400 hover:text-white hover:border-white/[.12] transition-colors">
-              <ListChecks size={11} className="text-emerald-400"/>
+            <Link to="/tasks" className="flex items-center gap-1.5 rounded-full border border-[#e5e7eb] bg-white px-3 py-1 text-xs text-[#52525b] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-400 dark:hover:text-white dark:hover:border-white/[.12]">
+              <ListChecks size={11} className="text-emerald-500 dark:text-emerald-400"/>
               {activeTasks.length} open task{activeTasks.length !== 1 ? "s" : ""}
             </Link>
           )}
           {overdueCount > 0 && (
-            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-3 py-1 text-xs text-indigo-400 hover:bg-indigo-500/[.12] transition-colors">
+            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
               <Clock size={11}/>
               {overdueCount} overdue
             </Link>
           )}
           {urgentCount > 0 && (
-            <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/[.07] px-3 py-1 text-xs text-amber-400 hover:bg-amber-500/[.12] transition-colors">
+            <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-500/20 dark:bg-amber-500/[.07] dark:text-amber-400 dark:hover:bg-amber-500/[.12]">
               <Flag size={11}/>
               {urgentCount} urgent
             </Link>
           )}
           {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-            <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/[.08] px-3 py-1 text-xs text-amber-300 hover:bg-amber-500/[.14] transition-colors">
+            <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-amber-500/25 dark:bg-amber-500/[.08] dark:text-amber-300 dark:hover:bg-amber-500/[.14]">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 dark:bg-amber-400 opacity-60 animate-ping"/>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-amber-400"/>
+              </span>
               <BellDot size={11}/>
               {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
             </Link>
@@ -458,7 +462,38 @@ export function HomePage() {
       </div>
 
       {/* ── Ask Mondaily AI ── */}
-      <section className="mb-8">
+      <section className="mb-8 relative overflow-hidden rounded-2xl border border-[#e0e7ff] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-[rgba(129,140,248,0.16)] dark:bg-[#101217] dark:shadow-none">
+        {/* Soft accent edge */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-400/40"/>
+
+        {!isChatting && (
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-60 animate-ping"/>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
+              </span>
+              <h2 className="text-[17px] font-semibold text-[#111827] dark:text-white">What should we do next?</h2>
+            </div>
+            <p className="text-[13px] text-[#6b7280] dark:text-slate-500">
+              Ask Mondaily across tasks, deals, notes, emails, and finance.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {[
+                "What needs my attention today?",
+                "Summarize open deals",
+                "Find overdue follow-ups",
+                "Draft a client reply",
+              ].map(prompt => (
+                <button key={prompt} onClick={() => sendSuggestion(prompt)}
+                  className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[12px] text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors dark:border-indigo-400/20 dark:bg-indigo-500/[.06] dark:text-indigo-300 dark:hover:bg-indigo-500/[.12] dark:hover:border-indigo-400/30">
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {isChatting && (
           <div className="mb-6 max-h-[480px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
             {(() => {
@@ -508,9 +543,9 @@ export function HomePage() {
               <div className="flex flex-col gap-1.5 pl-9">
                 {suggestions.map((s, i) => (
                   <button key={i} onClick={() => sendSuggestion(s)}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-white/[.03] px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/[.06] hover:border-white/[.12] transition-colors">
+                    className="group flex items-center justify-between gap-3 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-left text-sm text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-colors dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-300 dark:hover:bg-white/[.06] dark:hover:border-white/[.12]">
                     <span>{s}</span>
-                    <CornerDownLeft size={12} className="shrink-0 text-slate-600 group-hover:text-slate-400 transition-colors"/>
+                    <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-slate-600 dark:group-hover:text-slate-400 transition-colors"/>
                   </button>
                 ))}
               </div>
@@ -522,20 +557,20 @@ export function HomePage() {
         {/* Input */}
         <div className="relative" ref={pickerRef}>
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-50">
-              <div className="px-4 py-2.5 border-b border-white/[.06]">
-                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Quick prompts</p>
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-white/[.08] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-white/[.06]">
+                <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest">Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => firePrompt(prompt)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors">
-                      <Icon size={13} className="text-indigo-400"/>
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-white/[.05] transition-colors group">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 dark:bg-indigo-500/10 dark:group-hover:bg-indigo-500/20 transition-colors">
+                      <Icon size={13} className="text-indigo-600 dark:text-indigo-400"/>
                     </span>
                     <span>
-                      <span className="block text-sm text-slate-200 group-hover:text-white transition-colors">{label}</span>
-                      <span className="block text-[11px] text-slate-600">{description}</span>
+                      <span className="block text-sm text-[#111827] group-hover:text-indigo-700 dark:text-slate-200 dark:group-hover:text-white transition-colors">{label}</span>
+                      <span className="block text-[11px] text-[#9ca3af] dark:text-slate-600">{description}</span>
                     </span>
                   </button>
                 ))}
@@ -715,40 +750,49 @@ export function HomePage() {
 
       {/* Scan report modal */}
       {(scanReport || scanLoading) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
-          <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-[#111419] shadow-2xl flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06] shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
+          <div className="relative w-full max-w-lg rounded-2xl border border-[#e0e7ff] bg-white shadow-2xl flex flex-col max-h-[80vh] dark:border-white/10 dark:bg-[#111419]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f7] dark:border-white/[.06] shrink-0">
               <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/15">
-                  <Sparkles size={11} className="text-indigo-400"/>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-500/15">
+                  <Sparkles size={11} className="text-indigo-600 dark:text-indigo-400"/>
                 </div>
                 <div>
-                  <p className="text-sm font-medium">AI Scan Report</p>
-                  {scanTimestamp && <p className="text-[10px] text-slate-600 mt-px">{scanTimestamp}</p>}
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-[#111827] dark:text-inherit">AI Scan Report</p>
+                    <span className="flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-px text-[9px] font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                      <span className="relative flex h-1 w-1">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-60 animate-ping"/>
+                        <span className="relative inline-flex h-1 w-1 rounded-full bg-indigo-500"/>
+                      </span>
+                      AI Signal
+                    </span>
+                  </div>
+                  {scanTimestamp && <p className="text-[10px] text-[#9ca3af] dark:text-slate-600 mt-px">{scanTimestamp}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {!scanLoading && scanReport && (
-                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-xs text-[#6b7280] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:border-white/20">
                     <Printer size={11}/> Print
                   </button>
                 )}
                 {!scanLoading && (
-                  <button onClick={() => setScanReport(null)} className="text-slate-500 hover:text-white transition-colors text-xl leading-none">×</button>
+                  <button onClick={() => setScanReport(null)} className="text-[#9ca3af] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors text-xl leading-none">×</button>
                 )}
               </div>
             </div>
-            <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1">
+            <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1 text-[#374151] dark:text-inherit">
               {scanLoading ? (
-                <div className="flex items-center gap-3 text-slate-400 py-4">
+                <div className="flex items-center gap-3 text-[#6b7280] dark:text-slate-400 py-4">
                   <LogoMark size={22} thinking />
-                  <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
+                  <span className="text-sm italic tracking-wide">Searching workspace…</span>
                 </div>
               ) : scanReport ? renderMarkdown(scanReport) : null}
             </div>
             {!scanLoading && scanReport && (
-              <div className="px-5 py-3 border-t border-white/[.06] shrink-0">
-                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border border-white/10 py-2 text-xs text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+              <div className="px-5 py-3 border-t border-[#eef2f7] dark:border-white/[.06] shrink-0">
+                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border border-[#e5e7eb] py-2 text-xs text-[#6b7280] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:border-white/20">
                   Close
                 </button>
               </div>

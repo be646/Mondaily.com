@@ -294,16 +294,16 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
 
           <NotificationsBell/>
 
-          {/* Ask Mondaily toggle */}
+          {/* Ask Mondaily toggle — compact command trigger */}
           <button
             onClick={() => setAskOpen(o => !o)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
               askOpen
-                ? "border-[#ddd6fe] bg-[#ede9fe] text-[#6d28d9] dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-white"
-                : "border-[#ddd6fe] bg-[#f5f3ff] text-[#6d28d9] hover:bg-[#ede9fe] dark:border-white/[.07] dark:bg-transparent dark:text-zinc-500 dark:hover:border-indigo-500/25 dark:hover:bg-indigo-500/[.05] dark:hover:text-white"
+                ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-500/10 dark:text-white"
+                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-indigo-200 hover:bg-indigo-50 dark:border-white/[.07] dark:bg-transparent dark:text-zinc-400 dark:hover:border-indigo-400/30 dark:hover:bg-indigo-500/10 dark:hover:text-white"
             }`}
           >
-            <MessageCircle size={12} className="text-[#7c3aed] dark:text-indigo-400"/>
+            <Sparkles size={12} className={askOpen ? "text-indigo-600 dark:text-indigo-400" : "text-indigo-500 dark:text-indigo-400"}/>
             Ask AI
           </button>
 

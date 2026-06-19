@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, CheckCheck, Trash2, Filter, ShieldAlert } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Filter, ShieldAlert, Sparkles } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -123,11 +123,17 @@ export function NotificationsPage() {
         </div>
       ) : visible.length === 0 ? (
         <div className="text-center py-16">
-          <Bell size={32} className="text-slate-700 mx-auto mb-3"/>
-          <p className="text-slate-500 text-sm">
+          <Bell size={32} className="text-[#9ca3af] dark:text-slate-700 mx-auto mb-3"/>
+          <p className="text-[#52525b] dark:text-slate-500 text-sm">
             {filter === "unread" ? "No unread notifications" : "No notifications yet"}
           </p>
-          <p className="text-slate-700 text-xs mt-1">Reviews, approvals, and mentions will appear here</p>
+          <p className="text-[#9ca3af] dark:text-slate-700 text-xs mt-1">Reviews, approvals, and mentions will appear here</p>
+          {filter !== "unread" && (
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
+              <Sparkles size={11} className="shrink-0"/>
+              Mondaily will start surfacing signals once more workspace activity is available.
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-1">

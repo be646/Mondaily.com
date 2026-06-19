@@ -158,6 +158,15 @@ export function AskMondaily() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
+  // Thinking steps — cycles through while waiting on a response, purely cosmetic
+  const THINKING_STEPS = ["Searching workspace", "Reading related records", "Checking recent activity", "Composing answer"];
+  const [thinkingStep, setThinkingStep] = useState(0);
+  useEffect(() => {
+    if (!loading) { setThinkingStep(0); return; }
+    const id = setInterval(() => setThinkingStep(s => Math.min(s + 1, THINKING_STEPS.length - 1)), 850);
+    return () => clearInterval(id);
+  }, [loading]);
+
   // Close picker on outside click
   useEffect(() => {
     if (!promptPickerOpen) return;
@@ -294,25 +303,43 @@ export function AskMondaily() {
     <div className="flex h-full flex-col">
 
       {/* ── Header ── */}
-      <div className="shrink-0 flex items-center justify-between border-b border-white/[.06] px-6 py-4">
-        <div className="flex items-center gap-3 text-white">
-          <LogoSymbol size={28} thinking={loading} />
-          <div>
-            <h1 className="text-sm font-semibold text-white tracking-wide">Ask Mondaily</h1>
-            <p className="text-[11px] text-slate-500">{loading ? "Thinking…" : "Your AI business assistant"}</p>
+      <div className="shrink-0 border-b border-[#e5e7eb] dark:border-white/[.06]">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3 text-[#111827] dark:text-white">
+            <LogoSymbol size={28} thinking={loading} />
+            <div>
+              <h1 className="text-sm font-semibold text-[#111827] dark:text-white tracking-wide">Ask Mondaily</h1>
+              <p className="text-[11px] text-[#9ca3af] dark:text-slate-500">{loading ? "Thinking…" : "Your AI business assistant"}</p>
+            </div>
           </div>
+          {isChatting && (
+            <div className="flex items-center gap-3">
+              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
+                <Download size={12}/> Export
+              </button>
+              <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); }}
+                className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
+                New chat
+              </button>
+            </div>
+          )}
         </div>
-        {isChatting && (
-          <div className="flex items-center gap-3">
-            <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-white transition-colors">
-              <Download size={12}/> Export
-            </button>
-            <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); }}
-              className="text-xs text-slate-500 hover:text-white transition-colors">
-              New chat
-            </button>
-          </div>
-        )}
+
+        {/* Context strip — what the AI has access to */}
+        <div className="flex items-center gap-2 px-6 pb-3 overflow-x-auto">
+          <span className="flex items-center gap-1 text-[11px] text-[#9ca3af] dark:text-slate-600 shrink-0">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-50 animate-ping"/>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
+            </span>
+            Connected to your workspace graph
+          </span>
+          {["Tasks", "Deals", "People", "Notes", "Emails"].map(label => (
+            <span key={label} className="shrink-0 rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-0.5 text-[10px] font-medium text-[#6b7280] dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-500">
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* ── Message area ── */}
@@ -322,11 +349,11 @@ export function AskMondaily() {
         {!isChatting && (
           <div className="flex h-full items-center justify-center">
             <div className="w-full max-w-md text-center">
-              <div className="mx-auto mb-5 flex items-center justify-center text-white/80">
+              <div className="mx-auto mb-5 flex items-center justify-center text-indigo-500 dark:text-white/80">
                 <LogoSymbol size={52} />
               </div>
-              <p className="text-sm font-medium text-white mb-1">How can I help you today?</p>
-              <p className="text-xs text-slate-500 mb-6">Ask about your pipeline, contacts, tasks, or anything business-related.</p>
+              <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">How can I help you today?</p>
+              <p className="text-xs text-[#9ca3af] dark:text-slate-500 mb-6">Ask about your pipeline, contacts, tasks, or anything business-related.</p>
               <div className="flex flex-wrap justify-center gap-2">
                 {EMPTY_SUGGESTIONS.map(s => (
                   <button key={s} onClick={() => sendSuggestion(s)} className="key-button px-3 py-1.5 text-xs">{s}</button>
@@ -369,17 +396,28 @@ export function AskMondaily() {
                           className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-slate-700 hover:text-emerald-400"}`}
                           title="Good response"><ThumbsUp size={12}/></button>
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)}
-                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-red-400" : "text-slate-700 hover:text-red-400"}`}
+                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-zinc-300 hover:text-indigo-400 dark:text-slate-700 dark:hover:text-indigo-400"}`}
                           title="Bad response"><ThumbsDown size={12}/></button>
-                        {feedbackGiven[i] && <span className="text-[11px] text-slate-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
+                        {feedbackGiven[i] && <span className="text-[11px] text-[#9ca3af] dark:text-slate-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
                         <button onClick={() => copyMessage(m.content, i)}
-                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-emerald-400" : "text-slate-700 hover:text-slate-400"}`}
+                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-emerald-400" : "text-zinc-300 hover:text-zinc-500 dark:text-slate-700 dark:hover:text-slate-400"}`}
                           title="Copy">
                           {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
                         </button>
                         {i === messages.length - 1 && !loading && (
-                          <button onClick={regenerate} className="rounded-md p-1.5 text-slate-700 hover:text-slate-400 transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
+                          <button onClick={regenerate} className="rounded-md p-1.5 text-zinc-300 hover:text-zinc-500 dark:text-slate-700 dark:hover:text-slate-400 transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
                         )}
+                      </div>
+                    )}
+                    {/* Static follow-up actions — shown under the most recent finished AI response */}
+                    {!isStreaming && !loading && i === messages.length - 1 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
+                        {["Create a task from this", "Show related records", "Draft email", "Explain why"].map(action => (
+                          <button key={action} onClick={() => sendSuggestion(action)}
+                            className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors dark:border-indigo-400/20 dark:bg-indigo-500/[.06] dark:text-indigo-300 dark:hover:bg-indigo-500/[.12] dark:hover:border-indigo-400/30">
+                            {action}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -391,9 +429,9 @@ export function AskMondaily() {
 
         {/* Thinking */}
         {loading && (
-          <div className="flex items-center gap-3 pl-1 text-slate-400">
+          <div className="flex items-center gap-3 pl-1 text-[#6b7280] dark:text-slate-400">
             <LogoSymbol size={36} thinking />
-            <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
+            <span className="text-sm italic tracking-wide">{THINKING_STEPS[thinkingStep]}…</span>
           </div>
         )}
 
@@ -402,9 +440,9 @@ export function AskMondaily() {
           <div className="flex flex-col gap-1.5 pl-5">
             {suggestions.map((s, i) => (
               <button key={i} onClick={() => sendSuggestion(s)}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-white/[.03] px-4 py-2.5 text-left text-sm text-slate-300 hover:bg-white/[.06] hover:border-white/[.12] transition-colors">
+                className="group flex items-center justify-between gap-3 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-left text-sm text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-colors dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-300 dark:hover:bg-white/[.06] dark:hover:border-white/[.12]">
                 <span>{s}</span>
-                <CornerDownLeft size={12} className="shrink-0 text-slate-600 group-hover:text-slate-400 transition-colors"/>
+                <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-slate-600 dark:group-hover:text-slate-400 transition-colors"/>
               </button>
             ))}
           </div>
@@ -419,20 +457,20 @@ export function AskMondaily() {
 
           {/* Quick prompts picker */}
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-white/[.08] bg-[#13151a] shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-50">
-              <div className="px-4 py-2.5 border-b border-white/[.06]">
-                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Quick prompts</p>
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-white/[.08] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-white/[.06]">
+                <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest">Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => sendSuggestion(prompt)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors">
-                      <Icon size={13} className="text-indigo-400"/>
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-white/[.05] transition-colors group">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 dark:bg-indigo-500/10 dark:group-hover:bg-indigo-500/20 transition-colors">
+                      <Icon size={13} className="text-indigo-600 dark:text-indigo-400"/>
                     </span>
                     <span>
-                      <span className="block text-sm text-slate-200 group-hover:text-white transition-colors">{label}</span>
-                      <span className="block text-[11px] text-slate-600">{description}</span>
+                      <span className="block text-sm text-[#111827] group-hover:text-indigo-700 dark:text-slate-200 dark:group-hover:text-white transition-colors">{label}</span>
+                      <span className="block text-[11px] text-[#9ca3af] dark:text-slate-600">{description}</span>
                     </span>
                   </button>
                 ))}
@@ -441,23 +479,23 @@ export function AskMondaily() {
           )}
 
           {/* Input */}
-          <div className="flex items-center gap-2 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3.5 focus-within:border-white/[.15] focus-within:bg-white/[.04] transition-all">
+          <div className="flex items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] focus-within:border-[#c7d2fe] focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all dark:border-white/[.08] dark:bg-white/[.03] dark:shadow-none dark:focus-within:border-white/[.15] dark:focus-within:bg-white/[.04] dark:focus-within:ring-0">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-500/20 text-indigo-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-600 dark:hover:text-slate-300 dark:hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation…" : "Ask Mondaily AI anything…"}
-              className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"/>
+              className="flex-1 bg-transparent text-sm text-[#111827] placeholder-[#9ca3af] outline-none dark:text-white dark:placeholder-slate-600"/>
             {isChatting && (
               <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); }}
-                className="shrink-0 text-xs text-slate-600 hover:text-slate-400 transition-colors mr-1">
+                className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">
                 Clear
               </button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/30" : "bg-white/[.04] text-slate-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-white/[.04] dark:text-slate-600"}`}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>
