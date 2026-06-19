@@ -743,9 +743,9 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[11px] font-medium text-violet-700 transition-all hover:bg-violet-100 dark:border-indigo-500/30 dark:bg-indigo-500/8 dark:text-indigo-400 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-300"
+            className="flex items-center gap-1.5 rounded-md border border-[#ddd6fe] bg-[#f5f3ff] px-2.5 py-1.5 text-[11px] font-medium text-[#6d28d9] transition-all hover:bg-[#ede9fe] dark:border-indigo-500/30 dark:bg-indigo-500/8 dark:text-indigo-400 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-500/15 dark:hover:text-indigo-300"
           >
-            <Sparkles size={11}/> Fill with AI
+            <Sparkles size={11} className="text-[#7c3aed] dark:text-indigo-400"/> Fill with AI
           </button>
           <button
             onClick={() => setDedupOpen(true)}
@@ -804,7 +804,7 @@ export function ObjectIndexPage() {
 
       {/* Collapsible CSV importer */}
       {importOpen && (
-        <div className="border-b border-zinc-800/40 px-6 py-3 shrink-0">
+        <div className="border-b border-[#e5e7eb] dark:border-zinc-800/40 px-6 py-3 shrink-0">
           <CsvImporter objectType={objectType} onImported={() => { queryClient.invalidateQueries({ queryKey: ["records", objectType] }); setImportOpen(false); }}/>
         </div>
       )}
@@ -815,33 +815,33 @@ export function ObjectIndexPage() {
           <div className="flex flex-1 flex-col items-center justify-center gap-6">
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-                  <Sparkles size={22} className="text-indigo-400"/>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f5f3ff] border border-[#ddd6fe] dark:bg-indigo-500/10 dark:border-indigo-500/20">
+                  <Sparkles size={22} className="text-[#7c3aed] dark:text-indigo-400"/>
                 </div>
               </div>
-              <h3 className="text-[15px] font-semibold text-white capitalize">
+              <h3 className="text-[15px] font-semibold text-[#111827] dark:text-white capitalize">
                 {objectType.replace(/[-_]/g, " ")} is empty
               </h3>
-              <p className="text-[12px] text-zinc-500 leading-relaxed">
+              <p className="text-[12px] text-[#6b7280] dark:text-zinc-500 leading-relaxed">
                 Let AI build this sheet for you. It already knows your columns — just describe what records you want and it will generate them instantly.
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-5 py-2.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-5 py-2.5 text-[12px] font-semibold text-[#6d28d9] hover:bg-[#ede9fe] dark:border-indigo-400/40 dark:bg-indigo-500 dark:text-white dark:hover:bg-indigo-400 transition-all"
               >
-                <Sparkles size={13}/> Fill with AI
+                <Sparkles size={13} className="text-[#7c3aed] dark:text-white"/> Fill with AI
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.03] px-5 py-2.5 text-[12px] text-zinc-400 hover:text-white hover:bg-white/[.06] transition-all"
+                className="flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-5 py-2.5 text-[12px] text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-white/[.08] dark:bg-white/[.03] dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[.06] transition-all"
               >
                 <Plus size={13}/> Add manually
               </button>
               <button
                 onClick={() => setImportOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-dashed border-zinc-700/60 bg-transparent px-5 py-2.5 text-[12px] text-zinc-500 hover:text-zinc-300 hover:border-zinc-600/60 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-dashed border-[#d1d5db] bg-[#f9fafb] px-5 py-2.5 text-[12px] text-[#6b7280] hover:bg-[#f3f4f6] hover:border-[#9ca3af] dark:border-zinc-700/60 dark:bg-transparent dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:border-zinc-600/60 transition-all"
               >
                 <Plus size={13}/> Import CSV
               </button>

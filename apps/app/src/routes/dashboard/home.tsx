@@ -543,20 +543,20 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-white/[.08] bg-white/[.03] px-4 py-3.5 focus-within:border-white/[.15] focus-within:bg-white/[.04] transition-all">
+          <div className="flex items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] focus-within:border-[#c7d2fe] focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all dark:border-white/[.08] dark:bg-white/[.03] dark:shadow-none dark:focus-within:border-white/[.15] dark:focus-within:bg-white/[.04] dark:focus-within:ring-0">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-500/20 text-indigo-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-600 dark:hover:text-slate-300 dark:hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation…" : "Ask Mondaily AI anything…"}
-              className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"/>
+              className="flex-1 bg-transparent text-sm text-[#111827] placeholder-[#9ca3af] outline-none dark:text-white dark:placeholder-slate-600"/>
             {isChatting && (
-              <button onClick={newChat} className="shrink-0 text-xs text-slate-600 hover:text-slate-400 transition-colors mr-1">Clear</button>
+              <button onClick={newChat} className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">Clear</button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-900/30" : "bg-white/[.04] text-slate-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-white/[.04] dark:text-slate-600"}`}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>
@@ -584,16 +584,16 @@ export function HomePage() {
       <div className="grid gap-4 md:grid-cols-2">
 
         {/* Tasks card */}
-        <section className="flex flex-col rounded-2xl border border-white/[.07] bg-white/[.02] overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.05]">
+        <section className="flex flex-col rounded-2xl border border-[#e8ebf0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden dark:border-white/[.07] dark:bg-white/[.02] dark:shadow-none">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-emerald-400"/>
-              <span className="text-sm font-medium text-white">Tasks</span>
+              <span className="text-sm font-medium text-[#111827] dark:text-white">Tasks</span>
               <span className="flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/15 px-1.5 py-px text-[9px] text-indigo-400">
                 <Sparkles size={8}/> AI sorted
               </span>
             </div>
-            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] text-slate-500 hover:text-white transition-colors">
+            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
               View all <ArrowUpRight size={11}/>
             </Link>
           </div>
@@ -669,13 +669,13 @@ export function HomePage() {
         </section>
 
         {/* Meetings card */}
-        <section className="flex flex-col rounded-2xl border border-white/[.07] bg-white/[.02] overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.05]">
+        <section className="flex flex-col rounded-2xl border border-[#e8ebf0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden dark:border-white/[.07] dark:bg-white/[.02] dark:shadow-none">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
             <div className="flex items-center gap-2">
               <Calendar size={13} className="text-blue-400"/>
-              <span className="text-sm font-medium text-white">Meetings</span>
+              <span className="text-sm font-medium text-[#111827] dark:text-white">Meetings</span>
             </div>
-            <span className="text-[11px] text-slate-600">Today</span>
+            <span className="text-[11px] text-[#9ca3af] dark:text-slate-600">Today</span>
           </div>
           <div className="flex-1">
             {meetings.isLoading ? (

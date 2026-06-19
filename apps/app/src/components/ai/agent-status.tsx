@@ -268,10 +268,10 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   return (
     <>
       {/* Top bar */}
-      <div className="md-topbar relative flex items-center justify-between border-b border-white/[.06] bg-[#0d0f13] dark:bg-[#0d0f13] px-4 py-1.5 shrink-0">
+      <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-white/[.06] dark:bg-[#0d0f13] px-4 py-1.5 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
-          {leftSlot ?? <span className="text-xs text-zinc-700">AI status: idle</span>}
+          {leftSlot ?? <span className="text-xs text-[#9ca3af] dark:text-zinc-700">AI status: idle</span>}
         </div>
 
         {/* Right actions */}
@@ -279,14 +279,14 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {showShare && (
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[.07] px-2.5 py-1.5 text-[11px] text-zinc-500 hover:bg-white/[.04] hover:text-white transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-[11px] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-white/[.07] dark:text-zinc-500 dark:hover:bg-white/[.04] dark:hover:text-white"
             >
               <Share2 size={12}/> Share
             </button>
           )}
 
           <button
-            className="rounded-lg p-1.5 text-zinc-600 hover:bg-white/[.04] hover:text-zinc-300 transition-colors"
+            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:text-zinc-600 dark:hover:bg-white/[.04] dark:hover:text-zinc-300"
             title="Help"
           >
             <HelpCircle size={14}/>
@@ -299,11 +299,11 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             onClick={() => setAskOpen(o => !o)}
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
               askOpen
-                ? "border-indigo-500/40 bg-indigo-500/10 text-white"
-                : "border-white/[.07] text-zinc-500 hover:border-indigo-500/25 hover:bg-indigo-500/[.05] hover:text-white"
+                ? "border-[#ddd6fe] bg-[#ede9fe] text-[#6d28d9] dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-white"
+                : "border-[#ddd6fe] bg-[#f5f3ff] text-[#6d28d9] hover:bg-[#ede9fe] dark:border-white/[.07] dark:bg-transparent dark:text-zinc-500 dark:hover:border-indigo-500/25 dark:hover:bg-indigo-500/[.05] dark:hover:text-white"
             }`}
           >
-            <MessageCircle size={12} className="text-indigo-400"/>
+            <MessageCircle size={12} className="text-[#7c3aed] dark:text-indigo-400"/>
             Ask AI
           </button>
 
@@ -311,7 +311,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <div className="relative ml-0.5">
             <button
               onClick={() => setUserMenuOpen(o => !o)}
-              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20 text-[11px] font-semibold text-indigo-400 hover:ring-2 hover:ring-red-500/25 transition-all"
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500/25 transition-all"
             >
               {avatarUrl
                 ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>

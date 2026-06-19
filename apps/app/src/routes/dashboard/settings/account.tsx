@@ -195,8 +195,8 @@ export function AccountSettings() {
       {/* ── Appearance ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-white">Appearance</h2>
-          <span className="text-xs text-slate-600">Changes apply instantly</span>
+          <h2 className="text-sm font-semibold text-[#111827] dark:text-white">Appearance</h2>
+          <span className="text-xs text-[#9ca3af] dark:text-slate-600">Changes apply instantly</span>
         </div>
         <div className="p-5">
           <div className="grid grid-cols-3 gap-3">
@@ -206,13 +206,13 @@ export function AccountSettings() {
                 onClick={() => setAppearance(mode)}
                 className={`relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all ${
                   appearance === mode
-                    ? "border-indigo-500/50 bg-indigo-500/[.06] text-white"
-                    : "border-white/[.07] text-slate-500 hover:border-white/[.14] hover:text-slate-300"
+                    ? "border-[#818cf8] bg-[#eef2ff] text-[#312e81] dark:border-indigo-500/50 dark:bg-indigo-500/[.06] dark:text-white"
+                    : "border-[#e5e7eb] bg-white text-[#52525b] hover:bg-[#f9fafb] dark:border-white/[.07] dark:bg-transparent dark:text-slate-500 dark:hover:border-white/[.14] dark:hover:text-slate-300"
                 }`}
               >
-                <Icon size={18} />
+                <Icon size={18} className={appearance === mode ? "text-[#4f46e5] dark:text-white" : ""}/>
                 <span className="text-xs font-medium capitalize">{label}</span>
-                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-indigo-400" />}
+                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[#4f46e5] dark:text-indigo-400" />}
               </button>
             ))}
           </div>

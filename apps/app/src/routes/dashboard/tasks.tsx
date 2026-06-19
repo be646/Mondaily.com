@@ -468,14 +468,14 @@ export function TasksPage() {
           <div className="flex gap-0.5 rounded-xl border border-zinc-200 bg-zinc-50 dark:border-white/[.07] dark:bg-white/[.02] p-0.5">
             {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-500 dark:hover:text-slate-300"}`}>
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-500 dark:hover:text-slate-300"}`}>
                 {icon}{label}
               </button>
             ))}
           </div>
           <button onClick={() => setShowAISuggest(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs text-violet-700 hover:bg-violet-100 dark:border-violet-500/25 dark:bg-violet-500/[.07] dark:text-violet-400 dark:hover:bg-violet-500/[.13] transition-colors">
-            <Sparkles size={12}/> Suggest with AI
+            className="flex items-center gap-1.5 rounded-xl border border-[#ddd6fe] bg-[#f5f3ff] px-3 py-1.5 text-xs text-[#6d28d9] hover:bg-[#ede9fe] dark:border-violet-500/25 dark:bg-violet-500/[.07] dark:text-violet-400 dark:hover:bg-violet-500/[.13] transition-colors">
+            <Sparkles size={12} className="text-[#7c3aed] dark:text-violet-400"/> Suggest with AI
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors">
@@ -495,7 +495,7 @@ export function TasksPage() {
             { key: "review",  label: "Review" },
           ]).map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-500 dark:hover:text-slate-300"}`}>
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-500 dark:hover:text-slate-300"}`}>
               {f.label}
               {f.badge && filter !== f.key && <span className="rounded-full bg-indigo-100 px-1 py-px text-[10px] text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400">{f.badge}</span>}
             </button>

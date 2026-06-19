@@ -1945,7 +1945,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         key={record.id}
         className={`group transition-colors ${selected.has(record.id) ? "bg-indigo-50 dark:bg-indigo-500/[.05]" : rowIdx % 2 === 1 ? "bg-zinc-50/60 dark:bg-white/[.008]" : "bg-white dark:bg-transparent"} hover:bg-zinc-50 dark:hover:bg-white/[.03] ${rowAccent(record)}`}
       >
-        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-zinc-100 dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-zinc-50 dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
           <div
             onClick={() => toggleSelectRow(record.id)}
             className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-indigo-500 border-indigo-500" : "border-zinc-300 opacity-0 group-hover:opacity-100 hover:border-zinc-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
@@ -1954,14 +1954,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </div>
         </td>
         {hasRecordIdCol && (
-          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-zinc-100 dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-zinc-50 dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
             <RecordIdCell id={record.id}/>
           </td>
         )}
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-2.5 text-zinc-900 dark:text-white/70 border-b border-b-zinc-100 dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-zinc-500 dark:text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-zinc-900 dark:text-white/90 ` + (selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-zinc-50 dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]") : ""}`}
+            className={`px-4 py-2.5 text-zinc-900 dark:text-white/70 border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-zinc-500 dark:text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-zinc-900 dark:text-white/90 ` + (selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -1975,10 +1975,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {renderCell(col, record)}
           </td>
         ))}
-        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-zinc-500 dark:text-white/45 tabular-nums border-b border-b-zinc-100 dark:border-b-white/[.04]">
+        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-zinc-500 dark:text-white/45 tabular-nums border-b border-b-[#edf0f5] dark:border-b-white/[.04]">
           {fmtDate(record.updated_at)}
         </td>
-        <td className="border-b border-b-zinc-100 dark:border-b-white/[.04] w-10 px-2">
+        <td className="border-b border-b-[#edf0f5] dark:border-b-white/[.04] w-10 px-2">
           <button
             onClick={() => deleteRow(record)}
             className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-zinc-400 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all"
@@ -1991,20 +1991,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     );
   }
 
-  // Toolbar button styles — clean borderless pills
-  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border border-transparent";
-  const TB_IDLE = `${TB} text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
-  const TB_ON   = `${TB} text-zinc-900 bg-zinc-100 dark:text-white dark:bg-white/[.06] dark:border-white/[.08]`;
-  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-200 px-1 text-[9px] font-semibold text-zinc-600 dark:bg-white/[.10] dark:text-slate-300";
+  // Toolbar button styles — clean clickable pills with real borders in light mode
+  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border";
+  const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
+  const TB_ON   = `${TB} border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] dark:border-white/[.08] dark:text-white dark:bg-white/[.06]`;
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e0e7ff] px-1 text-[9px] font-semibold text-[#4338ca] dark:bg-white/[.10] dark:text-slate-300";
   const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (
     <>
-    <section className="flex flex-col h-full">
+    <section className="flex flex-col h-full bg-white dark:bg-transparent">
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-white/[.04] shrink-0">
+      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[#eef2f7] dark:border-white/[.04] shrink-0">
         {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
-          <span className="text-[11px] text-white/20 tabular-nums mr-2">{sorted.length} of {records.length}</span>
+          <span className="text-[11px] text-[#9ca3af] dark:text-white/45 tabular-nums mr-2">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
           <span className="flex items-center gap-1 rounded-md border border-zinc-700/60 bg-zinc-800/40 px-2 py-1 text-[10px] text-zinc-400 mr-1">
@@ -2563,7 +2563,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Checkbox column */}
-              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] sticky left-0 z-30">
+              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
                   className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-indigo-500 border-indigo-500" : someSelected ? "border-indigo-300 bg-indigo-50 dark:border-white/30 dark:bg-white/[.06]" : "border-zinc-300 hover:border-zinc-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
@@ -2574,7 +2574,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               </th>
               {/* Record ID locked column — only when added via Add Column */}
               {hasRecordIdCol && (
-                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] sticky left-8 z-30">
+                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
                   <span className="text-[10px] font-semibold tracking-widest uppercase text-zinc-500 dark:text-white/20">ID</span>
                 </th>
               )}
@@ -2584,7 +2584,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -2614,7 +2614,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         </div>
                       )}
                       <button onClick={() => handleHeaderSort(col)}
-                        className={`flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
+                        className={`flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
                         <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
                         {colMeta[col]?.required && <span className="text-indigo-400/70 text-[10px] leading-none">*</span>}
@@ -2631,8 +2631,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   </th>
                 );
               })}
-              <th className="px-4 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06]">
-                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors">
+              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
+                <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-slate-400 dark:hover:text-slate-100 transition-colors">
                   <Calendar size={11}/>
                   <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
                   <SortIcon col="__updated_at"/>
@@ -2641,7 +2641,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {/* Add column */}
               <th
                 ref={addColHeaderRef}
-                className="w-10 px-3 py-2.5 bg-zinc-50 dark:bg-[#0b0d10] border-b border-b-zinc-200 dark:border-b-white/[.06] relative"
+                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] relative"
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}

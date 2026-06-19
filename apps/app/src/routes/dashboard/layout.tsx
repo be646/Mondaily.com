@@ -33,7 +33,7 @@ function getPageMeta(pathname: string): PageMeta {
     ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-indigo-400"  }],
     ["/lists",         { label: "Lists",          Icon: List,        color: "text-slate-400"   }],
     ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-slate-400"   }],
-    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-red-400"   }],
+    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-indigo-400"   }],
     ["/search",        { label: "Search",         Icon: Search,      color: "text-slate-400"   }],
   ];
   for (const [prefix, meta] of map) {
@@ -107,7 +107,7 @@ export function DashboardLayout() {
   const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-zinc-100 dark:bg-[#0d0f13]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#f4f5f8] dark:bg-[#0d0f13]">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />
@@ -128,17 +128,17 @@ export function DashboardLayout() {
               <Menu size={16}/>
             </button>
             <PageIcon size={16} className={`${pageColor} shrink-0`}/>
-            <span className="text-[13px] font-semibold text-white/80 capitalize select-none hidden sm:inline">
+            <span className="text-[13px] font-semibold text-[#111827] dark:text-white/80 capitalize select-none hidden sm:inline">
               {pageLabel}
             </span>
             {/* Search trigger */}
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
-              className="hidden sm:flex items-center gap-2 rounded-lg border border-white/[.07] bg-white/[.02] px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-300 hover:bg-white/[.04] transition-colors"
+              className="hidden sm:flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-2.5 py-1.5 text-xs text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-white/[.07] dark:bg-white/[.02] dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-white/[.04]"
             >
               <Search size={12}/>
               <span>Search…</span>
-              <kbd className="rounded border border-white/[.08] bg-white/[.04] px-1 text-[10px] text-slate-700">⌘K</kbd>
+              <kbd className="rounded border border-[#e5e7eb] bg-[#f9fafb] px-1 text-[10px] text-[#9ca3af] dark:border-white/[.08] dark:bg-white/[.04] dark:text-slate-700">⌘K</kbd>
             </button>
             {/* Page-specific action buttons are portaled here by sub-pages */}
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
