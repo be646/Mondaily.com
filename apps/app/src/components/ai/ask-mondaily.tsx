@@ -3,6 +3,7 @@ import { MondailyLogo } from "./mondaily-logo";
 import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
+import { getAuthHeaders } from "../../lib/api-client";
 
 // ── Markdown renderer (same as home) ─────────────────────────────────────────
 function renderMarkdown(text: string): React.ReactNode {
@@ -208,12 +209,11 @@ export function AskMondaily() {
       let model = "auto";
       let web_search = false;
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; web_search = s.webSearch === "allow"; } catch {}
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
       const res = await fetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
+        headers,
         body: JSON.stringify({ message: text, model, web_search })
       });
       const data = await res.json() as { reply?: string; suggestions?: string[] };
@@ -266,12 +266,11 @@ export function AskMondaily() {
   const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) => {
     setFeedbackGiven(prev => ({ ...prev, [idx]: rating }));
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
       await fetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) },
+        headers,
         body: JSON.stringify({ message: userMsg, response: aiMsg, rating })
       });
     } catch {}

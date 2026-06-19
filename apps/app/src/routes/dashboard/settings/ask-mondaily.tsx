@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sparkles, Trash2, MessageCircle } from "lucide-react";
 import { getThreads, saveThreads } from "../../../lib/chat-store";
+import { getAuthHeaders } from "../../../lib/api-client";
 
 const SETTINGS_KEY = "mondaily_ask_settings";
 
@@ -54,18 +55,13 @@ export function AskMondailySettings() {
   const [credits, setCredits] = useState<{ used: number; limit: number; period_end: string } | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("mondaily_session_token");
-    const workspaceId = localStorage.getItem("mondaily_workspace_id");
-    const apiUrl = (window as any).__VITE_API_URL__ || import.meta.env.VITE_API_URL || "";
-    fetch(`${apiUrl}/api/v1/ask/credits`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-      }
-    })
-      .then(r => r.json())
-      .then(data => setCredits(data))
-      .catch(() => {});
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    getAuthHeaders().then(headers =>
+      fetch(`${apiUrl}/api/v1/ask/credits`, { headers })
+        .then(r => r.json())
+        .then(data => setCredits(data))
+        .catch(() => {})
+    );
   }, []);
 
   const update = (patch: Partial<AskSettings>) => {

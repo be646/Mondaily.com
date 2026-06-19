@@ -1,5 +1,6 @@
 import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
+import { getAuthHeaders } from "../../lib/api-client";
 
 export function AskMondailyInline({ placeholder, onResponse }: { placeholder: string; onResponse?: (text: string) => void }) {
   const [value, setValue] = useState("");
@@ -11,16 +12,11 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
     setLoading(true);
     setValue("");
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
       const response = await fetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-        },
+        headers,
         body: JSON.stringify({ message })
       });
       const data = await response.json();

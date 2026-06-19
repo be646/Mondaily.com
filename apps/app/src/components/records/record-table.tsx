@@ -11,7 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, getAuthHeaders } from "../../lib/api-client";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
@@ -928,16 +928,11 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
     if (!trimmed) return;
     setStatus("thinking");
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
       const res = await fetch(`${apiUrl}/api/v1/generate/nlp`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-        },
+        headers,
         body: JSON.stringify({ query: trimmed, columns }),
       });
       if (!res.ok) throw new Error();

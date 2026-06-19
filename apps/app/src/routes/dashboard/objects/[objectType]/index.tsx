@@ -7,7 +7,7 @@ import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records
 import { CsvImporter } from "../../../../components/records/csv-importer";
 import { DedupPanel } from "../../../../components/records/dedup-panel";
 import { SegmentBuilder } from "../../../../components/records/segment-builder";
-import { apiClient } from "../../../../lib/api-client";
+import { apiClient, getAuthHeaders } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -139,15 +139,12 @@ function CreateRecordModal({
     if (!aiPrompt.trim()) { setAiError("Describe what records you want"); return; }
     setAiLoading(true); setAiError(""); setAiRecords([]); setAiSelected(new Set());
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
       const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+          ...headers,
         },
         body: JSON.stringify({ objectType, columns: fieldKeys, prompt: aiPrompt, count: aiCount }),
       });
@@ -427,15 +424,12 @@ function AIFillModal({
     if (!prompt.trim()) return;
     setLoading(true); setError(""); setRecords([]); setSelected(new Set());
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
       const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+          ...headers,
         },
         body: JSON.stringify({ objectType, columns: fieldKeys, prompt, count }),
       });

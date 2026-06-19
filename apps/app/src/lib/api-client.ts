@@ -9,10 +9,21 @@ export function setTokenProvider(fn: () => Promise<string | null>) {
   _getToken = fn;
 }
 
+// Returns Authorization + X-Workspace-Id headers using the Clerk token provider.
+// Use this everywhere instead of reading mondaily_session_token from localStorage
+// (that key is never written and will always be null).
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = _getToken ? await _getToken() : null;
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
+  };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  // Always fetch a fresh token — Clerk caches internally and only round-trips
-  // when < 10s remain, so this is fast on hot paths and avoids stale-token errors.
-  const token = _getToken ? await _getToken() : localStorage.getItem("mondaily_session_token");
+  const token = _getToken ? await _getToken() : null;
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
 
   const response = await fetch(`${API_URL}${path}`, {

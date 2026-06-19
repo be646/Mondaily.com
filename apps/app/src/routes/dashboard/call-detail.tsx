@@ -3,7 +3,7 @@ import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Sparkl
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, getAuthHeaders } from "../../lib/api-client";
 
 interface TranscriptLine { speaker: string; text: string; start_time: number }
 interface Participant { id?: string; name: string; email?: string; object_type?: string }
@@ -131,8 +131,7 @@ export function CallDetailPage() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(localStorage.getItem("mondaily_session_token") ? { Authorization: `Bearer ${localStorage.getItem("mondaily_session_token")}` } : {}),
-        ...(localStorage.getItem("mondaily_workspace_id") ? { "X-Workspace-Id": localStorage.getItem("mondaily_workspace_id")! } : {})
+        ...await getAuthHeaders()
       },
       body: JSON.stringify({ template_id: templateId })
     });

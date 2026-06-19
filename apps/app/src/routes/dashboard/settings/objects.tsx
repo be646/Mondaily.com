@@ -5,7 +5,7 @@ import {
   Plus, Text, Trash2, X, Sparkles, Loader2, Check, ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { apiClient } from "../../../lib/api-client";
+import { apiClient, getAuthHeaders } from "../../../lib/api-client";
 import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
@@ -43,17 +43,12 @@ const EXAMPLES = [
 
 // ─── Call dedicated schema endpoint (uses Anthropic tool_use = guaranteed JSON) ─
 async function generateSchema(prompt: string): Promise<GeneratedSchema> {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const headers = await getAuthHeaders();
   const apiUrl = import.meta.env.VITE_API_URL || "";
 
   const res = await fetch(`${apiUrl}/api/v1/generate/schema`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-    },
+    headers,
     body: JSON.stringify({ prompt }),
   });
 

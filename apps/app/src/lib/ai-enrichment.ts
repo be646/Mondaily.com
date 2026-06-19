@@ -49,25 +49,14 @@ export interface EnrichmentResult {
   source: "known" | "generated";
 }
 
-function authHeaders() {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  const apiUrl = import.meta.env.VITE_API_URL || "";
-  return {
-    url: apiUrl,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-    },
-  };
-}
+import { getAuthHeaders } from "./api-client";
 
 /** Real enrichment via Tavily web search + Claude (falls back to mock if API unavailable) */
 export async function enrichCompany(name: string): Promise<EnrichmentResult> {
-  const { url, headers } = authHeaders();
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const headers = await getAuthHeaders();
   try {
-    const res = await fetch(`${url}/api/v1/generate/enrich/company`, {
+    const res = await fetch(`${apiUrl}/api/v1/generate/enrich/company`, {
       method: "POST", headers, body: JSON.stringify({ name }),
     });
     if (!res.ok) throw new Error("API error");
@@ -86,9 +75,10 @@ export async function enrichCompany(name: string): Promise<EnrichmentResult> {
 }
 
 export async function enrichPerson(email: string): Promise<EnrichmentResult> {
-  const { url, headers } = authHeaders();
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  const headers = await getAuthHeaders();
   try {
-    const res = await fetch(`${url}/api/v1/generate/enrich/person`, {
+    const res = await fetch(`${apiUrl}/api/v1/generate/enrich/person`, {
       method: "POST", headers, body: JSON.stringify({ email }),
     });
     if (!res.ok) throw new Error("API error");

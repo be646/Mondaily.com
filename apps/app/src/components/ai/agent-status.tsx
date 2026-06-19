@@ -9,18 +9,14 @@ import {
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
+import { getAuthHeaders } from "../../lib/api-client";
 
 async function callAsk(message: string): Promise<string> {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const headers = await getAuthHeaders();
   const apiUrl = import.meta.env.VITE_API_URL || "";
   const res = await fetch(`${apiUrl}/api/v1/ask`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-    },
+    headers,
     body: JSON.stringify({
       message,
       model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })(),
@@ -46,16 +42,11 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   async function sendFeedback(userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) {
     setFeedbackGiven(prev => ({ ...prev, [idx]: rating }));
     try {
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
       await fetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-        },
+        headers,
         body: JSON.stringify({ message: userMsg, response: aiMsg, rating }),
       });
     } catch {}

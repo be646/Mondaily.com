@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "./api-client";
+
 export interface ChatMessage { role: "user" | "assistant"; content: string; }
 export interface ChatThread { id: string; title: string; messages: ChatMessage[]; updatedAt: number; }
 
@@ -30,16 +32,6 @@ export function addMessageToThread(threadId: string, message: ChatMessage): void
   saveThreads(newThreads);
   // Sync to server in background
   syncThreadToServer(updated).catch(() => {});
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const token = localStorage.getItem("mondaily_session_token");
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {})
-  };
 }
 
 async function syncThreadToServer(thread: ChatThread): Promise<void> {

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Plus, Check, Trash2, Paperclip, Send, CheckCheck, ChevronDown } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, getAuthHeaders } from "../../lib/api-client";
 import { TaskReviewTab } from "./task-review-tab";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
@@ -237,10 +237,11 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     setUploading(true);
     try {
       const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
-      const token = localStorage.getItem("mondaily_session_token");
-      const workspaceId = localStorage.getItem("mondaily_workspace_id");
+      const authHeaders = await getAuthHeaders();
+      // Remove Content-Type so browser sets multipart boundary automatically
+      const { "Content-Type": _ct, ...uploadHeaders } = authHeaders;
       const fd = new FormData(); fd.append("file", file); fd.append("user_name", userName);
-      const res = await fetch(`${apiUrl}/api/v1/tasks/${task.id}/upload`, { method: "POST", headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}) }, body: fd });
+      const res = await fetch(`${apiUrl}/api/v1/tasks/${task.id}/upload`, { method: "POST", headers: uploadHeaders, body: fd });
       if (res.ok) attachmentsQ.refetch();
     } catch {} setUploading(false);
   };
