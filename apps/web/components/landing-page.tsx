@@ -8,14 +8,10 @@ import { Logo } from "./logo";
 
 // ── Preloader ─────────────────────────────────────────────────────────────────
 const LOG_LINES = [
-  { tag: "[MONDAILY]", msg: "Bootstrapping AI workspace...",                           col: "#6366f1" },
-  { tag: "[DB]",       msg: "Connected to relational data graph — edges_v2 matched",   col: "#3f3f46" },
-  { tag: "[AI]",       msg: "Engine status: ACTIVE · model loaded · inference ready",  col: "#6366f1" },
-  { tag: "[DATA]",     msg: "Hydrating 42 company records from live web sources...",    col: "#3f3f46" },
-  { tag: "[ENRICH]",   msg: "12 records enriched — ARR, headcount, signals · 0 err",   col: "#3f3f46" },
-  { tag: "[PIPELINE]", msg: "3 deals auto-advanced via activity rules",                 col: "#3f3f46" },
-  { tag: "[SEQ]",      msg: "Sequence engine running · 847 contacts enrolled",          col: "#3f3f46" },
-  { tag: "[WS]",       msg: "Workspace ready — loading interface...",                   col: "#6366f1" },
+  { tag: "[MONDAILY]", msg: "Bootstrapping AI workspace...",                          col: "#6366f1" },
+  { tag: "[AI]",       msg: "Engine ready · inference active",                        col: "#6366f1" },
+  { tag: "[DATA]",     msg: "Records enriched · pipeline synced",                     col: "#3f3f46" },
+  { tag: "[WS]",       msg: "Workspace ready",                                        col: "#6366f1" },
 ];
 
 function nowStamp() {
@@ -38,17 +34,17 @@ function Preloader({ onDone }: { onDone: () => void }) {
         idx.current++;
       } else {
         clearInterval(interval);
-        setTimeout(() => setFade(true), 400);
-        setTimeout(() => onDone(), 900);
+        setTimeout(() => setFade(true), 250);
+        setTimeout(() => onDone(), 550);
       }
-    }, 250);
+    }, 180);
     return () => clearInterval(interval);
   }, [onDone]);
 
   return (
     <motion.div
       animate={{ opacity: fade ? 0 : 1 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.35 }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8"
     >
       <div className="w-full max-w-lg">
@@ -56,7 +52,7 @@ function Preloader({ onDone }: { onDone: () => void }) {
           <Logo size={36} />
         </div>
 
-        <div className="mb-6 flex h-[180px] flex-col justify-end gap-3 overflow-hidden font-mono">
+        <div className="mb-6 flex h-[120px] flex-col justify-end gap-3 overflow-hidden font-mono">
           <AnimatePresence initial={false}>
             {lines.slice(-5).map(l => (
               <motion.div
@@ -747,7 +743,7 @@ function WorkflowDemo() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section id="workflow" className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.workflow</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         <span className="text-violet-500">{">"}</span> What happens when a record enters Mondaily
@@ -1026,6 +1022,15 @@ function AutomationFlow() {
       <p className="mb-6 font-mono text-[13px] text-zinc-500">
         Visual flows that trigger on real CRM events — no code, no ops overhead.
       </p>
+
+      {/* Plain-language framing — the workspace brain, not a technical diagram */}
+      <div className="mb-10 flex flex-wrap items-center gap-2.5 rounded-xl border border-black/[.05] bg-zinc-50/70 px-5 py-4 text-[14px] font-medium text-zinc-700">
+        <span>Data comes in</span>
+        <span className="text-indigo-400">→</span>
+        <span className="text-indigo-600">AI understands</span>
+        <span className="text-indigo-400">→</span>
+        <span>Work gets done</span>
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
         {/* Flow diagram */}
@@ -1919,6 +1924,71 @@ function AgentsSection() {
   );
 }
 
+// ── Live signal cards — concrete examples of what the AI actually surfaces ──
+const LIVE_SIGNALS = [
+  {
+    text: "2 deals at risk", source: "Pipeline", confidence: 94, accent: "#dc2626",
+    action: "Review deals →",
+  },
+  {
+    text: "Follow-up drafted", source: "Emails", confidence: 88, accent: "#4f46e5",
+    action: "Review draft →",
+  },
+  {
+    text: "Invoice likely overdue", source: "Finance", confidence: 91, accent: "#d97706",
+    action: "Send reminder →",
+  },
+  {
+    text: "New contact enriched", source: "Contacts", confidence: 97, accent: "#059669",
+    action: "View record →",
+  },
+];
+
+function LiveSignalsSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.signals</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{">"}</span> What Mondaily notices while you work
+      </h2>
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Every signal below comes with where it was found, how confident the AI is, and a suggested next step — never a guess presented as fact.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {LIVE_SIGNALS.map((s, i) => (
+          <motion.div
+            key={s.text}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.4, delay: i * 0.07 }}
+            whileHover={{ y: -3 }}
+            className="rounded-xl border border-black/[.05] bg-white p-4"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-50 animate-ping" style={{ background: s.accent }}/>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: s.accent }}/>
+              </span>
+              <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: `${s.accent}12`, color: s.accent }}>
+                AI {s.confidence}%
+              </span>
+            </div>
+            <p className="mb-2.5 text-[15px] font-medium text-zinc-800">{s.text}</p>
+            <div className="mb-3.5 flex items-center gap-1.5">
+              <span className="rounded-full border border-black/[.06] bg-black/[.02] px-2 py-0.5 text-[11px] text-zinc-500">{s.source}</span>
+            </div>
+            <button className="text-[13px] font-medium transition-opacity hover:opacity-70" style={{ color: s.accent }}>
+              {s.action}
+            </button>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const TRUST_BADGES: { icon: React.ReactElement; label: string }[] = [
   {
     label: "GDPR Compliant Architecture",
@@ -1952,6 +2022,68 @@ const TRUST_BADGES: { icon: React.ReactElement; label: string }[] = [
     ),
   },
 ];
+
+// ── Trust / data isolation ───────────────────────────────────────────────────
+const TRUST_POINTS = [
+  {
+    title: "Workspace isolation",
+    desc: "Every client gets a fully isolated workspace — data never crosses tenant boundaries.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/></svg>),
+  },
+  {
+    title: "AI reads your workspace only",
+    desc: "Ask Mondaily only ever sees the records, emails, and files inside your own workspace — never another customer's.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M5.6 18.4l1.7-1.7M16.7 7.3l1.7-1.7" strokeLinecap="round"/></svg>),
+  },
+  {
+    title: "Role-based permissions",
+    desc: "Every record is protected by role permissions — members only see what they've been granted access to.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round"/></svg>),
+  },
+  {
+    title: "Granular visibility",
+    desc: "Field-level and record-level controls mean teammates only ever see the data relevant to their role.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" strokeLinejoin="round"/><circle cx="12" cy="12" r="2.6"/></svg>),
+  },
+  {
+    title: "Admin controls & audit logs",
+    desc: "Workspace admins get full visibility into who did what, when — every sensitive action is logged.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 5h11v15H4V9l5-4Z" strokeLinejoin="round"/><path d="M9 5v4H4" strokeLinejoin="round"/><path d="M8 13h7M8 16h5" strokeLinecap="round"/></svg>),
+  },
+];
+
+function TrustSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// trust.config</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{">"}</span> Your data, isolated and protected
+      </h2>
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Mondaily is built so the AI is as trustworthy as the team using it. Isolation and permissions aren&apos;t an afterthought — they&apos;re the foundation.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {TRUST_POINTS.map((p, i) => (
+          <motion.div
+            key={p.title}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.4, delay: i * 0.06 }}
+            className="rounded-xl border border-black/[.05] bg-white p-5"
+          >
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-500/[.07] text-indigo-600">
+              {p.icon}
+            </div>
+            <p className="mb-1.5 text-[15px] font-medium text-zinc-800">{p.title}</p>
+            <p className="text-[13px] leading-relaxed text-zinc-500">{p.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function TrustBadges() {
   return (
@@ -2180,9 +2312,26 @@ export function LandingPage() {
                 </h1>
 
                 {/* Subheading */}
-                <p className="mx-auto mb-8 font-mono text-[13px] text-zinc-500">
+                <p className="mx-auto mb-7 font-mono text-[13px] text-zinc-500">
                   {"// "}<span className="text-zinc-500">autonomous · enriched · always on</span>
                 </p>
+
+                {/* Primary / secondary CTAs */}
+                <div className="mb-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <a
+                    href="https://app.mondaily.com/sign-up"
+                    className="rounded-xl bg-indigo-600 px-6 py-3 font-mono text-[14px] font-medium text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+                  >
+                    Start your AI workspace →
+                  </a>
+                  <a
+                    href="#workflow"
+                    className="flex items-center gap-2 rounded-xl border border-black/[.08] bg-white px-6 py-3 font-mono text-[14px] font-medium text-zinc-700 hover:border-indigo-500/25 hover:text-indigo-600 transition-colors"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
+                    Watch AI run a workflow
+                  </a>
+                </div>
               </motion.div>
 
               {/* Chat search bar */}
@@ -2227,6 +2376,9 @@ export function LandingPage() {
 
           {/* ── Agents ── */}
           <AgentsSection />
+
+          {/* ── Live signal cards ── */}
+          <LiveSignalsSection />
 
           {/* ── Automation flow diagram ── */}
           <AutomationFlow />
@@ -2274,6 +2426,9 @@ export function LandingPage() {
               ))}
             </div>
           </section>
+
+          {/* ── Trust / data isolation ── */}
+          <TrustSection />
 
           {/* ── FAQ ── */}
           <FAQSection />

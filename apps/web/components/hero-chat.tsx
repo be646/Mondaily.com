@@ -19,14 +19,15 @@ const SUGGESTIONS: { text: string; icon: string }[] = [
   { icon: "◈", text: "How do automations work?" },
 ];
 
+// Plain-language reasoning flow — no raw code/log syntax, just what the AI is actually doing
 const PROCESS_STEPS = [
-  { lines: ["> mondaily.ai.process(query)", "  parsing intent..."] ,                               delay: 0 },
-  { lines: ["  intent: workspace_info", "  entities: 3 concepts extracted"] ,                      delay: 1200 },
-  { lines: ["[CONTEXT]  loading schema...", "  records: 8,420 · modules: 6"] ,                     delay: 2600 },
-  { lines: ["[SEARCH]   scanning record graph...", "  candidates: 42 · score: 0.94"] ,             delay: 4200 },
-  { lines: ["[REASON]   building context...", "  hops: 3 · confidence: 0.91"] ,                    delay: 5900 },
-  { lines: ["[GENERATE] streaming response...", "  awaiting model output..."] ,                     delay: 7800 },
+  { lines: ["Reading workspace graph"],   delay: 0 },
+  { lines: ["Finding relevant signals"],  delay: 1400 },
+  { lines: ["Cross-checking records"],    delay: 3000 },
+  { lines: ["Drafting an answer"],        delay: 4600 },
 ];
+
+const SOURCE_CHIPS = ["Contacts", "Deals", "Emails", "Finance", "Tasks"];
 
 function SendIcon() {
   return (
@@ -78,27 +79,24 @@ function ReplyTypewriter({ text }: { text: string }) {
   );
 }
 
-// Transparent, persistent process panel — fades gently, stays until reply
+// Transparent, persistent reasoning panel — a tasteful step list, not a fake terminal log
 function ProcessPanel({ visible }: { visible: boolean }) {
-  const [shownBlocks, setShownBlocks] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     timers.current.forEach(clearTimeout);
     if (visible) {
-      setShownBlocks(0);
+      setActiveStep(0);
       timers.current = PROCESS_STEPS.map((s, i) =>
-        setTimeout(() => setShownBlocks(i + 1), s.delay)
+        setTimeout(() => setActiveStep(i), s.delay)
       );
     } else {
-      // Don't immediately reset — let the exit animation play (handled by AnimatePresence)
-      const t = setTimeout(() => setShownBlocks(0), 600);
+      const t = setTimeout(() => setActiveStep(0), 600);
       timers.current = [t];
     }
     return () => timers.current.forEach(clearTimeout);
   }, [visible]);
-
-  const allLines = PROCESS_STEPS.slice(0, shownBlocks).flatMap(s => s.lines);
 
   return (
     <AnimatePresence>
@@ -117,50 +115,35 @@ function ProcessPanel({ visible }: { visible: boolean }) {
         >
           {/* Title bar */}
           <div className="flex items-center gap-2 border-b border-black/[.04] px-3 py-2">
-            <div className="flex gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-200"/>
-            </div>
-            <span className="font-mono text-[11px] text-zinc-500 tracking-wider">mondaily — inference</span>
+            <span className="text-[12px] text-zinc-600 font-medium">Ask Mondaily is thinking</span>
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 0.9, repeat: Infinity }}
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-700"
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
             />
           </div>
 
-          {/* Code lines */}
-          <div className="px-3 py-3 font-mono text-[14px] leading-[1.75] min-h-[150px]">
-            <AnimatePresence initial={false}>
-              {allLines.map((line, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 3 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22 }}
-                  className={
-                    line.startsWith(">")
-                      ? "text-indigo-500"
-                      : line.startsWith("[GENERATE]")
-                      ? "text-indigo-400"
-                      : line.startsWith("[")
-                      ? "text-indigo-600/80"
-                      : "text-zinc-600"
-                  }
-                >
-                  {line}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {shownBlocks > 0 && (
-              <motion.span
-                animate={{ opacity: [1, 0] }}
-                transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
-                className="inline-block w-[5px] h-[9px] bg-indigo-700/60 align-middle mt-0.5"
-              />
-            )}
+          {/* Reasoning steps */}
+          <div className="px-3.5 py-3.5 flex flex-col gap-2.5">
+            {PROCESS_STEPS.map((s, i) => {
+              const done = i < activeStep;
+              const current = i === activeStep;
+              const pending = i > activeStep;
+              return (
+                <div key={i} className={`flex items-center gap-2.5 transition-opacity ${pending ? "opacity-35" : "opacity-100"}`}>
+                  <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                    {done ? (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    ) : current ? (
+                      <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-500"/>
+                    ) : (
+                      <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
+                    )}
+                  </span>
+                  <span className={`text-[13px] ${current ? "text-indigo-600 font-medium" : "text-zinc-500"}`}>{s.lines[0]}</span>
+                </div>
+              );
+            })}
           </div>
         </motion.div>
       )}
@@ -226,6 +209,16 @@ export function HeroChat() {
           transition={{ duration: loading ? 1.0 : 3.5, repeat: Infinity, ease: "easeInOut" }}
           style={{ border: "1px solid rgba(99,102,241,0.18)", background: "#ffffff" }}
         >
+          {/* Source chips — what Ask Mondaily actually reads from */}
+          <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3.5 pb-2.5">
+            <span className="shrink-0 text-[11px] text-zinc-400">Reads from</span>
+            {SOURCE_CHIPS.map(s => (
+              <span key={s} className="shrink-0 rounded-full border border-indigo-100 bg-indigo-50/70 px-2.5 py-0.5 text-[11px] font-medium text-indigo-600">
+                {s}
+              </span>
+            ))}
+          </div>
+
           {/* Suggestion messages — shown when idle, no history */}
           <AnimatePresence>
             {showSuggestions && (
