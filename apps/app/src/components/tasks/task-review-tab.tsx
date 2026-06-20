@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
-import { CheckCircle, AlertCircle, UserPlus, Clock, RotateCcw } from "lucide-react";
+import { CheckCircle, AlertCircle, UserPlus, RotateCcw } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
@@ -15,24 +15,24 @@ interface TaskReview {
 type Screen = "idle" | "send" | "action" | "reassign";
 
 function Avatar({ name, size = 7 }: { name: string; size?: number }) {
-  const colors = ["bg-indigo-500/20 text-indigo-400","bg-blue-500/20 text-blue-400","bg-green-500/20 text-green-400","bg-purple-500/20 text-purple-400","bg-orange-500/20 text-orange-400"];
+  const colors = ["bg-indigo-500/20 text-indigo-600 dark:text-indigo-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-green-500/20 text-green-600 dark:text-green-400","bg-purple-500/20 text-purple-600 dark:text-purple-400","bg-orange-500/20 text-orange-600 dark:text-orange-400"];
   const color = colors[name.charCodeAt(0) % colors.length];
   return <div className={`h-${size} w-${size} rounded-full ${color} flex items-center justify-center text-xs font-semibold shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
 }
 
 function RoundBadge({ round }: { round: number }) {
-  return <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-slate-400 font-medium">Round {round}</span>;
+  return <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>Round {round}</span>;
 }
 
 function ReviewHistoryItem({ review }: { review: TaskReview }) {
-  const actionColor = review.action === "approved" ? "text-emerald-400" : review.action === "changes_requested" ? "text-orange-400" : "text-slate-400";
+  const actionColor = review.action === "approved" ? "#10b981" : review.action === "changes_requested" ? "#d97706" : "var(--text-muted)";
   const actionLabel = review.action === "approved" ? "Approved" : review.action === "changes_requested" ? "Changes Requested" : review.action === "reassigned" ? "Reassigned" : "Pending";
 
   return (
-    <div className="rounded-xl border border-white/[.06] p-4 space-y-3">
+    <div className="surface-card space-y-3 rounded-xl p-4">
       <div className="flex items-center justify-between">
         <RoundBadge round={review.round}/>
-        <span className={`text-xs font-medium ${review.status === "pending" ? "text-blue-400" : actionColor}`}>
+        <span className="text-xs font-medium" style={{ color: review.status === "pending" ? "#3b82f6" : actionColor }}>
           {review.status === "pending" ? "Pending" : actionLabel}
         </span>
       </div>
@@ -40,29 +40,29 @@ function ReviewHistoryItem({ review }: { review: TaskReview }) {
       <div className="flex items-center gap-2">
         <Avatar name={review.sent_by_name} size={6}/>
         <div>
-          <p className="text-xs text-slate-400">Sent by <span className="text-white">{review.sent_by_name}</span></p>
-          <p className="text-[11px] text-slate-600">{new Date(review.sent_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sent by <span style={{ color: "var(--text-primary)" }}>{review.sent_by_name}</span></p>
+          <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{new Date(review.sent_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
         </div>
       </div>
 
       {review.context && (
-        <div className="rounded-lg bg-white/[.03] border border-white/[.04] px-3 py-2">
-          <p className="text-[11px] text-slate-500 mb-1">What to review</p>
-          <p className="text-xs text-slate-300">{review.context}</p>
+        <div className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+          <p className="text-[11px] mb-1" style={{ color: "var(--text-faint)" }}>What to review</p>
+          <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{review.context}</p>
         </div>
       )}
 
       <div className="flex items-center gap-2">
         <Avatar name={review.reviewer_name} size={6}/>
         <div>
-          <p className="text-xs text-slate-400">Reviewer: <span className="text-white">{review.reviewer_name}</span></p>
-          {review.action_at && <p className="text-[11px] text-slate-600">{new Date(review.action_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>}
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Reviewer: <span style={{ color: "var(--text-primary)" }}>{review.reviewer_name}</span></p>
+          {review.action_at && <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{new Date(review.action_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>}
         </div>
       </div>
 
       {review.action_note && (
-        <div className={`rounded-lg px-3 py-2 border ${review.action === "approved" ? "bg-emerald-500/5 border-emerald-500/20" : "bg-orange-500/5 border-orange-500/20"}`}>
-          <p className={`text-xs ${review.action === "approved" ? "text-emerald-400" : "text-orange-400"}`}>{review.action_note}</p>
+        <div className="rounded-lg px-3 py-2 border" style={review.action === "approved" ? { background: "rgba(16,185,129,0.06)", borderColor: "rgba(16,185,129,0.2)" } : { background: "rgba(217,119,6,0.06)", borderColor: "rgba(217,119,6,0.2)" }}>
+          <p className="text-xs" style={{ color: review.action === "approved" ? "#10b981" : "#d97706" }}>{review.action_note}</p>
         </div>
       )}
     </div>
@@ -128,26 +128,27 @@ export function TaskReviewTab({ task, members, onUpdate }: {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Send for Review</h3>
-          <button onClick={() => setScreen("idle")} className="text-xs text-slate-500 hover:text-white">Cancel</button>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Send for Review</h3>
+          <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-indigo-600 dark:hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Cancel</button>
         </div>
 
         <div>
-          <label className="text-xs text-slate-500 mb-1.5 block">What needs to be reviewed? *</label>
+          <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>What needs to be reviewed? *</label>
           <textarea value={context} onChange={e => setContext(e.target.value)} rows={3} autoFocus
             placeholder="e.g. Please check the pricing section and verify the client requirements are met..."
-            className="w-full rounded-xl border border-white/10 bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
+            className="key-input w-full px-3 py-2.5 text-sm resize-none"/>
         </div>
 
         <div>
-          <label className="text-xs text-slate-500 mb-1.5 block">Choose reviewer *</label>
+          <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Choose reviewer *</label>
           <div className="space-y-1.5 max-h-48 overflow-auto">
             {members.map(m => (
               <button key={m.user_id} onClick={() => setSelectedReviewer(m)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors ${selectedReviewer?.user_id === m.user_id ? "border-white/20 bg-white/[.06]" : "border-white/[.06] hover:border-white/10 hover:bg-white/[.03]"}`}>
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors"
+                style={selectedReviewer?.user_id === m.user_id ? { borderColor: "var(--border-strong)", background: "var(--surface-selected)" } : { borderColor: "var(--border-soft)" }}>
                 <Avatar name={m.name || m.email}/>
-                <span className="flex-1 text-sm text-slate-200 text-left">{m.name || m.email}</span>
-                {selectedReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-emerald-400 shrink-0"/>}
+                <span className="flex-1 text-sm text-left" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
+                {selectedReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-emerald-500 dark:text-emerald-400 shrink-0"/>}
               </button>
             ))}
           </div>
@@ -155,7 +156,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
         <button onClick={() => context.trim() && selectedReviewer && sendReview.mutate()}
           disabled={!context.trim() || !selectedReviewer || sendReview.isPending}
-          className="w-full h-10 rounded-xl bg-white text-sm font-medium text-black disabled:opacity-30 hover:bg-white/90 transition-colors">
+          className="btn-primary w-full h-10 text-sm font-medium">
           {sendReview.isPending ? "Sending..." : "Send for Review →"}
         </button>
       </div>
@@ -167,36 +168,36 @@ export function TaskReviewTab({ task, members, onUpdate }: {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Review Action</h3>
-          <button onClick={() => setScreen("idle")} className="text-xs text-slate-500 hover:text-white">Back</button>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Review Action</h3>
+          <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-indigo-600 dark:hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Back</button>
         </div>
 
-        <div className="rounded-xl border border-white/[.06] p-4">
-          <p className="text-xs text-slate-500 mb-1">Reviewing</p>
-          <p className="text-sm text-white font-medium mb-3">{pendingReview.context}</p>
-          <p className="text-xs text-slate-500">Sent by <span className="text-slate-300">{pendingReview.sent_by_name}</span></p>
+        <div className="surface-card rounded-xl p-4">
+          <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Reviewing</p>
+          <p className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>{pendingReview.context}</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sent by <span style={{ color: "var(--text-secondary)" }}>{pendingReview.sent_by_name}</span></p>
         </div>
 
         <div>
-          <label className="text-xs text-slate-500 mb-1.5 block">Add a note (optional for approval, required for changes)</label>
+          <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Add a note (optional for approval, required for changes)</label>
           <textarea value={actionNote} onChange={e => setActionNote(e.target.value)} rows={3}
             placeholder="Your feedback..."
-            className="w-full rounded-xl border border-white/10 bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-white/20"/>
+            className="key-input w-full px-3 py-2.5 text-sm resize-none"/>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => takeAction.mutate("approved")} disabled={takeAction.isPending}
-            className="flex items-center justify-center gap-2 h-10 rounded-xl bg-emerald-600/90 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors">
+            className="flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition-colors"
+            style={{ background: "#10b981" }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#059669"; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#10b981"; }}>
             <CheckCircle size={15}/> Approve
           </button>
           <button onClick={() => actionNote.trim() && takeAction.mutate("changes_requested")} disabled={!actionNote.trim() || takeAction.isPending}
-            className="flex items-center justify-center gap-2 h-10 rounded-xl bg-white/[.07] text-sm font-medium text-slate-300 hover:bg-white/[.10] border border-white/10 disabled:opacity-50 transition-colors">
+            className="btn-secondary flex items-center justify-center gap-2 h-10 text-sm font-medium">
             <AlertCircle size={15}/> Request Changes
           </button>
         </div>
 
-        <button onClick={() => setScreen("reassign")}
-          className="flex items-center justify-center gap-2 w-full h-9 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors">
+        <button onClick={() => setScreen("reassign")} className="btn-ghost flex items-center justify-center gap-2 w-full h-9 border text-sm" style={{ borderColor: "var(--border-soft)" }}>
           <UserPlus size={14}/> Reassign to someone else
         </button>
       </div>
@@ -208,33 +209,34 @@ export function TaskReviewTab({ task, members, onUpdate }: {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Reassign Review</h3>
-          <button onClick={() => setScreen("action")} className="text-xs text-slate-500 hover:text-white">Back</button>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Reassign Review</h3>
+          <button onClick={() => setScreen("action")} className="text-xs transition-colors hover:text-indigo-600 dark:hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Back</button>
         </div>
 
         <div>
-          <label className="text-xs text-slate-500 mb-1.5 block">Choose new reviewer</label>
+          <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Choose new reviewer</label>
           <div className="space-y-1.5 max-h-48 overflow-auto">
             {members.filter(m => m.user_id !== userId).map(m => (
               <button key={m.user_id} onClick={() => setNewReviewer(m)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors ${newReviewer?.user_id === m.user_id ? "border-white/20 bg-white/[.06]" : "border-white/[.06] hover:border-white/10"}`}>
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors"
+                style={newReviewer?.user_id === m.user_id ? { borderColor: "var(--border-strong)", background: "var(--surface-selected)" } : { borderColor: "var(--border-soft)" }}>
                 <Avatar name={m.name || m.email}/>
-                <span className="flex-1 text-sm text-slate-200 text-left">{m.name || m.email}</span>
-                {newReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-emerald-400"/>}
+                <span className="flex-1 text-sm text-left" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
+                {newReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-emerald-500 dark:text-emerald-400"/>}
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-slate-500 mb-1.5 block">Reason for reassigning (optional)</label>
+          <label className="text-xs mb-1.5 block" style={{ color: "var(--text-muted)" }}>Reason for reassigning (optional)</label>
           <textarea value={actionNote} onChange={e => setActionNote(e.target.value)} rows={2}
             placeholder="Why are you reassigning this?"
-            className="w-full rounded-xl border border-white/10 bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none resize-none"/>
+            className="key-input w-full px-3 py-2.5 text-sm resize-none"/>
         </div>
 
         <button onClick={() => newReviewer && reassign.mutate()} disabled={!newReviewer || reassign.isPending}
-          className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-white/[.07] border border-white/10 text-sm font-medium text-white disabled:opacity-30 hover:bg-white/[.10] transition-colors">
+          className="btn-secondary flex items-center justify-center gap-2 w-full h-10 text-sm font-medium">
           <UserPlus size={14}/> Reassign Review
         </button>
       </div>
@@ -247,11 +249,11 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
       {/* Pending review card */}
       {pendingReview && (
-        <div className="rounded-xl border border-white/10 bg-white/[.02] p-4 space-y-3">
+        <div className="surface-card space-y-3 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
-              <span className="text-sm font-medium text-white">Pending Review</span>
+              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Pending Review</span>
             </div>
             <RoundBadge round={pendingReview.round}/>
           </div>
@@ -259,51 +261,50 @@ export function TaskReviewTab({ task, members, onUpdate }: {
           <div className="flex items-center gap-2">
             <Avatar name={pendingReview.sent_by_name} size={6}/>
             <div>
-              <p className="text-xs text-slate-400">Sent by <span className="text-white">{pendingReview.sent_by_name}</span></p>
-              <p className="text-[11px] text-slate-600">{new Date(pendingReview.sent_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sent by <span style={{ color: "var(--text-primary)" }}>{pendingReview.sent_by_name}</span></p>
+              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{new Date(pendingReview.sent_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white/[.03] border border-white/[.04] px-3 py-2">
-            <p className="text-[11px] text-slate-500 mb-1">What to review</p>
-            <p className="text-xs text-slate-300">{pendingReview.context}</p>
+          <div className="rounded-lg border px-3 py-2" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+            <p className="text-[11px] mb-1" style={{ color: "var(--text-faint)" }}>What to review</p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{pendingReview.context}</p>
           </div>
 
           <div className="flex items-center gap-2">
             <Avatar name={pendingReview.reviewer_name} size={6}/>
-            <p className="text-xs text-slate-400">Reviewer: <span className="text-white">{pendingReview.reviewer_name}</span></p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Reviewer: <span style={{ color: "var(--text-primary)" }}>{pendingReview.reviewer_name}</span></p>
           </div>
 
           {/* Reviewer actions */}
           {isReviewer && (
-            <button onClick={() => setScreen("action")}
-              className="w-full h-9 rounded-xl bg-white text-sm font-medium text-black hover:bg-white/90 transition-colors">
+            <button onClick={() => setScreen("action")} className="btn-primary w-full h-9 text-sm font-medium">
               Take Action →
             </button>
           )}
 
           {/* Owner can cancel */}
           {isOwner && !isReviewer && (
-            <p className="text-xs text-slate-600 text-center">Waiting for {pendingReview.reviewer_name} to review</p>
+            <p className="text-xs text-center" style={{ color: "var(--text-faint)" }}>Waiting for {pendingReview.reviewer_name} to review</p>
           )}
         </div>
       )}
 
       {/* Review result */}
       {task.review_result && !pendingReview && (
-        <div className={`rounded-xl border p-4 ${task.review_result === "approved" ? "border-emerald-500/20 bg-emerald-500/5" : "border-orange-500/20 bg-orange-500/5"}`}>
+        <div className="rounded-xl border p-4" style={task.review_result === "approved" ? { borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.05)" } : { borderColor: "rgba(217,119,6,0.2)", background: "rgba(217,119,6,0.05)" }}>
           <div className="flex items-center gap-2 mb-1">
             {task.review_result === "approved"
-              ? <CheckCircle size={15} className="text-emerald-400"/>
-              : <AlertCircle size={15} className="text-orange-400"/>}
-            <span className={`text-sm font-medium ${task.review_result === "approved" ? "text-emerald-400" : "text-orange-400"}`}>
+              ? <CheckCircle size={15} className="text-emerald-500 dark:text-emerald-400"/>
+              : <AlertCircle size={15} className="text-amber-500 dark:text-amber-400"/>}
+            <span className="text-sm font-medium" style={{ color: task.review_result === "approved" ? "#10b981" : "#d97706" }}>
               {task.review_result === "approved" ? "Approved" : "Changes Requested"}
             </span>
           </div>
-          <p className="text-xs text-slate-500">by {task.reviewer_name} · See Comments tab for details</p>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>by {task.reviewer_name} · See Comments tab for details</p>
           {task.review_result === "changes_requested" && isOwner && (
             <button onClick={() => setScreen("send")}
-              className="mt-3 flex items-center gap-1.5 text-xs text-white border border-white/10 rounded-lg px-3 py-1.5 hover:bg-white/[.05] transition-colors">
+              className="btn-secondary mt-3 flex items-center gap-1.5 px-3 py-1.5 text-xs">
               <RotateCcw size={12}/> Resubmit for Review
             </button>
           )}
@@ -312,8 +313,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
       {/* Send for review button - only show if no pending and no result, or after approval */}
       {!pendingReview && (!task.review_result || task.review_result === "approved") && isOwner && (
-        <button onClick={() => setScreen("send")}
-          className="w-full h-10 rounded-xl border border-white/10 text-sm text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/[.03] transition-colors">
+        <button onClick={() => setScreen("send")} className="btn-ghost w-full h-10 border text-sm" style={{ borderColor: "var(--border-soft)" }}>
           Send for Review →
         </button>
       )}
@@ -321,7 +321,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
       {/* Review history */}
       {history.length > 0 && (
         <div>
-          <p className="text-xs text-slate-600 uppercase tracking-wider mb-3">Review History</p>
+          <p className="text-xs uppercase tracking-wider mb-3" style={{ color: "var(--text-faint)" }}>Review History</p>
           <div className="space-y-3">
             {history.map(r => <ReviewHistoryItem key={r.id} review={r}/>)}
           </div>
@@ -329,7 +329,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
       )}
 
       {reviews.length === 0 && !pendingReview && (
-        <p className="text-sm text-slate-600 text-center py-6">No review history yet</p>
+        <p className="text-sm text-center py-6" style={{ color: "var(--text-faint)" }}>No review history yet</p>
       )}
     </div>
   );

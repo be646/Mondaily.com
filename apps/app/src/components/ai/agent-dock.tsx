@@ -177,15 +177,21 @@ export function AgentDock({ collapsed = false }: { collapsed?: boolean }) {
           <Link
             key={agent.id}
             to={agent.to}
-            className="flex items-center gap-2.5 px-2.5 py-2 text-left transition-colors surface-hover"
+            className="group flex items-start gap-2.5 px-2.5 py-2 text-left transition-colors surface-hover"
             style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}
           >
-            <agent.icon size={13} style={{ color: "var(--text-muted)" }} className="shrink-0" />
+            <agent.icon size={13} style={{ color: "var(--text-muted)" }} className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{agent.name}</div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{agent.name}</span>
+                <span className="agent-dot shrink-0" data-status={agent.status} title={STATUS_LABEL[agent.status]} />
+              </div>
               <div className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{agent.detail}</div>
+              {/* Revealed on hover — what this agent is actively watching */}
+              <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-150 group-hover:max-h-5 group-hover:opacity-100">
+                <div className="mt-1 truncate text-[10px] italic" style={{ color: "var(--text-muted)" }}>Watching: {agent.watching}</div>
+              </div>
             </div>
-            <span className="agent-dot shrink-0" data-status={agent.status} title={STATUS_LABEL[agent.status]} />
           </Link>
         ))}
       </div>
