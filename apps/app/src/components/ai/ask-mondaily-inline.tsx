@@ -2,6 +2,7 @@ import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
 import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
+import { friendlyAskError } from "./ask-shared";
 
 export function AskMondailyInline({ placeholder, onResponse }: { placeholder: string; onResponse?: (text: string) => void }) {
   const [value, setValue] = useState("");
@@ -20,10 +21,11 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
         headers,
         body: JSON.stringify({ message })
       });
+      if (!response.ok) throw new Error(`AI error: ${response.status}`);
       const data = await response.json();
       onResponse?.(data.reply || data.message || "No response.");
     } catch (err: any) {
-      onResponse?.(`Connection error: ${err.message}`);
+      onResponse?.(friendlyAskError(err));
     } finally {
       setLoading(false);
     }
@@ -44,7 +46,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
         placeholder={placeholder}
       />
       <button
-        className="grid h-8 w-8 place-items-center text-indigo-400 disabled:opacity-40"
+        className="grid h-8 w-8 place-items-center rounded-lg text-indigo-400 transition-colors hover:bg-indigo-500/10 disabled:opacity-40"
         type="submit"
         disabled={loading || !value.trim()}
       >

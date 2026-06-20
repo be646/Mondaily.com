@@ -3,6 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { CommandCenterStrip } from "../../components/ai/command-center";
+import {
+  GRAPH_REASONING_STEPS, inferAgentHandoff, friendlyAskError,
+  EvidenceStrip, type SourceCardData,
+} from "../../components/ai/ask-shared";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -87,25 +91,25 @@ const QUICK_PROMPTS = [
     icon: BellDot,
     label: "Daily brief",
     description: "Everything that happened",
-    prompt: "Give me a full daily brief: check my notifications, list my open tasks by priority, highlight any overdue items, and summarise recent CRM activity (deals, contacts updated today). Then tell me exactly what I should focus on right now and suggest 3 specific actions to take.",
+    prompt: "Give me a full daily brief: check my notifications, list my open tasks by priority, highlight any overdue items, and summarise recent activity across the workspace graph. Then tell me exactly what I should focus on right now and suggest 3 specific actions to take.",
   },
   {
     icon: TrendingUp,
-    label: "Deals needing attention",
-    description: "CRM pipeline check",
-    prompt: "Review all my deals in the CRM. Which ones are stalled, overdue for follow-up, or close to closing? Rank them by urgency and tell me exactly what action to take on each one.",
+    label: "What needs attention?",
+    description: "Stalled deals, assets, relationships",
+    prompt: "Review the workspace graph. Which deals, assets, or relationships are stalled, overdue for follow-up, or close to closing? Rank them by urgency and tell me exactly what action to take on each one.",
   },
   {
     icon: Brain,
     label: "Meeting prep",
     description: "Brief on who you're meeting",
-    prompt: "Help me prep for my next meeting. Search my CRM for the contact or company I'm meeting with, find any related deals or tasks, and give me a concise brief: key facts, open items, what to ask, and what outcome to aim for.",
+    prompt: "Help me prep for my next meeting. Search the workspace graph for the contact or company I'm meeting with, find any related deals, finance, or tasks, and give me a concise brief: key facts, open items, what to ask, and what outcome to aim for.",
   },
   {
     icon: MailCheck,
-    label: "Follow-up email",
+    label: "Follow-up message",
     description: "Draft after a meeting",
-    prompt: "Draft a professional follow-up email for my last meeting. Check my recent tasks and CRM records for context on who I met, what was discussed, and any open action items. Make it concise, warm, and end with a clear next step.",
+    prompt: "Draft a professional follow-up message for my last meeting. Check my recent tasks and the workspace graph for context on who I met, what was discussed, and any open action items. Make it concise, warm, and end with a clear next step.",
   },
   {
     icon: ListChecks,
@@ -117,7 +121,7 @@ const QUICK_PROMPTS = [
     icon: Zap,
     label: "What needs action today?",
     description: "Urgent items right now",
-    prompt: "Scan everything — my tasks, notifications, and CRM — and tell me what genuinely needs my attention today. Only surface real urgent items: overdue tasks, deals at risk, unread important notifications. Give me a ranked list with one action per item.",
+    prompt: "Scan everything across the workspace graph — tasks, notifications, finance, relationships — and tell me what genuinely needs my attention today. Only surface real urgent items. Give me a ranked list with one action per item.",
   },
 ] as const;
 
@@ -145,6 +149,8 @@ export function HomePage() {
   const [taskWidgetLoading, setTaskWidgetLoading] = useState(false);
   const [taskWidgetReply, setTaskWidgetReply] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [messageMeta, setMessageMeta] = useState<Record<number, { agent: ReturnType<typeof inferAgentHandoff>; sources: SourceCardData[] }>>({});
+  const [thinkingStep, setThinkingStep] = useState(0);
   const taskWidgetInputRef = useRef<HTMLInputElement>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
   const [taskPromptPickerOpen, setTaskPromptPickerOpen] = useState(false);
@@ -159,6 +165,12 @@ export function HomePage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!loading) { setThinkingStep(0); return; }
+    const id = setInterval(() => setThinkingStep(s => Math.min(s + 1, GRAPH_REASONING_STEPS.length - 1)), 850);
+    return () => clearInterval(id);
+  }, [loading]);
 
   useEffect(() => {
     if (!promptPickerOpen) return;
@@ -260,9 +272,10 @@ export function HomePage() {
       setMessages(finalMsgs);
       addMessageToThread(threadId, aiMsg);
       startStreaming(finalMsgs.length - 1, reply);
+      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: [] as SourceCardData[] } }));
       if (data.suggestions?.length) setSuggestions(data.suggestions);
     } catch (err: any) {
-      const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
+      const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err) };
       setMessages([...withUser, errMsg]);
       addMessageToThread(threadId, errMsg);
     }
@@ -274,6 +287,7 @@ export function HomePage() {
     setCurrentThreadId(null);
     setInput("");
     setSuggestions([]);
+    setMessageMeta({});
   };
 
   const startStreaming = (msgIdx: number, fullText: string) => {
@@ -329,7 +343,7 @@ export function HomePage() {
       setScanReport(data.reply || "No results.");
       qc.invalidateQueries({ queryKey: ["tasks", "home"] });
     } catch (err: any) {
-      setScanReport(`Error: ${err.message}`);
+      setScanReport(friendlyAskError(err));
     }
     setScanLoading(false);
   };
@@ -359,7 +373,7 @@ export function HomePage() {
       // Refresh task list in case AI created/updated tasks
       qc.invalidateQueries({ queryKey: ["tasks", "home"] });
     } catch (err: any) {
-      setTaskWidgetReply(`Error: ${err.message}`);
+      setTaskWidgetReply(friendlyAskError(err));
     }
     setTaskWidgetLoading(false);
   };
@@ -480,7 +494,7 @@ export function HomePage() {
               <h2 className="text-[17px] font-semibold text-[#111827] dark:text-white">What should we do next?</h2>
             </div>
             <p className="text-[13px] text-[#6b7280] dark:text-slate-500">
-              Ask Mondaily across tasks, deals, notes, emails, and finance.
+              Ask the workspace graph across tasks, finance, relationships, notes, and workflows.
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {[
@@ -516,6 +530,8 @@ export function HomePage() {
                 const accent = ACCENTS[aiIdx % ACCENTS.length] ?? ACCENTS[0]!;
                 const isStreaming = streamingMsgIdx === i;
                 const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
+                const meta = messageMeta[i];
+                const AgentIcon = meta?.agent.icon;
                 return (
                   <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                     {m.role === "assistant" && (
@@ -528,9 +544,30 @@ export function HomePage() {
                         {m.content}
                       </div>
                     ) : (
-                      <div className={`flex-1 min-w-0 border-l-2 pl-4 text-sm space-y-0.5 ${accent.border}`}>
-                        {renderMarkdown(displayText)}
-                        {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
+                      <div className="flex-1 min-w-0">
+                        <div className={`border-l-2 pl-4 text-sm space-y-0.5 ${accent.border}`}>
+                          {renderMarkdown(displayText)}
+                          {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
+                        </div>
+                        {!isStreaming && meta && AgentIcon && (
+                          <div className="flex flex-wrap items-center gap-2 mt-2 pl-4">
+                            <span className="agent-badge" data-status="draft_ready">
+                              <AgentIcon size={10}/>
+                              {meta.agent.name}
+                            </span>
+                            <EvidenceStrip sources={meta.sources}/>
+                          </div>
+                        )}
+                        {!isStreaming && !loading && i === messages.length - 1 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
+                            <button onClick={() => sendSuggestion("Create a task to follow up on this.")} className="btn-ai">
+                              <Sparkles size={11}/> Create task
+                            </button>
+                            <button onClick={() => sendSuggestion("Show me related objects in the workspace graph for this.")} className="btn-suggested">
+                              Show related objects
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -540,7 +577,7 @@ export function HomePage() {
             {loading && (
               <div className="flex items-center gap-3 pl-1 text-slate-400">
                 <LogoMark size={22} thinking />
-                <span className="text-sm text-slate-500 italic tracking-wide">Thinking…</span>
+                <span className="text-sm text-slate-500 italic tracking-wide">{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
               </div>
             )}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
@@ -589,7 +626,7 @@ export function HomePage() {
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder={isChatting ? "Continue the conversation…" : "Ask Mondaily AI anything…"}
+              placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
               className="flex-1 bg-transparent text-sm text-[#111827] placeholder-[#9ca3af] outline-none dark:text-white dark:placeholder-slate-600"/>
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">Clear</button>

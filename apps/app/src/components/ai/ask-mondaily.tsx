@@ -1,4 +1,4 @@
-import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Sparkles } from "lucide-react";
 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
@@ -16,6 +16,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
+import {
+  GRAPH_REASONING_STEPS, inferAgentHandoff, friendlyAskError,
+  EvidenceStrip, SourceCard, type SourceCardData,
+} from "./ask-shared";
 
 // ── Markdown renderer (same as home) ─────────────────────────────────────────
 function renderMarkdown(text: string): React.ReactNode {
@@ -90,26 +94,26 @@ const QUICK_PROMPTS = [
   {
     icon: BellDot,
     label: "Daily brief",
-    description: "Everything that happened",
-    prompt: "Give me a full daily brief: check my notifications, list my open tasks by priority, highlight any overdue items, and summarise recent CRM activity. Then tell me exactly what I should focus on right now and suggest 3 specific actions.",
+    description: "Everything that happened across the graph",
+    prompt: "Give me a full daily brief: check my notifications, list my open tasks by priority, highlight any overdue items, and summarise recent activity across the workspace graph. Then tell me exactly what I should focus on right now and suggest 3 specific actions.",
   },
   {
     icon: TrendingUp,
-    label: "Deals needing attention",
-    description: "CRM pipeline check",
-    prompt: "Review all my deals in the CRM. Which ones are stalled, overdue for follow-up, or close to closing? Rank them by urgency and tell me exactly what action to take on each one.",
+    label: "What needs attention?",
+    description: "Stalled deals, assets, relationships",
+    prompt: "Review the workspace graph. Which deals, assets, or relationships are stalled, overdue for follow-up, or close to closing? Rank them by urgency and tell me exactly what action to take on each one.",
   },
   {
     icon: Brain,
     label: "Meeting prep",
     description: "Brief on who you're meeting",
-    prompt: "Help me prep for my next meeting. Search my CRM for the contact or company I'm meeting with, find any related deals or tasks, and give me a concise brief: key facts, open items, what to ask, and what outcome to aim for.",
+    prompt: "Help me prep for my next meeting. Search the workspace graph for the contact or company I'm meeting with, find any related deals, finance, or tasks, and give me a concise brief: key facts, open items, what to ask, and what outcome to aim for.",
   },
   {
     icon: MailCheck,
-    label: "Follow-up email",
+    label: "Follow-up message",
     description: "Draft after a meeting",
-    prompt: "Draft a professional follow-up email for my last meeting. Check my recent tasks and CRM records for context on who I met, what was discussed, and any open action items. Make it concise, warm, and end with a clear next step.",
+    prompt: "Draft a professional follow-up message for my last meeting. Check my recent tasks and the workspace graph for context on who I met, what was discussed, and any open action items. Make it concise, warm, and end with a clear next step.",
   },
   {
     icon: ListChecks,
@@ -121,15 +125,20 @@ const QUICK_PROMPTS = [
     icon: Zap,
     label: "What needs action today?",
     description: "Urgent items right now",
-    prompt: "Scan everything — my tasks, notifications, and CRM — and tell me what genuinely needs my attention today. Only surface real urgent items: overdue tasks, deals at risk, unread important notifications. Give me a ranked list with one action per item.",
+    prompt: "Scan everything across the workspace graph — tasks, notifications, finance, relationships — and tell me what genuinely needs my attention today. Only surface real urgent items. Give me a ranked list with one action per item.",
   },
 ] as const;
 
-const EMPTY_SUGGESTIONS = [
-  "Summarise my pipeline",
-  "What tasks are overdue?",
-  "Draft a follow-up email",
-  "Analyse my deals this week",
+const EMPTY_SUGGESTION_GROUPS = [
+  "Brief me on today",
+  "What changed in the workspace graph?",
+  "What decisions are waiting?",
+  "What assets need review?",
+  "What finance risks exist?",
+  "What workflows are blocked?",
+  "Summarize this week",
+  "Find stale relationships",
+  "Create tasks from recent signals",
 ];
 
 export function AskMondaily() {
@@ -150,6 +159,7 @@ export function AskMondaily() {
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [lastUserMsg, setLastUserMsg] = useState("");
+  const [messageMeta, setMessageMeta] = useState<Record<number, { agent: ReturnType<typeof inferAgentHandoff>; sources: SourceCardData[] }>>({});
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
   const [streamingMsgIdx, setStreamingMsgIdx] = useState<number | null>(null);
   const [streamedUpTo, setStreamedUpTo] = useState(0);
@@ -158,12 +168,12 @@ export function AskMondaily() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  // Thinking steps — cycles through while waiting on a response, purely cosmetic
-  const THINKING_STEPS = ["Searching workspace", "Reading related records", "Checking recent activity", "Composing answer"];
+  // Reasoning steps — cycles through while waiting on a response, honest UI
+  // state (not a fake animation): each label is a real phase of the request.
   const [thinkingStep, setThinkingStep] = useState(0);
   useEffect(() => {
     if (!loading) { setThinkingStep(0); return; }
-    const id = setInterval(() => setThinkingStep(s => Math.min(s + 1, THINKING_STEPS.length - 1)), 850);
+    const id = setInterval(() => setThinkingStep(s => Math.min(s + 1, GRAPH_REASONING_STEPS.length - 1)), 850);
     return () => clearInterval(id);
   }, [loading]);
 
@@ -182,9 +192,9 @@ export function AskMondaily() {
     if (threadId && threadId !== "new") {
       const t = getThreads().find(t => t.id === threadId);
       if (t) { setMessages(t.messages); setCurrentThreadId(t.id); }
-      else   { setMessages([]); setCurrentThreadId(null); }
+      else   { setMessages([]); setCurrentThreadId(null); setMessageMeta({}); }
     } else {
-      setMessages([]); setCurrentThreadId(null);
+      setMessages([]); setCurrentThreadId(null); setMessageMeta({});
     }
     setSuggestions([]);
   }, [threadId]);
@@ -237,6 +247,7 @@ export function AskMondaily() {
         headers,
         body: JSON.stringify({ message: text, model, web_search })
       });
+      if (!res.ok) throw new Error(`AI error: ${res.status}`);
       const data = await res.json() as { reply?: string; suggestions?: string[] };
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
@@ -244,9 +255,12 @@ export function AskMondaily() {
       setMessages(finalMsgs);
       addMessageToThread(tid, aiMsg);
       startStreaming(finalMsgs.length - 1, reply);
+      // Backend returns no source/agent metadata yet — infer a modest agent
+      // handoff client-side and record an empty source list honestly.
+      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: [] as SourceCardData[] } }));
       if (data.suggestions?.length) setSuggestions(data.suggestions);
     } catch (err: any) {
-      const errMsg: ChatMessage = { role: "assistant", content: `Error: ${err.message}` };
+      const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err) };
       setMessages([...withUser, errMsg]);
       addMessageToThread(tid, errMsg);
     }
@@ -308,8 +322,8 @@ export function AskMondaily() {
           <div className="flex items-center gap-3 text-[#111827] dark:text-white">
             <LogoSymbol size={28} thinking={loading} />
             <div>
-              <h1 className="text-sm font-semibold text-[#111827] dark:text-white tracking-wide">Ask Mondaily</h1>
-              <p className="text-[11px] text-[#9ca3af] dark:text-slate-500">{loading ? "Thinking…" : "Your AI business assistant"}</p>
+              <h1 className="text-sm font-semibold text-[#111827] dark:text-white tracking-wide">Ask the workspace graph</h1>
+              <p className="text-[11px] text-[#9ca3af] dark:text-slate-500">{loading ? GRAPH_REASONING_STEPS[thinkingStep] : "Reads tasks, finance, relationships, notes, and workflows — this workspace only"}</p>
             </div>
           </div>
           {isChatting && (
@@ -317,7 +331,7 @@ export function AskMondaily() {
               <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
                 <Download size={12}/> Export
               </button>
-              <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); }}
+              <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); setMessageMeta({}); }}
                 className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
                 New chat
               </button>
@@ -325,7 +339,7 @@ export function AskMondaily() {
           )}
         </div>
 
-        {/* Context strip — what the AI has access to */}
+        {/* Context strip — what the graph spans, kept deliberately broader than "CRM" */}
         <div className="flex items-center gap-2 px-6 pb-3 overflow-x-auto">
           <span className="flex items-center gap-1 text-[11px] text-[#9ca3af] dark:text-slate-600 shrink-0">
             <span className="relative flex h-1.5 w-1.5">
@@ -334,7 +348,7 @@ export function AskMondaily() {
             </span>
             Connected to your workspace graph
           </span>
-          {["Tasks", "Deals", "People", "Notes", "Emails"].map(label => (
+          {["Objects", "Tasks", "Finance", "Relationships", "Notes", "Workflows"].map(label => (
             <span key={label} className="shrink-0 rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-0.5 text-[10px] font-medium text-[#6b7280] dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-500">
               {label}
             </span>
@@ -345,17 +359,17 @@ export function AskMondaily() {
       {/* ── Message area ── */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarWidth: "none" }}>
 
-        {/* Empty state */}
+        {/* Empty state — command center, not a generic chatbot greeting */}
         {!isChatting && (
           <div className="flex h-full items-center justify-center">
-            <div className="w-full max-w-md text-center">
+            <div className="w-full max-w-lg text-center">
               <div className="mx-auto mb-5 flex items-center justify-center text-indigo-500 dark:text-white/80">
                 <LogoSymbol size={52} />
               </div>
-              <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">How can I help you today?</p>
-              <p className="text-xs text-[#9ca3af] dark:text-slate-500 mb-6">Ask about your pipeline, contacts, tasks, or anything business-related.</p>
+              <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">What do you want to know about the workspace graph?</p>
+              <p className="text-xs text-[#9ca3af] dark:text-slate-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {EMPTY_SUGGESTIONS.map(s => (
+                {EMPTY_SUGGESTION_GROUPS.map(s => (
                   <button key={s} onClick={() => sendSuggestion(s)} className="key-button px-3 py-1.5 text-xs">{s}</button>
                 ))}
               </div>
@@ -371,6 +385,8 @@ export function AskMondaily() {
             const accent = ACCENTS[aiIdx % ACCENTS.length] ?? ACCENTS[0]!;
             const isStreaming = streamingMsgIdx === i;
             const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
+            const meta = messageMeta[i];
+            const AgentIcon = meta?.agent.icon;
             return (
               <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                 {m.role === "assistant" && (
@@ -389,6 +405,25 @@ export function AskMondaily() {
                       {renderMarkdown(displayText)}
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
+
+                    {/* Agent handoff + evidence strip */}
+                    {!isStreaming && meta && AgentIcon && (
+                      <div className="flex flex-wrap items-center gap-2 mt-2 pl-4">
+                        <span className="agent-badge" data-status="draft_ready">
+                          <AgentIcon size={10}/>
+                          {meta.agent.name}
+                        </span>
+                        <EvidenceStrip sources={meta.sources}/>
+                      </div>
+                    )}
+
+                    {/* Source cards — honest empty state when backend returns none */}
+                    {!isStreaming && meta && meta.sources.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2 pl-4">
+                        {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
+                      </div>
+                    )}
+
                     {/* Action bar */}
                     {!isStreaming && i > 0 && (
                       <div className="flex items-center gap-0.5 mt-2 pl-4">
@@ -409,14 +444,28 @@ export function AskMondaily() {
                         )}
                       </div>
                     )}
-                    {/* Static follow-up actions — shown under the most recent finished AI response */}
+
+                    {/* Actions — only the ones with a real tool behind them are clickable */}
                     {!isStreaming && !loading && i === messages.length - 1 && (
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                        {["Create a task from this", "Show related records", "Draft email", "Explain why"].map(action => (
-                          <button key={action} onClick={() => sendSuggestion(action)}
-                            className="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors dark:border-indigo-400/20 dark:bg-indigo-500/[.06] dark:text-indigo-300 dark:hover:bg-indigo-500/[.12] dark:hover:border-indigo-400/30">
-                            {action}
-                          </button>
+                        <button onClick={() => sendSuggestion("Create a task to follow up on this.")} className="btn-ai">
+                          <Sparkles size={11}/> Create task from this
+                        </button>
+                        <button onClick={() => sendSuggestion("Draft a message based on this.")} className="btn-ai">
+                          <Sparkles size={11}/> Draft message
+                        </button>
+                        <button onClick={() => sendSuggestion("Show me the related objects in the workspace graph for this.")} className="btn-suggested">
+                          Show related objects
+                        </button>
+                        <button onClick={() => sendSuggestion("Explain your reasoning for that answer, step by step.")} className="btn-suggested">
+                          Explain reasoning
+                        </button>
+                        {["Create report", "Add to decision queue", "Start workflow"].map(label => (
+                          <span key={label} title="Coming soon — not wired to a workspace action yet"
+                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
+                            style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
+                            {label}
+                          </span>
                         ))}
                       </div>
                     )}
@@ -431,7 +480,7 @@ export function AskMondaily() {
         {loading && (
           <div className="flex items-center gap-3 pl-1 text-[#6b7280] dark:text-slate-400">
             <LogoSymbol size={36} thinking />
-            <span className="text-sm italic tracking-wide">{THINKING_STEPS[thinkingStep]}…</span>
+            <span className="text-sm italic tracking-wide">{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
           </div>
         )}
 
@@ -486,10 +535,10 @@ export function AskMondaily() {
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder={isChatting ? "Continue the conversation…" : "Ask Mondaily AI anything…"}
+              placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
               className="flex-1 bg-transparent text-sm text-[#111827] placeholder-[#9ca3af] outline-none dark:text-white dark:placeholder-slate-600"/>
             {isChatting && (
-              <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); }}
+              <button onClick={() => { setMessages([]); setCurrentThreadId(null); setSuggestions([]); setMessageMeta({}); }}
                 className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">
                 Clear
               </button>
