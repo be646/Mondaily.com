@@ -14,7 +14,7 @@ import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
-import { AgentDock } from "../ai/agent-dock";
+import { AgentPulse } from "../ai/agent-constellation";
 
 // ─── Nav structure — 4 clean groups ──────────────────────────────────────────
 const NAV: { label: string; items: { to: string; label: string; icon: React.ElementType }[] }[] = [
@@ -170,11 +170,8 @@ function GettingStarted() {
   if (dismissed || doneCount === total) return null;
 
   return (
-    <div className="shrink-0 px-2 pb-2">
-      <div
-        className="rounded-xl overflow-hidden"
-        style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)" }}
-      >
+    <div className="shrink-0 px-2 pb-1">
+      <div className={open ? "rounded-xl overflow-hidden" : ""} style={open ? { background: "var(--surface-card)", border: "1px solid var(--border-soft)" } : undefined}>
         {/* Checklist — slides open inside the card itself, same bg */}
         {open && (
           <div className="px-2 pt-1.5 pb-0 max-h-[320px] overflow-y-auto sidebar-scroll space-y-px">
@@ -224,34 +221,24 @@ function GettingStarted() {
           </div>
         )}
 
-        {/* Header — always visible, clicking toggles list */}
+        {/* Header — a quiet single line, same weight as a nav item, so it
+            never competes visually with Home/Tasks/etc. above it. */}
         <button
           onClick={() => setOpen(o => !o)}
-          className="flex w-full items-center gap-2.5 px-3 pt-2.5 pb-2"
+          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors surface-hover"
         >
-          <div className="relative shrink-0 h-7 w-7">
-            <svg viewBox="0 0 28 28" className="h-7 w-7 -rotate-90">
-              <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="2.5"/>
-              <circle cx="14" cy="14" r="11" fill="none" stroke="#6366f1" strokeWidth="2.5"
-                strokeDasharray={`${2 * Math.PI * 11}`}
-                strokeDashoffset={`${2 * Math.PI * 11 * (1 - pct / 100)}`}
-                strokeLinecap="round"
-                style={{ transition: "stroke-dashoffset 0.5s ease" }}
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-indigo-400">{doneCount}</span>
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <div className="text-[12px] font-semibold text-zinc-700 dark:text-white/80">Getting started</div>
-            <div className="text-[10px] text-zinc-400 dark:text-white/25">{doneCount} of {total} done</div>
-          </div>
-          <ChevronDown size={11} className={`text-indigo-400/40 transition-transform shrink-0 ${open ? "rotate-180" : ""}`}/>
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>
+          <span className="flex-1 text-left text-[11px]" style={{ color: "var(--text-faint)" }}>
+            Getting started · {doneCount}/{total}
+          </span>
+          <ChevronDown size={10} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
         </button>
 
-        {/* Progress bar */}
-        <div className="mx-3 mb-2.5 h-[3px] rounded-full bg-indigo-500/10 overflow-hidden">
-          <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
-        </div>
+        {open && (
+          <div className="mx-3 mb-2.5 mt-1 h-[3px] rounded-full bg-indigo-500/10 overflow-hidden">
+            <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -436,9 +423,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           </div>
         )}
 
-        {/* Agent Dock — frozen above the scroll area, agents stay visible */}
-        <div className={`shrink-0 border-b border-zinc-200 dark:border-white/[.07] pt-2 ${collapsed ? "" : ""}`}>
-          <AgentDock collapsed={collapsed}/>
+        {/* Agent Pulse — calm, icon/dot-only summary. Click opens the full
+            Agent Constellation popover instead of long text rows living
+            permanently in the sidebar. */}
+        <div className="shrink-0 border-b border-zinc-200 dark:border-white/[.07] pt-2">
+          <AgentPulse collapsed={collapsed}/>
         </div>
 
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}

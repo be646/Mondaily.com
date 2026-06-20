@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "react-router-dom";
-import { Building2, Users, TrendingUp, Database } from "lucide-react";
+import { Building2, Users, TrendingUp, Database, ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { apiClient } from "../../lib/api-client";
 
 interface ObjectDefinition { id: string; slug: string; name_plural: string }
@@ -15,35 +16,46 @@ function objectIcon(slug: string) {
 
 export function SidebarObjects() {
   const location = useLocation();
+  // Quiet by default — opens on demand instead of always listing every
+  // object type permanently in the sidebar.
+  const [open, setOpen] = useState(false);
   const query = useQuery({
     queryKey: ["sidebar-objects"],
     queryFn: () => apiClient.get<ObjectDefinition[]>("/objects"),
   });
   const objects = query.data ?? [];
+  const activeObject = objects.find(o => location.pathname.startsWith(`/objects/${o.slug}`));
 
   return (
-    <section className="mt-5">
-      <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Records</p>
+    <section className="mt-3">
+      <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 hover:text-slate-300 transition-colors">
+        <span className="flex-1 text-left">Records{activeObject ? ` · ${activeObject.name_plural}` : ""}</span>
+        <ChevronDown size={11} className={`transition-transform ${open ? "rotate-180" : ""}`}/>
+      </button>
 
-      {objects.map(obj => {
-        const active = location.pathname.startsWith(`/objects/${obj.slug}`);
-        return (
-          <Link
-            key={obj.id}
-            to={`/objects/${obj.slug}`}
-            className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-              active ? "bg-indigo-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"
-            }`}
-          >
-            <span className={active ? "text-indigo-400" : "text-slate-600"}>
-              {objectIcon(obj.slug)}
-            </span>
-            {obj.name_plural}
-          </Link>
-        );
-      })}
-      {!query.isLoading && objects.length === 0 && (
-        <p className="px-3 py-2 text-xs text-slate-600">No objects yet</p>
+      {open && (
+        <div className="mt-0.5">
+          {objects.map(obj => {
+            const active = location.pathname.startsWith(`/objects/${obj.slug}`);
+            return (
+              <Link
+                key={obj.id}
+                to={`/objects/${obj.slug}`}
+                className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  active ? "bg-indigo-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"
+                }`}
+              >
+                <span className={active ? "text-indigo-400" : "text-slate-600"}>
+                  {objectIcon(obj.slug)}
+                </span>
+                {obj.name_plural}
+              </Link>
+            );
+          })}
+          {!query.isLoading && objects.length === 0 && (
+            <p className="px-3 py-2 text-xs text-slate-600">No objects yet</p>
+          )}
+        </div>
       )}
     </section>
   );

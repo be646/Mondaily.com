@@ -2,7 +2,8 @@ import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
 import { LogoMark } from "../../components/logo";
-import { CommandCenterStrip, AgentsOperatingPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
+import { CommandCenterStrip, WorkspaceGraphPulse } from "../../components/ai/command-center";
+import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
 import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
 } from "../../components/ai/ask-shared";
@@ -362,6 +363,13 @@ export function HomePage() {
     sendSuggestion(text);
   }, [sendSuggestion]);
 
+  // Route/context chips fill the input and focus it rather than auto-sending
+  // — the user reviews and completes the question before it goes anywhere.
+  const prefill = useCallback((text: string) => {
+    setInput(text);
+    inputRef.current?.focus();
+  }, []);
+
   const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
@@ -412,52 +420,59 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* ── Agents operating now — large and central, not a sidebar footnote ── */}
-      <AgentsOperatingPanel />
-
-      {/* ── Workspace Graph Pulse — real counts across the asset graph ── */}
-      <WorkspaceGraphPulse />
-
-      {/* ── AI Command Center ── */}
-      <CommandCenterStrip
-        tasks={tasksQuery.data ?? []}
-        notifications={notificationsQuery.data ?? []}
-        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
-        onAskMondaily={(prefill) => {
-          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          if (prefill) setInput(prefill);
-          inputRef.current?.focus();
-        }}
-      />
-
-      {/* ── Ask Mondaily AI — connected to the same agents and graph the
-          cards above show, not a separate "type a question" box. ── */}
-      <section ref={askSectionRef} className="surface-card mb-8 relative overflow-hidden rounded-2xl p-5">
+      {/* ── Ask Mondaily — the hero surface. This is the command console,
+          not a box below a stack of cards: it's the first thing under the
+          greeting. ── */}
+      <section ref={askSectionRef} className="surface-card mb-8 relative overflow-hidden rounded-2xl p-6">
         {/* Soft accent edge */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-400/40"/>
 
         {!isChatting && (
-          <div className="mb-4">
-            <div className="flex items-center gap-1.5 mb-1">
+          <div className="mb-5">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-60 animate-ping"/>
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
               </span>
-              <h2 className="text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>What should we do next?</h2>
+              <h2 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily is thinking across your workspace</h2>
             </div>
-            <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>
-              Ask the workspace graph, or route a question straight to the agent that owns it.
+            <p className="text-[13px] mb-3" style={{ color: "var(--text-faint)" }}>
+              Ask the workspace graph directly, or route a question straight to the agent that owns it.
             </p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
+
+            {/* Agent route chips — short, route to a specific agent. They
+                fill the input rather than auto-sending a guessed question. */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--text-faint)" }}>Ask</span>
               {[
-                "Explain today's risks",
-                "What changed in the graph?",
-                "Ask Operations Agent: what's overdue across the workspace?",
-                "Ask Relationship Agent: which relationships have gone quiet?",
-                ...(hasFinance ? ["Ask Finance Agent: what invoices are overdue?"] : []),
-                "Ask Signal Agent: any new risk signals?",
-              ].map(prompt => (
-                <button key={prompt} onClick={() => sendSuggestion(prompt)} className="btn-suggested">
+                { label: "Operations", prefill: "Ask Operations Agent: " },
+                { label: "Relationship", prefill: "Ask Relationship Agent: " },
+                ...(hasFinance ? [{ label: "Finance", prefill: "Ask Finance Agent: " }] : []),
+                { label: "Signal", prefill: "Ask Signal Agent: " },
+                { label: "Graph", prefill: "Ask the workspace graph: " },
+              ].map(r => (
+                <button key={r.label} onClick={() => prefill(r.prefill)} className="btn-ai !px-2.5 !py-1 !text-[11.5px]">
+                  {r.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Context chips — scope the question to a part of the graph. */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-widest mr-1" style={{ color: "var(--text-faint)" }}>About</span>
+              {[
+                "Workspace", "Tasks", ...(hasFinance ? ["Finance"] : []), "Relationships", "Records",
+              ].map(label => (
+                <button key={label} onClick={() => prefill(`Tell me about ${label.toLowerCase()} in the workspace graph: `)} className="btn-suggested">
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Two ready-to-send examples, kept small — not the main affordance. */}
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {["Explain today's risks", "What changed in the graph?"].map(prompt => (
+                <button key={prompt} onClick={() => sendSuggestion(prompt)} className="text-[11px] underline-offset-2 hover:underline" style={{ color: "var(--text-faint)" }}>
                   {prompt}
                 </button>
               ))}
@@ -593,20 +608,23 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] focus-within:border-[#c7d2fe] focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all dark:border-white/[.08] dark:bg-white/[.03] dark:shadow-none dark:focus-within:border-white/[.15] dark:focus-within:bg-white/[.04] dark:focus-within:ring-0">
+          <div className="flex items-center gap-2.5 rounded-2xl px-4 py-4 transition-all focus-within:ring-2"
+            style={{ background: "var(--surface-input)", border: "1px solid var(--border-soft)" }}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-600 dark:hover:text-slate-300 dark:hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : ""}`}
+              style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 bg-transparent text-sm text-[#111827] placeholder-[#9ca3af] outline-none dark:text-white dark:placeholder-slate-600"/>
+              className="flex-1 bg-transparent text-[14.5px] outline-none" style={{ color: "var(--text-primary)" }}/>
             {isChatting && (
-              <button onClick={newChat} className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">Clear</button>
+              <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-1" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-white/[.04] dark:text-slate-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : ""}`}
+              style={input.trim() && !loading ? undefined : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>
@@ -630,11 +648,32 @@ export function HomePage() {
         )}
       </section>
 
-      {/* ── Tasks + Meetings ── */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* ── Workspace Pulse + Agent Constellation — the "thinking across
+          your workspace" layer, sitting between the console and the
+          supporting task/decision panels below. ── */}
+      <WorkspaceGraphPulse />
+      <AgentConstellationPanel />
+
+      {/* ── Decision Queue — what changed, what needs approval, what
+          Mondaily recommends, agent activity, graph health. ── */}
+      <CommandCenterStrip
+        tasks={tasksQuery.data ?? []}
+        notifications={notificationsQuery.data ?? []}
+        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
+        onAskMondaily={(prefill) => {
+          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (prefill) setInput(prefill);
+          inputRef.current?.focus();
+        }}
+      />
+
+      {/* ── Today's Flow — tasks/meetings as supporting panels, not the
+          headline of the page. ── */}
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
+      <div className="grid gap-4 md:grid-cols-2 mb-8">
 
         {/* Tasks card */}
-        <section className="flex flex-col rounded-2xl border border-[#e8ebf0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden dark:border-white/[.07] dark:bg-white/[.02] dark:shadow-none">
+        <section className="surface-card flex flex-col rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-emerald-400"/>
@@ -719,7 +758,7 @@ export function HomePage() {
         </section>
 
         {/* Meetings card */}
-        <section className="flex flex-col rounded-2xl border border-[#e8ebf0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] overflow-hidden dark:border-white/[.07] dark:bg-white/[.02] dark:shadow-none">
+        <section className="surface-card flex flex-col rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
             <div className="flex items-center gap-2">
               <Calendar size={13} className="text-blue-400"/>

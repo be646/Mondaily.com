@@ -1,11 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { MessageCircle, Plus, Trash2 } from "lucide-react";
+import { MessageCircle, Plus, Trash2, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getThreads, saveThreads, loadThreadsFromServer, deleteThreadFromServer, type ChatThread } from "../../lib/chat-store";
 
 export function SidebarAsk() {
   const location = useLocation();
   const [threads, setThreads] = useState<ChatThread[]>([]);
+  // Quiet by default — chat history opens on demand instead of always
+  // listing up to 10 prior threads permanently in the sidebar.
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const refresh = () => setThreads(getThreads());
 
@@ -27,9 +30,12 @@ export function SidebarAsk() {
   };
 
   return (
-    <section className="mt-5">
+    <section className="mt-3">
       <div className="mb-1 flex items-center justify-between px-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Chats</p>
+        <button onClick={() => setHistoryOpen(o => !o)} className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 hover:text-slate-300 transition-colors">
+          Chats{threads.length > 0 ? ` (${threads.length})` : ""}
+          <ChevronDown size={10} className={`transition-transform ${historyOpen ? "rotate-180" : ""}`}/>
+        </button>
         <Link to="/ask/new" title="New chat" className="text-slate-600 hover:text-white">
           <Plus size={13}/>
         </Link>
@@ -41,7 +47,7 @@ export function SidebarAsk() {
         <MessageCircle size={13}/>
         Ask Mondaily
       </Link>
-      {threads.slice(0, 10).map(t => (
+      {historyOpen && threads.slice(0, 10).map(t => (
         <div key={t.id} className="group relative flex items-center">
           <Link
             to={`/ask/${t.id}`}

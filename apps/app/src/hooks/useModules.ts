@@ -13,6 +13,8 @@ export function useModules() {
   return {
     hasFinance: modules.includes("finance"),
     hasCRM: modules.includes("crm"),
+    hasInvestments: modules.includes("investments"),
+    hasHR: modules.includes("hr"),
     modules,
   };
 }

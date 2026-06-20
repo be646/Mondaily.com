@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { Workflow, Users, Receipt, ShieldAlert } from "lucide-react";
+import { Workflow, Users, Receipt, ShieldAlert, MessageCircle, TrendingUp, Briefcase, Building2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 
@@ -72,8 +71,36 @@ interface NodeLite { id: string; object_type: string; data: Record<string, unkno
 
 const RELATIONSHIP_TYPES = ["deal", "contact", "company", "person"];
 
+/** Honest categories for the Agent Constellation — never presented as
+ * "fully autonomous" unless they're backed by real, currently-computed
+ * data (`active`). `available` means the code/scaffold exists but there's
+ * no live job/UI surfacing it yet. `module_disabled` means the workspace
+ * hasn't turned the relevant module on. `coming_online` means there isn't
+ * even a module toggle for it yet. */
+export type ConstellationState = "active" | "monitoring" | "available" | "module_disabled" | "coming_online";
+
+export interface ConstellationAgent {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  state: ConstellationState;
+  /** One-line honest note — what's real about this node right now. */
+  note: string;
+  /** Real jobs/automations backing this node, if any (e.g. "Invoice Chaser"). */
+  backedBy?: string[];
+  to?: string;
+}
+
+export const CONSTELLATION_STATE_LABEL: Record<ConstellationState, string> = {
+  active: "Active",
+  monitoring: "Monitoring",
+  available: "Available",
+  module_disabled: "Module disabled",
+  coming_online: "Coming online",
+};
+
 export function useAgentData() {
-  const { hasFinance } = useModules();
+  const { hasFinance, hasInvestments, hasHR } = useModules();
   const tasksQ = useQuery({
     queryKey: ["agent-dock", "tasks"],
     queryFn: () => apiClient.get<TaskLite[]>("/tasks?filter=all"),
@@ -195,8 +222,43 @@ export function useAgentData() {
     },
   ];
 
+  // The full Agent Constellation — every agent concept that actually exists
+  // in this codebase, shown honestly. Active = real live data (same as
+  // `agents` above). Available = a real code scaffold exists
+  // (packages/agents/src/*) but there's no live job/UI surfacing it.
+  // Module-disabled = the workspace hasn't turned that module on.
+  // Coming online = there isn't even a module toggle for it yet.
+  const constellation: ConstellationAgent[] = [
+    { id: "ask-mondaily", name: "Ask Mondaily", icon: MessageCircle, state: "active",
+      note: "Answers questions across the workspace graph in real time." },
+    { id: "operations", name: "Operations Agent", icon: Workflow, state: "active",
+      note: agents.find(a => a.id === "operations")?.found ?? "", backedBy: ["Record Enrichment"], to: "/tasks" },
+    { id: "relationship", name: "Relationship Agent", icon: Users, state: "active",
+      note: agents.find(a => a.id === "relationship")?.found ?? "", backedBy: ["Deal Alerts", "Relationship Health"], to: "/pipeline" },
+    { id: "finance", name: "Finance Agent", icon: Receipt,
+      state: hasFinance ? "active" : "module_disabled",
+      note: hasFinance ? (agents.find(a => a.id === "finance")?.found ?? "") : "Enable the Finance module to turn this on.",
+      backedBy: hasFinance ? ["Invoice Chaser", "Recurring Invoices", "Credit Note Dispute Handler"] : undefined,
+      to: hasFinance ? "/finance/invoices" : "/settings/workspace" },
+    { id: "signal", name: "Signal Agent", icon: ShieldAlert, state: "active",
+      note: agents.find(a => a.id === "signal")?.found ?? "", to: "/notifications" },
+    { id: "sales", name: "Sales Agent", icon: TrendingUp, state: "available",
+      note: "Scaffold exists — relationship signals currently surfaced via Relationship Agent." },
+    { id: "hr", name: "HR Agent", icon: Briefcase,
+      state: hasHR ? "available" : "module_disabled",
+      note: hasHR ? "Module enabled — no live job wired up yet." : "Enable the HR module to turn this on.",
+      to: hasHR ? undefined : "/settings/workspace" },
+    { id: "investments", name: "Investments Agent", icon: TrendingUp,
+      state: hasInvestments ? "available" : "module_disabled",
+      note: hasInvestments ? "Module enabled — no live job wired up yet." : "Enable the Investments module to turn this on.",
+      to: hasInvestments ? undefined : "/settings/workspace" },
+    { id: "realestate", name: "Real Estate Agent", icon: Building2, state: "coming_online",
+      note: "Code scaffold exists — not yet enableable in this workspace." },
+  ];
+
   return {
     agents,
+    constellation,
     isLoading: tasksQ.isLoading || notificationsQ.isLoading || nodesQ.isLoading,
     // Real counts for the Workspace Graph Pulse panel — same source data,
     // no separate fabricated numbers.
@@ -213,78 +275,3 @@ export function useAgentData() {
   };
 }
 
-const SCOPE_LABEL: Record<AgentSummary["scope"], string> = {
-  workspace: "Workspace-wide",
-  you: "Assigned to you",
-};
-
-export function AgentDock({ collapsed = false }: { collapsed?: boolean }) {
-  const { agents, isLoading } = useAgentData();
-
-  if (isLoading) {
-    return (
-      <div className={`shrink-0 ${collapsed ? "px-2" : "px-2"} pb-2`}>
-        {!collapsed && <div className="skeleton-shimmer mb-1.5 h-3 w-20 rounded" />}
-        <div className="skeleton-shimmer h-16 rounded-xl" />
-      </div>
-    );
-  }
-
-  if (collapsed) {
-    return (
-      <div className="shrink-0 px-2 pb-2 flex flex-col items-center gap-1.5">
-        {agents.map(agent => (
-          <Link key={agent.id} to={agent.to}
-            title={`${agent.name} · ${STATUS_LABEL[agent.status]} · ${SCOPE_LABEL[agent.scope]} · ${agent.found}`}
-            className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors surface-hover">
-            <span className="agent-dot" data-status={agent.status} />
-          </Link>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="shrink-0 px-2 pb-2">
-      <div className="mb-1.5 px-0.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>
-        Agents
-      </div>
-      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}>
-        {agents.map((agent, i) => (
-          <Link
-            key={agent.id}
-            to={agent.to}
-            className="group flex items-start gap-2.5 px-2.5 py-2.5 text-left transition-colors surface-hover"
-            style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}
-          >
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md" style={{ background: "var(--surface-hover)" }}>
-              <agent.icon size={12} style={{ color: "var(--text-muted)" }} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{agent.name}</span>
-                <span className="agent-dot shrink-0" data-status={agent.status} title={STATUS_LABEL[agent.status]} />
-              </div>
-              <div className="mt-0.5 flex items-center gap-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
-                <span>{SCOPE_LABEL[agent.scope]}</span>
-                <span>·</span>
-                <span className="truncate">{STATUS_LABEL[agent.status]}</span>
-              </div>
-              <div className="mt-1 leading-snug text-[10.5px]" style={{ color: "var(--text-secondary)" }}>{agent.found}</div>
-              {/* Revealed on hover — full context without truncating mid-word */}
-              <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-150 group-hover:max-h-16 group-hover:opacity-100">
-                <div className="mt-1.5 space-y-0.5 border-t pt-1.5" style={{ borderColor: "var(--border-soft)" }}>
-                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Watching: {agent.watching}</p>
-                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{agent.lastAction}</p>
-                  {agent.suggestedAction && (
-                    <p className="text-[10px] font-medium" style={{ color: "var(--accent)" }}>→ {agent.suggestedAction}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
