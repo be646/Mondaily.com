@@ -190,7 +190,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
         </div>
         <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</p>
         <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {activeTasks.length - overdueTasks.length} of {activeTasks.length} of your active tasks on track
+          {activeTasks.length - overdueTasks.length} of your {activeTasks.length} active tasks are on track
         </p>
         <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
           <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>

@@ -49,8 +49,26 @@ const AGENT_RULES: { test: RegExp; agent: AgentHandoff }[] = [
     agent: { name: "Signal Agent", icon: ShieldAlert } },
 ];
 
-/** Modest, keyword-based inference — falls back to the general Graph Agent. */
+const NAMED_AGENTS: Record<string, AgentHandoff> = {
+  operations: { name: "Operations Agent", icon: CheckSquare },
+  relationship: { name: "Relationship Agent", icon: Users },
+  finance: { name: "Finance Agent", icon: Receipt },
+  signal: { name: "Signal Agent", icon: ShieldAlert },
+  workflow: { name: "Workflow Agent", icon: Workflow },
+  insights: { name: "Insights Agent", icon: BarChart2 },
+};
+
+/** Modest, keyword-based inference — falls back to the general Graph Agent.
+ * If the prompt explicitly names an agent ("Ask Operations Agent: ..."),
+ * that takes priority over keyword guessing — otherwise a prompt like
+ * "Ask Operations Agent: what's overdue?" gets mislabeled Finance Agent
+ * just because "overdue" matches the Finance keyword rule first. */
 export function inferAgentHandoff(promptText: string): AgentHandoff {
+  const named = promptText.match(/\bAsk (\w+) Agent\b/i);
+  if (named) {
+    const match = NAMED_AGENTS[named[1]!.toLowerCase()];
+    if (match) return match;
+  }
   for (const rule of AGENT_RULES) {
     if (rule.test.test(promptText)) return rule.agent;
   }
