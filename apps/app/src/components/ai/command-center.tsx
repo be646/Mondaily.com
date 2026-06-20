@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ShieldAlert, CheckSquare, Activity, Gauge, ArrowUpRight, Sparkles, FileText, UserPlus, Receipt } from "lucide-react";
+import { useAgentData, STATUS_LABEL } from "./agent-dock";
 
 /**
  * Home "AI Command Center" strip — Risks detected, Decisions waiting, Agent
@@ -21,11 +22,11 @@ const AGENT_ICON: Record<string, React.ElementType> = {
 };
 
 const AGENT_LABEL: Record<string, string> = {
-  ai_risk: "Insights Agent",
-  agent: "Enrichment Agent",
-  task_review: "Task Agent",
+  ai_risk: "Signal Agent",
+  agent: "Research Agent",
+  task_review: "Operations Agent",
   approval: "Approvals",
-  assignment: "Task Agent",
+  assignment: "Operations Agent",
   system: "Workspace",
   mention: "Mentions",
   comment: "Comments",
@@ -135,5 +136,56 @@ export function CommandCenterStrip({ tasks, notifications }: { tasks: TaskLite[]
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Agents Operating Now — a large, central panel (not a sidebar footnote)
+ * showing each agent's current status, what it's watching, what it found,
+ * and a link to act on it. Reuses the exact same real-data computation as
+ * the sidebar Agent Dock (useAgentData) — same numbers everywhere, just a
+ * bigger, more important presentation on Home.
+ */
+export function AgentsOperatingPanel() {
+  const { agents, isLoading } = useAgentData();
+
+  return (
+    <section className="mb-8">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-60 animate-ping"/>
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500"/>
+        </span>
+        <h2 className="text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>Agents operating now</h2>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton-shimmer h-32 rounded-xl"/>)}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {agents.map(agent => (
+            <Link key={agent.id} to={agent.to} className="surface-card flex flex-col rounded-xl p-4 transition-colors surface-hover">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "var(--surface-hover)" }}>
+                  <agent.icon size={13} style={{ color: "var(--text-secondary)" }}/>
+                </span>
+                <span className="agent-badge" data-status={agent.status}>
+                  <span className="agent-dot" data-status={agent.status}/>
+                  {STATUS_LABEL[agent.status]}
+                </span>
+              </div>
+              <p className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name}</p>
+              <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>Watching: {agent.watching}</p>
+              <p className="mt-2 flex-1 text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>{agent.detail}</p>
+              <span className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+                Open source <ArrowUpRight size={11}/>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

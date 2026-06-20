@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { CheckSquare, TrendingUp, Receipt, ShieldAlert } from "lucide-react";
+import { Workflow, Users, Receipt, ShieldAlert } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 
@@ -9,20 +9,28 @@ import { useModules } from "../../hooks/useModules";
  * workers instead of hidden automations. Every status shown here is derived
  * from real data already in the workspace (overdue tasks, stale deals,
  * overdue invoices, unread AI risk alerts) — nothing here is fabricated.
+ *
+ * Agent names are graph-native, not CRM-flavoured: Operations Agent and
+ * Relationship Agent (not "Task Agent" / "Sales Agent") so the product
+ * doesn't narrow into a CRM identity. Only agents backed by a real,
+ * computable signal are shown — Graph/Research/Workflow/Decision/Memory/
+ * Compliance Agents are not included here because there's no real data
+ * source for them yet (see useModules / endpoints below).
  */
 
-type AgentStatus = "idle" | "working" | "needs_approval" | "issue" | "draft_ready";
+export type AgentStatus = "idle" | "working" | "needs_approval" | "issue" | "draft_ready";
 
-interface AgentSummary {
+export interface AgentSummary {
   id: string;
   name: string;
   icon: React.ElementType;
   status: AgentStatus;
+  watching: string;
   detail: string;
   to: string;
 }
 
-const STATUS_LABEL: Record<AgentStatus, string> = {
+export const STATUS_LABEL: Record<AgentStatus, string> = {
   idle: "Idle",
   working: "Working",
   needs_approval: "Needs approval",
@@ -35,7 +43,7 @@ interface NotificationLite { id: string; type: string; is_read: boolean; }
 interface InvoiceLite { id: string; status: string; }
 interface DealLite { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; }
 
-function useAgentData() {
+export function useAgentData() {
   const { hasFinance } = useModules();
   const tasksQ = useQuery({
     queryKey: ["agent-dock", "tasks"],
@@ -86,40 +94,44 @@ function useAgentData() {
 
   const agents: AgentSummary[] = [
     {
-      id: "tasks",
-      name: "Task Agent",
-      icon: CheckSquare,
+      id: "operations",
+      name: "Operations Agent",
+      icon: Workflow,
+      watching: "Open tasks across the graph",
       status: overdueTasks.length > 0 ? "needs_approval" : reviewTasks.length > 0 ? "working" : "idle",
       detail: overdueTasks.length > 0
-        ? `${overdueTasks.length} overdue`
+        ? `Found ${overdueTasks.length} overdue — review and reassign`
         : reviewTasks.length > 0
-        ? `${reviewTasks.length} in review`
+        ? `${reviewTasks.length} drafted task${reviewTasks.length === 1 ? "" : "s"} in review`
         : "All caught up",
       to: "/tasks",
     },
     {
-      id: "sales",
-      name: "Sales Agent",
-      icon: TrendingUp,
+      id: "relationship",
+      name: "Relationship Agent",
+      icon: Users,
+      watching: "Deals and relationships",
       status: staleDeals.length > 0 ? "issue" : "idle",
-      detail: staleDeals.length > 0 ? `${staleDeals.length} stalled deal${staleDeals.length === 1 ? "" : "s"}` : "Pipeline healthy",
+      detail: staleDeals.length > 0 ? `${staleDeals.length} gone quiet 14+ days — needs a touch` : "Relationships healthy",
       to: "/pipeline",
     },
     ...(hasFinance ? [{
       id: "finance",
       name: "Finance Agent",
       icon: Receipt,
+      watching: "Invoices and cash exposure",
       status: (overdueInvoices.length > 0 ? "issue" : "idle") as AgentStatus,
       detail: overdueInvoices.length > 0 ? `${overdueInvoices.length} overdue invoice${overdueInvoices.length === 1 ? "" : "s"}` : "No overdue invoices",
       to: "/finance/invoices",
     }] : []),
     {
-      id: "risk",
-      name: "Insights Agent",
+      id: "signal",
+      name: "Signal Agent",
       icon: ShieldAlert,
+      watching: "Risk signals across the graph",
       status: unreadRisk.length > 0 ? "needs_approval" : unreadAgent.length > 0 ? "draft_ready" : "idle",
       detail: unreadRisk.length > 0
-        ? `${unreadRisk.length} new risk alert${unreadRisk.length === 1 ? "" : "s"}`
+        ? `${unreadRisk.length} new signal${unreadRisk.length === 1 ? "" : "s"} raised`
         : unreadAgent.length > 0
         ? `${unreadAgent.length} update${unreadAgent.length === 1 ? "" : "s"}`
         : "Monitoring workspace",

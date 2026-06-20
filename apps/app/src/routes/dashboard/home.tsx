@@ -2,7 +2,7 @@ import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
 import { LogoMark } from "../../components/logo";
-import { CommandCenterStrip } from "../../components/ai/command-center";
+import { CommandCenterStrip, AgentsOperatingPanel } from "../../components/ai/command-center";
 import {
   GRAPH_REASONING_STEPS, inferAgentHandoff, friendlyAskError,
   EvidenceStrip, type SourceCardData,
@@ -475,6 +475,9 @@ export function HomePage() {
           )}
         </div>
       </div>
+
+      {/* ── Agents operating now — large and central, not a sidebar footnote ── */}
+      <AgentsOperatingPanel />
 
       {/* ── AI Command Center ── */}
       <CommandCenterStrip tasks={tasksQuery.data ?? []} notifications={notificationsQuery.data ?? []} />

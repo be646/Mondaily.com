@@ -507,12 +507,12 @@ const WORKFLOW_LOOP_MS = 3900 + 3000; // last step + pause before restart
 
 // ── How it's different — standalone comparison section ────────────────────────
 const REPLACES_ROWS = [
-  { before: "A spreadsheet for scoring deals",     after: "Built-in pipeline, scored by AI",        icon: "◈" },
-  { before: "A separate sequencing tool",          after: "Sequences live in the same workspace",   icon: "◈" },
-  { before: "Slack as your reminder system",        after: "Native alerts, no app-switching",        icon: "◈" },
-  { before: "A standalone finance/invoicing app",   after: "Quotes and invoices, built in",          icon: "◈" },
-  { before: "Five disconnected tools to maintain",  after: "One AI workspace for revenue & ops",     icon: "◈" },
-  { before: "A contact directory that goes stale",  after: "Records enriched & kept current by AI",  icon: "◈" },
+  { before: "Disconnected spreadsheets",            after: "One living asset graph",                 icon: "◈" },
+  { before: "Stale asset & contact lists",          after: "Autonomous agents keeping it current",   icon: "◈" },
+  { before: "Isolated finance tools",                after: "Connected business memory",              icon: "◈" },
+  { before: "Documents scattered everywhere",        after: "Explainable, source-backed decisions",   icon: "◈" },
+  { before: "Task silos with no context",            after: "Graph-aware workflows",                  icon: "◈" },
+  { before: "Decisions lost in chat threads",        after: "Workspace-wide intelligence",            icon: "◈" },
 ];
 
 function ComparisonSection() {
@@ -521,7 +521,7 @@ function ComparisonSection() {
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how it&apos;s different</div>
       <h2 className="mb-3 font-sans text-4xl font-semibold tracking-tight text-zinc-800">What Mondaily replaces</h2>
       <p className="mb-10 font-mono text-[14px] text-zinc-500">
-        Stop stitching together a CRM, a sequencer, a spreadsheet, and Slack. One AI workspace runs all of it.
+        Stop stitching together disconnected tools for every part of the business. One workspace graph, operated by AI, runs all of it.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -1015,21 +1015,22 @@ function AutomationFlow() {
       ref={ref}
       className="mx-auto max-w-6xl px-6 py-20"
     >
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// automation.flow</div>
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how.the.graph.works</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-amber-500">{">"}</span> Build once. Run on every deal, forever.
+        <span className="text-amber-500">{">"}</span> Build once. Run on every object, forever.
       </h2>
       <p className="mb-6 font-mono text-[13px] text-zinc-500">
-        Visual flows that trigger on real CRM events — no code, no ops overhead.
+        Visual flows that trigger on real graph events — no code, no ops overhead.
       </p>
 
-      {/* Plain-language framing — the workspace brain, not a technical diagram */}
-      <div className="mb-10 flex flex-wrap items-center gap-2.5 rounded-xl border border-black/[.05] bg-zinc-50/70 px-5 py-4 text-[14px] font-medium text-zinc-700">
-        <span>Data comes in</span>
-        <span className="text-indigo-400">→</span>
-        <span className="text-indigo-600">AI understands</span>
-        <span className="text-indigo-400">→</span>
-        <span>Work gets done</span>
+      {/* Plain-language framing — the full lifecycle of an object in the graph, not a technical diagram */}
+      <div className="mb-10 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-xl border border-black/[.05] bg-zinc-50/70 px-5 py-4 text-[13.5px] font-medium text-zinc-700">
+        {["Object enters", "Becomes a graph node", "Enriched", "Connected to related nodes", "Agents monitor", "Signal created", "Decision queued", "Action approved"].map((step, i, arr) => (
+          <span key={step} className="flex items-center gap-2">
+            <span className={i % 2 === 1 ? "text-indigo-600" : ""}>{step}</span>
+            {i < arr.length - 1 && <span className="text-indigo-400">→</span>}
+          </span>
+        ))}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
@@ -1753,62 +1754,62 @@ function FinanceBoardSection() {
 
 const AGENTS = [
   {
-    icon: "◈", name: "Ask Mondaily", accent: "#4f46e5",
-    desc: "Conversational AI that creates and searches records, builds lists, sets up workflows, and answers questions about your workspace in plain English.",
+    icon: "◈", name: "Graph Agent", accent: "#4f46e5",
+    desc: "The conversational interface to your workspace graph — creates and searches objects, builds lists, sets up workflows, and answers questions in plain English.",
     trace: [
       "[INPUT]    \"show me deals over £10k stuck in proposal\"",
       "[PARSE]    intent: query · entities: stage=Proposal, value>10000",
-      "[QUERY]    scanning pipeline records...",
-      "[REPLY]    3 deals found — rendering as a filtered list",
+      "[QUERY]    scanning connected objects...",
+      "[REPLY]    3 objects found — rendering as a filtered list",
     ],
   },
   {
-    icon: "◆", name: "Enrichment Agent", accent: "#7c3aed",
-    desc: "Fires the moment a record is created — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web.",
+    icon: "◆", name: "Research Agent", accent: "#7c3aed",
+    desc: "Fires the moment a new object enters the graph — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web.",
     trace: [
-      "[TRIGGER]  new company record: globex.io",
-      "[SEARCH]   querying web for firmographic signals...",
+      "[TRIGGER]  new object: globex.io",
+      "[SEARCH]   querying web for signals...",
       "[EXTRACT]  ARR $1.6M · 64 employees · Seed · Berlin",
-      "[WRITE]    record updated · notification sent",
+      "[WRITE]    node updated · notification sent",
     ],
   },
   {
-    icon: "♥", name: "Relationship Health Agent", accent: "#d97706",
-    desc: "Scores every contact 0–100 daily based on contact recency, open tasks and deals, and recent activity signals.",
+    icon: "♥", name: "Relationship Agent", accent: "#d97706",
+    desc: "Scores every relationship 0–100 daily based on contact recency, open loops, and recent activity signals across the graph.",
     trace: [
       "[CRON]     daily run · 02:00 UTC",
-      "[SCAN]     8,420 contacts · checking last-touch + open items",
-      "[SCORE]    weighting recency, tasks, deals, activity",
-      "[WRITE]    relationship_health field updated on all records",
+      "[SCAN]     8,420 relationships · checking last-touch + open items",
+      "[SCORE]    weighting recency, tasks, exposure, activity",
+      "[WRITE]    relationship_health field updated on all nodes",
     ],
   },
   {
-    icon: "▲", name: "Deal Risk Agent", accent: "#dc2626",
-    desc: "Watches the pipeline daily and flags deals that have gone 14+ days without activity, before they go cold.",
+    icon: "▲", name: "Signal Agent", accent: "#dc2626",
+    desc: "Watches the graph continuously and raises a signal the moment an asset, deal, or relationship has gone quiet — before it goes cold.",
     trace: [
       "[CRON]     daily run · 08:00 UTC",
-      "[SCAN]     234 open deals · checking last activity date",
-      "[FLAG]     Initech deal idle 16 days — risk alert raised",
-      "[NOTIFY]   owner pinged · alert added to dashboard",
+      "[SCAN]     234 open objects · checking last activity date",
+      "[FLAG]     Initech node idle 16 days — signal raised",
+      "[NOTIFY]   owner pinged · signal added to decision queue",
     ],
   },
   {
-    icon: "▶", name: "Sequence Agent", accent: "#059669",
-    desc: "Runs multi-step outreach cadences on autopilot — enrolls, paces sends, stops on reply, and reports back.",
+    icon: "▶", name: "Operations Agent", accent: "#059669",
+    desc: "Runs multi-step outreach and follow-up cadences on autopilot — enrolls, paces sends, stops on reply, and reports back to the graph.",
     trace: [
-      "[ENROLL]   contact added to \"Enterprise Nurture\"",
-      "[STEP 1]   email sent · open tracked",
+      "[ENROLL]   relationship added to \"Enterprise Nurture\"",
+      "[STEP 1]   message sent · open tracked",
       "[WAIT]     2 days · sending window respected",
       "[STEP 2]   reply detected — sequence paused automatically",
     ],
   },
   {
     icon: "⚙", name: "Workflow Agent", accent: "#0891b2",
-    desc: "Executes trigger → condition → action automations across the workspace, no code required.",
+    desc: "Executes trigger → condition → action automations across the graph, no code required, with every step logged back to the source object.",
     trace: [
       "[TRIGGER]  deal stage changed → Won",
       "[CHECK]    condition: value > £5,000 — true",
-      "[ACTION]   Slack notified · quote drafted · CRM field updated",
+      "[ACTION]   Slack notified · quote drafted · graph node updated",
       "[DONE]     automation completed in 380ms",
     ],
   },
@@ -1851,13 +1852,13 @@ function AgentsSection() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
+    <section id="agents" className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// agents.active</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-violet-500">{">"}</span> Meet the agents running your workspace
+        <span className="text-violet-500">{">"}</span> Agents operating across your graph
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
-        Not bots bolted onto a CRM — a team of always-on agents already built into Mondaily. Click one to see it work.
+        Not bots bolted onto a CRM — a team of always-on agents that read, reason over, and act on your workspace graph. Click one to see it work.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -2031,9 +2032,14 @@ const TRUST_POINTS = [
     icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="4" y="4" width="7" height="7" rx="1.2"/><rect x="13" y="4" width="7" height="7" rx="1.2"/><rect x="4" y="13" width="7" height="7" rx="1.2"/><rect x="13" y="13" width="7" height="7" rx="1.2"/></svg>),
   },
   {
-    title: "AI reads your workspace only",
-    desc: "Ask Mondaily only ever sees the records, emails, and files inside your own workspace — never another customer's.",
+    title: "AI reads your workspace graph only",
+    desc: "Agents only ever see the objects, conversations, and files inside your own workspace graph — never another client's data.",
     icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M5.6 18.4l1.7-1.7M16.7 7.3l1.7-1.7" strokeLinecap="round"/></svg>),
+  },
+  {
+    title: "Human approval on sensitive actions",
+    desc: "Agents prepare and recommend continuously, but sensitive actions — sending, billing, deleting — wait for a person to approve.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="m20 6 -11 11 -5 -5" strokeLinecap="round" strokeLinejoin="round"/></svg>),
   },
   {
     title: "Role-based permissions",
@@ -2051,6 +2057,45 @@ const TRUST_POINTS = [
     icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M9 5h11v15H4V9l5-4Z" strokeLinejoin="round"/><path d="M9 5v4H4" strokeLinejoin="round"/><path d="M8 13h7M8 16h5" strokeLinecap="round"/></svg>),
   },
 ];
+
+// ── AI with approval — agents act, humans stay in control ───────────────────
+const APPROVAL_STEPS = [
+  { label: "Prepare",  desc: "Agents draft the change before anything touches the graph" },
+  { label: "Recommend", desc: "A suggested action appears with confidence and source evidence" },
+  { label: "Monitor",  desc: "Signals and risks are tracked continuously in the background" },
+  { label: "Execute",  desc: "Once approved, the action runs and is logged to the source object" },
+];
+
+function ApprovalSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// ai.with_approval</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{">"}</span> Agents prepare. You stay in control.
+      </h2>
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Agents prepare, recommend, draft, and monitor continuously — but sensitive actions wait for your approval. Nothing executes on the graph without a human in the loop when it matters.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {APPROVAL_STEPS.map((s, i) => (
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.4, delay: i * 0.07 }}
+            className="relative rounded-xl border border-black/[.05] bg-white p-4"
+          >
+            <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 font-mono text-[11px] font-semibold text-indigo-600">{i + 1}</span>
+            <p className="mb-1 text-[14px] font-medium text-zinc-800">{s.label}</p>
+            <p className="text-[12.5px] leading-relaxed text-zinc-500">{s.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function TrustSection() {
   return (
@@ -2301,36 +2346,55 @@ export function LandingPage() {
                 {/* Live badge */}
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 font-mono text-[13px] text-indigo-500">
                   <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-600"/>
-                  Live AI workspace · no setup required
+                  Live workspace graph · agents operating now
                 </div>
 
                 {/* Slogan */}
                 <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
-                  One workspace.{" "}
-                  <span className="text-zinc-500">Every signal.</span>{" "}
-                  <span className="text-indigo-500">Always thinking.</span>
+                  Your business,{" "}
+                  <span className="text-zinc-500">mapped into</span>{" "}
+                  <span className="text-indigo-500">a living AI graph.</span>
                 </h1>
 
                 {/* Subheading */}
-                <p className="mx-auto mb-7 font-mono text-[13px] text-zinc-500">
-                  {"// "}<span className="text-zinc-500">autonomous · enriched · always on</span>
+                <p className="mx-auto mb-7 max-w-xl text-[15px] leading-relaxed text-zinc-500">
+                  Mondaily maps people, assets, workflows, tasks, documents, invoices, conversations, and decisions into one living graph. AI agents monitor it, reason over it, and help operate the business.
                 </p>
 
                 {/* Primary / secondary CTAs */}
-                <div className="mb-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <div className="mb-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <a
                     href="https://app.mondaily.com/sign-up"
                     className="rounded-xl bg-indigo-600 px-6 py-3 font-mono text-[14px] font-medium text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] hover:bg-indigo-500 active:translate-y-[1px] transition-all"
                   >
-                    Start your AI workspace →
+                    Start your workspace graph →
                   </a>
                   <a
-                    href="#workflow"
+                    href="#agents"
                     className="flex items-center gap-2 rounded-xl border border-black/[.08] bg-white px-6 py-3 font-mono text-[14px] font-medium text-zinc-700 hover:border-indigo-500/25 hover:text-indigo-600 transition-colors"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
-                    Watch AI run a workflow
+                    See agents operate
                   </a>
+                </div>
+
+                {/* Agent preview strip — agents are core identity, shown immediately under the fold */}
+                <div className="mb-9 flex flex-wrap items-center justify-center gap-2">
+                  {AGENTS.slice(0, 4).map((agent, i) => (
+                    <span
+                      key={agent.name}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[11px]"
+                      style={{ borderColor: `${agent.accent}25`, background: `${agent.accent}08`, color: agent.accent }}
+                    >
+                      <motion.span
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: agent.accent }}
+                      />
+                      {agent.name}
+                    </span>
+                  ))}
                 </div>
               </motion.div>
 
@@ -2368,17 +2432,17 @@ export function LandingPage() {
             </motion.div>
           </section>
 
+          {/* ── Agents — moved close to the hero: agents are the core identity, not a footnote ── */}
+          <AgentsSection />
+
+          {/* ── Live signal cards ── */}
+          <LiveSignalsSection />
+
           {/* ── How it's different ── */}
           <ComparisonSection />
 
           {/* ── Workflow demo ── */}
           <WorkflowDemo />
-
-          {/* ── Agents ── */}
-          <AgentsSection />
-
-          {/* ── Live signal cards ── */}
-          <LiveSignalsSection />
 
           {/* ── Automation flow diagram ── */}
           <AutomationFlow />
@@ -2426,6 +2490,9 @@ export function LandingPage() {
               ))}
             </div>
           </section>
+
+          {/* ── AI with approval — agents act, humans stay in control ── */}
+          <ApprovalSection />
 
           {/* ── Trust / data isolation ── */}
           <TrustSection />
