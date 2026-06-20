@@ -2,6 +2,7 @@ import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
 import { LogoMark } from "../../components/logo";
+import { CommandCenterStrip } from "../../components/ai/command-center";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -181,7 +182,7 @@ export function HomePage() {
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
   const notificationsQuery = useQuery({
     queryKey: ["notifications", "risk"],
-    queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string }[]>("/notifications?limit=50"),
+    queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string }[]>("/notifications?limit=50"),
     staleTime: 60_000,
   });
 
@@ -460,6 +461,9 @@ export function HomePage() {
           )}
         </div>
       </div>
+
+      {/* ── AI Command Center ── */}
+      <CommandCenterStrip tasks={tasksQuery.data ?? []} notifications={notificationsQuery.data ?? []} />
 
       {/* ── Ask Mondaily AI ── */}
       <section className="mb-8 relative overflow-hidden rounded-2xl border border-[#e0e7ff] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-[rgba(129,140,248,0.16)] dark:bg-[#101217] dark:shadow-none">

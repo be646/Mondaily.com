@@ -14,6 +14,7 @@ import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
+import { AgentDock } from "../ai/agent-dock";
 
 // ─── Nav structure — 4 clean groups ──────────────────────────────────────────
 const NAV: { label: string; items: { to: string; label: string; icon: React.ElementType }[] }[] = [
@@ -434,6 +435,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </button>
           </div>
         )}
+
+        {/* Agent Dock — frozen above the scroll area, agents stay visible */}
+        <div className={`shrink-0 border-b border-zinc-200 dark:border-white/[.07] pt-2 ${collapsed ? "" : ""}`}>
+          <AgentDock collapsed={collapsed}/>
+        </div>
 
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
