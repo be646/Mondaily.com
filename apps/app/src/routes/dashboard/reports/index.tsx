@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageHeader, PageSkeletonCards } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
 interface ObjectType   { slug: string; name_plural: string }
@@ -53,6 +54,15 @@ export function ReportsPage() {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
   const [creating, setCreating] = useState(false);
+
+  // Page-level reports context — no specific report/dashboard selected yet.
+  useEffect(() => {
+    useAskContextStore.getState().setContext({
+      route: "/reports",
+      scope_label: "the Reports page",
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, []);
 
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],

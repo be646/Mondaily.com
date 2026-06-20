@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -269,6 +270,18 @@ export function InvoiceDetailPage() {
     queryFn: () => apiClient.get<CreditNote[]>(`/invoices/${invoiceId}/credit-notes`),
     enabled: !!invoiceId,
   });
+
+  // While this invoice is open, the right-side Ask AI drawer should know
+  // which invoice is in scope — same mechanism record/task pages use.
+  useEffect(() => {
+    if (!invoiceId) return;
+    useAskContextStore.getState().setContext({
+      invoice_id: invoiceId,
+      route: `/finance/invoices/${invoiceId}`,
+      scope_label: invoice ? `invoice ${invoice.number} (${invoice.client_name})` : `invoice ${invoiceId}`,
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, [invoiceId, invoice?.number, invoice?.client_name]);
 
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");

@@ -611,6 +611,16 @@ async function executeTool(
   }
 }
 
+// Maps an object_type to the natural-language word a user would actually
+// say ("this company", "this deal") so context resolution isn't limited to
+// the literal object_type string.
+const OBJECT_LABEL: Record<string, string> = {
+  company: "company", companies: "company",
+  person: "person", contact: "person",
+  deal: "deal",
+  task: "task",
+};
+
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
 const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined) sent for context
@@ -639,6 +649,13 @@ router.post("/", requireAuth, zValidator("json", z.object({
     object_type: z.string().optional(),
     task_id: z.string().optional(),
     task_title: z.string().optional(),
+    task_status: z.string().optional(),
+    task_assignee: z.string().optional(),
+    task_record_id: z.string().optional(),
+    invoice_id: z.string().optional(),
+    report_id: z.string().optional(),
+    report_title: z.string().optional(),
+    route: z.string().optional(),
     scope_label: z.string().optional()
   }).optional()
 })), async (c) => {
@@ -663,13 +680,23 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     let contextNote = "";
     if (context?.node_id || context?.node_name) {
-      contextNote += `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this" or "this record", it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
+      const objectLabel = context.object_type ? OBJECT_LABEL[context.object_type.toLowerCase()] ?? context.object_type : "object";
+      contextNote += `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this", "this record", "this ${objectLabel}", or names the object type directly (e.g. "this company", "this person", "this deal"), it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
     }
     if (context?.task_id) {
-      contextNote += `\n\nThe user currently has a task open: "${context.task_title ?? "(title unknown)"}" — task_id: ${context.task_id}. If their message refers to "this" or "this task", it means this one — you can call update_task with this task_id directly without searching for it first.`;
+      contextNote += `\n\nThe user currently has a task open: "${context.task_title ?? "(title unknown)"}" — task_id: ${context.task_id}.${context.task_status ? ` Status: ${context.task_status}.` : ""}${context.task_assignee ? ` Assignee: ${context.task_assignee}.` : ""}${context.task_record_id ? ` Linked record node_id: ${context.task_record_id}.` : ""} If their message refers to "this" or "this task", it means this one — you can call update_task with this task_id directly without searching for it first. If they ask to create a follow-up from this, base it on this task's title/status and (if present) its linked record.`;
     }
-    if (context?.scope_label && !context.node_id && !context.task_id) {
+    if (context?.invoice_id) {
+      contextNote += `\n\nThe user currently has invoice ${context.invoice_id} open. If their message refers to "this invoice" or "this", it means this one.`;
+    }
+    if (context?.report_id || context?.report_title) {
+      contextNote += `\n\nThe user is currently viewing a report/dashboard: "${context.report_title ?? "(title unknown)"}"${context.report_id ? ` — report_id: ${context.report_id}` : ""}. If their message refers to "this report" or "this", it means this one.`;
+    }
+    if (context?.scope_label && !context.node_id && !context.task_id && !context.invoice_id && !context.report_id) {
       contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
+    }
+    if (context?.route) {
+      contextNote += `\n\nCurrent route: ${context.route}`;
     }
 
     const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;

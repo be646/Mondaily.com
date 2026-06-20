@@ -2,7 +2,7 @@ import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
 import { LogoMark } from "../../components/logo";
-import { CommandCenterStrip, AgentsOperatingPanel } from "../../components/ai/command-center";
+import { CommandCenterStrip, AgentsOperatingPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
 } from "../../components/ai/ask-shared";
@@ -13,6 +13,7 @@ import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
+import { useModules } from "../../hooks/useModules";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -139,7 +140,9 @@ const PRIORITY_STYLE: Record<string, string> = {
 
 export function HomePage() {
   const { user } = useUser();
+  const { hasFinance } = useModules();
   const qc = useQueryClient();
+  const askSectionRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [taskWidgetInput, setTaskWidgetInput] = useState("");
@@ -373,18 +376,21 @@ export function HomePage() {
         <p className="text-xs font-medium text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
         <h1 className="text-[28px] font-semibold tracking-tight text-[#111827] dark:text-white">{greeting}, {user?.firstName || "there"}.</h1>
 
-        {/* Quick stat pills */}
+        {/* Quick stat pills — explicitly scoped to "assigned to you" since
+            these come from the "mine" task filter. The Operations Agent
+            card below shows the workspace-wide equivalent, which is a
+            different (larger) number on purpose — never silently aligned. */}
         <div className="mt-4 flex flex-wrap gap-2">
           {activeTasks.length > 0 && (
-            <Link to="/tasks" className="flex items-center gap-1.5 rounded-full border border-[#e5e7eb] bg-white px-3 py-1 text-xs text-[#52525b] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-400 dark:hover:text-white dark:hover:border-white/[.12]">
+            <Link to="/tasks" className="surface-card flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors surface-hover" style={{ color: "var(--text-secondary)" }}>
               <ListChecks size={11} className="text-emerald-500 dark:text-emerald-400"/>
-              {activeTasks.length} open task{activeTasks.length !== 1 ? "s" : ""}
+              {activeTasks.length} open task{activeTasks.length !== 1 ? "s" : ""} assigned to you
             </Link>
           )}
           {overdueCount > 0 && (
             <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
               <Clock size={11}/>
-              {overdueCount} overdue
+              {overdueCount} overdue assigned to you
             </Link>
           )}
           {urgentCount > 0 && (
@@ -409,11 +415,19 @@ export function HomePage() {
       {/* ── Agents operating now — large and central, not a sidebar footnote ── */}
       <AgentsOperatingPanel />
 
-      {/* ── AI Command Center ── */}
-      <CommandCenterStrip tasks={tasksQuery.data ?? []} notifications={notificationsQuery.data ?? []} />
+      {/* ── Workspace Graph Pulse — real counts across the asset graph ── */}
+      <WorkspaceGraphPulse />
 
-      {/* ── Ask Mondaily AI ── */}
-      <section className="mb-8 relative overflow-hidden rounded-2xl border border-[#e0e7ff] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:border-[rgba(129,140,248,0.16)] dark:bg-[#101217] dark:shadow-none">
+      {/* ── AI Command Center ── */}
+      <CommandCenterStrip
+        tasks={tasksQuery.data ?? []}
+        notifications={notificationsQuery.data ?? []}
+        onAskMondaily={() => { askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); inputRef.current?.focus(); }}
+      />
+
+      {/* ── Ask Mondaily AI — connected to the same agents and graph the
+          cards above show, not a separate "type a question" box. ── */}
+      <section ref={askSectionRef} className="surface-card mb-8 relative overflow-hidden rounded-2xl p-5">
         {/* Soft accent edge */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-400/40"/>
 
@@ -424,20 +438,21 @@ export function HomePage() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-60 animate-ping"/>
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
               </span>
-              <h2 className="text-[17px] font-semibold text-[#111827] dark:text-white">What should we do next?</h2>
+              <h2 className="text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>What should we do next?</h2>
             </div>
-            <p className="text-[13px] text-[#6b7280] dark:text-slate-500">
-              Ask the workspace graph across tasks, finance, relationships, notes, and workflows.
+            <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>
+              Ask the workspace graph, or route a question straight to the agent that owns it.
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {[
-                "What needs my attention today?",
-                "Summarize open deals",
-                "Find overdue follow-ups",
-                "Draft a client reply",
+                "Explain today's risks",
+                "What changed in the graph?",
+                "Ask Operations Agent: what's overdue across the workspace?",
+                "Ask Relationship Agent: which relationships have gone quiet?",
+                ...(hasFinance ? ["Ask Finance Agent: what invoices are overdue?"] : []),
+                "Ask Signal Agent: any new risk signals?",
               ].map(prompt => (
-                <button key={prompt} onClick={() => sendSuggestion(prompt)}
-                  className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-[12px] text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors dark:border-indigo-400/20 dark:bg-indigo-500/[.06] dark:text-indigo-300 dark:hover:bg-indigo-500/[.12] dark:hover:border-indigo-400/30">
+                <button key={prompt} onClick={() => sendSuggestion(prompt)} className="btn-suggested">
                   {prompt}
                 </button>
               ))}

@@ -14,6 +14,13 @@ export interface AskPageContext {
   object_type?: string;
   task_id?: string;
   task_title?: string;
+  task_status?: string;
+  task_assignee?: string;
+  task_record_id?: string;
+  invoice_id?: string;
+  report_id?: string;
+  report_title?: string;
+  route?: string;
   scope_label?: string;
 }
 

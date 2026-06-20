@@ -1,12 +1,16 @@
 import { Link } from "react-router-dom";
-import { ShieldAlert, CheckSquare, Activity, Gauge, ArrowUpRight, Sparkles, FileText, UserPlus, Receipt } from "lucide-react";
-import { useAgentData, STATUS_LABEL } from "./agent-dock";
+import {
+  ShieldAlert, CheckSquare, Activity, Gauge, ArrowUpRight, Sparkles, FileText,
+  UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch,
+} from "lucide-react";
+import { useAgentData, STATUS_LABEL, CTA_LABEL } from "./agent-dock";
 
 /**
- * Home "AI Command Center" strip — Risks detected, Decisions waiting, Agent
- * activity, Workspace health. Every number here comes from real data passed
- * in by the caller (tasks + notifications already fetched on the home page)
- * — nothing fabricated, no invented confidence scores.
+ * Home "AI Command Center" — five real-data panels: what changed, what
+ * needs approval, what Mondaily recommends, agent activity, and workspace
+ * graph health. Every number comes from data already fetched on the home
+ * page or from useAgentData — nothing fabricated, no invented confidence
+ * scores or fake trend lines.
  */
 
 interface NotificationLite { id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string; }
@@ -43,7 +47,7 @@ function relTime(iso?: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function CommandCenterStrip({ tasks, notifications }: { tasks: TaskLite[]; notifications: NotificationLite[] }) {
+export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { tasks: TaskLite[]; notifications: NotificationLite[]; onAskMondaily?: () => void }) {
   const now = Date.now();
   const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now);
   const reviewTasks = tasks.filter(t => !t.completed && t.status === "review");
@@ -54,64 +58,84 @@ export function CommandCenterStrip({ tasks, notifications }: { tasks: TaskLite[]
   // Workspace health: simple, honest ratio — share of active tasks that are NOT overdue.
   const healthPct = activeTasks.length === 0 ? 100 : Math.round(((activeTasks.length - overdueTasks.length) / activeTasks.length) * 100);
 
-  const activity = notifications.slice(0, 6);
+  const activity = notifications.slice(0, 5);
+  const changed = notifications.slice(0, 4); // "what changed" — most recent workspace events
+
+  // "What Mondaily recommends" — concrete, never invented. Built only from
+  // real signals already computed above; empty when there's truly nothing.
+  const recommendations: { label: string; to: string }[] = [
+    ...(overdueTasks.length > 0 ? [{ label: `Review ${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"}`, to: "/tasks" }] : []),
+    ...(reviewTasks.length > 0 ? [{ label: `Approve ${reviewTasks.length} drafted task${reviewTasks.length === 1 ? "" : "s"}`, to: "/tasks" }] : []),
+    ...(riskAlerts.length > 0 ? [{ label: `Inspect ${riskAlerts.length} risk signal${riskAlerts.length === 1 ? "" : "s"}`, to: "/notifications" }] : []),
+  ].slice(0, 3);
 
   return (
-    <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {/* Risks detected */}
+    <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* What changed */}
       <div className="surface-card rounded-xl p-4">
         <div className="mb-2 flex items-center gap-2">
-          <ShieldAlert size={14} className="text-amber-600 dark:text-amber-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Risks detected</span>
+          <TrendingUp size={14} className="text-blue-600 dark:text-blue-400 shrink-0"/>
+          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What changed</span>
         </div>
-        {riskAlerts.length === 0 ? (
-          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No active risk alerts.</p>
+        {changed.length === 0 ? (
+          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No recent graph activity.</p>
         ) : (
-          <ul className="space-y-1">
-            {riskAlerts.map(r => (
-              <li key={r.id} className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>{r.title}</li>
+          <ul className="space-y-1.5">
+            {changed.map(n => (
+              <li key={n.id} className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                {n.title} <span style={{ color: "var(--text-faint)" }}>· {relTime(n.created_at)}</span>
+              </li>
             ))}
           </ul>
         )}
-        <Link to="/notifications" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 hover:opacity-80">
-          View all <ArrowUpRight size={11}/>
+        <Link to="/notifications" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+          Open graph <ArrowUpRight size={11}/>
         </Link>
       </div>
 
-      {/* Decisions waiting */}
+      {/* What needs approval */}
       <div className="surface-card rounded-xl p-4">
         <div className="mb-2 flex items-center gap-2">
           <CheckSquare size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Decisions waiting</span>
+          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What needs approval</span>
         </div>
         <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{decisionsCount}</p>
         <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {overdueTasks.length} overdue · {reviewTasks.length} in review
+          {overdueTasks.length} overdue across workspace · {reviewTasks.length} in review
         </p>
-        <Link to="/tasks" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:opacity-80">
-          Review tasks <ArrowUpRight size={11}/>
+        <Link to="/tasks" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+          Approve / dismiss <ArrowUpRight size={11}/>
         </Link>
       </div>
 
-      {/* Workspace health */}
+      {/* What Mondaily recommends */}
       <div className="surface-card rounded-xl p-4">
         <div className="mb-2 flex items-center gap-2">
-          <Gauge size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace health</span>
+          <Sparkles size={14} className="text-violet-600 dark:text-violet-400 shrink-0"/>
+          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily recommends</span>
         </div>
-        <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</p>
-        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {activeTasks.length - overdueTasks.length} of {activeTasks.length} active tasks on track
-        </p>
-        <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
-          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>
-        </div>
+        {recommendations.length === 0 ? (
+          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No findings yet — nothing needs your attention.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {recommendations.map(r => (
+              <li key={r.label}>
+                <Link to={r.to} className="text-[12px] hover:underline" style={{ color: "var(--text-secondary)" }}>{r.label}</Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {onAskMondaily && (
+          <button onClick={onAskMondaily} className="btn-ai mt-2.5 !px-2.5 !py-1 !text-[11px]">
+            <Sparkles size={10}/> Ask Mondaily
+          </button>
+        )}
       </div>
 
-      {/* Agent activity stream */}
-      <div className="surface-card rounded-xl p-4 sm:col-span-2 lg:col-span-1">
+      {/* Agent activity */}
+      <div className="surface-card rounded-xl p-4">
         <div className="mb-2 flex items-center gap-2">
-          <Activity size={14} className="text-violet-600 dark:text-violet-400 shrink-0"/>
+          <Activity size={14} className="text-rose-600 dark:text-rose-400 shrink-0"/>
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent activity</span>
         </div>
         {activity.length === 0 ? (
@@ -122,7 +146,7 @@ export function CommandCenterStrip({ tasks, notifications }: { tasks: TaskLite[]
               const Icon = AGENT_ICON[n.type] ?? Receipt;
               return (
                 <li key={n.id} className="flex items-start gap-2">
-                  <Icon size={12} className="mt-0.5 shrink-0 text-violet-500 dark:text-violet-400"/>
+                  <Icon size={12} className="mt-0.5 shrink-0 text-rose-500 dark:text-rose-400"/>
                   <div className="min-w-0">
                     <p className="truncate text-[11.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>
                       <span className="font-medium" style={{ color: "var(--text-primary)" }}>{AGENT_LABEL[n.type] ?? "Workspace"}</span> · {n.title}
@@ -135,7 +159,74 @@ export function CommandCenterStrip({ tasks, notifications }: { tasks: TaskLite[]
           </ul>
         )}
       </div>
+
+      {/* Workspace graph health */}
+      <div className="surface-card rounded-xl p-4 sm:col-span-2 lg:col-span-1">
+        <div className="mb-2 flex items-center gap-2">
+          <Gauge size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0"/>
+          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph health</span>
+        </div>
+        <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</p>
+        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+          {activeTasks.length - overdueTasks.length} of {activeTasks.length} active tasks on track
+        </p>
+        <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
+          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>
+        </div>
+      </div>
     </div>
+  );
+}
+
+const PULSE_CATEGORIES: { key: "tasksOpen" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType }[] = [
+  { key: "tasksOpen",      label: "Tasks",         icon: CheckSquare },
+  { key: "relationships",  label: "Relationships", icon: Users },
+  { key: "financeOverdue", label: "Finance",       icon: Receipt },
+  { key: "records",        label: "Records",       icon: Database },
+  { key: "workflows",      label: "Workflows",     icon: Workflow },
+  { key: "risks",          label: "Risks",         icon: ShieldAlert },
+];
+
+/**
+ * Workspace Graph Pulse — compact real-count strip across the categories
+ * that make Mondaily an asset-graph engine, not just a task list. Pulled
+ * straight from useAgentData()'s shared queries (same numbers as the agent
+ * cards). A category with no connected data source (e.g. finance on a
+ * workspace without the finance module) shows a tasteful "—" rather than 0,
+ * so an honest "not connected" never reads like "zero risk."
+ */
+export function WorkspaceGraphPulse() {
+  const { pulse } = useAgentData();
+
+  return (
+    <section className="mb-8">
+      <div className="mb-3 flex items-center gap-2">
+        <GitBranch size={13} style={{ color: "var(--text-muted)" }}/>
+        <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph Pulse</h2>
+      </div>
+      {pulse.isLoading ? (
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton-shimmer h-20 rounded-xl"/>)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
+          {PULSE_CATEGORIES.map(({ key, label, icon: Icon }) => {
+            const value = pulse[key];
+            const connected = value !== null;
+            return (
+              <div key={key} className="surface-card flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center">
+                <Icon size={14} style={{ color: connected ? "var(--text-muted)" : "var(--text-faint)" }}/>
+                <span className="text-lg font-semibold" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
+                  {connected ? value : "—"}
+                </span>
+                <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{label}</span>
+                {!connected && <span className="text-[9px]" style={{ color: "var(--text-faint)" }}>Not connected</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -161,12 +252,20 @@ export function AgentsOperatingPanel() {
 
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton-shimmer h-32 rounded-xl"/>)}
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton-shimmer h-44 rounded-xl"/>)}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {agents.map(agent => (
-            <Link key={agent.id} to={agent.to} className="surface-card flex flex-col rounded-xl p-4 transition-colors surface-hover">
+            <div key={agent.id} className="surface-card relative flex flex-col rounded-xl p-4 overflow-hidden">
+              {/* Subtle status trail — a thin animated line along the top while
+                  the agent is actively working, not a decorative gradient. */}
+              {agent.status === "working" && (
+                <span className="absolute inset-x-0 top-0 h-[2px] overflow-hidden">
+                  <span className="absolute inset-y-0 w-1/3 bg-violet-500/70 animate-[agentTrail_2.2s_linear_infinite]"/>
+                </span>
+              )}
+
               <div className="mb-2.5 flex items-center justify-between">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "var(--surface-hover)" }}>
                   <agent.icon size={13} style={{ color: "var(--text-secondary)" }}/>
@@ -176,13 +275,32 @@ export function AgentsOperatingPanel() {
                   {STATUS_LABEL[agent.status]}
                 </span>
               </div>
+
               <p className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name}</p>
-              <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>Watching: {agent.watching}</p>
-              <p className="mt-2 flex-1 text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>{agent.detail}</p>
-              <span className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                Open source <ArrowUpRight size={11}/>
-              </span>
-            </Link>
+              <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                {agent.scope === "workspace" ? "Workspace-wide" : "Assigned to you"} · {agent.watching}
+              </p>
+
+              <div className="mt-2.5 flex-1 space-y-1.5">
+                <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Found</p>
+                <p className="text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>{agent.found}</p>
+
+                <p className="pt-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Suggested next action</p>
+                <p className="text-[12px] leading-snug" style={{ color: agent.suggestedAction ? "var(--text-secondary)" : "var(--text-faint)" }}>
+                  {agent.suggestedAction ?? "No action needed right now"}
+                </p>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
+                  <GitBranch size={10}/>
+                  {agent.evidenceCount > 0 ? `${agent.evidenceCount} evidence record${agent.evidenceCount === 1 ? "" : "s"}` : "No evidence returned"}
+                </span>
+                <Link to={agent.to} className="inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+                  {CTA_LABEL[agent.status]} <ArrowUpRight size={11}/>
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}

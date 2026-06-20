@@ -196,15 +196,21 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
   // While this task drawer is open, the right-side Ask AI drawer (rendered
   // once at the layout level) should know what task is in scope — same
-  // mechanism every contextual Ask surface uses.
+  // mechanism every contextual Ask surface uses. Includes status, assignee,
+  // and any linked record so "this task"/"create a follow-up from this"
+  // resolve without the user restating any of it.
   useEffect(() => {
+    const assigneeMember = members.find(m => m.user_id === task.assignee_id);
     useAskContextStore.getState().setContext({
       task_id: task.id,
       task_title: task.title,
+      task_status: task.status,
+      task_assignee: assigneeMember?.name || assigneeMember?.email,
+      task_record_id: task.record_id,
       scope_label: `the task "${task.title}"`,
     });
     return () => useAskContextStore.getState().setContext(null);
-  }, [task.id, task.title]);
+  }, [task.id, task.title, task.status, task.assignee_id, task.record_id, members]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -111,6 +111,14 @@ html[data-theme="light"] {
   50%      { transform: scale(1.7); opacity: 0; }
 }
 
+/* Agent status trail — a thin line that sweeps across the top edge of a
+   card while that agent's status is "working". Signals continuous activity
+   without a decorative gradient or fake progress bar. */
+@keyframes agentTrail {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 .agent-badge {
   @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium;
 }

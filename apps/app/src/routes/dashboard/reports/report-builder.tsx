@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, Cell, Funnel, FunnelChart, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 
 type ReportType = "insight" | "funnel" | "time_in_stage" | "historical";
 interface ReportConfig { object_type: string; metric: string; field?: string; group_by: string; chart_type: "line" | "bar" | "number"; compare: boolean; stage_field: string; stages: string[]; record_id?: string; range: string }
@@ -44,6 +45,19 @@ export function ReportBuilderPage() {
       setReport({ ...query.data, config: { ...defaults, ...savedConfig, object_type: savedConfig.object_type || firstSlug } });
     }
   }, [query.data, objects]);
+
+  // While this report is open in the builder, the right-side Ask AI drawer
+  // should know which report is in scope so "this report" resolves.
+  useEffect(() => {
+    if (!id || !query.data) return;
+    useAskContextStore.getState().setContext({
+      report_id: id,
+      report_title: query.data.name,
+      route: `/reports/${id}`,
+      scope_label: `the report "${query.data.name}"`,
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, [id, query.data]);
 
   if (query.isLoading || !report) return <div className="p-8"><PageSkeleton rows={7} /></div>;
 

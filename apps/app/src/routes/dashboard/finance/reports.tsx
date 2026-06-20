@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
@@ -88,6 +90,16 @@ export function FinanceReportsPage() {
       try { return await apiClient.get("/expenses"); } catch { return []; }
     },
   });
+
+  // Page-level finance report context for the right-side Ask AI drawer.
+  useEffect(() => {
+    useAskContextStore.getState().setContext({
+      report_title: "Finance report",
+      route: "/finance/reports",
+      scope_label: "the Finance report",
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, []);
 
   const currency = invoices[0]?.currency ?? "GBP";
 

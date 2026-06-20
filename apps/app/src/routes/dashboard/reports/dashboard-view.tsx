@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string; size?: "small"|"large" }
@@ -467,6 +468,19 @@ export function DashboardViewPage() {
   });
 
   useEffect(() => { if (query.data) setDashboard(query.data); }, [query.data]);
+
+  // While this dashboard is open, the right-side Ask AI drawer should know
+  // which report/dashboard is in scope so "this report" resolves.
+  useEffect(() => {
+    if (!id || !query.data) return;
+    useAskContextStore.getState().setContext({
+      report_id: id,
+      report_title: query.data.name,
+      route: `/reports/dashboards/${id}`,
+      scope_label: `the dashboard "${query.data.name ?? id}"`,
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, [id, query.data]);
 
   if (query.isLoading || !dashboard) return <div className="p-8"><PageSkeleton rows={7}/></div>;
 

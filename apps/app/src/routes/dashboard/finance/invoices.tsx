@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 import { Plus, Search, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -51,6 +52,16 @@ export function InvoicesPage() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+
+  // Page-level finance context for the right-side Ask AI drawer — no
+  // specific invoice selected here, just "the invoices page".
+  useEffect(() => {
+    useAskContextStore.getState().setContext({
+      route: "/finance/invoices",
+      scope_label: "the Invoices page (finance)",
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, []);
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["invoices", statusFilter, search],

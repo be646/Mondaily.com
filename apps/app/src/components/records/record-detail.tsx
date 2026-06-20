@@ -1653,6 +1653,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       node_id: recordId,
       node_name: name,
       object_type: objectType,
+      route: `/objects/${objectType}/${recordId}`,
       scope_label: `the record "${name ?? recordId}" (${objectType})`,
     });
     return () => useAskContextStore.getState().setContext(null);

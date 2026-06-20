@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
+import { useAskContextStore } from "../../../lib/ask-context-store";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -831,6 +832,16 @@ export function SalesReportPage() {
   const [annotationText, setAnnotationText] = useState("");
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetName, setPresetName]     = useState("");
+
+  // Page-level sales report context for the right-side Ask AI drawer.
+  useEffect(() => {
+    useAskContextStore.getState().setContext({
+      report_title: "Sales report",
+      route: "/reports/sales",
+      scope_label: "the Sales report",
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, []);
 
   const objectsQ = useQuery({
     queryKey: ["sidebar-objects"],
