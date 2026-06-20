@@ -422,7 +422,12 @@ export function HomePage() {
       <CommandCenterStrip
         tasks={tasksQuery.data ?? []}
         notifications={notificationsQuery.data ?? []}
-        onAskMondaily={() => { askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); inputRef.current?.focus(); }}
+        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
+        onAskMondaily={(prefill) => {
+          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (prefill) setInput(prefill);
+          inputRef.current?.focus();
+        }}
       />
 
       {/* ── Ask Mondaily AI — connected to the same agents and graph the

@@ -47,24 +47,36 @@ function relTime(iso?: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { tasks: TaskLite[]; notifications: NotificationLite[]; onAskMondaily?: () => void }) {
+export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checkedAreas }: {
+  tasks: TaskLite[]; notifications: NotificationLite[];
+  /** Called when the user wants to jump to Ask Mondaily — optional prefill text. */
+  onAskMondaily?: (prefill?: string) => void;
+  /** What this card's "checked just now" empty state honestly covers — passed
+   * by the caller since this component only receives task/notification data. */
+  checkedAreas?: string[];
+}) {
   const now = Date.now();
+  // NOTE: `tasks` here is "assigned to you" scoped (same query as the Home
+  // hero pills) — every label below says "assigned to you", never
+  // "workspace" or "across workspace", so it can't silently disagree with
+  // the workspace-wide numbers shown on the Operations Agent card.
   const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now);
   const reviewTasks = tasks.filter(t => !t.completed && t.status === "review");
   const activeTasks = tasks.filter(t => !t.completed);
   const riskAlerts = notifications.filter(n => n.type === "ai_risk").slice(0, 3);
   const decisionsCount = overdueTasks.length + reviewTasks.length;
 
-  // Workspace health: simple, honest ratio — share of active tasks that are NOT overdue.
+  // Health: simple, honest ratio — share of YOUR active tasks that are NOT overdue.
   const healthPct = activeTasks.length === 0 ? 100 : Math.round(((activeTasks.length - overdueTasks.length) / activeTasks.length) * 100);
 
   const activity = notifications.slice(0, 5);
   const changed = notifications.slice(0, 4); // "what changed" — most recent workspace events
+  const areasLabel = (checkedAreas?.length ? checkedAreas : ["tasks"]).join(", ");
 
   // "What Mondaily recommends" — concrete, never invented. Built only from
   // real signals already computed above; empty when there's truly nothing.
   const recommendations: { label: string; to: string }[] = [
-    ...(overdueTasks.length > 0 ? [{ label: `Review ${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"}`, to: "/tasks" }] : []),
+    ...(overdueTasks.length > 0 ? [{ label: `Review ${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"} assigned to you`, to: "/tasks" }] : []),
     ...(reviewTasks.length > 0 ? [{ label: `Approve ${reviewTasks.length} drafted task${reviewTasks.length === 1 ? "" : "s"}`, to: "/tasks" }] : []),
     ...(riskAlerts.length > 0 ? [{ label: `Inspect ${riskAlerts.length} risk signal${riskAlerts.length === 1 ? "" : "s"}`, to: "/notifications" }] : []),
   ].slice(0, 3);
@@ -78,7 +90,15 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { ta
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What changed</span>
         </div>
         {changed.length === 0 ? (
-          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No recent graph activity.</p>
+          <div>
+            <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No graph changes since last visit.</p>
+            <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Checked: {areasLabel} · just now</p>
+            {onAskMondaily && (
+              <button onClick={() => onAskMondaily("What changed in the workspace graph since I last checked?")} className="btn-suggested mt-2 !px-2.5 !py-1 !text-[11px]">
+                Ask what changed
+              </button>
+            )}
+          </div>
         ) : (
           <ul className="space-y-1.5">
             {changed.map(n => (
@@ -88,9 +108,11 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { ta
             ))}
           </ul>
         )}
-        <Link to="/notifications" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-          Open graph <ArrowUpRight size={11}/>
-        </Link>
+        {changed.length > 0 && (
+          <Link to="/notifications" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
+            View activity <ArrowUpRight size={11}/>
+          </Link>
+        )}
       </div>
 
       {/* What needs approval */}
@@ -101,7 +123,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { ta
         </div>
         <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{decisionsCount}</p>
         <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {overdueTasks.length} overdue across workspace · {reviewTasks.length} in review
+          {overdueTasks.length} overdue assigned to you · {reviewTasks.length} in review
         </p>
         <Link to="/tasks" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
           Approve / dismiss <ArrowUpRight size={11}/>
@@ -126,7 +148,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { ta
           </ul>
         )}
         {onAskMondaily && (
-          <button onClick={onAskMondaily} className="btn-ai mt-2.5 !px-2.5 !py-1 !text-[11px]">
+          <button onClick={() => onAskMondaily()} className="btn-ai mt-2.5 !px-2.5 !py-1 !text-[11px]">
             <Sparkles size={10}/> Ask Mondaily
           </button>
         )}
@@ -168,7 +190,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { ta
         </div>
         <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</p>
         <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {activeTasks.length - overdueTasks.length} of {activeTasks.length} active tasks on track
+          {activeTasks.length - overdueTasks.length} of {activeTasks.length} of your active tasks on track
         </p>
         <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
           <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>
@@ -178,13 +200,17 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily }: { ta
   );
 }
 
+// Labels say exactly what the number counts — never a bare category name —
+// so this panel's numbers can't be confused with the differently-scoped
+// numbers in the hero pills or agent cards (e.g. "active tasks" here is
+// workspace-wide, the hero pill's "open tasks" is assigned-to-you).
 const PULSE_CATEGORIES: { key: "tasksOpen" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType }[] = [
-  { key: "tasksOpen",      label: "Tasks",         icon: CheckSquare },
-  { key: "relationships",  label: "Relationships", icon: Users },
-  { key: "financeOverdue", label: "Finance",       icon: Receipt },
-  { key: "records",        label: "Records",       icon: Database },
-  { key: "workflows",      label: "Workflows",     icon: Workflow },
-  { key: "risks",          label: "Risks",         icon: ShieldAlert },
+  { key: "tasksOpen",      label: "active tasks",       icon: CheckSquare },
+  { key: "relationships",  label: "relationship records", icon: Users },
+  { key: "financeOverdue", label: "overdue invoices",   icon: Receipt },
+  { key: "records",        label: "total records",      icon: Database },
+  { key: "workflows",      label: "workflow records",   icon: Workflow },
+  { key: "risks",          label: "open risk signals",  icon: ShieldAlert },
 ];
 
 /**
@@ -291,10 +317,12 @@ export function AgentsOperatingPanel() {
                 </p>
               </div>
 
-              <div className="mt-3 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
+              <p className="mt-2 text-[10px]" style={{ color: "var(--text-faint)" }}>{agent.lastAction}</p>
+
+              <div className="mt-2 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
                 <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
                   <GitBranch size={10}/>
-                  {agent.evidenceCount > 0 ? `${agent.evidenceCount} evidence record${agent.evidenceCount === 1 ? "" : "s"}` : "No evidence returned"}
+                  {agent.evidenceCount > 0 ? `${agent.evidenceCount} evidence record${agent.evidenceCount === 1 ? "" : "s"}` : agent.idleEvidenceLabel}
                 </span>
                 <Link to={agent.to} className="inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
                   {CTA_LABEL[agent.status]} <ArrowUpRight size={11}/>

@@ -56,6 +56,10 @@ export interface AgentSummary {
   suggestedAction: string | null;
   /** Count of real records backing `found` — never fabricated. */
   evidenceCount: number;
+  /** Shown instead of a generic "No evidence returned" when evidenceCount
+   * is 0 — phrased per agent so an empty result reads as "nothing wrong"
+   * rather than "something failed". */
+  idleEvidenceLabel: string;
   to: string;
   /** @deprecated kept for components not yet migrated — same as `found`. */
   detail: string;
@@ -136,6 +140,7 @@ export function useAgentData() {
         : "No findings — all caught up",
       suggestedAction: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : reviewTasks.length > 0 ? "Approve drafted tasks" : null,
       evidenceCount: overdueTasks.length + reviewTasks.length,
+      idleEvidenceLabel: "No open findings",
       to: "/tasks",
       get detail() { return this.found; },
     },
@@ -150,6 +155,7 @@ export function useAgentData() {
       found: staleDeals.length > 0 ? `${staleDeals.length} relationship${staleDeals.length === 1 ? "" : "s"} gone quiet 14+ days` : "No findings — relationships healthy",
       suggestedAction: staleDeals.length > 0 ? `Reach out to ${staleDeals.length} stalled relationship${staleDeals.length === 1 ? "" : "s"}` : null,
       evidenceCount: staleDeals.length,
+      idleEvidenceLabel: "No active issues",
       to: "/pipeline",
       get detail() { return this.found; },
     },
@@ -164,6 +170,7 @@ export function useAgentData() {
       found: overdueInvoices.length > 0 ? `${overdueInvoices.length} overdue invoice${overdueInvoices.length === 1 ? "" : "s"} across workspace` : "No findings — no overdue invoices",
       suggestedAction: overdueInvoices.length > 0 ? "Chase overdue invoices" : null,
       evidenceCount: overdueInvoices.length,
+      idleEvidenceLabel: "No evidence needed",
       to: "/finance/invoices",
       get detail() { return this.found; },
     }] : []),
@@ -182,6 +189,7 @@ export function useAgentData() {
         : "No findings — monitoring workspace",
       suggestedAction: unreadRisk.length > 0 ? "Inspect risk signals" : unreadAgent.length > 0 ? "Review agent updates" : null,
       evidenceCount: unreadRisk.length + unreadAgent.length,
+      idleEvidenceLabel: "No unresolved signals",
       to: "/notifications",
       get detail() { return this.found; },
     },
