@@ -18,7 +18,7 @@ import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import {
   GRAPH_REASONING_STEPS, inferAgentHandoff, friendlyAskError,
-  EvidenceStrip, SourceCard, type SourceCardData,
+  EvidenceStrip, SourceCard, mapBackendSources, type SourceCardData, type BackendSourceMeta,
 } from "./ask-shared";
 
 // ── Markdown renderer (same as home) ─────────────────────────────────────────
@@ -230,6 +230,10 @@ export function AskMondaily() {
       setCurrentThreadId(tid);
     }
     setLastUserMsg(text);
+    // Capture conversation history BEFORE adding the new message — this is
+    // what gives the backend memory of the thread instead of treating every
+    // request as a fresh conversation with no prior context.
+    const history = messages.map(m => ({ role: m.role, content: m.content }));
     const userMsg: ChatMessage = { role: "user", content: text };
     const withUser = [...messages, userMsg];
     setMessages(withUser);
@@ -245,19 +249,20 @@ export function AskMondaily() {
       const res = await fetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ message: text, model, web_search })
+        body: JSON.stringify({ message: text, model, web_search, history, thread_id: tid })
       });
       if (!res.ok) throw new Error(`AI error: ${res.status}`);
-      const data = await res.json() as { reply?: string; suggestions?: string[] };
+      const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[] };
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
       const finalMsgs = [...withUser, aiMsg];
       setMessages(finalMsgs);
       addMessageToThread(tid, aiMsg);
       startStreaming(finalMsgs.length - 1, reply);
-      // Backend returns no source/agent metadata yet — infer a modest agent
-      // handoff client-side and record an empty source list honestly.
-      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: [] as SourceCardData[] } }));
+      // Agent handoff is still inferred client-side (modest, not claimed as
+      // backend-confirmed), but sources are now real — only populated when
+      // the backend actually touched workspace data for this response.
+      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
       if (data.suggestions?.length) setSuggestions(data.suggestions);
     } catch (err: any) {
       const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err) };
@@ -445,30 +450,37 @@ export function AskMondaily() {
                       </div>
                     )}
 
-                    {/* Actions — only the ones with a real tool behind them are clickable */}
-                    {!isStreaming && !loading && i === messages.length - 1 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                        <button onClick={() => sendSuggestion("Create a task to follow up on this.")} className="btn-ai">
-                          <Sparkles size={11}/> Create task from this
-                        </button>
-                        <button onClick={() => sendSuggestion("Draft a message based on this.")} className="btn-ai">
-                          <Sparkles size={11}/> Draft message
-                        </button>
-                        <button onClick={() => sendSuggestion("Show me the related objects in the workspace graph for this.")} className="btn-suggested">
-                          Show related objects
-                        </button>
-                        <button onClick={() => sendSuggestion("Explain your reasoning for that answer, step by step.")} className="btn-suggested">
-                          Explain reasoning
-                        </button>
-                        {["Create report", "Add to decision queue", "Start workflow"].map(label => (
-                          <span key={label} title="Coming soon — not wired to a workspace action yet"
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
-                            style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    {/* Actions — only the ones with a real tool behind them are clickable.
+                        Each chip embeds the actual previous question + answer explicitly
+                        (not just "this") so the request is unambiguous even on its own,
+                        in addition to the full history now sent with every request. */}
+                    {!isStreaming && !loading && i === messages.length - 1 && (() => {
+                      const prevQuestion = messages[i - 1]?.content ?? "";
+                      const prevAnswer = m.content;
+                      return (
+                        <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
+                          <button onClick={() => sendSuggestion(`Create a task to follow up on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". If anything is ambiguous, ask me to confirm the task title or due date before creating it.`)} className="btn-ai">
+                            <Sparkles size={11}/> Create task from this
+                          </button>
+                          <button onClick={() => sendSuggestion(`Draft a message based on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}".`)} className="btn-ai">
+                            <Sparkles size={11}/> Draft message
+                          </button>
+                          <button onClick={() => sendSuggestion(`Show me the related objects in the workspace graph for the subject of this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}".`)} className="btn-suggested">
+                            Show related objects
+                          </button>
+                          <button onClick={() => sendSuggestion(`Explain your reasoning for your previous answer about: "${prevQuestion}". Previous answer: "${prevAnswer}". Walk through it step by step.`)} className="btn-suggested">
+                            Explain reasoning
+                          </button>
+                          {["Create report", "Add to decision queue", "Start workflow"].map(label => (
+                            <span key={label} title="Coming soon — not wired to a workspace action yet"
+                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
+                              style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

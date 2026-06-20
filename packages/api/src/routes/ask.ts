@@ -3,16 +3,22 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import * as ubc from "@mondaily/db/ubc";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
-You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, or build a custom object type — use the appropriate tool. After using a tool, summarize what you did in plain language.
+You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, build a custom object type, or explore relationships between records — use the appropriate tool. After using a tool, summarize what you did in plain language.
+
+Mondaily has a real workspace graph: every record is a node, and nodes can be connected to each other by edges (relationships). You DO have a tool for this — find_related_objects. Never tell the user that "workspace graph" isn't a feature you have a tool for. If they ask about related objects, connections, or "the graph" for a person/company/record, call find_related_objects with either the record's name or its node_id (if you already know it from this conversation or from a previous tool result).
 
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
 - "Add X to my Y list" → use list_lists to find the list ID, then search_records to find the record, then add_to_list.
 - "Create a new object for tracking X" → use create_object_type with a clear description so fields are generated well.
+- "Show related objects / connections / graph for X" → search_records to resolve X to a node_id (if not already known), then find_related_objects.
 - For multi-step operations, execute all steps and report the full outcome.
+
+You will often be given prior conversation turns before the user's latest message. Use them: if the user says "this", "that answer", "the previous result", or asks you to explain/expand/act on something without restating it, resolve the reference using the conversation history actually provided to you. Only ask a clarifying question if there genuinely is no prior message or selected object that the reference could point to — do not claim there is no previous question if conversation history was provided above the latest message.
 
 Never mention Claude, Anthropic, OpenAI, or any underlying AI technology. You are simply Mondaily AI.
 
@@ -178,6 +184,18 @@ const TOOLS = [
       },
       required: ["name", "description"]
     }
+  },
+  {
+    name: "find_related_objects",
+    description: "Look up the workspace graph for a record — returns other nodes connected to it by an edge (relationship), grouped by relationship type. Use for 'show related objects for X', 'what's connected to Y', 'show me the graph for Z', 'who/what is linked to this'. If you don't already know the node_id, pass the record's name and it will be resolved first.",
+    input_schema: {
+      type: "object",
+      properties: {
+        node_id: { type: "string", description: "The node ID to find relationships for, if already known from this conversation or a previous tool result" },
+        name: { type: "string", description: "The record's name to resolve to a node first, if node_id is not known" }
+      },
+      required: []
+    }
   }
 ];
 
@@ -197,11 +215,22 @@ async function searchWeb(query: string): Promise<string> {
   } catch { return ""; }
 }
 
+export interface SourceMeta {
+  type: string;
+  title: string;
+  node_id?: string;
+  object_type?: string;
+  relationship?: string;
+  match_reason?: string;
+  timestamp?: string;
+}
+
 async function executeTool(
   name: string,
   input: Record<string, any>,
   workspaceId: string,
-  userId: string
+  userId: string,
+  sources: SourceMeta[]
 ): Promise<string> {
   try {
     switch (name) {
@@ -227,6 +256,9 @@ async function executeTool(
           .limit(20);
         if (error) return `Error fetching tasks: ${error.message}`;
         if (!data?.length) return "No tasks found.";
+        for (const t of data.slice(0, 8)) {
+          sources.push({ type: "task", title: t.title, node_id: t.id, match_reason: `status: ${t.status || "todo"}`, timestamp: t.due_date ?? undefined });
+        }
         const list = data.map((t: any) =>
           `- [${t.id}] ${t.title} | priority: ${t.priority || "medium"} | status: ${t.status || "todo"}${t.due_date ? ` | due: ${new Date(t.due_date).toLocaleDateString()}` : ""}`
         ).join("\n");
@@ -290,10 +322,16 @@ async function executeTool(
             .ilike("data->>email", `%${input.query}%`)
             .limit(8);
           if (!d2?.length) return `No records found matching "${input.query}".`;
+          for (const r of d2) {
+            sources.push({ type: "record", title: (r.data as any).name || "Untitled", node_id: r.id, object_type: r.object_type, match_reason: `email matches "${input.query}"` });
+          }
           const list = d2.map((r: any) => `- [${r.id}] ${r.data.name || "Untitled"} (${r.object_type})${r.data.email ? ` | ${r.data.email}` : ""}`).join("\n");
           return `Found ${d2.length} record(s):\n${list}`;
         }
         if (!data?.length) return `No records found matching "${input.query}".`;
+        for (const r of data) {
+          sources.push({ type: "record", title: (r.data as any).name || "Untitled", node_id: r.id, object_type: r.object_type, match_reason: `name matches "${input.query}"` });
+        }
         const list = data.map((r: any) =>
           `- [${r.id}] ${r.data.name || "Untitled"} (${r.object_type})${r.data.email ? ` | ${r.data.email}` : ""}${r.data.company ? ` | ${r.data.company}` : ""}`
         ).join("\n");
@@ -333,6 +371,9 @@ async function executeTool(
           .limit(input.limit || 10);
         if (error) return `Error listing records: ${error.message}`;
         if (!data?.length) return `No ${input.object_type} found.`;
+        for (const r of data.slice(0, 8)) {
+          sources.push({ type: "record", title: (r.data as any).name || "Untitled", node_id: r.id, object_type: input.object_type, timestamp: r.updated_at });
+        }
         const list = data.map((r: any) =>
           `- [${r.id}] ${r.data.name || "Untitled"}${r.data.email ? ` | ${r.data.email}` : ""}${r.data.company ? ` | ${r.data.company}` : ""}${r.data.stage ? ` | stage: ${r.data.stage}` : ""}`
         ).join("\n");
@@ -520,6 +561,48 @@ async function executeTool(
         return `Object type "${input.name}" created (slug: ${data.slug}, ID: ${data.id}) with ${attributes.length} field(s): ${fieldSummary}. It now appears under Objects in the sidebar.`;
       }
 
+      case "find_related_objects": {
+        let nodeId = input.node_id as string | undefined;
+        let sourceLabel = "";
+
+        // Resolve a name to a node first if no node_id was given
+        if (!nodeId && input.name) {
+          const { data: matches } = await supabase
+            .from("nodes")
+            .select("id, object_type, data")
+            .eq("workspace_id", workspaceId)
+            .ilike("data->>name", `%${input.name}%`)
+            .limit(1);
+          if (!matches?.length) return `No record found matching "${input.name}" — cannot look up related objects.`;
+          nodeId = matches[0]!.id;
+          sourceLabel = `${(matches[0]!.data as any).name ?? input.name} (${matches[0]!.object_type})`;
+        }
+        if (!nodeId) return "No node_id or name provided — cannot look up related objects.";
+
+        const related = await ubc.getRelated(nodeId);
+        if (!related.length) return `No related objects found in the workspace graph for ${sourceLabel || nodeId}.`;
+
+        for (const node of related.slice(0, 8)) {
+          sources.push({
+            type: "related_object",
+            title: (node.data as any)?.name || (node.data as any)?.title || "Untitled",
+            node_id: node.id,
+            object_type: node.object_type,
+            relationship: "related",
+          });
+        }
+        const grouped: Record<string, typeof related> = {};
+        for (const node of related) {
+          const key = node.object_type;
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key]!.push(node);
+        }
+        const summary = Object.entries(grouped).map(([type, nodes]) =>
+          `${type} (${nodes.length}): ${nodes.map(n => `[${n.id}] ${(n.data as any)?.name || (n.data as any)?.title || "Untitled"}`).join(", ")}`
+        ).join("\n");
+        return `Found ${related.length} related object(s) in the workspace graph${sourceLabel ? ` for ${sourceLabel}` : ""}, grouped by type:\n${summary}`;
+      }
+
       default:
         return `Unknown tool: ${name}`;
     }
@@ -530,13 +613,31 @@ async function executeTool(
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
+const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined) sent for context
+
 router.post("/", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().optional(),
   model: z.enum(["auto", "fast", "smart"]).optional(),
-  web_search: z.boolean().optional()
+  web_search: z.boolean().optional(),
+  // Prior turns of this conversation, sent by the frontend so the AI can
+  // resolve "this", "that answer", follow-up actions, etc. Without this the
+  // backend has no memory — every request used to be treated as a fresh
+  // conversation with no way to reference what was said before.
+  history: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string()
+  })).optional(),
+  // Optional context about a record/node the user currently has selected
+  // (e.g. viewing a record detail page) so "for this" can resolve without
+  // the user having to restate the record's name.
+  context: z.object({
+    node_id: z.string().optional(),
+    node_name: z.string().optional(),
+    object_type: z.string().optional()
+  }).optional()
 })), async (c) => {
-  const { message, model: modelPref, web_search } = c.req.valid("json");
+  const { message, model: modelPref, web_search, history, context } = c.req.valid("json");
   const modelMap: Record<string, string> = {
     fast: "claude-haiku-4-5-20251001",
     smart: "claude-sonnet-4-6",
@@ -555,11 +656,21 @@ router.post("/", requireAuth, zValidator("json", z.object({
       webContext = await searchWeb(message);
     }
 
-    const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "");
-    const messages: any[] = [{ role: "user", content: message }];
+    let contextNote = "";
+    if (context?.node_id || context?.node_name) {
+      contextNote = `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this" or "this record", it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
+    }
+
+    const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;
+
+    // Prepend prior conversation turns (capped) so the model has real memory
+    // of this thread instead of treating every message as the first one.
+    const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
+    const messages: any[] = [...priorTurns, { role: "user", content: message }];
 
     let reply = "";
     const MAX_TOOL_ROUNDS = 5;
+    const sources: SourceMeta[] = [];
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -603,7 +714,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       // Execute each tool and collect results
       const toolResults: any[] = [];
       for (const toolCall of toolUseBlocks) {
-        const result = await executeTool(toolCall.name, toolCall.input ?? {}, workspaceId, userId);
+        const result = await executeTool(toolCall.name, toolCall.input ?? {}, workspaceId, userId, sources);
         toolResults.push({
           type: "tool_result",
           tool_use_id: toolCall.id,
@@ -624,6 +735,15 @@ router.post("/", requireAuth, zValidator("json", z.object({
       reply = reply.replace(/<followups>[\s\S]*?<\/followups>/, "").trim();
     }
 
+    // Dedupe sources by node_id (or title if no node_id), cap to a sane count
+    const seen = new Set<string>();
+    const dedupedSources = sources.filter(s => {
+      const key = s.node_id ?? s.title;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 10);
+
     // Track usage
     try {
       const now = new Date();
@@ -639,7 +759,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       });
     } catch (_) {}
 
-    return c.json({ reply, suggestions, thread_id: null });
+    return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null });
   } catch (err: any) {
     return c.json({ reply: `Connection error: ${err.message}` }, 500);
   }

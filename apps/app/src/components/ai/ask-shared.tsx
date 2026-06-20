@@ -1,7 +1,7 @@
 import { Network, ShieldAlert, Workflow, Receipt, Users, Sparkles } from "lucide-react";
 import {
   CheckSquare, FileSignature, UserRound, Box, GitBranch, BarChart2,
-  FileText, Mail, Bell, Wallet,
+  FileText, Mail, Bell, Wallet, Database,
 } from "lucide-react";
 
 /**
@@ -9,12 +9,14 @@ import {
  * the full Ask Mondaily page, the inline Ask AI widget, and (in future) any
  * other surface that talks to /api/v1/ask.
  *
- * Important: the backend /api/v1/ask endpoint currently returns only
- * { reply, suggestions, thread_id } — no sources, no confidence, no agent
- * metadata. Everything here is built to degrade honestly when that data
- * isn't present, rather than inventing it. Agent attribution is inferred
- * client-side from the prompt text, kept modest, and never presented as
- * something the backend confirmed.
+ * The backend /api/v1/ask endpoint now returns real `sources` whenever a
+ * tool call touched workspace data (search_records, list_records,
+ * list_tasks, find_related_objects) — see mapBackendSources() below. When a
+ * response truly had no tool calls (a pure conversational reply), sources
+ * is an empty array and the UI shows an honest "No sources returned" state
+ * rather than inventing one. Agent attribution is still inferred
+ * client-side from the prompt text — modest, never presented as something
+ * the backend confirmed.
  */
 
 // ── Reasoning steps — shown while waiting on a response ─────────────────────
@@ -58,7 +60,7 @@ export function inferAgentHandoff(promptText: string): AgentHandoff {
 // ── Source cards ──────────────────────────────────────────────────────────
 export type SourceType =
   | "task" | "invoice" | "contact" | "asset" | "workflow"
-  | "report" | "note" | "email" | "notification" | "finance";
+  | "report" | "note" | "email" | "notification" | "finance" | "record";
 
 export interface SourceCardData {
   type: SourceType;
@@ -79,7 +81,33 @@ export const SOURCE_ICON: Record<SourceType, React.ElementType> = {
   email: Mail,
   notification: Bell,
   finance: Wallet,
+  record: Database,
 };
+
+/** Raw source shape returned by POST /api/v1/ask (see SourceMeta in ask.ts). */
+export interface BackendSourceMeta {
+  type: string;
+  title: string;
+  node_id?: string;
+  object_type?: string;
+  relationship?: string;
+  match_reason?: string;
+  timestamp?: string;
+}
+
+/** Maps the backend's real tool-call sources into frontend SourceCardData.
+ * Never fabricates a source — only called with what the backend actually
+ * returned for this specific response. */
+export function mapBackendSources(raw: BackendSourceMeta[] | undefined): SourceCardData[] {
+  if (!raw?.length) return [];
+  return raw.map(s => ({
+    type: (s.type === "related_object" ? "record" : s.type) as SourceType,
+    title: s.title,
+    timestamp: s.timestamp,
+    relevance: s.relationship ?? s.match_reason,
+    href: s.object_type && s.node_id ? `/objects/${s.object_type}/${s.node_id}` : undefined,
+  }));
+}
 
 export function SourceCard({ source }: { source: SourceCardData }) {
   const Icon = SOURCE_ICON[source.type];

@@ -5,7 +5,7 @@ import { LogoMark } from "../../components/logo";
 import { CommandCenterStrip, AgentsOperatingPanel } from "../../components/ai/command-center";
 import {
   GRAPH_REASONING_STEPS, inferAgentHandoff, friendlyAskError,
-  EvidenceStrip, type SourceCardData,
+  EvidenceStrip, SourceCard, mapBackendSources, type SourceCardData, type BackendSourceMeta,
 } from "../../components/ai/ask-shared";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
@@ -254,6 +254,9 @@ export function HomePage() {
       setCurrentThreadId(threadId);
     }
 
+    // Capture history BEFORE adding the new message — gives the backend
+    // real memory of the thread instead of treating every send as new.
+    const history = messages.map(m => ({ role: m.role, content: m.content }));
     const userMsg: ChatMessage = { role: "user", content: text };
     const withUser = [...messages, userMsg];
     setMessages(withUser);
@@ -265,14 +268,14 @@ export function HomePage() {
       let model = "auto";
       let web_search = false;
       try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; web_search = s.webSearch === "allow"; } catch {}
-      const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model, web_search });
+      const data = await apiClient.post<{ reply: string; suggestions?: string[]; sources?: BackendSourceMeta[] }>("/ask", { message: text, model, web_search, history, thread_id: threadId });
       const reply = data.reply || "No response.";
       const aiMsg: ChatMessage = { role: "assistant", content: reply };
       const finalMsgs = [...withUser, aiMsg];
       setMessages(finalMsgs);
       addMessageToThread(threadId, aiMsg);
       startStreaming(finalMsgs.length - 1, reply);
-      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: [] as SourceCardData[] } }));
+      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
       if (data.suggestions?.length) setSuggestions(data.suggestions);
     } catch (err: any) {
       const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err) };
@@ -405,6 +408,9 @@ export function HomePage() {
         threadId = thread.id;
         setCurrentThreadId(threadId);
       }
+      // Capture history BEFORE adding the new message — same fix as send():
+      // without this, action chips and quick prompts lost all prior context.
+      const history = messages.map(m => ({ role: m.role, content: m.content }));
       const userMsg: ChatMessage = { role: "user", content: text };
       const withUser = [...messages, userMsg];
       setMessages(withUser);
@@ -413,16 +419,17 @@ export function HomePage() {
       try {
         let model = "auto";
         try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
-        const data = await apiClient.post<{ reply: string; suggestions?: string[] }>("/ask", { message: text, model });
+        const data = await apiClient.post<{ reply: string; suggestions?: string[]; sources?: BackendSourceMeta[] }>("/ask", { message: text, model, history, thread_id: threadId });
         const reply = data.reply || "No response.";
         const aiMsg: ChatMessage = { role: "assistant", content: reply };
         const finalMsgs2 = [...withUser, aiMsg];
         setMessages(finalMsgs2);
         addMessageToThread(threadId, aiMsg);
         startStreaming(finalMsgs2.length - 1, reply);
+        setMessageMeta(prev => ({ ...prev, [finalMsgs2.length - 1]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
       } catch (err: any) {
-        setMessages([...withUser, { role: "assistant", content: `Error: ${err.message}` }]);
+        setMessages([...withUser, { role: "assistant", content: friendlyAskError(err) }]);
       }
       setLoading(false);
     };
@@ -561,16 +568,25 @@ export function HomePage() {
                             <EvidenceStrip sources={meta.sources}/>
                           </div>
                         )}
-                        {!isStreaming && !loading && i === messages.length - 1 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                            <button onClick={() => sendSuggestion("Create a task to follow up on this.")} className="btn-ai">
-                              <Sparkles size={11}/> Create task
-                            </button>
-                            <button onClick={() => sendSuggestion("Show me related objects in the workspace graph for this.")} className="btn-suggested">
-                              Show related objects
-                            </button>
+                        {!isStreaming && meta && meta.sources.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2 pl-4">
+                            {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
                           </div>
                         )}
+                        {!isStreaming && !loading && i === messages.length - 1 && (() => {
+                          const prevQuestion = messages[i - 1]?.content ?? "";
+                          const prevAnswer = m.content;
+                          return (
+                            <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
+                              <button onClick={() => sendSuggestion(`Create a task to follow up on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". If anything is ambiguous, ask me to confirm the task title or due date before creating it.`)} className="btn-ai">
+                                <Sparkles size={11}/> Create task
+                              </button>
+                              <button onClick={() => sendSuggestion(`Show me the related objects in the workspace graph for the subject of this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}".`)} className="btn-suggested">
+                                Show related objects
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
