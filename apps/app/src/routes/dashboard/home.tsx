@@ -4,14 +4,14 @@ import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRig
 import { LogoMark } from "../../components/logo";
 import { CommandCenterStrip, AgentsOperatingPanel } from "../../components/ai/command-center";
 import {
-  GRAPH_REASONING_STEPS, inferAgentHandoff, friendlyAskError,
-  EvidenceStrip, SourceCard, mapBackendSources, type SourceCardData, type BackendSourceMeta,
+  GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
 } from "../../components/ai/ask-shared";
+import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
-import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
+import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
@@ -140,16 +140,11 @@ const PRIORITY_STYLE: Record<string, string> = {
 export function HomePage() {
   const { user } = useUser();
   const qc = useQueryClient();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [taskWidgetInput, setTaskWidgetInput] = useState("");
   const [taskWidgetLoading, setTaskWidgetLoading] = useState(false);
   const [taskWidgetReply, setTaskWidgetReply] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [messageMeta, setMessageMeta] = useState<Record<number, { agent: ReturnType<typeof inferAgentHandoff>; sources: SourceCardData[] }>>({});
   const [thinkingStep, setThinkingStep] = useState(0);
   const taskWidgetInputRef = useRef<HTMLInputElement>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
@@ -165,6 +160,31 @@ export function HomePage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  const startStreaming = useCallback((msgIdx: number, fullText: string) => {
+    if (streamRef.current) clearInterval(streamRef.current);
+    setStreamingMsgIdx(msgIdx);
+    setStreamedUpTo(0);
+    let pos = 0;
+    streamRef.current = setInterval(() => {
+      pos += Math.floor(Math.random() * 5) + 3; // 3–7 chars per frame — natural pace
+      if (pos >= fullText.length) {
+        pos = fullText.length;
+        clearInterval(streamRef.current!);
+        streamRef.current = null;
+        setStreamingMsgIdx(null);
+      }
+      setStreamedUpTo(pos);
+    }, 18);
+  }, []);
+
+  // Same request pipeline as the main Ask Mondaily page and the right-side
+  // drawer: same endpoint, thread_id/history handling, agent inference, real
+  // sources. Home's context is general workspace scope.
+  const {
+    messages, setMessages, currentThreadId, setCurrentThreadId, loading,
+    suggestions, setSuggestions, messageMeta, doSend, buildChipText,
+  } = useAskEngine({ context: { scope_label: "the Home dashboard (general workspace)" }, onAssistantMessage: startStreaming });
 
   useEffect(() => {
     if (!loading) { setThinkingStep(0); return; }
@@ -241,73 +261,13 @@ export function HomePage() {
     return () => clearTimeout(t);
   }, []);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput("");
-
-    let threadId = currentThreadId;
-    if (!threadId) {
-      const thread = createThread(text);
-      saveThreads([thread, ...getThreads()]);
-      threadId = thread.id;
-      setCurrentThreadId(threadId);
-    }
-
-    // Capture history BEFORE adding the new message — gives the backend
-    // real memory of the thread instead of treating every send as new.
-    const history = messages.map(m => ({ role: m.role, content: m.content }));
-    const userMsg: ChatMessage = { role: "user", content: text };
-    const withUser = [...messages, userMsg];
-    setMessages(withUser);
-    addMessageToThread(threadId, userMsg);
-    setLoading(true);
-
-    setSuggestions([]);
-    try {
-      let model = "auto";
-      let web_search = false;
-      try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; web_search = s.webSearch === "allow"; } catch {}
-      const data = await apiClient.post<{ reply: string; suggestions?: string[]; sources?: BackendSourceMeta[] }>("/ask", { message: text, model, web_search, history, thread_id: threadId });
-      const reply = data.reply || "No response.";
-      const aiMsg: ChatMessage = { role: "assistant", content: reply };
-      const finalMsgs = [...withUser, aiMsg];
-      setMessages(finalMsgs);
-      addMessageToThread(threadId, aiMsg);
-      startStreaming(finalMsgs.length - 1, reply);
-      setMessageMeta(prev => ({ ...prev, [finalMsgs.length - 1]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
-      if (data.suggestions?.length) setSuggestions(data.suggestions);
-    } catch (err: any) {
-      const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err) };
-      setMessages([...withUser, errMsg]);
-      addMessageToThread(threadId, errMsg);
-    }
-    setLoading(false);
-  };
+  const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
 
   const newChat = () => {
     setMessages([]);
     setCurrentThreadId(null);
     setInput("");
     setSuggestions([]);
-    setMessageMeta({});
-  };
-
-  const startStreaming = (msgIdx: number, fullText: string) => {
-    if (streamRef.current) clearInterval(streamRef.current);
-    setStreamingMsgIdx(msgIdx);
-    setStreamedUpTo(0);
-    let pos = 0;
-    streamRef.current = setInterval(() => {
-      pos += Math.floor(Math.random() * 5) + 3; // 3–7 chars per frame — natural pace
-      if (pos >= fullText.length) {
-        pos = fullText.length;
-        clearInterval(streamRef.current!);
-        streamRef.current = null;
-        setStreamingMsgIdx(null);
-      }
-      setStreamedUpTo(pos);
-    }, 18);
   };
 
   const printReport = () => {
@@ -388,53 +348,16 @@ export function HomePage() {
     { label: "Prep daily brief",      prompt: "Give me a quick brief on my tasks for today: what's urgent, what's due, and what I can defer." },
   ];
 
+  const sendSuggestion = useCallback((text: string) => {
+    setSuggestions([]);
+    doSend(text);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doSend]);
+
   const firePrompt = useCallback((text: string) => {
     setPromptPickerOpen(false);
     sendSuggestion(text);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, currentThreadId, loading]);
-
-  const sendSuggestion = (text: string) => {
-    setInput(text);
-    // small delay so state flushes before send fires
-    setTimeout(() => { setInput(""); }, 0);
-    // send directly
-    const go = async () => {
-      setSuggestions([]);
-      let threadId = currentThreadId;
-      if (!threadId) {
-        const thread = createThread(text);
-        saveThreads([thread, ...getThreads()]);
-        threadId = thread.id;
-        setCurrentThreadId(threadId);
-      }
-      // Capture history BEFORE adding the new message — same fix as send():
-      // without this, action chips and quick prompts lost all prior context.
-      const history = messages.map(m => ({ role: m.role, content: m.content }));
-      const userMsg: ChatMessage = { role: "user", content: text };
-      const withUser = [...messages, userMsg];
-      setMessages(withUser);
-      addMessageToThread(threadId, userMsg);
-      setLoading(true);
-      try {
-        let model = "auto";
-        try { const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}"); model = s.model ?? "auto"; } catch {}
-        const data = await apiClient.post<{ reply: string; suggestions?: string[]; sources?: BackendSourceMeta[] }>("/ask", { message: text, model, history, thread_id: threadId });
-        const reply = data.reply || "No response.";
-        const aiMsg: ChatMessage = { role: "assistant", content: reply };
-        const finalMsgs2 = [...withUser, aiMsg];
-        setMessages(finalMsgs2);
-        addMessageToThread(threadId, aiMsg);
-        startStreaming(finalMsgs2.length - 1, reply);
-        setMessageMeta(prev => ({ ...prev, [finalMsgs2.length - 1]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
-        if (data.suggestions?.length) setSuggestions(data.suggestions);
-      } catch (err: any) {
-        setMessages([...withUser, { role: "assistant", content: friendlyAskError(err) }]);
-      }
-      setLoading(false);
-    };
-    go();
-  };
+  }, [sendSuggestion]);
 
   const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
@@ -573,20 +496,32 @@ export function HomePage() {
                             {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
                           </div>
                         )}
-                        {!isStreaming && !loading && i === messages.length - 1 && (() => {
-                          const prevQuestion = messages[i - 1]?.content ?? "";
-                          const prevAnswer = m.content;
-                          return (
-                            <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                              <button onClick={() => sendSuggestion(`Create a task to follow up on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". If anything is ambiguous, ask me to confirm the task title or due date before creating it.`)} className="btn-ai">
-                                <Sparkles size={11}/> Create task
-                              </button>
-                              <button onClick={() => sendSuggestion(`Show me the related objects in the workspace graph for the subject of this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}".`)} className="btn-suggested">
-                                Show related objects
-                              </button>
-                            </div>
-                          );
-                        })()}
+                        {/* Same action-chip set as the main Ask page and the right-side
+                            drawer — built from buildChipText() so every surface embeds
+                            the same real prior question/answer, not just "this". */}
+                        {!isStreaming && !loading && i === messages.length - 1 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
+                            <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-ai">
+                              <Sparkles size={11}/> Create task from this
+                            </button>
+                            <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-ai">
+                              <Sparkles size={11}/> Draft message
+                            </button>
+                            <button onClick={() => sendSuggestion(buildChipText("related", i))} className="btn-suggested">
+                              Show related objects
+                            </button>
+                            <button onClick={() => sendSuggestion(buildChipText("explain", i))} className="btn-suggested">
+                              Explain reasoning
+                            </button>
+                            {["Create report", "Add to decision queue", "Start workflow"].map(label => (
+                              <span key={label} title="Coming soon — not wired to a workspace action yet"
+                                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
+                                style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

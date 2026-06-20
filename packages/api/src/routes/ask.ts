@@ -628,13 +628,18 @@ router.post("/", requireAuth, zValidator("json", z.object({
     role: z.enum(["user", "assistant"]),
     content: z.string()
   })).optional(),
-  // Optional context about a record/node the user currently has selected
-  // (e.g. viewing a record detail page) so "for this" can resolve without
-  // the user having to restate the record's name.
+  // Optional context about whatever the user currently has open — a
+  // record/node (record detail page), a task (task drawer), or just a named
+  // scope (e.g. "Finance", "Reports") — so "for this"/"this task" resolves
+  // without the user having to restate it. Sent identically by every Ask
+  // surface (Home, main Ask page, right-side drawer) via useAskEngine.
   context: z.object({
     node_id: z.string().optional(),
     node_name: z.string().optional(),
-    object_type: z.string().optional()
+    object_type: z.string().optional(),
+    task_id: z.string().optional(),
+    task_title: z.string().optional(),
+    scope_label: z.string().optional()
   }).optional()
 })), async (c) => {
   const { message, model: modelPref, web_search, history, context } = c.req.valid("json");
@@ -658,7 +663,13 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     let contextNote = "";
     if (context?.node_id || context?.node_name) {
-      contextNote = `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this" or "this record", it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
+      contextNote += `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this" or "this record", it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
+    }
+    if (context?.task_id) {
+      contextNote += `\n\nThe user currently has a task open: "${context.task_title ?? "(title unknown)"}" — task_id: ${context.task_id}. If their message refers to "this" or "this task", it means this one — you can call update_task with this task_id directly without searching for it first.`;
+    }
+    if (context?.scope_label && !context.node_id && !context.task_id) {
+      contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
     }
 
     const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;

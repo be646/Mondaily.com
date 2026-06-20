@@ -5,6 +5,7 @@ import { useUser } from "@clerk/react";
 import { apiClient, getAuthHeaders } from "../../lib/api-client";
 import { TaskReviewTab } from "./task-review-tab";
 import { friendlyAskError } from "../ai/ask-shared";
+import { useAskContextStore } from "../../lib/ask-context-store";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -192,6 +193,18 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   }, [task.id]);
 
   useEffect(() => { apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch(() => {}); }, [task.id]);
+
+  // While this task drawer is open, the right-side Ask AI drawer (rendered
+  // once at the layout level) should know what task is in scope — same
+  // mechanism every contextual Ask surface uses.
+  useEffect(() => {
+    useAskContextStore.getState().setContext({
+      task_id: task.id,
+      task_title: task.title,
+      scope_label: `the task "${task.title}"`,
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, [task.id, task.title]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

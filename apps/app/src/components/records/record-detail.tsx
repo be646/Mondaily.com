@@ -17,6 +17,7 @@ import { TagPicker, TagBadges } from "./tag-picker";
 import { StagePill, DEFAULT_STAGE_OPTIONS, DEFAULT_STATUS_OPTIONS } from "./record-table";
 import { ActivityTimeline } from "./activity-timeline";
 import { LeadScoreBadge } from "./lead-score-badge";
+import { useAskContextStore } from "../../lib/ask-context-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -1642,6 +1643,20 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     queryKey: ["record", recordId],
     queryFn: () => apiClient.get<RecordData>(`/nodes/${recordId}`),
   });
+
+  // While this record is open, the right-side Ask AI drawer should know
+  // which node is in scope — same mechanism task-detail-panel.tsx uses.
+  useEffect(() => {
+    const name = (query.data?.data?.name ?? query.data?.data?.title ?? query.data?.data?.subject) as string | undefined;
+    if (!query.data) return;
+    useAskContextStore.getState().setContext({
+      node_id: recordId,
+      node_name: name,
+      object_type: objectType,
+      scope_label: `the record "${name ?? recordId}" (${objectType})`,
+    });
+    return () => useAskContextStore.getState().setContext(null);
+  }, [recordId, objectType, query.data]);
 
   const patch = useMutation({
     mutationFn: (data: Record<string, unknown>) => apiClient.patch(`/nodes/${recordId}`, { data }),

@@ -9,36 +9,26 @@ import {
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
-import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage } from "../../lib/chat-store";
 import { getAuthHeaders } from "../../lib/api-client";
+import { useAskEngine } from "./use-ask-engine";
+import { useAskContextStore } from "../../lib/ask-context-store";
+import { EvidenceStrip, SourceCard } from "./ask-shared";
 
-async function callAsk(message: string): Promise<string> {
-  const headers = await getAuthHeaders();
-  const apiUrl = import.meta.env.VITE_API_URL || "";
-  const res = await fetch(`${apiUrl}/api/v1/ask`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      message,
-      model: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model ?? "auto"; } catch { return "auto"; } })(),
-      web_search: (() => { try { return JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").webSearch === "allow"; } catch { return false; } })(),
-    }),
-  });
-  const data = await res.json() as any;
-  return data.reply || "No response.";
-}
-
-// ─── Ask side panel ───────────────────────────────────────────────────────────
+// ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
+// main Ask page and Home: same endpoint, history/thread_id handling, real
+// sources, agent label, and action chips. The only difference is the
+// compact drawer layout and that its context comes from whatever page is
+// currently mounted underneath it (via useAskContextStore). ─────────────────
 function AskPanel({ onClose }: { onClose: () => void }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "Hi! I'm Mondaily AI. Ask me anything about your business." },
-  ]);
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  const pageContext = useAskContextStore(s => s.context);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const { messages, loading, messageMeta, doSend, buildChipText } = useAskEngine({
+    context: pageContext ?? { scope_label: "the workspace (no page context)" },
+  });
 
   async function sendFeedback(userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) {
     setFeedbackGiven(prev => ({ ...prev, [idx]: rating }));
@@ -55,32 +45,13 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
-  async function send() {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput("");
-    let threadId = currentThreadId;
-    if (!threadId) {
-      const thread = createThread(text);
-      saveThreads([thread, ...getThreads()]);
-      threadId = thread.id;
-      setCurrentThreadId(threadId);
-    }
-    const userMsg: ChatMessage = { role: "user", content: text };
-    const withUser = [...messages, userMsg];
-    setMessages(withUser);
-    addMessageToThread(threadId, userMsg);
-    setLoading(true);
-    try {
-      const reply = await callAsk(text);
-      const aiMsg: ChatMessage = { role: "assistant", content: reply };
-      setMessages([...withUser, aiMsg]);
-      addMessageToThread(threadId, aiMsg);
-    } catch (err: any) {
-      setMessages([...withUser, { role: "assistant", content: `Error: ${err.message}` }]);
-    }
-    setLoading(false);
-  }
+  const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
+  const sendChip = (text: string) => doSend(text);
+  const displayMessages = messages.length
+    ? messages
+    : [{ role: "assistant" as const, content: pageContext?.scope_label
+        ? `Hi! I'm Mondaily AI, focused on ${pageContext.scope_label} right now. Ask me anything.`
+        : "Hi! I'm Mondaily AI. Ask me anything about your business." }];
 
   return (
     <div className="flex h-full w-[300px] shrink-0 flex-col border-l border-white/[.06] bg-[#0d0f13]">
@@ -131,45 +102,87 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
+      {/* Context strip — what this drawer is scoped to right now */}
+      {pageContext?.scope_label && (
+        <div className="shrink-0 border-b border-white/[.06] px-3 py-1.5">
+          <span className="text-[10px] text-zinc-500">Scoped to: <span className="text-zinc-300">{pageContext.scope_label}</span></span>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex-1 overflow-auto p-3 space-y-3">
-        {messages.map((m, i) => (
-          <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            {m.role === "assistant" && (
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
-                <LogoMark size={16}/>
-              </div>
-            )}
-            <div className="flex flex-col gap-1 max-w-[85%]">
-              <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed whitespace-pre-wrap ${
-                m.role === "user"
-                  ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm"
-                  : "text-slate-300"
-              }`}>
-                {m.content}
-              </div>
-              {m.role === "assistant" && i > 0 && (
-                <div className="flex items-center gap-1 ml-1">
-                  <button
-                    onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, 1, i)}
-                    className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-zinc-700 hover:text-emerald-400"}`}
-                  >
-                    <ThumbsUp size={10}/>
-                  </button>
-                  <button
-                    onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
-                    className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-zinc-700 hover:text-indigo-400"}`}
-                  >
-                    <ThumbsDown size={10}/>
-                  </button>
-                  {feedbackGiven[i] && (
-                    <span className="text-[10px] text-zinc-700">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
-                  )}
+        {displayMessages.map((m, i) => {
+          const meta = messageMeta[i];
+          const AgentIcon = meta?.agent.icon;
+          return (
+            <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              {m.role === "assistant" && (
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
+                  <LogoMark size={16}/>
                 </div>
               )}
+              <div className="flex flex-col gap-1 max-w-[85%]">
+                <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed whitespace-pre-wrap ${
+                  m.role === "user"
+                    ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm"
+                    : "text-slate-300"
+                }`}>
+                  {m.content}
+                </div>
+
+                {m.role === "assistant" && meta && AgentIcon && (
+                  <div className="flex flex-wrap items-center gap-1.5 ml-1">
+                    <span className="agent-badge" data-status="draft_ready">
+                      <AgentIcon size={9}/>
+                      {meta.agent.name}
+                    </span>
+                    <EvidenceStrip sources={meta.sources}/>
+                  </div>
+                )}
+                {m.role === "assistant" && meta && meta.sources.length > 0 && (
+                  <div className="flex flex-wrap gap-1 ml-1">
+                    {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
+                  </div>
+                )}
+
+                {m.role === "assistant" && i > 0 && (
+                  <div className="flex items-center gap-1 ml-1">
+                    <button
+                      onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, 1, i)}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-zinc-700 hover:text-emerald-400"}`}
+                    >
+                      <ThumbsUp size={10}/>
+                    </button>
+                    <button
+                      onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-zinc-700 hover:text-indigo-400"}`}
+                    >
+                      <ThumbsDown size={10}/>
+                    </button>
+                    {feedbackGiven[i] && (
+                      <span className="text-[10px] text-zinc-700">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Same action-chip set as Home and the main Ask page */}
+                {m.role === "assistant" && !loading && i === messages.length - 1 && i > 0 && (
+                  <div className="flex flex-wrap gap-1 ml-1 mt-0.5">
+                    <button onClick={() => sendChip(buildChipText("task", i))} className="btn-ai !text-[10px] !px-2 !py-0.5">
+                      <Sparkles size={9}/> Create task
+                    </button>
+                    <button onClick={() => sendChip(buildChipText("related", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
+                      Related objects
+                    </button>
+                    <button onClick={() => sendChip(buildChipText("explain", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
+                      Explain reasoning
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {loading && (
           <div className="flex gap-2 justify-start">
             <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
