@@ -41,16 +41,25 @@ router.post("/:id", zValidator("json", reportInput.extend({ id: z.string().optio
   return c.json(unpack(data as never));
 });
 
-router.post("/:id/run", async (c) => {
-  const input: { type?: string; config?: Record<string, unknown> } = await c.req.json<{ type?: string; config?: Record<string, unknown> }>().catch(() => ({}));
-  const { data: reportNode } = await supabase.from("nodes").select("data").eq("workspace_id", c.get("workspaceId")).eq("object_type", "report").eq("id", c.req.param("id")).maybeSingle();
-  if (!reportNode) return c.json({ error: "Report not found" }, 404);
+/**
+ * Runs a saved report's aggregation and returns its chart data — shared by
+ * the HTTP route below and Ask Mondaily's run_report tool, so "explain
+ * this report" computes the exact same numbers the report page shows
+ * instead of a second, possibly-divergent implementation.
+ */
+export async function runReportData(
+  workspaceId: string,
+  reportId: string,
+  input: { type?: string; config?: Record<string, unknown> } = {}
+): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number; average_days?: number }[]; total?: number; change?: number; chart_type: string }> {
+  const { data: reportNode } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("object_type", "report").eq("id", reportId).maybeSingle();
+  if (!reportNode) return { error: "Report not found" };
   const stored = reportNode.data as { type?: string; config?: Record<string, unknown> };
   const type = input.type ?? stored.type ?? "insight";
   const config = { ...(stored.config ?? {}), ...(input.config ?? {}) };
   const objectType = String(config.object_type ?? "deal");
-  const { data: nodes, error } = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", c.get("workspaceId")).eq("object_type", objectType).order("created_at", { ascending: true });
-  if (error) return c.json({ error: error.message }, 400);
+  const { data: nodes, error } = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", workspaceId).eq("object_type", objectType).order("created_at", { ascending: true });
+  if (error) return { error: error.message };
 
   if (type === "funnel") {
     const stages: string[] = Array.isArray(config.stages) ? config.stages.map(String) : [];
@@ -60,7 +69,7 @@ router.post("/:id/run", async (c) => {
       const previous = index === 0 ? value : (nodes ?? []).filter((node) => String(node.data?.[stageField] ?? "").toLowerCase() === stages[index - 1]?.toLowerCase()).length;
       return { label: stage, value, dropoff: previous ? Math.max(0, Math.round((1 - value / previous) * 100)) : 0, average_days: 0 };
     });
-    return c.json({ data: values, chart_type: "funnel" });
+    return { data: values, chart_type: "funnel" };
   }
   if (type === "time_in_stage") {
     const stageField = String(config.stage_field ?? "stage");
@@ -70,11 +79,11 @@ router.post("/:id/run", async (c) => {
       const days = Math.max(0, (new Date(node.updated_at).getTime() - new Date(node.created_at).getTime()) / 86_400_000);
       grouped.set(stage, [...(grouped.get(stage) ?? []), days]);
     }
-    return c.json({ data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)) })), chart_type: "bar" });
+    return { data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)) })), chart_type: "bar" };
   }
   if (type === "historical") {
     const field = String(config.field ?? "value");
-    let activityQuery = supabase.from("activities").select("created_at,diff,node_id").eq("workspace_id", c.get("workspaceId")).order("created_at", { ascending: true });
+    let activityQuery = supabase.from("activities").select("created_at,diff,node_id").eq("workspace_id", workspaceId).order("created_at", { ascending: true });
     if (config.record_id) activityQuery = activityQuery.eq("node_id", String(config.record_id));
     const { data: activities } = await activityQuery;
     const data = (activities ?? []).flatMap((activity) => {
@@ -83,7 +92,7 @@ router.post("/:id/run", async (c) => {
       const value = Number(raw);
       return Number.isFinite(value) ? [{ label: new Date(activity.created_at).toLocaleDateString(), value }] : [];
     });
-    return c.json({ data, chart_type: "line" });
+    return { data, chart_type: "line" };
   }
 
   const metric = String(config.metric ?? "count");
@@ -97,7 +106,14 @@ router.post("/:id/run", async (c) => {
   }
   const data = [...groups].map(([label, values]) => ({ label, value: metric === "count" ? values.length : metric === "average" ? Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(2)) : values.reduce((sum, value) => sum + value, 0) }));
   const total = metric === "average" ? Number((data.reduce((sum, item) => sum + item.value, 0) / Math.max(data.length, 1)).toFixed(2)) : data.reduce((sum, item) => sum + item.value, 0);
-  return c.json({ data, total, change: 0, chart_type: config.chart_type ?? "line" });
+  return { data, total, change: 0, chart_type: String(config.chart_type ?? "line") };
+}
+
+router.post("/:id/run", async (c) => {
+  const input: { type?: string; config?: Record<string, unknown> } = await c.req.json<{ type?: string; config?: Record<string, unknown> }>().catch(() => ({}));
+  const result = await runReportData(c.get("workspaceId"), c.req.param("id"), input);
+  if ("error" in result) return c.json({ error: result.error }, result.error === "Report not found" ? 404 : 400);
+  return c.json(result);
 });
 
 export { router as reportsRouter };

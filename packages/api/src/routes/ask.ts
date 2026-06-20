@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
+import { runReportData } from "./reports";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -11,11 +12,15 @@ You have tools to take real actions inside Mondaily. When a user asks you to cre
 
 Mondaily has a real workspace graph: every record is a node, and nodes can be connected to each other by edges (relationships). You DO have a tool for this — find_related_objects. Never tell the user that "workspace graph" isn't a feature you have a tool for. If they ask about related objects, connections, or "the graph" for a person/company/record, call find_related_objects with either the record's name or its node_id (if you already know it from this conversation or from a previous tool result).
 
+You also have real finance and report tools — never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points — always call run_report rather than guessing at numbers from a report's name or type alone.
+
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
 - "Add X to my Y list" → use list_lists to find the list ID, then search_records to find the record, then add_to_list.
 - "Create a new object for tracking X" → use create_object_type with a clear description so fields are generated well.
 - "Show related objects / connections / graph for X" → search_records to resolve X to a node_id (if not already known), then find_related_objects.
+- "What needs attention" on a finance page → list_finance_summary, or list_invoices filtered to overdue/draft for detail.
+- "Explain this report" → get_report for its definition, then run_report for its real numbers (or list_reports first if you need to resolve it by name).
 - For multi-step operations, execute all steps and report the full outcome.
 
 You will often be given prior conversation turns before the user's latest message. Use them: if the user says "this", "that answer", "the previous result", or asks you to explain/expand/act on something without restating it, resolve the reference using the conversation history actually provided to you. Only ask a clarifying question if there genuinely is no prior message or selected object that the reference could point to — do not claim there is no previous question if conversation history was provided above the latest message.
@@ -195,6 +200,71 @@ const TOOLS = [
         name: { type: "string", description: "The record's name to resolve to a node first, if node_id is not known" }
       },
       required: []
+    }
+  },
+  {
+    name: "list_invoices",
+    description: "List real invoices in the workspace, optionally filtered by status. Use for 'what invoices are overdue', 'show unpaid invoices', 'what needs attention' on a finance/invoices page, or any question about invoice status across the workspace.",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["draft", "sent", "viewed", "paid", "overdue", "cancelled"], description: "Filter to a specific status, or omit for all" },
+        limit: { type: "number", description: "Max invoices to return (default 15)" }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_invoice",
+    description: "Fetch full detail for one invoice by ID — client, line items, totals, due date, status, payments. Use when the user is on a specific invoice's page (you'll be told the invoice_id in context) or names an invoice number you've already found.",
+    input_schema: {
+      type: "object",
+      properties: {
+        invoice_id: { type: "string", description: "The invoice's node ID" }
+      },
+      required: ["invoice_id"]
+    }
+  },
+  {
+    name: "list_finance_summary",
+    description: "Real aggregate finance numbers for the workspace: count and total value of overdue, draft, sent, and paid invoices, plus outstanding credit notes. Use for 'what needs attention here' or 'explain my finances' on a finance page, or any question that needs a finance overview rather than a single invoice.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  },
+  {
+    name: "list_reports",
+    description: "List saved reports in the workspace by name and type. Use to resolve a report by name before calling get_report or run_report, or for 'what reports do I have'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "Max reports to return (default 15)" }
+      },
+      required: []
+    }
+  },
+  {
+    name: "get_report",
+    description: "Fetch a saved report's definition — its name, type (insight/funnel/time_in_stage/historical), and config. Use when the user is on a report's page (you'll be told the report_id in context) and asks to explain or describe the report itself, before or alongside run_report.",
+    input_schema: {
+      type: "object",
+      properties: {
+        report_id: { type: "string", description: "The report's node ID" }
+      },
+      required: ["report_id"]
+    }
+  },
+  {
+    name: "run_report",
+    description: "Actually execute a saved report and return its real computed data points (the same numbers the report page charts). Use for 'explain this report' or 'what does this report show' — call this, don't guess at numbers from the report's name alone.",
+    input_schema: {
+      type: "object",
+      properties: {
+        report_id: { type: "string", description: "The report's node ID" }
+      },
+      required: ["report_id"]
     }
   }
 ];
@@ -603,6 +673,137 @@ async function executeTool(
         return `Found ${related.length} related object(s) in the workspace graph${sourceLabel ? ` for ${sourceLabel}` : ""}, grouped by type:\n${summary}`;
       }
 
+      case "list_invoices": {
+        let query = supabase
+          .from("nodes")
+          .select("id,data,created_at,updated_at")
+          .eq("workspace_id", workspaceId)
+          .eq("vertical", "finance")
+          .eq("object_type", "invoice")
+          .order("created_at", { ascending: false })
+          .limit(Math.min(input.limit ?? 15, 30));
+        if (input.status) query = query.eq("data->>status", input.status);
+        const { data, error } = await query;
+        if (error) return `Error fetching invoices: ${error.message}`;
+        if (!data?.length) return input.status ? `No ${input.status} invoices found.` : "No invoices found.";
+        for (const row of data.slice(0, 8)) {
+          const d = row.data as any;
+          sources.push({
+            type: "invoice", title: `${d.number ?? "Invoice"} — ${d.client_name ?? "Unknown client"}`,
+            node_id: row.id, object_type: "invoice",
+            match_reason: `status: ${d.status ?? "draft"}`, timestamp: d.due_date ?? row.updated_at,
+          });
+        }
+        const list = data.map(row => {
+          const d = row.data as any;
+          return `- [${row.id}] ${d.number ?? "Invoice"} | ${d.client_name ?? "Unknown client"} | ${d.total ?? 0} ${d.currency ?? "GBP"} | status: ${d.status ?? "draft"}${d.due_date ? ` | due: ${new Date(d.due_date).toLocaleDateString()}` : ""}`;
+        }).join("\n");
+        return `Found ${data.length} invoice(s):\n${list}`;
+      }
+
+      case "get_invoice": {
+        const { data, error } = await supabase
+          .from("nodes")
+          .select("id,data,created_at,updated_at")
+          .eq("workspace_id", workspaceId)
+          .eq("id", input.invoice_id)
+          .eq("vertical", "finance")
+          .eq("object_type", "invoice")
+          .maybeSingle();
+        if (error) return `Error fetching invoice: ${error.message}`;
+        if (!data) return `No invoice found with ID ${input.invoice_id}.`;
+        const d = data.data as any;
+        sources.push({
+          type: "invoice", title: `${d.number ?? "Invoice"} — ${d.client_name ?? "Unknown client"}`,
+          node_id: data.id, object_type: "invoice", match_reason: `status: ${d.status ?? "draft"}`, timestamp: d.due_date,
+        });
+        const items = Array.isArray(d.line_items) ? d.line_items.map((li: any) => `  - ${li.description}: ${li.quantity} x ${li.unit_price} (tax ${li.tax_rate ?? 0}%)`).join("\n") : "";
+        return `Invoice ${d.number ?? data.id} for ${d.client_name ?? "Unknown client"}\nStatus: ${d.status ?? "draft"}\nTotal: ${d.total ?? 0} ${d.currency ?? "GBP"}${d.due_date ? `\nDue: ${new Date(d.due_date).toLocaleDateString()}` : ""}\nLine items:\n${items || "  (none)"}`;
+      }
+
+      case "list_finance_summary": {
+        const { data: invoices, error: invErr } = await supabase
+          .from("nodes")
+          .select("id,data")
+          .eq("workspace_id", workspaceId)
+          .eq("vertical", "finance")
+          .eq("object_type", "invoice");
+        if (invErr) return `Error fetching finance summary: ${invErr.message}`;
+        const rows = (invoices ?? []).map(r => r.data as any);
+        const byStatus = (status: string) => rows.filter(d => (d.status ?? "draft") === status);
+        const sum = (list: any[]) => list.reduce((s, d) => s + Number(d.total ?? 0), 0);
+        const overdue = byStatus("overdue");
+        const draft = byStatus("draft");
+        const sent = byStatus("sent");
+        const paid = byStatus("paid");
+
+        const { data: creditNotes } = await supabase
+          .from("nodes")
+          .select("id,data")
+          .eq("workspace_id", workspaceId)
+          .eq("vertical", "finance")
+          .eq("object_type", "credit_note")
+          .neq("data->>status", "void");
+        const outstandingCreditNotes = (creditNotes ?? []).filter(r => (r.data as any).status !== "executed");
+
+        if (overdue.length) {
+          sources.push({ type: "finance", title: `${overdue.length} overdue invoice(s)`, match_reason: `total ${sum(overdue).toFixed(2)}` });
+        }
+        if (rows.length === 0) return "No invoices exist in this workspace yet.";
+        return [
+          `Finance summary (real data, ${rows.length} invoice(s) total):`,
+          `- Overdue: ${overdue.length} invoice(s), total ${sum(overdue).toFixed(2)}`,
+          `- Draft: ${draft.length} invoice(s), total ${sum(draft).toFixed(2)}`,
+          `- Sent (awaiting payment): ${sent.length} invoice(s), total ${sum(sent).toFixed(2)}`,
+          `- Paid: ${paid.length} invoice(s), total ${sum(paid).toFixed(2)}`,
+          `- Outstanding credit notes: ${outstandingCreditNotes.length}`,
+        ].join("\n");
+      }
+
+      case "list_reports": {
+        const { data, error } = await supabase
+          .from("nodes")
+          .select("id,data,updated_at")
+          .eq("workspace_id", workspaceId)
+          .eq("object_type", "report")
+          .order("updated_at", { ascending: false })
+          .limit(Math.min(input.limit ?? 15, 30));
+        if (error) return `Error fetching reports: ${error.message}`;
+        if (!data?.length) return "No saved reports found.";
+        for (const row of data.slice(0, 8)) {
+          const d = row.data as any;
+          sources.push({ type: "report", title: d.name ?? "Untitled report", node_id: row.id, object_type: "report", match_reason: `type: ${d.type ?? "insight"}`, timestamp: row.updated_at });
+        }
+        return `Found ${data.length} report(s):\n${data.map(row => `- [${row.id}] ${(row.data as any).name ?? "Untitled"} (${(row.data as any).type ?? "insight"})`).join("\n")}`;
+      }
+
+      case "get_report": {
+        const { data, error } = await supabase
+          .from("nodes")
+          .select("id,data,updated_at")
+          .eq("workspace_id", workspaceId)
+          .eq("object_type", "report")
+          .eq("id", input.report_id)
+          .maybeSingle();
+        if (error) return `Error fetching report: ${error.message}`;
+        if (!data) return `No report found with ID ${input.report_id}.`;
+        const d = data.data as any;
+        sources.push({ type: "report", title: d.name ?? "Untitled report", node_id: data.id, object_type: "report", match_reason: `type: ${d.type ?? "insight"}`, timestamp: data.updated_at });
+        return `Report "${d.name ?? "Untitled"}" — type: ${d.type ?? "insight"}\nConfig: ${JSON.stringify(d.config ?? {})}`;
+      }
+
+      case "run_report": {
+        const result = await runReportData(workspaceId, input.report_id);
+        if ("error" in result) return `Error running report: ${result.error}`;
+        sources.push({ type: "report", title: `Report run: ${input.report_id}`, node_id: input.report_id, object_type: "report", match_reason: `chart_type: ${result.chart_type}` });
+        const points = result.data.slice(0, 12).map(p => `- ${p.label}: ${p.value}`).join("\n");
+        return [
+          `Report run results (real computed data, chart type: ${result.chart_type}):`,
+          points || "(no data points)",
+          result.total !== undefined ? `Total: ${result.total}` : "",
+        ].filter(Boolean).join("\n");
+      }
+
       default:
         return `Unknown tool: ${name}`;
     }
@@ -687,12 +888,16 @@ router.post("/", requireAuth, zValidator("json", z.object({
       contextNote += `\n\nThe user currently has a task open: "${context.task_title ?? "(title unknown)"}" — task_id: ${context.task_id}.${context.task_status ? ` Status: ${context.task_status}.` : ""}${context.task_assignee ? ` Assignee: ${context.task_assignee}.` : ""}${context.task_record_id ? ` Linked record node_id: ${context.task_record_id}.` : ""} If their message refers to "this" or "this task", it means this one — you can call update_task with this task_id directly without searching for it first. If they ask to create a follow-up from this, base it on this task's title/status and (if present) its linked record.`;
     }
     if (context?.invoice_id) {
-      contextNote += `\n\nThe user currently has invoice ${context.invoice_id} open. If their message refers to "this invoice" or "this", it means this one.`;
+      contextNote += `\n\nThe user currently has invoice ${context.invoice_id} open. If their message refers to "this invoice" or "this", it means this one — call get_invoice with this invoice_id directly without searching for it first.`;
     }
     if (context?.report_id || context?.report_title) {
-      contextNote += `\n\nThe user is currently viewing a report/dashboard: "${context.report_title ?? "(title unknown)"}"${context.report_id ? ` — report_id: ${context.report_id}` : ""}. If their message refers to "this report" or "this", it means this one.`;
+      contextNote += `\n\nThe user is currently viewing a report/dashboard: "${context.report_title ?? "(title unknown)"}"${context.report_id ? ` — report_id: ${context.report_id}` : ""}. If their message refers to "this report" or "this", it means this one. To explain or describe it, call run_report with this report_id to get its real computed numbers — do not guess at the numbers from the name alone. Call get_report first if you also need its config/type.`;
     }
-    if (context?.scope_label && !context.node_id && !context.task_id && !context.invoice_id && !context.report_id) {
+    if (context?.scope_label && /finance|invoice/i.test(context.scope_label) && !context.invoice_id) {
+      contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. For "what needs attention here" or any finance question, call list_finance_summary (or list_invoices for the underlying list) to ground your answer in real invoice data — do not answer generically without checking.`;
+    } else if (context?.scope_label && /report/i.test(context.scope_label) && !context.report_id) {
+      contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. For questions about it, call list_reports to find the relevant one, then run_report — do not answer generically without checking.`;
+    } else if (context?.scope_label && !context.node_id && !context.task_id && !context.invoice_id && !context.report_id) {
       contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
     }
     if (context?.route) {
