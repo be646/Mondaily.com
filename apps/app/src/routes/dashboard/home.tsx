@@ -635,7 +635,7 @@ export function HomePage() {
 
           <div className="flex-1">
             {tasksQuery.isLoading ? (
-              <div className="p-4"><PageSkeleton rows={4}/></div>
+              <div className="p-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                 <Sparkles size={16} className="text-slate-700 mb-2"/>
@@ -714,7 +714,7 @@ export function HomePage() {
           </div>
           <div className="flex-1">
             {meetings.isLoading ? (
-              <div className="p-4"><PageSkeleton rows={3}/></div>
+              <div className="p-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
             ) : meetings.data?.length ? (
               <ul className="divide-y divide-white/[.04]">
                 {meetings.data.map(m => (

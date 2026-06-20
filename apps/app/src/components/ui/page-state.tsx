@@ -2,29 +2,62 @@ import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-export function PageSkeleton({ rows = 6 }: { rows?: number }) {
+export function PageSkeleton({ rows = 6, label }: { rows?: number; label?: string }) {
   return (
-    <div className="space-y-3" aria-label="Loading">
-      {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="h-14 animate-pulse rounded-lg border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[.035]" />
-      ))}
+    <div aria-label={label ?? "Loading"} role="status">
+      {label && (
+        <p className="mb-3 text-xs font-medium text-[#9ca3af] dark:text-slate-500">{label}</p>
+      )}
+      <div className="space-y-2">
+        {Array.from({ length: rows }).map((_, index) => (
+          <div
+            key={index}
+            className="surface-card flex items-center gap-3 rounded-lg px-3.5 py-3"
+            style={{ animationDelay: `${index * 60}ms` }}
+          >
+            <div className="skeleton-shimmer h-8 w-8 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <div className="skeleton-shimmer h-3 rounded" style={{ width: `${52 + (index % 3) * 12}%` }} />
+              <div className="skeleton-shimmer h-2.5 rounded" style={{ width: `${28 + (index % 4) * 8}%` }} />
+            </div>
+            <div className="skeleton-shimmer hidden h-5 w-16 shrink-0 rounded-full sm:block" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Card-grid skeleton — for dashboard/report cards rather than list rows. */
+export function PageSkeletonCards({ count = 4, label }: { count?: number; label?: string }) {
+  return (
+    <div aria-label={label ?? "Loading"} role="status">
+      {label && (
+        <p className="mb-3 text-xs font-medium text-[#9ca3af] dark:text-slate-500">{label}</p>
+      )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: count }).map((_, index) => (
+          <div key={index} className="surface-card rounded-xl p-4">
+            <div className="skeleton-shimmer mb-3 h-4 w-2/3 rounded" />
+            <div className="skeleton-shimmer mb-2 h-24 rounded-lg" />
+            <div className="skeleton-shimmer h-3 w-1/3 rounded" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export function ErrorState({ error, onRetry }: { error?: Error | null; onRetry?: () => void }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50/40 px-6 text-center dark:border-indigo-500/10 dark:bg-indigo-500/[.03]">
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg px-6 text-center" style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}>
       <AlertTriangle className="mb-3 text-indigo-400" size={26} />
-      <h2 className="text-sm font-medium text-[#111827] dark:text-slate-200">Something went wrong</h2>
-      <p className="mt-1 max-w-sm text-sm text-[#6b7280] dark:text-slate-500">
+      <h2 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Something went wrong</h2>
+      <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--text-muted)" }}>
         {error?.message ?? "An unexpected error occurred. Please try again."}
       </p>
       {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-4 flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-3 py-1.5 text-xs text-[#6b7280] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:border-white/20"
-        >
+        <button onClick={onRetry} className="btn-secondary mt-4 text-xs">
           <RefreshCw size={12} /> Retry
         </button>
       )}
@@ -47,10 +80,10 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed border-[#d1d5db] px-6 text-center dark:border-white/10">
-      <Icon className="mb-3 text-[#9ca3af] dark:text-slate-600" size={28} />
-      <h2 className="text-sm font-medium text-[#111827] dark:text-slate-200">{title}</h2>
-      <p className="mt-1 max-w-sm text-sm text-[#6b7280] dark:text-slate-500">{description}</p>
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed px-6 text-center" style={{ borderColor: "var(--border-strong)" }}>
+      <Icon className="mb-3" size={28} style={{ color: "var(--text-faint)" }}/>
+      <h2 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{title}</h2>
+      <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--text-muted)" }}>{description}</p>
       {aiHint && (
         <p className="mt-2.5 flex items-center gap-1.5 max-w-sm text-xs text-indigo-600 dark:text-indigo-400">
           <Sparkles size={11} className="shrink-0"/>
@@ -66,8 +99,8 @@ export function PageHeader({ title, description, action }: { title: string; desc
   return (
     <header className="mb-6 flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-xl font-semibold text-[#111827] dark:text-white">{title}</h1>
-        {description ? <p className="mt-1 text-sm text-[#6b7280] dark:text-slate-500">{description}</p> : null}
+        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h1>
+        {description ? <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{description}</p> : null}
       </div>
       {action}
     </header>

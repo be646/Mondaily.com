@@ -168,14 +168,11 @@ function GettingStarted() {
 
   if (dismissed || doneCount === total) return null;
 
-  const cardBg = "linear-gradient(160deg, rgba(99,102,241,0.11) 0%, rgba(99,102,241,0.04) 100%)";
-  const cardBorder = "1px solid rgba(99,102,241,0.18)";
-
   return (
     <div className="shrink-0 px-2 pb-2">
       <div
         className="rounded-xl overflow-hidden"
-        style={{ background: cardBg, border: cardBorder }}
+        style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)" }}
       >
         {/* Checklist — slides open inside the card itself, same bg */}
         {open && (
@@ -295,7 +292,7 @@ function NavItem({
       <Link
         to={to}
         title={label}
-        className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.06] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-slate-500 dark:hover:bg-white/[.04] dark:hover:text-slate-300"}`}
+        className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-[#eef2ff] text-[#3730a3] dark:bg-indigo-500/[.13] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-slate-500 dark:hover:bg-white/[.04] dark:hover:text-slate-300"}`}
       >
         <Icon size={14}/>
         {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-indigo-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
@@ -305,7 +302,7 @@ function NavItem({
   return (
     <Link
       to={to}
-      className={`relative mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.07] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-slate-400 dark:hover:bg-white/[.03] dark:hover:text-slate-200"}`}
+      className={`relative mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-[#eef2ff] text-[#3730a3] dark:bg-indigo-500/[.13] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-slate-400 dark:hover:bg-white/[.03] dark:hover:text-slate-200"}`}
     >
       {active && <span className="absolute left-0 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[#6366f1] dark:bg-indigo-400"/>}
       <Icon size={13} className={active ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 dark:text-slate-600"}/>
@@ -485,37 +482,38 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <Settings size={14}/>
             </Link>
           ) : (
-            <div className="space-y-1.5">
-              {/* Trial chip */}
-              <div className="flex items-center justify-between rounded-lg border border-[#eef2f7] bg-[#f8fafc] dark:border-white/[.07] dark:bg-white/[.02] px-2.5 py-2.5">
+            <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}>
+              {/* Trial row */}
+              <div className="flex items-center justify-between border-b px-2.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
                 <div>
-                  <span className="text-[11px] text-zinc-500 dark:text-slate-600">Trial</span>
-                  <span className="text-[11px] text-zinc-400 dark:text-slate-500 ml-1">· 14 days left</span>
+                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Trial</span>
+                  <span className="text-[11px] ml-1" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
                 </div>
                 <Link
                   to="/settings/billing"
-                  className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 transition-colors whitespace-nowrap"
+                  className="rounded-md px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors"
+                  style={{ color: "var(--accent)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--surface-selected)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}
                 >
                   Upgrade
                 </Link>
               </div>
 
               {/* User row */}
-              <div className="flex items-center gap-2 rounded-lg px-2.5 py-2 hover:bg-[#f4f4f5] dark:hover:bg-white/[.03] transition-colors">
+              <Link to="/settings/account" title="Settings" className="flex items-center gap-2 px-2.5 py-2 transition-colors surface-hover">
                 {user?.imageUrl
                   ? <img src={user.imageUrl} className="h-5 w-5 rounded-full object-cover shrink-0" alt=""/>
-                  : <div className="h-5 w-5 rounded-full bg-zinc-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold text-zinc-600 dark:text-slate-300 shrink-0">
+                  : <div className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
                       {user?.firstName?.[0]?.toUpperCase() || "?"}
                     </div>
                 }
                 <div className="flex-1 min-w-0">
-                  <div className="truncate text-[12px] text-[#18181b] dark:text-slate-300 leading-tight">{user?.fullName || user?.firstName || "You"}</div>
-                  <div className="truncate text-[10px] text-zinc-400 dark:text-slate-700">{user?.primaryEmailAddress?.emailAddress}</div>
+                  <div className="truncate text-[12px] leading-tight" style={{ color: "var(--text-primary)" }}>{user?.fullName || user?.firstName || "You"}</div>
+                  <div className="truncate text-[10px]" style={{ color: "var(--text-faint)" }}>{user?.primaryEmailAddress?.emailAddress}</div>
                 </div>
-                <Link to="/settings/account" title="Settings" className="text-zinc-400 hover:text-zinc-700 dark:text-slate-700 dark:hover:text-slate-400 transition-colors">
-                  <Settings size={12}/>
-                </Link>
-              </div>
+                <Settings size={12} style={{ color: "var(--text-faint)" }}/>
+              </Link>
             </div>
           )}
         </div>

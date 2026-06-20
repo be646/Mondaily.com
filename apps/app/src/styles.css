@@ -2,21 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ──────────────────────────────────────────────────────────── */
+/* ── Design tokens — shared surfaces, both themes ─────────────────────────────
+   Every surface in the app maps to one of these. Dark mode uses genuinely
+   distinct shades per surface (page < sidebar < card < input/modal) so panels
+   don't collapse into the same flat black. Light mode is crisp white with
+   soft greys for separation, never grey-on-grey blocks. ── */
 :root {
-  --md-bg:          #0d0f13;
-  --md-bg-panel:    #0f1114;
-  --md-border:      rgba(255,255,255,0.07);
-  --md-text:        #f1f5f9;
-  --md-text-muted:  #64748b;
+  /* dark (default) */
+  --surface-page:     #0a0b0d;
+  --surface-sidebar:  #0c0e11;
+  --surface-card:     #14161b;
+  --surface-card-2:   #181a20;
+  --surface-input:    #1a1d24;
+  --surface-modal:    #16181e;
+  --surface-hover:    rgba(255,255,255,0.05);
+  --surface-selected: rgba(99,102,241,0.12);
+  --border-soft:      rgba(255,255,255,0.06);
+  --border-strong:    rgba(255,255,255,0.10);
+  --text-primary:     #f1f5f9;
+  --text-secondary:   #cbd5e1;
+  --text-muted:       #8b97a8;
+  --text-faint:       #5b6472;
+  --accent:           #6366f1;
+  --accent-hover:     #818cf8;
+
+  /* legacy aliases — kept so existing var() usages don't break */
+  --md-bg:          var(--surface-page);
+  --md-bg-panel:    var(--surface-card);
+  --md-border:      var(--border-soft);
+  --md-text:        var(--text-primary);
+  --md-text-muted:  var(--text-muted);
 }
 
 html[data-theme="light"] {
-  --md-bg:          #f4f5f8;
-  --md-bg-panel:    #ffffff;
-  --md-border:      rgba(0,0,0,0.09);
-  --md-text:        #0f172a;
-  --md-text-muted:  #475569;
+  --surface-page:     #f6f7f9;
+  --surface-sidebar:  #ffffff;
+  --surface-card:     #ffffff;
+  --surface-card-2:   #fafbfc;
+  --surface-input:    #ffffff;
+  --surface-modal:    #ffffff;
+  --surface-hover:    #f1f2f5;
+  --surface-selected: #eef0ff;
+  --border-soft:      #e8e9ed;
+  --border-strong:    #dcdee3;
+  --text-primary:     #16181d;
+  --text-secondary:   #4b5160;
+  --text-muted:       #80869a;
+  --text-faint:       #a6abb7;
+  --accent:           #4f46e5;
+  --accent-hover:     #4338ca;
+
+  --md-bg:          var(--surface-page);
+  --md-bg-panel:    var(--surface-card);
+  --md-border:      var(--border-soft);
+  --md-text:        var(--text-primary);
+  --md-text-muted:  var(--text-muted);
 }
 
 /* ── Mondaily logo scan animation ── */
@@ -31,47 +71,154 @@ html[data-theme="light"] {
 }
 .logo-dot { animation: pulseDot 2s ease-in-out infinite; }
 
+/* ── Skeleton shimmer — used by PageSkeleton, replaces flat pulse blocks ── */
+@keyframes skeletonShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--surface-card) 30%,
+    var(--surface-hover) 50%,
+    var(--surface-card) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+
 body {
   margin: 0;
-  background: #0d0f13;
-  color: #f8fafc;
+  background: var(--surface-page);
+  color: var(--text-primary);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
+  transition: background-color 0.15s ease;
 }
 
-html[data-theme="light"] body {
-  background: #f4f5f8;
-  color: #0f172a;
-}
+/* ── Shared surface utilities — use these instead of ad-hoc bg-[#xxxxxx] ──── */
+.surface-page    { background: var(--surface-page); }
+.surface-sidebar { background: var(--surface-sidebar); }
+.surface-card    { background: var(--surface-card); border: 1px solid var(--border-soft); }
+.surface-card-2  { background: var(--surface-card-2); border: 1px solid var(--border-soft); }
+.surface-input   { background: var(--surface-input); border: 1px solid var(--border-soft); }
+.surface-modal   { background: var(--surface-modal); border: 1px solid var(--border-strong); }
+.surface-hover:hover { background: var(--surface-hover); }
+.surface-selected     { background: var(--surface-selected); }
+.text-token-primary   { color: var(--text-primary); }
+.text-token-secondary { color: var(--text-secondary); }
+.text-token-muted     { color: var(--text-muted); }
+.text-token-faint     { color: var(--text-faint); }
+.border-token-soft    { border-color: var(--border-soft); }
+.border-token-strong  { border-color: var(--border-strong); }
 
 /* ── Dropdown system ─────────────────────────────────────────────────────── */
 @layer components {
   .dropdown-panel {
-    @apply absolute z-50 mt-1 overflow-hidden rounded-lg border border-zinc-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.5)];
+    @apply absolute z-50 mt-1 overflow-hidden rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)];
+    background: var(--surface-modal);
+    border: 1px solid var(--border-strong);
   }
   .dropdown-item {
-    @apply flex w-full items-center gap-2 px-3 py-[6px] text-[12px] text-zinc-400
-           border-b border-b-zinc-800/40 last:border-b-0
-           transition-colors duration-100
-           hover:bg-zinc-800/40 hover:text-zinc-100;
+    @apply flex w-full items-center gap-2 px-3 py-[6px] text-[12px]
+           transition-colors duration-100;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .dropdown-item:last-child { border-bottom: none; }
+  .dropdown-item:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
   .dropdown-item-active {
-    @apply bg-zinc-800/30 text-zinc-100;
+    background: var(--surface-selected);
+    color: var(--text-primary);
+  }
+}
+
+/* ── Shared button system ─────────────────────────────────────────────────
+   One set of classes for the whole app — replaces ad-hoc per-page button
+   strings so primary/secondary/ghost/tab buttons feel like one system. ── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white transition-colors disabled:cursor-not-allowed;
+    background: var(--accent);
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:disabled {
+    background: var(--surface-hover);
+    color: var(--text-faint);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    background: var(--surface-card);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .btn-tab {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors;
+    color: var(--text-muted);
+  }
+  .btn-tab:hover { color: var(--text-primary); }
+  .btn-tab[data-active="true"] {
+    background: var(--surface-selected);
+    color: var(--accent);
+  }
+  html[data-theme="dark"] .btn-tab[data-active="true"],
+  .dark .btn-tab[data-active="true"] {
+    color: var(--accent-hover);
+  }
+
+  .btn-icon {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    color: var(--text-muted);
+  }
+  .btn-icon:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
 }
 
 /* ── Flat inputs and buttons (no 3D key effect) ─────────────────────────── */
 @layer components {
   .key-input {
-    @apply rounded-lg border border-zinc-200 bg-white text-[#111827] placeholder-[#9ca3af] outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20
-           dark:border-white/[.12] dark:bg-white/[.04] dark:text-slate-300 dark:placeholder-slate-600 dark:focus:border-indigo-500/50 dark:focus:ring-0 dark:focus:bg-white/[.06];
+    @apply rounded-lg outline-none transition-all;
+    background: var(--surface-input);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+  }
+  .key-input::placeholder { color: var(--text-faint); }
+  .key-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
   }
   .key-button {
-    @apply rounded-lg border border-zinc-200 bg-white text-[#52525b] transition-all hover:bg-[#f4f4f5] hover:text-[#18181b]
-           dark:border-white/[.10] dark:bg-white/[.04] dark:text-slate-400 dark:hover:bg-white/[.06] dark:hover:text-white;
+    @apply rounded-lg transition-all;
+    background: var(--surface-card);
+    border: 1px solid var(--border-soft);
+    color: var(--text-muted);
+  }
+  .key-button:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
 }
 
@@ -119,23 +266,23 @@ html[data-theme="light"] body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
   transition: transform 0.2s ease-in-out;
 }
-.md-toggle[aria-checked="true"]  { background-color: #6366f1; }
-.md-toggle[aria-checked="false"] { background-color: rgba(255,255,255,0.12); }
+.md-toggle[aria-checked="true"]  { background-color: var(--accent); }
+.md-toggle[aria-checked="false"] { background-color: var(--border-strong); }
 .md-toggle[aria-checked="true"]  .md-toggle-thumb { transform: translateX(1rem); }
 .md-toggle[aria-checked="false"] .md-toggle-thumb { transform: translateX(0); }
 
 /* ── Settings page layout ─────────────────────────────────────────────────── */
 .settings-section {
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.015);
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card);
   overflow: hidden;
 }
 .settings-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--border-soft);
   padding: 0.875rem 1.25rem;
 }
 .settings-row {
@@ -143,15 +290,18 @@ html[data-theme="light"] body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--border-soft);
   padding: 1rem 1.25rem;
 }
 .settings-row:last-child { border-bottom: none; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   COMPREHENSIVE LIGHT MODE OVERRIDES
-   Strategy: target Tailwind utility class strings with attribute selectors.
-   Specificity beats single-class Tailwind utilities so !important is minimal.
+   LIGHT-MODE FALLBACK NET — for pages not yet migrated to the surface tokens
+   above. New/updated components should use .surface-*, .btn-*, var(--text-*)
+   etc. directly instead of relying on this. Kept narrow on purpose: only
+   covers raw hardcoded-dark utility classes that still exist elsewhere in
+   the app. Remove a rule here once the last page using that pattern is
+   migrated to tokens.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* 1. Dark hardcoded hex backgrounds → white / light panels */
@@ -222,45 +372,10 @@ html:not(.dark) ::placeholder {
   color: #a1a1aa !important;
 }
 
-/* 7. Dropdown panels — override the @layer components dark styles */
-html:not(.dark) .dropdown-panel {
-  background-color: #ffffff !important;
-  border-color: #e4e4e7 !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.10) !important;
-}
-html:not(.dark) .dropdown-item {
-  color: #3f3f46 !important;
-  border-bottom-color: #f4f4f5 !important;
-}
-html:not(.dark) .dropdown-item:hover {
-  background-color: #f4f4f5 !important;
-  color: #18181b !important;
-}
-html:not(.dark) .dropdown-item-active {
-  background-color: rgba(99,102,241,0.08) !important;
-  color: #18181b !important;
-}
-
-/* 8. key-input / key-button now use native dark: variants — see @layer components above */
-
-/* 9. Settings sections */
-html:not(.dark) .settings-section {
-  border-color: #e4e4e7 !important;
-  background-color: #ffffff !important;
-}
-html:not(.dark) .settings-section-header { border-bottom-color: #f4f4f5 !important; }
-html:not(.dark) .settings-row { border-bottom-color: #f4f4f5 !important; }
-
-/* 10. Toggle off-state in light mode */
-html:not(.dark) .md-toggle[aria-checked="false"] {
-  background-color: rgba(0,0,0,0.12) !important;
-}
-
-/* 11. Top bar */
-html:not(.dark) .md-topbar {
-  background-color: #ffffff !important;
-  border-bottom-color: #e4e4e7 !important;
-}
+/* 7–11: dropdown-panel, key-input/key-button, settings-section, md-toggle and
+   .md-topbar now read directly from the design tokens (see top of file) and
+   no longer need an override here — they already render correctly in both
+   themes without this block. */
 
 /* 12. Hover backgrounds (pseudo-class can't be targeted by attribute selector,
    so we use generic hover rules scoped to light mode) */

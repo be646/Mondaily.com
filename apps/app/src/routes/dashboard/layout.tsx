@@ -52,12 +52,20 @@ function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 dark:border-white/10 border-zinc-200 bg-white dark:bg-[#0b0d10] px-2 pb-safe md:hidden">
-      <div className="flex items-center justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t px-2 pb-safe md:hidden" style={{ borderColor: "var(--border-soft)", background: "var(--surface-sidebar)" }}>
+      <div className="flex items-center justify-around py-1">
         {tabs.map(({ to, icon: Icon, label }) => {
           const active = location.pathname.startsWith(to.split("/").slice(0, 2).join("/"));
           return (
-            <Link key={to} to={to} className={`flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-colors ${active ? "text-indigo-500" : "text-slate-500"}`}>
+            <Link
+              key={to}
+              to={to}
+              className="flex min-w-[64px] flex-col items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors"
+              style={{
+                color: active ? "var(--accent)" : "var(--text-faint)",
+                background: active ? "var(--surface-selected)" : undefined,
+              }}
+            >
               <Icon size={20}/>
               <span>{label}</span>
             </Link>
@@ -107,7 +115,7 @@ export function DashboardLayout() {
   const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#f4f5f8] dark:bg-[#0d0f13]">
+    <div className="flex h-screen w-screen overflow-hidden surface-page">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />

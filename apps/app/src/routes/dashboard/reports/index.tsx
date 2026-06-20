@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { EmptyState, PageHeader, PageSkeletonCards } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
@@ -22,11 +22,11 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 p-4">
+      <div className="surface-modal w-full max-w-sm rounded-2xl p-5 shadow-[0_24px_64px_rgba(0,0,0,0.35)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-white">New dashboard</h2>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={14}/></button>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>New dashboard</h2>
+          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={14}/></button>
         </div>
         <input
           ref={inputRef}
@@ -40,7 +40,7 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
         <button
           onClick={() => { if (name.trim()) onCreate(name.trim()); }}
           disabled={!name.trim()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-indigo-400 transition-colors"
+          className="btn-primary w-full py-2.5 text-sm font-semibold"
         >
           Create dashboard
         </button>
@@ -81,17 +81,17 @@ export function ReportsPage() {
       {/* ── Live Reports ── */}
       <section className="mb-10">
         <div className="mb-3 flex items-center gap-2">
-          <Zap size={14} className="text-slate-500" />
-          <h2 className="text-sm font-semibold text-white">Live Reports</h2>
-          <span className="rounded-full border border-white/10 bg-white/[.04] px-2 py-0.5 text-[10px] text-slate-500">
+          <Zap size={14} style={{ color: "var(--text-muted)" }} />
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Live Reports</h2>
+          <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
             Auto-detects value, status &amp; trends · AI insights included
           </span>
         </div>
 
         {objectsQ.isLoading ? (
-          <div className="h-28 animate-pulse rounded-xl border border-white/[.06] bg-white/[.02]" />
+          <PageSkeletonCards count={3} label="Loading reports…"/>
         ) : objects.length === 0 ? (
-          <p className="text-sm text-slate-600">No object types found in this workspace.</p>
+          <p className="text-sm" style={{ color: "var(--text-faint)" }}>No object types found in this workspace.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {objects.map(obj => {
@@ -100,14 +100,14 @@ export function ReportsPage() {
                 <Link
                   key={obj.slug}
                   to={`/reports/sales?object=${obj.slug}`}
-                  className={`group flex items-center gap-4 overflow-hidden rounded-xl border ${c.border} bg-gradient-to-r ${c.bg} p-4 hover:brightness-110 transition-all`}
+                  className={`group flex items-center gap-4 overflow-hidden rounded-xl border ${c.border} bg-gradient-to-r ${c.bg} p-4 transition-all hover:brightness-105 dark:hover:brightness-110`}
                 >
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${c.icon}`}>
                     <BarChart2 size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{obj.name_plural}</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">KPIs · charts · AI insights · filters</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>KPIs · charts · AI insights · filters</p>
                   </div>
                   <ArrowRight size={14} className={`shrink-0 ${c.arrow} opacity-0 group-hover:opacity-100 transition-opacity`} />
                 </Link>
@@ -121,23 +121,23 @@ export function ReportsPage() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LayoutDashboard size={14} className="text-slate-500" />
-            <h2 className="text-sm font-semibold text-white">Dashboards</h2>
-            <span className="rounded-full border border-white/10 bg-white/[.04] px-2 py-0.5 text-[10px] text-slate-500">
+            <LayoutDashboard size={14} style={{ color: "var(--text-muted)" }} />
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Dashboards</h2>
+            <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
               Pin live widgets &amp; custom charts
             </span>
           </div>
           <button
             onClick={() => setCreating(true)}
             disabled={createDashboard.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            className="btn-secondary text-xs"
           >
             <Plus size={11} /> New dashboard
           </button>
         </div>
 
         {dashboardsQ.isLoading ? (
-          <PageSkeleton rows={3} />
+          <PageSkeletonCards count={3} label="Loading dashboards…"/>
         ) : dashboardsQ.data?.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {dashboardsQ.data.map(dashboard => {
@@ -152,30 +152,33 @@ export function ReportsPage() {
                 <Link
                   key={dashboard.id}
                   to={`/reports/dashboards/${dashboard.id}`}
-                  className="group overflow-hidden rounded-xl border border-white/[.08] hover:border-white/20 transition-all hover:shadow-lg hover:shadow-black/20"
+                  className="surface-card group overflow-hidden rounded-xl transition-all hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20"
+                  style={{ borderColor: "var(--border-soft)" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}
                 >
                   {/* Preview area */}
-                  <div className="relative h-28 overflow-hidden bg-gradient-to-br from-slate-800/60 to-slate-900/80 px-4 pt-3 pb-0">
+                  <div className="relative h-28 overflow-hidden px-4 pt-3 pb-0" style={{ background: "var(--surface-hover)" }}>
                     {totalCount === 0 ? (
                       <div className="flex h-full items-center justify-center">
-                        <p className="text-[11px] text-slate-600">Empty · click to add widgets</p>
+                        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>Empty · click to add widgets</p>
                       </div>
                     ) : (
                       <>
                         {/* Widget type badges */}
                         <div className="mb-2 flex gap-1.5">
                           {liveCount > 0 && (
-                            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                               {liveCount} live
                             </span>
                           )}
                           {reportCount > 0 && (
-                            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium text-indigo-400">
+                            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
                               {reportCount} chart{reportCount !== 1 ? "s" : ""}
                             </span>
                           )}
                           {totalCount > 0 && liveCount === 0 && reportCount === 0 && (
-                            <span className="rounded-full border border-white/10 bg-white/[.04] px-2 py-0.5 text-[10px] text-slate-500">
+                            <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                               {totalCount} widget{totalCount !== 1 ? "s" : ""}
                             </span>
                           )}
@@ -185,8 +188,8 @@ export function ReportsPage() {
                           {bars.map((h, i) => (
                             <div
                               key={i}
-                              className="flex-1 rounded-t-sm transition-all group-hover:opacity-100"
-                              style={{ height: h, background: `rgba(239,68,68,${0.15 + i * 0.04})` }}
+                              className="flex-1 rounded-t-sm bg-indigo-500 transition-all"
+                              style={{ height: h, opacity: 0.18 + i * 0.045 }}
                             />
                           ))}
                         </div>
@@ -194,10 +197,10 @@ export function ReportsPage() {
                     )}
                   </div>
                   {/* Info row */}
-                  <div className="flex items-center gap-2 px-4 py-3 border-t border-white/[.05]">
-                    <LayoutDashboard size={13} className="text-indigo-400 shrink-0"/>
-                    <h3 className="flex-1 truncate text-sm font-medium text-white">{dashboard.name || "Untitled dashboard"}</h3>
-                    <span className="shrink-0 text-[10px] text-slate-600">
+                  <div className="flex items-center gap-2 px-4 py-3 border-t" style={{ borderColor: "var(--border-soft)" }}>
+                    <LayoutDashboard size={13} className="text-indigo-500 dark:text-indigo-400 shrink-0"/>
+                    <h3 className="flex-1 truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{dashboard.name || "Untitled dashboard"}</h3>
+                    <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>
                       {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}
                     </span>
                   </div>
@@ -211,7 +214,7 @@ export function ReportsPage() {
             title="No dashboards yet"
             description="Create a dashboard to pin live object widgets and custom charts side by side."
             action={
-              <button onClick={() => setCreating(true)} className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white">
+              <button onClick={() => setCreating(true)} className="btn-primary text-sm">
                 Create dashboard
               </button>
             }

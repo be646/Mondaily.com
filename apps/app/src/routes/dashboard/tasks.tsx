@@ -51,18 +51,18 @@ function fmtDateTime(iso: string) {
 }
 
 // ── Shared modal shell ────────────────────────────────────────────────────────
-const INPUT = "h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-[#111827] placeholder-[#9ca3af] outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/[.08] dark:bg-white/[.03] dark:text-white dark:placeholder-slate-600 dark:focus:border-white/20 dark:focus:ring-0";
-const SELECT = "h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-[#111827] outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/[.08] dark:bg-[#0d0f13] dark:text-white dark:focus:border-white/20 dark:focus:ring-0";
-const BTN_CANCEL = "flex-1 h-10 rounded-xl border border-zinc-200 text-sm text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 dark:border-white/[.08] dark:text-slate-400 dark:hover:text-white dark:hover:border-white/[.15] transition-colors";
-const BTN_PRIMARY = "flex-1 h-10 rounded-xl bg-indigo-600 text-sm font-medium text-white disabled:opacity-50 hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors";
+const INPUT = "key-input h-10 w-full px-3 text-sm";
+const SELECT = "key-input h-10 w-full px-3 text-sm";
+const BTN_CANCEL = "btn-secondary flex-1 h-10 text-sm";
+const BTN_PRIMARY = "btn-primary flex-1 h-10 text-sm";
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden dark:border-white/[.09] dark:bg-[#0d0f13]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-white/[.06]">
-          <h2 className="text-sm font-semibold text-[#111827] dark:text-white">{title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900 dark:text-slate-500 dark:hover:text-white transition-colors"><X size={15}/></button>
+      <div className="surface-modal w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
+          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15}/></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -97,7 +97,7 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
           onKeyDown={e => e.key === "Enter" && title.trim() && create.mutate()}
           placeholder="Task title…" className={INPUT}/>
         <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
-          className={`${INPUT} [color-scheme:dark]`}/>
+          className={`${INPUT} dark:[color-scheme:dark]`}/>
         <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} className={SELECT}>
           <option value="">Unassigned</option>
           {sorted.map(m => <option key={m.user_id} value={m.user_id}>{m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email)}</option>)}
@@ -111,7 +111,7 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
           </select>
         </div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Notes (optional)…"
-          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-white/[.08] dark:bg-white/[.03] dark:text-white dark:placeholder-slate-600 dark:focus:border-white/20 dark:focus:ring-0 transition-colors"/>
+          className="key-input w-full px-3 py-2 text-sm resize-none"/>
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className={BTN_CANCEL}>Cancel</button>
           <button onClick={() => title.trim() && create.mutate()} disabled={!title.trim() || create.isPending} className={BTN_PRIMARY}>
@@ -147,7 +147,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
     <ModalShell title="Edit Task" onClose={onClose}>
       <div className="space-y-3">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={INPUT}/>
-        <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} className={`${INPUT} [color-scheme:dark]`}/>
+        <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} className={`${INPUT} dark:[color-scheme:dark]`}/>
         <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} className={SELECT}>
           <option value="">Unassigned</option>
           {sorted.map(m => <option key={m.user_id} value={m.user_id}>{m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email)}</option>)}
@@ -592,7 +592,7 @@ export function TasksPage() {
 
       {/* ── LIST VIEW ── */}
       {viewMode === "list" && (
-        query.isLoading ? <PageSkeleton/> : query.isError ? <ErrorState error={query.error as Error} onRetry={() => query.refetch()}/> : tasks.length === 0 ? (
+        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : query.isError ? <ErrorState error={query.error as Error} onRetry={() => query.refetch()}/> : tasks.length === 0 ? (
           <EmptyState icon={Check} title="No tasks" description="You're all caught up."/>
         ) : (
           <div className="space-y-1.5">
@@ -679,7 +679,7 @@ export function TasksPage() {
 
       {/* ── BOARD VIEW ── */}
       {viewMode === "board" && (
-        query.isLoading ? <PageSkeleton/> : (
+        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : (
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {BOARD_COLS.map(col => {
@@ -697,7 +697,7 @@ export function TasksPage() {
 
       {/* ── SHEET VIEW ── */}
       {viewMode === "sheet" && (
-        query.isLoading ? <PageSkeleton/> : allTasks.length === 0 ? (
+        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : allTasks.length === 0 ? (
           <EmptyState icon={Check} title="No tasks" description="You're all caught up."/>
         ) : (
           <>
