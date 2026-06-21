@@ -478,29 +478,10 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* ── Agent Constellation — the visual heart of Home, right under
-          the command room it's keeping watch over. ── */}
-      <AgentConstellationPanel />
-
-      {/* ── Operating Picture — what needs attention, decisions waiting,
-          and workspace graph health, all before the chat box. ── */}
-      <CommandCenterStrip
-        tasks={tasksQuery.data ?? []}
-        notifications={notificationsQuery.data ?? []}
-        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
-        onAskMondaily={(prefill) => {
-          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          if (prefill) setInput(prefill);
-          inputRef.current?.focus();
-        }}
-      />
-      <DecisionQueuePanel />
-      <WorkspaceGraphPulse />
-
-      {/* ── Ask Mondaily — moved below the operating picture and agent
-          layer on purpose: Home opens with what's happening, not a chat
-          box. Tinted, embedded surface instead of a flat white/black
-          card. ── */}
+      {/* ── Ask Mondaily — moved back to the top, right under the command
+          room, since it's the primary entry point into the workspace
+          graph. No boxed background — blends into the page; the input
+          field itself keeps a subtle bordered pill. ── */}
       <section ref={askSectionRef} className="mb-8 relative">
         {!isChatting && (
           <div className="mb-5">
@@ -729,6 +710,25 @@ export function HomePage() {
           </div>
         )}
       </section>
+
+      {/* ── Agent Constellation — the visual heart of Home, right under
+          Ask Mondaily it's powering answers for. ── */}
+      <AgentConstellationPanel />
+
+      {/* ── Operating Picture — what needs attention, decisions waiting,
+          and workspace graph health. ── */}
+      <CommandCenterStrip
+        tasks={tasksQuery.data ?? []}
+        notifications={notificationsQuery.data ?? []}
+        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
+        onAskMondaily={(prefill) => {
+          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (prefill) setInput(prefill);
+          inputRef.current?.focus();
+        }}
+      />
+      <DecisionQueuePanel />
+      <WorkspaceGraphPulse />
 
       {/* ── Today's Flow — tasks/meetings as supporting panels, not the
           headline of the page. ── */}
