@@ -68,7 +68,9 @@ function NodeDetail({ agent }: { agent: ConstellationAgent }) {
   );
 }
 
-/** Home panel — central "Graph Brain" + a row of agent nodes, click to inspect. */
+/** Home panel — central "Graph Brain" + a full card grid of agents (not a
+ * thin scrolling row): every card shows its real state and last action
+ * inline, and expands into NodeDetail when clicked. */
 export function AgentConstellationPanel() {
   const { constellation, isLoading } = useAgentData();
   const [selected, setSelected] = useState<string | null>(null);
@@ -80,48 +82,74 @@ export function AgentConstellationPanel() {
 
   if (isLoading) {
     return (
-      <section className="mb-6">
-        <div className="skeleton-shimmer h-24 rounded-xl"/>
+      <section className="mb-8">
+        <div className="skeleton-shimmer h-48 rounded-2xl"/>
       </section>
     );
   }
 
-  return (
-    <section className="mb-6">
-      <div className="surface-card rounded-2xl p-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {/* Central brain node — represents the graph itself, not a separate agent */}
-          <div className="flex shrink-0 flex-col items-center gap-1 pr-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
-              <Network size={15} style={{ color: "var(--accent)" }}/>
-            </span>
-            <span className="text-[9px] font-medium" style={{ color: "var(--text-faint)" }}>Graph</span>
-          </div>
-          <div className="h-px w-3 shrink-0" style={{ background: "var(--border-strong)" }}/>
+  const liveCount = constellation.filter(a => a.state === "active" || a.state === "needs_approval" || a.state === "issue").length;
 
-          {constellation.map((agent, i) => (
-            <div key={agent.id} className="flex shrink-0 items-center gap-3">
-              <button onClick={() => setSelected(agent.id)} className="flex flex-col items-center gap-1 transition-opacity hover:opacity-80">
-                <span className={`relative flex h-9 w-9 items-center justify-center rounded-full border-2 ${STATE_RING[agent.state]} ${active?.id === agent.id ? "ring-2 ring-offset-1" : ""}`}
-                  style={{ background: "var(--surface-card)" }}>
-                  <agent.icon size={13} style={{ color: agent.state === "active" || agent.state === "needs_approval" || agent.state === "issue" ? "var(--text-primary)" : "var(--text-faint)" }}/>
-                  {(agent.state === "active" || agent.state === "needs_approval" || agent.state === "issue") && (
-                    <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ${STATE_DOT[agent.state]}`}/>
-                  )}
-                </span>
-                <span className="max-w-[64px] truncate text-[9px]" style={{ color: "var(--text-faint)" }}>{agent.name.replace(" Agent", "")}</span>
-              </button>
-              {i < constellation.length - 1 && <div className="h-px w-3 shrink-0" style={{ background: "var(--border-soft)" }}/>}
-            </div>
-          ))}
+  return (
+    <section className="mb-8">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Network size={13} style={{ color: "var(--text-muted)" }}/>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent Constellation</h2>
+        </div>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+          {liveCount > 0 ? `${liveCount} live right now` : "all quiet"} · {constellation.length} agents
+        </span>
+      </div>
+
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Central brain card — represents the graph itself, not a separate agent */}
+        <div className="surface-card flex items-center gap-3 rounded-2xl p-3.5" style={{ background: "var(--surface-selected)" }}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-card)" }}>
+            <Network size={16} style={{ color: "var(--accent)" }}/>
+          </span>
+          <div className="min-w-0">
+            <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph</p>
+            <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>What every agent below reads and writes to</p>
+          </div>
         </div>
 
-        {active && (
-          <div className="mt-3">
-            <NodeDetail agent={active}/>
-          </div>
-        )}
+        {constellation.map(agent => {
+          const isLive = agent.state === "active" || agent.state === "needs_approval" || agent.state === "issue";
+          const isSelected = active?.id === agent.id;
+          return (
+            <button
+              key={agent.id}
+              onClick={() => setSelected(agent.id)}
+              className={`surface-card flex items-start gap-3 rounded-2xl p-3.5 text-left transition-colors ${isSelected ? "ring-2 ring-offset-1" : "surface-hover"}`}
+              style={isSelected ? { borderColor: "var(--accent)" } : undefined}
+            >
+              <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${STATE_RING[agent.state]}`} style={{ background: "var(--surface-card)" }}>
+                <agent.icon size={14} style={{ color: isLive ? "var(--text-primary)" : "var(--text-faint)" }}/>
+                {isLive && <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${STATE_DOT[agent.state]}`}/>}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1.5">
+                  <p className="truncate text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name}</p>
+                  <span className={`shrink-0 text-[9.5px] font-medium ${isLive ? "" : ""}`} style={{ color: isLive ? "var(--accent)" : "var(--text-faint)" }}>
+                    {CONSTELLATION_STATE_LABEL[agent.state]}
+                  </span>
+                </div>
+                <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-secondary)" }}>{agent.note}</p>
+                {agent.lastRunAt && (
+                  <p className="mt-1 text-[9.5px]" style={{ color: "var(--text-faint)" }}>Last run: {new Date(agent.lastRunAt).toLocaleString()}</p>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
+
+      {active && (
+        <div className="mt-3">
+          <NodeDetail agent={active}/>
+        </div>
+      )}
     </section>
   );
 }

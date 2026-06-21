@@ -383,8 +383,21 @@ export function HomePage() {
 
       {/* ── Hero greeting ── */}
       <div className="mb-8">
-        <p className="text-xs font-medium text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
-        <h1 className="text-[28px] font-semibold tracking-tight text-[#111827] dark:text-white">{greeting}, {user?.firstName || "there"}.</h1>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
+            <h1 className="text-[28px] font-semibold tracking-tight text-[#111827] dark:text-white">{greeting}, {user?.firstName || "there"}.</h1>
+          </div>
+          {/* Quick-access to Ask Mondaily — it sits lower on the page by
+              design (the operating picture comes first), but it should
+              never require scrolling past everything to reach. */}
+          <button
+            onClick={() => { askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); inputRef.current?.focus(); }}
+            className="btn-ai shrink-0 !px-3 !py-1.5 !text-[12px]"
+          >
+            <Sparkles size={11}/> Ask Mondaily
+          </button>
+        </div>
 
         {/* Quick stat pills — explicitly scoped to "assigned to you" since
             these come from the "mine" task filter. The Operations Agent
