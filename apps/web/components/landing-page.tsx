@@ -6,37 +6,23 @@ import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
 
-// ── Preloader ─────────────────────────────────────────────────────────────────
-const LOG_LINES = [
-  { tag: "[MONDAILY]", msg: "Bootstrapping AI workspace...",                          col: "#6366f1" },
-  { tag: "[AI]",       msg: "Engine ready · inference active",                        col: "#6366f1" },
-  { tag: "[DATA]",     msg: "Records enriched · pipeline synced",                     col: "#3f3f46" },
-  { tag: "[WS]",       msg: "Workspace ready",                                        col: "#6366f1" },
-];
-
-function nowStamp() {
-  const d = new Date();
-  return `[${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}]`;
-}
-
+// ── Preloader — calm, premium loading state. No boot-log, no terminal
+// timestamps; just the logo and a soft progress line. ─────────────────────
 function Preloader({ onDone }: { onDone: () => void }) {
-  const [lines, setLines] = useState<{ id: number; stamp: string; tag: string; msg: string; col: string }[]>([]);
   const [progress, setProgress] = useState(0);
   const [fade, setFade] = useState(false);
-  const idx = useRef(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (idx.current < LOG_LINES.length) {
-        const item = LOG_LINES[idx.current]!;
-        setLines(prev => [...prev, { id: idx.current, stamp: nowStamp(), ...item }]);
-        setProgress(Math.round(((idx.current + 1) / LOG_LINES.length) * 100));
-        idx.current++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => setFade(true), 250);
-        setTimeout(() => onDone(), 550);
-      }
+      setProgress(p => {
+        const next = Math.min(p + 18 + Math.random() * 12, 100);
+        if (next >= 100) {
+          clearInterval(interval);
+          setTimeout(() => setFade(true), 250);
+          setTimeout(() => onDone(), 550);
+        }
+        return next;
+      });
     }, 180);
     return () => clearInterval(interval);
   }, [onDone]);
@@ -47,39 +33,14 @@ function Preloader({ onDone }: { onDone: () => void }) {
       transition={{ duration: 0.35 }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8"
     >
-      <div className="w-full max-w-lg">
-        <div className="mb-8 flex items-center">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 flex items-center justify-center">
           <Logo size={36} />
         </div>
-
-        <div className="mb-6 flex h-[120px] flex-col justify-end gap-3 overflow-hidden font-mono">
-          <AnimatePresence initial={false}>
-            {lines.slice(-5).map(l => (
-              <motion.div
-                key={l.id}
-                layout
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, position: "absolute" }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-              >
-                <div className="flex items-center gap-2 text-[11px]">
-                  <span className="text-zinc-400">{l.stamp}</span>
-                  <span className="font-medium" style={{ color: l.col }}>{l.tag}</span>
-                </div>
-                <div className="truncate text-[13px] leading-relaxed text-zinc-500">{l.msg}</div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+        <div className="h-px w-full bg-black/[.06]">
+          <motion.div className="h-px bg-indigo-500" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }}/>
         </div>
-
-        <div className="h-px w-full bg-black/[.04]">
-          <motion.div className="h-px bg-indigo-600" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }}/>
-        </div>
-        <div className="mt-2 flex justify-between font-mono text-[14px]">
-          <span className="text-zinc-500">Initialising workspace</span>
-          <span className="text-indigo-700">{progress}%</span>
-        </div>
+        <p className="mt-3 text-center text-[13px] text-zinc-400">Loading your workspace…</p>
       </div>
     </motion.div>
   );
@@ -120,14 +81,14 @@ const MAIN_NODES = [
     subAnchor: "start" as const,
   },
   {
-    id: "pipeline", label: "Pipeline",
+    id: "pipeline", label: "Opportunity flow",
     x: 300, y: 308,
     subs: [
       { label: "Relationship health", ax: 300 + NW + 10, ay: 300 },
-      { label: "Stage automation",  ax: 300 + NW + 10, ay: 316 },
+      { label: "Stage tracking",    ax: 300 + NW + 10, ay: 316 },
       { label: "Health alerts",     ax: 300 + NW + 10, ay: 332 },
-      { label: "Win/loss analysis", ax: 300 + NW + 10, ay: 348 },
-      { label: "Revenue forecast",  ax: 300 + NW + 10, ay: 364 },
+      { label: "Decision queue",    ax: 300 + NW + 10, ay: 348 },
+      { label: "Source-backed signals", ax: 300 + NW + 10, ay: 364 },
     ],
     subAnchor: "start" as const,
   },
@@ -207,23 +168,18 @@ const MAIN_EDGES: [string,string][] = [
 const FLOW_ORDER = ["crm","enrich","pipeline","sequences","ask","automations","finance","mcp"];
 
 // Footer ticker — slow scrolling log-line stream, same mono/terminal language as the rest of the page
-const FOOTER_LOG_LINES: { tag: string; text: string; color: string }[] = [
-  { tag: "SYNC",     text: "record #48213 synced",              color: "text-indigo-500/70" },
-  { tag: "ENRICH",   text: "acme.com → ARR $4.2M",               color: "text-emerald-500/70" },
-  { tag: "PIPELINE", text: "deal #1482 → Negotiation",           color: "text-indigo-500/70" },
-  { tag: "FINANCE",  text: "INV-0031 → verified",                color: "text-amber-500/70" },
-  { tag: "SYNC",     text: "record #48214 synced",               color: "text-indigo-500/70" },
-  { tag: "AUTOMATE", text: "trigger deal_won → 3 actions run",   color: "text-emerald-500/70" },
-  { tag: "ASK",      text: "query resolved in 380ms",            color: "text-indigo-500/70" },
-  { tag: "SYNC",     text: "record #48215 synced",               color: "text-indigo-500/70" },
+const FOOTER_TICKER_LINES = [
+  "One workspace graph for records, tasks, finance, and decisions",
+  "Agents read, recommend, and prepare — you approve",
+  "Every answer comes with the source it came from",
+  "Built for any workspace graph, not just sales pipelines",
 ];
 
 function FooterTicker() {
-  const line = (l: typeof FOOTER_LOG_LINES[number], i: number) => (
+  const line = (text: string, i: number) => (
     <span key={i} className="inline-flex items-center gap-2 px-6">
       <span className="h-1 w-1 rounded-full bg-zinc-300"/>
-      <span className={`font-mono text-[11px] tracking-wide ${l.color}`}>[{l.tag}]</span>
-      <span className="font-mono text-[11px] text-zinc-400">{l.text}</span>
+      <span className="text-[12px] text-zinc-400">{text}</span>
     </span>
   );
   return (
@@ -236,80 +192,9 @@ function FooterTicker() {
         animate={{ x: ["0%", "-50%"] }}
         transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
       >
-        {FOOTER_LOG_LINES.map(line)}
-        {FOOTER_LOG_LINES.map((l, i) => line(l, i + FOOTER_LOG_LINES.length))}
+        {FOOTER_TICKER_LINES.map(line)}
+        {FOOTER_TICKER_LINES.map((l, i) => line(l, i + FOOTER_TICKER_LINES.length))}
       </motion.div>
-    </div>
-  );
-}
-
-// Terminal windows — 3 different panels
-const TERM_STREAMS: { cmd: string; out: string }[][] = [
-  [
-    { cmd: "$ mondaily enrich acme.com",         out: "  ARR: $4.2M · 210 emp · Series B · London" },
-    { cmd: "$ mondaily enrich stripe.com",        out: "  ARR: $3.1B · 7000 emp · Public · SF" },
-    { cmd: "$ mondaily enrich linear.app",        out: "  ARR: ~$50M · 90 emp · Series B · SF" },
-    { cmd: "$ mondaily enrich notion.so",         out: "  ARR: $330M · 600 emp · Series C · NY" },
-  ],
-  [
-    { cmd: "$ pipeline.advance --deal 1482",      out: "  → Moved: Proposal → Negotiation (AI rule)" },
-    { cmd: "$ pipeline.score --all",              out: "  → 9 deals rescored · 2 flagged at risk" },
-    { cmd: "$ sequence.enroll --list enterprise", out: "  → 47 contacts enrolled in Enterprise Nurture" },
-    { cmd: "$ ask 'which deals close this month'",out: "  → 3 deals · total £142K · avg 6 days left" },
-  ],
-  [
-    { cmd: "$ finance.invoice --create",          out: "  → INV-0031 created · sent to client@co.io" },
-    { cmd: "$ finance.approve INV-0031",          out: "  → Status: pending_review → verified" },
-    { cmd: "$ automation.run --trigger deal_won", out: "  → Slack sent · Sequence enrolled · Record updated" },
-    { cmd: "$ finance.report --period Q2",        out: "  → Billed £84K · Collected £71K · 3 overdue" },
-  ],
-];
-
-function TermWindow({ lines, title, accent = "#4f46e5" }: { lines: { cmd: string; out: string }[]; title: string; accent?: string }) {
-  const [shown, setShown] = useState<{ id: number; cmd: string; out: string }[]>([]);
-  const idx = useRef(0);
-  const nextId = useRef(0);
-
-  useEffect(() => {
-    idx.current = 0;
-    nextId.current = 0;
-    setShown([]);
-    const t = setInterval(() => {
-      const line = lines[idx.current % lines.length];
-      if (line) setShown(prev => [...prev.slice(-2), { id: nextId.current++, ...line }]);
-      idx.current++;
-    }, 2200);
-    return () => clearInterval(t);
-  }, [lines]);
-
-  return (
-    <div
-      className="rounded-xl border border-black/[.05] bg-white p-4 font-mono text-[13px]"
-      style={{ borderLeft: `2px solid ${accent}` }}
-    >
-      <div className="mb-3 flex items-center gap-2 border-b border-black/[.04] pb-2.5">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }}/>
-        <span className="text-zinc-700 text-[14px] font-medium">{title}</span>
-        <motion.span animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 1.6, repeat: Infinity }} className="ml-auto h-1.5 w-1.5 rounded-full" style={{ background: accent }}/>
-      </div>
-      <div className="flex h-[120px] flex-col justify-end gap-2 overflow-hidden">
-        <AnimatePresence initial={false}>
-          {shown.map(l => (
-            <motion.div
-              key={l.id}
-              layout
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14, position: "absolute" }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            >
-              <div style={{ color: accent }}>{l.cmd}</div>
-              <div className="text-zinc-500">{l.out}</div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <motion.span animate={{ opacity: [0,1,0] }} transition={{ duration: 1, repeat: Infinity }} className="inline-block h-3 w-1 align-middle" style={{ background: accent }}/>
-      </div>
     </div>
   );
 }
@@ -351,13 +236,13 @@ function FeatureSection() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// system.modules</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">One workspace graph</p>
       <h2 className="mb-4 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{'>'}</span> One platform. Every signal.
+        Every part of the business, one connected graph
       </h2>
 
       {/* Live stats bar — numbers pulse to signal the system is live */}
-      <div className="mb-10 flex gap-6 font-mono text-[14px] text-zinc-600">
+      <div className="mb-10 flex gap-6 text-[14px] text-zinc-600">
         <span>
           <LiveStat start={8420} step={[1, 3]} intervalMs={4200} />
           {" "}records enriched
@@ -365,7 +250,7 @@ function FeatureSection() {
         <span className="text-zinc-500">·</span>
         <span>
           <LiveStat start={234} step={[0, 1]} intervalMs={6500} />
-          {" "}deals tracked
+          {" "}opportunities tracked
         </span>
         <span className="text-zinc-500">·</span>
         <span>
@@ -375,10 +260,10 @@ function FeatureSection() {
       </div>
 
       {/* Module grid — grouped by zone */}
-      <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {MODULE_ZONES.map((z, zi) => (
           <div key={z.zone} className="flex flex-col gap-3">
-            <span className="font-mono text-[11px] uppercase tracking-widest" style={{ color: z.accent }}>{z.zone}</span>
+            <span className="text-[11px] font-medium uppercase tracking-widest" style={{ color: z.accent }}>{z.zone}</span>
             {z.ids.map((id, ii) => {
               const node = getNode(id);
               const on = active === id;
@@ -400,11 +285,11 @@ function FeatureSection() {
                 >
                   <div className="mb-2.5 flex items-center gap-2.5">
                     <span className="h-1.5 w-1.5 rounded-full transition-colors" style={{ background: on ? z.accent : "#d4d4d8" }}/>
-                    <span className={`font-mono text-[14px] font-semibold transition-colors ${on ? "text-zinc-800" : "text-zinc-600"}`}>{node.label}</span>
+                    <span className={`text-[14px] font-semibold transition-colors ${on ? "text-zinc-800" : "text-zinc-600"}`}>{node.label}</span>
                   </div>
                   <ul className="flex flex-col gap-1">
                     {node.subs.slice(0, 3).map((sub, si) => (
-                      <li key={si} className="font-mono text-[11px] text-zinc-500 leading-relaxed">{sub.label}</li>
+                      <li key={si} className="text-[12px] text-zinc-500 leading-relaxed">{sub.label}</li>
                     ))}
                   </ul>
                 </motion.div>
@@ -414,16 +299,25 @@ function FeatureSection() {
         ))}
       </div>
 
-      {/* Three terminal windows */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {TERM_STREAMS.map((stream, i) => (
-          <TermWindow
-            key={i}
-            lines={stream}
-            title={["mondaily — enrichment", "mondaily — pipeline & AI", "mondaily — finance & ops"][i]!}
-            accent={["#4f46e5", "#7c3aed", "#059669"][i]!}
-          />
-        ))}
+      {/* What Mondaily does automatically — broad, honest, no terminal-log
+          theatrics. Each line maps to a real job/route in the product. */}
+      <div className="rounded-2xl border border-black/[.05] bg-zinc-50/60 p-6 sm:p-8">
+        <p className="mb-4 text-[13px] font-medium uppercase tracking-widest text-zinc-500">What Mondaily does automatically</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[
+            "Turns messy records into one connected workspace graph",
+            "Enriches new records with source-backed data from the web",
+            "Finds signals and explains what changed, with evidence",
+            "Drafts tasks, messages, and workflows for your approval",
+            "Watches finance, decisions, and operations continuously",
+            "Discovers new candidates and assets when you ask the Prospecting Agent",
+          ].map(line => (
+            <div key={line} className="flex items-start gap-2.5">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"/>
+              <p className="text-[14px] leading-relaxed text-zinc-700">{line}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -482,12 +376,12 @@ const RECORD_SCENARIOS = [
 ];
 
 const STEP_TEMPLATE = [
-  { tag: "[RECORD]",   tagCol: "#3f3f46", delay: 400,  title: "Record added" },
-  { tag: "[ENRICH]",   tagCol: "#4f46e5", delay: 1100, title: "AI enrichment fired" },
-  { tag: "[GRAPH]",    tagCol: "#4f46e5", delay: 1800, title: "Relationship health updated — moved to Proposal" },
-  { tag: "[SEQ]",      tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
-  { tag: "[AUTO]",     tagCol: "#4f46e5", delay: 3200, title: "Automation triggered on deal stage change" },
-  { tag: "[FINANCE]",  tagCol: "#3f3f46", delay: 3900, title: "Quote drafted — queued for approval" },
+  { tag: "Record",       tagCol: "#3f3f46", delay: 400,  title: "Record added" },
+  { tag: "Enrichment",   tagCol: "#4f46e5", delay: 1100, title: "AI enrichment fired" },
+  { tag: "Graph",        tagCol: "#4f46e5", delay: 1800, title: "Relationship health updated — moved to Proposal" },
+  { tag: "Sequence",     tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
+  { tag: "Automation",   tagCol: "#4f46e5", delay: 3200, title: "Automation triggered on graph event" },
+  { tag: "Finance",      tagCol: "#3f3f46", delay: 3900, title: "Quote drafted — queued for approval" },
 ];
 
 function buildWorkflowSteps(scenario: typeof RECORD_SCENARIOS[number]) {
@@ -518,9 +412,9 @@ const REPLACES_ROWS = [
 function ComparisonSection() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how it&apos;s different</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">How it's different</p>
       <h2 className="mb-3 font-sans text-4xl font-semibold tracking-tight text-zinc-800">What Mondaily replaces</h2>
-      <p className="mb-10 font-mono text-[14px] text-zinc-500">
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Stop stitching together disconnected tools for every part of the business. One workspace graph, operated by AI, runs all of it.
       </p>
 
@@ -648,7 +542,7 @@ function FAQSection() {
 
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// faq</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">FAQ</p>
       <h2 className="mb-10 font-sans text-4xl font-semibold tracking-tight text-zinc-800">Ask Mondaily AI</h2>
 
       <div
@@ -656,12 +550,7 @@ function FAQSection() {
         style={{ border: "1px solid rgba(99,102,241,0.15)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
       >
         <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
-          <div className="flex gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          </div>
-          <span className="font-mono text-[11px] text-zinc-500">mondaily — faq.ask()</span>
+          <span className="text-[13px] font-medium text-zinc-700">Ask Mondaily</span>
           <motion.span
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 1.8, repeat: Infinity }}
@@ -744,17 +633,17 @@ function WorkflowDemo() {
 
   return (
     <section id="workflow" className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.workflow</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-violet-500">Live on the graph</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-violet-500">{">"}</span> What happens when a record enters Mondaily
+        What happens when a record enters Mondaily
       </h2>
-      <p className="mb-10 font-mono text-[13px] text-zinc-500">
-        Zero manual input. The platform enriches, scores, moves, and notifies — automatically.
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Zero manual input. The platform enriches, scores, connects, and notifies — automatically.
       </p>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── Left: enriched record card ── */}
-        <div className="rounded-2xl border border-black/[.05] bg-white p-6 font-mono">
+        <div className="rounded-2xl border border-black/[.05] bg-white p-6">
           {/* Card header */}
           <div className="mb-5 flex items-center justify-between border-b border-black/[.04] pb-4">
             <div className="flex items-center gap-3">
@@ -807,20 +696,14 @@ function WorkflowDemo() {
           </div>
         </div>
 
-        {/* ── Right: workflow log ── */}
-        <div className="rounded-2xl border border-black/[.05] bg-white p-6 font-mono">
-          {/* Window chrome */}
+        {/* ── Right: activity timeline ── */}
+        <div className="rounded-2xl border border-black/[.05] bg-white p-6">
           <div className="mb-5 flex items-center gap-2 border-b border-black/[.04] pb-4">
-            <div className="flex gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-zinc-200"/>
-              <span className="h-2 w-2 rounded-full bg-zinc-200"/>
-              <span className="h-2 w-2 rounded-full bg-zinc-200"/>
-            </div>
-            <span className="ml-2 text-[14px] text-zinc-500">mondaily — workflow engine</span>
+            <span className="text-[14px] font-medium text-zinc-700">Activity on this record</span>
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.4, repeat: Infinity }}
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-700"
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
             />
           </div>
 
@@ -1015,11 +898,11 @@ function AutomationFlow() {
       ref={ref}
       className="mx-auto max-w-6xl px-6 py-20"
     >
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how.the.graph.works</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-amber-500">How the graph works</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-amber-500">{">"}</span> Design once. Apply to every object on the graph.
+        Design once. Apply to every object on the graph.
       </h2>
-      <p className="mb-6 font-mono text-[13px] text-zinc-500">
+      <p className="mb-6 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Visual flows built on real graph events — no code required. Today a human reviews and runs each
         one; autonomous execution is on the <a href="/roadmap" className="text-indigo-500 hover:underline">roadmap</a>.
       </p>
@@ -1226,24 +1109,19 @@ function HeroPipelinePreview() {
       style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
-        <div className="flex gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-        </div>
-        <span className="font-mono text-[11px] text-zinc-500">pipeline — live view</span>
+        <span className="text-[13px] font-medium text-zinc-700">Opportunity flow — your workspace graph</span>
         <motion.span
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity }}
           className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
         />
-        <span className="font-mono text-[11px] text-indigo-500">agent-monitored</span>
+        <span className="text-[11px] text-indigo-500">agent-monitored</span>
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 font-mono text-[11px]">
-        <span className="text-zinc-500">Pipeline value <span className="text-zinc-800">{totalValue}</span></span>
-        <span className="text-zinc-500">Open deals <span className="text-zinc-800">{openDeals}</span></span>
+      <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 text-[12px]">
+        <span className="text-zinc-500">Opportunity value <span className="text-zinc-800">{totalValue}</span></span>
+        <span className="text-zinc-500">Open opportunities <span className="text-zinc-800">{openDeals}</span></span>
         <span className="text-zinc-500">Won this month <span className="text-emerald-600">£40k</span></span>
       </div>
 
@@ -1391,18 +1269,13 @@ function InvoiceBoardPreview() {
       style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
-        <div className="flex gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-        </div>
-        <span className="font-mono text-[11px] text-zinc-500">finance — quotes &amp; invoices</span>
+        <span className="text-[13px] font-medium text-zinc-700">Finance — quotes &amp; invoices</span>
         <motion.span
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity }}
           className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-500"
         />
-        <span className="font-mono text-[11px] text-emerald-600">auto-tracked by AI</span>
+        <span className="text-[11px] text-emerald-600">tracked by Finance Agent</span>
       </div>
 
       <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 font-mono text-[11px]">
@@ -1639,20 +1512,15 @@ function RecordsSheetPreview() {
       style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
-        <div className="flex gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-        </div>
         <AnimatePresence mode="wait">
           <motion.span
             key={view.name}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="font-mono text-[11px] text-zinc-500"
+            className="text-[13px] font-medium text-zinc-700"
           >
-            records — {view.name.toLowerCase()}
+            Records — {view.name.toLowerCase()}
           </motion.span>
         </AnimatePresence>
         <motion.span
@@ -1739,12 +1607,12 @@ function RecordsSheetPreview() {
 function RecordsSheetSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.sheet</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-emerald-500">Records sheet</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-emerald-500">{">"}</span> Your records, kept current automatically
+        Your records, kept current automatically
       </h2>
-      <p className="mb-10 font-mono text-[13px] text-zinc-500">
-        No manual data entry — the AI rescoring, advancing, and enriching rows while you watch.
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        No manual data entry — the AI enriches and updates relationship health on rows while you watch.
       </p>
       <RecordsSheetPreview />
     </section>
@@ -1754,12 +1622,12 @@ function RecordsSheetSection() {
 function FinanceBoardSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.finance</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-emerald-500">Finance</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-emerald-500">{">"}</span> Invoices tracked to payment, automatically
+        Invoices tracked to payment, automatically
       </h2>
-      <p className="mb-10 font-mono text-[13px] text-zinc-500">
-        Draft a quote, raise the invoice, and Mondaily tracks it through to payment — chasing overdue invoices and handling recurring billing without a spreadsheet.
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Draft a quote, raise the invoice, and Mondaily tracks it through to payment — chasing overdue invoices (with your approval) and handling recurring billing without a spreadsheet.
       </p>
       <InvoiceBoardPreview />
     </section>
@@ -1769,110 +1637,66 @@ function FinanceBoardSection() {
 const AGENTS = [
   {
     icon: "◈", name: "Graph Agent", accent: "#4f46e5",
-    desc: "The conversational interface to your workspace graph — creates and searches objects, builds lists, sets up workflows, and answers questions in plain English.",
-    trace: [
-      "[INPUT]    \"show me deals over £10k stuck in proposal\"",
-      "[PARSE]    intent: query · entities: stage=Proposal, value>10000",
-      "[QUERY]    scanning connected objects...",
-      "[REPLY]    3 objects found — rendering as a filtered list",
-    ],
+    desc: "The conversational interface to your workspace graph — creates and searches records, builds lists, sets up workflows, and answers questions in plain English.",
+    watches: "Every record, conversation, and question asked of the graph",
+    prepares: "Filtered lists, new records, draft workflows, and answers with sources attached",
+    approval: "No approval needed to answer — sensitive actions still route to the Decision Queue",
   },
   {
-    icon: "◆", name: "Insights Agent", accent: "#7c3aed",
-    desc: "Fires the moment a new object enters the graph — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web.",
-    trace: [
-      "[TRIGGER]  new object: globex.io",
-      "[SEARCH]   querying web for signals...",
-      "[EXTRACT]  ARR $1.6M · 64 employees · Seed · Berlin",
-      "[WRITE]    node updated · notification sent",
-    ],
+    icon: "◆", name: "Enrichment Agent", accent: "#7c3aed",
+    desc: "Fires the moment a new record enters the graph — pulls ARR, headcount, funding, tech stack, and other public signals automatically from the web.",
+    watches: "New records as they're created",
+    prepares: "Firmographic and contact fields, sourced and attached to the record",
+    approval: "Writes directly — no sensitive action, so no approval required",
   },
   {
     icon: "♥", name: "Relationship Agent", accent: "#d97706",
-    desc: "Scores every relationship 0–100 daily based on contact recency, open loops, and recent activity signals across the graph.",
-    trace: [
-      "[CRON]     daily run · 02:00 UTC",
-      "[SCAN]     8,420 relationships · checking last-touch + open items",
-      "[SCORE]    weighting recency, tasks, exposure, activity",
-      "[WRITE]    relationship_health field updated on all nodes",
-    ],
+    desc: "Scores every relationship daily based on contact recency, open loops, and recent activity across the graph.",
+    watches: "Last-touch dates and open items across every relationship",
+    prepares: "An updated relationship health score on each record",
+    approval: "Writes directly — no sensitive action, so no approval required",
   },
   {
     icon: "▲", name: "Finance Agent", accent: "#dc2626",
     desc: "Watches invoices and credit notes across the graph, drafts the reminder or adjustment, and queues it for your approval before anything is sent.",
-    trace: [
-      "[CRON]     daily run · 08:00 UTC",
-      "[SCAN]     invoices · checking due dates against today",
-      "[DRAFT]    INV-0032 overdue 6 days — reminder drafted",
-      "[QUEUE]    added to decision queue — awaiting approval",
-    ],
+    watches: "Invoice due dates and credit note disputes",
+    prepares: "Draft reminders and adjustments",
+    approval: "Requires approval before anything is sent or applied",
   },
   {
     icon: "▶", name: "Operations Agent", accent: "#059669",
-    desc: "Runs multi-step outreach and follow-up cadences on autopilot — enrolls, paces sends, stops on reply, and reports back to the graph.",
-    trace: [
-      "[ENROLL]   relationship added to \"Enterprise Nurture\"",
-      "[STEP 1]   message sent · open tracked",
-      "[WAIT]     2 days · sending window respected",
-      "[STEP 2]   reply detected — sequence paused automatically",
-    ],
+    desc: "Tracks overdue and stalled work across the graph and queues a recommendation the moment something needs attention.",
+    watches: "Task due dates, review status, and stalled work",
+    prepares: "A recommendation in the Decision Queue, with the record attached",
+    approval: "Requires approval before reassigning or rescheduling",
   },
   {
     icon: "⚙", name: "Workflow Agent", accent: "#0891b2",
-    desc: "Designs trigger → condition → action automations across the graph, no code required. Autonomous execution is coming online — today, a human reviews and runs each workflow.",
-    trace: [
-      "[DESIGN]   trigger: stage changed → Won",
-      "[CHECK]    condition: value > £5,000",
-      "[DRAFT]    action plan: quote drafted · graph node updated",
-      "[QUEUED]   ready for review — autonomous run coming online",
-    ],
+    desc: "Designs trigger → condition → action automations across the graph, no code required. Autonomous execution is coming online — today, a human reviews and runs each one.",
+    watches: "Workflow definitions you design",
+    prepares: "A runnable workflow draft",
+    approval: "Always requires a human to review and run it today",
+  },
+  {
+    icon: "✦", name: "Prospecting Agent", accent: "#0ea5e9",
+    desc: "Searches the live web for new candidates — people, organizations, investors, suppliers, or any record type your workspace tracks — and proposes them with a real source attached.",
+    watches: "A query you give it, plus your existing graph for duplicates",
+    prepares: "New candidate records, each with a source URL — never invented",
+    approval: "Requires approval before any candidate is added to the graph",
   },
 ];
-
-function AgentTrace({ lines }: { lines: string[] }) {
-  const [shown, setShown] = useState(0);
-  useEffect(() => {
-    setShown(0);
-    const timers = lines.map((_, i) => setTimeout(() => setShown(i + 1), 250 + i * 450));
-    return () => timers.forEach(clearTimeout);
-  }, [lines]);
-  return (
-    <div className="space-y-1.5 rounded-lg bg-black/[.02] p-3 font-mono text-[11px]">
-      <AnimatePresence initial={false}>
-        {lines.slice(0, shown).map((line, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -4 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.25 }}
-            className={line.startsWith("[") ? "text-indigo-600" : "text-zinc-600"}
-          >
-            {line}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-      {shown < lines.length && (
-        <motion.span
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
-          className="inline-block h-[10px] w-[5px] bg-indigo-500/60 align-middle"
-        />
-      )}
-    </div>
-  );
-}
 
 function AgentsSection() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
     <section id="agents" className="relative mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// agents.active</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-violet-500">Agent constellation</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-violet-500">{">"}</span> Agents operating across your graph
+        A team of agents, watching one graph
       </h2>
-      <p className="mb-8 font-mono text-[13px] text-zinc-500">
-        Not bots bolted onto a CRM — a team of always-on agents that read, reason over, and act on your workspace graph. Click one to see it work.
+      <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Not bots bolted onto a CRM — every agent below reads from the same workspace graph, prepares a specific kind of work, and tells you plainly whether it needs your approval. Click one to see how it works.
       </p>
 
       {/* Central graph node — agents are spokes off the same workspace graph,
@@ -1932,16 +1756,16 @@ function AgentsSection() {
                     style={{ background: agent.accent }}
                   />
                 </span>
-                <span className="font-mono text-[14px] font-semibold text-zinc-800">{agent.name}</span>
+                <span className="text-[14.5px] font-semibold text-zinc-800">{agent.name}</span>
                 <motion.span
                   animate={{ rotate: open ? 180 : 0 }}
                   transition={{ duration: 0.25 }}
-                  className="ml-auto font-mono text-[11px] text-zinc-400"
+                  className="ml-auto text-[11px] text-zinc-400"
                 >
                   ▾
                 </motion.span>
               </div>
-              <p className="font-mono text-[12px] leading-relaxed text-zinc-500">{agent.desc}</p>
+              <p className="text-[13px] leading-relaxed text-zinc-500">{agent.desc}</p>
 
               <AnimatePresence initial={false}>
                 {open && (
@@ -1952,7 +1776,20 @@ function AgentsSection() {
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden"
                   >
-                    <AgentTrace lines={agent.trace} />
+                    <div className="space-y-2 rounded-lg p-3" style={{ background: `${agent.accent}07` }}>
+                      <div className="flex gap-2 text-[12px]">
+                        <span className="shrink-0 font-medium" style={{ color: agent.accent }}>Watches</span>
+                        <span className="text-zinc-600">{agent.watches}</span>
+                      </div>
+                      <div className="flex gap-2 text-[12px]">
+                        <span className="shrink-0 font-medium" style={{ color: agent.accent }}>Prepares</span>
+                        <span className="text-zinc-600">{agent.prepares}</span>
+                      </div>
+                      <div className="flex gap-2 text-[12px]">
+                        <span className="shrink-0 font-medium" style={{ color: agent.accent }}>Approval</span>
+                        <span className="text-zinc-600">{agent.approval}</span>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1990,9 +1827,9 @@ const LIVE_SIGNALS = [
 function LiveSignalsSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.signals</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Source-backed signals</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> What Mondaily notices while you work
+        What Mondaily notices while you work
       </h2>
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Every signal below comes with where it was found and a suggested next step — source-backed, never a guess presented as fact.
@@ -2111,9 +1948,9 @@ const APPROVAL_STEPS = [
 function ApprovalSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// ai.with_approval</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Decision Queue</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> Agents prepare. You stay in control.
+        Agents prepare. You stay in control.
       </h2>
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Agents prepare, recommend, draft, and monitor continuously — but sensitive actions wait for your approval. Nothing executes on the graph without a human in the loop when it matters.
@@ -2129,9 +1966,48 @@ function ApprovalSection() {
             transition={{ duration: 0.4, delay: i * 0.07 }}
             className="relative rounded-xl border border-black/[.05] bg-white p-4"
           >
-            <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 font-mono text-[11px] font-semibold text-indigo-600">{i + 1}</span>
+            <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-[11px] font-semibold text-indigo-600">{i + 1}</span>
             <p className="mb-1 text-[14px] font-medium text-zinc-800">{s.label}</p>
             <p className="text-[12.5px] leading-relaxed text-zinc-500">{s.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const USE_CASES = [
+  { label: "Client workspaces", desc: "People, companies, and every interaction connected on one graph.", icon: "◈" },
+  { label: "Investment pipelines", desc: "Track deals, diligence, and portfolio companies as connected records.", icon: "◆" },
+  { label: "Finance operations", desc: "Invoices, credit notes, and approvals on the same graph as everything else.", icon: "▲" },
+  { label: "Hiring & people operations", desc: "Candidates, roles, and interview notes as one connected flow.", icon: "♥" },
+  { label: "Project delivery", desc: "Tasks, documents, and decisions tied to the work they belong to.", icon: "▶" },
+  { label: "Partner & supplier tracking", desc: "Organizations and contracts, enriched and kept current automatically.", icon: "⚙" },
+];
+
+function UseCasesSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Any workspace graph</p>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        Built for what your team actually tracks
+      </h2>
+      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Mondaily isn't a CRM with a new coat of paint — the workspace graph adapts to whatever records your team needs to connect.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {USE_CASES.map((u, i) => (
+          <motion.div
+            key={u.label}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.4, delay: i * 0.06 }}
+            className="rounded-xl border border-black/[.05] bg-white p-5"
+          >
+            <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/[.07] text-[14px] text-indigo-500">{u.icon}</span>
+            <p className="mb-1 text-[14px] font-semibold text-zinc-800">{u.label}</p>
+            <p className="text-[12.5px] leading-relaxed text-zinc-500">{u.desc}</p>
           </motion.div>
         ))}
       </div>
@@ -2142,9 +2018,9 @@ function ApprovalSection() {
 function TrustSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// trust.config</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Security & data separation</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> Your data, isolated and protected
+        Your data, isolated and protected
       </h2>
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Mondaily is built so the AI is as trustworthy as the team using it. Isolation and permissions aren&apos;t an afterthought — they&apos;re the foundation.
@@ -2266,77 +2142,6 @@ const PLANS = [
 // ── Live now / Operating now / Coming online — an honest status board so
 // nothing on this page overpromises. Every item is checked against the
 // real backend before being placed in a tier. ─────────────────────────────
-const STATUS_TIERS = [
-  {
-    label: "Live now", dot: "#10b981", pulse: false,
-    note: "Real, working today",
-    items: [
-      "Ask the workspace graph", "Records & custom objects", "Tasks",
-      "Automations (design + manual run)", "Finance surfaces", "Reports",
-      "Source-backed Ask answers",
-    ],
-  },
-  {
-    label: "Operating now", dot: "#f59e0b", pulse: true,
-    note: "Running in the background on real data",
-    items: [
-      "Record enrichment", "Relationship health scoring", "Invoice chasing",
-      "Risk & notification signals",
-    ],
-  },
-  {
-    label: "Coming online", dot: "#a1a1aa", pulse: false,
-    note: "Designed, not yet autonomous",
-    items: [
-      "Full agent registry", "Universal AI score on every object",
-      "Advanced decision queue", "Autonomous workflow execution",
-      "Graph-wide memory",
-    ],
-  },
-];
-
-function StatusBoardSection() {
-  return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// status.board</div>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{">"}</span> What&apos;s real today, and what&apos;s next
-      </h2>
-      <p className="mb-10 max-w-2xl font-mono text-[13px] text-zinc-500">
-        We&apos;d rather tell you exactly what&apos;s running than let an animation imply more than the product does.
-      </p>
-      <div className="grid gap-4 md:grid-cols-3">
-        {STATUS_TIERS.map((tier, ti) => (
-          <motion.div
-            key={tier.label}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.4, delay: ti * 0.08 }}
-            className="rounded-2xl border border-black/[.05] bg-white p-5"
-          >
-            <div className="mb-1 flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                {tier.pulse && <span className="absolute inline-flex h-full w-full rounded-full opacity-50 animate-ping" style={{ background: tier.dot }}/>}
-                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: tier.dot }}/>
-              </span>
-              <span className="font-mono text-[14px] font-semibold text-zinc-800">{tier.label}</span>
-            </div>
-            <p className="mb-3 font-mono text-[11px] text-zinc-400">{tier.note}</p>
-            <ul className="space-y-1.5">
-              {tier.items.map(item => (
-                <li key={item} className="flex items-start gap-2 font-mono text-[12.5px] text-zinc-600">
-                  <span className="mt-0.5" style={{ color: tier.dot }}>›</span>{item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 // Exported so the standalone /pricing page renders the exact same plans —
 // previously it had its own stub with different plan names and prices,
 // which contradicted the landing page.
@@ -2346,14 +2151,14 @@ export function PricingSection() {
 
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
-      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// pricing.config</div>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Pricing</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-indigo-500">{'>'}</span> Simple, transparent pricing
+        Simple, transparent pricing
       </h2>
-      <p className="mb-6 font-mono text-[14px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
+      <p className="mb-6 text-[15px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
 
       {/* Monthly / Annual toggle */}
-      <div className="mb-10 flex items-center gap-3 font-mono text-[13px]">
+      <div className="mb-10 flex items-center gap-3 text-[13px]">
         <span className={annual ? "text-zinc-400" : "text-zinc-800 font-medium"}>Monthly</span>
         <button
           onClick={() => setAnnual(a => !a)}
@@ -2613,20 +2418,20 @@ export function LandingPage() {
                 transition={{ duration: 0.55, delay: 0.2 }}
               >
                 {/* Live badge */}
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 font-mono text-[13px] text-indigo-500">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 text-[13px] font-medium text-indigo-500">
                   <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-600"/>
-                  Live workspace graph · agents operating now
+                  An autonomous AI workspace
                 </div>
 
                 {/* Slogan */}
                 <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
-                  Your workspace graph,{" "}
-                  <span className="text-indigo-500">operated by AI.</span>
+                  Your workspace,{" "}
+                  <span className="text-indigo-500">run by AI agents.</span>
                 </h1>
 
                 {/* Subheading */}
                 <p className="mx-auto mb-7 max-w-xl text-[15px] leading-relaxed text-zinc-500">
-                  Mondaily maps people, assets, workflows, tasks, documents, invoices, conversations, and decisions into one living graph. AI agents monitor it, reason over it, and help operate the business.
+                  Mondaily connects records, tasks, finance, conversations, workflows, and decisions into one living workspace graph. AI agents watch the graph, explain what changed, and prepare the next action with sources.
                 </p>
 
                 {/* Primary / secondary CTAs */}
@@ -2709,6 +2514,9 @@ export function LandingPage() {
           {/* ── How it's different ── */}
           <ComparisonSection />
 
+          {/* ── Use cases — no narrow CRM framing ── */}
+          <UseCasesSection />
+
           {/* ── Workflow demo ── */}
           <WorkflowDemo />
 
@@ -2721,12 +2529,8 @@ export function LandingPage() {
           {/* ── Finance / invoice board demo ── */}
           <FinanceBoardSection />
 
-          {/* ── Feature map + terminals ── */}
+          {/* ── Feature map ── */}
           <FeatureSection />
-
-          {/* ── Live now / Operating now / Coming online — builds trust
-              before asking for money, by being explicit about what's real. ── */}
-          <StatusBoardSection/>
 
           {/* ── Pricing ── */}
           <PricingSection/>
