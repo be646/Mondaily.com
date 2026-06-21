@@ -264,17 +264,17 @@ body {
    strings so primary/secondary/ghost/tab buttons feel like one system. ── */
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white transition-colors disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
     background: var(--accent);
   }
-  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent); }
   .btn-primary:disabled {
     background: var(--surface-hover);
     color: var(--text-faint);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
     background: var(--surface-card);
     border: 1px solid var(--border-strong);
     color: var(--text-secondary);
@@ -285,7 +285,7 @@ body {
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
     color: var(--text-muted);
   }
   .btn-ghost:hover:not(:disabled) {
@@ -298,7 +298,7 @@ body {
      solid loud fill — it should read as "the AI offers to do this",
      not "the most important button on the page". */
   .btn-ai {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
     color: #7c3aed;
     background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(34,211,238,0.06));
     border: 1px solid rgba(124,58,237,0.22);

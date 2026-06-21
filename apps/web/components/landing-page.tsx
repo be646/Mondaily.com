@@ -6,24 +6,39 @@ import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
 
-// ── Preloader — calm, premium loading state. No boot-log, no terminal
-// timestamps; just the logo and a soft progress line. ─────────────────────
+// ── Preloader — calm, premium, but alive: a small animated graph of nodes
+// lighting up in sequence (the workspace graph "waking up"), with cycling
+// plain-language status text. No boot-log brackets, no timestamps — just
+// motion that reads as AI-native rather than a terminal. ───────────────────
+const PRELOADER_STATUS = [
+  "Connecting to your workspace graph",
+  "Waking agents",
+  "Loading records",
+  "Ready",
+];
+const PRELOADER_NODES = [
+  { x: 50, y: 14 }, { x: 86, y: 50 }, { x: 50, y: 86 }, { x: 14, y: 50 },
+];
+
 function Preloader({ onDone }: { onDone: () => void }) {
   const [progress, setProgress] = useState(0);
   const [fade, setFade] = useState(false);
+  const [statusIdx, setStatusIdx] = useState(0);
+  const litCount = Math.min(Math.floor((progress / 100) * (PRELOADER_NODES.length + 1)), PRELOADER_NODES.length);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress(p => {
-        const next = Math.min(p + 18 + Math.random() * 12, 100);
+        const next = Math.min(p + 14 + Math.random() * 10, 100);
+        setStatusIdx(Math.min(Math.floor((next / 100) * PRELOADER_STATUS.length), PRELOADER_STATUS.length - 1));
         if (next >= 100) {
           clearInterval(interval);
-          setTimeout(() => setFade(true), 250);
-          setTimeout(() => onDone(), 550);
+          setTimeout(() => setFade(true), 300);
+          setTimeout(() => onDone(), 600);
         }
         return next;
       });
-    }, 180);
+    }, 200);
     return () => clearInterval(interval);
   }, [onDone]);
 
@@ -34,13 +49,56 @@ function Preloader({ onDone }: { onDone: () => void }) {
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8"
     >
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex items-center justify-center">
-          <Logo size={36} />
+        <div className="mb-2 flex items-center justify-center">
+          <Logo size={32} />
         </div>
+
+        {/* Animated graph core — nodes light up around a center as progress advances */}
+        <div className="relative mx-auto mb-6 h-28 w-28">
+          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
+            {PRELOADER_NODES.map((n, i) => (
+              <motion.line
+                key={i}
+                x1={50} y1={50} x2={n.x} y2={n.y}
+                stroke="#6366f1"
+                strokeWidth={1}
+                initial={{ opacity: 0.08 }}
+                animate={{ opacity: i < litCount ? 0.5 : 0.08 }}
+                transition={{ duration: 0.4 }}
+              />
+            ))}
+          </svg>
+          <motion.span
+            animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 1.6, repeat: Infinity }}
+            className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500"
+          />
+          {PRELOADER_NODES.map((n, i) => (
+            <motion.span
+              key={i}
+              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{ left: `${n.x}%`, top: `${n.y}%`, background: i < litCount ? "#6366f1" : "#d4d4d8" }}
+              animate={i < litCount ? { scale: [1, 1.4, 1] } : { scale: 1 }}
+              transition={{ duration: 0.5 }}
+            />
+          ))}
+        </div>
+
         <div className="h-px w-full bg-black/[.06]">
           <motion.div className="h-px bg-indigo-500" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }}/>
         </div>
-        <p className="mt-3 text-center text-[13px] text-zinc-400">Loading your workspace…</p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={statusIdx}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+            className="mt-3 text-center text-[13px] text-zinc-400"
+          >
+            {PRELOADER_STATUS[statusIdx]}…
+          </motion.p>
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -173,12 +231,20 @@ const FOOTER_TICKER_LINES = [
   "Agents read, recommend, and prepare — you approve",
   "Every answer comes with the source it came from",
   "Built for any workspace graph, not just sales pipelines",
+  "Graph Agent · Operations Agent · Relationship Agent · Finance Agent — always watching",
+  "Source-backed signals, never a guess presented as fact",
 ];
 
 function FooterTicker() {
   const line = (text: string, i: number) => (
     <span key={i} className="inline-flex items-center gap-2 px-6">
-      <span className="h-1 w-1 rounded-full bg-zinc-300"/>
+      <span className="relative flex h-1.5 w-1.5">
+        <motion.span
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 1.8, repeat: Infinity, delay: (i % 6) * 0.3 }}
+          className="absolute inline-flex h-full w-full rounded-full bg-indigo-400"
+        />
+      </span>
       <span className="text-[12px] text-zinc-400">{text}</span>
     </span>
   );
@@ -190,7 +256,7 @@ function FooterTicker() {
       <motion.div
         className="absolute top-0 left-0 flex h-7 items-center whitespace-nowrap"
         animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
       >
         {FOOTER_TICKER_LINES.map(line)}
         {FOOTER_TICKER_LINES.map((l, i) => line(l, i + FOOTER_TICKER_LINES.length))}
@@ -2418,9 +2484,33 @@ export function LandingPage() {
                 transition={{ duration: 0.55, delay: 0.2 }}
               >
                 {/* Live badge */}
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 text-[13px] font-medium text-indigo-500">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 text-[13px] font-medium text-indigo-500">
                   <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-600"/>
                   An autonomous AI workspace
+                </div>
+
+                {/* Live status row — small, real-feeling status chips that
+                    breathe, echoing the same vocabulary used inside the app
+                    (Home's command room) so the landing page feels alive
+                    rather than static marketing copy. */}
+                <div className="mb-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-zinc-400">
+                  {[
+                    { label: "Graph synced", color: "#10b981" },
+                    { label: "Agents active", color: "#8b5cf6" },
+                    { label: "Sources checked", color: "#06b6d4" },
+                  ].map((s, i) => (
+                    <span key={s.label} className="inline-flex items-center gap-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <motion.span
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
+                          className="absolute inline-flex h-full w-full rounded-full"
+                          style={{ background: s.color }}
+                        />
+                      </span>
+                      {s.label}
+                    </span>
+                  ))}
                 </div>
 
                 {/* Slogan */}
@@ -2438,13 +2528,13 @@ export function LandingPage() {
                 <div className="mb-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <a
                     href="https://app.mondaily.com/sign-up"
-                    className="rounded-xl bg-indigo-600 px-6 py-3 font-mono text-[14px] font-medium text-white shadow-[0_8px_24px_rgba(79,70,229,0.25)] hover:bg-indigo-500 active:translate-y-[1px] transition-all"
+                    className="rounded-full bg-indigo-600 px-7 py-3 text-[14.5px] font-semibold text-white shadow-[0_8px_24px_rgba(79,70,229,0.28)] transition-all hover:bg-indigo-500 hover:shadow-[0_10px_30px_rgba(79,70,229,0.35)] active:translate-y-[1px]"
                   >
                     Start your workspace graph →
                   </a>
                   <a
                     href="#agents"
-                    className="flex items-center gap-2 rounded-xl border border-black/[.08] bg-white px-6 py-3 font-mono text-[14px] font-medium text-zinc-700 hover:border-indigo-500/25 hover:text-indigo-600 transition-colors"
+                    className="flex items-center gap-2 rounded-full border border-black/[.08] bg-white px-7 py-3 text-[14.5px] font-medium text-zinc-700 transition-all hover:border-indigo-500/30 hover:text-indigo-600 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
                     See agents operate

@@ -391,8 +391,24 @@ export function HomePage() {
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. ── */}
-      <div className="command-room -mx-6 -mt-10 mb-8 px-6 pb-6 pt-8 sm:px-10">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="command-room relative -mx-6 -mt-10 mb-8 overflow-hidden px-6 pb-6 pt-8 sm:px-10">
+        {/* Ambient graph-line backdrop — purely decorative, agents "working
+            behind the scenes" feel without literal terminal text. */}
+        <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[.35]" preserveAspectRatio="none" viewBox="0 0 400 120" aria-hidden="true">
+          {[
+            "M0,90 C60,70 90,110 150,80 S260,40 400,60",
+            "M0,30 C80,55 140,10 220,35 S340,70 400,20",
+          ].map((d, i) => (
+            <path
+              key={i}
+              d={d}
+              className="graph-line"
+              data-live="true"
+              style={{ animationDelay: `${i * 0.6}s` }}
+            />
+          ))}
+        </svg>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           {/* Left: greeting + tagline + live status pills */}
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
