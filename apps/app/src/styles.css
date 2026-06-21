@@ -150,6 +150,15 @@ body {
 .surface-card-2  { background: var(--surface-card-2); border: 1px solid var(--border-soft); }
 .surface-input   { background: var(--surface-input); border: 1px solid var(--border-soft); }
 .surface-modal   { background: var(--surface-modal); border: 1px solid var(--border-strong); }
+
+/* ── AI console surface — for Ask Mondaily and other "intelligence
+   terminal" surfaces. A subtle accent-tinted gradient instead of a flat
+   white/black card, calm and readable in both themes (no harsh contrast,
+   no loud gradient). ── */
+.ai-console {
+  background: linear-gradient(165deg, color-mix(in srgb, var(--accent) 5%, var(--surface-card)) 0%, var(--surface-card) 55%);
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border-soft));
+}
 .surface-hover:hover { background: var(--surface-hover); }
 .surface-selected     { background: var(--surface-selected); }
 .text-token-primary   { color: var(--text-primary); }

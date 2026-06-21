@@ -95,9 +95,9 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
   ].slice(0, 3);
 
   return (
-    <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="surface-card mb-8 grid sm:grid-cols-2 lg:grid-cols-3 rounded-2xl overflow-hidden">
       {/* What changed */}
-      <div className="surface-card rounded-xl p-4">
+      <div className="p-4">
         <div className="mb-2 flex items-center gap-2">
           <TrendingUp size={14} className="text-blue-600 dark:text-blue-400 shrink-0"/>
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What changed</span>
@@ -129,7 +129,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
       </div>
 
       {/* What needs approval */}
-      <div className="surface-card rounded-xl p-4">
+      <div className="p-4" style={{ borderTop: "1px solid var(--border-soft)" }}>
         <div className="mb-2 flex items-center gap-2">
           <CheckSquare size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0"/>
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What needs approval</span>
@@ -144,7 +144,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
       </div>
 
       {/* What Mondaily recommends */}
-      <div className="surface-card rounded-xl p-4">
+      <div className="p-4" style={{ borderTop: "1px solid var(--border-soft)" }}>
         <div className="mb-2 flex items-center gap-2">
           <Sparkles size={14} className="text-violet-600 dark:text-violet-400 shrink-0"/>
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily recommends</span>
@@ -168,7 +168,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
       </div>
 
       {/* Agent activity */}
-      <div className="surface-card rounded-xl p-4">
+      <div className="p-4" style={{ borderTop: "1px solid var(--border-soft)" }}>
         <div className="mb-2 flex items-center gap-2">
           <Activity size={14} className="text-rose-600 dark:text-rose-400 shrink-0"/>
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent activity</span>
@@ -196,7 +196,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
       </div>
 
       {/* Workspace graph health */}
-      <div className="surface-card rounded-xl p-4 sm:col-span-2 lg:col-span-1">
+      <div className="p-4 sm:col-span-2 lg:col-span-1" style={{ borderTop: "1px solid var(--border-soft)" }}>
         <div className="mb-2 flex items-center gap-2">
           <Gauge size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0"/>
           <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph health</span>

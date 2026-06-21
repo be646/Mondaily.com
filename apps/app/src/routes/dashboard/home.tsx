@@ -379,7 +379,7 @@ export function HomePage() {
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-10">
 
       {/* ── Hero greeting ── */}
       <div className="mb-8">
@@ -425,14 +425,35 @@ export function HomePage() {
       {/* ── Getting started — moved here from the sidebar so it never
           competes with primary navigation; still a single quiet line
           unless the user opens it. ── */}
-      <div className="mb-4 -mt-2">
+      <div className="mb-6 -mt-2">
         <GettingStarted />
       </div>
 
-      {/* ── Ask Mondaily — the hero surface. This is the command console,
-          not a box below a stack of cards: it's the first thing under the
-          greeting. ── */}
-      <section ref={askSectionRef} className="surface-card mb-8 relative overflow-hidden rounded-2xl p-6">
+      {/* ── Operating Picture — today's workspace state, graph health, and
+          decisions waiting, before anything else. Home opens with the
+          operating picture, not a chat box. ── */}
+      <WorkspaceGraphPulse />
+      <CommandCenterStrip
+        tasks={tasksQuery.data ?? []}
+        notifications={notificationsQuery.data ?? []}
+        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
+        onAskMondaily={(prefill) => {
+          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (prefill) setInput(prefill);
+          inputRef.current?.focus();
+        }}
+      />
+      <DecisionQueuePanel />
+
+      {/* ── Agent layer — the operating constellation, right under the
+          picture it's keeping watch over. ── */}
+      <AgentConstellationPanel />
+
+      {/* ── Ask Mondaily — moved below the operating picture and agent
+          layer on purpose: Home opens with what's happening, not a chat
+          box. Tinted, embedded surface instead of a flat white/black
+          card. ── */}
+      <section ref={askSectionRef} className="ai-console mb-8 relative overflow-hidden rounded-2xl p-6">
         {/* Soft accent edge */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-400/40"/>
 
@@ -660,29 +681,6 @@ export function HomePage() {
           </div>
         )}
       </section>
-
-      {/* ── Workspace Pulse + Agent Constellation — the "thinking across
-          your workspace" layer, sitting between the console and the
-          supporting task/decision panels below. ── */}
-      <WorkspaceGraphPulse />
-      <AgentConstellationPanel />
-
-      {/* ── Decision Queue — real backend rows (decision_queue table) that
-          agents created and a human must approve/reject/snooze. ── */}
-      <DecisionQueuePanel />
-
-      {/* ── What changed, what Mondaily recommends, agent activity, graph
-          health — lighter-weight signals than the Decision Queue above. ── */}
-      <CommandCenterStrip
-        tasks={tasksQuery.data ?? []}
-        notifications={notificationsQuery.data ?? []}
-        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
-        onAskMondaily={(prefill) => {
-          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          if (prefill) setInput(prefill);
-          inputRef.current?.focus();
-        }}
-      />
 
       {/* ── Today's Flow — tasks/meetings as supporting panels, not the
           headline of the page. ── */}
