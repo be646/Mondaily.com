@@ -3,7 +3,7 @@ import {
   ShieldAlert, CheckSquare, Activity, Gauge, ArrowUpRight, Sparkles, FileText,
   UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch,
 } from "lucide-react";
-import { useAgentData, STATUS_LABEL, CTA_LABEL } from "./agent-dock";
+import { useAgentData } from "./agent-dock";
 
 /**
  * Home "AI Command Center" — five real-data panels: what changed, what
@@ -250,86 +250,6 @@ export function WorkspaceGraphPulse() {
               </div>
             );
           })}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/**
- * Agents Operating Now — a large, central panel (not a sidebar footnote)
- * showing each agent's current status, what it's watching, what it found,
- * and a link to act on it. Reuses the exact same real-data computation as
- * the sidebar Agent Dock (useAgentData) — same numbers everywhere, just a
- * bigger, more important presentation on Home.
- */
-export function AgentsOperatingPanel() {
-  const { agents, isLoading } = useAgentData();
-
-  return (
-    <section className="mb-8">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-60 animate-ping"/>
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500"/>
-        </span>
-        <h2 className="text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>Agents operating now</h2>
-      </div>
-
-      {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton-shimmer h-44 rounded-xl"/>)}
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {agents.map(agent => (
-            <div key={agent.id} className="surface-card relative flex flex-col rounded-xl p-4 overflow-hidden">
-              {/* Subtle status trail — a thin animated line along the top while
-                  the agent is actively working, not a decorative gradient. */}
-              {agent.status === "working" && (
-                <span className="absolute inset-x-0 top-0 h-[2px] overflow-hidden">
-                  <span className="absolute inset-y-0 w-1/3 bg-violet-500/70 animate-[agentTrail_2.2s_linear_infinite]"/>
-                </span>
-              )}
-
-              <div className="mb-2.5 flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "var(--surface-hover)" }}>
-                  <agent.icon size={13} style={{ color: "var(--text-secondary)" }}/>
-                </span>
-                <span className="agent-badge" data-status={agent.status}>
-                  <span className="agent-dot" data-status={agent.status}/>
-                  {STATUS_LABEL[agent.status]}
-                </span>
-              </div>
-
-              <p className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name}</p>
-              <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-                {agent.scope === "workspace" ? "Workspace-wide" : "Assigned to you"} · {agent.watching}
-              </p>
-
-              <div className="mt-2.5 flex-1 space-y-1.5">
-                <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Found</p>
-                <p className="text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>{agent.found}</p>
-
-                <p className="pt-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Suggested next action</p>
-                <p className="text-[12px] leading-snug" style={{ color: agent.suggestedAction ? "var(--text-secondary)" : "var(--text-faint)" }}>
-                  {agent.suggestedAction ?? "No action needed right now"}
-                </p>
-              </div>
-
-              <p className="mt-2 text-[10px]" style={{ color: "var(--text-faint)" }}>{agent.lastAction}</p>
-
-              <div className="mt-2 flex items-center justify-between border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
-                <span className="flex items-center gap-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
-                  <GitBranch size={10}/>
-                  {agent.evidenceCount > 0 ? `${agent.evidenceCount} evidence record${agent.evidenceCount === 1 ? "" : "s"}` : agent.idleEvidenceLabel}
-                </span>
-                <Link to={agent.to} className="inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-                  {CTA_LABEL[agent.status]} <ArrowUpRight size={11}/>
-                </Link>
-              </div>
-            </div>
-          ))}
         </div>
       )}
     </section>

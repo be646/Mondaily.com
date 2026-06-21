@@ -9,14 +9,14 @@ import { Logo } from "../../components/logo";
 const LOG_LINES = [
   { tag: "SYNC",  col: "#6366f1", msg: "workspace graph: 1,842 nodes ready" },
   { tag: "AI",    col: "#6366f1", msg: "enrichment engine: online" },
-  { tag: "CRM",   col: "#6366f1", msg: "pipeline: 24 active deals loaded" },
+  { tag: "GRAPH", col: "#6366f1", msg: "opportunity flow: 24 active deals loaded" },
   { tag: "FIN",   col: "#6366f1", msg: "finance: £214k in receivables synced" },
   { tag: "AUTO",  col: "#6366f1", msg: "3 automation flows running" },
   { tag: "ALERT", col: "#6366f1", msg: "2 deals require attention today" },
   { tag: "AI",    col: "#6366f1", msg: "relationship scores recalculated" },
   { tag: "SYNC",  col: "#6366f1", msg: "email graph: 12 new signals indexed" },
   { tag: "FIN",   col: "#6366f1", msg: "invoice INV-0041 marked paid" },
-  { tag: "CRM",   col: "#6366f1", msg: "Acme Corp: ARR enriched → £420k" },
+  { tag: "GRAPH", col: "#6366f1", msg: "Acme Corp: ARR enriched → £420k" },
 ];
 
 const STATS = [

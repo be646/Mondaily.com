@@ -6,6 +6,7 @@ import { apiClient, getAuthHeaders } from "../../lib/api-client";
 import { TaskReviewTab } from "./task-review-tab";
 import { friendlyAskError } from "../ai/ask-shared";
 import { useAskContextStore } from "../../lib/ask-context-store";
+import { AIAgentOwnerChip } from "../ai/ai-intelligence";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -389,6 +390,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     {aiSummary ? "Refresh" : "Summarize"}
                   </button>
                 </div>
+                <div className="mt-1.5"><AIAgentOwnerChip objectType="task"/></div>
                 {aiSummary && (
                   <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{aiSummary}</p>
                 )}

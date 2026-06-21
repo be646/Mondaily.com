@@ -19,8 +19,8 @@ interface Action {
 const ACTIONS: Action[] = [
   { label: "New Task",    description: "Create a task without leaving this page", icon: CheckSquare, type: "create_task",    shortcut: "T", color: "text-emerald-400", iconBg: "bg-emerald-500/10" },
   { label: "New Note",    description: "Add a note instantly",                    icon: FileText,    type: "create_note",    shortcut: "N", color: "text-amber-400",   iconBg: "bg-amber-500/10"   },
-  { label: "New Contact", description: "Add a person to your CRM",                icon: Users,       type: "create_contact", shortcut: "C", color: "text-blue-400",    iconBg: "bg-blue-500/10"    },
-  { label: "New Company", description: "Add a company to your CRM",               icon: Building2,   type: "create_company",                color: "text-violet-400",  iconBg: "bg-violet-500/10"  },
+  { label: "New Contact", description: "Add a person to the workspace graph",      icon: Users,       type: "create_contact", shortcut: "C", color: "text-blue-400",    iconBg: "bg-blue-500/10"    },
+  { label: "New Company", description: "Add a company to the workspace graph",    icon: Building2,   type: "create_company",                color: "text-violet-400",  iconBg: "bg-violet-500/10"  },
   { label: "New Deal",    description: "Create a new deal",                        icon: TrendingUp,  type: "create_deal",    shortcut: "D", color: "text-rose-400",    iconBg: "bg-rose-500/10"    },
 ];
 

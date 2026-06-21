@@ -10,25 +10,24 @@ import {
  * Agent Constellation — the one honest model of "every agent concept that
  * exists in this codebase", shared by the compact sidebar trigger and the
  * larger Home panel. A node's state is never upgraded for visual effect:
- * `active` only appears when useAgentData() is computing it from real
- * data; `available`/`module_disabled`/`coming_online` make it explicit
- * when something is a scaffold, gated, or not yet reachable at all.
+ * `active` only appears when the backend registry (GET /api/v1/agents)
+ * is computing it from real data; `monitoring`/`disabled`/`not_configured`
+ * make it explicit when something is wired-but-quiet, gated, or a pure
+ * code scaffold with no live job at all.
  */
 
 const STATE_RING: Record<ConstellationState, string> = {
   active: "border-violet-500",
   monitoring: "border-cyan-500",
-  available: "border-zinc-400/50",
-  module_disabled: "border-dashed border-zinc-300/40",
-  coming_online: "border-dashed border-zinc-300/40",
+  disabled: "border-dashed border-zinc-300/40",
+  not_configured: "border-dashed border-zinc-300/40",
 };
 
 const STATE_DOT: Record<ConstellationState, string> = {
   active: "bg-violet-500",
   monitoring: "bg-cyan-500",
-  available: "bg-zinc-400",
-  module_disabled: "bg-zinc-300",
-  coming_online: "bg-zinc-300",
+  disabled: "bg-zinc-300",
+  not_configured: "bg-zinc-400",
 };
 
 function NodeDetail({ agent }: { agent: ConstellationAgent }) {
@@ -46,18 +45,21 @@ function NodeDetail({ agent }: { agent: ConstellationAgent }) {
         </div>
         {agent.to && (
           <Link to={agent.to} className="inline-flex items-center gap-0.5 text-[11px] font-medium shrink-0" style={{ color: "var(--accent)" }}>
-            {agent.state === "module_disabled" ? "Enable module" : "Inspect"} <ArrowUpRight size={11}/>
+            {agent.state === "disabled" ? "Enable module" : "Inspect"} <ArrowUpRight size={11}/>
           </Link>
         )}
       </div>
       {agent.note && (
         <p className="mt-2 text-[11.5px] leading-snug" style={{ color: "var(--text-secondary)" }}>{agent.note}</p>
       )}
-      {agent.backedBy && agent.backedBy.length > 0 && (
-        <p className="mt-1.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
-          Backed by: {agent.backedBy.join(", ")}
-        </p>
+      {agent.suggestedAction && (
+        <p className="mt-1.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>→ {agent.suggestedAction}</p>
       )}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
+        {agent.backedBy && agent.backedBy.length > 0 && <span>Backed by: {agent.backedBy.join(", ")}</span>}
+        {agent.lastRunAt && <span>Last run: {new Date(agent.lastRunAt).toLocaleString()}</span>}
+        {agent.evidenceCount > 0 && <span>{agent.evidenceCount} evidence record{agent.evidenceCount === 1 ? "" : "s"}</span>}
+      </div>
     </div>
   );
 }

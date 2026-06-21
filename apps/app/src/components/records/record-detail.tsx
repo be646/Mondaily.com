@@ -18,6 +18,7 @@ import { StagePill, DEFAULT_STAGE_OPTIONS, DEFAULT_STATUS_OPTIONS } from "./reco
 import { ActivityTimeline } from "./activity-timeline";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { useAskContextStore } from "../../lib/ask-context-store";
+import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList } from "../ai/ai-intelligence";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -1812,6 +1813,20 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {(record as unknown as Record<string,unknown>).lead_score != null && (
               <LeadScoreBadge score={(record as unknown as Record<string,unknown>).lead_score as number} size="md"/>
             )}
+
+            {/* AI Intelligence layer — real fields written by relationship-health.ts
+                and the enrichment job, with honest empty states when they
+                haven't run for this record yet. */}
+            <div className="space-y-2">
+              <AIAgentOwnerChip objectType={record.object_type}/>
+              <AIInsightBadge summary={record.ai_summary}/>
+              <AIHealthScore
+                score={(record as unknown as Record<string, unknown>).relationship_health as number | undefined ?? null}
+                label="Relationship health"
+                updatedAt={(record as unknown as Record<string, unknown>).health_updated_at as string | undefined}
+              />
+              <AISignalList signals={(record as unknown as Record<string, unknown>).health_signals as Record<string, number> | undefined}/>
+            </div>
 
             {/* Action row: Email + Add to list */}
             <div className="grid grid-cols-2 gap-2">

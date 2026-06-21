@@ -19,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata = {
   title: "Mondaily — One workspace. Every signal. Always thinking.",
-  description: "Autonomous AI workspace platform — CRM enrichment, deal pipeline, sequences, automations, and finance. All connected, always running.",
+  description: "Autonomous AI workspace and asset-graph platform — graph enrichment, opportunity flow, sequences, automations, and finance. All connected, always running.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

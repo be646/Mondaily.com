@@ -260,7 +260,7 @@ const TERM_STREAMS: { cmd: string; out: string }[][] = [
   [
     { cmd: "$ finance.invoice --create",          out: "  → INV-0031 created · sent to client@co.io" },
     { cmd: "$ finance.approve INV-0031",          out: "  → Status: pending_review → verified" },
-    { cmd: "$ automation.run --trigger deal_won", out: "  → Slack sent · Sequence enrolled · CRM updated" },
+    { cmd: "$ automation.run --trigger deal_won", out: "  → Slack sent · Sequence enrolled · Record updated" },
     { cmd: "$ finance.report --period Q2",        out: "  → Billed £84K · Collected £71K · 3 overdue" },
   ],
 ];
@@ -497,7 +497,7 @@ function buildWorkflowSteps(scenario: typeof RECORD_SCENARIOS[number]) {
     `ARR ${f[2]!.val} · ${f[3]!.val} · ${f[4]!.val} · Tech: ${f[5]!.val.split(" · ")[0]}`,
     `Score ${f[7]!.val.split(" ")[0]}/100 · High intent · stage: Discovery → Proposal · owner: you`,
     "Step 1 sent · 4-step cadence · open tracked",
-    "Slack notified · CRM updated · owner pinged",
+    "Slack notified · Record updated · owner pinged",
     `${scenario.quoteId} created · ${scenario.quoteAmount} · sent to ${scenario.contact.email} · pending review`,
   ];
   return STEP_TEMPLATE.map((s, i) => ({ ...s, detail: details[i]! }));
@@ -1078,7 +1078,7 @@ function AutomationFlow() {
               />
               <Connector active={shownCount >= 5} short />
               <FlowNode
-                node={{ id: "nurture-auto", type: "action", tag: "Automations", label: "Tag as low-priority", sub: "CRM field updated · owner notified · review in 30d", delay: 2500 }}
+                node={{ id: "nurture-auto", type: "action", tag: "Automations", label: "Tag as low-priority", sub: "Record field updated · owner notified · review in 30d", delay: 2500 }}
                 active={shownCount >= 5}
               />
             </div>

@@ -121,7 +121,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
         <div className="rounded-2xl border border-black/[.07] bg-white p-5">
           <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-zinc-400">What you unlock</p>
           <div className="space-y-2">
-            {["CRM · contacts, companies, deals", "Finance · invoices & expenses", "AI enrichment · auto-updated records", "Automations · no-code workflows"].map((f, i) => (
+            {["Workspace graph · contacts, companies, deals", "Finance · invoices & expenses", "AI enrichment · auto-updated records", "Automations · no-code workflows"].map((f, i) => (
               <FadeIn key={f} show={hasEmail} delay={300 + i * 80}>
                 <div className="flex items-center gap-2">
                   <Check size={10} className="shrink-0 text-indigo-500" />
@@ -238,7 +238,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
 
   const NAV_ITEMS = [
     { icon: LayoutDashboard, label: "Home" },
-    { icon: Users, label: "CRM" },
+    { icon: Users, label: "Records" },
     { icon: TrendingUp, label: "Pipeline" },
     { icon: Building2, label: "Finance" },
   ];
@@ -317,7 +317,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             { label: `Workspace name${hasName ? ` "${name}"` : ""}`, done: hasName },
             { label: size ? `Team: ${size} people` : "Team size", done: !!size },
             { label: industry || "Industry", done: !!industry },
-            { label: "CRM & Pipeline activated", done: hasName },
+            { label: "Workspace graph activated", done: hasName },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>

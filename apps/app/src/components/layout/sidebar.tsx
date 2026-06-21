@@ -2,9 +2,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart2, Bell, CheckSquare, FileText, Home, Mail, Phone,
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
-  ChevronsUpDown, Plus, X, Search, Receipt, TrendingUp,
+  ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet,
+  FileSignature, Wallet, MessageCircle, MoreHorizontal,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,29 +16,39 @@ import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
 import { AgentPulse } from "../ai/agent-constellation";
 
-// ─── Nav structure — 4 clean groups ──────────────────────────────────────────
-const NAV: { label: string; items: { to: string; label: string; icon: React.ElementType }[] }[] = [
-  {
-    label: "",
-    items: [
-      { to: "/home",          label: "Home",          icon: Home },
-      { to: "/notifications", label: "Notifications", icon: Bell },
-      { to: "/search",        label: "Search",        icon: Search },
-    ],
-  },
+// ─── Primary nav — calm by design: 6 items max, always visible. Everything
+// else lives in the collapsible "More" group below or behind command/search.
+// "Finance" only appears here when the module is enabled — otherwise its
+// slot is "Reports" so the main nav never shows a field-specific label for
+// a module that isn't on. ──────────────────────────────────────────────────
+function primaryNav(hasFinance: boolean): { to: string; label: string; icon: React.ElementType }[] {
+  return [
+    { to: "/home", label: "Home", icon: Home },
+    { to: "/ask/new", label: "Ask", icon: MessageCircle },
+    { to: "/search", label: "Graph", icon: GitBranch },
+    { to: "/tasks", label: "Tasks", icon: CheckSquare },
+    { to: "/automations", label: "Automations", icon: Activity },
+    hasFinance
+      ? { to: "/finance/invoices", label: "Finance", icon: Receipt }
+      : { to: "/reports", label: "Reports", icon: BarChart2 },
+  ];
+}
+
+// ─── Everything else — collapsed by default, reached via the "More" toggle
+// or command/search (⌘K) instead of permanently occupying sidebar space.
+const MORE_NAV: { label: string; items: { to: string; label: string; icon: React.ElementType }[] }[] = [
   {
     label: "Work",
     items: [
-      { to: "/tasks",  label: "Tasks",  icon: CheckSquare },
+      { to: "/notifications", label: "Notifications", icon: Bell },
       { to: "/notes",  label: "Notes",  icon: FileText },
       { to: "/emails", label: "Emails", icon: Mail },
       { to: "/calls",  label: "Calls",  icon: Phone },
     ],
   },
   {
-    label: "Revenue",
+    label: "Finance & Reports",
     items: [
-      { to: "/pipeline",        label: "Pipeline", icon: TrendingUp },
       { to: "/reports",         label: "Reports",  icon: BarChart2 },
       { to: "/finance/invoices",       label: "Invoices",         icon: Receipt        },
       { to: "/finance/credit-notes",   label: "Credit Notes",     icon: ReceiptText    },
@@ -134,7 +144,9 @@ const CHECKLIST = [
   },
 ];
 
-function GettingStarted() {
+// Exported so Home can render it (per design: Getting Started shouldn't
+// permanently occupy sidebar space — it belongs near the work itself).
+export function GettingStarted() {
   const [open, setOpen] = useState(false);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("gs_dismissed"));
@@ -317,6 +329,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const { user } = useUser();
   const { hasFinance } = useModules();
   const [collapsed, setCollapsed] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
@@ -434,27 +447,41 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
           {(() => {
-            const FINANCE_ONLY = ["/finance/invoices", "/finance/credit-notes", "/finance/quotes", "/finance/expenses", "/finance/reports", "/approvals"];
-            const filteredNAV = NAV.map(group => {
-              if (group.label === "Revenue") {
-                return { ...group, items: group.items.filter(item => hasFinance || !FINANCE_ONLY.includes(item.to)) };
-              }
-              return group;
-            }).filter(group => group.items.length > 0);
+            const primary = primaryNav(hasFinance);
             return collapsed
-              ? filteredNAV.flatMap(g => g.items).map(item => (
-                  <NavItem key={item.to} {...item} collapsed={true}
-                    badge={item.to === "/notifications" ? unreadCount : undefined}/>
-                ))
-              : filteredNAV.map(group => (
-                  <div key={group.label || "__top"}>
+              ? primary.map(item => <NavItem key={item.to} {...item} collapsed={true}/>)
+              : primary.map(item => <NavItem key={item.to} {...item} collapsed={false}/>);
+          })()}
+
+          {!collapsed && (() => {
+            const FINANCE_ONLY = ["/finance/invoices", "/finance/credit-notes", "/finance/quotes", "/finance/expenses", "/finance/reports", "/approvals"];
+            // Don't repeat whichever of Reports/Finance is already shown in
+            // the primary nav above.
+            const primaryTo = hasFinance ? "/finance/invoices" : "/reports";
+            const filteredMore = MORE_NAV.map(group => ({
+              ...group,
+              items: group.items.filter(item => item.to !== primaryTo && (hasFinance || !FINANCE_ONLY.includes(item.to))),
+            })).filter(group => group.items.length > 0);
+
+            return (
+              <div className="mt-1">
+                <button onClick={() => setMoreOpen(o => !o)} className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors surface-hover" style={{ color: "var(--text-faint)" }}>
+                  <MoreHorizontal size={12}/>
+                  <span className="flex-1 text-left">More</span>
+                  {unreadCount > 0 && <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"/>}
+                  <ChevronDown size={10} className={`transition-transform ${moreOpen ? "rotate-180" : ""}`}/>
+                </button>
+                {moreOpen && filteredMore.map(group => (
+                  <div key={group.label}>
                     <SectionLabel label={group.label}/>
                     {group.items.map(item => (
                       <NavItem key={item.to} {...item} collapsed={false}
                         badge={item.to === "/notifications" ? unreadCount : undefined}/>
                     ))}
                   </div>
-                ));
+                ))}
+              </div>
+            );
           })()}
 
           {!collapsed && (
@@ -465,9 +492,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </>
           )}
         </nav>
-
-        {/* Getting started card — sits above bottom bar, expands inside itself */}
-        {!collapsed && <GettingStarted />}
 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-[#eef2f7] dark:border-white/[.07] p-2.5">

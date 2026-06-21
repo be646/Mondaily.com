@@ -15,6 +15,7 @@ import { apiClient } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
+import { GettingStarted } from "../../components/layout/sidebar";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -418,6 +419,13 @@ export function HomePage() {
             </Link>
           )}
         </div>
+      </div>
+
+      {/* ── Getting started — moved here from the sidebar so it never
+          competes with primary navigation; still a single quiet line
+          unless the user opens it. ── */}
+      <div className="mb-4 -mt-2">
+        <GettingStarted />
       </div>
 
       {/* ── Ask Mondaily — the hero surface. This is the command console,

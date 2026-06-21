@@ -2,7 +2,7 @@ const features = [
   "AI fills fields on record creation",
   "AI drafts follow-ups for approval",
   "AI flags at-risk deals proactively",
-  "AI connects sales, HR, finance, real estate, and investments",
+  "AI connects every workspace module — finance, relationships, people, assets, and investments — through one graph",
   "pgvector memory stays co-located with source records",
   "Humans review, approve, and guide exceptions"
 ];
