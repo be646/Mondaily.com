@@ -17,6 +17,7 @@ import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { AIHealthScoreCompact } from "../ai/ai-intelligence";
+import { ProspectingModal } from "../ai/prospecting-modal";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
@@ -1696,6 +1697,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const [cellTip, setCellTip] = useState<{ text: string; x: number; y: number } | null>(null);
   const allSelected = sorted.length > 0 && sorted.every(r => selected.has(r.id));
   const someSelected = selected.size > 0;
+  const [prospectOpen, setProspectOpen] = useState(false);
+  const prospectSeedQuery = useMemo(() => {
+    const names = records
+      .filter(r => selected.has(r.id))
+      .map(r => String(r.data.name ?? r.data.company ?? r.data.full_name ?? r.data.title ?? "").trim())
+      .filter(Boolean)
+      .slice(0, 5);
+    return names.length ? `Find ${objectType}s similar to: ${names.join(", ")}` : "";
+  }, [records, selected, objectType]);
 
   function toggleSelectAll() {
     if (allSelected) setSelected(new Set());
@@ -2372,6 +2382,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             )}
           </div>
 
+          {/* Find similar from web */}
+          <div className="h-3 w-px bg-white/[.08]" />
+          <button
+            onClick={() => setProspectOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+          >
+            <Globe size={12} /> Find similar from web
+          </button>
+
           {/* Assign to */}
           <div className="h-3 w-px bg-white/[.08]" />
           <div ref={assignPickerRef} className="relative">
@@ -2561,6 +2580,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <X size={13} />
           </button>
         </div>
+      )}
+
+      {prospectOpen && (
+        <ProspectingModal
+          onClose={() => setProspectOpen(false)}
+          defaultObjectType={objectType}
+          seedQuery={prospectSeedQuery}
+          onCreated={() => qc.invalidateQueries({ queryKey: ["records", objectType] })}
+        />
       )}
 
       <div className="record-scroll flex-1 min-h-0 overflow-x-auto overflow-y-auto">

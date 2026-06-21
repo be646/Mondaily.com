@@ -3,6 +3,9 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import * as ubc from "@mondaily/db/ubc";
+import { inngest } from "../lib/inngest";
+import { objectTypeToVertical, type ProspectCandidate } from "./prospecting";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -122,6 +125,42 @@ async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "co
  * records the human decision, since there's nothing to execute.
  */
 async function executeApprovedAction(workspaceId: string, decision: any): Promise<void> {
+  if (decision.agent_name === "prospecting" && decision.source_type === "prospecting_candidate") {
+    const evidenceItem = (decision.evidence ?? [])[0] as { candidate?: ProspectCandidate; destination_list_id?: string | null } | undefined;
+    const candidate = evidenceItem?.candidate;
+    if (!candidate) return;
+
+    const node = await ubc.createNode({
+      workspace_id: workspaceId,
+      vertical: objectTypeToVertical(candidate.object_type),
+      object_type: candidate.object_type,
+      created_by: "agent:prospecting",
+      data: {
+        name: candidate.name,
+        email: candidate.email ?? undefined,
+        domain: candidate.domain ?? undefined,
+        website: candidate.website ?? undefined,
+        linkedin: candidate.linkedin ?? undefined,
+        description: candidate.description ?? undefined,
+        location: candidate.location ?? undefined,
+        source_url: candidate.source_url,
+        source_title: candidate.source_title,
+        confidence_label: candidate.confidence_label,
+      },
+    });
+    await ubc.logActivity(node.id!, workspaceId, "ai_agent", "prospecting", "created", undefined, `Approved from Decision Queue: ${candidate.reason}`);
+    inngest.send({
+      name: "crm/record.created",
+      data: { workspaceId, nodeId: node.id!, objectType: candidate.object_type, vertical: objectTypeToVertical(candidate.object_type) },
+    }).catch(() => {});
+
+    if (evidenceItem?.destination_list_id) {
+      const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", evidenceItem.destination_list_id);
+      await supabase.from("list_entries").upsert({ list_id: evidenceItem.destination_list_id, node_id: node.id, position: (count ?? 0) + 1 });
+    }
+    return;
+  }
+
   if (decision.agent_name === "invoice_chaser" && decision.source_type === "invoice") {
     const { data: invoice } = await supabase
       .from("nodes")

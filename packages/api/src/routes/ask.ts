@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
+import { runProspecting } from "./prospecting";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -15,6 +16,8 @@ Mondaily has a real workspace graph: every record is a node, and nodes can be co
 You also have real finance and report tools — never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points — always call run_report rather than guessing at numbers from a report's name or type alone.
 
 You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze — use this instead of claiming you did something sensitive yourself), and create_workflow_draft (saves a disabled workflow draft for the user to review in the builder — you can never enable a workflow yourself; always say so explicitly and never imply the workflow is now running).
+
+You also have discover_web_prospects — the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL — never invent a candidate yourself; always call this tool instead.
 
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
@@ -308,6 +311,21 @@ const TOOLS = [
         description: { type: "string", description: "Plain-language description of what it should do — trigger, condition, and action" }
       },
       required: ["name", "description"]
+    }
+  },
+  {
+    name: "discover_web_prospects",
+    description: "Search the live web for new candidate records — people, organizations, investors, partners, suppliers, assets, or any object type the workspace tracks — and add source-backed candidates to the workspace graph. Use for 'find me 25 AI startups in London', 'find investors focused on climate tech', 'find suppliers for X', 'find companies similar to this record', 'find potential partners'. Always queues for approval unless the user explicitly says to add them directly without review.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The natural-language search, e.g. 'AI startups in London' or 'climate tech investors in Europe'" },
+        object_type: { type: "string", description: "The object type to create, e.g. 'company', 'person', 'investor', 'supplier', 'asset'. Infer a sensible one from the request." },
+        count: { type: "number", description: "How many candidates to find. Default 10 if not specified." },
+        destination_list_id: { type: "string", description: "If the user named an existing list to add results to, resolve it with list_lists first and pass its id here." },
+        require_approval: { type: "boolean", description: "Default true. Set false only if the user explicitly says to add them directly without review." }
+      },
+      required: ["query", "object_type"]
     }
   }
 ];
@@ -911,6 +929,33 @@ async function executeTool(
         if (error) return `Error creating workflow draft: ${error.message}`;
         sources.push({ type: "workflow", title: input.name, node_id: data.id, object_type: "automation" });
         return `Created a draft workflow "${input.name}" (ID: ${data.id}) based on: ${input.description}. It is saved disabled — open the workflow builder to review and enable it. I cannot enable it for you.`;
+      }
+
+      case "discover_web_prospects": {
+        const result = await runProspecting(workspaceId, userId, {
+          query: String(input.query),
+          object_type: String(input.object_type),
+          count: typeof input.count === "number" ? input.count : 10,
+          destination_list_id: input.destination_list_id || undefined,
+          require_approval: input.require_approval !== false,
+        });
+        for (const cand of result.candidates) {
+          sources.push({
+            type: "prospect",
+            title: cand.name,
+            node_id: cand.node_id,
+            object_type: cand.object_type,
+            match_reason: `${cand.status} · ${cand.confidence_label} confidence · ${cand.reason}`,
+          });
+        }
+        const parts = [
+          result.created > 0 ? `${result.created} created` : null,
+          result.queued_for_review > 0 ? `${result.queued_for_review} queued in the Decision Queue for review` : null,
+          result.existing > 0 ? `${result.existing} already existed in the graph (skipped as duplicates)` : null,
+          result.added_to_list > 0 ? `${result.added_to_list} added to the destination list` : null,
+        ].filter(Boolean).join(", ");
+        if (!result.candidates.length) return `No real candidates found for "${input.query}" — the web search returned nothing usable. Try a more specific query.`;
+        return `Searched the web for "${input.query}" (${input.object_type}): ${parts || "no new candidates"}. Every candidate is source-backed — see the source cards for the page each one came from.`;
       }
 
       default:

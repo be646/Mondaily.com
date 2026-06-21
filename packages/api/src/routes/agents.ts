@@ -189,6 +189,40 @@ router.get("/", async (c) => {
     });
   }
 
+  // Prospecting Agent — searches the web (Tavily) for candidate records of
+  // any object type, real run history in agent_jobs (agent_name
+  // "prospecting"). Conceptually it moves through idle → searching →
+  // review_needed → completed/failed; mapped onto the shared AgentState
+  // enum (already used by every other agent) so every surface — landing,
+  // Home, sidebar, Ask — reads one consistent state vocabulary:
+  //   idle          → "monitoring"      (no search running, nothing pending)
+  //   searching      → "active"          (a run is in progress right now)
+  //   review_needed  → "needs_approval"  (candidates queued in the Decision Queue)
+  //   completed      → "monitoring"      (last run finished, nothing pending)
+  //   failed         → "issue"           (last run failed)
+  {
+    const prospectingJob = latestJob(jobs, "prospecting");
+    const prospectingSummary = jobSummary(prospectingJob, "No search run yet");
+    const pendingProspecting = pendingFor("prospecting");
+    let state: AgentState = "monitoring";
+    if (prospectingJob?.status === "running") state = "active";
+    else if (pendingProspecting.length > 0) state = "needs_approval";
+    else if (prospectingJob?.status === "failed") state = "issue";
+    agents.push({
+      id: "prospecting", name: "Prospecting Agent", category: "graph",
+      status: pendingProspecting.length > 0
+        ? `${pendingProspecting.length} candidate(s) awaiting approval`
+        : prospectingSummary.lastAction,
+      state,
+      backed_by: ["prospecting"],
+      last_run_at: prospectingSummary.lastRunAt,
+      last_action: prospectingSummary.lastAction,
+      evidence_count: pendingProspecting.length,
+      suggested_action: pendingProspecting.length > 0 ? "Review prospecting candidates" : null,
+      destination: pendingProspecting.length > 0 ? "/decisions" : "/ask/new",
+    });
+  }
+
   agents.push({
     id: "signal", name: "Signal Agent", category: "signal",
     status: unreadRisk.length > 0 ? `${unreadRisk.length} new risk signal(s)` : "No findings",

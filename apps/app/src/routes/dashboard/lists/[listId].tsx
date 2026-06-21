@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/react";
 import {
-  Download, Grid2X2, ListPlus, Loader2,
+  Download, Globe, Grid2X2, ListPlus, Loader2,
   MoreHorizontal, Plus, Search, Sparkles, Table2, Trash2, UserCheck, Users, X, Mail, Wand2,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
+import { ProspectingModal } from "../../../components/ai/prospecting-modal";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
 interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
@@ -50,6 +51,7 @@ export function ListPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const [prospectOpen, setProspectOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -400,6 +402,12 @@ export function ListPage() {
         >
           <Sparkles size={13}/> Add with AI
         </button>
+        <button
+          onClick={() => setProspectOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-indigo-400/30 bg-indigo-500/15 px-3 py-1.5 text-xs font-medium text-indigo-300 hover:bg-indigo-500/25 transition-colors"
+        >
+          <Globe size={13}/> Find from web
+        </button>
         {/* Menu */}
         <div className="relative">
           <button
@@ -681,6 +689,15 @@ export function ListPage() {
             </>
           )}
         </ModalShell>
+      )}
+
+      {prospectOpen && (
+        <ProspectingModal
+          onClose={() => setProspectOpen(false)}
+          defaultObjectType={list.data?.object_type ?? "company"}
+          destinationListId={listId}
+          onCreated={() => qc.invalidateQueries({ queryKey: ["list-entries", listId] })}
+        />
       )}
 
       {/* ── Delete confirm ── */}

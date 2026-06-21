@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Workflow, Users, Receipt, ShieldAlert, MessageCircle, TrendingUp, Briefcase, Building2, GitBranch } from "lucide-react";
+import { Workflow, Users, Receipt, ShieldAlert, MessageCircle, TrendingUp, Briefcase, Building2, GitBranch, Search } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 
@@ -46,6 +46,7 @@ const AGENT_ICON: Record<string, React.ElementType> = {
   finance: Receipt,
   signal: ShieldAlert,
   "graph-enrichment": GitBranch,
+  prospecting: Search,
   workflow: Workflow,
   opportunity: TrendingUp,
   people: Briefcase,
