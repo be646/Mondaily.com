@@ -7,14 +7,14 @@ const API_URL = "/api/ask";
 const FEATURE_LINES = [
   { icon: "◆", text: "Enrich any company — ARR, headcount & signals in seconds" },
   { icon: "▣", text: "Ask in plain English — get answers from your live data" },
-  { icon: "▶", text: "Trigger sequences, move deals, run workflows via AI" },
-  { icon: "◈", text: "Connected to your CRM, pipeline, and finance module" },
+  { icon: "▶", text: "Trigger sequences, move opportunities, run workflows via AI" },
+  { icon: "◈", text: "Connected to your workspace graph — records, opportunity flow, and finance" },
 ];
 
 // Shown as fake user message bubbles — click to fire
 const SUGGESTIONS: { text: string; icon: string }[] = [
   { icon: "◈", text: "How does AI enrichment work?" },
-  { icon: "◈", text: "Walk me through the pipeline" },
+  { icon: "◈", text: "Walk me through the opportunity flow" },
   { icon: "◈", text: "What can Ask AI do?" },
   { icon: "◈", text: "How do automations work?" },
 ];

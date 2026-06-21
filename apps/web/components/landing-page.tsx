@@ -1103,10 +1103,10 @@ function AutomationFlow() {
         <div className="flex flex-col gap-4 font-mono">
           <div className="text-[14px] text-zinc-500 uppercase tracking-widest mb-2">// what this replaces</div>
           {[
-            { before: "Manual scoring in a spreadsheet", after: "AI scores every deal in real-time", icon: "◈" },
-            { before: "Forgetting to follow up",         after: "Sequences enroll automatically",   icon: "◈" },
-            { before: "Chasing your team on Slack",      after: "Slack notified the moment it fires",icon: "◈" },
-            { before: "Finance chasing the deal owner",  after: "Quote created and sent instantly",  icon: "◈" },
+            { before: "Manual scoring in a spreadsheet", after: "AI scores relationships automatically, daily", icon: "◈" },
+            { before: "Forgetting to follow up",         after: "Sequences enroll without manual setup",   icon: "◈" },
+            { before: "Chasing your team for updates",   after: "Notified the moment a signal fires",icon: "◈" },
+            { before: "Finance chasing the deal owner",  after: "Quote drafted and ready to send",  icon: "◈" },
           ].map((row, i) => (
             <motion.div
               key={i}
@@ -1475,7 +1475,7 @@ type SheetView = {
 
 const SHEET_VIEWS: SheetView[] = [
   {
-    name: "Sales pipeline", accent: "#4f46e5",
+    name: "Opportunity flow", accent: "#4f46e5",
     columns: [
       { key: "company", label: "Company", type: "text" },
       { key: "stage",   label: "Stage",    type: "badge" },
@@ -1742,10 +1742,10 @@ function FinanceBoardSection() {
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// live.finance</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-emerald-500">{">"}</span> Quotes to cash, on autopilot
+        <span className="text-emerald-500">{">"}</span> Invoices tracked to payment, automatically
       </h2>
       <p className="mb-10 font-mono text-[13px] text-zinc-500">
-        When a deal closes, Mondaily raises the quote and tracks it through to payment — no spreadsheet required.
+        Draft a quote, raise the invoice, and Mondaily tracks it through to payment — chasing overdue invoices and handling recurring billing without a spreadsheet.
       </p>
       <InvoiceBoardPreview />
     </section>
@@ -1805,12 +1805,12 @@ const AGENTS = [
   },
   {
     icon: "⚙", name: "Workflow Agent", accent: "#0891b2",
-    desc: "Executes trigger → condition → action automations across the graph, no code required, with every step logged back to the source object.",
+    desc: "Designs trigger → condition → action automations across the graph, no code required. Autonomous execution is coming online — today, a human reviews and runs each workflow.",
     trace: [
-      "[TRIGGER]  deal stage changed → Won",
-      "[CHECK]    condition: value > £5,000 — true",
-      "[ACTION]   Slack notified · quote drafted · graph node updated",
-      "[DONE]     automation completed in 380ms",
+      "[DESIGN]   trigger: stage changed → Won",
+      "[CHECK]    condition: value > £5,000",
+      "[DRAFT]    action plan: quote drafted · graph node updated",
+      "[QUEUED]   ready for review — autonomous run coming online",
     ],
   },
 ];
@@ -1925,22 +1925,25 @@ function AgentsSection() {
   );
 }
 
-// ── Live signal cards — concrete examples of what the AI actually surfaces ──
+// ── Live signal cards — concrete examples of what the AI actually surfaces.
+// Labeled "Source-backed" rather than a fabricated confidence percentage —
+// the app itself never shows a numeric confidence score it can't back, so
+// the landing page doesn't either. ──────────────────────────────────────
 const LIVE_SIGNALS = [
   {
-    text: "2 deals at risk", source: "Pipeline", confidence: 94, accent: "#dc2626",
-    action: "Review deals →",
+    text: "2 opportunities at risk", source: "Opportunity flow", accent: "#dc2626",
+    action: "Review →",
   },
   {
-    text: "Follow-up drafted", source: "Emails", confidence: 88, accent: "#4f46e5",
+    text: "Follow-up drafted", source: "Emails", accent: "#4f46e5",
     action: "Review draft →",
   },
   {
-    text: "Invoice likely overdue", source: "Finance", confidence: 91, accent: "#d97706",
+    text: "Invoice likely overdue", source: "Finance", accent: "#d97706",
     action: "Send reminder →",
   },
   {
-    text: "New contact enriched", source: "Contacts", confidence: 97, accent: "#059669",
+    text: "New record enriched", source: "Records", accent: "#059669",
     action: "View record →",
   },
 ];
@@ -1973,7 +1976,7 @@ function LiveSignalsSection() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: s.accent }}/>
               </span>
               <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: `${s.accent}12`, color: s.accent }}>
-                AI {s.confidence}%
+                Source-backed
               </span>
             </div>
             <p className="mb-2.5 text-[15px] font-medium text-zinc-800">{s.text}</p>
@@ -2184,30 +2187,257 @@ function EmailSignup() {
 // ── Pricing ───────────────────────────────────────────────────────────────────
 const PLANS = [
   {
-    name: "Starter", price: "$0", period: "forever",
-    desc: "For solo founders exploring the AI workspace.",
+    name: "Starter", bestFor: "Best for solo operators",
+    priceMonthly: 0, priceAnnual: 0, period: "forever",
+    desc: "Workspace graph basics for exploring solo.",
     cta: "Start free — takes 90 seconds", href: "https://app.mondaily.com/sign-up", highlight: false,
-    features: ["1 user","500 contacts","Records & pipeline","Ask Mondaily AI (100/mo)","1 email integration","Community support"],
+    capacityPct: 20,
+    features: ["Workspace graph basics","Limited Ask Mondaily","Basic records","1 integration","Community support"],
+    unlocks: "Unlocks the workspace graph, basic records, and a taste of Ask Mondaily.",
   },
   {
-    name: "Pro", price: "$49", period: "per user / mo",
-    desc: "For growing teams that want AI doing the heavy lifting.",
+    name: "Pro", bestFor: "Best for AI-operated workspaces",
+    priceMonthly: 49, priceAnnual: 39, period: "per user / mo",
+    desc: "For workspaces that want AI doing the heavy lifting.",
     cta: "Start Pro trial", href: "https://app.mondaily.com/sign-up?plan=pro", highlight: true,
-    features: ["Unlimited contacts","Full pipeline + AI scoring","Sequences & automations","Ask Mondaily AI (unlimited)","AI enrichment (5,000/mo)","Priority support"],
+    capacityPct: 75,
+    features: ["Unlimited Ask Mondaily","Agent recommendations","AI enrichment","Automations","Source-backed answers"],
+    unlocks: "Unlocks unlimited Ask Mondaily, agent recommendations, AI enrichment, and automations.",
   },
   {
-    name: "Business", price: "$89", period: "per user / mo",
-    desc: "For teams needing advanced controls and collaboration.",
+    name: "Business", bestFor: "Best for teams with controls",
+    priceMonthly: 89, priceAnnual: 71, period: "per user / mo",
+    desc: "For teams that need roles, approvals, and finance.",
     cta: "Start Business trial", href: "https://app.mondaily.com/sign-up?plan=business", highlight: false,
-    features: ["Everything in Pro","Custom objects & fields","Role-based access","Finance module","Webhook & API","Advanced reporting"],
+    capacityPct: 90,
+    features: ["Roles and permissions","Finance module","Advanced reports","Approval flows","API / webhooks"],
+    unlocks: "Unlocks roles & permissions, the finance module, approval flows, and the API.",
   },
   {
-    name: "Enterprise", price: "Custom", period: "talk to us",
+    name: "Enterprise", bestFor: "Best for secure graph at scale",
+    priceMonthly: null, priceAnnual: null, period: "talk to us",
     desc: "For large organisations needing SSO and compliance.",
     cta: "Contact sales", href: "mailto:sales@mondaily.com", highlight: false,
-    features: ["Everything in Business","SAML SSO & SCIM","Audit log","Data residency","SLA & dedicated CSM","Custom contract"],
+    capacityPct: 100,
+    features: ["SSO / SAML","Audit logs","Data controls","Custom security","SLA"],
+    unlocks: "Unlocks SSO/SAML, audit logs, data residency controls, and a dedicated SLA.",
   },
 ];
+
+// ── Live now / Operating now / Coming online — an honest status board so
+// nothing on this page overpromises. Every item is checked against the
+// real backend before being placed in a tier. ─────────────────────────────
+const STATUS_TIERS = [
+  {
+    label: "Live now", dot: "#10b981", pulse: false,
+    note: "Real, working today",
+    items: [
+      "Ask the workspace graph", "Records & custom objects", "Tasks",
+      "Automations (design + manual run)", "Finance surfaces", "Reports",
+      "Source-backed Ask answers",
+    ],
+  },
+  {
+    label: "Operating now", dot: "#f59e0b", pulse: true,
+    note: "Running in the background on real data",
+    items: [
+      "Record enrichment", "Relationship health scoring", "Invoice chasing",
+      "Risk & notification signals",
+    ],
+  },
+  {
+    label: "Coming online", dot: "#a1a1aa", pulse: false,
+    note: "Designed, not yet autonomous",
+    items: [
+      "Full agent registry", "Universal AI score on every object",
+      "Advanced decision queue", "Autonomous workflow execution",
+      "Graph-wide memory",
+    ],
+  },
+];
+
+function StatusBoardSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// status.board</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{">"}</span> What&apos;s real today, and what&apos;s next
+      </h2>
+      <p className="mb-10 max-w-2xl font-mono text-[13px] text-zinc-500">
+        We&apos;d rather tell you exactly what&apos;s running than let an animation imply more than the product does.
+      </p>
+      <div className="grid gap-4 md:grid-cols-3">
+        {STATUS_TIERS.map((tier, ti) => (
+          <motion.div
+            key={tier.label}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.4, delay: ti * 0.08 }}
+            className="rounded-2xl border border-black/[.05] bg-white p-5"
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                {tier.pulse && <span className="absolute inline-flex h-full w-full rounded-full opacity-50 animate-ping" style={{ background: tier.dot }}/>}
+                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: tier.dot }}/>
+              </span>
+              <span className="font-mono text-[14px] font-semibold text-zinc-800">{tier.label}</span>
+            </div>
+            <p className="mb-3 font-mono text-[11px] text-zinc-400">{tier.note}</p>
+            <ul className="space-y-1.5">
+              {tier.items.map(item => (
+                <li key={item} className="flex items-start gap-2 font-mono text-[12.5px] text-zinc-600">
+                  <span className="mt-0.5" style={{ color: tier.dot }}>›</span>{item}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Exported so the standalone /pricing page renders the exact same plans —
+// previously it had its own stub with different plan names and prices,
+// which contradicted the landing page.
+export function PricingSection() {
+  const [annual, setAnnual] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
+  return (
+    <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// pricing.config</div>
+      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+        <span className="text-indigo-500">{'>'}</span> Simple, transparent pricing
+      </h2>
+      <p className="mb-6 font-mono text-[14px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
+
+      {/* Monthly / Annual toggle */}
+      <div className="mb-10 flex items-center gap-3 font-mono text-[13px]">
+        <span className={annual ? "text-zinc-400" : "text-zinc-800 font-medium"}>Monthly</span>
+        <button
+          onClick={() => setAnnual(a => !a)}
+          className="relative h-6 w-11 rounded-full transition-colors"
+          style={{ background: annual ? "#4f46e5" : "rgba(0,0,0,.12)" }}
+          aria-label="Toggle annual billing"
+        >
+          <motion.span
+            className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow"
+            animate={{ x: annual ? 20 : 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 28 }}
+          />
+        </button>
+        <span className={annual ? "text-zinc-800 font-medium" : "text-zinc-400"}>Annual</span>
+        <AnimatePresence>
+          {annual && (
+            <motion.span
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600"
+            >
+              Save ~20%
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {PLANS.map((plan, i) => {
+          const price = annual ? plan.priceAnnual : plan.priceMonthly;
+          const hovered = hoverIdx === i;
+          return (
+            <motion.div
+              key={plan.name}
+              onMouseEnter={() => setHoverIdx(i)}
+              onMouseLeave={() => setHoverIdx(null)}
+              className="relative flex flex-col overflow-hidden rounded-2xl border p-5"
+              style={{
+                borderColor: plan.highlight ? "rgba(79,70,229,0.25)" : "rgba(0,0,0,.05)",
+                background: plan.highlight ? "rgba(99,102,241,0.025)" : "rgba(0,0,0,.01)",
+              }}
+            >
+              {/* Pro card — subtle moving AI glow, not a static shadow */}
+              {plan.highlight && (
+                <motion.div
+                  className="pointer-events-none absolute -inset-px rounded-2xl opacity-40"
+                  style={{ background: "conic-gradient(from 0deg, transparent, rgba(99,102,241,0.25), transparent 40%)" }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                />
+              )}
+              <div className="relative">
+                {plan.highlight && (
+                  <div className="mb-3 self-start rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2.5 py-0.5 font-mono text-[11px] text-indigo-600 uppercase tracking-wider inline-block">Most popular</div>
+                )}
+                <div className="mb-0.5 font-mono text-[13px] font-semibold text-zinc-700">{plan.name}</div>
+                <div className="mb-1 font-mono text-[10.5px] text-indigo-500">{plan.bestFor}</div>
+                <div className="mb-1 flex items-end gap-1">
+                  {price === null ? (
+                    <span className="font-mono text-2xl font-light text-zinc-900">Custom</span>
+                  ) : (
+                    <>
+                      <span className="font-mono text-2xl font-light text-zinc-900">${price}</span>
+                      <span className="mb-1 font-mono text-[13px] text-zinc-500">/{plan.period}</span>
+                    </>
+                  )}
+                </div>
+                {price === null && <div className="mb-1 font-mono text-[13px] text-zinc-500">{plan.period}</div>}
+                <p className="mb-3 mt-1.5 font-mono text-[13px] leading-relaxed text-zinc-500">{plan.desc}</p>
+
+                {/* Animated AI capacity meter — illustrative relative tier
+                    sizing, not a literal usage metric. */}
+                <div className="mb-4">
+                  <div className="mb-1 flex items-center justify-between font-mono text-[10px] text-zinc-400">
+                    <span>AI capacity</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-black/[.04] overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: plan.highlight ? "#4f46e5" : "#a5b4fc" }}
+                      initial={{ width: 0 }}
+                      whileInView={{ width: `${plan.capacityPct}%` }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                  </div>
+                </div>
+
+                <ul className="mb-5 flex-1 space-y-1.5">
+                  {plan.features.map(f => (
+                    <li key={f} className="flex items-start gap-2 font-mono text-[13px] text-zinc-500">
+                      <span className="mt-0.5 text-indigo-700">›</span>{f}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Hover reveal — what this plan unlocks */}
+                <AnimatePresence initial={false}>
+                  {hovered && (
+                    <motion.p
+                      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
+                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden font-mono text-[11.5px] leading-relaxed text-indigo-600"
+                    >
+                      {plan.unlocks}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                <a href={plan.href} className={`mt-auto block rounded-lg py-2.5 text-center font-mono text-[13px] transition-all ${plan.highlight ? "border border-indigo-500/25 bg-indigo-600 text-white hover:bg-indigo-500 active:translate-y-[1px]" : "border border-black/[.05] bg-black/[.02] text-zinc-600 hover:text-zinc-900 hover:bg-black/[.05]"}`}>
+                  {plan.cta}
+                </a>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 // ── Cookie banner ─────────────────────────────────────────────────────────────
 function CookieBanner() {
@@ -2351,9 +2581,8 @@ export function LandingPage() {
 
                 {/* Slogan */}
                 <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
-                  Your business,{" "}
-                  <span className="text-zinc-500">mapped into</span>{" "}
-                  <span className="text-indigo-500">a living AI graph.</span>
+                  Your workspace graph,{" "}
+                  <span className="text-indigo-500">operated by AI.</span>
                 </h1>
 
                 {/* Subheading */}
@@ -2456,40 +2685,12 @@ export function LandingPage() {
           {/* ── Feature map + terminals ── */}
           <FeatureSection />
 
+          {/* ── Live now / Operating now / Coming online — builds trust
+              before asking for money, by being explicit about what's real. ── */}
+          <StatusBoardSection/>
+
           {/* ── Pricing ── */}
-          <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
-            <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// pricing.config</div>
-            <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-              <span className="text-indigo-500">{'>'}</span> Simple, transparent pricing
-            </h2>
-            <p className="mb-10 font-mono text-[14px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {PLANS.map(plan => (
-                <div key={plan.name} className={`flex flex-col rounded-2xl border p-5 ${plan.highlight ? "border-indigo-500/20 bg-indigo-500/[.025] shadow-[0_0_40px_rgba(99,102,241,0.05)]" : "border-black/[.04] bg-black/[.01]"}`}>
-                  {plan.highlight && (
-                    <div className="mb-3 self-start rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2.5 py-0.5 font-mono text-[14px] text-indigo-600 uppercase tracking-wider">Most popular</div>
-                  )}
-                  <div className="mb-1 font-mono text-[13px] text-zinc-600">{plan.name}</div>
-                  <div className="mb-1 flex items-end gap-1">
-                    <span className="font-mono text-2xl font-light text-zinc-900">{plan.price}</span>
-                    {plan.price !== "Custom" && <span className="mb-1 font-mono text-[14px] text-zinc-500">/{plan.period}</span>}
-                  </div>
-                  {plan.price === "Custom" && <div className="mb-1 font-mono text-[14px] text-zinc-500">{plan.period}</div>}
-                  <p className="mb-4 mt-1.5 font-mono text-[14px] leading-relaxed text-zinc-500">{plan.desc}</p>
-                  <ul className="mb-5 flex-1 space-y-1.5">
-                    {plan.features.map(f => (
-                      <li key={f} className="flex items-start gap-2 font-mono text-[14px] text-zinc-500">
-                        <span className="mt-0.5 text-indigo-700">›</span>{f}
-                      </li>
-                    ))}
-                  </ul>
-                  <a href={plan.href} className={`mt-auto rounded-lg py-2.5 text-center font-mono text-[13px] transition-all ${plan.highlight ? "border border-indigo-500/25 bg-indigo-600 text-white hover:bg-indigo-500 active:translate-y-[1px]" : "border border-black/[.05] bg-black/[.02] text-zinc-600 hover:text-zinc-900 hover:bg-black/[.05]"}`}>
-                    {plan.cta}
-                  </a>
-                </div>
-              ))}
-            </div>
-          </section>
+          <PricingSection/>
 
           {/* ── AI with approval — agents act, humans stay in control ── */}
           <ApprovalSection />
