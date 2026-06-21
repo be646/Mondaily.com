@@ -446,7 +446,7 @@ const RECORD_SCENARIOS = [
       { key: "Stage",      val: "Series B · London" },
       { key: "Tech stack", val: "Stripe · AWS · HubSpot" },
       { key: "Signal",     val: "→ Hiring 3 engineers (2d ago)" },
-      { key: "AI Score",   val: "84 / 100  ████████░░" },
+      { key: "Relationship Health", val: "84 / 100  ████████░░" },
     ],
   },
   {
@@ -461,7 +461,7 @@ const RECORD_SCENARIOS = [
       { key: "Stage",      val: "Seed · Berlin" },
       { key: "Tech stack", val: "Notion · GCP · Intercom" },
       { key: "Signal",     val: "→ Raised new round (5d ago)" },
-      { key: "AI Score",   val: "71 / 100  ███████░░░" },
+      { key: "Relationship Health", val: "71 / 100  ███████░░░" },
     ],
   },
   {
@@ -476,7 +476,7 @@ const RECORD_SCENARIOS = [
       { key: "Stage",      val: "Series C · Austin" },
       { key: "Tech stack", val: "Salesforce · AWS · Zendesk" },
       { key: "Signal",     val: "→ Visited pricing page 3x (1d ago)" },
-      { key: "AI Score",   val: "92 / 100  █████████░" },
+      { key: "Relationship Health", val: "92 / 100  █████████░" },
     ],
   },
 ];
@@ -484,7 +484,7 @@ const RECORD_SCENARIOS = [
 const STEP_TEMPLATE = [
   { tag: "[RECORD]",   tagCol: "#3f3f46", delay: 400,  title: "Record added" },
   { tag: "[ENRICH]",   tagCol: "#4f46e5", delay: 1100, title: "AI enrichment fired" },
-  { tag: "[PIPELINE]", tagCol: "#4f46e5", delay: 1800, title: "Deal scored — moved to Proposal" },
+  { tag: "[GRAPH]",    tagCol: "#4f46e5", delay: 1800, title: "Relationship health updated — moved to Proposal" },
   { tag: "[SEQ]",      tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
   { tag: "[AUTO]",     tagCol: "#4f46e5", delay: 3200, title: "Automation triggered on deal stage change" },
   { tag: "[FINANCE]",  tagCol: "#3f3f46", delay: 3900, title: "Quote created" },
@@ -597,7 +597,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is Mondaily a CRM?",
-    a: "Not exactly — Mondaily is an autonomous, AI-native operating system for revenue and operations. It includes pipeline and contact records, but it also enriches, scores, sequences, automates, and handles finance — work a CRM alone leaves to you and a stack of other tools.",
+    a: "No — Mondaily is an AI-native autonomous workspace and asset-graph engine. A sales pipeline is one example of what you can model in it, but the graph holds any kind of record — people, companies, assets, documents, tasks, invoices — connected and operated on by AI agents. CRM, finance, and operations all run on the same graph instead of living in separate tools.",
   },
   {
     q: "How does the AI enrichment actually work?",
@@ -785,7 +785,7 @@ function WorkflowDemo() {
                 className="flex items-baseline gap-3"
               >
                 <span className="w-24 shrink-0 text-[14px] text-zinc-500">{f.key}</span>
-                <span className={`text-[13px] ${f.key === "Signal" ? "text-indigo-500" : f.key === "AI Score" ? "text-indigo-400" : "text-zinc-600"}`}>
+                <span className={`text-[13px] ${f.key === "Signal" ? "text-indigo-500" : f.key === "Relationship Health" ? "text-indigo-400" : "text-zinc-600"}`}>
                   {f.val}
                 </span>
               </motion.div>
@@ -1492,7 +1492,7 @@ const SHEET_VIEWS: SheetView[] = [
     columns: [
       { key: "company", label: "Company", type: "text" },
       { key: "stage",   label: "Stage",    type: "badge" },
-      { key: "score",   label: "AI Score", type: "score" },
+      { key: "score",   label: "Relationship Health", type: "score" },
       { key: "owner",   label: "Owner",    type: "avatar" },
     ],
     stageCol: "stage",
@@ -1777,7 +1777,7 @@ const AGENTS = [
     ],
   },
   {
-    icon: "◆", name: "Research Agent", accent: "#7c3aed",
+    icon: "◆", name: "Insights Agent", accent: "#7c3aed",
     desc: "Fires the moment a new object enters the graph — pulls ARR, headcount, funding, tech stack, job title, and LinkedIn automatically from the web.",
     trace: [
       "[TRIGGER]  new object: globex.io",
@@ -1797,13 +1797,13 @@ const AGENTS = [
     ],
   },
   {
-    icon: "▲", name: "Signal Agent", accent: "#dc2626",
-    desc: "Watches the graph continuously and raises a signal the moment an asset, deal, or relationship has gone quiet — before it goes cold.",
+    icon: "▲", name: "Finance Agent", accent: "#dc2626",
+    desc: "Watches invoices and credit notes across the graph, drafts the reminder or adjustment, and queues it for your approval before anything is sent.",
     trace: [
       "[CRON]     daily run · 08:00 UTC",
-      "[SCAN]     234 open objects · checking last activity date",
-      "[FLAG]     Initech node idle 16 days — signal raised",
-      "[NOTIFY]   owner pinged · signal added to decision queue",
+      "[SCAN]     invoices · checking due dates against today",
+      "[DRAFT]    INV-0032 overdue 6 days — reminder drafted",
+      "[QUEUE]    added to decision queue — awaiting approval",
     ],
   },
   {
@@ -1994,7 +1994,7 @@ function LiveSignalsSection() {
         <span className="text-indigo-500">{">"}</span> What Mondaily notices while you work
       </h2>
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Every signal below comes with where it was found, how confident the AI is, and a suggested next step — never a guess presented as fact.
+        Every signal below comes with where it was found and a suggested next step — source-backed, never a guess presented as fact.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -2102,7 +2102,7 @@ const TRUST_POINTS = [
 // ── AI with approval — agents act, humans stay in control ───────────────────
 const APPROVAL_STEPS = [
   { label: "Prepare",  desc: "Agents draft the change before anything touches the graph" },
-  { label: "Recommend", desc: "A suggested action appears with confidence and source evidence" },
+  { label: "Recommend", desc: "A suggested action appears with the records and evidence behind it" },
   { label: "Monitor",  desc: "Signals and risks are tracked continuously in the background" },
   { label: "Execute",  desc: "Once approved, the action runs and is logged to the source object" },
 ];
