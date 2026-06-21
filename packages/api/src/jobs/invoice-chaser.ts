@@ -106,70 +106,40 @@ export const invoiceChaser = inngest.createFunction(
 
           await logStep(jobId, { invoice_id: invoice.id, days_overdue: days, chase_count: chaseCount });
 
-          if (clientEmail) {
-            // Attempt send via Nylas if workspace has connection
-            const { data: emailConn } = await supabase
-              .from("email_connections")
-              .select("grant_id")
-              .eq("workspace_id", ws.id)
-              .limit(1)
-              .single();
+          // Don't re-queue while a chase decision for this invoice is still
+          // awaiting human approval.
+          const { data: existingDecision } = await supabase
+            .from("decision_queue")
+            .select("id")
+            .eq("workspace_id", ws.id)
+            .eq("source_type", "invoice")
+            .eq("source_id", invoice.id)
+            .eq("agent_name", "invoice_chaser")
+            .eq("status", "pending")
+            .maybeSingle();
+          if (existingDecision) { totalSkipped++; continue; }
 
-            if (emailConn?.grant_id) {
-              try {
-                await fetch(`https://api.us.nylas.com/v3/grants/${emailConn.grant_id}/messages/send`, {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${process.env.NYLAS_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    subject,
-                    body,
-                    to: [{ email: clientEmail, name: invoice.data.client_name ?? clientEmail }],
-                  }),
-                });
-                steps.push({ sent: true, to: clientEmail, subject });
-              } catch {
-                steps.push({ sent: false, to: clientEmail, error: "nylas_failed" });
-              }
-            } else {
-              // Create a manual task in the workspace
-              await supabase.from("nodes").insert({
-                workspace_id: ws.id,
-                vertical: "finance",
-                object_type: "task",
-                created_by: "agent:invoice_chaser",
-                data: {
-                  title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`,
-                  notes: `Draft email:\n\nSubject: ${subject}\n\n${body}`,
-                  status: "todo",
-                  priority: days > 14 ? "urgent" : days > 7 ? "high" : "medium",
-                },
-              });
-              steps.push({ task_created: true, invoice_id: invoice.id });
-            }
-          }
+          // Human approval required before any reminder is actually sent —
+          // queue the recommendation instead of sending automatically.
+          await supabase.from("decision_queue").insert({
+            workspace_id: ws.id,
+            source_type: "invoice",
+            source_id: invoice.id,
+            agent_name: "invoice_chaser",
+            title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`,
+            summary: `Draft reminder ready to send to ${clientEmail ?? "no email on file"}.`,
+            recommended_action: `Send: "${subject}"`,
+            risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
+            evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }],
+          });
+          steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
 
-          // Update invoice data with chase tracking
-          await supabase
-            .from("nodes")
-            .update({
-              data: {
-                ...invoice.data,
-                status: "overdue",
-                last_chased_at: new Date().toISOString(),
-                chase_count: chaseCount,
-              },
-            })
-            .eq("id", invoice.id);
-
-          // Notification for workspace members
+          // Notification for workspace members — informational, not a fait accompli.
           await supabase.from("notifications").insert({
             workspace_id: ws.id,
             type: "agent",
-            title: `Invoice ${invoice.data.invoice_number ?? ""} chased`,
-            body: `${days} days overdue · Chase #${chaseCount} sent to ${clientEmail ?? "no email on file"}`,
+            title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
+            body: `${days} days overdue · reminder #${chaseCount} drafted, awaiting your approval`,
             metadata: { invoice_id: invoice.id, days_overdue: days },
           });
 

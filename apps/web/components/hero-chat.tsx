@@ -8,7 +8,7 @@ const FEATURE_LINES = [
   { icon: "◆", text: "Enrich any company — ARR, headcount & signals in seconds" },
   { icon: "▣", text: "Ask in plain English — get answers from your live data" },
   { icon: "▶", text: "Trigger sequences, move opportunities, run workflows via AI" },
-  { icon: "◈", text: "Connected to your workspace graph — records, opportunity flow, and finance" },
+  { icon: "◈", text: "Every object connected to the graph" },
 ];
 
 // Shown as fake user message bubbles — click to fire
@@ -27,7 +27,7 @@ const PROCESS_STEPS = [
   { lines: ["Drafting an answer"],        delay: 4600 },
 ];
 
-const SOURCE_CHIPS = ["Contacts", "Deals", "Emails", "Finance", "Tasks"];
+const SOURCE_CHIPS = ["Records", "Relationships", "Messages", "Finance", "Tasks"];
 
 function SendIcon() {
   return (

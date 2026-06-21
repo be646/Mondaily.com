@@ -29,24 +29,23 @@ export function SidebarAsk() {
     deleteThreadFromServer(id).catch(() => {});
   };
 
+  // No permanent "Ask Mondaily" row here — the primary nav already has a
+  // single "Ask" entry (→ /ask/new). This section is purely chat history:
+  // a collapsible list plus a "new chat" button, never a second route in.
   return (
     <section className="mt-3">
       <div className="mb-1 flex items-center justify-between px-3">
         <button onClick={() => setHistoryOpen(o => !o)} className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 hover:text-slate-300 transition-colors">
-          Chats{threads.length > 0 ? ` (${threads.length})` : ""}
+          Chat history{threads.length > 0 ? ` (${threads.length})` : ""}
           <ChevronDown size={10} className={`transition-transform ${historyOpen ? "rotate-180" : ""}`}/>
         </button>
         <Link to="/ask/new" title="New chat" className="text-slate-600 hover:text-white">
           <Plus size={13}/>
         </Link>
       </div>
-      <Link
-        to="/ask/new"
-        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${location.pathname === "/ask/new" && threads.length === 0 ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"}`}
-      >
-        <MessageCircle size={13}/>
-        Ask Mondaily
-      </Link>
+      {threads.length === 0 && (
+        <p className="px-3 text-[11px]" style={{ color: "var(--text-faint)" }}>No chats yet</p>
+      )}
       {historyOpen && threads.slice(0, 10).map(t => (
         <div key={t.id} className="group relative flex items-center">
           <Link

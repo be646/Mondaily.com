@@ -16,6 +16,7 @@ import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
 import { LeadScoreBadge } from "./lead-score-badge";
+import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 
 interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
@@ -1852,6 +1853,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
     // Lead score badge
     if (col === "lead_score" && val != null) return <LeadScoreBadge score={Number(val)} size="sm"/>;
+
+    // AI relationship/asset health — same real field record-detail.tsx shows,
+    // surfaced here too when the column is configured.
+    if (col === "relationship_health") return <AIHealthScoreCompact score={val != null ? Number(val) : null} label="Relationship health"/>;
 
     // Stage / Status pill — handles empty/null values too (no longer falls through to text box)
     if (col.toLowerCase().includes("stage") || col === "status" || col === "deal_status") {

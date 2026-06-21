@@ -17,7 +17,7 @@ router.use("*", requireAuth);
  * agents, no live job exists at all yet).
  */
 
-type AgentState = "active" | "monitoring" | "disabled" | "not_configured";
+type AgentState = "active" | "monitoring" | "needs_approval" | "issue" | "disabled" | "not_configured";
 
 interface AgentStatusEntry {
   id: string;
@@ -65,18 +65,32 @@ function jobSummary(job: AgentJobRow | null, idleLabel: string): { lastAction: s
 router.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
 
-  const [tasksRes, notificationsRes, nodesRes, jobsRes, workspaceRes] = await Promise.all([
+  const [tasksRes, notificationsRes, nodesRes, jobsRes, workspaceRes, decisionsRes] = await Promise.all([
     supabase.from("tasks").select("id,completed,due_date,status").eq("workspace_id", workspaceId),
     supabase.from("notifications").select("id,type,is_read").eq("workspace_id", workspaceId).limit(100),
     supabase.from("nodes").select("id,object_type,data,updated_at").eq("workspace_id", workspaceId).limit(500),
     supabase.from("agent_jobs").select("agent_name,status,started_at,completed_at,output,error").eq("workspace_id", workspaceId).order("started_at", { ascending: false }).limit(200),
     supabase.from("workspaces").select("settings").eq("id", workspaceId).single(),
+    supabase.from("decision_queue").select("agent_name,risk_level").eq("workspace_id", workspaceId).eq("status", "pending"),
   ]);
 
   const tasks = tasksRes.data ?? [];
   const notifications = notificationsRes.data ?? [];
   const nodes = nodesRes.data ?? [];
   const jobs = (jobsRes.data ?? []) as AgentJobRow[];
+  // decision_queue may not exist yet if the migration hasn't been applied —
+  // treat that as "no pending decisions" rather than failing the whole route.
+  const pendingDecisions = decisionsRes.data ?? [];
+  const pendingFor = (...agentNames: string[]) => pendingDecisions.filter(d => agentNames.includes(d.agent_name));
+  /** A pending Decision Queue item outranks a plain "active" finding —
+   * "needs_approval" (or "issue" for high-risk items) means a human must
+   * act, not just that the agent noticed something. */
+  function withDecisions(state: AgentState, agentNames: string[]): { state: AgentState; pendingCount: number } {
+    const pending = pendingFor(...agentNames);
+    if (pending.some(d => d.risk_level === "high")) return { state: "issue", pendingCount: pending.length };
+    if (pending.length > 0) return { state: "needs_approval", pendingCount: pending.length };
+    return { state, pendingCount: 0 };
+  }
   const modules = ((workspaceRes.data?.settings as Record<string, unknown> | null)?.modules as string[] | undefined) ?? ["crm"];
   const hasFinance = modules.includes("finance");
   const hasHR = modules.includes("hr");
@@ -102,54 +116,69 @@ router.get("/", async (c) => {
 
   const agents: AgentStatusEntry[] = [];
 
-  // Ask Mondaily — always real, request-driven rather than background-job-driven.
+  // Graph Agent — the conversational interface to the workspace graph
+  // (Ask Mondaily). Always real, request-driven rather than
+  // background-job-driven, so it has no "pending decisions" of its own.
   agents.push({
-    id: "ask-mondaily", name: "Ask Mondaily", category: "core",
+    id: "ask-mondaily", name: "Graph Agent", category: "core",
     status: "Answering questions across the workspace graph",
     state: "active", backed_by: [], last_run_at: null, last_action: "Available now",
     evidence_count: 0, suggested_action: null, destination: "/ask/new",
   });
 
-  agents.push({
-    id: "operations", name: "Operations Agent", category: "operations",
-    status: overdueTasks.length > 0 ? `${overdueTasks.length} overdue task(s)` : "No findings",
-    state: overdueTasks.length > 0 || reviewTasks.length > 0 ? "active" : "monitoring",
-    backed_by: [], last_run_at: null,
-    last_action: overdueTasks.length > 0 ? `Found ${overdueTasks.length} overdue task(s)` : "Checked workspace tasks just now",
-    evidence_count: overdueTasks.length + reviewTasks.length,
-    suggested_action: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
-    destination: "/tasks",
-  });
+  {
+    const { state, pendingCount } = withDecisions(
+      overdueTasks.length > 0 || reviewTasks.length > 0 ? "active" : "monitoring",
+      ["operations"]
+    );
+    agents.push({
+      id: "operations", name: "Operations Agent", category: "operations",
+      status: overdueTasks.length > 0 ? `${overdueTasks.length} overdue task(s)` : "No findings",
+      state,
+      backed_by: [], last_run_at: null,
+      last_action: overdueTasks.length > 0 ? `Found ${overdueTasks.length} overdue task(s)` : "Checked workspace tasks just now",
+      evidence_count: overdueTasks.length + reviewTasks.length + pendingCount,
+      suggested_action: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
+      destination: "/tasks",
+    });
+  }
 
-  const relationshipJob = jobSummary(
-    latestJob(jobs, "deal_alerts") ?? latestJob(jobs, "relationship_health"),
-    "No automation run yet for this workspace"
-  );
-  agents.push({
-    id: "relationship", name: "Relationship Agent", category: "relationship",
-    status: staleDeals.length > 0 ? `${staleDeals.length} relationship(s) gone quiet` : "No findings",
-    state: staleDeals.length > 0 ? "active" : "monitoring",
-    backed_by: ["deal_alerts", "relationship_health"],
-    last_run_at: relationshipJob.lastRunAt, last_action: relationshipJob.lastAction,
-    evidence_count: staleDeals.length,
-    suggested_action: staleDeals.length > 0 ? `Reach out to ${staleDeals.length} stalled relationship(s)` : null,
-    destination: "/pipeline",
-  });
+  {
+    const relationshipJob = jobSummary(
+      latestJob(jobs, "deal_alerts") ?? latestJob(jobs, "relationship_health"),
+      "No automation run yet for this workspace"
+    );
+    const { state, pendingCount } = withDecisions(staleDeals.length > 0 ? "active" : "monitoring", ["relationship"]);
+    agents.push({
+      id: "relationship", name: "Relationship Agent", category: "relationship",
+      status: staleDeals.length > 0 ? `${staleDeals.length} relationship(s) gone quiet` : "No findings",
+      state,
+      backed_by: ["deal_alerts", "relationship_health"],
+      last_run_at: relationshipJob.lastRunAt, last_action: relationshipJob.lastAction,
+      evidence_count: staleDeals.length + pendingCount,
+      suggested_action: staleDeals.length > 0 ? `Reach out to ${staleDeals.length} stalled relationship(s)` : null,
+      destination: "/pipeline",
+    });
+  }
 
   if (hasFinance) {
     const financeJob = jobSummary(
       latestJob(jobs, "invoice_chaser") ?? latestJob(jobs, "recurring_invoices"),
       "No automation run yet for this workspace"
     );
+    const { state, pendingCount } = withDecisions(
+      overdueInvoices.length > 0 ? "active" : "monitoring",
+      ["finance", "invoice_chaser"]
+    );
     agents.push({
       id: "finance", name: "Finance Agent", category: "finance",
-      status: overdueInvoices.length > 0 ? `${overdueInvoices.length} overdue invoice(s)` : "No findings",
-      state: overdueInvoices.length > 0 ? "active" : "monitoring",
+      status: pendingCount > 0 ? `${pendingCount} decision(s) awaiting approval` : overdueInvoices.length > 0 ? `${overdueInvoices.length} overdue invoice(s)` : "No findings",
+      state,
       backed_by: ["invoice_chaser", "recurring_invoices", "credit_note_dispute_handler"],
       last_run_at: financeJob.lastRunAt, last_action: financeJob.lastAction,
-      evidence_count: overdueInvoices.length,
-      suggested_action: overdueInvoices.length > 0 ? "Chase overdue invoices" : null,
-      destination: "/finance/invoices",
+      evidence_count: overdueInvoices.length + pendingCount,
+      suggested_action: pendingCount > 0 ? "Review pending finance decisions" : overdueInvoices.length > 0 ? "Chase overdue invoices" : null,
+      destination: pendingCount > 0 ? "/decisions" : "/finance/invoices",
     });
   } else {
     agents.push({
@@ -196,6 +225,19 @@ router.get("/", async (c) => {
       evidence_count: 0, suggested_action: null, destination: "/objects",
     });
   }
+
+  // Workflow Agent — the workflow builder (packages/api/src/routes/workflows.ts)
+  // only stores trigger/condition/action config; there is no real execution
+  // engine that runs it autonomously. Always "not_configured" rather than
+  // implying it executes graph actions on its own — never upgraded to
+  // active/monitoring until real execution exists.
+  agents.push({
+    id: "workflow", name: "Workflow Agent", category: "automation",
+    status: "Designs workflows — autonomous execution not yet implemented",
+    state: "not_configured", backed_by: [], last_run_at: null,
+    last_action: "Workflow configs can be designed and saved; running them today is a manual, human-triggered action.",
+    evidence_count: 0, suggested_action: null, destination: "/automations",
+  });
 
   // Scaffold-only vertical agents — code exists under packages/agents/src
   // but no live job/route surfaces them yet. Never shown as active.

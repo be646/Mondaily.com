@@ -57,6 +57,22 @@ export function AIHealthScore({ score, label = "AI health score", updatedAt }: {
   );
 }
 
+/** Compact inline variant for table cells / board cards — same honest
+ * null-handling as AIHealthScore, just sized for a row instead of a panel. */
+export function AIHealthScoreCompact({ score, label = "Health" }: { score?: number | null; label?: string }) {
+  if (score == null) return null;
+  const colors = score >= 70
+    ? { text: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" }
+    : score >= 40
+    ? { text: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" }
+    : { text: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/20" };
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${colors.bg} ${colors.text}`} title={`${label}: ${score}/100`}>
+      <Activity size={9}/>{score}
+    </span>
+  );
+}
+
 // ── AISignalList — health_signals or any detected-signal record ───────────
 export function AISignalList({ signals }: { signals?: Record<string, number | string> | null }) {
   const entries = signals ? Object.entries(signals) : [];

@@ -407,13 +407,17 @@ export function AskMondaily() {
                         <button onClick={() => sendSuggestion(buildChipText("explain", i))} className="btn-suggested">
                           Explain reasoning
                         </button>
-                        {["Create report", "Add to decision queue", "Start workflow"].map(label => (
-                          <span key={label} title="Coming soon — not wired to a workspace action yet"
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
-                            style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
-                            {label}
-                          </span>
-                        ))}
+                        <button onClick={() => sendSuggestion(buildChipText("decision", i))} className="btn-suggested">
+                          Add to decision queue
+                        </button>
+                        <button onClick={() => sendSuggestion(buildChipText("workflow", i))} className="btn-suggested">
+                          Draft workflow
+                        </button>
+                        <span title="Coming soon — no report-creation tool exists yet"
+                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
+                          style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
+                          Create report
+                        </span>
                       </div>
                     )}
                   </div>

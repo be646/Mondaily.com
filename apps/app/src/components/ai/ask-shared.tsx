@@ -78,7 +78,7 @@ export function inferAgentHandoff(promptText: string): AgentHandoff {
 // ── Source cards ──────────────────────────────────────────────────────────
 export type SourceType =
   | "task" | "invoice" | "contact" | "asset" | "workflow"
-  | "report" | "note" | "email" | "notification" | "finance" | "record";
+  | "report" | "note" | "email" | "notification" | "finance" | "record" | "decision";
 
 export interface SourceCardData {
   type: SourceType;
@@ -100,6 +100,7 @@ export const SOURCE_ICON: Record<SourceType, React.ElementType> = {
   notification: Bell,
   finance: Wallet,
   record: Database,
+  decision: ShieldAlert,
 };
 
 /** Raw source shape returned by POST /api/v1/ask (see SourceMeta in ask.ts). */

@@ -59,6 +59,21 @@ export const dealAlerts = inngest.createFunction(
                 metadata: { node_id: deal.id, days_inactive: daysInactive },
               });
 
+              // Real Decision Queue source: a stale relationship/deal is
+              // exactly the "agent recommends, human approves" case — queue
+              // a recommendation instead of only a passive notification.
+              await supabase.from("decision_queue").insert({
+                workspace_id: ws.id,
+                source_type: "node",
+                source_id: deal.id,
+                agent_name: "relationship",
+                title: `${data.name ?? data.title ?? "This relationship"} has gone quiet`,
+                summary: `No activity for ${daysInactive} days.`,
+                recommended_action: "Reach out to re-engage, or mark as lost",
+                risk_level: daysInactive > 30 ? "high" : "medium",
+                evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }],
+              }).then(() => {}, () => {}); // best-effort — never block the alert/notification on this
+
               totalAlerts++;
             }
           }

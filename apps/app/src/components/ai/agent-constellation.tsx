@@ -19,6 +19,8 @@ import {
 const STATE_RING: Record<ConstellationState, string> = {
   active: "border-violet-500",
   monitoring: "border-cyan-500",
+  needs_approval: "border-amber-500",
+  issue: "border-rose-500",
   disabled: "border-dashed border-zinc-300/40",
   not_configured: "border-dashed border-zinc-300/40",
 };
@@ -26,6 +28,8 @@ const STATE_RING: Record<ConstellationState, string> = {
 const STATE_DOT: Record<ConstellationState, string> = {
   active: "bg-violet-500",
   monitoring: "bg-cyan-500",
+  needs_approval: "bg-amber-500",
+  issue: "bg-rose-500",
   disabled: "bg-zinc-300",
   not_configured: "bg-zinc-400",
 };
@@ -68,7 +72,11 @@ function NodeDetail({ agent }: { agent: ConstellationAgent }) {
 export function AgentConstellationPanel() {
   const { constellation, isLoading } = useAgentData();
   const [selected, setSelected] = useState<string | null>(null);
-  const active = constellation.find(a => a.id === selected) ?? constellation.find(a => a.state === "active") ?? constellation[0];
+  const active = constellation.find(a => a.id === selected)
+    ?? constellation.find(a => a.state === "issue")
+    ?? constellation.find(a => a.state === "needs_approval")
+    ?? constellation.find(a => a.state === "active")
+    ?? constellation[0];
 
   if (isLoading) {
     return (
@@ -96,8 +104,8 @@ export function AgentConstellationPanel() {
               <button onClick={() => setSelected(agent.id)} className="flex flex-col items-center gap-1 transition-opacity hover:opacity-80">
                 <span className={`relative flex h-9 w-9 items-center justify-center rounded-full border-2 ${STATE_RING[agent.state]} ${active?.id === agent.id ? "ring-2 ring-offset-1" : ""}`}
                   style={{ background: "var(--surface-card)" }}>
-                  <agent.icon size={13} style={{ color: agent.state === "active" ? "var(--text-primary)" : "var(--text-faint)" }}/>
-                  {agent.state === "active" && (
+                  <agent.icon size={13} style={{ color: agent.state === "active" || agent.state === "needs_approval" || agent.state === "issue" ? "var(--text-primary)" : "var(--text-faint)" }}/>
+                  {(agent.state === "active" || agent.state === "needs_approval" || agent.state === "issue") && (
                     <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ${STATE_DOT[agent.state]}`}/>
                   )}
                 </span>
@@ -136,7 +144,7 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
     return <div className="shrink-0 px-2 pb-2"><div className="skeleton-shimmer h-8 rounded-lg"/></div>;
   }
 
-  const activeAgents = constellation.filter(a => a.state === "active");
+  const activeAgents = constellation.filter(a => a.state === "active" || a.state === "needs_approval" || a.state === "issue");
 
   return (
     <div className="relative shrink-0 px-2 pb-2" ref={ref}>

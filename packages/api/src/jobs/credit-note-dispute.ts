@@ -82,6 +82,8 @@ export const creditNoteDisputeHandler = inngest.createFunction(
       });
     }
 
+    const amount = ((aiResult.amount_cents || 0) / 100).toLocaleString("en-GB", { style: "currency", currency: currency ?? "GBP" });
+
     // Step 4: Notify all admins
     await step.run("notify-admins", async () => {
       const { data: admins } = await supabase
@@ -91,7 +93,6 @@ export const creditNoteDisputeHandler = inngest.createFunction(
         .in("role", ["admin", "owner"]);
 
       if (!admins?.length) return;
-      const amount = ((aiResult.amount_cents || 0) / 100).toLocaleString("en-GB", { style: "currency", currency: currency ?? "GBP" });
       await supabase.from("notifications").insert(
         admins.map(a => ({
           workspace_id: workspaceId,
@@ -102,6 +103,22 @@ export const creditNoteDisputeHandler = inngest.createFunction(
           is_read: false,
         }))
       );
+    });
+
+    // Step 5: Add to the real Decision Queue so it shows up alongside every
+    // other agent recommendation, not just as a notification.
+    await step.run("queue-decision", async () => {
+      await supabase.from("decision_queue").insert({
+        workspace_id: workspaceId,
+        source_type: "credit_note",
+        source_id: node.id,
+        agent_name: "finance",
+        title: `Review credit note for ${clientName ?? "client"} — ${amount}`,
+        summary: aiResult.summary,
+        recommended_action: "Approve or reject this credit note",
+        risk_level: (aiResult.amount_cents ?? 0) > 50000 ? "high" : "medium",
+        evidence: [{ type: "note", title: "Dispute email", match_reason: disputeBody.slice(0, 200) }],
+      }).then(() => {}, () => {}); // best-effort — never block credit note creation on this
     });
 
     return { nodeId: node.id, status: "pending_review" };

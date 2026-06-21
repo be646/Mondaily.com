@@ -12,7 +12,7 @@ import { useModules } from "../../hooks/useModules";
  * visual effect — the frontend only maps each registry entry to an icon.
  */
 
-export type ConstellationState = "active" | "monitoring" | "disabled" | "not_configured";
+export type ConstellationState = "active" | "monitoring" | "needs_approval" | "issue" | "disabled" | "not_configured";
 
 export interface ConstellationAgent {
   id: string;
@@ -33,6 +33,8 @@ export interface ConstellationAgent {
 export const CONSTELLATION_STATE_LABEL: Record<ConstellationState, string> = {
   active: "Active",
   monitoring: "Monitoring",
+  needs_approval: "Needs approval",
+  issue: "Issue found",
   disabled: "Module disabled",
   not_configured: "Not configured",
 };
@@ -44,6 +46,7 @@ const AGENT_ICON: Record<string, React.ElementType> = {
   finance: Receipt,
   signal: ShieldAlert,
   "graph-enrichment": GitBranch,
+  workflow: Workflow,
   opportunity: TrendingUp,
   people: Briefcase,
   portfolio: TrendingUp,

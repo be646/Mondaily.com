@@ -59,11 +59,13 @@ const MORE_NAV: { label: string; items: { to: string; label: string; icon: React
     ],
   },
   {
+    // "Workflows"/"Sequences" used to be listed here too, but both pointed
+    // at the same /automations route the primary nav already links to —
+    // removed rather than showing three buttons for one destination.
+    // Canvas is a real, distinct page, so it stays.
     label: "Automation",
     items: [
-      { to: "/automations", label: "Workflows",  icon: GitBranch },
-      { to: "/automations", label: "Sequences",  icon: Activity },
-      { to: "/canvas",      label: "Canvas",     icon: Layers },
+      { to: "/canvas", label: "Canvas", icon: Layers },
     ],
   },
 ];
@@ -79,7 +81,7 @@ const CHECKLIST = [
   {
     id: "contact",
     label: "Add your first contact",
-    hint: "Add a person or company. This is the foundation of your CRM — every deal, email, and task connects to a contact.",
+    hint: "Add a person or company. This is the foundation of your workspace graph — every opportunity, email, and task connects back to a record.",
     to: "/objects/people",
   },
   {
@@ -96,14 +98,14 @@ const CHECKLIST = [
   },
   {
     id: "deal",
-    label: "Create your first deal",
-    hint: "Deals track revenue opportunities through your pipeline stages — from first contact to closed won.",
+    label: "Create your first opportunity",
+    hint: "Opportunities track relationships through stages on the graph — from first contact to closed won.",
     to: "/pipeline",
   },
   {
     id: "member",
     label: "Invite a team member",
-    hint: "Sales is a team sport. Invite a colleague so you can assign contacts, share deals, and collaborate on tasks.",
+    hint: "The graph gets smarter with more people on it. Invite a colleague so you can assign records, share opportunities, and collaborate on tasks.",
     to: "/settings/members",
   },
   {
@@ -133,7 +135,7 @@ const CHECKLIST = [
   {
     id: "ai",
     label: "Try Ask Mondaily",
-    hint: "Ask Mondaily anything about your data — 'which deals haven't moved in 2 weeks?' or 'summarise my week'. Your AI sales assistant.",
+    hint: "Ask Mondaily anything about your data — 'which opportunities haven't moved in 2 weeks?' or 'summarise my week'. Your AI agent assistant.",
     to: "/ask/new",
   },
   {

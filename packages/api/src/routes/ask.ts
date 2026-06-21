@@ -14,6 +14,8 @@ Mondaily has a real workspace graph: every record is a node, and nodes can be co
 
 You also have real finance and report tools — never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points — always call run_report rather than guessing at numbers from a report's name or type alone.
 
+You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze — use this instead of claiming you did something sensitive yourself), and create_workflow_draft (saves a disabled workflow draft for the user to review in the builder — you can never enable a workflow yourself; always say so explicitly and never imply the workflow is now running).
+
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
 - "Add X to my Y list" → use list_lists to find the list ID, then search_records to find the record, then add_to_list.
@@ -265,6 +267,47 @@ const TOOLS = [
         report_id: { type: "string", description: "The report's node ID" }
       },
       required: ["report_id"]
+    }
+  },
+  {
+    name: "create_note",
+    description: "Create a note, optionally attached to a record. Use for 'add a note', 'jot this down', 'write a note about X'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Note title" },
+        content: { type: "string", description: "Note body" },
+        parent_id: { type: "string", description: "Optional node_id of the record this note is about" }
+      },
+      required: ["content"]
+    }
+  },
+  {
+    name: "create_decision",
+    description: "Add an item to the Decision Queue for a human to approve, reject, or snooze. Use when the user says 'add this to the decision queue', 'flag this for approval', or when you've drafted a recommendation (e.g. a follow-up, an invoice action) that needs human sign-off rather than being done immediately.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short decision title" },
+        summary: { type: "string", description: "What you found / why this needs a decision" },
+        recommended_action: { type: "string", description: "The specific action you're recommending" },
+        risk_level: { type: "string", enum: ["low", "medium", "high"], description: "Default low" },
+        source_type: { type: "string", description: "What this relates to, e.g. 'task', 'node', 'invoice' — omit if general" },
+        source_id: { type: "string", description: "node_id/task_id this relates to, if any" }
+      },
+      required: ["title", "recommended_action"]
+    }
+  },
+  {
+    name: "create_workflow_draft",
+    description: "Create a draft workflow (trigger/condition/action config) for the user to review in the workflow builder. The draft is always saved disabled — it requires the user to explicitly enable it there. Use for 'build me a workflow that...', 'create an automation for X'. Never claim the workflow is running — only that a draft was created for review.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Workflow name" },
+        description: { type: "string", description: "Plain-language description of what it should do — trigger, condition, and action" }
+      },
+      required: ["name", "description"]
     }
   }
 ];
@@ -802,6 +845,72 @@ async function executeTool(
           points || "(no data points)",
           result.total !== undefined ? `Total: ${result.total}` : "",
         ].filter(Boolean).join("\n");
+      }
+
+      case "create_note": {
+        const { data, error } = await supabase
+          .from("nodes")
+          .insert({
+            workspace_id: workspaceId,
+            vertical: "shared",
+            object_type: "note",
+            created_by: userId,
+            data: {
+              parent_id: input.parent_id ?? null,
+              title: input.title ?? "Untitled note",
+              content: input.content,
+              created_at: new Date().toISOString(),
+            },
+          })
+          .select("id")
+          .single();
+        if (error) return `Error creating note: ${error.message}`;
+        sources.push({ type: "note", title: input.title ?? "Untitled note", node_id: data.id, object_type: "note" });
+        return `Note created (ID: ${data.id}).`;
+      }
+
+      case "create_decision": {
+        const { data, error } = await supabase
+          .from("decision_queue")
+          .insert({
+            workspace_id: workspaceId,
+            source_type: input.source_type ?? "ask",
+            source_id: input.source_id ?? null,
+            agent_name: "ask-mondaily",
+            title: input.title,
+            summary: input.summary ?? null,
+            recommended_action: input.recommended_action,
+            risk_level: input.risk_level ?? "low",
+            evidence: [],
+          })
+          .select("id")
+          .single();
+        if (error) return `Error adding to decision queue: ${error.message}`;
+        sources.push({ type: "record", title: input.title, node_id: data.id, object_type: "decision" });
+        return `Added to the decision queue: "${input.title}" (ID: ${data.id}). It's pending — a human needs to approve, reject, or snooze it before anything happens.`;
+      }
+
+      case "create_workflow_draft": {
+        const { data, error } = await supabase
+          .from("nodes")
+          .insert({
+            workspace_id: workspaceId,
+            vertical: "shared",
+            object_type: "automation",
+            created_by: userId,
+            data: {
+              name: input.name,
+              type: "workflow",
+              status: "draft",
+              description: input.description,
+              enabled: false,
+            },
+          })
+          .select("id")
+          .single();
+        if (error) return `Error creating workflow draft: ${error.message}`;
+        sources.push({ type: "workflow", title: input.name, node_id: data.id, object_type: "automation" });
+        return `Created a draft workflow "${input.name}" (ID: ${data.id}) based on: ${input.description}. It is saved disabled — open the workflow builder to review and enable it. I cannot enable it for you.`;
       }
 
       default:
