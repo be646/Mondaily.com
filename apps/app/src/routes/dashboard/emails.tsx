@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, ChevronDown, ChevronLeft, ChevronUp, Link2, Mail, MousePointerClick, Eye, Paperclip, Search, Send, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, BASE_URL } from "../../lib/api-client";
 import { PageSkeleton, EmptyState } from "../../components/ui/page-state";
 
 type EmailFilter = "all" | "inbox" | "sent" | "unread";
@@ -248,7 +248,7 @@ export function EmailsPage() {
   const filters = useMemo(() => ["all", "inbox", "sent", "unread"] as const, []);
 
   function connectGmail() {
-    window.open("/api/v1/integrations/gmail/connect", "_blank", "width=520,height=680");
+    window.open(`${BASE_URL}/api/v1/integrations/gmail/connect`, "_blank", "width=520,height=680");
   }
 
   return (

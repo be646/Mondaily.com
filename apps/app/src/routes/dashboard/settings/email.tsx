@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bold, Calendar, CheckCircle, Clock, Italic, Mail, Plus, Save, Unplug } from "lucide-react";
 import { useEffect, useState } from "react";
-import { apiClient } from "../../../lib/api-client";
+import { apiClient, BASE_URL } from "../../../lib/api-client";
 import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
 interface Provider {
@@ -53,7 +53,7 @@ export function EmailSettings() {
   });
 
   function connect(provider: string) {
-    window.open(`/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
+    window.open(`${BASE_URL}/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
   }
   function updateProvider(id: string, patch: Partial<Provider>) {
     setData((current) => ({ ...current, providers: current.providers.map((provider) => provider.id === id ? { ...provider, ...patch } : provider) }));

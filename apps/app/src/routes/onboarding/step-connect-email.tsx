@@ -10,7 +10,8 @@ export function StepConnectEmail() {
   usePanelState({ connected });
 
   function connect(provider: "gmail" | "outlook") {
-    const popup = window.open(`/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
+    const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    const popup = window.open(`${apiBase}/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
     if (!popup) return;
     const listener = (event: MessageEvent) => {
       if (event.data?.type === `${provider.toUpperCase()}_CONNECTED`) {

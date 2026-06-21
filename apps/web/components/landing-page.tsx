@@ -123,7 +123,7 @@ const MAIN_NODES = [
     id: "pipeline", label: "Pipeline",
     x: 300, y: 308,
     subs: [
-      { label: "AI deal scoring",   ax: 300 + NW + 10, ay: 300 },
+      { label: "Relationship health", ax: 300 + NW + 10, ay: 300 },
       { label: "Stage automation",  ax: 300 + NW + 10, ay: 316 },
       { label: "Health alerts",     ax: 300 + NW + 10, ay: 332 },
       { label: "Win/loss analysis", ax: 300 + NW + 10, ay: 348 },
@@ -487,7 +487,7 @@ const STEP_TEMPLATE = [
   { tag: "[GRAPH]",    tagCol: "#4f46e5", delay: 1800, title: "Relationship health updated — moved to Proposal" },
   { tag: "[SEQ]",      tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
   { tag: "[AUTO]",     tagCol: "#4f46e5", delay: 3200, title: "Automation triggered on deal stage change" },
-  { tag: "[FINANCE]",  tagCol: "#3f3f46", delay: 3900, title: "Quote created" },
+  { tag: "[FINANCE]",  tagCol: "#3f3f46", delay: 3900, title: "Quote drafted — queued for approval" },
 ];
 
 function buildWorkflowSteps(scenario: typeof RECORD_SCENARIOS[number]) {
@@ -495,10 +495,10 @@ function buildWorkflowSteps(scenario: typeof RECORD_SCENARIOS[number]) {
   const details = [
     `${scenario.domain} · ${scenario.contact.name}, ${scenario.contact.role}`,
     `ARR ${f[2]!.val} · ${f[3]!.val} · ${f[4]!.val} · Tech: ${f[5]!.val.split(" · ")[0]}`,
-    `Score ${f[7]!.val.split(" ")[0]}/100 · High intent · stage: Discovery → Proposal · owner: you`,
+    `Relationship health ${f[7]!.val.split(" ")[0]}/100 · stage: Discovery → Proposal · owner: you`,
     "Step 1 sent · 4-step cadence · open tracked",
     "Slack notified · Record updated · owner pinged",
-    `${scenario.quoteId} created · ${scenario.quoteAmount} · sent to ${scenario.contact.email} · pending review`,
+    `${scenario.quoteId} drafted · ${scenario.quoteAmount} · for ${scenario.contact.email} · awaiting your approval`,
   ];
   return STEP_TEMPLATE.map((s, i) => ({ ...s, detail: details[i]! }));
 }
@@ -609,7 +609,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Does Mondaily handle invoicing and finance, or is that a separate tool?",
-    a: "It's built in. Quotes, invoices, and expense tracking live in the same workspace as your pipeline, so a won deal can trigger a quote automatically without exporting anything to a separate finance app.",
+    a: "It's built in. Quotes, invoices, and expense tracking live on the same workspace graph as your records — no exporting to a separate finance app. The Finance Agent drafts invoice reminders and credit note adjustments and queues them in your Decision Queue; you approve before anything sends. Deal-stage-triggered quote drafting is on the roadmap, not shipped yet.",
   },
   {
     q: "What integrations does Mondaily support?",
@@ -901,20 +901,20 @@ const FLOW_NODES = [
   {
     id: "score",
     type: "action" as const,
-    tag: "AI · Score",
-    label: "Score deal intent",
-    sub: "AI reads activity, signals, ARR — outputs 0–100",
+    tag: "AI · Relationship health",
+    label: "Update relationship health",
+    sub: "Real backend field — recency, open loops, activity — 0–100",
     delay: 600,
   },
   {
     id: "condition",
     type: "condition" as const,
     tag: "Condition",
-    label: "Score ≥ 70?",
-    sub: "Route high-intent vs nurture",
+    label: "Health ≥ 70?",
+    sub: "Route high-engagement vs nurture",
     delay: 1200,
     branches: [
-      { label: "High intent", col: "#4f46e5" },
+      { label: "High engagement", col: "#4f46e5" },
       { label: "Nurture", col: "#27272a" },
     ],
   },
@@ -932,7 +932,7 @@ const FLOW_NODES = [
     type: "action" as const,
     tag: "Automations",
     label: "Notify team on Slack",
-    sub: '#deals · "High-intent deal — acme.com · 84/100"',
+    sub: '#signals · "High relationship health — acme.com"',
     delay: 2500,
     branch: "left" as const,
   },
@@ -940,8 +940,8 @@ const FLOW_NODES = [
     id: "finance",
     type: "action" as const,
     tag: "Finance",
-    label: "Create quote",
-    sub: "INV-0031 · £8,400 · sent to sarah@acme.com",
+    label: "Quote drafted",
+    sub: "INV-0031 · £8,400 · queued for your approval",
     delay: 3100,
     branch: "left" as const,
   },
@@ -1017,10 +1017,11 @@ function AutomationFlow() {
     >
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// how.the.graph.works</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
-        <span className="text-amber-500">{">"}</span> Build once. Run on every object, forever.
+        <span className="text-amber-500">{">"}</span> Design once. Apply to every object on the graph.
       </h2>
       <p className="mb-6 font-mono text-[13px] text-zinc-500">
-        Visual flows that trigger on real graph events — no code, no ops overhead.
+        Visual flows built on real graph events — no code required. Today a human reviews and runs each
+        one; autonomous execution is on the <a href="/roadmap" className="text-indigo-500 hover:underline">roadmap</a>.
       </p>
 
       {/* Plain-language framing — the full lifecycle of an object in the graph, not a technical diagram */}
@@ -1106,7 +1107,7 @@ function AutomationFlow() {
             { before: "Manual scoring in a spreadsheet", after: "AI scores relationships automatically, daily", icon: "◈" },
             { before: "Forgetting to follow up",         after: "Sequences enroll without manual setup",   icon: "◈" },
             { before: "Chasing your team for updates",   after: "Notified the moment a signal fires",icon: "◈" },
-            { before: "Finance chasing the deal owner",  after: "Quote drafted and ready to send",  icon: "◈" },
+            { before: "Finance chasing the deal owner",  after: "Quote drafted, waiting on your approval", icon: "◈" },
           ].map((row, i) => (
             <motion.div
               key={i}
@@ -2513,9 +2514,9 @@ function CookieBanner() {
               </button>
             </div>
             <div className="flex items-center gap-2 border-t border-black/[.05] px-6 py-3">
-              <a href="/legal/privacy" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Privacy policy</a>
+              <a href="/privacy" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Privacy policy</a>
               <span className="text-zinc-200">·</span>
-              <a href="/legal/terms" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Terms</a>
+              <a href="/terms" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Terms</a>
               <div className="ml-auto flex items-center gap-2">
                 <button onClick={decline} className="rounded-xl border border-black/[.08] px-4 py-1.5 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
                   Decline
@@ -2802,8 +2803,7 @@ export function LandingPage() {
             <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 font-mono text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
               <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/>
-                All systems operational
+                System status
               </a>
             </div>
           </div>

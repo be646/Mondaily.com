@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, Download, Zap, Users } from "lucide-react";
-import { apiClient } from "../../../lib/api-client";
+import { apiClient, BASE_URL } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
 interface Invoice { id: string; date: string; amount: number; pdf_url: string }
@@ -50,7 +50,7 @@ export function BillingSettings() {
               </p>
             </div>
             <button
-              onClick={() => { window.location.href = "/api/v1/billing/portal"; }}
+              onClick={() => { window.location.href = `${BASE_URL}/api/v1/billing/portal`; }}
               className="flex shrink-0 items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
@@ -93,7 +93,7 @@ export function BillingSettings() {
               <p className="text-xs text-slate-500">Billing currency: USD</p>
             </div>
             <button
-              onClick={() => { window.location.href = "/api/v1/billing/portal"; }}
+              onClick={() => { window.location.href = `${BASE_URL}/api/v1/billing/portal`; }}
               className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               Update

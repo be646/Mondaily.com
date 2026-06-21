@@ -61,7 +61,8 @@ export function StepPlan() {
     if (selected === "enterprise") {
       window.location.href = "mailto:sales@mondaily.com";
     } else if (selected === "pro" || selected === "business") {
-      window.location.href = `/api/v1/billing/checkout?plan=${selected}&interval=month`;
+      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+      window.location.href = `${apiBase}/api/v1/billing/checkout?plan=${selected}&interval=month`;
     } else {
       navigate("/home");
     }

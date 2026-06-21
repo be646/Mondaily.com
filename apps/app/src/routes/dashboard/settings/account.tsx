@@ -2,7 +2,7 @@ import { useClerk, useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, KeyRound, LogOut, Monitor, Moon, Sun, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { apiClient } from "../../../lib/api-client";
+import { apiClient, BASE_URL } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
 type Appearance = "dark" | "light" | "system";
@@ -126,7 +126,7 @@ export function AccountSettings() {
   }
 
   function connect(provider: "gmail" | "outlook") {
-    window.open(`/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
+    window.open(`${BASE_URL}/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
   }
 
   async function deleteAccount() {

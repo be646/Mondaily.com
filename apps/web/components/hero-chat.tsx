@@ -7,14 +7,14 @@ const API_URL = "/api/ask";
 const FEATURE_LINES = [
   { icon: "◆", text: "Enrich any company — ARR, headcount & signals in seconds" },
   { icon: "▣", text: "Ask in plain English — get answers from your live data" },
-  { icon: "▶", text: "Trigger sequences, move opportunities, run workflows via AI" },
+  { icon: "▶", text: "Design workflows and sequences, agents recommend the next step" },
   { icon: "◈", text: "Every object connected to the graph" },
 ];
 
 // Shown as fake user message bubbles — click to fire
 const SUGGESTIONS: { text: string; icon: string }[] = [
   { icon: "◈", text: "How does AI enrichment work?" },
-  { icon: "◈", text: "Walk me through the opportunity flow" },
+  { icon: "◈", text: "Walk me through the opportunity flow on the graph" },
   { icon: "◈", text: "What can Ask AI do?" },
   { icon: "◈", text: "How do automations work?" },
 ];
@@ -175,11 +175,11 @@ export function HeroChat() {
         body: JSON.stringify({ messages }),
       });
       const data = res.ok ? await res.json() as { reply?: string } : null;
-      const answer = data?.reply ?? "Mondaily connects your data, enriches your records, and runs your workflows automatically.";
+      const answer = data?.reply ?? "Mondaily connects your records into one workspace graph, with AI agents that enrich, recommend, and act once you approve.";
       setReply(answer);
       setHistory(prev => [...prev, { q: msg, a: answer }]);
     } catch {
-      setReply("Mondaily connects your data, enriches your records, and runs your workflows automatically.");
+      setReply("Mondaily connects your records into one workspace graph, with AI agents that enrich, recommend, and act once you approve.");
       setHistory(prev => [...prev, { q: msg, a: "Mondaily connects your data." }]);
     }
     setLoading(false);
