@@ -1153,9 +1153,19 @@ const STAGE_STYLE: Record<string, { dot: string; text: string }> = {
 const STAGE_NAMES = ["New", "Qualified", "Proposal", "Negotiation", "Won"] as const;
 type StageName = typeof STAGE_NAMES[number];
 
-type Deal = { id: string; co: string; val: string; who: string; score: number; stage: StageName };
+// Qualitative, honest labels — never a fabricated confidence/score number
+// the app can't actually back. Tied to real stage data, not invented per-card.
+const STAGE_AI_LABEL: Record<StageName, string> = {
+  New: "Agent watching",
+  Qualified: "Signal found",
+  Proposal: "AI-assisted",
+  Negotiation: "Needs review",
+  Won: "Source-backed",
+};
 
-const DEAL_POOL: Omit<Deal, "stage" | "score">[] = [
+type Deal = { id: string; co: string; val: string; who: string; stage: StageName };
+
+const DEAL_POOL: Omit<Deal, "stage">[] = [
   { id: "acme",     co: "Acme Co",    val: "£4.2k",  who: "JS" },
   { id: "globex",   co: "Globex",     val: "£1.8k",  who: "MK" },
   { id: "initech",  co: "Initech",    val: "£12k",   who: "AR" },
@@ -1166,13 +1176,13 @@ const DEAL_POOL: Omit<Deal, "stage" | "score">[] = [
 ];
 
 const INITIAL_DEALS: Deal[] = [
-  { ...DEAL_POOL[0]!, score: 62, stage: "New" },
-  { ...DEAL_POOL[1]!, score: 54, stage: "New" },
-  { ...DEAL_POOL[2]!, score: 81, stage: "Qualified" },
-  { ...DEAL_POOL[3]!, score: 71, stage: "Qualified" },
-  { ...DEAL_POOL[4]!, score: 92, stage: "Proposal" },
-  { ...DEAL_POOL[5]!, score: 76, stage: "Negotiation" },
-  { ...DEAL_POOL[6]!, score: 97, stage: "Won" },
+  { ...DEAL_POOL[0]!, stage: "New" },
+  { ...DEAL_POOL[1]!, stage: "New" },
+  { ...DEAL_POOL[2]!, stage: "Qualified" },
+  { ...DEAL_POOL[3]!, stage: "Qualified" },
+  { ...DEAL_POOL[4]!, stage: "Proposal" },
+  { ...DEAL_POOL[5]!, stage: "Negotiation" },
+  { ...DEAL_POOL[6]!, stage: "Won" },
 ];
 
 const NEXT_STAGE: Record<StageName, StageName | null> = {
@@ -1194,13 +1204,13 @@ function HeroPipelinePreview() {
           setGlowId(pick.id);
           setActivity(`AI logged ${pick.co} as won — starting a new deal`);
           setTimeout(() => setGlowId(null), 1200);
-          return prev.map(d => (d.id === pick.id ? { ...fresh, id: pick.id, score: Math.floor(40 + Math.random() * 25), stage: "New" } : d));
+          return prev.map(d => (d.id === pick.id ? { ...fresh, id: pick.id, stage: "New" } : d));
         }
         const next = NEXT_STAGE[pick.stage]!;
         setGlowId(pick.id);
         setActivity(`AI moved ${pick.co} → ${next}`);
         setTimeout(() => setGlowId(null), 1200);
-        return prev.map(d => (d.id === pick.id ? { ...d, stage: next, score: Math.min(99, d.score + 6) } : d));
+        return prev.map(d => (d.id === pick.id ? { ...d, stage: next } : d));
       });
     }, 2800);
     return () => clearInterval(t);
@@ -1226,7 +1236,7 @@ function HeroPipelinePreview() {
           transition={{ duration: 1.8, repeat: Infinity }}
           className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
         />
-        <span className="font-mono text-[11px] text-indigo-500">auto-scored by AI</span>
+        <span className="font-mono text-[11px] text-indigo-500">agent-monitored</span>
       </div>
 
       {/* Stats bar */}
@@ -1252,12 +1262,15 @@ function HeroPipelinePreview() {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-5 gap-3 p-4 text-left">
+      {/* Scrolls horizontally on narrow viewports instead of cramming 5
+          fixed columns into the width — was overlapping stage labels at
+          mobile widths. */}
+      <div className="flex gap-3 overflow-x-auto p-4 text-left sm:grid sm:grid-cols-5" style={{ scrollbarWidth: "none" }}>
         {STAGE_NAMES.map(stageName => {
           const style = STAGE_STYLE[stageName]!;
           const colDeals = deals.filter(d => d.stage === stageName);
           return (
-            <div key={stageName} className="flex flex-col gap-2 rounded-lg border border-zinc-200/50 bg-black/[.01]">
+            <div key={stageName} className="flex min-w-[136px] shrink-0 flex-col gap-2 rounded-lg border border-zinc-200/50 bg-black/[.01] sm:min-w-0 sm:shrink">
               <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-200/50">
                 <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`}/>
@@ -1288,7 +1301,7 @@ function HeroPipelinePreview() {
                         <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-zinc-200 font-mono text-[8px] text-zinc-500">{d.who}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] text-zinc-400">AI score {d.score}%</span>
+                        <span className="font-mono text-[10px] text-zinc-400">{STAGE_AI_LABEL[d.stage]}</span>
                         <span className="font-mono text-[11px] text-indigo-500">{d.val}</span>
                       </div>
                     </motion.div>
@@ -1411,12 +1424,12 @@ function InvoiceBoardPreview() {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 p-4 text-left">
+      <div className="flex gap-3 overflow-x-auto p-4 text-left sm:grid sm:grid-cols-4" style={{ scrollbarWidth: "none" }}>
         {INVOICE_STAGE_NAMES.map(stageName => {
           const style = INVOICE_STAGE_STYLE[stageName]!;
           const colInvoices = invoices.filter(d => d.stage === stageName);
           return (
-            <div key={stageName} className="flex flex-col gap-2 rounded-lg border border-zinc-200/50 bg-black/[.01]">
+            <div key={stageName} className="flex min-w-[136px] shrink-0 flex-col gap-2 rounded-lg border border-zinc-200/50 bg-black/[.01] sm:min-w-0 sm:shrink">
               <div className="flex items-center justify-between px-2.5 py-2 border-b border-zinc-200/50">
                 <span className={`inline-flex items-center gap-1.5 rounded-md border border-black/[.05] bg-zinc-100/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold ${style.text}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`}/>
@@ -1852,16 +1865,35 @@ function AgentsSection() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
-    <section id="agents" className="mx-auto max-w-6xl px-6 py-20">
+    <section id="agents" className="relative mx-auto max-w-6xl px-6 py-20">
       <div className="mb-2 font-mono text-[14px] text-zinc-500 tracking-widest uppercase">// agents.active</div>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         <span className="text-violet-500">{">"}</span> Agents operating across your graph
       </h2>
-      <p className="mb-10 font-mono text-[13px] text-zinc-500">
+      <p className="mb-8 font-mono text-[13px] text-zinc-500">
         Not bots bolted onto a CRM — a team of always-on agents that read, reason over, and act on your workspace graph. Click one to see it work.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Central graph node — agents are spokes off the same workspace graph,
+          not a row of unrelated SaaS feature cards. Purely decorative
+          (pointer-events-none), so it can never break layout or block clicks. */}
+      <div className="relative mb-2 hidden flex-col items-center sm:flex" aria-hidden="true">
+        <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-violet-500/25 bg-violet-500/[.06]">
+          <motion.span
+            animate={{ opacity: [0.35, 0.8, 0.35], scale: [1, 1.25, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity }}
+            className="absolute inset-0 rounded-full border border-violet-500/30"
+          />
+          <span className="font-mono text-[10px] font-semibold text-violet-600">graph</span>
+        </div>
+        {/* Connector spine — a single line dropping from the hub into the
+            grid; ambient and schematic, not pinned to exact card positions
+            (which would break across responsive column counts). */}
+        <div className="h-8 w-px bg-gradient-to-b from-violet-400/40 to-transparent"/>
+        <div className="absolute top-[52px] h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-violet-400/25 to-transparent"/>
+      </div>
+
+      <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-3">
         {AGENTS.map((agent, i) => {
           const open = openIdx === i;
           return (
@@ -1874,12 +1906,18 @@ function AgentsSection() {
               transition={{ duration: 0.4, delay: i * 0.07 }}
               whileHover={{ y: -3 }}
               onClick={() => setOpenIdx(open ? null : i)}
-              className="cursor-pointer rounded-xl border p-5 transition-colors"
+              className="relative cursor-pointer overflow-hidden rounded-xl border p-5 transition-colors"
               style={{
                 borderColor: open ? `${agent.accent}40` : "rgba(0,0,0,.05)",
                 background: open ? `${agent.accent}08` : "#ffffff",
               }}
             >
+              {/* Short connector stub at the top of each card — echoes the
+                  hub line above so each node reads as "plugged into the
+                  graph" rather than a standalone card. Hidden on mobile
+                  along with the hub, so nothing can overflow narrow widths. */}
+              <div className="absolute left-1/2 top-0 hidden h-2 w-px -translate-x-1/2 sm:block" style={{ background: `${agent.accent}45` }} aria-hidden="true"/>
+
               <div className="mb-3 flex items-center gap-3">
                 <span
                   className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px]"
@@ -2457,7 +2495,7 @@ function CookieBanner() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 w-full max-w-xl px-4"
+          className="fixed inset-x-0 bottom-6 z-50 mx-auto w-full max-w-xl px-4"
         >
           <div className="rounded-2xl border border-black/[.07] bg-white shadow-[0_24px_64px_rgba(0,0,0,0.10)] overflow-hidden">
             <div className="flex items-start gap-4 px-6 py-5">

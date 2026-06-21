@@ -209,14 +209,20 @@ export function HeroChat() {
           transition={{ duration: loading ? 1.0 : 3.5, repeat: Infinity, ease: "easeInOut" }}
           style={{ border: "1px solid rgba(99,102,241,0.18)", background: "#ffffff" }}
         >
-          {/* Source chips — what Ask Mondaily actually reads from */}
-          <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3.5 pb-2.5">
-            <span className="shrink-0 text-[11px] text-zinc-400">Reads from</span>
-            {SOURCE_CHIPS.map(s => (
-              <span key={s} className="shrink-0 rounded-full border border-indigo-100 bg-indigo-50/70 px-2.5 py-0.5 text-[11px] font-medium text-indigo-600">
-                {s}
-              </span>
-            ))}
+          {/* Source chips — what Ask Mondaily actually reads from. Scrolls
+              on narrow widths rather than overflowing; the gradient mask
+              makes that scrollability visible instead of looking like a
+              cut-off layout bug. */}
+          <div className="relative">
+            <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3.5 pb-2.5" style={{ scrollbarWidth: "none" }}>
+              <span className="shrink-0 text-[11px] text-zinc-400">Reads from</span>
+              {SOURCE_CHIPS.map(s => (
+                <span key={s} className="shrink-0 rounded-full border border-indigo-100 bg-indigo-50/70 px-2.5 py-0.5 text-[11px] font-medium text-indigo-600">
+                  {s}
+                </span>
+              ))}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 sm:hidden" style={{ background: "linear-gradient(to right, transparent, #ffffff)" }}/>
           </div>
 
           {/* Suggestion messages — shown when idle, no history */}
