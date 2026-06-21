@@ -16,6 +16,7 @@ import { StepPlan } from "./routes/onboarding/step-plan";
 import { OnboardingPage } from "./routes/onboarding";
 import { DashboardLayout } from "./routes/dashboard/layout";
 import { HomePage } from "./routes/dashboard/home";
+import { StatusPage } from "./routes/dashboard/status";
 import { NotificationsPage } from "./routes/dashboard/notifications";
 import { TasksPage } from "./routes/dashboard/tasks";
 import { NotesPage } from "./routes/dashboard/notes";
@@ -98,6 +99,7 @@ export function App() {
       <Route path="/" element={<DashboardRoute><DashboardLayout /></DashboardRoute>}>
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<HomePage />} />
+        <Route path="status" element={<StatusPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="notes" element={<NotesPage />} />

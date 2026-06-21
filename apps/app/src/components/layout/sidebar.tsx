@@ -68,6 +68,12 @@ const MORE_NAV: { label: string; items: { to: string; label: string; icon: React
       { to: "/canvas", label: "Canvas", icon: Layers },
     ],
   },
+  {
+    label: "System",
+    items: [
+      { to: "/status", label: "Status", icon: Activity },
+    ],
+  },
 ];
 
 // ─── Getting Started checklist ────────────────────────────────────────────────

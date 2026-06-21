@@ -1,0 +1,294 @@
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, CircleSlash, HelpCircle, Network, Sparkles } from "lucide-react";
+import { apiClient } from "../../lib/api-client";
+import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
+
+/**
+ * Workspace Status — the honest "what's real today" page. Live System
+ * Status and Migrations come from a real backend probe (GET
+ * /api/v1/status, packages/api/src/routes/status.ts). The Feature
+ * Reality Matrix, Agent Capability Board, Recent Updates, and What's
+ * Next sections are code-backed (written from this codebase's actual
+ * routes/jobs as of this change) rather than live-queried, because there
+ * is no feature-flag registry or version-metadata endpoint to read from
+ * yet — that limitation is stated on the page itself, not hidden.
+ */
+
+type CheckState = "operational" | "needs_setup" | "disabled" | "error" | "not_checked";
+
+interface Check { id: string; label: string; state: CheckState; explanation: string; }
+interface Migration { id: string; label: string; applied: boolean; required: boolean; breaks_if_missing: string; }
+interface StatusResponse { checked_at: string; checks: Check[]; migrations: Migration[]; }
+
+const STATE_META: Record<CheckState, { label: string; color: string; icon: React.ElementType }> = {
+  operational:  { label: "Operational",   color: "#10b981", icon: CheckCircle2 },
+  needs_setup:  { label: "Needs setup",   color: "#d97706", icon: AlertTriangle },
+  disabled:     { label: "Disabled",      color: "var(--text-faint)", icon: CircleSlash },
+  error:        { label: "Error",         color: "#dc2626", icon: AlertTriangle },
+  not_checked:  { label: "Not checked yet", color: "var(--text-faint)", icon: HelpCircle },
+};
+
+function StatusDot({ color }: { color: string }) {
+  return <span className="inline-flex h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />;
+}
+
+// ── Feature Reality Matrix — code-backed, not live-queried. Status values
+// reflect what actually exists in this codebase today (routes, jobs,
+// frontend wiring), audited as part of this change. ──────────────────────
+type FeatureStatus = "live" | "partial" | "needs_configuration" | "planned" | "not_built";
+const FEATURE_STATUS_META: Record<FeatureStatus, { label: string; color: string }> = {
+  live:                 { label: "Live",                 color: "#10b981" },
+  partial:               { label: "Partial",              color: "#3b82f6" },
+  needs_configuration:    { label: "Needs configuration",  color: "#d97706" },
+  planned:                { label: "Planned",              color: "#8b5cf6" },
+  not_built:              { label: "Not built",            color: "var(--text-faint)" },
+};
+
+interface FeatureRow { feature: string; status: FeatureStatus; inApp: boolean; backendReady: boolean; needsSetup: boolean; notes: string; }
+const FEATURES: FeatureRow[] = [
+  { feature: "Ask Mondaily memory/context", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Thread history + context store, real source-backed answers." },
+  { feature: "Source cards", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Every Ask/Decision Queue answer shows the real records or evidence behind it." },
+  { feature: "Action chips", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Create task / draft message / explain reasoning — real tool calls, not canned text." },
+  { feature: "Lists", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Create, share, bulk-add, AI-match, and Find from web." },
+  { feature: "Sheets/table bulk actions", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Bulk edit, assign, add to list, delete, Find similar from web." },
+  { feature: "Enrichment of existing records", status: "live", inApp: true, backendReady: true, needsSetup: true, notes: "Real Inngest job + Claude extraction — needs ANTHROPIC_API_KEY and TAVILY_API_KEY." },
+  { feature: "Web prospecting / Prospecting Agent", status: "live", inApp: true, backendReady: true, needsSetup: true, notes: "Tavily search + Claude extraction + dedupe + Decision Queue approval. Needs both API keys." },
+  { feature: "Decision Queue", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Real approve/reject/snooze, real downstream actions for invoice-chase and prospecting." },
+  { feature: "Tasks", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Full CRUD, reviews, assignment, AI-sorted home widget." },
+  { feature: "Finance invoices", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Invoice CRUD + chasing via Decision Queue approval." },
+  { feature: "Reports", status: "partial", inApp: true, backendReady: true, needsSetup: false, notes: "Saved reports run real computed data; report *creation* from Ask has no tool yet." },
+  { feature: "Automations", status: "partial", inApp: true, backendReady: true, needsSetup: false, notes: "Design + manual run only — no autonomous trigger→condition→action execution engine exists yet." },
+  { feature: "Email sync", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Nylas-backed; needs NYLAS_API_KEY and a connected inbox." },
+  { feature: "Calls", status: "partial", inApp: true, backendReady: true, needsSetup: true, notes: "Call log + AI transcript summary exist; needs ANTHROPIC_API_KEY for summaries." },
+  { feature: "Voice commands", status: "not_built", inApp: false, backendReady: false, needsSetup: false, notes: "No voice input anywhere yet — Ask Mondaily shows a disabled mic with \"coming soon\"." },
+  { feature: "MCP / API", status: "partial", inApp: false, backendReady: true, needsSetup: false, notes: "REST API exists and is documented at /docs on the public site; no MCP server is implemented yet." },
+  { feature: "Workspace isolation", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Every route filters by workspace_id behind requireAuth; RLS policies match." },
+  { feature: "Billing checkout/portal", status: "not_built", inApp: true, backendReady: false, needsSetup: true, notes: "Frontend links exist; no /api/v1/billing/portal or /checkout route exists in the API yet — these will 404." },
+];
+
+// ── Recent Updates — manual log. No git/version-metadata endpoint exists
+// yet to auto-populate this; that's a real gap, not hidden. ─────────────
+interface UpdateEntry { date: string; title: string; area: string; impact: string; status: "shipped" | "pending_deploy" | "needs_migration" | "needs_setup"; }
+const UPDATES: UpdateEntry[] = [
+  { date: "2026-06-21", title: "Home rebuilt as an AI control room", area: "Home, Agent Constellation, Command Center", impact: "Radial agent map, unified attention stream, command-room band replace the old card-grid dashboard.", status: "shipped" },
+  { date: "2026-06-21", title: "Prospecting Agent shipped", area: "packages/api/src/routes/prospecting.ts, Ask tool, Lists, Records table", impact: "Web-search-backed candidate discovery with dedupe and Decision Queue approval.", status: "shipped" },
+  { date: "2026-06-21", title: "Landing positioning + dead-link cleanup", area: "apps/web landing page, footer pages, API URL bugs", impact: "Removed CRM-first framing and fake AI-score language; fixed billing/integration buttons pointing at the wrong domain.", status: "shipped" },
+  { date: "2026-06-19", title: "Decision Queue + Agent Registry", area: "decision_queue table, /api/v1/agents, /api/v1/decisions", impact: "Real approve/reject/snooze flow backing every agent's \"needs approval\" state.", status: "shipped" },
+];
+
+// ── Agent Capability Board — code-backed against packages/api/src/jobs
+// and packages/api/src/routes/agents.ts as of this change. ──────────────
+interface AgentCapability {
+  name: string; canRead: string; canWrite: string; autonomous: boolean; requiresApproval: boolean; sourcesEvidence: boolean; limitations: string;
+}
+const AGENT_CAPABILITIES: AgentCapability[] = [
+  { name: "Graph Agent", canRead: "Any record, task, finance, or report in the workspace graph", canWrite: "Tasks, notes, lists, decision queue items, workflow drafts (disabled)", autonomous: false, requiresApproval: true, sourcesEvidence: true, limitations: "Conversational only — runs in response to a question, no scheduled job." },
+  { name: "Operations Agent", canRead: "Tasks, overdue/review status", canWrite: "Decision Queue rows for overdue tasks", autonomous: true, requiresApproval: true, sourcesEvidence: true, limitations: "Recommends only — reassigning/rescheduling still requires a human action today." },
+  { name: "Relationship Agent", canRead: "All workspace nodes' activity timestamps", canWrite: "relationship_health field on any node", autonomous: true, requiresApproval: false, sourcesEvidence: true, limitations: "Writes a score directly (no sensitive action) — daily cron, not real-time." },
+  { name: "Finance Agent", canRead: "Invoices, credit notes", canWrite: "Drafted reminders/adjustments, Decision Queue rows", autonomous: true, requiresApproval: true, sourcesEvidence: true, limitations: "Never sends or applies anything without explicit approval." },
+  { name: "Insights Agent (enrichment)", canRead: "New records + the live web (Tavily)", canWrite: "ARR/headcount/tech-stack fields on the record", autonomous: true, requiresApproval: false, sourcesEvidence: true, limitations: "Fires once on record creation only — no re-enrichment job yet." },
+  { name: "Workflow Agent", canRead: "Workflow definitions", canWrite: "Workflow drafts (always disabled)", autonomous: false, requiresApproval: true, sourcesEvidence: false, limitations: "No trigger→condition→action execution engine exists — design/CRUD only." },
+  { name: "Prospecting Agent", canRead: "The live web (Tavily) + existing workspace nodes for dedupe", canWrite: "New nodes or Decision Queue rows", autonomous: true, requiresApproval: true, sourcesEvidence: true, limitations: "Every candidate requires a real source URL — drops anything it can't trace back to a search result." },
+];
+
+// ── What's next — prioritized, code-backed roadmap. ──────────────────────
+const ROADMAP: { tier: string; tone: string; items: string[] }[] = [
+  { tier: "Must fix before clients", tone: "#dc2626", items: [
+    "Build /api/v1/billing/portal and /checkout — the billing UI currently links to routes that don't exist.",
+    "Decide and communicate Inngest's production signing-key setup so background jobs are confirmed running, not just registered.",
+  ] },
+  { tier: "Should improve", tone: "#d97706", items: [
+    "Re-enrichment on demand, not just on record creation.",
+    "Auto-detect Recent Updates from deploy/commit metadata instead of a manual log.",
+    "MCP server for third-party AI clients.",
+  ] },
+  { tier: "Future AI-native upgrades", tone: "#8b5cf6", items: [
+    "Real trigger→condition→action execution engine for the Workflow Agent.",
+    "Deal-stage-triggered quote drafting (Finance Agent).",
+    "Voice input for Ask Mondaily.",
+  ] },
+];
+
+function useStatus() {
+  return useQuery({
+    queryKey: ["status"],
+    queryFn: () => apiClient.get<StatusResponse>("/status"),
+    refetchInterval: 60_000,
+    retry: false,
+  });
+}
+
+export function StatusPage() {
+  const { data, isLoading, isError, error } = useStatus();
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-10">
+      <PageHeader title="Workspace Status" description="What's real today, what changed recently, and what's next." />
+
+      {/* ── 1. Live System Status ── */}
+      <section className="mb-10">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Live system status</h2>
+          {data?.checked_at && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Last checked {new Date(data.checked_at).toLocaleTimeString()} · refreshes every 60s</span>}
+        </div>
+        {isLoading ? (
+          <div className="skeleton-shimmer h-48 rounded-2xl"/>
+        ) : isError ? (
+          <div className="surface-card rounded-2xl p-4 text-[12.5px]" style={{ color: "var(--text-faint)" }}>
+            Couldn't reach the status endpoint: {(error as Error)?.message ?? "unknown error"}. The API itself may be down — that's a real signal, not hidden.
+          </div>
+        ) : (
+          <div className="surface-card rounded-2xl">
+            {data!.checks.map(check => {
+              const meta = STATE_META[check.state];
+              return (
+                <div key={check.id} className="stream-row" style={{ borderLeft: `2px solid ${meta.color}` }}>
+                  <meta.icon size={14} className="mt-0.5 shrink-0" style={{ color: meta.color }}/>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{check.label}</p>
+                      <span className="shrink-0 text-[10.5px] font-medium" style={{ color: meta.color }}>{meta.label}</span>
+                    </div>
+                    <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{check.explanation}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── 2. Feature Reality Matrix ── */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Feature reality matrix</h2>
+        <div className="surface-card overflow-x-auto rounded-2xl">
+          <table className="w-full text-left text-[12px]">
+            <thead>
+              <tr style={{ borderBottom: "1px solid var(--border-soft)" }}>
+                {["Feature", "Status", "In app", "Backend ready", "Needs setup", "Notes"].map(h => (
+                  <th key={h} className="whitespace-nowrap px-3.5 py-2.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {FEATURES.map(f => {
+                const meta = FEATURE_STATUS_META[f.status];
+                return (
+                  <tr key={f.feature} style={{ borderBottom: "1px solid var(--border-soft)" }}>
+                    <td className="whitespace-nowrap px-3.5 py-2.5 font-medium" style={{ color: "var(--text-primary)" }}>{f.feature}</td>
+                    <td className="whitespace-nowrap px-3.5 py-2.5">
+                      <span className="inline-flex items-center gap-1.5"><StatusDot color={meta.color}/><span style={{ color: meta.color }}>{meta.label}</span></span>
+                    </td>
+                    <td className="px-3.5 py-2.5">{f.inApp ? "Yes" : "—"}</td>
+                    <td className="px-3.5 py-2.5">{f.backendReady ? "Yes" : "—"}</td>
+                    <td className="px-3.5 py-2.5">{f.needsSetup ? "Yes" : "—"}</td>
+                    <td className="min-w-[260px] px-3.5 py-2.5" style={{ color: "var(--text-secondary)" }}>{f.notes}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── 3. Recent Updates ── */}
+      <section className="mb-10">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Recent updates</h2>
+          <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Manual log — no git/version-metadata endpoint exists yet</span>
+        </div>
+        <div className="surface-card rounded-2xl">
+          {UPDATES.map((u, i) => (
+            <div key={i} className="stream-row">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
+                <Sparkles size={11} style={{ color: "var(--accent)" }}/>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{u.title}</p>
+                  <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{u.date}</span>
+                  <span className="rounded-full px-1.5 py-px text-[9.5px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{u.status.replace("_", " ")}</span>
+                </div>
+                <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{u.impact}</p>
+                <p className="mt-0.5 text-[10px]" style={{ color: "var(--text-faint)" }}>{u.area}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 4. Migrations & Setup Required ── */}
+      <section className="mb-10">
+        <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Migrations & setup required</h2>
+        {isLoading ? (
+          <div className="skeleton-shimmer h-28 rounded-2xl"/>
+        ) : isError ? (
+          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>Could not check migration status — see Live system status above.</p>
+        ) : (
+          <div className="surface-card rounded-2xl">
+            {data!.migrations.map(m => (
+              <div key={m.id} className="stream-row" style={{ borderLeft: `2px solid ${m.applied ? "#10b981" : "#dc2626"}` }}>
+                {m.applied ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: "#10b981" }}/> : <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "#dc2626" }}/>}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{m.label}</p>
+                    <span className="shrink-0 text-[10.5px] font-medium" style={{ color: m.applied ? "#10b981" : "#dc2626" }}>{m.applied ? "Applied" : "Not applied"}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{m.required ? "Required. " : "Optional. "}If missing: {m.breaks_if_missing}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── 5. Agent Capability Board ── */}
+      <section className="mb-10">
+        <div className="mb-3 flex items-center gap-2">
+          <Network size={13} style={{ color: "var(--text-muted)" }}/>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent capability board</h2>
+        </div>
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {AGENT_CAPABILITIES.map(a => (
+            <div key={a.name} className="surface-card rounded-2xl p-4">
+              <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{a.name}</p>
+              <dl className="mt-2 space-y-1 text-[11px]">
+                <div className="flex gap-2"><dt className="shrink-0 font-medium" style={{ color: "var(--text-faint)" }}>Reads:</dt><dd style={{ color: "var(--text-secondary)" }}>{a.canRead}</dd></div>
+                <div className="flex gap-2"><dt className="shrink-0 font-medium" style={{ color: "var(--text-faint)" }}>Writes:</dt><dd style={{ color: "var(--text-secondary)" }}>{a.canWrite}</dd></div>
+              </dl>
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.autonomous ? "rgba(16,185,129,0.1)" : "var(--surface-hover)", color: a.autonomous ? "#10b981" : "var(--text-faint)" }}>{a.autonomous ? "Runs autonomously" : "Manual trigger only"}</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.requiresApproval ? "rgba(217,119,6,0.1)" : "var(--surface-hover)", color: a.requiresApproval ? "#d97706" : "var(--text-faint)" }}>{a.requiresApproval ? "Requires approval" : "No approval needed"}</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.sourcesEvidence ? "rgba(59,130,246,0.1)" : "var(--surface-hover)", color: a.sourcesEvidence ? "#3b82f6" : "var(--text-faint)" }}>{a.sourcesEvidence ? "Source-backed" : "No evidence trail"}</span>
+              </div>
+              <p className="mt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Limitation: {a.limitations}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 6. What's next ── */}
+      <section>
+        <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>What's next</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {ROADMAP.map(col => (
+            <div key={col.tier} className="surface-card rounded-2xl p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <StatusDot color={col.tone}/>
+                <p className="text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{col.tier}</p>
+              </div>
+              <ul className="space-y-1.5">
+                {col.items.map(item => (
+                  <li key={item} className="flex items-start gap-1.5 text-[11.5px]" style={{ color: "var(--text-secondary)" }}>
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
