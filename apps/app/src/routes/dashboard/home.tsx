@@ -386,12 +386,12 @@ export function HomePage() {
   const sourcesChecked = !notificationsQuery.isLoading && !notificationsQuery.isError;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
+    <div className="home-control-room mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. ── */}
-      <div className="command-room relative -mx-6 -mt-10 mb-8 overflow-hidden px-6 pb-6 pt-8 sm:px-10">
+      <div className="command-room relative -mx-4 -mt-8 mb-6 overflow-hidden px-4 pb-6 pt-7 sm:-mx-6 sm:px-8 lg:-mx-8 lg:px-10">
         {/* Ambient graph-line backdrop — purely decorative, agents "working
             behind the scenes" feel without literal terminal text. */}
         <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[.35]" preserveAspectRatio="none" viewBox="0 0 400 120" aria-hidden="true">
@@ -412,8 +412,8 @@ export function HomePage() {
           {/* Left: greeting + tagline + live status pills */}
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
-            <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
-            <p className="mt-1 max-w-md text-[13px]" style={{ color: "var(--text-muted)" }}>
+            <h1 className="text-[28px] font-semibold tracking-tight sm:text-[34px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
+            <p className="mt-1 max-w-2xl text-[13px] sm:text-sm" style={{ color: "var(--text-muted)" }}>
               Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
             </p>
           </div>
@@ -477,7 +477,18 @@ export function HomePage() {
           room, since it's the primary entry point into the workspace
           graph. No boxed background — blends into the page; the input
           field itself keeps a subtle bordered pill. ── */}
-      <section ref={askSectionRef} className="mb-8 relative">
+      {(notificationsQuery.isError || decisionsQuery.isError) && (
+        <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/[.07] px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          Could not load activity. Some agent and decision signals may be missing.
+        </div>
+      )}
+
+      <section ref={askSectionRef} className="home-ask-console ai-console relative mb-8 overflow-hidden rounded-3xl p-4 sm:p-5 lg:p-6">
+        <div className="pointer-events-none absolute inset-0 opacity-60" aria-hidden="true">
+          <div className="absolute left-8 top-0 h-px w-2/3 bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent"/>
+          <div className="absolute bottom-0 right-10 h-px w-1/2 bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent"/>
+        </div>
+        <div className="relative">
         {!isChatting && (
           <div className="mb-5">
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -704,38 +715,66 @@ export function HomePage() {
             <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">Open full chat →</Link>
           </div>
         )}
+        </div>
       </section>
 
-      {/* ── Agent Constellation — the visual heart of Home, right under
-          Ask Mondaily it's powering answers for. ── */}
+      <section className="operating-picture mb-8">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
+            <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>What the workspace graph sees now</h2>
+          </div>
+          <p className="max-w-xl text-sm" style={{ color: "var(--text-muted)" }}>
+            Live graph counts, agent findings, and source-backed attention signals in one view.
+          </p>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-[1.08fr_.92fr]">
+          <div className="control-zone">
+            <WorkspaceGraphPulse />
+          </div>
+          <div className="control-zone">
+            <CommandCenterStrip
+              tasks={tasksQuery.data ?? []}
+              notifications={notificationsQuery.data ?? []}
+              checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
+              onAskMondaily={(prefill) => {
+                askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                // A specific question (e.g. "Ask what changed") sends immediately
+                // instead of just filling the box — the user already said what
+                // they want, so don't make them click twice. The generic header
+                // "Ask Mondaily" button (no prefill) just focuses the input.
+                if (prefill) doSend(prefill);
+                else inputRef.current?.focus();
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Agent Constellation — the visual heart of Home, now between the
+          operating picture and the work stream it influences. ── */}
       <AgentConstellationPanel />
 
-      {/* ── Operating Picture — what needs attention, decisions waiting,
-          and workspace graph health. ── */}
-      <CommandCenterStrip
-        tasks={tasksQuery.data ?? []}
-        notifications={notificationsQuery.data ?? []}
-        checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
-        onAskMondaily={(prefill) => {
-          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          // A specific question (e.g. "Ask what changed") sends immediately
-          // instead of just filling the box — the user already said what
-          // they want, so don't make them click twice. The generic header
-          // "Ask Mondaily" button (no prefill) just focuses the input.
-          if (prefill) doSend(prefill);
-          else inputRef.current?.focus();
-        }}
-      />
-      <DecisionQueuePanel />
-      <WorkspaceGraphPulse />
-
-      {/* ── Today's Flow — tasks/meetings as supporting panels, not the
-          headline of the page. ── */}
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
-      <div className="grid gap-4 md:grid-cols-2 mb-8">
+      {/* ── Attention + Today's Flow — decisions and work stay practical,
+          but the layout reads as one control surface rather than loose cards. ── */}
+      <section className="mb-8">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Attention stream</p>
+            <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Decisions, tasks, and meetings</h2>
+          </div>
+          <p className="max-w-lg text-sm" style={{ color: "var(--text-muted)" }}>
+            Keep approvals visible while today’s work stays one click away.
+          </p>
+        </div>
+        <div className="grid gap-4 xl:grid-cols-[.95fr_1.05fr]">
+          <div className="control-zone">
+            <DecisionQueuePanel />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
 
         {/* Tasks card */}
-        <section className="surface-card flex flex-col rounded-2xl overflow-hidden">
+        <section className="surface-card flow-panel flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-emerald-400"/>
@@ -753,7 +792,7 @@ export function HomePage() {
             {tasksQuery.isLoading ? (
               <div className="p-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
-              <div className="p-4"><ErrorState error={tasksQuery.error as Error} onRetry={() => tasksQuery.refetch()}/></div>
+              <div className="p-4"><ErrorState error={new Error("Could not load tasks")} onRetry={() => tasksQuery.refetch()}/></div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                 <Sparkles size={16} className="text-slate-700 mb-2"/>
@@ -822,7 +861,7 @@ export function HomePage() {
         </section>
 
         {/* Meetings card */}
-        <section className="surface-card flex flex-col rounded-2xl overflow-hidden">
+        <section className="surface-card flow-panel flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
             <div className="flex items-center gap-2">
               <Calendar size={13} className="text-blue-400"/>
@@ -834,7 +873,7 @@ export function HomePage() {
             {meetings.isLoading ? (
               <div className="p-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
             ) : meetings.isError ? (
-              <div className="p-4"><ErrorState error={meetings.error as Error} onRetry={() => meetings.refetch()}/></div>
+              <div className="p-4"><ErrorState error={new Error("Could not load meetings")} onRetry={() => meetings.refetch()}/></div>
             ) : meetings.data?.length ? (
               <ul className="divide-y divide-white/[.04]">
                 {meetings.data.map(m => (
@@ -859,7 +898,9 @@ export function HomePage() {
             )}
           </div>
         </section>
-      </div>
+          </div>
+        </div>
+      </section>
 
       {detailTask && (
         <TaskDetailPanel task={detailTask} members={members}

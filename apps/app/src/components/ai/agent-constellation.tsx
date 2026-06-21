@@ -94,6 +94,21 @@ export function AgentConstellationPanel() {
     );
   }
 
+  if (constellation.length === 0) {
+    return (
+      <section className="mb-8">
+        <div className="mb-3 flex items-center gap-2">
+          <Network size={13} style={{ color: "var(--text-muted)" }}/>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent Constellation</h2>
+        </div>
+        <div className="surface-card rounded-2xl px-4 py-8 text-center">
+          <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load agent status</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>The workspace is reachable, but agent telemetry did not return.</p>
+        </div>
+      </section>
+    );
+  }
+
   const liveCount = constellation.filter(a => isLiveState(a.state)).length;
   const n = constellation.length || 1;
   // Radial positions (percent of container), starting at 12 o'clock.
@@ -115,9 +130,11 @@ export function AgentConstellationPanel() {
       </div>
 
       {/* ── Radial map — desktop/tablet ── */}
-      <div className="surface-card relative hidden overflow-hidden rounded-2xl sm:block" style={{ height: 400 }}>
+      <div className="agent-map-surface relative hidden overflow-hidden rounded-3xl sm:block" style={{ height: 430 }}>
         {/* Ambient depth wash behind the graph — purely decorative */}
-        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%)" }}/>
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 62%)" }}/>
+        <div className="pointer-events-none absolute inset-x-8 top-1/2 h-px bg-gradient-to-r from-transparent via-indigo-400/20 to-transparent"/>
+        <div className="pointer-events-none absolute left-1/2 top-8 h-[calc(100%-4rem)] w-px bg-gradient-to-b from-transparent via-cyan-400/15 to-transparent"/>
 
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
           {positions.map((p, i) => {
