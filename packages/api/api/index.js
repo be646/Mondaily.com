@@ -15914,20 +15914,20 @@ var SmartRouter = class {
     let i = 0;
     let res;
     for (; i < len; i++) {
-      const router37 = routers[i];
+      const router38 = routers[i];
       try {
         for (let i2 = 0, len2 = routes.length; i2 < len2; i2++) {
-          router37.add(...routes[i2]);
+          router38.add(...routes[i2]);
         }
-        res = router37.match(method, path);
+        res = router38.match(method, path);
       } catch (e) {
         if (e instanceof UnsupportedPathError) {
           continue;
         }
         throw e;
       }
-      this.match = router37.match.bind(router37);
-      this.#routers = [router37];
+      this.match = router38.match.bind(router38);
+      this.#routers = [router38];
       this.#routes = void 0;
       break;
     }
@@ -55970,6 +55970,41 @@ router36.get("/", async (c) => {
   });
 });
 
+// src/routes/workspaces.ts
+var router37 = new Hono2();
+router37.get("/mine", requireJwt, async (c) => {
+  const userId = c.get("userId");
+  const { data: memberships, error } = await supabase.from("workspace_members").select("workspace_id, role, joined_at, workspaces(id, name, created_at)").eq("user_id", userId);
+  if (error) return c.json({ error: error.message }, 500);
+  const workspaces = await Promise.all(
+    (memberships ?? []).map(async (m) => {
+      const ws = m.workspaces ?? {};
+      const workspaceId = m.workspace_id;
+      const [tasks2, lists, nodes, deals] = await Promise.all([
+        supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("lists").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+        supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("object_type", "deal")
+      ]);
+      return {
+        workspace_id: workspaceId,
+        name: ws.name ?? "Untitled workspace",
+        role: m.role,
+        joined_at: m.joined_at,
+        created_at: ws.created_at ?? null,
+        counts: {
+          tasks: tasks2.count ?? 0,
+          lists: lists.count ?? 0,
+          nodes: nodes.count ?? 0,
+          deals: deals.count ?? 0
+        }
+      };
+    })
+  );
+  workspaces.sort((a, b) => b.counts.tasks + b.counts.lists + b.counts.nodes - (a.counts.tasks + a.counts.lists + a.counts.nodes));
+  return c.json({ workspaces });
+});
+
 // src/app.ts
 var app = new Hono2();
 app.use("*", cors({
@@ -55987,6 +56022,7 @@ app.route("/api/v1/agents", router7);
 app.route("/api/v1/decisions", router8);
 app.route("/api/v1/prospecting", router4);
 app.route("/api/v1/status", router36);
+app.route("/api/v1/workspaces", router37);
 app.route("/api/v1/activities", router9);
 app.route("/api/v1/webhooks", router10);
 app.route("/api/v1/invites", router12);

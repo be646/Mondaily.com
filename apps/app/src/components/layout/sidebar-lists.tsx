@@ -192,7 +192,14 @@ export function SidebarLists() {
         </div>
       )}
 
-      {!myLists.length && !teamLists.length && lists.length === 0 && !query.isLoading && (
+      {query.isError && (
+        <div className="px-3 py-2">
+          <p className="text-[11px] text-rose-400">Couldn't load lists.</p>
+          <button onClick={() => query.refetch()} className="text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors">Retry</button>
+        </div>
+      )}
+
+      {!myLists.length && !teamLists.length && lists.length === 0 && !query.isLoading && !query.isError && (
         <button onClick={() => setOpen(true)} className="w-full px-3 py-2 text-left text-xs text-slate-600 hover:text-slate-400 transition-colors">
           Create your first list
         </button>

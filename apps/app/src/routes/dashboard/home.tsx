@@ -11,7 +11,7 @@ import {
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { PageSkeleton } from "../../components/ui/page-state";
+import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
@@ -740,6 +740,8 @@ export function HomePage() {
           <div className="flex-1">
             {tasksQuery.isLoading ? (
               <div className="p-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
+            ) : tasksQuery.isError ? (
+              <div className="p-4"><ErrorState error={tasksQuery.error as Error} onRetry={() => tasksQuery.refetch()}/></div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                 <Sparkles size={16} className="text-slate-700 mb-2"/>
@@ -819,6 +821,8 @@ export function HomePage() {
           <div className="flex-1">
             {meetings.isLoading ? (
               <div className="p-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
+            ) : meetings.isError ? (
+              <div className="p-4"><ErrorState error={meetings.error as Error} onRetry={() => meetings.refetch()}/></div>
             ) : meetings.data?.length ? (
               <ul className="divide-y divide-white/[.04]">
                 {meetings.data.map(m => (

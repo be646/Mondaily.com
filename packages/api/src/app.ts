@@ -41,6 +41,7 @@ import { tagsRouter } from "./routes/tags";
 import { onboardingRouter } from "./routes/onboarding";
 import { prospectingRouter } from "./routes/prospecting";
 import { statusRouter } from "./routes/status";
+import { workspacesRouter } from "./routes/workspaces";
 
 const app = new Hono();
 
@@ -60,6 +61,7 @@ app.route("/api/v1/agents", agentsRouter);
 app.route("/api/v1/decisions", decisionsRouter);
 app.route("/api/v1/prospecting", prospectingRouter);
 app.route("/api/v1/status", statusRouter);
+app.route("/api/v1/workspaces", workspacesRouter);
 app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/webhooks", webhooksRouter);
 app.route("/api/v1/invites", invitesRouter);
