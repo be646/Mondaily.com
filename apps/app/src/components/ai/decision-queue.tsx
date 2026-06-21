@@ -64,12 +64,15 @@ export function DecisionQueuePanel() {
 
   return (
     <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Decision queue</h2>
         {decisions.length > 0 && (
           <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{decisions.length} awaiting approval</span>
         )}
       </div>
+      <p className="mb-3 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+        Mondaily's source-backed signals — every row here is a real recommendation from an agent, with the records behind it. See the bell icon for lower-priority notifications.
+      </p>
 
       {isLoading ? (
         <div className="skeleton-shimmer h-16 rounded-xl"/>

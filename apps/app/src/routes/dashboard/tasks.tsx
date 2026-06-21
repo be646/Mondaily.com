@@ -174,10 +174,11 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
 }
 
 // ── Board draggable card ──────────────────────────────────────────────────────
-function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUserId, getMemberName }: {
+function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUserId, getMemberName, flagged }: {
   task: Task; onDetail: (t: Task) => void; onEdit: (t: Task) => void;
   onDelete: (id: string) => void; onToggle: (t: Task) => void;
   currentUserId: string; getMemberName: (t: Task) => string | null;
+  flagged?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)`, zIndex: 50 } : undefined;
@@ -207,6 +208,11 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
               <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
             )}
             {isOverdue && <span className="rounded-full border border-indigo-400/30 bg-indigo-400/10 px-1.5 py-px text-[10px] text-indigo-400">Overdue</span>}
+            {flagged && (
+              <span className="flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-400/10 px-1.5 py-px text-[10px] font-medium text-violet-500 dark:text-violet-400" title="Operations Agent queued a recommendation for this task">
+                <Sparkles size={9}/>AI flagged
+              </span>
+            )}
           </div>
           {/* Actions — always visible but subtle, no opacity-0 */}
           <div className="flex gap-0.5 shrink-0">
@@ -230,11 +236,12 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
   );
 }
 
-function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, currentUserId, getMemberName }: {
+function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, currentUserId, getMemberName, flaggedTaskIds }: {
   col: { key: string; label: string; dotColor: string };
   tasks: Task[]; onDetail: (t: Task) => void; onEdit: (t: Task) => void;
   onDelete: (id: string) => void; onToggle: (t: Task) => void;
   currentUserId: string; getMemberName: (t: Task) => string | null;
+  flaggedTaskIds: Set<string>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   return (
@@ -249,7 +256,7 @@ function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, current
         {tasks.length === 0 && <div className="flex h-16 items-center justify-center text-xs text-slate-700">Drop here</div>}
         {tasks.map(task => (
           <div key={task.id} className="relative">
-            <DraggableCard task={task} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onToggle={onToggle} currentUserId={currentUserId} getMemberName={getMemberName}/>
+            <DraggableCard task={task} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onToggle={onToggle} currentUserId={currentUserId} getMemberName={getMemberName} flagged={flaggedTaskIds.has(task.id)}/>
           </div>
         ))}
       </div>
@@ -402,6 +409,17 @@ export function TasksPage() {
   const query = useQuery({ queryKey: ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}${priorityFilter ? `&priority=${priorityFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const members = membersQuery.data ?? [];
+
+  // Real AI signal on task cards: which tasks have a pending Decision Queue
+  // recommendation (queued by the overdue-task-decisions job). Fails quiet
+  // if the decision_queue migration isn't applied yet — never blocks the list.
+  const decisionsQuery = useQuery({
+    queryKey: ["decisions", "pending", "task"],
+    queryFn: () => apiClient.get<{ source_id: string | null }[]>("/decisions?status=pending"),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const flaggedTaskIds = new Set((decisionsQuery.data ?? []).map(d => d.source_id).filter(Boolean) as string[]);
   const currentUserId = user?.id ?? "";
 
   const toggle = useMutation({
@@ -624,6 +642,11 @@ export function TasksPage() {
                       <span className={`flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-medium border-zinc-200 text-zinc-500 dark:border-white/[.07] dark:text-slate-500`}>
                         <span className={`h-1 w-1 rounded-full ${sm.dot}`}/>{sm.label}
                       </span>
+                      {flaggedTaskIds.has(task.id) && (
+                        <span className="flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-400/10 px-1.5 py-px text-[10px] font-medium text-violet-500 dark:text-violet-400" title="Operations Agent queued a recommendation for this task">
+                          <Sparkles size={9}/>AI flagged
+                        </span>
+                      )}
                       {task.due_date && (
                         <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-500 dark:text-slate-600"}`}>
                           <Clock size={10}/>{fmtDate(task.due_date)}
@@ -688,7 +711,7 @@ export function TasksPage() {
                     ? (t.completed || t.status === "done")
                     : (t.status === col.key && !t.completed)
                 );
-                return <BoardColumn key={col.key} col={col} tasks={colTasks} onDetail={setDetailTask} onEdit={setEditTask} onDelete={setConfirmDeleteId} onToggle={t => toggle.mutate(t)} currentUserId={currentUserId} getMemberName={getMemberName}/>;
+                return <BoardColumn key={col.key} col={col} tasks={colTasks} onDetail={setDetailTask} onEdit={setEditTask} onDelete={setConfirmDeleteId} onToggle={t => toggle.mutate(t)} currentUserId={currentUserId} getMemberName={getMemberName} flaggedTaskIds={flaggedTaskIds}/>;
               })}
             </div>
           </DndContext>

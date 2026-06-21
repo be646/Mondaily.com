@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { Plus, Search, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -112,6 +113,8 @@ export function InvoicesPage() {
             <Plus size={13}/> New Invoice
           </button>
         </div>
+
+        <FinanceAgentStrip/>
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3 mb-4">

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -421,6 +422,8 @@ export function InvoiceDetailPage() {
       {/* Body — two columns on wide, single on narrow */}
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-4xl px-6 py-6 space-y-6">
+
+          <FinanceAgentStrip invoiceId={invoiceId}/>
 
           {invoice.status === "overdue" && (
             <div className="flex items-center gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3 text-[12px] text-indigo-400">

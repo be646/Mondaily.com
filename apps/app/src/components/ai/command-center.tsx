@@ -69,7 +69,20 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
   // Health: simple, honest ratio — share of YOUR active tasks that are NOT overdue.
   const healthPct = activeTasks.length === 0 ? 100 : Math.round(((activeTasks.length - overdueTasks.length) / activeTasks.length) * 100);
 
-  const activity = notifications.slice(0, 5);
+  // Agent activity blends real registry run history (GET /api/v1/agents —
+  // agent_jobs-backed agents like Relationship/Finance/Graph Enrichment)
+  // with notification-derived events, instead of reading notifications
+  // alone. Anything without a real timestamp is excluded rather than
+  // backfilled with "just now".
+  const { constellation } = useAgentData();
+  const registryActivity = constellation
+    .filter(a => a.lastRunAt)
+    .map(a => ({ id: `agent-${a.id}`, agentName: a.name, title: a.note, created_at: a.lastRunAt as string, fromRegistry: true as const }));
+  const notificationActivity = notifications.slice(0, 5).map(n => ({ id: n.id, agentName: AGENT_LABEL[n.type] ?? "Workspace", title: n.title, created_at: n.created_at, fromRegistry: false as const, type: n.type }));
+  const activity = [...registryActivity, ...notificationActivity]
+    .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+    .slice(0, 6);
+
   const changed = notifications.slice(0, 4); // "what changed" — most recent workspace events
   const areasLabel = (checkedAreas?.length ? checkedAreas : ["tasks"]).join(", ");
 
@@ -165,13 +178,13 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
         ) : (
           <ul className="space-y-2">
             {activity.map(n => {
-              const Icon = AGENT_ICON[n.type] ?? Receipt;
+              const Icon = n.fromRegistry ? Workflow : (AGENT_ICON[n.type] ?? Receipt);
               return (
                 <li key={n.id} className="flex items-start gap-2">
                   <Icon size={12} className="mt-0.5 shrink-0 text-rose-500 dark:text-rose-400"/>
                   <div className="min-w-0">
                     <p className="truncate text-[11.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>
-                      <span className="font-medium" style={{ color: "var(--text-primary)" }}>{AGENT_LABEL[n.type] ?? "Workspace"}</span> · {n.title}
+                      <span className="font-medium" style={{ color: "var(--text-primary)" }}>{n.agentName}</span> · {n.title}
                     </p>
                     <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{relTime(n.created_at)}</p>
                   </div>
