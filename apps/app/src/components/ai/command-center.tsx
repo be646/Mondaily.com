@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
-  UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers,
+  UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers, Clock,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
 
@@ -166,23 +166,24 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
 // so this strip's numbers can't be confused with the differently-scoped
 // numbers in the hero pills or agent cards (e.g. "active tasks" here is
 // workspace-wide, the hero pill's "open tasks" is assigned-to-you).
-const PULSE_CATEGORIES: { key: "tasksOpen" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType }[] = [
-  { key: "tasksOpen",      label: "active tasks",       icon: CheckSquare },
-  { key: "relationships",  label: "relationship records", icon: Users },
-  { key: "financeOverdue", label: "overdue invoices",   icon: Receipt },
-  { key: "records",        label: "total records",      icon: Database },
-  { key: "workflows",      label: "workflow records",   icon: Workflow },
-  { key: "risks",          label: "open risk signals",  icon: ShieldAlert },
+const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType; color: string }[] = [
+  { key: "tasksOpen",      label: "active tasks",        icon: CheckSquare, color: "#6366f1" },
+  { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#dc2626" },
+  { key: "relationships",  label: "relationship records", icon: Users,       color: "#d97706" },
+  { key: "financeOverdue", label: "overdue invoices",     icon: Receipt,     color: "#0891b2" },
+  { key: "records",        label: "total records",        icon: Database,   color: "#059669" },
+  { key: "workflows",      label: "workflow records",      icon: Workflow,   color: "#7c3aed" },
+  { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#e11d48" },
 ];
 
 /**
- * Workspace Graph Pulse — a single connected data-flow strip across the
- * categories that make Mondaily an asset-graph engine, not just a task
- * list. Pulled straight from useAgentData()'s shared queries (same numbers
- * as the agent cards). A category with no connected data source (e.g.
- * finance on a workspace without the finance module) shows a tasteful "—"
- * rather than 0, so an honest "not connected" never reads like "zero risk."
- * One surface with internal dividers, not six separate boxes.
+ * Workspace Graph Pulse — a grid of real-count tiles, each with a small
+ * colored ring (decorative scale indicator, not a fabricated trend line —
+ * no historical data is invented). Pulled straight from useAgentData()'s
+ * shared queries (same numbers as the agent cards). A category with no
+ * connected data source (e.g. finance on a workspace without the finance
+ * module) shows a tasteful "—" rather than 0, so an honest "not connected"
+ * never reads like "zero risk."
  */
 export function WorkspaceGraphPulse() {
   const { pulse } = useAgentData();
@@ -190,40 +191,51 @@ export function WorkspaceGraphPulse() {
   // yours) that are NOT overdue. Kept distinct from the hero pills'
   // "assigned to you" counts so the two numbers never silently disagree.
   const healthPct = pulse.tasksOpen === 0 ? 100 : Math.round(((pulse.tasksOpen - pulse.tasksOverdue) / pulse.tasksOpen) * 100);
+  // Scale each tile's ring relative to the largest connected value on the
+  // board right now — a real relative-size cue, never a fake trend.
+  const maxValue = Math.max(1, ...PULSE_CATEGORIES.map(c => pulse[c.key] ?? 0));
 
   return (
     <section className="mb-8">
-      <div className="mb-3 flex items-center gap-2">
-        <GitBranch size={13} style={{ color: "var(--text-muted)" }}/>
-        <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph Pulse</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <GitBranch size={13} style={{ color: "var(--text-muted)" }}/>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph Pulse</h2>
+        </div>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
       </div>
       {pulse.isLoading ? (
-        <div className="skeleton-shimmer h-20 rounded-2xl"/>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton-shimmer h-24 rounded-2xl"/>)}
+        </div>
       ) : (
-        <div className="surface-card flex divide-x overflow-x-auto rounded-2xl" style={{ scrollbarWidth: "none" }}>
-          {PULSE_CATEGORIES.map(({ key, label, icon: Icon }, i) => {
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {PULSE_CATEGORIES.map(({ key, label, icon: Icon, color }) => {
             const value = pulse[key];
             const connected = value !== null;
+            const pct = connected ? Math.max(8, Math.round((value / maxValue) * 100)) : 0;
+            const ringColor = connected ? color : "var(--text-faint)";
             return (
-              <div key={key} className="flex min-w-[120px] flex-1 items-center gap-2.5 px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-                <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: connected ? "var(--surface-selected)" : "var(--surface-hover)" }}>
-                  <Icon size={13} style={{ color: connected ? "var(--accent)" : "var(--text-faint)" }}/>
-                </span>
+              <div key={key} className="surface-card flex items-center gap-3 rounded-2xl p-3.5">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(${ringColor} ${pct}%, var(--surface-hover) ${pct}%)` }}>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: "var(--surface-card)" }}>
+                    <Icon size={13} style={{ color: connected ? color : "var(--text-faint)" }}/>
+                  </span>
+                </div>
                 <div className="min-w-0">
-                  <p className="text-[15px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
+                  <p className="text-[17px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
                     {connected ? value : "—"}
                   </p>
-                  <p className="truncate text-[10px] leading-tight" style={{ color: "var(--text-faint)" }}>{connected ? label : `${label} · not connected`}</p>
+                  <p className="truncate text-[10.5px] leading-tight" style={{ color: "var(--text-faint)" }}>{connected ? label : `${label} · not connected`}</p>
                 </div>
-                {i < PULSE_CATEGORIES.length - 1 && <span className="hidden lg:inline-block" />}
               </div>
             );
           })}
-          {/* Graph health — a ratio, not a count, so it gets a small bar instead of a number-and-icon pair. */}
-          <div className="flex min-w-[140px] flex-1 flex-col justify-center gap-1.5 px-4 py-3.5">
+          {/* Graph health — a ratio, not a count, so it gets a progress bar instead of a ring-and-number pair. */}
+          <div className="surface-card col-span-2 flex flex-col justify-center gap-2 rounded-2xl p-3.5 sm:col-span-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>graph health</span>
-              <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</span>
+              <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>graph health</span>
+              <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</span>
             </div>
             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
               <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>

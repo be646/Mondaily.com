@@ -115,20 +115,31 @@ export function AgentConstellationPanel() {
       </div>
 
       {/* ── Radial map — desktop/tablet ── */}
-      <div className="surface-card relative hidden rounded-2xl sm:block" style={{ height: 380 }}>
+      <div className="surface-card relative hidden overflow-hidden rounded-2xl sm:block" style={{ height: 400 }}>
+        {/* Ambient depth wash behind the graph — purely decorative */}
+        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%)" }}/>
+
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
-          {positions.map((p, i) => (
-            <line key={constellation[i]!.id} x1={50} y1={50} x2={p.x} y2={p.y} className="graph-line" data-live={isLiveState(constellation[i]!.state)}/>
-          ))}
+          {positions.map((p, i) => {
+            const mx = 50 + (p.x - 50) * 0.5, my = 50 + (p.y - 50) * 0.5 - 4;
+            return (
+              <path key={constellation[i]!.id} d={`M50,50 Q${mx},${my} ${p.x},${p.y}`} className="graph-line" data-live={isLiveState(constellation[i]!.state)}/>
+            );
+          })}
         </svg>
 
-        {/* Central graph core */}
+        {/* Central graph core — rotating dashed ring for "always processing" feel */}
         <div className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5" style={{ left: "50%", top: "50%" }}>
-          <span className="relative flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
-            <span className="absolute inset-0 rounded-full" style={{ boxShadow: "0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent)" }}/>
-            <Network size={20} style={{ color: "var(--accent)" }}/>
+          <span className="relative flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--surface-card)), var(--surface-card))", boxShadow: "0 4px 20px color-mix(in srgb, var(--accent) 25%, transparent)" }}>
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-[-5px] rounded-full"
+              style={{ border: "1.5px dashed color-mix(in srgb, var(--accent) 40%, transparent)" }}
+            />
+            <Network size={22} style={{ color: "var(--accent)" }}/>
           </span>
-          <span className="text-[10px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph</span>
+          <span className="text-[10.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph</span>
         </div>
 
         {/* Agent nodes */}
@@ -136,22 +147,36 @@ export function AgentConstellationPanel() {
           const p = positions[i]!;
           const live = isLiveState(agent.state);
           const isSelected = active?.id === agent.id;
+          const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
           return (
             <button
               key={agent.id}
               onClick={() => setSelected(agent.id)}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 transition-transform hover:scale-105"
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 transition-transform hover:scale-110"
               style={{ left: `${p.x}%`, top: `${p.y}%` }}
             >
               <span
-                className={`relative flex h-11 w-11 items-center justify-center rounded-full border-2 ${STATE_RING[agent.state]} ${isSelected ? "ring-2 ring-offset-1" : ""}`}
-                style={{ background: "var(--surface-card)", borderColor: isSelected ? "var(--accent)" : undefined }}
+                className="relative flex h-12 w-12 items-center justify-center rounded-full transition-shadow"
+                style={{
+                  background: live
+                    ? `linear-gradient(135deg, ${dotColor}30, ${dotColor}10)`
+                    : "var(--surface-card)",
+                  border: `2px solid ${live ? dotColor : "var(--border-strong)"}`,
+                  boxShadow: isSelected ? `0 0 0 3px ${dotColor}25` : live ? `0 2px 12px ${dotColor}35` : "none",
+                }}
               >
-                <agent.icon size={15} style={{ color: live ? "var(--text-primary)" : "var(--text-faint)" }}/>
-                {live && <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${STATE_DOT[agent.state]}`}/>}
+                <agent.icon size={16} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
+                {live && (
+                  <motion.span
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.8, repeat: Infinity }}
+                    className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2"
+                    style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-card)" }}
+                  />
+                )}
               </span>
-              <span className="max-w-[88px] truncate text-[9.5px] font-medium" style={{ color: "var(--text-secondary)" }}>{agent.name.replace(" Agent", "")}</span>
-              <span className="text-[8.5px]" style={{ color: live ? "var(--accent)" : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</span>
+              <span className="rounded-full px-2 py-0.5 max-w-[100px] truncate text-[9.5px] font-semibold" style={{ color: "var(--text-primary)", background: "var(--surface-card)", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>{agent.name.replace(" Agent", "")}</span>
+              <span className="text-[8.5px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</span>
             </button>
           );
         })}
