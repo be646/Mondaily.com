@@ -501,10 +501,7 @@ export function HomePage() {
           layer on purpose: Home opens with what's happening, not a chat
           box. Tinted, embedded surface instead of a flat white/black
           card. ── */}
-      <section ref={askSectionRef} className="ai-console mb-8 relative overflow-hidden rounded-2xl p-6">
-        {/* Soft accent edge */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/60 to-transparent dark:via-indigo-400/40"/>
-
+      <section ref={askSectionRef} className="mb-8 relative">
         {!isChatting && (
           <div className="mb-5">
             <div className="flex items-center gap-1.5 mb-1.5">

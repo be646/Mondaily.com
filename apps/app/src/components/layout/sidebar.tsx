@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, MoreHorizontal,
+  FileSignature, Wallet, MessageCircle,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -337,7 +337,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const { user } = useUser();
   const { hasFinance } = useModules();
   const [collapsed, setCollapsed] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
@@ -444,13 +443,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           </div>
         )}
 
-        {/* Agent Pulse — calm, icon/dot-only summary. Click opens the full
-            Agent Constellation popover instead of long text rows living
-            permanently in the sidebar. */}
-        <div className="shrink-0 border-b border-zinc-200 dark:border-white/[.07] pt-2">
-          <AgentPulse collapsed={collapsed}/>
-        </div>
-
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
@@ -471,25 +463,18 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               items: group.items.filter(item => item.to !== primaryTo && (hasFinance || !FINANCE_ONLY.includes(item.to))),
             })).filter(group => group.items.length > 0);
 
-            return (
-              <div className="mt-1">
-                <button onClick={() => setMoreOpen(o => !o)} className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors surface-hover" style={{ color: "var(--text-faint)" }}>
-                  <MoreHorizontal size={12}/>
-                  <span className="flex-1 text-left">More</span>
-                  {unreadCount > 0 && <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"/>}
-                  <ChevronDown size={10} className={`transition-transform ${moreOpen ? "rotate-180" : ""}`}/>
-                </button>
-                {moreOpen && filteredMore.map(group => (
-                  <div key={group.label}>
-                    <SectionLabel label={group.label}/>
-                    {group.items.map(item => (
-                      <NavItem key={item.to} {...item} collapsed={false}
-                        badge={item.to === "/notifications" ? unreadCount : undefined}/>
-                    ))}
-                  </div>
+            // Flat, always-visible — no "More" toggle to unfold. Each group
+            // keeps its quiet section label so the list still reads as
+            // organized, not just a long undifferentiated stack.
+            return filteredMore.map(group => (
+              <div key={group.label} className="mt-1">
+                <SectionLabel label={group.label}/>
+                {group.items.map(item => (
+                  <NavItem key={item.to} {...item} collapsed={false}
+                    badge={item.to === "/notifications" ? unreadCount : undefined}/>
                 ))}
               </div>
-            );
+            ));
           })()}
 
           {!collapsed && (
@@ -499,6 +484,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <SidebarAsk />
             </>
           )}
+
+          {/* Agents — flat, always-visible list near the bottom of the
+              nav (colored dot + name), not hidden behind a hover popover. */}
+          <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
+            <AgentPulse collapsed={collapsed}/>
+          </div>
         </nav>
 
         {/* Bottom bar */}

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Network, ArrowUpRight, GitBranch } from "lucide-react";
+import { Network, ArrowUpRight } from "lucide-react";
 import {
   useAgentData, CONSTELLATION_STATE_LABEL,
   type ConstellationAgent, type ConstellationState,
@@ -192,61 +193,61 @@ export function AgentConstellationPanel() {
   );
 }
 
-/** Sidebar trigger — icons/dots only, opens a popover with the same data
- * (no long descriptions ever shown inline in the sidebar itself). */
+const AGENT_DOT_PALETTE = ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4", "#ec4899", "#3b82f6", "#84cc16"];
+
+/** Sidebar "Agents" section — a flat, always-visible list (colored dot +
+ * name, click to inspect), not a popover hidden behind a hover trigger.
+ * Live agents get a small breathing ring; everything else just sits there
+ * quietly, which is the honest state for monitoring/disabled/not_configured. */
 export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   const { constellation, isLoading } = useAgentData();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, [open]);
 
   if (isLoading) {
-    return <div className="shrink-0 px-2 pb-2"><div className="skeleton-shimmer h-8 rounded-lg"/></div>;
+    return <div className="shrink-0 px-2 pb-2"><div className="skeleton-shimmer h-20 rounded-lg"/></div>;
   }
 
-  const activeAgents = constellation.filter(a => a.state === "active" || a.state === "needs_approval" || a.state === "issue");
+  if (collapsed) {
+    const activeAgents = constellation.filter(a => isLiveState(a.state));
+    return (
+      <div className="flex flex-col items-center gap-1.5 px-2 pb-2">
+        {constellation.slice(0, 6).map((a, i) => (
+          <Link key={a.id} to={a.to ?? "/home"} title={a.name} className="relative flex h-2 w-2 shrink-0 items-center justify-center">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}/>
+            {isLiveState(a.state) && activeAgents.includes(a) && (
+              <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]}40` }}/>
+            )}
+          </Link>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="relative shrink-0 px-2 pb-2" ref={ref}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        title="Agent Constellation"
-        className={`flex w-full items-center gap-1.5 rounded-lg py-1.5 transition-colors surface-hover ${collapsed ? "justify-center px-0" : "px-2"}`}
-      >
-        <GitBranch size={12} style={{ color: "var(--text-faint)" }}/>
-        {!collapsed && <span className="text-[10px] font-medium" style={{ color: "var(--text-faint)" }}>Agents</span>}
-        <span className="flex items-center -space-x-1 ml-auto">
-          {activeAgents.slice(0, 4).map(a => (
-            <span key={a.id} className={`h-1.5 w-1.5 rounded-full ${STATE_DOT[a.state]} ring-2`} style={{ boxShadow: "0 0 0 2px var(--surface-card)" }}/>
-          ))}
-        </span>
-      </button>
-
-      {open && (
-        <div className="absolute left-2 top-full z-50 mt-1 w-64 max-h-[70vh] overflow-y-auto rounded-xl p-2 space-y-1.5" style={{ background: "var(--surface-modal)", border: "1px solid var(--border-strong)", boxShadow: "0 12px 32px rgba(0,0,0,0.25)" }}>
-          <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Agent Constellation</p>
-          {constellation.map(agent => (
-            <div key={agent.id} className="flex items-start gap-2 rounded-lg px-1.5 py-1.5 surface-hover">
-              <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${STATE_RING[agent.state]}`}>
-                <agent.icon size={10} style={{ color: "var(--text-secondary)" }}/>
+    <div className="shrink-0 px-2 pb-2">
+      <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Agents</p>
+      <div className="space-y-0.5">
+        {constellation.map((agent, i) => {
+          const live = isLiveState(agent.state);
+          const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
+          return (
+            <Link
+              key={agent.id}
+              to={agent.to ?? "/home"}
+              title={agent.note}
+              className="flex items-center gap-2 rounded-lg px-2 py-1 text-[12px] transition-colors surface-hover"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <span className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: dotColor }}/>
+                {live && (
+                  <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${dotColor}33` }}/>
+                )}
               </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="truncate text-[11.5px] font-medium" style={{ color: "var(--text-primary)" }}>{agent.name}</span>
-                  <span className="shrink-0 text-[9px]" style={{ color: "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</span>
-                </div>
-                {agent.note && <p className="mt-0.5 truncate text-[10px]" style={{ color: "var(--text-faint)" }}>{agent.note}</p>}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+              <span className="truncate">{agent.name}</span>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
