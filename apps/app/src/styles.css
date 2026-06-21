@@ -159,6 +159,73 @@ body {
   background: linear-gradient(165deg, color-mix(in srgb, var(--accent) 5%, var(--surface-card)) 0%, var(--surface-card) 55%);
   border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border-soft));
 }
+
+/* ── Command room band — Home's full-width top zone. A soft layered glass
+   surface, not a bordered card: a faint multi-stop wash (cyan → violet)
+   over the page background, separated by a hairline rather than a box. ── */
+.command-room {
+  background: linear-gradient(120deg,
+    color-mix(in srgb, #22d3ee 5%, var(--surface-page)) 0%,
+    color-mix(in srgb, var(--accent) 6%, var(--surface-page)) 45%,
+    var(--surface-page) 100%);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* Telemetry pill — machine-readout style, not a dashboard KPI card. Tiny,
+   monospace-leaning, a live dot rather than an icon-in-a-box. */
+.telemetry-pill {
+  @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium tabular-nums;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border: 1px solid var(--border-soft);
+  color: var(--text-secondary);
+}
+
+/* Live status chip — "Graph synced", "Agents active" etc. in the command
+   room. A breathing dot, never a static icon badge. */
+.status-chip {
+  @apply inline-flex items-center gap-1.5 text-[11px] font-medium;
+  color: var(--text-muted);
+}
+.status-chip .dot {
+  position: relative;
+  display: inline-flex; height: 6px; width: 6px; border-radius: 9999px;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+.status-chip .dot::before {
+  content: ""; position: absolute; inset: -3px; border-radius: 9999px;
+  background: #22c55e; opacity: 0.35; animation: agentPulse 2.2s ease-in-out infinite;
+}
+.status-chip[data-tone="violet"] .dot, .status-chip[data-tone="violet"] .dot::before { background: #8b5cf6; }
+.status-chip[data-tone="amber"] .dot, .status-chip[data-tone="amber"] .dot::before { background: #d97706; }
+.status-chip[data-tone="cyan"] .dot, .status-chip[data-tone="cyan"] .dot::before { background: #06b6d4; }
+
+/* Graph connector lines — thin animated dashes linking an agent node to the
+   central graph core. Only "live" connectors animate; idle ones are a
+   static faint line, never the same treatment dressed up. */
+.graph-line {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  fill: none;
+}
+.graph-line[data-live="true"] {
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  stroke-dasharray: 4 5;
+  animation: graphFlow 1.8s linear infinite;
+}
+@keyframes graphFlow {
+  to { stroke-dashoffset: -18; }
+}
+
+/* Attention stream — replaces a boxed-card list for "what needs attention".
+   Each row is a thin-bordered strip with a left accent rather than a full
+   card, so a list of 5 items doesn't read as 5 separate dashboard boxes. */
+.stream-row {
+  @apply flex items-start gap-3 px-3.5 py-3 transition-colors;
+  border-bottom: 1px solid var(--border-soft);
+}
+.stream-row:last-child { border-bottom: none; }
+.stream-row:hover { background: var(--surface-hover); }
 .surface-hover:hover { background: var(--surface-hover); }
 .surface-selected     { background: var(--surface-selected); }
 .text-token-primary   { color: var(--text-primary); }

@@ -1,10 +1,10 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer } from "lucide-react";
+import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { CommandCenterStrip, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
-import { DecisionQueuePanel } from "../../components/ai/decision-queue";
+import { DecisionQueuePanel, useDecisionQueue } from "../../components/ai/decision-queue";
 import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
 } from "../../components/ai/ask-shared";
@@ -223,6 +223,9 @@ export function HomePage() {
     queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string }[]>("/notifications?limit=50"),
     staleTime: 60_000,
   });
+  // Real pending-decision count for the command room's telemetry strip —
+  // same query/endpoint the Decision Queue panel itself uses below.
+  const decisionsQuery = useDecisionQueue();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -377,75 +380,94 @@ export function HomePage() {
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
   // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
+  const unreadCount = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
+  const pendingDecisionsCount = decisionsQuery.data?.length ?? 0;
+  const graphSynced = !tasksQuery.isError && !notificationsQuery.isError;
+  const sourcesChecked = !notificationsQuery.isLoading && !notificationsQuery.isError;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
 
-      {/* ── Hero greeting ── */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest mb-1">{todayLabel}</p>
-            <h1 className="text-[28px] font-semibold tracking-tight text-[#111827] dark:text-white">{greeting}, {user?.firstName || "there"}.</h1>
+      {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
+          past the page's own padding so it reads as the page's top zone,
+          not another boxed panel stacked with the rest. ── */}
+      <div className="command-room -mx-6 -mt-10 mb-8 px-6 pb-6 pt-8 sm:px-10">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          {/* Left: greeting + tagline + live status pills */}
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
+            <h1 className="text-[26px] font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
+            <p className="mt-1 max-w-md text-[13px]" style={{ color: "var(--text-muted)" }}>
+              Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot"/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-chip" data-tone="violet"><span className="dot"/>Agents active</span>
+              <span className="status-chip" data-tone={pendingDecisionsCount > 0 ? "amber" : "default"}><span className="dot"/>{pendingDecisionsCount} decision{pendingDecisionsCount === 1 ? "" : "s"} pending</span>
+              <span className="status-chip" data-tone="cyan"><span className="dot"/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+            </div>
           </div>
-          {/* Quick-access to Ask Mondaily — it sits lower on the page by
-              design (the operating picture comes first), but it should
-              never require scrolling past everything to reach. */}
-          <button
-            onClick={() => { askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); inputRef.current?.focus(); }}
-            className="btn-ai shrink-0 !px-3 !py-1.5 !text-[12px]"
-          >
-            <Sparkles size={11}/> Ask Mondaily
-          </button>
+
+          {/* Right: live telemetry — real counts only, read like machine
+              status, not dashboard KPI cards. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="telemetry-pill"><ListChecks size={11}/>{activeTasks.length} open tasks</span>
+            <span className="telemetry-pill"><FileText size={11}/>{pendingDecisionsCount} pending decisions</span>
+            <span className="telemetry-pill"><Inbox size={11}/>{unreadCount} unread</span>
+            <button
+              onClick={() => { askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }); inputRef.current?.focus(); }}
+              className="btn-ai shrink-0 !px-3 !py-1.5 !text-[12px]"
+            >
+              <Sparkles size={11}/> Ask Mondaily
+            </button>
+          </div>
         </div>
 
         {/* Quick stat pills — explicitly scoped to "assigned to you" since
             these come from the "mine" task filter. The Operations Agent
             card below shows the workspace-wide equivalent, which is a
             different (larger) number on purpose — never silently aligned. */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {activeTasks.length > 0 && (
-            <Link to="/tasks" className="surface-card flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors surface-hover" style={{ color: "var(--text-secondary)" }}>
-              <ListChecks size={11} className="text-emerald-500 dark:text-emerald-400"/>
-              {activeTasks.length} open task{activeTasks.length !== 1 ? "s" : ""} assigned to you
-            </Link>
-          )}
-          {overdueCount > 0 && (
-            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
-              <Clock size={11}/>
-              {overdueCount} overdue assigned to you
-            </Link>
-          )}
-          {urgentCount > 0 && (
-            <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-500/20 dark:bg-amber-500/[.07] dark:text-amber-400 dark:hover:bg-amber-500/[.12]">
-              <Flag size={11}/>
-              {urgentCount} urgent
-            </Link>
-          )}
-          {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-            <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-amber-500/25 dark:bg-amber-500/[.08] dark:text-amber-300 dark:hover:bg-amber-500/[.14]">
-              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 dark:bg-amber-400 opacity-60 animate-ping"/>
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-amber-400"/>
-              </span>
-              <BellDot size={11}/>
-              {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
-            </Link>
-          )}
+        {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {overdueCount > 0 && (
+              <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
+                <Clock size={11}/>
+                {overdueCount} overdue assigned to you
+              </Link>
+            )}
+            {urgentCount > 0 && (
+              <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-500/20 dark:bg-amber-500/[.07] dark:text-amber-400 dark:hover:bg-amber-500/[.12]">
+                <Flag size={11}/>
+                {urgentCount} urgent
+              </Link>
+            )}
+            {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
+              <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-amber-500/25 dark:bg-amber-500/[.08] dark:text-amber-300 dark:hover:bg-amber-500/[.14]">
+                <span className="relative flex h-1.5 w-1.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 dark:bg-amber-400 opacity-60 animate-ping"/>
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-amber-400"/>
+                </span>
+                <BellDot size={11}/>
+                {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* ── Getting started — kept inside the command room so it never
+            competes with primary navigation; still a single quiet line
+            unless the user opens it. ── */}
+        <div className="mt-4">
+          <GettingStarted />
         </div>
       </div>
 
-      {/* ── Getting started — moved here from the sidebar so it never
-          competes with primary navigation; still a single quiet line
-          unless the user opens it. ── */}
-      <div className="mb-6 -mt-2">
-        <GettingStarted />
-      </div>
+      {/* ── Agent Constellation — the visual heart of Home, right under
+          the command room it's keeping watch over. ── */}
+      <AgentConstellationPanel />
 
-      {/* ── Operating Picture — today's workspace state, graph health, and
-          decisions waiting, before anything else. Home opens with the
-          operating picture, not a chat box. ── */}
-      <WorkspaceGraphPulse />
+      {/* ── Operating Picture — what needs attention, decisions waiting,
+          and workspace graph health, all before the chat box. ── */}
       <CommandCenterStrip
         tasks={tasksQuery.data ?? []}
         notifications={notificationsQuery.data ?? []}
@@ -457,10 +479,7 @@ export function HomePage() {
         }}
       />
       <DecisionQueuePanel />
-
-      {/* ── Agent layer — the operating constellation, right under the
-          picture it's keeping watch over. ── */}
-      <AgentConstellationPanel />
+      <WorkspaceGraphPulse />
 
       {/* ── Ask Mondaily — moved below the operating picture and agent
           layer on purpose: Home opens with what's happening, not a chat
@@ -669,6 +688,9 @@ export function HomePage() {
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-1" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
+            <button disabled title="Voice coming soon" className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg cursor-not-allowed opacity-40" style={{ color: "var(--text-faint)" }}>
+              <Mic size={13}/>
+            </button>
             <button onClick={send} disabled={loading || !input.trim()}
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : ""}`}
               style={input.trim() && !loading ? undefined : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>

@@ -1,16 +1,17 @@
 import { Link } from "react-router-dom";
 import {
-  ShieldAlert, CheckSquare, Activity, Gauge, ArrowUpRight, Sparkles, FileText,
-  UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch,
+  ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
+  UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
 
 /**
- * Home "AI Command Center" — five real-data panels: what changed, what
- * needs approval, what Mondaily recommends, agent activity, and workspace
- * graph health. Every number comes from data already fetched on the home
- * page or from useAgentData — nothing fabricated, no invented confidence
- * scores or fake trend lines.
+ * Home "What needs attention" stream — one connected feed (real
+ * recommendations, approvals, risk signals, and recent graph changes),
+ * each row tagged with the agent that produced it. Every number comes
+ * from data already fetched on the home page or from useAgentData —
+ * nothing fabricated, no invented confidence scores or fake trend lines.
+ * Deliberately a stream of rows, not a grid of separate dashboard cards.
  */
 
 interface NotificationLite { id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string; }
@@ -27,7 +28,7 @@ const AGENT_ICON: Record<string, React.ElementType> = {
 
 const AGENT_LABEL: Record<string, string> = {
   ai_risk: "Signal Agent",
-  agent: "Research Agent",
+  agent: "Insights Agent",
   task_review: "Operations Agent",
   approval: "Approvals",
   assignment: "Operations Agent",
@@ -47,11 +48,21 @@ function relTime(iso?: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+interface StreamItem {
+  id: string;
+  icon: React.ElementType;
+  agentLabel: string;
+  title: string;
+  meta?: string;
+  to: string;
+  tone: "violet" | "amber" | "rose" | "blue" | "default";
+}
+
 export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checkedAreas }: {
   tasks: TaskLite[]; notifications: NotificationLite[];
   /** Called when the user wants to jump to Ask Mondaily — optional prefill text. */
   onAskMondaily?: (prefill?: string) => void;
-  /** What this card's "checked just now" empty state honestly covers — passed
+  /** What this stream's "checked just now" empty state honestly covers — passed
    * by the caller since this component only receives task/notification data. */
   checkedAreas?: string[];
 }) {
@@ -62,12 +73,7 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
   // the workspace-wide numbers shown on the Operations Agent card.
   const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now);
   const reviewTasks = tasks.filter(t => !t.completed && t.status === "review");
-  const activeTasks = tasks.filter(t => !t.completed);
   const riskAlerts = notifications.filter(n => n.type === "ai_risk").slice(0, 3);
-  const decisionsCount = overdueTasks.length + reviewTasks.length;
-
-  // Health: simple, honest ratio — share of YOUR active tasks that are NOT overdue.
-  const healthPct = activeTasks.length === 0 ? 100 : Math.round(((activeTasks.length - overdueTasks.length) / activeTasks.length) * 100);
 
   // Agent activity blends real registry run history (GET /api/v1/agents —
   // agent_jobs-backed agents like Relationship/Finance/Graph Enrichment)
@@ -77,144 +83,87 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
   const { constellation } = useAgentData();
   const registryActivity = constellation
     .filter(a => a.lastRunAt)
-    .map(a => ({ id: `agent-${a.id}`, agentName: a.name, title: a.note, created_at: a.lastRunAt as string, fromRegistry: true as const }));
+    .map(a => ({ id: `agent-${a.id}`, agentName: a.name, title: a.note, created_at: a.lastRunAt as string, fromRegistry: true as const, type: "" }));
   const notificationActivity = notifications.slice(0, 5).map(n => ({ id: n.id, agentName: AGENT_LABEL[n.type] ?? "Workspace", title: n.title, created_at: n.created_at, fromRegistry: false as const, type: n.type }));
-  const activity = [...registryActivity, ...notificationActivity]
+  const recentActivity = [...registryActivity, ...notificationActivity]
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
-    .slice(0, 6);
+    .slice(0, 5);
 
-  const changed = notifications.slice(0, 4); // "what changed" — most recent workspace events
   const areasLabel = (checkedAreas?.length ? checkedAreas : ["tasks"]).join(", ");
 
-  // "What Mondaily recommends" — concrete, never invented. Built only from
-  // real signals already computed above; empty when there's truly nothing.
-  const recommendations: { label: string; to: string }[] = [
-    ...(overdueTasks.length > 0 ? [{ label: `Review ${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"} assigned to you`, to: "/tasks" }] : []),
-    ...(reviewTasks.length > 0 ? [{ label: `Approve ${reviewTasks.length} drafted task${reviewTasks.length === 1 ? "" : "s"}`, to: "/tasks" }] : []),
-    ...(riskAlerts.length > 0 ? [{ label: `Inspect ${riskAlerts.length} risk signal${riskAlerts.length === 1 ? "" : "s"}`, to: "/notifications" }] : []),
-  ].slice(0, 3);
+  // One unified stream, most-actionable first: approvals → risk → recent
+  // agent activity. Nothing here is invented — every row maps to a real
+  // overdue task, a real notification, or a real agent_jobs run.
+  const stream: StreamItem[] = [
+    ...(overdueTasks.length > 0 ? [{
+      id: "overdue", icon: CheckSquare, agentLabel: "Operations Agent",
+      title: `${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"} assigned to you`,
+      meta: "needs approval or reassignment", to: "/tasks", tone: "amber" as const,
+    }] : []),
+    ...(reviewTasks.length > 0 ? [{
+      id: "review", icon: FileText, agentLabel: "Operations Agent",
+      title: `${reviewTasks.length} drafted task${reviewTasks.length === 1 ? "" : "s"} waiting on approval`,
+      to: "/tasks", tone: "amber" as const,
+    }] : []),
+    ...riskAlerts.map(n => ({
+      id: n.id, icon: ShieldAlert, agentLabel: "Signal Agent",
+      title: n.title, meta: relTime(n.created_at), to: "/notifications", tone: "rose" as const,
+    })),
+    ...recentActivity.map(a => ({
+      id: a.id, icon: a.fromRegistry ? Workflow : (AGENT_ICON[a.type] ?? Receipt), agentLabel: a.agentName,
+      title: a.title, meta: relTime(a.created_at), to: "/notifications", tone: "default" as const,
+    })),
+  ].slice(0, 8);
+
+  const TONE_COLOR: Record<StreamItem["tone"], string> = {
+    violet: "#8b5cf6", amber: "#d97706", rose: "#dc2626", blue: "#3b82f6", default: "var(--text-muted)",
+  };
 
   return (
-    <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {/* What changed */}
-      <div className="surface-card rounded-2xl p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <TrendingUp size={14} className="text-blue-600 dark:text-blue-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What changed</span>
+    <section className="mb-8">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Layers size={13} style={{ color: "var(--text-muted)" }}/>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>What needs attention</h2>
         </div>
-        {changed.length === 0 ? (
-          <div>
-            <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No graph changes since last visit.</p>
-            <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Checked: {areasLabel} · just now</p>
-            {onAskMondaily && (
-              <button onClick={() => onAskMondaily("What changed in the workspace graph since I last checked?")} className="btn-suggested mt-2 !px-2.5 !py-1 !text-[11px]">
-                Ask what changed
-              </button>
-            )}
-          </div>
-        ) : (
-          <ul className="space-y-1.5">
-            {changed.map(n => (
-              <li key={n.id} className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                {n.title} <span style={{ color: "var(--text-faint)" }}>· {relTime(n.created_at)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {changed.length > 0 && (
-          <Link to="/notifications" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-            View activity <ArrowUpRight size={11}/>
-          </Link>
-        )}
-      </div>
-
-      {/* What needs approval */}
-      <div className="surface-card rounded-2xl p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <CheckSquare size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>What needs approval</span>
-        </div>
-        <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{decisionsCount}</p>
-        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {overdueTasks.length} overdue assigned to you · {reviewTasks.length} in review
-        </p>
-        <Link to="/tasks" className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-          Approve / dismiss <ArrowUpRight size={11}/>
-        </Link>
-      </div>
-
-      {/* What Mondaily recommends */}
-      <div className="surface-card rounded-2xl p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <Sparkles size={14} className="text-violet-600 dark:text-violet-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily recommends</span>
-        </div>
-        {recommendations.length === 0 ? (
-          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No findings yet — nothing needs your attention.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {recommendations.map(r => (
-              <li key={r.label}>
-                <Link to={r.to} className="text-[12px] hover:underline" style={{ color: "var(--text-secondary)" }}>{r.label}</Link>
-              </li>
-            ))}
-          </ul>
-        )}
         {onAskMondaily && (
-          <button onClick={() => onAskMondaily()} className="btn-ai mt-2.5 !px-2.5 !py-1 !text-[11px]">
+          <button onClick={() => onAskMondaily()} className="btn-ai !px-2.5 !py-1 !text-[11px]">
             <Sparkles size={10}/> Ask Mondaily
           </button>
         )}
       </div>
 
-      {/* Agent activity */}
-      <div className="surface-card rounded-2xl p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <Activity size={14} className="text-rose-600 dark:text-rose-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent activity</span>
-        </div>
-        {activity.length === 0 ? (
-          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No recent agent activity.</p>
+      <div className="surface-card rounded-2xl">
+        {stream.length === 0 ? (
+          <div className="px-4 py-8 text-center">
+            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>Nothing needs your attention — checked {areasLabel} just now.</p>
+            {onAskMondaily && (
+              <button onClick={() => onAskMondaily("What changed in the workspace graph since I last checked?")} className="btn-suggested mt-2.5 !px-2.5 !py-1 !text-[11px]">
+                Ask what changed
+              </button>
+            )}
+          </div>
         ) : (
-          <ul className="space-y-2">
-            {activity.map(n => {
-              const Icon = n.fromRegistry ? Workflow : (AGENT_ICON[n.type] ?? Receipt);
-              return (
-                <li key={n.id} className="flex items-start gap-2">
-                  <Icon size={12} className="mt-0.5 shrink-0 text-rose-500 dark:text-rose-400"/>
-                  <div className="min-w-0">
-                    <p className="truncate text-[11.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>
-                      <span className="font-medium" style={{ color: "var(--text-primary)" }}>{n.agentName}</span> · {n.title}
-                    </p>
-                    <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{relTime(n.created_at)}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          stream.map(item => (
+            <Link key={item.id} to={item.to} className="stream-row" style={{ borderLeft: `2px solid ${TONE_COLOR[item.tone]}` }}>
+              <item.icon size={13} className="mt-0.5 shrink-0" style={{ color: TONE_COLOR[item.tone] }}/>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] leading-tight" style={{ color: "var(--text-secondary)" }}>
+                  <span className="font-medium" style={{ color: "var(--text-primary)" }}>{item.agentLabel}</span> · {item.title}
+                </p>
+                {item.meta && <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{item.meta}</p>}
+              </div>
+              <ArrowUpRight size={11} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>
+            </Link>
+          ))
         )}
       </div>
-
-      {/* Workspace graph health */}
-      <div className="surface-card rounded-2xl p-4 sm:col-span-2 lg:col-span-1">
-        <div className="mb-2 flex items-center gap-2">
-          <Gauge size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0"/>
-          <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph health</span>
-        </div>
-        <p className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</p>
-        <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {activeTasks.length - overdueTasks.length} of your {activeTasks.length} active tasks are on track
-        </p>
-        <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
-          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 }
 
 // Labels say exactly what the number counts — never a bare category name —
-// so this panel's numbers can't be confused with the differently-scoped
+// so this strip's numbers can't be confused with the differently-scoped
 // numbers in the hero pills or agent cards (e.g. "active tasks" here is
 // workspace-wide, the hero pill's "open tasks" is assigned-to-you).
 const PULSE_CATEGORIES: { key: "tasksOpen" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType }[] = [
@@ -227,15 +176,20 @@ const PULSE_CATEGORIES: { key: "tasksOpen" | "relationships" | "financeOverdue" 
 ];
 
 /**
- * Workspace Graph Pulse — compact real-count strip across the categories
- * that make Mondaily an asset-graph engine, not just a task list. Pulled
- * straight from useAgentData()'s shared queries (same numbers as the agent
- * cards). A category with no connected data source (e.g. finance on a
- * workspace without the finance module) shows a tasteful "—" rather than 0,
- * so an honest "not connected" never reads like "zero risk."
+ * Workspace Graph Pulse — a single connected data-flow strip across the
+ * categories that make Mondaily an asset-graph engine, not just a task
+ * list. Pulled straight from useAgentData()'s shared queries (same numbers
+ * as the agent cards). A category with no connected data source (e.g.
+ * finance on a workspace without the finance module) shows a tasteful "—"
+ * rather than 0, so an honest "not connected" never reads like "zero risk."
+ * One surface with internal dividers, not six separate boxes.
  */
 export function WorkspaceGraphPulse() {
   const { pulse } = useAgentData();
+  // Workspace-wide health ratio — share of all active tasks (not just
+  // yours) that are NOT overdue. Kept distinct from the hero pills'
+  // "assigned to you" counts so the two numbers never silently disagree.
+  const healthPct = pulse.tasksOpen === 0 ? 100 : Math.round(((pulse.tasksOpen - pulse.tasksOverdue) / pulse.tasksOpen) * 100);
 
   return (
     <section className="mb-8">
@@ -244,25 +198,37 @@ export function WorkspaceGraphPulse() {
         <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph Pulse</h2>
       </div>
       {pulse.isLoading ? (
-        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton-shimmer h-20 rounded-xl"/>)}
-        </div>
+        <div className="skeleton-shimmer h-20 rounded-2xl"/>
       ) : (
-        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
-          {PULSE_CATEGORIES.map(({ key, label, icon: Icon }) => {
+        <div className="surface-card flex divide-x overflow-x-auto rounded-2xl" style={{ scrollbarWidth: "none" }}>
+          {PULSE_CATEGORIES.map(({ key, label, icon: Icon }, i) => {
             const value = pulse[key];
             const connected = value !== null;
             return (
-              <div key={key} className="surface-card flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center">
-                <Icon size={14} style={{ color: connected ? "var(--text-muted)" : "var(--text-faint)" }}/>
-                <span className="text-lg font-semibold" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
-                  {connected ? value : "—"}
+              <div key={key} className="flex min-w-[120px] flex-1 items-center gap-2.5 px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: connected ? "var(--surface-selected)" : "var(--surface-hover)" }}>
+                  <Icon size={13} style={{ color: connected ? "var(--accent)" : "var(--text-faint)" }}/>
                 </span>
-                <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{label}</span>
-                {!connected && <span className="text-[9px]" style={{ color: "var(--text-faint)" }}>Not connected</span>}
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
+                    {connected ? value : "—"}
+                  </p>
+                  <p className="truncate text-[10px] leading-tight" style={{ color: "var(--text-faint)" }}>{connected ? label : `${label} · not connected`}</p>
+                </div>
+                {i < PULSE_CATEGORIES.length - 1 && <span className="hidden lg:inline-block" />}
               </div>
             );
           })}
+          {/* Graph health — a ratio, not a count, so it gets a small bar instead of a number-and-icon pair. */}
+          <div className="flex min-w-[140px] flex-1 flex-col justify-center gap-1.5 px-4 py-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>graph health</span>
+              <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
+              <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>
+            </div>
+          </div>
         </div>
       )}
     </section>
