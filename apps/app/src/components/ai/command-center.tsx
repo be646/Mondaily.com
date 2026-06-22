@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
   UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers, Clock,
+  CheckCircle2, XCircle, ChevronDown,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
+import { useDecisionQueue, mapEvidence, RISK_STYLE } from "./decision-queue";
+import { apiClient } from "../../lib/api-client";
+import { SourceCard } from "./ask-shared";
 
 /**
  * Home "What needs attention" stream — one connected feed (real
@@ -15,7 +21,6 @@ import { useAgentData } from "./agent-dock";
  */
 
 interface NotificationLite { id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string; }
-interface TaskLite { id: string; completed: boolean; due_date?: string; status?: string; priority?: string; }
 
 const AGENT_ICON: Record<string, React.ElementType> = {
   ai_risk: ShieldAlert,
@@ -58,21 +63,29 @@ interface StreamItem {
   tone: "violet" | "amber" | "rose" | "blue" | "default";
 }
 
-export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checkedAreas }: {
-  tasks: TaskLite[]; notifications: NotificationLite[];
+/**
+ * NeedsYouPanel — the merged "what needs you" zone: real Decision Queue
+ * items (with the real approve/reject/snooze actions) plus risk signals
+ * and recent agent activity, as one ranked list instead of two separate
+ * sections doing overlapping jobs. Decisions already cover overdue/review
+ * tasks (the Operations Agent writes a real decision_queue row for those),
+ * so this no longer duplicates that as a second synthetic summary row.
+ */
+export function NeedsYouPanel({ notifications, onAskMondaily }: {
+  notifications: NotificationLite[];
   /** Called when the user wants to jump to Ask Mondaily — optional prefill text. */
   onAskMondaily?: (prefill?: string) => void;
-  /** What this stream's "checked just now" empty state honestly covers — passed
-   * by the caller since this component only receives task/notification data. */
-  checkedAreas?: string[];
 }) {
-  const now = Date.now();
-  // NOTE: `tasks` here is "assigned to you" scoped (same query as the Home
-  // hero pills) — every label below says "assigned to you", never
-  // "workspace" or "across workspace", so it can't silently disagree with
-  // the workspace-wide numbers shown on the Operations Agent card.
-  const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now);
-  const reviewTasks = tasks.filter(t => !t.completed && t.status === "review");
+  const { data: decisionsData, isLoading: decisionsLoading, isError: decisionsError } = useDecisionQueue();
+  const decisions = decisionsData ?? [];
+  const qc = useQueryClient();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const act = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) =>
+      apiClient.post(`/decisions/${id}/${action}`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["decisions"] }),
+  });
+
   const riskAlerts = notifications.filter(n => n.type === "ai_risk").slice(0, 3);
 
   // Agent activity blends real registry run history (GET /api/v1/agents —
@@ -87,24 +100,9 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
   const notificationActivity = notifications.slice(0, 5).map(n => ({ id: n.id, agentName: AGENT_LABEL[n.type] ?? "Workspace", title: n.title, created_at: n.created_at, fromRegistry: false as const, type: n.type }));
   const recentActivity = [...registryActivity, ...notificationActivity]
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
-    .slice(0, 5);
+    .slice(0, 4);
 
-  const areasLabel = (checkedAreas?.length ? checkedAreas : ["tasks"]).join(", ");
-
-  // One unified stream, most-actionable first: approvals → risk → recent
-  // agent activity. Nothing here is invented — every row maps to a real
-  // overdue task, a real notification, or a real agent_jobs run.
   const stream: StreamItem[] = [
-    ...(overdueTasks.length > 0 ? [{
-      id: "overdue", icon: CheckSquare, agentLabel: "Operations Agent",
-      title: `${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"} assigned to you`,
-      meta: "needs approval or reassignment", to: "/tasks", tone: "amber" as const,
-    }] : []),
-    ...(reviewTasks.length > 0 ? [{
-      id: "review", icon: FileText, agentLabel: "Operations Agent",
-      title: `${reviewTasks.length} drafted task${reviewTasks.length === 1 ? "" : "s"} waiting on approval`,
-      to: "/tasks", tone: "amber" as const,
-    }] : []),
     ...riskAlerts.map(n => ({
       id: n.id, icon: ShieldAlert, agentLabel: "Signal Agent",
       title: n.title, meta: relTime(n.created_at), to: "/notifications", tone: "rose" as const,
@@ -113,18 +111,22 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
       id: a.id, icon: a.fromRegistry ? Workflow : (AGENT_ICON[a.type] ?? Receipt), agentLabel: a.agentName,
       title: a.title, meta: relTime(a.created_at), to: "/notifications", tone: "default" as const,
     })),
-  ].slice(0, 8);
+  ].slice(0, 6);
 
   const TONE_COLOR: Record<StreamItem["tone"], string> = {
     violet: "#8b5cf6", amber: "#d97706", rose: "#dc2626", blue: "#3b82f6", default: "var(--text-muted)",
   };
+
+  const isLoading = decisionsLoading;
+  const isEmpty = !isLoading && decisions.length === 0 && stream.length === 0;
 
   return (
     <section className="mb-8">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers size={13} style={{ color: "var(--text-muted)" }}/>
-          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>What needs attention</h2>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Needs you</h2>
+          {decisions.length > 0 && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{decisions.length} awaiting approval</span>}
         </div>
         {onAskMondaily && (
           <button onClick={() => onAskMondaily()} className="btn-ai !px-2.5 !py-1 !text-[11px]">
@@ -134,9 +136,11 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
       </div>
 
       <div className="surface-card rounded-2xl">
-        {stream.length === 0 ? (
+        {isLoading ? (
+          <div className="p-3"><div className="skeleton-shimmer h-12 rounded-xl"/></div>
+        ) : isEmpty ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>Nothing needs your attention — checked {areasLabel} just now.</p>
+            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>Nothing needs you right now — agents will queue a recommendation here when they find something.</p>
             {onAskMondaily && (
               <button onClick={() => onAskMondaily("What changed in the workspace graph since I last checked?")} className="btn-suggested mt-2.5 !px-2.5 !py-1 !text-[11px]">
                 Ask what changed
@@ -144,18 +148,60 @@ export function CommandCenterStrip({ tasks, notifications, onAskMondaily, checke
             )}
           </div>
         ) : (
-          stream.map(item => (
-            <Link key={item.id} to={item.to} className="stream-row" style={{ borderLeft: `2px solid ${TONE_COLOR[item.tone]}` }}>
-              <item.icon size={13} className="mt-0.5 shrink-0" style={{ color: TONE_COLOR[item.tone] }}/>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] leading-tight" style={{ color: "var(--text-secondary)" }}>
-                  <span className="font-medium" style={{ color: "var(--text-primary)" }}>{item.agentLabel}</span> · {item.title}
-                </p>
-                {item.meta && <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{item.meta}</p>}
-              </div>
-              <ArrowUpRight size={11} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>
-            </Link>
-          ))
+          <>
+            {!decisionsError && decisions.map(d => {
+              const open = openId === d.id;
+              const sources = mapEvidence(d.evidence ?? []);
+              return (
+                <div key={d.id} className="border-b" style={{ borderColor: "var(--border-soft)" }}>
+                  <button onClick={() => setOpenId(open ? null : d.id)} className="stream-row w-full text-left" style={{ borderLeft: `2px solid ${d.risk_level === "high" ? "#dc2626" : "#d97706"}` }}>
+                    {d.risk_level === "high" ? <ShieldAlert size={13} className="mt-0.5 shrink-0 text-rose-500"/> : <Clock size={13} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] leading-tight" style={{ color: "var(--text-secondary)" }}>
+                        <span className="font-medium" style={{ color: "var(--text-primary)" }}>{d.agent_name.replace(/_/g, " ")}</span> · {d.title}
+                      </p>
+                      <p className="text-[10px]" style={{ color: "var(--text-faint)" }}><span className={RISK_STYLE[d.risk_level]}>{d.risk_level} risk</span> · awaiting approval</p>
+                    </div>
+                    <ChevronDown size={12} className={`mt-0.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
+                  </button>
+                  {open && (
+                    <div className="px-3.5 pb-3 pl-9 space-y-2">
+                      {d.summary && <p className="text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>}
+                      {d.recommended_action && <p className="text-[11.5px] font-medium" style={{ color: "var(--accent)" }}>→ {d.recommended_action}</p>}
+                      <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence != null ? `${d.confidence}% confidence` : "Source-backed"}</p>
+                      {sources.length > 0 && <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s}/>)}</div>}
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <button onClick={() => act.mutate({ id: d.id, action: "approve" })} disabled={act.isPending}
+                          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-white transition-colors disabled:opacity-50" style={{ background: "#10b981" }}>
+                          <CheckCircle2 size={11}/> Approve
+                        </button>
+                        <button onClick={() => act.mutate({ id: d.id, action: "reject" })} disabled={act.isPending}
+                          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ border: "1px solid var(--border-strong)", color: "var(--text-secondary)" }}>
+                          <XCircle size={11}/> Reject
+                        </button>
+                        <button onClick={() => act.mutate({ id: d.id, action: "snooze" })} disabled={act.isPending}
+                          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ color: "var(--text-faint)" }}>
+                          <Clock size={11}/> Snooze
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {stream.map(item => (
+              <Link key={item.id} to={item.to} className="stream-row" style={{ borderLeft: `2px solid ${TONE_COLOR[item.tone]}` }}>
+                <item.icon size={13} className="mt-0.5 shrink-0" style={{ color: TONE_COLOR[item.tone] }}/>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] leading-tight" style={{ color: "var(--text-secondary)" }}>
+                    <span className="font-medium" style={{ color: "var(--text-primary)" }}>{item.agentLabel}</span> · {item.title}
+                  </p>
+                  {item.meta && <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{item.meta}</p>}
+                </div>
+                <ArrowUpRight size={11} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>
+              </Link>
+            ))}
+          </>
         )}
       </div>
     </section>

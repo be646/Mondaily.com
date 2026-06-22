@@ -2,9 +2,9 @@ import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
-import { CommandCenterStrip, WorkspaceGraphPulse } from "../../components/ai/command-center";
+import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
-import { DecisionQueuePanel, useDecisionQueue } from "../../components/ai/decision-queue";
+import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
 } from "../../components/ai/ask-shared";
@@ -686,60 +686,28 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="operating-picture mb-8">
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
-            <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>What the workspace graph sees now</h2>
-          </div>
-          <p className="max-w-xl text-sm" style={{ color: "var(--text-muted)" }}>
-            Live graph counts, agent findings, and source-backed attention signals in one view.
-          </p>
-        </div>
-        <div className="grid gap-4 xl:grid-cols-[1.08fr_.92fr]">
-          <div className="control-zone">
-            <WorkspaceGraphPulse />
-          </div>
-          <div className="control-zone">
-            <CommandCenterStrip
-              tasks={tasksQuery.data ?? []}
-              notifications={notificationsQuery.data ?? []}
-              checkedAreas={["tasks", "records", "relationships", ...(hasFinance ? ["finance"] : [])]}
-              onAskMondaily={(prefill) => {
-                askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                // A specific question (e.g. "Ask what changed") sends immediately
-                // instead of just filling the box — the user already said what
-                // they want, so don't make them click twice. The generic header
-                // "Ask Mondaily" button (no prefill) just focuses the input.
-                if (prefill) doSend(prefill);
-                else inputRef.current?.focus();
-              }}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Agent Constellation — the visual heart of Home, now between the
-          operating picture and the work stream it influences. ── */}
+      {/* ── Agent Constellation — the visual identity piece, right after
+          the console it's powering. ── */}
       <AgentConstellationPanel />
 
-      {/* ── Attention + Today's Flow — decisions and work stay practical,
-          but the layout reads as one control surface rather than loose cards. ── */}
+      {/* ── Needs you — the merged decision/risk/activity zone. One ranked
+          list instead of two sections doing overlapping jobs. ── */}
+      <NeedsYouPanel
+        notifications={notificationsQuery.data ?? []}
+        onAskMondaily={(prefill) => {
+          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (prefill) doSend(prefill);
+          else inputRef.current?.focus();
+        }}
+      />
+
+      {/* ── Workspace Graph Pulse — a status strip, not a hero section. ── */}
+      <WorkspaceGraphPulse />
+
+      {/* ── Today's Flow — tasks and meetings, side by side. ── */}
       <section className="mb-8">
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Attention stream</p>
-            <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Decisions, tasks, and meetings</h2>
-          </div>
-          <p className="max-w-lg text-sm" style={{ color: "var(--text-muted)" }}>
-            Keep approvals visible while today’s work stays one click away.
-          </p>
-        </div>
-        <div className="grid gap-4 xl:grid-cols-[.95fr_1.05fr]">
-          <div className="control-zone">
-            <DecisionQueuePanel />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
+        <div className="grid gap-4 md:grid-cols-2">
 
         {/* Tasks card */}
         <section className="surface-card flow-panel flex flex-col overflow-hidden">
@@ -867,7 +835,6 @@ export function HomePage() {
           </div>
         </section>
           </div>
-        </div>
       </section>
 
       {detailTask && (
