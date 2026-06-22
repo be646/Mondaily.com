@@ -6,6 +6,7 @@ import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
+import { executeApprovedAction } from "./decisions";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -16,6 +17,8 @@ Mondaily has a real workspace graph: every record is a node, and nodes can be co
 You also have real finance and report tools — never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points — always call run_report rather than guessing at numbers from a report's name or type alone.
 
 You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze — use this instead of claiming you did something sensitive yourself), and create_workflow_draft (saves a disabled workflow draft for the user to review in the builder — you can never enable a workflow yourself; always say so explicitly and never imply the workflow is now running).
+
+For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned — never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
 
 You also have discover_web_prospects — the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL — never invent a candidate yourself; always call this tool instead.
 
@@ -283,6 +286,28 @@ const TOOLS = [
         parent_id: { type: "string", description: "Optional node_id of the record this note is about" }
       },
       required: ["content"]
+    }
+  },
+  {
+    name: "list_decisions",
+    description: "Read the real Decision Queue — pending (or resolved) agent recommendations awaiting human approval. Use this whenever the user asks about 'pending decisions', 'what needs approval', or says 'approve all/everything' — you must call this first to see what's actually there before approving anything; never claim the queue is empty without calling this.",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["pending", "approved", "rejected", "snoozed"], description: "Default 'pending'" }
+      }
+    }
+  },
+  {
+    name: "resolve_decision",
+    description: "Approve, reject, or snooze one specific Decision Queue item by its id (from list_decisions). To act on 'all pending decisions', call list_decisions first, then call this once per decision id returned.",
+    input_schema: {
+      type: "object",
+      properties: {
+        decision_id: { type: "string", description: "The decision's id, from list_decisions" },
+        action: { type: "string", enum: ["approve", "reject", "snooze"] }
+      },
+      required: ["decision_id", "action"]
     }
   },
   {
@@ -885,6 +910,46 @@ async function executeTool(
         if (error) return `Error creating note: ${error.message}`;
         sources.push({ type: "note", title: input.title ?? "Untitled note", node_id: data.id, object_type: "note" });
         return `Note created (ID: ${data.id}).`;
+      }
+
+      case "list_decisions": {
+        const status = (input.status as string) || "pending";
+        const { data, error } = await supabase
+          .from("decision_queue")
+          .select("id, title, summary, recommended_action, risk_level, agent_name, source_type, status, created_at")
+          .eq("workspace_id", workspaceId)
+          .eq("status", status)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) return `Error reading decision queue: ${error.message}`;
+        if (!data?.length) return `No ${status} decisions in the Decision Queue.`;
+        for (const d of data) {
+          sources.push({ type: "decision", title: d.title, node_id: d.id, object_type: "decision", match_reason: `${d.risk_level} risk · ${d.agent_name}` });
+        }
+        const list = data.map(d => `- [${d.id}] ${d.title} (${d.agent_name}, ${d.risk_level} risk)${d.recommended_action ? ` — ${d.recommended_action}` : ""}`).join("\n");
+        return `${data.length} ${status} decision(s):\n${list}`;
+      }
+
+      case "resolve_decision": {
+        const decisionId = String(input.decision_id ?? "");
+        const action = String(input.action ?? "");
+        if (!["approve", "reject", "snooze"].includes(action)) return "Invalid action — must be approve, reject, or snooze.";
+        const { data: decision, error: fetchError } = await supabase
+          .from("decision_queue")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .eq("id", decisionId)
+          .maybeSingle();
+        if (fetchError || !decision) return `Could not find decision ${decisionId}.`;
+        const newStatus = action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed";
+        if (action === "approve") await executeApprovedAction(workspaceId, decision).catch(() => {});
+        const { error: updateError } = await supabase
+          .from("decision_queue")
+          .update({ status: newStatus, resolved_at: new Date().toISOString(), resolved_by: userId })
+          .eq("id", decisionId);
+        if (updateError) return `Error resolving decision: ${updateError.message}`;
+        sources.push({ type: "decision", title: decision.title, node_id: decisionId, object_type: "decision" });
+        return `${action === "approve" ? "Approved" : action === "reject" ? "Rejected" : "Snoozed"}: "${decision.title}".`;
       }
 
       case "create_decision": {

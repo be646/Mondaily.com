@@ -178,7 +178,7 @@ router.get("/", async (c) => {
       last_run_at: financeJob.lastRunAt, last_action: financeJob.lastAction,
       evidence_count: overdueInvoices.length + pendingCount,
       suggested_action: pendingCount > 0 ? "Review pending finance decisions" : overdueInvoices.length > 0 ? "Chase overdue invoices" : null,
-      destination: pendingCount > 0 ? "/decisions" : "/finance/invoices",
+      destination: pendingCount > 0 ? "/home" : "/finance/invoices",
     });
   } else {
     agents.push({
@@ -219,7 +219,7 @@ router.get("/", async (c) => {
       last_action: prospectingSummary.lastAction,
       evidence_count: pendingProspecting.length,
       suggested_action: pendingProspecting.length > 0 ? "Review prospecting candidates" : null,
-      destination: pendingProspecting.length > 0 ? "/decisions" : "/ask/new",
+      destination: pendingProspecting.length > 0 ? "/home" : "/ask/new",
     });
   }
 
@@ -248,7 +248,7 @@ router.get("/", async (c) => {
       status: enrichedCount > 0 ? `Enriched ${enrichedCount} record(s)` : "No findings",
       state: enrichedCount > 0 ? "active" : "monitoring",
       backed_by: ["crm_enricher"], last_run_at: summary.lastRunAt, last_action: summary.lastAction,
-      evidence_count: enrichedCount, suggested_action: null, destination: "/objects",
+      evidence_count: enrichedCount, suggested_action: null, destination: "/search",
     });
   } else {
     agents.push({
@@ -256,7 +256,7 @@ router.get("/", async (c) => {
       status: "Not yet run for this workspace", state: "not_configured",
       backed_by: ["crm_enricher"], last_run_at: null,
       last_action: "Runs automatically as records are created — none triggered yet.",
-      evidence_count: 0, suggested_action: null, destination: "/objects",
+      evidence_count: 0, suggested_action: null, destination: "/search",
     });
   }
 

@@ -50544,6 +50544,165 @@ router4.post("/run", zValidator("json", runSchema), async (c) => {
   }
 });
 
+// src/routes/decisions.ts
+var router5 = new Hono2();
+router5.use("*", requireAuth);
+var evidenceItem = external_exports.object({
+  type: external_exports.string(),
+  title: external_exports.string(),
+  node_id: external_exports.string().optional(),
+  object_type: external_exports.string().optional(),
+  relationship: external_exports.string().optional(),
+  match_reason: external_exports.string().optional(),
+  timestamp: external_exports.string().optional()
+});
+var createSchema = external_exports.object({
+  source_type: external_exports.string(),
+  source_id: external_exports.string().optional(),
+  agent_name: external_exports.string(),
+  title: external_exports.string().min(1),
+  summary: external_exports.string().optional(),
+  recommended_action: external_exports.string().optional(),
+  risk_level: external_exports.enum(["low", "medium", "high"]).default("low"),
+  confidence: external_exports.number().min(0).max(100).optional(),
+  evidence: external_exports.array(evidenceItem).default([])
+});
+router5.get("/", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const status = c.req.query("status");
+  let query = supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(100);
+  if (status) query = query.eq("status", status);
+  const { data, error } = await query;
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data ?? []);
+});
+router5.get("/:id", async (c) => {
+  const { data, error } = await supabase.from("decision_queue").select("*").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  if (error) return c.json({ error: error.message }, 500);
+  if (!data) return c.json({ error: "Decision not found" }, 404);
+  return c.json(data);
+});
+router5.post("/", zValidator("json", createSchema), async (c) => {
+  const body = c.req.valid("json");
+  const { data, error } = await supabase.from("decision_queue").insert({ ...body, workspace_id: c.get("workspaceId") }).select().single();
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json(data, 201);
+});
+router5.patch("/:id", zValidator("json", createSchema.partial()), async (c) => {
+  const body = c.req.valid("json");
+  const { data, error } = await supabase.from("decision_queue").update(body).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json(data);
+});
+async function resolve(c, status, extra = {}) {
+  const { data, error } = await supabase.from("decision_queue").update({
+    status,
+    resolved_at: (/* @__PURE__ */ new Date()).toISOString(),
+    resolved_by: c.get("userId"),
+    ...extra
+  }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
+  if (error) return c.json({ error: error.message }, 400);
+  await supabase.from("activities").insert({
+    node_id: data.source_id ?? null,
+    workspace_id: c.get("workspaceId"),
+    actor_type: "human",
+    actor_id: c.get("userId"),
+    action: `decision_${status}`,
+    diff: { decision_id: data.id, title: data.title }
+  }).then(() => {
+  }, () => {
+  });
+  return c.json(data);
+}
+async function executeApprovedAction(workspaceId, decision) {
+  if (decision.agent_name === "prospecting" && decision.source_type === "prospecting_candidate") {
+    const evidenceItem2 = (decision.evidence ?? [])[0];
+    const candidate = evidenceItem2?.candidate;
+    if (!candidate) return;
+    const node = await createNode({
+      workspace_id: workspaceId,
+      vertical: objectTypeToVertical(candidate.object_type),
+      object_type: candidate.object_type,
+      created_by: "agent:prospecting",
+      data: {
+        name: candidate.name,
+        email: candidate.email ?? void 0,
+        domain: candidate.domain ?? void 0,
+        website: candidate.website ?? void 0,
+        linkedin: candidate.linkedin ?? void 0,
+        description: candidate.description ?? void 0,
+        location: candidate.location ?? void 0,
+        source_url: candidate.source_url,
+        source_title: candidate.source_title,
+        confidence_label: candidate.confidence_label
+      }
+    });
+    await logActivity(node.id, workspaceId, "ai_agent", "prospecting", "created", void 0, `Approved from Decision Queue: ${candidate.reason}`);
+    inngest.send({
+      name: "crm/record.created",
+      data: { workspaceId, nodeId: node.id, objectType: candidate.object_type, vertical: objectTypeToVertical(candidate.object_type) }
+    }).catch(() => {
+    });
+    if (evidenceItem2?.destination_list_id) {
+      const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", evidenceItem2.destination_list_id);
+      await supabase.from("list_entries").upsert({ list_id: evidenceItem2.destination_list_id, node_id: node.id, position: (count ?? 0) + 1 });
+    }
+    return;
+  }
+  if (decision.agent_name === "invoice_chaser" && decision.source_type === "invoice") {
+    const { data: invoice } = await supabase.from("nodes").select("id, data").eq("id", decision.source_id).eq("workspace_id", workspaceId).maybeSingle();
+    if (!invoice) return;
+    const invoiceData = invoice.data;
+    const clientEmail = invoiceData.client_email;
+    const subject = String(decision.recommended_action ?? "").replace(/^Send: "(.+)"$/, "$1") || `Invoice ${invoiceData.invoice_number ?? invoice.id} reminder`;
+    const body = decision.summary ?? "";
+    const chaseCount = (invoiceData.chase_count ?? 0) + 1;
+    if (clientEmail) {
+      const { data: emailConn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).single();
+      if (emailConn?.grant_id) {
+        await fetch(`https://api.us.nylas.com/v3/grants/${emailConn.grant_id}/messages/send`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] })
+        }).catch(() => {
+        });
+      } else {
+        await supabase.from("nodes").insert({
+          workspace_id: workspaceId,
+          vertical: "finance",
+          object_type: "task",
+          created_by: "agent:invoice_chaser",
+          data: {
+            title: `Chase invoice ${invoiceData.invoice_number ?? invoice.id}`,
+            notes: `Approved reminder \u2014 send manually:
+
+Subject: ${subject}
+
+${body}`,
+            status: "todo",
+            priority: "medium"
+          }
+        });
+      }
+    }
+    await supabase.from("nodes").update({
+      data: { ...invoiceData, status: "overdue", last_chased_at: (/* @__PURE__ */ new Date()).toISOString(), chase_count: chaseCount }
+    }).eq("id", invoice.id);
+  }
+}
+router5.post("/:id/approve", async (c) => {
+  const { data: decision } = await supabase.from("decision_queue").select("*").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  if (decision) await executeApprovedAction(c.get("workspaceId"), decision).catch(() => {
+  });
+  return resolve(c, "approved");
+});
+router5.post("/:id/reject", async (c) => resolve(c, "rejected"));
+router5.post("/:id/snooze", zValidator("json", external_exports.object({ until: external_exports.string().optional() }).optional()), async (c) => {
+  const body = c.req.valid("json") ?? {};
+  const until = body.until ?? new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString();
+  return resolve(c, "snoozed", { snoozed_until: until });
+});
+
 // src/routes/ask.ts
 var SYSTEM_PROMPT = `You are Mondaily AI \u2014 an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -50554,6 +50713,8 @@ Mondaily has a real workspace graph: every record is a node, and nodes can be co
 You also have real finance and report tools \u2014 never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points \u2014 always call run_report rather than guessing at numbers from a report's name or type alone.
 
 You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze \u2014 use this instead of claiming you did something sensitive yourself), and create_workflow_draft (saves a disabled workflow draft for the user to review in the builder \u2014 you can never enable a workflow yourself; always say so explicitly and never imply the workflow is now running).
+
+For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned \u2014 never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
 
 You also have discover_web_prospects \u2014 the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL \u2014 never invent a candidate yourself; always call this tool instead.
 
@@ -50820,6 +50981,28 @@ var TOOLS = [
         parent_id: { type: "string", description: "Optional node_id of the record this note is about" }
       },
       required: ["content"]
+    }
+  },
+  {
+    name: "list_decisions",
+    description: "Read the real Decision Queue \u2014 pending (or resolved) agent recommendations awaiting human approval. Use this whenever the user asks about 'pending decisions', 'what needs approval', or says 'approve all/everything' \u2014 you must call this first to see what's actually there before approving anything; never claim the queue is empty without calling this.",
+    input_schema: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["pending", "approved", "rejected", "snoozed"], description: "Default 'pending'" }
+      }
+    }
+  },
+  {
+    name: "resolve_decision",
+    description: "Approve, reject, or snooze one specific Decision Queue item by its id (from list_decisions). To act on 'all pending decisions', call list_decisions first, then call this once per decision id returned.",
+    input_schema: {
+      type: "object",
+      properties: {
+        decision_id: { type: "string", description: "The decision's id, from list_decisions" },
+        action: { type: "string", enum: ["approve", "reject", "snooze"] }
+      },
+      required: ["decision_id", "action"]
     }
   },
   {
@@ -51276,6 +51459,32 @@ Config: ${JSON.stringify(d.config ?? {})}`;
         sources.push({ type: "note", title: input.title ?? "Untitled note", node_id: data.id, object_type: "note" });
         return `Note created (ID: ${data.id}).`;
       }
+      case "list_decisions": {
+        const status = input.status || "pending";
+        const { data, error } = await supabase.from("decision_queue").select("id, title, summary, recommended_action, risk_level, agent_name, source_type, status, created_at").eq("workspace_id", workspaceId).eq("status", status).order("created_at", { ascending: false }).limit(50);
+        if (error) return `Error reading decision queue: ${error.message}`;
+        if (!data?.length) return `No ${status} decisions in the Decision Queue.`;
+        for (const d of data) {
+          sources.push({ type: "decision", title: d.title, node_id: d.id, object_type: "decision", match_reason: `${d.risk_level} risk \xB7 ${d.agent_name}` });
+        }
+        const list = data.map((d) => `- [${d.id}] ${d.title} (${d.agent_name}, ${d.risk_level} risk)${d.recommended_action ? ` \u2014 ${d.recommended_action}` : ""}`).join("\n");
+        return `${data.length} ${status} decision(s):
+${list}`;
+      }
+      case "resolve_decision": {
+        const decisionId = String(input.decision_id ?? "");
+        const action = String(input.action ?? "");
+        if (!["approve", "reject", "snooze"].includes(action)) return "Invalid action \u2014 must be approve, reject, or snooze.";
+        const { data: decision, error: fetchError } = await supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).eq("id", decisionId).maybeSingle();
+        if (fetchError || !decision) return `Could not find decision ${decisionId}.`;
+        const newStatus = action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed";
+        if (action === "approve") await executeApprovedAction(workspaceId, decision).catch(() => {
+        });
+        const { error: updateError } = await supabase.from("decision_queue").update({ status: newStatus, resolved_at: (/* @__PURE__ */ new Date()).toISOString(), resolved_by: userId }).eq("id", decisionId);
+        if (updateError) return `Error resolving decision: ${updateError.message}`;
+        sources.push({ type: "decision", title: decision.title, node_id: decisionId, object_type: "decision" });
+        return `${action === "approve" ? "Approved" : action === "reject" ? "Rejected" : "Snoozed"}: "${decision.title}".`;
+      }
       case "create_decision": {
         const { data, error } = await supabase.from("decision_queue").insert({
           workspace_id: workspaceId,
@@ -51351,9 +51560,9 @@ var OBJECT_LABEL = {
   deal: "deal",
   task: "task"
 };
-var router5 = new Hono2();
+var router6 = new Hono2();
 var HISTORY_TURN_LIMIT = 16;
-router5.post("/", requireAuth, zValidator("json", external_exports.object({
+router6.post("/", requireAuth, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().optional(),
   model: external_exports.enum(["auto", "fast", "smart"]).optional(),
@@ -51527,7 +51736,7 @@ ${webContext}` : "") + contextNote;
     return c.json({ reply: `Connection error: ${err2.message}` }, 500);
   }
 });
-router5.get("/credits", requireAuth, async (c) => {
+router6.get("/credits", requireAuth, async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
   const now = /* @__PURE__ */ new Date();
@@ -51538,20 +51747,20 @@ router5.get("/credits", requireAuth, async (c) => {
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
   return c.json({ used, limit: 1e3, period_end: periodEnd });
 });
-router5.post("/stream", requireAuth, zValidator("json", external_exports.object({
+router6.post("/stream", requireAuth, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().uuid().optional()
 })), async (c) => {
   return c.json({ ok: true });
 });
-router5.get("/threads", requireAuth, async (c) => c.json([]));
+router6.get("/threads", requireAuth, async (c) => c.json([]));
 
 // src/routes/public-ask.ts
-var router6 = new Hono2();
+var router7 = new Hono2();
 var SYSTEM = `You are Mondaily AI \u2014 an autonomous AI workspace platform. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 3 sentences.
 
 Mondaily is: an AI workspace that replaces CRM, email sequences, pipelines, automations, and finance tools. It enriches company records automatically (ARR, headcount, tech stack, signals), moves deals based on AI activity rules, runs multi-step email sequences, and handles invoicing and approvals \u2014 all without manual input.`;
-router6.post(
+router7.post(
   "/",
   zValidator("json", external_exports.object({
     messages: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).min(1)
@@ -51587,8 +51796,8 @@ router6.post(
 );
 
 // src/routes/agents.ts
-var router7 = new Hono2();
-router7.use("*", requireAuth);
+var router8 = new Hono2();
+router8.use("*", requireAuth);
 function latestJob(jobs, agentName) {
   const matches2 = jobs.filter((j) => j.agent_name === agentName);
   if (!matches2.length) return null;
@@ -51607,7 +51816,7 @@ function jobSummary(job, idleLabel) {
   const summary = typeof out?.summary === "string" ? out.summary : "Completed last run";
   return { lastAction: summary, lastRunAt: when };
 }
-router7.get("/", async (c) => {
+router8.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const [tasksRes, notificationsRes, nodesRes, jobsRes, workspaceRes, decisionsRes] = await Promise.all([
     supabase.from("tasks").select("id,completed,due_date,status").eq("workspace_id", workspaceId),
@@ -51719,7 +51928,7 @@ router7.get("/", async (c) => {
       last_action: financeJob.lastAction,
       evidence_count: overdueInvoices.length + pendingCount,
       suggested_action: pendingCount > 0 ? "Review pending finance decisions" : overdueInvoices.length > 0 ? "Chase overdue invoices" : null,
-      destination: pendingCount > 0 ? "/decisions" : "/finance/invoices"
+      destination: pendingCount > 0 ? "/home" : "/finance/invoices"
     });
   } else {
     agents.push({
@@ -51755,7 +51964,7 @@ router7.get("/", async (c) => {
       last_action: prospectingSummary.lastAction,
       evidence_count: pendingProspecting.length,
       suggested_action: pendingProspecting.length > 0 ? "Review prospecting candidates" : null,
-      destination: pendingProspecting.length > 0 ? "/decisions" : "/ask/new"
+      destination: pendingProspecting.length > 0 ? "/home" : "/ask/new"
     });
   }
   agents.push({
@@ -51786,7 +51995,7 @@ router7.get("/", async (c) => {
       last_action: summary.lastAction,
       evidence_count: enrichedCount,
       suggested_action: null,
-      destination: "/objects"
+      destination: "/search"
     });
   } else {
     agents.push({
@@ -51800,7 +52009,7 @@ router7.get("/", async (c) => {
       last_action: "Runs automatically as records are created \u2014 none triggered yet.",
       evidence_count: 0,
       suggested_action: null,
-      destination: "/objects"
+      destination: "/search"
     });
   }
   agents.push({
@@ -51869,165 +52078,6 @@ router7.get("/", async (c) => {
     destination: "/settings/workspace"
   });
   return c.json({ agents });
-});
-
-// src/routes/decisions.ts
-var router8 = new Hono2();
-router8.use("*", requireAuth);
-var evidenceItem = external_exports.object({
-  type: external_exports.string(),
-  title: external_exports.string(),
-  node_id: external_exports.string().optional(),
-  object_type: external_exports.string().optional(),
-  relationship: external_exports.string().optional(),
-  match_reason: external_exports.string().optional(),
-  timestamp: external_exports.string().optional()
-});
-var createSchema = external_exports.object({
-  source_type: external_exports.string(),
-  source_id: external_exports.string().optional(),
-  agent_name: external_exports.string(),
-  title: external_exports.string().min(1),
-  summary: external_exports.string().optional(),
-  recommended_action: external_exports.string().optional(),
-  risk_level: external_exports.enum(["low", "medium", "high"]).default("low"),
-  confidence: external_exports.number().min(0).max(100).optional(),
-  evidence: external_exports.array(evidenceItem).default([])
-});
-router8.get("/", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const status = c.req.query("status");
-  let query = supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(100);
-  if (status) query = query.eq("status", status);
-  const { data, error } = await query;
-  if (error) return c.json({ error: error.message }, 500);
-  return c.json(data ?? []);
-});
-router8.get("/:id", async (c) => {
-  const { data, error } = await supabase.from("decision_queue").select("*").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
-  if (error) return c.json({ error: error.message }, 500);
-  if (!data) return c.json({ error: "Decision not found" }, 404);
-  return c.json(data);
-});
-router8.post("/", zValidator("json", createSchema), async (c) => {
-  const body = c.req.valid("json");
-  const { data, error } = await supabase.from("decision_queue").insert({ ...body, workspace_id: c.get("workspaceId") }).select().single();
-  if (error) return c.json({ error: error.message }, 400);
-  return c.json(data, 201);
-});
-router8.patch("/:id", zValidator("json", createSchema.partial()), async (c) => {
-  const body = c.req.valid("json");
-  const { data, error } = await supabase.from("decision_queue").update(body).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
-  if (error) return c.json({ error: error.message }, 400);
-  return c.json(data);
-});
-async function resolve(c, status, extra = {}) {
-  const { data, error } = await supabase.from("decision_queue").update({
-    status,
-    resolved_at: (/* @__PURE__ */ new Date()).toISOString(),
-    resolved_by: c.get("userId"),
-    ...extra
-  }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
-  if (error) return c.json({ error: error.message }, 400);
-  await supabase.from("activities").insert({
-    node_id: data.source_id ?? null,
-    workspace_id: c.get("workspaceId"),
-    actor_type: "human",
-    actor_id: c.get("userId"),
-    action: `decision_${status}`,
-    diff: { decision_id: data.id, title: data.title }
-  }).then(() => {
-  }, () => {
-  });
-  return c.json(data);
-}
-async function executeApprovedAction(workspaceId, decision) {
-  if (decision.agent_name === "prospecting" && decision.source_type === "prospecting_candidate") {
-    const evidenceItem2 = (decision.evidence ?? [])[0];
-    const candidate = evidenceItem2?.candidate;
-    if (!candidate) return;
-    const node = await createNode({
-      workspace_id: workspaceId,
-      vertical: objectTypeToVertical(candidate.object_type),
-      object_type: candidate.object_type,
-      created_by: "agent:prospecting",
-      data: {
-        name: candidate.name,
-        email: candidate.email ?? void 0,
-        domain: candidate.domain ?? void 0,
-        website: candidate.website ?? void 0,
-        linkedin: candidate.linkedin ?? void 0,
-        description: candidate.description ?? void 0,
-        location: candidate.location ?? void 0,
-        source_url: candidate.source_url,
-        source_title: candidate.source_title,
-        confidence_label: candidate.confidence_label
-      }
-    });
-    await logActivity(node.id, workspaceId, "ai_agent", "prospecting", "created", void 0, `Approved from Decision Queue: ${candidate.reason}`);
-    inngest.send({
-      name: "crm/record.created",
-      data: { workspaceId, nodeId: node.id, objectType: candidate.object_type, vertical: objectTypeToVertical(candidate.object_type) }
-    }).catch(() => {
-    });
-    if (evidenceItem2?.destination_list_id) {
-      const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", evidenceItem2.destination_list_id);
-      await supabase.from("list_entries").upsert({ list_id: evidenceItem2.destination_list_id, node_id: node.id, position: (count ?? 0) + 1 });
-    }
-    return;
-  }
-  if (decision.agent_name === "invoice_chaser" && decision.source_type === "invoice") {
-    const { data: invoice } = await supabase.from("nodes").select("id, data").eq("id", decision.source_id).eq("workspace_id", workspaceId).maybeSingle();
-    if (!invoice) return;
-    const invoiceData = invoice.data;
-    const clientEmail = invoiceData.client_email;
-    const subject = String(decision.recommended_action ?? "").replace(/^Send: "(.+)"$/, "$1") || `Invoice ${invoiceData.invoice_number ?? invoice.id} reminder`;
-    const body = decision.summary ?? "";
-    const chaseCount = (invoiceData.chase_count ?? 0) + 1;
-    if (clientEmail) {
-      const { data: emailConn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).single();
-      if (emailConn?.grant_id) {
-        await fetch(`https://api.us.nylas.com/v3/grants/${emailConn.grant_id}/messages/send`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] })
-        }).catch(() => {
-        });
-      } else {
-        await supabase.from("nodes").insert({
-          workspace_id: workspaceId,
-          vertical: "finance",
-          object_type: "task",
-          created_by: "agent:invoice_chaser",
-          data: {
-            title: `Chase invoice ${invoiceData.invoice_number ?? invoice.id}`,
-            notes: `Approved reminder \u2014 send manually:
-
-Subject: ${subject}
-
-${body}`,
-            status: "todo",
-            priority: "medium"
-          }
-        });
-      }
-    }
-    await supabase.from("nodes").update({
-      data: { ...invoiceData, status: "overdue", last_chased_at: (/* @__PURE__ */ new Date()).toISOString(), chase_count: chaseCount }
-    }).eq("id", invoice.id);
-  }
-}
-router8.post("/:id/approve", async (c) => {
-  const { data: decision } = await supabase.from("decision_queue").select("*").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
-  if (decision) await executeApprovedAction(c.get("workspaceId"), decision).catch(() => {
-  });
-  return resolve(c, "approved");
-});
-router8.post("/:id/reject", async (c) => resolve(c, "rejected"));
-router8.post("/:id/snooze", zValidator("json", external_exports.object({ until: external_exports.string().optional() }).optional()), async (c) => {
-  const body = c.req.valid("json") ?? {};
-  const until = body.until ?? new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString();
-  return resolve(c, "snoozed", { snoozed_until: until });
 });
 
 // src/routes/activities.ts
@@ -56016,10 +56066,10 @@ app.route("/api/v1/import", router25);
 app.route("/api/v1/generate", router26);
 app.route("/api/v1/nodes", router);
 app.route("/api/v1/search", router2);
-app.route("/api/v1/ask", router5);
-app.route("/api/v1/public/ask", router6);
-app.route("/api/v1/agents", router7);
-app.route("/api/v1/decisions", router8);
+app.route("/api/v1/ask", router6);
+app.route("/api/v1/public/ask", router7);
+app.route("/api/v1/agents", router8);
+app.route("/api/v1/decisions", router5);
 app.route("/api/v1/prospecting", router4);
 app.route("/api/v1/status", router36);
 app.route("/api/v1/workspaces", router37);

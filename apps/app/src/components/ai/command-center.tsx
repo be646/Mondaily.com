@@ -205,39 +205,43 @@ export function WorkspaceGraphPulse() {
         <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
       </div>
       {pulse.isLoading ? (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton-shimmer h-24 rounded-2xl"/>)}
+        <div className="flex gap-2.5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton-shimmer h-[78px] w-[140px] shrink-0 rounded-2xl"/>)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <div className="flex gap-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           {PULSE_CATEGORIES.map(({ key, label, icon: Icon, color }) => {
             const value = pulse[key];
             const connected = value !== null;
+            // A flat colored underline sized relative to the largest connected
+            // value right now — a real relative-size cue, presented as a
+            // clean modern indicator line, never a fabricated historical trend.
             const pct = connected ? Math.max(8, Math.round((value / maxValue) * 100)) : 0;
-            const ringColor = connected ? color : "var(--text-faint)";
+            const tone = connected ? color : "var(--text-faint)";
             return (
-              <div key={key} className="surface-card flex items-center gap-3 rounded-2xl p-3.5">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(${ringColor} ${pct}%, var(--surface-hover) ${pct}%)` }}>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full" style={{ background: "var(--surface-card)" }}>
-                    <Icon size={13} style={{ color: connected ? color : "var(--text-faint)" }}/>
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[17px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
+              <div key={key} className="surface-card flex min-w-[140px] shrink-0 flex-col gap-2 rounded-2xl p-3.5">
+                <div className="flex items-center gap-2">
+                  <Icon size={13} style={{ color: tone }}/>
+                  <p className="text-[19px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
                     {connected ? value : "—"}
                   </p>
-                  <p className="truncate text-[10.5px] leading-tight" style={{ color: "var(--text-faint)" }}>{connected ? label : `${label} · not connected`}</p>
+                </div>
+                <p className="truncate text-[10.5px] leading-tight" style={{ color: "var(--text-faint)" }}>{connected ? label : `${label} · not connected`}</p>
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: tone }}/>
                 </div>
               </div>
             );
           })}
-          {/* Graph health — a ratio, not a count, so it gets a progress bar instead of a ring-and-number pair. */}
-          <div className="surface-card col-span-2 flex flex-col justify-center gap-2 rounded-2xl p-3.5 sm:col-span-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>graph health</span>
-              <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{healthPct}%</span>
+          {/* Graph health — a ratio, not a count, presented the same way as the
+              other tiles so the whole row reads as one consistent line. */}
+          <div className="surface-card flex min-w-[140px] shrink-0 flex-col gap-2 rounded-2xl p-3.5">
+            <div className="flex items-center gap-2">
+              <CheckSquare size={13} style={{ color: "#10b981" }}/>
+              <p className="text-[19px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>{healthPct}%</p>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
+            <p className="text-[10.5px] leading-tight" style={{ color: "var(--text-faint)" }}>graph health</p>
+            <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
               <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${healthPct}%` }}/>
             </div>
           </div>

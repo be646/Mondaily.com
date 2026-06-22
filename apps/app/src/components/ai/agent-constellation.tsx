@@ -285,7 +285,10 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
                   <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${dotColor}33` }}/>
                 )}
               </span>
-              <span className="truncate">{agent.name}</span>
+              <span className="flex-1 truncate">{agent.name}</span>
+              <span className="shrink-0 text-[9.5px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>
+                {CONSTELLATION_STATE_LABEL[agent.state]}
+              </span>
             </Link>
           );
         })}

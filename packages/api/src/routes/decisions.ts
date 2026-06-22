@@ -124,7 +124,7 @@ async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "co
  * "reach out to a stale relationship") is advisory; approving it just
  * records the human decision, since there's nothing to execute.
  */
-async function executeApprovedAction(workspaceId: string, decision: any): Promise<void> {
+export async function executeApprovedAction(workspaceId: string, decision: any): Promise<void> {
   if (decision.agent_name === "prospecting" && decision.source_type === "prospecting_candidate") {
     const evidenceItem = (decision.evidence ?? [])[0] as { candidate?: ProspectCandidate; destination_list_id?: string | null } | undefined;
     const candidate = evidenceItem?.candidate;
