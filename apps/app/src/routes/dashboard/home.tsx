@@ -792,7 +792,7 @@ export function HomePage() {
             {tasksQuery.isLoading ? (
               <div className="p-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
-              <div className="p-4"><ErrorState error={new Error("Could not load tasks")} onRetry={() => tasksQuery.refetch()}/></div>
+              <div className="p-4"><ErrorState error={tasksQuery.error as Error} onRetry={() => tasksQuery.refetch()}/></div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
                 <Sparkles size={16} className="text-slate-700 mb-2"/>
@@ -873,7 +873,7 @@ export function HomePage() {
             {meetings.isLoading ? (
               <div className="p-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
             ) : meetings.isError ? (
-              <div className="p-4"><ErrorState error={new Error("Could not load meetings")} onRetry={() => meetings.refetch()}/></div>
+              <div className="p-4"><ErrorState error={meetings.error as Error} onRetry={() => meetings.refetch()}/></div>
             ) : meetings.data?.length ? (
               <ul className="divide-y divide-white/[.04]">
                 {meetings.data.map(m => (
