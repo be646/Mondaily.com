@@ -27,14 +27,26 @@ export const RISK_STYLE: Record<Decision["risk_level"], string> = {
   high: "text-rose-600 dark:text-rose-400",
 };
 
+// Every real SourceType the rest of the app knows how to render. Anything
+// outside this set (e.g. "prospecting_candidate", a decision-queue-only
+// evidence kind) is normalized to "record" below — this is what crashed
+// the page before: an unmapped type reached SourceCard with no icon for it.
+const KNOWN_SOURCE_TYPES = new Set<SourceType>([
+  "task", "invoice", "contact", "asset", "workflow",
+  "report", "note", "email", "notification", "finance", "record", "decision",
+]);
+
 export function mapEvidence(raw: DecisionEvidence[]): SourceCardData[] {
-  return raw.map(e => ({
-    type: (e.type === "related_object" ? "record" : e.type) as SourceType,
-    title: e.title,
-    timestamp: e.timestamp,
-    relevance: e.relationship ?? e.match_reason,
-    href: e.object_type && e.node_id ? `/objects/${e.object_type}/${e.node_id}` : undefined,
-  }));
+  return raw.map(e => {
+    const normalized = e.type === "related_object" ? "record" : e.type;
+    return {
+      type: (KNOWN_SOURCE_TYPES.has(normalized as SourceType) ? normalized : "record") as SourceType,
+      title: e.title,
+      timestamp: e.timestamp,
+      relevance: e.relationship ?? e.match_reason,
+      href: e.object_type && e.node_id ? `/objects/${e.object_type}/${e.node_id}` : undefined,
+    };
+  });
 }
 
 export function useDecisionQueue() {

@@ -129,7 +129,11 @@ export function mapBackendSources(raw: BackendSourceMeta[] | undefined): SourceC
 }
 
 export function SourceCard({ source }: { source: SourceCardData }) {
-  const Icon = SOURCE_ICON[source.type];
+  // Defensive fallback — an unrecognized source.type (e.g. a new evidence
+  // kind added on the backend before the frontend's SourceType union is
+  // updated) must never crash the render tree. Database is a neutral
+  // generic-record icon, used only when the real type isn't mapped yet.
+  const Icon = SOURCE_ICON[source.type] ?? Database;
   const Tag = source.href ? "a" : "div";
   return (
     <Tag

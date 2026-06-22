@@ -115,43 +115,61 @@ export function AgentConstellationPanel() {
         </span>
       </div>
 
-      {/* ── Agent rail — one row of compact cards, not an abstract radial
-          diagram. Scales to any number of agents, wraps/scrolls naturally
-          on narrow screens, and never clips. A thin flat line underneath
-          keeps the "all wired into one graph" idea without circle math. ── */}
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-x-3 bottom-0 h-px" style={{ background: "var(--border-soft)" }}/>
-        <div className="flex gap-2.5 overflow-x-auto pb-4" style={{ scrollbarWidth: "none" }}>
-          {constellation.map((agent, i) => {
-            const live = isLiveState(agent.state);
-            const isSelected = active?.id === agent.id;
-            const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
-            return (
-              <button
-                key={agent.id}
-                onClick={() => setSelected(agent.id)}
-                className="surface-card relative flex min-w-[150px] shrink-0 flex-col gap-1.5 rounded-xl p-3 text-left transition-colors"
-                style={{ borderLeft: `2.5px solid ${live ? dotColor : "var(--border-strong)"}`, outline: isSelected ? `1.5px solid ${dotColor}` : "none" }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: live ? `${dotColor}18` : "var(--surface-hover)" }}>
-                    <agent.icon size={13} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
-                    {live && (
-                      <motion.span
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                        className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2"
-                        style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-card)" }}
-                      />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
+      {/* ── Structured tree — Workspace Graph as the single root, every
+          agent branching below it. Built entirely out of simple flexbox
+          + border lines (no absolute-percent positioning, no SVG math),
+          so it can never clip or break under a narrow/odd-shaped
+          container the way a radial layout did. ── */}
+      <div className="flex flex-col items-center">
+        {/* Root node */}
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--surface-card)), var(--surface-card))", border: "1px solid color-mix(in srgb, var(--accent) 25%, var(--border-soft))" }}>
+            <Network size={18} style={{ color: "var(--accent)" }}/>
+          </span>
+          <span className="text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph</span>
+        </div>
+
+        {/* Trunk drop from root */}
+        <div className="h-5 w-px" style={{ background: "var(--border-strong)" }}/>
+
+        {/* Horizontal trunk + branches down to each agent */}
+        <div className="relative w-full">
+          <div className="absolute inset-x-6 top-0 h-px" style={{ background: "var(--border-strong)" }}/>
+          <div className="flex justify-center gap-2.5 overflow-x-auto pt-5" style={{ scrollbarWidth: "none" }}>
+            {constellation.map((agent, i) => {
+              const live = isLiveState(agent.state);
+              const isSelected = active?.id === agent.id;
+              const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
+              return (
+                <div key={agent.id} className="relative flex shrink-0 flex-col items-center">
+                  {/* Branch tick connecting this agent up to the trunk */}
+                  <div className="absolute -top-5 h-5 w-px" style={{ background: "var(--border-soft)" }}/>
+                  <button
+                    onClick={() => setSelected(agent.id)}
+                    className="surface-card relative flex min-w-[150px] flex-col gap-1.5 rounded-xl p-3 text-left transition-colors"
+                    style={{ borderTop: `2.5px solid ${live ? dotColor : "var(--border-strong)"}`, outline: isSelected ? `1.5px solid ${dotColor}` : "none" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: live ? `${dotColor}18` : "var(--surface-hover)" }}>
+                        <agent.icon size={13} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
+                        {live && (
+                          <motion.span
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1.8, repeat: Infinity }}
+                            className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2"
+                            style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-card)" }}
+                          />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
+                    </div>
+                    <p className="truncate text-[10px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</p>
+                    <p className="line-clamp-2 text-[10.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>{agent.note}</p>
+                  </button>
                 </div>
-                <p className="truncate text-[10px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</p>
-                <p className="line-clamp-2 text-[10.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>{agent.note}</p>
-              </button>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 

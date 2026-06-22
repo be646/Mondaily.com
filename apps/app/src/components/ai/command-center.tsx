@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
@@ -80,6 +81,9 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
   const decisions = decisionsData ?? [];
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
+  // Collapsed by default — a wide summary bar that expands on click,
+  // rather than always showing the full list inline.
+  const [panelOpen, setPanelOpen] = useState(false);
   const act = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) =>
       apiClient.post(`/decisions/${id}/${action}`, {}),
@@ -156,6 +160,31 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
           </div>
         ) : (
           <>
+            {/* Wide summary bar — collapsed by default, expands on click
+                instead of always showing the full list. */}
+            <button onClick={() => setPanelOpen(o => !o)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+              <span className="relative flex h-2 w-2 shrink-0">
+                {decisions.length > 0 && <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#d97706" }}/>}
+                {decisions.length === 0 && <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--text-faint)" }}/>}
+              </span>
+              <span className="flex-1 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>
+                {decisions.length > 0
+                  ? `${decisions.length} decision${decisions.length === 1 ? "" : "s"} awaiting approval`
+                  : `${stream.length} update${stream.length === 1 ? "" : "s"} — no approvals pending`}
+              </span>
+              <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{panelOpen ? "Hide" : "Show"}</span>
+              <ChevronDown size={14} className={`shrink-0 transition-transform ${panelOpen ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
+            </button>
+            <AnimatePresence initial={false}>
+              {panelOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  className="overflow-hidden border-t"
+                  style={{ borderColor: "var(--border-soft)" }}
+                >
             {!decisionsError && decisions.map(d => {
               const open = openId === d.id;
               const sources = mapEvidence(d.evidence ?? []);
@@ -208,6 +237,9 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
                 <ArrowUpRight size={11} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>
               </Link>
             ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
       </div>
@@ -258,45 +290,36 @@ export function WorkspaceGraphPulse() {
         <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
       </div>
       {pulse.isLoading ? (
-        <div className="skeleton-shimmer h-[120px] rounded-2xl"/>
+        <div className="skeleton-shimmer h-[140px] rounded-2xl"/>
       ) : (
-        <div className="surface-card flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center sm:gap-6">
-          {/* Graph health gets the headline spot — the one number worth
-              seeing at a glance, not buried as one tile among many. */}
-          <div className="flex shrink-0 items-center gap-3 sm:border-r sm:pr-6" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#10b981 ${healthPct}%, var(--surface-hover) ${healthPct}%)` }}>
-              <span className="flex h-10 w-10 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: "var(--surface-card)", color: "var(--text-primary)" }}>
-                {healthPct}%
-              </span>
-            </div>
-            <div>
-              <p className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Graph health</p>
-              <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>active tasks on track</p>
-            </div>
-          </div>
-
-          {/* Every other metric as a sorted horizontal bar strip — current
-              counts compared to each other, not a fabricated trend over
-              time (no historical snapshots exist yet to chart honestly). */}
-          <div className="grid flex-1 grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-            {[...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ label, icon, color, value: pulse[key] }))]
-              .sort((a, b) => (b.value ?? -1) - (a.value ?? -1))
-              .map((t, i) => {
-                const connected = t.value != null;
-                const pct = connected ? Math.max(4, Math.round((t.value! / maxValue) * 100)) : 0;
-                const tone = connected ? t.color : "var(--text-faint)";
-                return (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <t.icon size={12} className="shrink-0" style={{ color: tone }}/>
-                    <span className="w-[88px] shrink-0 truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.label}</span>
-                    <div className="h-1.5 flex-1 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
-                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: tone }}/>
-                    </div>
-                    <span className="w-7 shrink-0 text-right text-[11px] font-semibold" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>{connected ? t.value : "—"}</span>
-                  </div>
-                );
-              })}
-          </div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+          {[
+            { label: "graph health", icon: CheckSquare, color: "#10b981", value: healthPct, suffix: "%" },
+            ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ label, icon, color, value: pulse[key], suffix: "" })),
+          ].map((t, i) => {
+            const connected = t.value != null;
+            const pct = connected ? Math.max(6, Math.round((t.value! / (t.label === "graph health" ? 100 : maxValue)) * 100)) : 0;
+            const tone = connected ? t.color : "var(--text-faint)";
+            // A smooth curve rising to the metric's current relative level —
+            // a clean visual indicator of where it stands right now, not a
+            // fabricated history (no time-series snapshots exist yet).
+            const endY = 26 - (pct / 100) * 20;
+            return (
+              <div key={i} className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  <t.icon size={12} style={{ color: tone }}/>
+                  <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.label}</span>
+                </div>
+                <p className="text-[20px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
+                  {connected ? t.value : "—"}{t.suffix}
+                </p>
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-[18px] w-full">
+                  <path d={`M0,26 C30,26 50,${endY} 100,${endY}`} fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity={connected ? 1 : 0.4}/>
+                  <circle cx={100} cy={endY} r={2.2} fill={tone} opacity={connected ? 1 : 0.4}/>
+                </svg>
+              </div>
+            );
+          })}
         </div>
       )}
     </section>

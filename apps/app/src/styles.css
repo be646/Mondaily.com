@@ -185,10 +185,30 @@ body {
     radial-gradient(circle at 82% 10%, rgba(34, 211, 238, 0.055), transparent 30%),
     linear-gradient(180deg, var(--surface-page), var(--surface-page));
 }
-.home-ask-console {
-  box-shadow:
-    0 18px 60px color-mix(in srgb, var(--accent) 9%, transparent),
-    inset 0 1px 0 rgba(255,255,255,0.04);
+/* Chat console — the centered minimalist box for Mondaily Copilot. Soft
+   border, very subtle elevation, and a faint circuit/line-grid texture
+   in the background (low-opacity dot-and-line pattern) instead of a
+   loud gradient or neon edge. */
+.chat-console {
+  background: var(--surface-card);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 10px 32px rgba(15,23,42,0.04);
+}
+.chat-console::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border-soft) 80%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border-soft) 80%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black, transparent 75%);
+  opacity: 0.4;
+}
+html[data-theme="dark"] .chat-console, html.dark .chat-console {
+  box-shadow: 0 10px 32px rgba(0,0,0,0.3);
 }
 .control-zone {
   position: relative;
@@ -245,6 +265,21 @@ html[data-theme="light"] .home-ask-console {
   border: 1px solid var(--border-soft);
   color: var(--text-secondary);
 }
+
+/* Metric pill — flat, transparent background, each metric gets its own
+   soft colored border line (not a fill) so the row stays calm and
+   uncrowded even with several pills side by side. */
+.metric-pill {
+  @apply inline-flex items-center gap-1.5 rounded-full bg-transparent px-3 py-1.5 text-[12px] font-medium tabular-nums transition-colors;
+  border: 1px solid var(--border-soft);
+  color: var(--text-secondary);
+}
+.metric-pill[data-tone="indigo"] { border-color: color-mix(in srgb, #6366f1 35%, var(--border-soft)); color: #6366f1; }
+.metric-pill[data-tone="amber"]  { border-color: color-mix(in srgb, #d97706 35%, var(--border-soft)); color: #d97706; }
+.metric-pill[data-tone="cyan"]   { border-color: color-mix(in srgb, #06b6d4 35%, var(--border-soft)); color: #06b6d4; }
+html.dark .metric-pill[data-tone="indigo"], html[data-theme="dark"] .metric-pill[data-tone="indigo"] { color: #a5b4fc; }
+html.dark .metric-pill[data-tone="amber"], html[data-theme="dark"] .metric-pill[data-tone="amber"] { color: #fbbf24; }
+html.dark .metric-pill[data-tone="cyan"], html[data-theme="dark"] .metric-pill[data-tone="cyan"] { color: #67e8f9; }
 
 /* Live status chip — "Graph synced", "Agents active" etc. in the command
    room. A breathing dot, never a static icon badge. */

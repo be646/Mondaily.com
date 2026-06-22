@@ -391,61 +391,61 @@ export function HomePage() {
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-6 px-4 pb-6 pt-7 sm:-mx-6 sm:px-8 lg:-mx-8 lg:px-10">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          {/* Left: greeting + tagline */}
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
-            <h1 className="text-[28px] font-semibold tracking-tight sm:text-[34px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
-            <p className="mt-1 max-w-2xl text-[13px] sm:text-sm" style={{ color: "var(--text-muted)" }}>
-              Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
-            </p>
-          </div>
+      <div className="command-room relative -mx-4 -mt-8 mb-6 px-4 pb-6 pt-7 text-center sm:-mx-6 sm:px-8 lg:-mx-8 lg:px-10">
+        {/* Centered greeting block — date, greeting, tagline, all
+            center-aligned as the page's single calm opening line. */}
+        <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
+        <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
+        <p className="mx-auto mt-1 max-w-xl text-[13px] sm:text-sm" style={{ color: "var(--text-muted)" }}>
+          Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
+        </p>
 
-          {/* Right: live telemetry — real counts only, read like machine
-              status, not dashboard KPI cards. No "Ask Mondaily" button
-              here — the console right below is the single entry point. */}
-          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            <span className="telemetry-pill"><ListChecks size={11}/>{activeTasks.length} open tasks</span>
-            <span className="telemetry-pill"><FileText size={11}/>{pendingDecisionsCount} pending decisions</span>
-            <span className="telemetry-pill"><Inbox size={11}/>{unreadCount} unread</span>
-          </div>
+        {/* Metric pills — flat, transparent, each with its own soft
+            colored border line. No "Ask Mondaily" button here — the
+            console right below is the single entry point. */}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <span className="metric-pill" data-tone="indigo"><ListChecks size={11}/>{activeTasks.length} open tasks</span>
+          <span className="metric-pill" data-tone="amber"><FileText size={11}/>{pendingDecisionsCount} pending decisions</span>
+          <span className="metric-pill" data-tone="cyan"><Inbox size={11}/>{unreadCount} unread</span>
         </div>
 
-        {/* One merged status row — ambient live state + anything that
-            actually needs attention. No animation — static dots/badges. */}
-        <div className="relative mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {/* Live signs — clean, uncrowded, alongside the metrics rather
+            than in their own separate row. No animation. */}
+        <div className="relative mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
           <span className="status-chip" data-tone="violet"><span className="dot" style={{ animation: "none" }}/>Agents active</span>
           <span className="status-chip" data-tone="cyan"><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
-
-          {overdueCount > 0 && (
-            <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
-              <Clock size={11}/>
-              {overdueCount} overdue assigned to you
-            </Link>
-          )}
-          {urgentCount > 0 && (
-            <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-500/20 dark:bg-amber-500/[.07] dark:text-amber-400 dark:hover:bg-amber-500/[.12]">
-              <Flag size={11}/>
-              {urgentCount} urgent
-            </Link>
-          )}
-          {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-            <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-amber-500/25 dark:bg-amber-500/[.08] dark:text-amber-300 dark:hover:bg-amber-500/[.14]">
-              <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500 dark:bg-amber-400"/>
-              </span>
-              <BellDot size={11}/>
-              {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
-            </Link>
-          )}
         </div>
+
+        {/* Anything that actually needs attention — kept separate from
+            the ambient live signs above so the two don't blur together. */}
+        {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
+          <div className="relative mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+            {overdueCount > 0 && (
+              <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
+                <Clock size={11}/>
+                {overdueCount} overdue assigned to you
+              </Link>
+            )}
+            {urgentCount > 0 && (
+              <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-500/20 dark:bg-amber-500/[.07] dark:text-amber-400 dark:hover:bg-amber-500/[.12]">
+                <Flag size={11}/>
+                {urgentCount} urgent
+              </Link>
+            )}
+            {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
+              <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-amber-500/25 dark:bg-amber-500/[.08] dark:text-amber-300 dark:hover:bg-amber-500/[.14]">
+                <BellDot size={11}/>
+                {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* ── Getting started — kept inside the command room so it never
             competes with primary navigation; still a single quiet line
             unless the user opens it. ── */}
-        <div className="relative mt-3">
+        <div className="relative mt-3 text-left">
           <GettingStarted />
         </div>
       </div>
@@ -460,23 +460,23 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="relative mb-8">
+      <section ref={askSectionRef} className="chat-console relative mx-auto mb-8 max-w-3xl rounded-3xl p-5 sm:p-7">
         <div className="relative">
         {!isChatting && (
-          <div className="mb-5">
-            <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="mb-5 text-center">
+            <div className="mb-1.5 flex items-center justify-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
               <h2 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily Copilot</h2>
             </div>
-            <p className="text-[13px] mb-3" style={{ color: "var(--text-faint)" }}>
+            <p className="text-[13px] mb-4" style={{ color: "var(--text-faint)" }}>
               Ask the graph anything, or route it straight to the agent that owns it.
             </p>
 
-            {/* Agent + context chips — one organized row instead of two
-                long stacked ones. A thin divider separates "route to an
-                agent" from "scope to a part of the graph". */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-widest mr-0.5" style={{ color: "var(--text-faint)" }}>Ask</span>
+            {/* Quick commands — plain unframed text links, not buttons,
+                so the box stays minimal. A thin divider separates "route
+                to an agent" from "scope to a part of the graph". */}
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Ask</span>
               {[
                 { label: "Operations", prefill: "Ask Operations Agent: " },
                 { label: "Relationship", prefill: "Ask Relationship Agent: " },
@@ -484,23 +484,23 @@ export function HomePage() {
                 { label: "Signal", prefill: "Ask Signal Agent: " },
                 { label: "Graph", prefill: "Ask the workspace graph: " },
               ].map(r => (
-                <button key={r.label} onClick={() => prefill(r.prefill)} className="btn-ai !px-2.5 !py-1 !text-[11.5px]">
+                <button key={r.label} onClick={() => prefill(r.prefill)} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: "var(--accent)" }}>
                   {r.label}
                 </button>
               ))}
-              <span className="mx-1 h-4 w-px shrink-0" style={{ background: "var(--border-strong)" }}/>
-              <span className="text-[10px] font-semibold uppercase tracking-widest mr-0.5" style={{ color: "var(--text-faint)" }}>About</span>
+              <span className="h-3.5 w-px shrink-0" style={{ background: "var(--border-strong)" }}/>
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>About</span>
               {[
                 "Workspace", "Tasks", ...(hasFinance ? ["Finance"] : []), "Relationships", "Records",
               ].map(label => (
-                <button key={label} onClick={() => prefill(`Tell me about ${label.toLowerCase()} in the workspace graph: `)} className="btn-suggested">
+                <button key={label} onClick={() => prefill(`Tell me about ${label.toLowerCase()} in the workspace graph: `)} className="text-[12px] transition-colors hover:underline" style={{ color: "var(--text-muted)" }}>
                   {label}
                 </button>
               ))}
             </div>
 
             {/* Two ready-to-send examples, kept small — not the main affordance. */}
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap justify-center gap-3">
               {["Explain today's risks", "What changed in the graph?"].map(prompt => (
                 <button key={prompt} onClick={() => sendSuggestion(prompt)} className="text-[11px] underline-offset-2 hover:underline" style={{ color: "var(--text-faint)" }}>
                   {prompt}
