@@ -111,10 +111,12 @@ export function AgentConstellationPanel() {
 
   const liveCount = constellation.filter(a => isLiveState(a.state)).length;
   const n = constellation.length || 1;
-  // Radial positions (percent of container), starting at 12 o'clock.
+  // Radial positions (percent of container), starting at 12 o'clock. Radius
+  // kept well inside the box (34%, not 40%) plus generous container padding
+  // so nodes and their labels never clip against the edges.
   const positions = constellation.map((_, i) => {
     const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-    return { x: 50 + 40 * Math.cos(angle), y: 50 + 40 * Math.sin(angle) };
+    return { x: 50 + 34 * Math.cos(angle), y: 50 + 34 * Math.sin(angle) };
   });
 
   return (
@@ -129,16 +131,15 @@ export function AgentConstellationPanel() {
         </span>
       </div>
 
-      {/* ── Radial map — desktop/tablet ── */}
-      <div className="agent-map-surface relative hidden overflow-hidden rounded-3xl sm:block" style={{ height: 430 }}>
-        {/* Ambient depth wash behind the graph — purely decorative */}
-        <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 62%)" }}/>
-        <div className="pointer-events-none absolute inset-x-8 top-1/2 h-px bg-gradient-to-r from-transparent via-indigo-400/20 to-transparent"/>
-        <div className="pointer-events-none absolute left-1/2 top-8 h-[calc(100%-4rem)] w-px bg-gradient-to-b from-transparent via-cyan-400/15 to-transparent"/>
-
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+      {/* ── Radial map — desktop/tablet. No frame/card — nodes float
+          directly on the page; overflow is visible so nothing clips. ── */}
+      <div className="agent-map-surface relative hidden sm:block" style={{ height: 440 }}>
+        {/* Faint orbit ring connecting all agents — gives the layout a
+            "constellation" read even before you look at any one node. */}
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+          <circle cx={50} cy={50} r={34} fill="none" stroke="var(--border-soft)" strokeWidth={0.4}/>
           {positions.map((p, i) => {
-            const mx = 50 + (p.x - 50) * 0.5, my = 50 + (p.y - 50) * 0.5 - 4;
+            const mx = 50 + (p.x - 50) * 0.55, my = 50 + (p.y - 50) * 0.55;
             return (
               <path key={constellation[i]!.id} d={`M50,50 Q${mx},${my} ${p.x},${p.y}`} className="graph-line" data-live={isLiveState(constellation[i]!.state)}/>
             );
