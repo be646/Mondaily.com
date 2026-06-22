@@ -29,10 +29,10 @@ const STATE_RING: Record<ConstellationState, string> = {
 
 function NodeDetail({ agent }: { agent: ConstellationAgent }) {
   return (
-    <div className="rounded-xl p-3" style={{ background: "var(--surface-hover)" }}>
+    <div className="agent-detail-strip px-1 py-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-full border ${STATE_RING[agent.state]}`} style={{ background: "var(--surface-card)" }}>
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full border ${STATE_RING[agent.state]}`} style={{ background: "var(--surface-page)" }}>
             <agent.icon size={13} style={{ color: "var(--text-secondary)" }}/>
           </span>
           <div>
@@ -117,35 +117,22 @@ export function AgentConstellationPanel() {
         </span>
       </div>
 
-      <div className="agent-operating-map flex flex-col items-center rounded-2xl px-4 py-5 sm:px-6">
-        {/* Root node */}
-        <div className="flex flex-col items-center gap-1">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--surface-page)", border: "1px solid color-mix(in srgb, var(--accent) 30%, var(--border-soft))" }}>
-            <Network size={14} style={{ color: "var(--accent)" }}/>
-          </span>
-          <span className="text-[10.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace Graph</span>
-        </div>
-
-        {/* Trunk drop from root */}
-        <div className="h-4 w-px" style={{ background: "var(--border-strong)" }}/>
-
-        {/* Horizontal trunk + branches down to each agent */}
-        <div className="relative w-full max-w-2xl">
-          <div className="absolute inset-x-10 top-0 h-px" style={{ background: "var(--border-strong)" }}/>
-          <div className="flex flex-wrap justify-center gap-x-2.5 gap-y-4 pt-4">
+      <div className="agent-orbit-field">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 py-2 sm:gap-3">
             {constellation.map((agent, i) => {
               const live = isLiveState(agent.state);
               const isSelected = active?.id === agent.id;
               const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
               return (
                 <div key={agent.id} className="relative flex shrink-0 flex-col items-center">
-                  {/* Branch tick connecting this agent up to the trunk */}
-                  <div className="absolute -top-4 h-4 w-px" style={{ background: "var(--border-soft)" }}/>
                   <button
                     onClick={() => setSelected(agent.id)}
                     title={agent.note}
-                    className="relative flex w-[84px] flex-col items-center gap-1 rounded-lg px-2 py-2.5 text-center transition-colors"
-                    style={{ border: `1px solid ${isSelected ? dotColor : "var(--border-soft)"}`, background: "var(--surface-page)" }}
+                    className="agent-orbit-node relative flex items-center gap-2 rounded-full px-3 py-2 text-left transition-colors"
+                    style={{
+                      border: `1px solid ${isSelected ? dotColor : "var(--border-soft)"}`,
+                      background: isSelected ? "color-mix(in srgb, var(--accent) 5%, var(--surface-page))" : "var(--surface-page)",
+                    }}
                   >
                     <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
                       <agent.icon size={11} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
@@ -153,12 +140,11 @@ export function AgentConstellationPanel() {
                         <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2" style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-page)" }}/>
                       )}
                     </span>
-                    <span className="w-full truncate text-[10px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
+                    <span className="max-w-[8.5rem] truncate text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
                   </button>
                 </div>
               );
             })}
-          </div>
         </div>
       </div>
 

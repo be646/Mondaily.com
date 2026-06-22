@@ -313,7 +313,7 @@ export function WorkspaceGraphPulse() {
           <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>Workspace graph counts did not return from the API.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+        <div className="workspace-pulse-grid grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { label: "graph health", icon: CheckSquare, color: "#10b981", value: healthPct, suffix: "%" },
             ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ label, icon, color, value: pulse[key], suffix: "" })),
@@ -326,7 +326,7 @@ export function WorkspaceGraphPulse() {
             // fabricated history (no time-series snapshots exist yet).
             const endY = 26 - (pct / 100) * 20;
             return (
-              <div key={i} className="flex flex-col gap-1.5">
+              <div key={i} className="pulse-tile flex flex-col gap-1.5 rounded-2xl px-3 py-3">
                 <div className="flex items-center gap-1.5">
                   <t.icon size={12} style={{ color: tone }}/>
                   <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.label}</span>

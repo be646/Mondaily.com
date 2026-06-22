@@ -441,19 +441,19 @@ export function HomePage() {
         {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
           <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
             {overdueCount > 0 && (
-              <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
+              <Link to="/tasks" state={{ filter: "overdue" }} className="attention-chip">
                 <Clock size={11}/>
                 {overdueCount} overdue assigned to you
               </Link>
             )}
             {urgentCount > 0 && (
-              <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-700 hover:bg-amber-100 transition-colors dark:border-amber-500/20 dark:bg-amber-500/[.07] dark:text-amber-400 dark:hover:bg-amber-500/[.12]">
+              <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="attention-chip">
                 <Flag size={11}/>
                 {urgentCount} urgent
               </Link>
             )}
             {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-              <Link to="/notifications" className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-amber-500/25 dark:bg-amber-500/[.08] dark:text-amber-300 dark:hover:bg-amber-500/[.14]">
+              <Link to="/notifications" className="attention-chip">
                 <BellDot size={11}/>
                 {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
               </Link>
@@ -476,36 +476,35 @@ export function HomePage() {
         </div>
       )}
 
-      {/* ── Ask Mondaily — moved back to the top, right under the command
-          room, since it's the primary entry point into the workspace
-          graph. No boxed background — blends into the page; the input
-          field itself keeps a subtle bordered pill. ── */}
+      {/* ── Ask Mondaily — frameless console: suggestions/messages plus the
+          actual input bar. No outer card around the whole area. ── */}
       {(notificationsQuery.isError || decisionsQuery.isError) && (
         <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/[.07] px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           Could not load activity. Some agent and decision signals may be missing.
         </div>
       )}
 
-      <section ref={askSectionRef} className="chat-console relative mx-auto mb-8 max-w-2xl rounded-3xl p-6 sm:p-8">
-        {/* Live dot — small, top-right, no label clutter */}
-        <div className="absolute right-5 top-5 flex items-center gap-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-          <span className="relative flex h-1.5 w-1.5 rounded-full bg-emerald-500"/>
-          Online
-        </div>
+      <section ref={askSectionRef} className="relative mx-auto mb-8 max-w-3xl">
         <div className="relative">
         {!isChatting && (
-          <div className="mb-6 text-center">
-            <h2 className="mx-auto max-w-sm text-[24px] font-semibold leading-tight tracking-tight sm:text-[28px]" style={{ color: "var(--text-primary)" }}>
-              Your workspace,{" "}understood.
-            </h2>
-            <p className="mx-auto mt-2 max-w-sm text-[13px]" style={{ color: "var(--text-faint)" }}>
-              Ask anything — Mondaily turns it into an answer, a task, or a decision with sources.
-            </p>
+          <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
+            {[
+              { label: "What needs my attention today?", action: () => sendSuggestion("What needs my attention today?") },
+              { label: "Ask Operations about overdue work", action: () => prefill("Ask Operations Agent: ") },
+              ...(hasFinance ? [{ label: "Ask Finance about overdue invoices", action: () => prefill("Ask Finance Agent: ") }] : []),
+              { label: "What changed in the graph?", action: () => sendSuggestion("What changed in the graph?") },
+            ].map((s, i) => (
+              <button key={s.label} onClick={s.action} className="chat-suggestion-row group">
+                <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{String(i + 1).padStart(2, "0")}</span>
+                <span className="flex-1 truncate">{s.label}</span>
+                <CornerDownLeft size={12} className="shrink-0 opacity-45 transition-opacity group-hover:opacity-100"/>
+              </button>
+            ))}
           </div>
         )}
 
         {isChatting && (
-          <div className="mb-6 max-h-[480px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
+          <div className="mb-6 max-h-[560px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
             {(() => {
               // Colour palette that cycles per AI reply
               const ACCENTS = [
@@ -636,7 +635,7 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2.5 rounded-2xl px-4 py-4 transition-all focus-within:ring-2"
+          <div className="chat-input-bar flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all focus-within:ring-2 sm:px-5"
             style={{ background: "var(--surface-input)", border: "1px solid var(--border-soft)", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px color-mix(in srgb, var(--accent) 7%, transparent)" }}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : ""}`}
@@ -660,24 +659,6 @@ export function HomePage() {
             </button>
           </div>
         </div>
-
-        {/* A few clean example prompts, inside the box, right under the
-            input — a small mix of a general question and an agent-routed
-            one, not a wall of labeled categories. */}
-        {!isChatting && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            {[
-              { label: "What needs my attention today?", action: () => sendSuggestion("What needs my attention today?") },
-              { label: "Ask Operations about overdue work", action: () => prefill("Ask Operations Agent: ") },
-              ...(hasFinance ? [{ label: "Ask Finance about overdue invoices", action: () => prefill("Ask Finance Agent: ") }] : []),
-              { label: "What changed in the graph?", action: () => sendSuggestion("What changed in the graph?") },
-            ].map(s => (
-              <button key={s.label} onClick={s.action} className="rounded-full px-3 py-1.5 text-[11.5px] transition-colors" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Recent threads */}
         {!isChatting && recentThreads.length > 0 && (
@@ -707,11 +688,6 @@ export function HomePage() {
       <NeedsYouPanel
         notifications={notificationsQuery.data ?? []}
         notificationsError={notificationsQuery.isError}
-        onAskMondaily={(prefill) => {
-          askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          if (prefill) doSend(prefill);
-          else inputRef.current?.focus();
-        }}
       />
 
       {/* ── Workspace Graph Pulse — a status strip, not a hero section. ── */}
