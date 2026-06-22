@@ -493,9 +493,8 @@ export function HomePage() {
               { label: "Ask Operations about overdue work", action: () => prefill("Ask Operations Agent: ") },
               ...(hasFinance ? [{ label: "Ask Finance about overdue invoices", action: () => prefill("Ask Finance Agent: ") }] : []),
               { label: "What changed in the graph?", action: () => sendSuggestion("What changed in the graph?") },
-            ].map((s, i) => (
+            ].map(s => (
               <button key={s.label} onClick={s.action} className="chat-suggestion-row group">
-                <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{String(i + 1).padStart(2, "0")}</span>
                 <span className="flex-1 truncate">{s.label}</span>
                 <CornerDownLeft size={12} className="shrink-0 opacity-45 transition-opacity group-hover:opacity-100"/>
               </button>
@@ -636,7 +635,7 @@ export function HomePage() {
           )}
 
           <div className="chat-input-bar flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all focus-within:ring-2 sm:px-5"
-            style={{ background: "var(--surface-input)", border: "1px solid var(--border-soft)", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 8px 24px color-mix(in srgb, var(--accent) 7%, transparent)" }}>
+            style={{ background: "var(--surface-page)", border: "1px solid var(--border-soft)", boxShadow: "0 8px 24px color-mix(in srgb, var(--accent) 5%, transparent)" }}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : ""}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Network, ArrowUpRight, ChevronDown, Sparkles } from "lucide-react";
+import { Network, ArrowUpRight, Sparkles } from "lucide-react";
 import {
   useAgentData, CONSTELLATION_STATE_LABEL,
   type ConstellationAgent, type ConstellationState,
@@ -165,7 +165,6 @@ const AGENT_DOT_PALETTE = ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4"
  * quietly, which is the honest state for monitoring/disabled/not_configured. */
 export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   const { constellation, isLoading } = useAgentData();
-  const [open, setOpen] = useState(false);
 
   if (isLoading) {
     return <div className="shrink-0"><div className="skeleton-shimmer h-10 rounded-lg"/></div>;
@@ -191,12 +190,11 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   }
 
   const activeAgents = constellation.filter(a => isLiveState(a.state));
-  const visibleAgents = open ? constellation : constellation.slice(0, 4);
 
   return (
     <div className="shrink-0">
-      <button
-        onClick={() => setOpen(o => !o)}
+      <Link
+        to="/home"
         className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors surface-hover"
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ background: "var(--surface-selected)" }}>
@@ -212,45 +210,8 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
           {constellation.slice(0, 3).map((agent, i) => (
             <span key={agent.id} className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(agent.state) ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)" }}/>
           ))}
-          <ChevronDown size={12} className={`ml-1 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
         </span>
-      </button>
-
-      <div className={`${open ? "mt-1.5" : "mt-1"} space-y-0.5`}>
-        {visibleAgents.map((agent, i) => {
-          const live = isLiveState(agent.state);
-          const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
-          return (
-            <Link
-              key={agent.id}
-              to={agent.to ?? "/home"}
-              title={agent.note}
-              className="flex items-center gap-2 rounded-lg px-2 py-1 text-[12px] transition-colors surface-hover"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              <span className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: dotColor }}/>
-                {live && (
-                  <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${dotColor}33` }}/>
-                )}
-              </span>
-              <span className="flex-1 truncate">{agent.name}</span>
-              <span className="shrink-0 text-[9.5px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>
-                {CONSTELLATION_STATE_LABEL[agent.state]}
-              </span>
-            </Link>
-          );
-        })}
-        {!open && constellation.length > visibleAgents.length && (
-          <button
-            onClick={() => setOpen(true)}
-            className="flex w-full items-center justify-center rounded-lg px-2 py-1 text-[10.5px] transition-colors surface-hover"
-            style={{ color: "var(--text-faint)" }}
-          >
-            Show {constellation.length - visibleAgents.length} more
-          </button>
-        )}
-      </div>
+      </Link>
     </div>
   );
 }
