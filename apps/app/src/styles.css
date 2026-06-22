@@ -254,27 +254,54 @@ body {
   box-shadow: none;
 }
 
-.operating-picture {
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 3%, transparent), transparent 48%),
-    transparent;
+.workspace-pulse-grid {
+  position: relative;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
 }
-.operating-picture > section {
-  margin-bottom: 0;
-}
-.workspace-pulse-grid {
-  position: relative;
-}
 .pulse-tile {
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--surface-hover) 38%, transparent);
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border-right: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+  transition: background-color 0.15s ease;
 }
 .pulse-tile:hover {
-  border-color: var(--border-soft);
-  background: color-mix(in srgb, var(--surface-hover) 70%, transparent);
+  background: color-mix(in srgb, var(--surface-hover) 56%, transparent);
+}
+.pulse-tile:nth-child(2n) {
+  border-right: none;
+}
+.pulse-tile:nth-last-child(-n + 2) {
+  border-bottom: none;
+}
+@media (min-width: 640px) {
+  .pulse-tile:nth-child(2n) {
+    border-right: 1px solid var(--border-soft);
+  }
+  .pulse-tile:nth-child(4n) {
+    border-right: none;
+  }
+  .pulse-tile:nth-last-child(-n + 4) {
+    border-bottom: none;
+  }
+}
+
+.today-flow-grid {
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  padding-block: 1rem;
+}
+.flow-panel-clean {
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .flow-panel-clean:first-child {
+    padding-right: 1.5rem;
+    border-right: 1px solid var(--border-soft);
+  }
+  .flow-panel-clean:last-child {
+    padding-left: 1.5rem;
+  }
 }
 
 .agent-orbit-field {

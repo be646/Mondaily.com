@@ -689,11 +689,8 @@ export function HomePage() {
         notificationsError={notificationsQuery.isError}
       />
 
-      {/* ── Workspace Graph Pulse — a status strip, not a hero section. ── */}
-      <div className="operating-picture mb-8 rounded-3xl px-4 py-4 sm:px-5">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
-        <WorkspaceGraphPulse />
-      </div>
+      {/* ── Workspace Graph Pulse — a clean telemetry strip. ── */}
+      <WorkspaceGraphPulse />
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
       <section className="mb-8">
@@ -715,28 +712,28 @@ export function HomePage() {
             ))}
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="today-flow-grid grid gap-6 md:grid-cols-2">
 
         {/* Tasks card */}
-        <section className="surface-card flow-panel flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
+        <section className="flow-panel-clean flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between pb-3" style={{ borderBottom: "1px solid var(--border-soft)" }}>
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-emerald-400"/>
-              <span className="text-sm font-medium text-[#111827] dark:text-white">Tasks</span>
-              <span className="flex items-center gap-1 rounded-full bg-indigo-500/10 border border-indigo-500/15 px-1.5 py-px text-[9px] text-indigo-400">
+              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tasks</span>
+              <span className="flex items-center gap-1 rounded-full px-1.5 py-px text-[9px]" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
                 <Sparkles size={8}/> AI sorted
               </span>
             </div>
-            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
+            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>
               View all <ArrowUpRight size={11}/>
             </Link>
           </div>
 
           <div className="flex-1">
             {tasksQuery.isLoading ? (
-              <div className="p-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
+              <div className="py-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
-              <div className="p-4">
+              <div className="py-4">
                 <div className="rounded-xl px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
@@ -757,7 +754,7 @@ export function HomePage() {
                   const statusColor = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
-                      className="flow-list-row group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors">
+                      className="flow-list-row group flex items-center gap-3 py-3 cursor-pointer transition-colors">
                       <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusColor}`}/>
                       <span className="flex-1 min-w-0 truncate text-sm transition-colors" style={{ color: "var(--text-secondary)" }}>{item.title}</span>
                       <div className="flex items-center gap-2 shrink-0">
@@ -784,8 +781,8 @@ export function HomePage() {
           </div>
 
           {/* Task AI footer */}
-          <div className="px-3 py-2.5" style={{ borderTop: "1px solid var(--border-soft)" }} ref={taskPickerRef}>
-            <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "var(--surface-input)", border: "1px solid var(--border-soft)" }}>
+          <div className="py-2.5" style={{ borderTop: "1px solid var(--border-soft)" }} ref={taskPickerRef}>
+            <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "var(--surface-page)", border: "1px solid var(--border-soft)" }}>
               <Sparkles size={11} className="text-indigo-400 shrink-0"/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
@@ -811,19 +808,19 @@ export function HomePage() {
         </section>
 
         {/* Meetings card */}
-        <section className="surface-card flow-panel flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f7] dark:border-white/[.05]">
+        <section className="flow-panel-clean flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between pb-3" style={{ borderBottom: "1px solid var(--border-soft)" }}>
             <div className="flex items-center gap-2">
               <Calendar size={13} className="text-blue-400"/>
-              <span className="text-sm font-medium text-[#111827] dark:text-white">Meetings</span>
+              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
             </div>
-            <span className="text-[11px] text-[#9ca3af] dark:text-slate-600">Today</span>
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Today</span>
           </div>
           <div className="flex-1">
             {meetings.isLoading ? (
-              <div className="p-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
+              <div className="py-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
             ) : meetings.isError ? (
-              <div className="p-4">
+              <div className="py-4">
                 <div className="rounded-xl px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load meetings</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(meetings.error as Error)?.message || "Calendar data did not return."}</p>
@@ -833,7 +830,7 @@ export function HomePage() {
             ) : meetings.data?.length ? (
               <ul>
                 {meetings.data.map(m => (
-                  <li key={m.id} className="flow-list-row px-4 py-3">
+                  <li key={m.id} className="flow-list-row py-3">
                     <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{m.title}</p>
                     <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>{m.start_time}</p>
                   </li>
