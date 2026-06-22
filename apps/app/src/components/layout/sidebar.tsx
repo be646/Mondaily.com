@@ -446,6 +446,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
+          {!collapsed && <GettingStarted />}
+
           {(() => {
             const primary = primaryNav(hasFinance);
             return collapsed

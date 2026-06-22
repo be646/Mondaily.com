@@ -174,25 +174,13 @@ body {
 .home-control-room {
   position: relative;
 }
-.home-control-room::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background:
-    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 32%),
-    radial-gradient(circle at 82% 10%, rgba(34, 211, 238, 0.055), transparent 30%),
-    linear-gradient(180deg, var(--surface-page), var(--surface-page));
-}
-/* Chat console — the centered minimalist box for Mondaily Copilot. Soft
-   border, very subtle elevation, and a faint circuit/line-grid texture
-   in the background (low-opacity dot-and-line pattern) instead of a
-   loud gradient or neon edge. */
+/* Chat console — the centered minimalist box for Mondaily Copilot. Same
+   color as the page background (ghost style, per the "focus on lines,
+   not fills" direction) with a faint circuit/line-grid texture and a
+   plain hairline border — no shadow, no tinted gradient. */
 .chat-console {
-  background: var(--surface-card);
+  background: var(--surface-page);
   border: 1px solid var(--border-soft);
-  box-shadow: 0 10px 32px rgba(15,23,42,0.04);
 }
 .chat-console::before {
   content: "";
@@ -207,54 +195,18 @@ body {
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black, transparent 75%);
   opacity: 0.4;
 }
-html[data-theme="dark"] .chat-console, html.dark .chat-console {
-  box-shadow: 0 10px 32px rgba(0,0,0,0.3);
-}
-.control-zone {
-  position: relative;
-  overflow: hidden;
-  border-radius: 18px;
-  padding: 1rem;
-  background:
-    linear-gradient(145deg,
-      color-mix(in srgb, var(--accent) 4%, var(--surface-card)) 0%,
-      var(--surface-card) 48%,
-      color-mix(in srgb, #06b6d4 3%, var(--surface-card)) 100%);
-  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--border-soft));
-  box-shadow: 0 14px 44px rgba(0,0,0,0.04);
-}
-.control-zone::before {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--border-soft) 70%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--border-soft) 70%, transparent) 1px, transparent 1px);
-  background-size: 52px 52px;
-  mask-image: radial-gradient(circle at top left, black, transparent 72%);
-  opacity: 0.32;
-}
-.control-zone > * {
-  position: relative;
-}
-.operating-picture .control-zone section,
-.operating-picture .control-zone .mb-8,
-.control-zone section.mb-8 {
-  margin-bottom: 0;
-}
-.flow-panel {
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--surface-card) 88%, var(--accent)) 0%,
-      var(--surface-card) 100%);
-  border-color: color-mix(in srgb, var(--accent) 9%, var(--border-soft));
-}
-html[data-theme="light"] .control-zone,
-html[data-theme="light"] .flow-panel,
-html[data-theme="light"] .home-ask-console {
-  box-shadow: 0 16px 50px rgba(15,23,42,0.055);
+
+/* Home's "frames" (Tasks/Meetings cards, the Agent Constellation's empty
+   state, the Needs You list) use the same surface-card utility the rest
+   of the app uses — but on Home specifically, flatten it to the page
+   background so only the hairline border remains, per the "ghost,
+   lines-only" direction. Scoped to .home-control-room so every other
+   page's cards (Settings, Lists, Records, etc.) keep their normal
+   elevated surface, unaffected. */
+.home-control-room .surface-card,
+.home-control-room .flow-panel {
+  background: var(--surface-page);
+  box-shadow: none;
 }
 
 /* Telemetry pill — machine-readout style, not a dashboard KPI card. Tiny,

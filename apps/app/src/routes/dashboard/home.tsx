@@ -16,7 +16,6 @@ import { apiClient } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
-import { GettingStarted } from "../../components/layout/sidebar";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -386,24 +385,23 @@ export function HomePage() {
   const sourcesChecked = !notificationsQuery.isLoading && !notificationsQuery.isError;
 
   return (
-    <div className="home-control-room mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="home-control-room mx-auto max-w-5xl px-4 py-8 sm:px-6">
 
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
-          not another boxed panel stacked with the rest. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-6 px-4 pb-6 pt-7 text-center sm:-mx-6 sm:px-8 lg:-mx-8 lg:px-10">
-        {/* Centered greeting block — date, greeting, tagline, all
-            center-aligned as the page's single calm opening line. */}
+          not another boxed panel stacked with the rest. Left-aligned, not
+          centered — reads as a normal page header. ── */}
+      <div className="command-room relative -mx-4 -mt-8 mb-6 px-4 pb-6 pt-7 sm:-mx-6 sm:px-8">
         <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
         <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
-        <p className="mx-auto mt-1 max-w-xl text-[13px] sm:text-sm" style={{ color: "var(--text-muted)" }}>
+        <p className="mt-1 max-w-xl text-[13px] sm:text-sm" style={{ color: "var(--text-muted)" }}>
           Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
         </p>
 
         {/* Metric pills — flat, transparent, each with its own soft
             colored border line. No "Ask Mondaily" button here — the
             console right below is the single entry point. */}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="metric-pill" data-tone="indigo"><ListChecks size={11}/>{activeTasks.length} open tasks</span>
           <span className="metric-pill" data-tone="amber"><FileText size={11}/>{pendingDecisionsCount} pending decisions</span>
           <span className="metric-pill" data-tone="cyan"><Inbox size={11}/>{unreadCount} unread</span>
@@ -411,7 +409,7 @@ export function HomePage() {
 
         {/* Live signs — clean, uncrowded, alongside the metrics rather
             than in their own separate row. No animation. */}
-        <div className="relative mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <div className="relative mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
           <span className="status-chip" data-tone="violet"><span className="dot" style={{ animation: "none" }}/>Agents active</span>
           <span className="status-chip" data-tone="cyan"><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
@@ -420,7 +418,7 @@ export function HomePage() {
         {/* Anything that actually needs attention — kept separate from
             the ambient live signs above so the two don't blur together. */}
         {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
-          <div className="relative mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
             {overdueCount > 0 && (
               <Link to="/tasks" state={{ filter: "overdue" }} className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs text-indigo-700 hover:bg-indigo-100 transition-colors dark:border-indigo-500/20 dark:bg-indigo-500/[.07] dark:text-indigo-400 dark:hover:bg-indigo-500/[.12]">
                 <Clock size={11}/>
@@ -441,13 +439,6 @@ export function HomePage() {
             )}
           </div>
         )}
-
-        {/* ── Getting started — kept inside the command room so it never
-            competes with primary navigation; still a single quiet line
-            unless the user opens it. ── */}
-        <div className="relative mt-3 text-left">
-          <GettingStarted />
-        </div>
       </div>
 
       {/* ── Ask Mondaily — moved back to the top, right under the command
@@ -460,53 +451,21 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="chat-console relative mx-auto mb-8 max-w-3xl rounded-3xl p-5 sm:p-7">
+      <section ref={askSectionRef} className="chat-console relative mx-auto mb-8 max-w-2xl rounded-3xl p-6 sm:p-8">
+        {/* Live dot — small, top-right, no label clutter */}
+        <div className="absolute right-5 top-5 flex items-center gap-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+          <span className="relative flex h-1.5 w-1.5 rounded-full bg-emerald-500"/>
+          Online
+        </div>
         <div className="relative">
         {!isChatting && (
-          <div className="mb-5 text-center">
-            <div className="mb-1.5 flex items-center justify-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
-              <h2 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily Copilot</h2>
-            </div>
-            <p className="text-[13px] mb-4" style={{ color: "var(--text-faint)" }}>
-              Ask the graph anything, or route it straight to the agent that owns it.
+          <div className="mb-6 text-center">
+            <h2 className="mx-auto max-w-sm text-[24px] font-semibold leading-tight tracking-tight sm:text-[28px]" style={{ color: "var(--text-primary)" }}>
+              Your workspace,{" "}understood.
+            </h2>
+            <p className="mx-auto mt-2 max-w-sm text-[13px]" style={{ color: "var(--text-faint)" }}>
+              Ask anything — Mondaily turns it into an answer, a task, or a decision with sources.
             </p>
-
-            {/* Quick commands — plain unframed text links, not buttons,
-                so the box stays minimal. A thin divider separates "route
-                to an agent" from "scope to a part of the graph". */}
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Ask</span>
-              {[
-                { label: "Operations", prefill: "Ask Operations Agent: " },
-                { label: "Relationship", prefill: "Ask Relationship Agent: " },
-                ...(hasFinance ? [{ label: "Finance", prefill: "Ask Finance Agent: " }] : []),
-                { label: "Signal", prefill: "Ask Signal Agent: " },
-                { label: "Graph", prefill: "Ask the workspace graph: " },
-              ].map(r => (
-                <button key={r.label} onClick={() => prefill(r.prefill)} className="text-[12px] font-medium transition-colors hover:underline" style={{ color: "var(--accent)" }}>
-                  {r.label}
-                </button>
-              ))}
-              <span className="h-3.5 w-px shrink-0" style={{ background: "var(--border-strong)" }}/>
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>About</span>
-              {[
-                "Workspace", "Tasks", ...(hasFinance ? ["Finance"] : []), "Relationships", "Records",
-              ].map(label => (
-                <button key={label} onClick={() => prefill(`Tell me about ${label.toLowerCase()} in the workspace graph: `)} className="text-[12px] transition-colors hover:underline" style={{ color: "var(--text-muted)" }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Two ready-to-send examples, kept small — not the main affordance. */}
-            <div className="mt-3 flex flex-wrap justify-center gap-3">
-              {["Explain today's risks", "What changed in the graph?"].map(prompt => (
-                <button key={prompt} onClick={() => sendSuggestion(prompt)} className="text-[11px] underline-offset-2 hover:underline" style={{ color: "var(--text-faint)" }}>
-                  {prompt}
-                </button>
-              ))}
-            </div>
           </div>
         )}
 
@@ -666,6 +625,24 @@ export function HomePage() {
             </button>
           </div>
         </div>
+
+        {/* A few clean example prompts, inside the box, right under the
+            input — a small mix of a general question and an agent-routed
+            one, not a wall of labeled categories. */}
+        {!isChatting && (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {[
+              { label: "What needs my attention today?", action: () => sendSuggestion("What needs my attention today?") },
+              { label: "Ask Operations about overdue work", action: () => prefill("Ask Operations Agent: ") },
+              ...(hasFinance ? [{ label: "Ask Finance about overdue invoices", action: () => prefill("Ask Finance Agent: ") }] : []),
+              { label: "What changed in the graph?", action: () => sendSuggestion("What changed in the graph?") },
+            ].map(s => (
+              <button key={s.label} onClick={s.action} className="rounded-full px-3 py-1.5 text-[11.5px] transition-colors" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Recent threads */}
         {!isChatting && recentThreads.length > 0 && (
