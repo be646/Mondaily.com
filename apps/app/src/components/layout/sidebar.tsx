@@ -443,6 +443,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           </div>
         )}
 
+        {/* Agent Dock — visible near the top, compact by default. */}
+        <div className="shrink-0 border-b border-zinc-200 px-2 py-2 dark:border-white/[.07]">
+          <AgentPulse collapsed={collapsed}/>
+        </div>
+
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
@@ -486,12 +491,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <SidebarAsk />
             </>
           )}
-
-          {/* Agents — flat, always-visible list near the bottom of the
-              nav (colored dot + name), not hidden behind a hover popover. */}
-          <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
-            <AgentPulse collapsed={collapsed}/>
-          </div>
         </nav>
 
         {/* Bottom bar */}

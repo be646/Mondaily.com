@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Network, ArrowUpRight } from "lucide-react";
+import { Network, ArrowUpRight, ChevronDown, Sparkles } from "lucide-react";
 import {
   useAgentData, CONSTELLATION_STATE_LABEL,
   type ConstellationAgent, type ConstellationState,
@@ -165,35 +165,59 @@ const AGENT_DOT_PALETTE = ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4"
  * quietly, which is the honest state for monitoring/disabled/not_configured. */
 export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   const { constellation, isLoading } = useAgentData();
+  const [open, setOpen] = useState(false);
 
   if (isLoading) {
-    return <div className="shrink-0 px-2 pb-2"><div className="skeleton-shimmer h-20 rounded-lg"/></div>;
+    return <div className="shrink-0"><div className="skeleton-shimmer h-10 rounded-lg"/></div>;
   }
 
   if (collapsed) {
     const activeAgents = constellation.filter(a => isLiveState(a.state));
     return (
-      <div className="flex flex-col items-center gap-1.5 px-2 pb-2">
-        {constellation.slice(0, 6).map((a, i) => (
-          <Link key={a.id} to={a.to ?? "/home"} title={a.name} className="relative flex h-2 w-2 shrink-0 items-center justify-center">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}/>
-            {isLiveState(a.state) && activeAgents.includes(a) && (
-              <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]}40` }}/>
-            )}
-          </Link>
-        ))}
-      </div>
+      <Link to="/home" title={`${constellation.length} agents`} className="flex flex-col items-center gap-1.5 rounded-lg py-2 surface-hover">
+        <Sparkles size={13} style={{ color: "var(--accent)" }}/>
+        <div className="flex flex-col items-center gap-1">
+          {constellation.slice(0, 4).map((a, i) => (
+            <span key={a.id} className="relative flex h-2 w-2 shrink-0 items-center justify-center">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}/>
+              {isLiveState(a.state) && activeAgents.includes(a) && (
+                <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]}40` }}/>
+              )}
+            </span>
+          ))}
+        </div>
+      </Link>
     );
   }
 
+  const activeAgents = constellation.filter(a => isLiveState(a.state));
+  const visibleAgents = open ? constellation : constellation.slice(0, 4);
+
   return (
-    <div className="shrink-0 px-2 pb-2">
-      <div className="flex items-center justify-between px-2 pb-1">
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Agents</p>
-        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{constellation.length}</span>
-      </div>
-      <div className="sidebar-agent-rail sidebar-scroll space-y-0.5">
-        {constellation.map((agent, i) => {
+    <div className="shrink-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors surface-hover"
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ background: "var(--surface-selected)" }}>
+          <Sparkles size={12} style={{ color: "var(--accent)" }}/>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12px] font-medium leading-tight" style={{ color: "var(--text-primary)" }}>Agent Dock</span>
+          <span className="block truncate text-[10px]" style={{ color: "var(--text-faint)" }}>
+            {constellation.length} agents · {activeAgents.length > 0 ? `${activeAgents.length} active` : "quiet"}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1">
+          {constellation.slice(0, 3).map((agent, i) => (
+            <span key={agent.id} className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(agent.state) ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)" }}/>
+          ))}
+          <ChevronDown size={12} className={`ml-1 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
+        </span>
+      </button>
+
+      <div className={`${open ? "mt-1.5" : "mt-1"} space-y-0.5`}>
+        {visibleAgents.map((agent, i) => {
           const live = isLiveState(agent.state);
           const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
           return (
@@ -217,6 +241,15 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
             </Link>
           );
         })}
+        {!open && constellation.length > visibleAgents.length && (
+          <button
+            onClick={() => setOpen(true)}
+            className="flex w-full items-center justify-center rounded-lg px-2 py-1 text-[10.5px] transition-colors surface-hover"
+            style={{ color: "var(--text-faint)" }}
+          >
+            Show {constellation.length - visibleAgents.length} more
+          </button>
+        )}
       </div>
     </div>
   );
