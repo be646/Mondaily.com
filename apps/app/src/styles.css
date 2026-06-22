@@ -231,14 +231,6 @@ body {
       var(--surface-card) 100%);
   border-color: color-mix(in srgb, var(--accent) 9%, var(--border-soft));
 }
-/* Agent Constellation — no card frame, no background fill. The nodes and
-   connector lines float directly on the page; only a very faint radial
-   wash gives the center a sense of depth, no border/box at all. */
-.agent-map-surface {
-  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 45%);
-  border: none;
-  box-shadow: none;
-}
 html[data-theme="light"] .control-zone,
 html[data-theme="light"] .flow-panel,
 html[data-theme="light"] .home-ask-console {

@@ -26,14 +26,6 @@ const STATE_RING: Record<ConstellationState, string> = {
   not_configured: "border-dashed border-zinc-300/40",
 };
 
-const STATE_DOT: Record<ConstellationState, string> = {
-  active: "bg-violet-500",
-  monitoring: "bg-cyan-500",
-  needs_approval: "bg-amber-500",
-  issue: "bg-rose-500",
-  disabled: "bg-zinc-300",
-  not_configured: "bg-zinc-400",
-};
 
 function NodeDetail({ agent }: { agent: ConstellationAgent }) {
   return (
@@ -110,14 +102,6 @@ export function AgentConstellationPanel() {
   }
 
   const liveCount = constellation.filter(a => isLiveState(a.state)).length;
-  const n = constellation.length || 1;
-  // Radial positions (percent of container), starting at 12 o'clock. Radius
-  // kept well inside the box (34%, not 40%) plus generous container padding
-  // so nodes and their labels never clip against the edges.
-  const positions = constellation.map((_, i) => {
-    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-    return { x: 50 + 34 * Math.cos(angle), y: 50 + 34 * Math.sin(angle) };
-  });
 
   return (
     <section className="mb-8">
@@ -131,100 +115,44 @@ export function AgentConstellationPanel() {
         </span>
       </div>
 
-      {/* ── Radial map — desktop/tablet. No frame/card — nodes float
-          directly on the page; overflow is visible so nothing clips. ── */}
-      <div className="agent-map-surface relative hidden sm:block" style={{ height: 440 }}>
-        {/* Faint orbit ring connecting all agents — gives the layout a
-            "constellation" read even before you look at any one node. */}
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
-          <circle cx={50} cy={50} r={34} fill="none" stroke="var(--border-soft)" strokeWidth={0.4}/>
-          {positions.map((p, i) => {
-            const mx = 50 + (p.x - 50) * 0.55, my = 50 + (p.y - 50) * 0.55;
+      {/* ── Agent rail — one row of compact cards, not an abstract radial
+          diagram. Scales to any number of agents, wraps/scrolls naturally
+          on narrow screens, and never clips. A thin flat line underneath
+          keeps the "all wired into one graph" idea without circle math. ── */}
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-x-3 bottom-0 h-px" style={{ background: "var(--border-soft)" }}/>
+        <div className="flex gap-2.5 overflow-x-auto pb-4" style={{ scrollbarWidth: "none" }}>
+          {constellation.map((agent, i) => {
+            const live = isLiveState(agent.state);
+            const isSelected = active?.id === agent.id;
+            const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
             return (
-              <path key={constellation[i]!.id} d={`M50,50 Q${mx},${my} ${p.x},${p.y}`} className="graph-line" data-live={isLiveState(constellation[i]!.state)}/>
+              <button
+                key={agent.id}
+                onClick={() => setSelected(agent.id)}
+                className="surface-card relative flex min-w-[150px] shrink-0 flex-col gap-1.5 rounded-xl p-3 text-left transition-colors"
+                style={{ borderLeft: `2.5px solid ${live ? dotColor : "var(--border-strong)"}`, outline: isSelected ? `1.5px solid ${dotColor}` : "none" }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: live ? `${dotColor}18` : "var(--surface-hover)" }}>
+                    <agent.icon size={13} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
+                    {live && (
+                      <motion.span
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                        className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2"
+                        style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-card)" }}
+                      />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
+                </div>
+                <p className="truncate text-[10px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</p>
+                <p className="line-clamp-2 text-[10.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>{agent.note}</p>
+              </button>
             );
           })}
-        </svg>
-
-        {/* Central graph core — rotating dashed ring for "always processing" feel */}
-        <div className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5" style={{ left: "50%", top: "50%" }}>
-          <span className="relative flex h-16 w-16 items-center justify-center rounded-full" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--surface-card)), var(--surface-card))", boxShadow: "0 4px 20px color-mix(in srgb, var(--accent) 25%, transparent)" }}>
-            <motion.span
-              animate={{ rotate: 360 }}
-              transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-[-5px] rounded-full"
-              style={{ border: "1.5px dashed color-mix(in srgb, var(--accent) 40%, transparent)" }}
-            />
-            <Network size={22} style={{ color: "var(--accent)" }}/>
-          </span>
-          <span className="text-[10.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace graph</span>
         </div>
-
-        {/* Agent nodes */}
-        {constellation.map((agent, i) => {
-          const p = positions[i]!;
-          const live = isLiveState(agent.state);
-          const isSelected = active?.id === agent.id;
-          const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
-          return (
-            <button
-              key={agent.id}
-              onClick={() => setSelected(agent.id)}
-              className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5 transition-transform hover:scale-110"
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
-            >
-              <span
-                className="relative flex h-12 w-12 items-center justify-center rounded-full transition-shadow"
-                style={{
-                  background: live
-                    ? `linear-gradient(135deg, ${dotColor}30, ${dotColor}10)`
-                    : "var(--surface-card)",
-                  border: `2px solid ${live ? dotColor : "var(--border-strong)"}`,
-                  boxShadow: isSelected ? `0 0 0 3px ${dotColor}25` : live ? `0 2px 12px ${dotColor}35` : "none",
-                }}
-              >
-                <agent.icon size={16} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
-                {live && (
-                  <motion.span
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 1.8, repeat: Infinity }}
-                    className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2"
-                    style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-card)" }}
-                  />
-                )}
-              </span>
-              <span className="rounded-full px-2 py-0.5 max-w-[100px] truncate text-[9.5px] font-semibold" style={{ color: "var(--text-primary)", background: "var(--surface-card)", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>{agent.name.replace(" Agent", "")}</span>
-              <span className="text-[8.5px] font-medium" style={{ color: live ? dotColor : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Vertical agent rail — mobile ── */}
-      <div className="surface-card flex flex-col rounded-2xl sm:hidden">
-        {constellation.map(agent => {
-          const live = isLiveState(agent.state);
-          const isSelected = active?.id === agent.id;
-          return (
-            <button
-              key={agent.id}
-              onClick={() => setSelected(agent.id)}
-              className={`stream-row text-left ${isSelected ? "surface-selected" : ""}`}
-            >
-              <span className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 ${STATE_RING[agent.state]}`} style={{ background: "var(--surface-card)" }}>
-                <agent.icon size={14} style={{ color: live ? "var(--text-primary)" : "var(--text-faint)" }}/>
-                {live && <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ${STATE_DOT[agent.state]}`}/>}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1.5">
-                  <p className="truncate text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name}</p>
-                  <span className="shrink-0 text-[9.5px] font-medium" style={{ color: live ? "var(--accent)" : "var(--text-faint)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</span>
-                </div>
-                <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-secondary)" }}>{agent.note}</p>
-              </div>
-            </button>
-          );
-        })}
       </div>
 
       {active && (

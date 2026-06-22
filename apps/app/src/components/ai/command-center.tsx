@@ -140,7 +140,14 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
           <div className="p-3"><div className="skeleton-shimmer h-12 rounded-xl"/></div>
         ) : isEmpty ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>Nothing needs you right now — agents will queue a recommendation here when they find something.</p>
+            <div className="mx-auto mb-2.5 flex h-8 w-8 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-50" style={{ background: "var(--accent)" }}/>
+                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--accent)" }}/>
+              </span>
+            </div>
+            <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>Watching — nothing needs you right now</p>
+            <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>Agents will queue a recommendation here the moment something does.</p>
             {onAskMondaily && (
               <button onClick={() => onAskMondaily("What changed in the workspace graph since I last checked?")} className="btn-suggested mt-2.5 !px-2.5 !py-1 !text-[11px]">
                 Ask what changed
@@ -251,55 +258,45 @@ export function WorkspaceGraphPulse() {
         <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
       </div>
       {pulse.isLoading ? (
-        <div className="skeleton-shimmer h-[140px] rounded-2xl"/>
+        <div className="skeleton-shimmer h-[120px] rounded-2xl"/>
       ) : (
-        <div className="relative">
-          {(() => {
-            const tiles = [
-              ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ label, icon, color, value: pulse[key] })),
-              { label: "graph health", icon: CheckSquare, color: "#10b981", value: healthPct },
-            ];
-            const points = tiles.map((t, i) => {
-              const pct = t.value != null ? Math.max(4, Math.round((t.value / maxValue) * 100)) : 0;
-              return { x: (i / (tiles.length - 1)) * 100, y: 100 - pct, ...t };
-            });
-            const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-            return (
-              <>
-                {/* Colorful connecting line across every metric's relative
-                    value right now — a real snapshot profile across
-                    categories, not a fabricated historical trend (no
-                    time-series data exists yet to chart honestly). */}
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-x-0 top-0 h-[70px] w-full">
-                  <defs>
-                    <linearGradient id="pulseLine" x1="0" y1="0" x2="100%" y2="0">
-                      {points.map((p, i) => <stop key={i} offset={`${(i / (points.length - 1)) * 100}%`} stopColor={p.value != null ? p.color : "var(--text-faint)"}/>)}
-                    </linearGradient>
-                  </defs>
-                  <path d={linePath} fill="none" stroke="url(#pulseLine)" strokeWidth={1.4} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
-                  {points.map((p, i) => (
-                    <circle key={i} cx={p.x} cy={p.y} r={1.6} fill={p.value != null ? p.color : "var(--text-faint)"}/>
-                  ))}
-                </svg>
+        <div className="surface-card flex flex-col gap-4 rounded-2xl p-4 sm:flex-row sm:items-center sm:gap-6">
+          {/* Graph health gets the headline spot — the one number worth
+              seeing at a glance, not buried as one tile among many. */}
+          <div className="flex shrink-0 items-center gap-3 sm:border-r sm:pr-6" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#10b981 ${healthPct}%, var(--surface-hover) ${healthPct}%)` }}>
+              <span className="flex h-10 w-10 items-center justify-center rounded-full text-[13px] font-bold" style={{ background: "var(--surface-card)", color: "var(--text-primary)" }}>
+                {healthPct}%
+              </span>
+            </div>
+            <div>
+              <p className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Graph health</p>
+              <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>active tasks on track</p>
+            </div>
+          </div>
 
-                <div className="grid grid-cols-4 gap-3 pt-[78px] sm:grid-cols-8">
-                  {tiles.map((t, i) => {
-                    const connected = t.value != null;
-                    const tone = connected ? t.color : "var(--text-faint)";
-                    return (
-                      <div key={i} className="flex flex-col items-center gap-1 text-center">
-                        <t.icon size={14} style={{ color: tone }}/>
-                        <p className="text-[18px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
-                          {connected ? t.value : "—"}{t.label === "graph health" ? "%" : ""}
-                        </p>
-                        <p className="truncate text-[10px] leading-tight" style={{ color: "var(--text-faint)" }}>{t.label}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            );
-          })()}
+          {/* Every other metric as a sorted horizontal bar strip — current
+              counts compared to each other, not a fabricated trend over
+              time (no historical snapshots exist yet to chart honestly). */}
+          <div className="grid flex-1 grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+            {[...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ label, icon, color, value: pulse[key] }))]
+              .sort((a, b) => (b.value ?? -1) - (a.value ?? -1))
+              .map((t, i) => {
+                const connected = t.value != null;
+                const pct = connected ? Math.max(4, Math.round((t.value! / maxValue) * 100)) : 0;
+                const tone = connected ? t.color : "var(--text-faint)";
+                return (
+                  <div key={i} className="flex items-center gap-2.5">
+                    <t.icon size={12} className="shrink-0" style={{ color: tone }}/>
+                    <span className="w-[88px] shrink-0 truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.label}</span>
+                    <div className="h-1.5 flex-1 rounded-full overflow-hidden" style={{ background: "var(--surface-hover)" }}>
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: tone }}/>
+                    </div>
+                    <span className="w-7 shrink-0 text-right text-[11px] font-semibold" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>{connected ? t.value : "—"}</span>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
     </section>
