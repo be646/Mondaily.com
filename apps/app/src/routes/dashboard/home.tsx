@@ -11,7 +11,7 @@ import {
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
+import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
@@ -28,8 +28,8 @@ function renderMarkdown(text: string): React.ReactNode {
     nodes.push(
       <ul key={key} className="my-1.5 space-y-1 pl-1">
         {listBuffer.map((item, i) => (
-          <li key={i} className="flex gap-2.5 text-slate-200">
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-slate-500"/>
+          <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
+            <span className="mt-2 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>
             <span className="leading-7">{inlineFormat(item)}</span>
           </li>
         ))}
@@ -54,13 +54,13 @@ function renderMarkdown(text: string): React.ReactNode {
     if (/^#{1,3}\s/.test(trimmed)) {
       flushList(`l${i}`);
       const t = trimmed.replace(/^#{1,3}\s/, "");
-      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold text-white">{t}</p>);
+      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t}</p>);
       return;
     }
     // horizontal rule
     if (/^---+$/.test(trimmed)) {
       flushList(`l${i}`);
-      nodes.push(<hr key={i} className="border-white/[.06] my-3"/>);
+      nodes.push(<hr key={i} className="my-3" style={{ borderColor: "var(--border-soft)" }}/>);
       return;
     }
     // bullet list
@@ -74,7 +74,7 @@ function renderMarkdown(text: string): React.ReactNode {
       return;
     }
     flushList(`l${i}`);
-    nodes.push(<p key={i} className="leading-7 text-slate-200">{inlineFormat(trimmed)}</p>);
+    nodes.push(<p key={i} className="leading-7" style={{ color: "var(--text-secondary)" }}>{inlineFormat(trimmed)}</p>);
   });
   flushList("end");
   return <>{nodes}</>;
@@ -84,7 +84,7 @@ function inlineFormat(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
   return parts.map((p, i) => {
     if (/^\*\*/.test(p) || /^__/.test(p))
-      return <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+      return <strong key={i} className="font-semibold" style={{ color: "var(--text-primary)" }}>{p.slice(2, -2)}</strong>;
     return p.replace(/[*_`|]/g, "");  // strip * _ ` | from plain spans
   });
 }
@@ -131,6 +131,12 @@ const QUICK_PROMPTS = [
 interface Task { id: string; title: string; completed: boolean; due_date?: string; priority?: string; status?: string; assignee_id?: string; assignee_email?: string; created_at?: string; notes?: string; labels?: string[]; record_id?: string; record_name?: string; updated_at?: string; }
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Meeting { id: string; title: string; start_time: string; attendees?: string[] }
+interface WorkspaceSummary {
+  workspace_id: string;
+  name: string;
+  role: string;
+  counts: { tasks: number; lists: number; nodes: number; deals: number };
+}
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
@@ -146,6 +152,7 @@ export function HomePage() {
   const qc = useQueryClient();
   const askSectionRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [taskScope, setTaskScope] = useState<"mine" | "all">("mine");
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [taskWidgetInput, setTaskWidgetInput] = useState("");
   const [taskWidgetLoading, setTaskWidgetLoading] = useState(false);
@@ -214,7 +221,10 @@ export function HomePage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [taskPromptPickerOpen]);
-  const tasksQuery = useQuery({ queryKey: ["tasks", "home"], queryFn: () => apiClient.get<Task[]>("/tasks?filter=mine&sort=priority") });
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", "home", taskScope],
+    queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${taskScope}&sort=priority`),
+  });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
   const notificationsQuery = useQuery({
@@ -225,6 +235,11 @@ export function HomePage() {
   // Real pending-decision count for the command room's telemetry strip —
   // same query/endpoint the Decision Queue panel itself uses below.
   const decisionsQuery = useDecisionQueue();
+  const workspacesQuery = useQuery({
+    queryKey: ["workspaces", "mine", "home"],
+    queryFn: () => apiClient.get<{ workspaces: WorkspaceSummary[] }>("/workspaces/mine"),
+    staleTime: 120_000,
+  });
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -381,8 +396,14 @@ export function HomePage() {
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
   const unreadCount = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
   const pendingDecisionsCount = decisionsQuery.data?.length ?? 0;
-  const graphSynced = !tasksQuery.isError && !notificationsQuery.isError;
+  const graphSynced = !tasksQuery.isError && !notificationsQuery.isError && !decisionsQuery.isError;
   const sourcesChecked = !notificationsQuery.isLoading && !notificationsQuery.isError;
+  const currentWorkspaceId = typeof window !== "undefined" ? localStorage.getItem("mondaily_workspace_id") : null;
+  const workspaceSummaries = workspacesQuery.data?.workspaces ?? [];
+  const currentWorkspace = workspaceSummaries.find(w => w.workspace_id === currentWorkspaceId);
+  const currentDataCount = currentWorkspace ? currentWorkspace.counts.tasks + currentWorkspace.counts.lists + currentWorkspace.counts.nodes : null;
+  const populatedWorkspace = workspaceSummaries.find(w => w.workspace_id !== currentWorkspaceId && (w.counts.tasks + w.counts.lists + w.counts.nodes) > Math.max(currentDataCount ?? 0, 0));
+  const showWorkspaceRecovery = Boolean(populatedWorkspace && (currentDataCount === 0 || currentDataCount === null));
 
   return (
     <div className="home-control-room mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -402,7 +423,7 @@ export function HomePage() {
             colored border line. No "Ask Mondaily" button here — the
             console right below is the single entry point. */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="metric-pill" data-tone="indigo"><ListChecks size={11}/>{activeTasks.length} open tasks</span>
+          <span className="metric-pill" data-tone="indigo"><ListChecks size={11}/>{activeTasks.length} {taskScope === "mine" ? "my open tasks" : "open tasks"}</span>
           <span className="metric-pill" data-tone="amber"><FileText size={11}/>{pendingDecisionsCount} pending decisions</span>
           <span className="metric-pill" data-tone="cyan"><Inbox size={11}/>{unreadCount} unread</span>
         </div>
@@ -411,7 +432,7 @@ export function HomePage() {
             than in their own separate row. No animation. */}
         <div className="relative mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-          <span className="status-chip" data-tone="violet"><span className="dot" style={{ animation: "none" }}/>Agents active</span>
+          <span className="status-chip" data-tone={notificationsQuery.isError ? "amber" : "violet"}><span className="dot" style={{ animation: "none" }}/>{notificationsQuery.isError ? "Agent status partial" : "Agents active"}</span>
           <span className="status-chip" data-tone="cyan"><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
         </div>
 
@@ -440,6 +461,20 @@ export function HomePage() {
           </div>
         )}
       </div>
+
+      {showWorkspaceRecovery && populatedWorkspace && (
+        <div className="mb-4 rounded-2xl px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #d97706 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 25%, var(--border-soft))" }}>
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>You may be viewing an empty workspace.</p>
+            <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+              {populatedWorkspace.name} has {populatedWorkspace.counts.tasks} tasks, {populatedWorkspace.counts.lists} lists, and {populatedWorkspace.counts.nodes} records.
+            </p>
+          </div>
+          <Link to="/workspaces" className="btn-suggested mt-3 shrink-0 sm:mt-0">
+            Choose workspace
+          </Link>
+        </div>
+      )}
 
       {/* ── Ask Mondaily — moved back to the top, right under the command
           room, since it's the primary entry point into the workspace
@@ -557,9 +592,9 @@ export function HomePage() {
               });
             })()}
             {loading && (
-              <div className="flex items-center gap-3 pl-1 text-slate-400">
+              <div className="flex items-center gap-3 pl-1" style={{ color: "var(--text-muted)" }}>
                 <LogoMark size={22} thinking />
-                <span className="text-sm text-slate-500 italic tracking-wide">{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
+                <span className="text-sm italic tracking-wide" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
               </div>
             )}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
@@ -647,17 +682,17 @@ export function HomePage() {
         {/* Recent threads */}
         {!isChatting && recentThreads.length > 0 && (
           <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] text-slate-700">Recent:</span>
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
             {recentThreads.map(t => (
-              <Link key={t.id} to={`/ask/${t.id}`} className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors truncate max-w-[180px]">{t.title}</Link>
+              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
             ))}
-            <span className="text-slate-800 text-xs">·</span>
-            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">Full chat →</Link>
+            <span className="text-xs" style={{ color: "var(--text-faint)" }}>·</span>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
           </div>
         )}
         {!isChatting && recentThreads.length === 0 && (
           <div className="mt-2 flex justify-end">
-            <Link to="/ask/new" className="text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">Open full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
           </div>
         )}
         </div>
@@ -671,6 +706,7 @@ export function HomePage() {
           list instead of two sections doing overlapping jobs. ── */}
       <NeedsYouPanel
         notifications={notificationsQuery.data ?? []}
+        notificationsError={notificationsQuery.isError}
         onAskMondaily={(prefill) => {
           askSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
           if (prefill) doSend(prefill);
@@ -679,11 +715,31 @@ export function HomePage() {
       />
 
       {/* ── Workspace Graph Pulse — a status strip, not a hero section. ── */}
-      <WorkspaceGraphPulse />
+      <div className="operating-picture mb-8 rounded-3xl px-4 py-4 sm:px-5">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
+        <WorkspaceGraphPulse />
+      </div>
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
       <section className="mb-8">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
+          <div className="inline-flex rounded-full p-0.5" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
+            {(["mine", "all"] as const).map(scope => (
+              <button
+                key={scope}
+                onClick={() => setTaskScope(scope)}
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
+                style={{
+                  background: taskScope === scope ? "var(--surface-card)" : "transparent",
+                  color: taskScope === scope ? "var(--text-primary)" : "var(--text-muted)",
+                }}
+              >
+                {scope === "mine" ? "Mine" : "All"}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
 
         {/* Tasks card */}
@@ -705,36 +761,42 @@ export function HomePage() {
             {tasksQuery.isLoading ? (
               <div className="p-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
-              <div className="p-4"><ErrorState error={tasksQuery.error as Error} onRetry={() => tasksQuery.refetch()}/></div>
+              <div className="p-4">
+                <div className="rounded-xl px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
+                  <button onClick={() => tasksQuery.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
+                </div>
+              </div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                <Sparkles size={16} className="text-slate-700 mb-2"/>
-                <p className="text-sm text-slate-500">No open tasks.</p>
-                <p className="text-xs text-slate-700 mt-0.5">Ask AI to create tasks from your work.</p>
+                <Sparkles size={16} className="mb-2" style={{ color: "var(--text-faint)" }}/>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No open tasks.</p>
+                <p className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>Ask AI to create tasks from your work.</p>
               </div>
             ) : (
-              <ul className="divide-y divide-white/[.04]">
+              <ul>
                 {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
                   const statusColor = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
-                      className="group flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[.03] transition-colors">
+                      className="flow-list-row group flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors">
                       <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusColor}`}/>
-                      <span className="flex-1 min-w-0 text-sm text-slate-300 group-hover:text-white truncate transition-colors">{item.title}</span>
+                      <span className="flex-1 min-w-0 truncate text-sm transition-colors" style={{ color: "var(--text-secondary)" }}>{item.title}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         {item.priority && item.priority !== "low" && (
                           <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
                         )}
                         {item.due_date && (
-                          <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-indigo-400" : "text-slate-600"}`}>
+                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "var(--accent)" : "var(--text-faint)" }}>
                             <Clock size={9}/>
                             {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
                         )}
                         {assigneeName && (
-                          <span className="hidden sm:flex items-center gap-0.5 text-[11px] text-slate-600">
+                          <span className="hidden sm:flex items-center gap-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
                             <User size={9}/>{assigneeName}
                           </span>
                         )}
@@ -747,20 +809,20 @@ export function HomePage() {
           </div>
 
           {/* Task AI footer */}
-          <div className="border-t border-white/[.05] px-3 py-2.5" ref={taskPickerRef}>
-            <div className="relative flex items-center gap-2 rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2 focus-within:border-white/[.12] transition-colors">
+          <div className="px-3 py-2.5" style={{ borderTop: "1px solid var(--border-soft)" }} ref={taskPickerRef}>
+            <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "var(--surface-input)", border: "1px solid var(--border-soft)" }}>
               <Sparkles size={11} className="text-indigo-400 shrink-0"/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
                 placeholder="Add task or ask AI…"
-                className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 outline-none min-w-0"/>
+                className="flex-1 bg-transparent text-xs outline-none min-w-0" style={{ color: "var(--text-primary)" }}/>
               {taskWidgetLoading ? (
-                <Loader2 size={11} className="animate-spin text-slate-600 shrink-0"/>
+                <Loader2 size={11} className="animate-spin shrink-0" style={{ color: "var(--text-faint)" }}/>
               ) : (
                 <>
                   <button onClick={runScan} disabled={scanLoading} title="AI scan report"
-                    className="shrink-0 rounded-md border border-white/[.08] px-1.5 py-0.5 text-[10px] text-slate-600 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40">
+                    className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] transition-colors disabled:opacity-40" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
                     {scanLoading ? <Loader2 size={9} className="animate-spin"/> : "Scan"}
                   </button>
                   <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()}
@@ -786,26 +848,32 @@ export function HomePage() {
             {meetings.isLoading ? (
               <div className="p-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
             ) : meetings.isError ? (
-              <div className="p-4"><ErrorState error={meetings.error as Error} onRetry={() => meetings.refetch()}/></div>
+              <div className="p-4">
+                <div className="rounded-xl px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load meetings</p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(meetings.error as Error)?.message || "Calendar data did not return."}</p>
+                  <button onClick={() => meetings.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
+                </div>
+              </div>
             ) : meetings.data?.length ? (
-              <ul className="divide-y divide-white/[.04]">
+              <ul>
                 {meetings.data.map(m => (
-                  <li key={m.id} className="px-4 py-3">
-                    <p className="text-sm text-slate-200">{m.title}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-600">{m.start_time}</p>
+                  <li key={m.id} className="flow-list-row px-4 py-3">
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{m.title}</p>
+                    <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>{m.start_time}</p>
                   </li>
                 ))}
               </ul>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center px-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[.03] border border-white/[.06] mb-3">
-                  <Calendar size={16} className="text-slate-600"/>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
+                  <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
                 </div>
-                <p className="text-sm text-slate-400 font-medium">No meetings today</p>
-                <p className="mt-1 text-[11px] text-slate-600 max-w-[200px]">Connect your calendar to get automatic meeting briefs.</p>
+                <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>
+                <p className="mt-1 text-[11px] max-w-[200px]" style={{ color: "var(--text-faint)" }}>Connect your calendar to get automatic meeting briefs.</p>
                 <div className="mt-4 flex gap-2">
-                  <button className="rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-1.5 text-[11px] text-slate-400 hover:text-white hover:border-white/[.12] transition-colors">Sync Google</button>
-                  <button className="rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-1.5 text-[11px] text-slate-400 hover:text-white hover:border-white/[.12] transition-colors">Sync Microsoft</button>
+                  <button className="btn-secondary !px-3 !py-1.5 !text-[11px]">Sync Google</button>
+                  <button className="btn-secondary !px-3 !py-1.5 !text-[11px]">Sync Microsoft</button>
                 </div>
               </div>
             )}

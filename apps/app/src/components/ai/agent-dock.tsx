@@ -122,6 +122,7 @@ export function useAgentData() {
   return {
     constellation,
     isLoading: registryQ.isLoading,
+    isError: registryQ.isError,
     // Real counts for the Workspace Graph Pulse panel. Overdue-invoice and
     // risk counts are read straight from the registry (same numbers the
     // Finance/Signal agent cards show) instead of being recomputed here.
@@ -134,6 +135,7 @@ export function useAgentData() {
       workflows: workflows.length,
       risks: signalAgent?.evidence_count ?? notifications.filter(n => n.type === "ai_risk" && !n.is_read).length,
       isLoading: registryQ.isLoading || tasksQ.isLoading || nodesQ.isLoading,
+      isError: registryQ.isError || tasksQ.isError || notificationsQ.isError || nodesQ.isError,
     },
   };
 }

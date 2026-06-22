@@ -70,7 +70,7 @@ function isLiveState(state: ConstellationState) {
  * and not a scrolling row. Falls back to a vertical agent rail on mobile,
  * where a radial layout has no room to breathe. */
 export function AgentConstellationPanel() {
-  const { constellation, isLoading } = useAgentData();
+  const { constellation, isLoading, isError } = useAgentData();
   const [selected, setSelected] = useState<string | null>(null);
   const active = constellation.find(a => a.id === selected)
     ?? constellation.find(a => a.state === "issue")
@@ -86,7 +86,7 @@ export function AgentConstellationPanel() {
     );
   }
 
-  if (constellation.length === 0) {
+  if (isError || constellation.length === 0) {
     return (
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
@@ -95,7 +95,9 @@ export function AgentConstellationPanel() {
         </div>
         <div className="surface-card rounded-2xl px-4 py-8 text-center">
           <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load agent status</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>The workspace is reachable, but agent telemetry did not return.</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+            {isError ? "Agent telemetry failed to return. Refresh or check the API connection." : "No agents returned for this workspace yet."}
+          </p>
         </div>
       </section>
     );
@@ -115,12 +117,7 @@ export function AgentConstellationPanel() {
         </span>
       </div>
 
-      {/* ── Structured tree — Workspace Graph as the single root, every
-          agent branching below it as a small box, not a wide card. Wraps
-          to multiple rows instead of scrolling, so nothing slides and
-          every agent is visible at once. Built from plain flexbox +
-          border lines — no absolute-percent positioning, no SVG math. ── */}
-      <div className="flex flex-col items-center">
+      <div className="agent-operating-map flex flex-col items-center rounded-2xl px-4 py-5 sm:px-6">
         {/* Root node */}
         <div className="flex flex-col items-center gap-1">
           <span className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--surface-page)", border: "1px solid color-mix(in srgb, var(--accent) 30%, var(--border-soft))" }}>
@@ -205,8 +202,11 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className="shrink-0 px-2 pb-2">
-      <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Agents</p>
-      <div className="space-y-0.5">
+      <div className="flex items-center justify-between px-2 pb-1">
+        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Agents</p>
+        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{constellation.length}</span>
+      </div>
+      <div className="sidebar-agent-rail sidebar-scroll space-y-0.5">
         {constellation.map((agent, i) => {
           const live = isLiveState(agent.state);
           const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;

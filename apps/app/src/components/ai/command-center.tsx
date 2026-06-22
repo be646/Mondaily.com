@@ -72,8 +72,9 @@ interface StreamItem {
  * tasks (the Operations Agent writes a real decision_queue row for those),
  * so this no longer duplicates that as a second synthetic summary row.
  */
-export function NeedsYouPanel({ notifications, onAskMondaily }: {
+export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily }: {
   notifications: NotificationLite[];
+  notificationsError?: boolean;
   /** Called when the user wants to jump to Ask Mondaily — optional prefill text. */
   onAskMondaily?: (prefill?: string) => void;
 }) {
@@ -97,7 +98,7 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
   // with notification-derived events, instead of reading notifications
   // alone. Anything without a real timestamp is excluded rather than
   // backfilled with "just now".
-  const { constellation } = useAgentData();
+  const { constellation, isError: agentError } = useAgentData();
   const registryActivity = constellation
     .filter(a => a.lastRunAt)
     .map(a => ({ id: `agent-${a.id}`, agentName: a.name, title: a.note, created_at: a.lastRunAt as string, fromRegistry: true as const, type: "" }));
@@ -122,7 +123,8 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
   };
 
   const isLoading = decisionsLoading;
-  const isEmpty = !isLoading && decisions.length === 0 && stream.length === 0;
+  const isEmpty = !isLoading && !decisionsError && decisions.length === 0 && stream.length === 0;
+  const hasActivityError = decisionsError || notificationsError || agentError;
 
   return (
     <section className="mb-8">
@@ -142,6 +144,20 @@ export function NeedsYouPanel({ notifications, onAskMondaily }: {
       <div className="surface-card rounded-2xl">
         {isLoading ? (
           <div className="p-3"><div className="skeleton-shimmer h-12 rounded-xl"/></div>
+        ) : hasActivityError ? (
+          <div className="px-4 py-5">
+            <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>Could not load activity</p>
+            <p className="mt-1 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+              {decisionsError ? "Decision Queue is unavailable. " : ""}
+              {notificationsError ? "Recent notifications are unavailable. " : ""}
+              {agentError ? "Agent status is unavailable." : ""}
+            </p>
+            {onAskMondaily && (
+              <button onClick={() => onAskMondaily("Check what workspace activity is currently unavailable and what I can still act on.")} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">
+                Ask what still works
+              </button>
+            )}
+          </div>
         ) : isEmpty ? (
           <div className="px-4 py-8 text-center">
             <div className="mx-auto mb-2.5 flex h-8 w-8 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
@@ -291,6 +307,11 @@ export function WorkspaceGraphPulse() {
       </div>
       {pulse.isLoading ? (
         <div className="skeleton-shimmer h-[140px] rounded-2xl"/>
+      ) : pulse.isError ? (
+        <div className="surface-card rounded-2xl px-4 py-8 text-center">
+          <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load agent status</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>Workspace graph counts did not return from the API.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
           {[
