@@ -262,12 +262,14 @@ export function AskMondaily() {
 
       {/* ── Header ── */}
       <div className="ask-header shrink-0">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-3 text-[#111827] dark:text-white">
-            <LogoSymbol size={28} thinking={loading} />
-            <div>
-              <h1 className="text-sm font-semibold text-[#111827] dark:text-white tracking-wide">Ask the workspace graph</h1>
-              <p className="text-[11px] text-[#9ca3af] dark:text-slate-500">{loading ? GRAPH_REASONING_STEPS[thinkingStep] : "Reads tasks, finance, relationships, notes, and workflows — this workspace only"}</p>
+            <LogoSymbol size={24} thinking={loading} />
+            <div className="min-w-0">
+              <h1 className="text-[13px] font-semibold tracking-wide text-[#111827] dark:text-white">Ask Mondaily</h1>
+              <p className="truncate text-[11px] text-[#9ca3af] dark:text-slate-500">
+                {loading ? GRAPH_REASONING_STEPS[thinkingStep] : "Workspace graph only · tasks, records, finance, notes, workflows"}
+              </p>
             </div>
           </div>
           {isChatting && (
@@ -283,20 +285,15 @@ export function AskMondaily() {
           )}
         </div>
 
-        {/* Context strip — what the graph spans, kept deliberately broader than "CRM" */}
-        <div className="ask-context-strip flex items-center gap-2 px-6 py-3 overflow-x-auto">
-          <span className="flex items-center gap-1 text-[11px] text-[#9ca3af] dark:text-slate-600 shrink-0">
+        {/* Quiet scope line — enough context without turning the chat header into a dashboard. */}
+        <div className="ask-context-strip flex items-center gap-2 px-6 py-2">
+          <span className="flex min-w-0 items-center gap-1 text-[11px] text-[#9ca3af] dark:text-slate-600">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-50 animate-ping"/>
+              <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-40 animate-ping"/>
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
             </span>
-            Connected to your workspace graph
+            <span className="truncate">Connected to this workspace · source-backed answers</span>
           </span>
-          {["Objects", "Tasks", "Finance", "Relationships", "Notes", "Workflows"].map(label => (
-            <span key={label} className="shrink-0 rounded-full border border-[#e5e7eb] bg-[#f8fafc] px-2.5 py-0.5 text-[10px] font-medium text-[#6b7280] dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-500">
-              {label}
-            </span>
-          ))}
         </div>
       </div>
 
