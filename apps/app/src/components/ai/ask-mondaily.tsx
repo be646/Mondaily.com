@@ -265,12 +265,18 @@ export function AskMondaily() {
         <div className="flex items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-3 text-[#111827] dark:text-white">
             <LogoSymbol size={24} thinking={loading} />
-            <div className="min-w-0">
-              <h1 className="text-[13px] font-semibold tracking-wide text-[#111827] dark:text-white">Ask Mondaily</h1>
-              <p className="truncate text-[11px] text-[#9ca3af] dark:text-slate-500">
-                {loading ? GRAPH_REASONING_STEPS[thinkingStep] : "Workspace graph only · tasks, records, finance, notes, workflows"}
-              </p>
-            </div>
+            <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[#111827] dark:text-white">
+              Ask
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-40 animate-ping"/>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
+              </span>
+              {loading && (
+                <span className="text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-slate-500">
+                  {GRAPH_REASONING_STEPS[thinkingStep]}…
+                </span>
+              )}
+            </h1>
           </div>
           {isChatting && (
             <div className="flex items-center gap-3">
@@ -283,17 +289,6 @@ export function AskMondaily() {
               </button>
             </div>
           )}
-        </div>
-
-        {/* Quiet scope line — enough context without turning the chat header into a dashboard. */}
-        <div className="ask-context-strip flex items-center gap-2 px-6 py-2">
-          <span className="flex min-w-0 items-center gap-1 text-[11px] text-[#9ca3af] dark:text-slate-600">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-40 animate-ping"/>
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
-            </span>
-            <span className="truncate">Connected to this workspace · source-backed answers</span>
-          </span>
         </div>
       </div>
 
