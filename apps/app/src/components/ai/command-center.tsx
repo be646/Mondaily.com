@@ -134,7 +134,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
             <Layers size={13} style={{ color: "var(--text-muted)" }}/>
             <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Attention stream</h2>
           </div>
-          <p className="mt-0.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>Human judgment, approvals, and live agent findings.</p>
+          <p className="mt-0.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>Approvals and live agent findings.</p>
         </div>
         <div className="attention-count-strip">
           <strong>{decisions.length}</strong>

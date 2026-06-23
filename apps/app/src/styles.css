@@ -467,20 +467,20 @@ html[data-theme="dark"] .minimal-sparkline {
   padding-block: 1.25rem 1rem;
 }
 .today-flow-header {
-  padding-top: 0.25rem;
+  padding-top: 0.4rem;
 }
 .today-scope-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.18rem;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 72%, transparent);
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border: 0;
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--surface-hover) 48%, transparent);
+  background: color-mix(in srgb, var(--surface-hover) 58%, transparent);
 }
 .today-scope-option {
   border-radius: 9999px;
-  padding: 0.42rem 0.72rem;
+  padding: 0.5rem 0.86rem;
   font-size: 0.68rem;
   font-weight: 600;
   line-height: 1;
@@ -488,12 +488,41 @@ html[data-theme="dark"] .minimal-sparkline {
   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 .today-scope-option[data-active="true"] {
-  background: var(--surface-card);
-  color: var(--text-primary);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--border-soft) 60%, transparent);
+  background: var(--text-primary);
+  color: var(--surface-page);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--text-primary) 9%, transparent);
 }
 .flow-panel-clean {
   min-width: 0;
+}
+.flow-panel-heading {
+  padding-bottom: 0.75rem;
+}
+.flow-micro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.15rem 0.45rem;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--surface-hover) 45%, transparent);
+  font-size: 0.56rem;
+}
+.flow-list {
+  border-top: 1px solid color-mix(in srgb, var(--border-soft) 54%, transparent);
+}
+.flow-list-row {
+  padding-block: 0.85rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
+}
+.flow-list-row:last-child {
+  border-bottom: 0;
+}
+.flow-list-row:hover {
+  background: color-mix(in srgb, var(--surface-hover) 30%, transparent);
+}
+.flow-panel-footer {
+  padding-top: 0.9rem;
 }
 @media (min-width: 768px) {
   .flow-panel-clean:first-child {
@@ -666,9 +695,7 @@ html[data-theme="dark"] .minimal-sparkline {
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-  border-top: 1px solid var(--border-soft);
-  border-bottom: 1px solid var(--border-soft);
-  padding: 0.8rem 0;
+  padding: 0.35rem 0 0.1rem;
 }
 .home-telemetry-strip {
   display: grid;

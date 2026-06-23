@@ -697,7 +697,6 @@ export function HomePage() {
         <div className="today-flow-header mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's work</p>
-            <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Tasks and meetings the agents are watching now.</p>
           </div>
           <div className="today-scope-switch" role="group" aria-label="Task scope">
             {(["mine", "all"] as const).map(scope => (
@@ -716,11 +715,11 @@ export function HomePage() {
 
         {/* Tasks card */}
         <section className="flow-panel-clean flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between pb-3" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+          <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-emerald-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tasks</span>
-              <span className="flex items-center gap-1 rounded-full px-1.5 py-px text-[9px]" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
+              <span className="flow-micro-badge">
                 <Sparkles size={8}/> AI sorted
               </span>
             </div>
@@ -747,14 +746,14 @@ export function HomePage() {
                 <p className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>Ask AI to create tasks from your work.</p>
               </div>
             ) : (
-              <ul>
+              <ul className="flow-list">
                 {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
                   const statusColor = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
-                      className="flow-list-row group flex items-center gap-3 py-3 cursor-pointer transition-colors">
+                      className="flow-list-row group flex cursor-pointer items-center gap-3 transition-colors">
                       <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${statusColor}`}/>
                       <span className="flex-1 min-w-0 truncate text-sm transition-colors" style={{ color: "var(--text-secondary)" }}>{item.title}</span>
                       <div className="flex items-center gap-2 shrink-0">
@@ -781,8 +780,8 @@ export function HomePage() {
           </div>
 
           {/* Task AI footer */}
-          <div className="py-2.5" style={{ borderTop: "1px solid var(--border-soft)" }} ref={taskPickerRef}>
-            <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "var(--surface-page)", border: "1px solid var(--border-soft)" }}>
+          <div className="flow-panel-footer" ref={taskPickerRef}>
+            <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "color-mix(in srgb, var(--surface-hover) 48%, transparent)" }}>
               <Sparkles size={11} className="text-indigo-400 shrink-0"/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
@@ -809,7 +808,7 @@ export function HomePage() {
 
         {/* Meetings card */}
         <section className="flow-panel-clean flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between pb-3" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+          <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar size={13} className="text-blue-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
@@ -828,9 +827,9 @@ export function HomePage() {
                 </div>
               </div>
             ) : meetings.data?.length ? (
-              <ul>
+              <ul className="flow-list">
                 {meetings.data.map(m => (
-                  <li key={m.id} className="flow-list-row py-3">
+                  <li key={m.id} className="flow-list-row">
                     <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{m.title}</p>
                     <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>{m.start_time}</p>
                   </li>
