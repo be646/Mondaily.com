@@ -247,7 +247,7 @@ export function ListPage() {
               </span>
             </div>
           </div>
-          <div className="list-toolbar flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="list-toolbar flex flex-wrap items-center gap-2">
 
         {/* ── Assignment chip + popover ── */}
         <div className="relative" ref={assignRef}>

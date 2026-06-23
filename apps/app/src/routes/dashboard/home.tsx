@@ -412,7 +412,7 @@ export function HomePage() {
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-12 px-4 pb-6 pt-8 sm:-mx-6 sm:px-8">
+      <div className="command-room relative -mx-4 -mt-8 mb-8 px-4 pb-6 pt-8 sm:-mx-6 sm:px-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
@@ -482,7 +482,7 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="relative mx-auto mb-14 max-w-4xl">
+      <section ref={askSectionRef} className="relative mx-auto mb-9 max-w-4xl">
         <div className="relative">
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
@@ -678,8 +678,8 @@ export function HomePage() {
       {/* ── Operating Picture — graph telemetry and the agent map share one
           continuous control-room zone. The components keep their own data
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
-      <section className="home-operating-picture mb-14">
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
+      <section className="home-operating-picture mb-9">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>Workspace graph and agent state</h2>
@@ -688,7 +688,7 @@ export function HomePage() {
             Real counts, live agent registry, and source-backed signals. No invented scores.
           </p>
         </div>
-        <div className="space-y-10">
+        <div className="space-y-7">
           <WorkspaceGraphPulse />
           <AgentConstellationPanel />
         </div>
@@ -702,8 +702,8 @@ export function HomePage() {
       />
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
-      <section className="mb-10">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+      <section className="mb-8">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
           <div className="inline-flex rounded-full p-0.5" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
             {(["mine", "all"] as const).map(scope => (

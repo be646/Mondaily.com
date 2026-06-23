@@ -127,19 +127,18 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   const hasActivityError = decisionsError || notificationsError || agentError;
 
   return (
-    <section className="mb-14">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mb-8">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Layers size={13} style={{ color: "var(--text-muted)" }}/>
             <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Attention stream</h2>
           </div>
-          <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Human judgment, approvals, and live agent findings.</p>
+          <p className="mt-0.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>Human judgment, approvals, and live agent findings.</p>
         </div>
         <div className="attention-count-strip">
           <strong>{decisions.length}</strong>
           <span>awaiting approval</span>
-          <em>ranked by live graph signals</em>
         </div>
       </div>
 

@@ -252,7 +252,7 @@ html[data-theme="dark"] .minimal-sparkline {
    the content below. ── */
 .command-room {
   background: transparent;
-  border-bottom: 0;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 /* Home control room composition — these utilities keep existing Home
@@ -274,9 +274,9 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .home-operating-picture {
   position: relative;
-  border-top: 0;
-  border-bottom: 0;
-  padding-block: 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  padding-block: 1.25rem;
 }
 .home-operating-picture::before {
   display: none;
@@ -437,8 +437,8 @@ html[data-theme="dark"] .minimal-sparkline {
 
 .workspace-pulse-grid {
   position: relative;
-  border-top: 0;
-  border-bottom: 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
   background: transparent;
 }
 .pulse-tile {
@@ -469,8 +469,8 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 
 .today-flow-grid {
-  border-top: 0;
-  border-bottom: 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
   padding-block: 1rem;
 }
 .flow-panel-clean {
@@ -498,59 +498,6 @@ html[data-theme="dark"] .minimal-sparkline {
 .agent-orbit-field > * {
   position: relative;
 }
-.agent-wiring-plane {
-  position: relative;
-  height: 3.1rem;
-  margin: 0 auto 0.65rem;
-  max-width: 46rem;
-  overflow: hidden;
-  border-top: 0;
-  border-bottom: 0;
-}
-.agent-wire {
-  position: absolute;
-  left: 7%;
-  right: 7%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border-soft), color-mix(in srgb, var(--accent) 26%, var(--border-soft)), var(--border-soft), transparent);
-}
-.agent-wire-a { top: 34%; }
-.agent-wire-b { top: 50%; opacity: 0.75; }
-.agent-wire-c { top: 66%; opacity: 0.55; }
-.agent-wire-core {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: grid;
-  height: 2rem;
-  width: 2rem;
-  transform: translate(-50%, -50%);
-  align-items: center;
-  justify-content: center;
-  place-items: center;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-soft));
-  background: var(--surface-page);
-  color: var(--accent);
-}
-.agent-wire-pulse {
-  position: absolute;
-  top: 50%;
-  height: 0.32rem;
-  width: 0.32rem;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--accent) 78%, white);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 38%, transparent);
-  animation: agentWireTravel 5.5s linear infinite;
-}
-.agent-wire-pulse-a {
-  animation-delay: -1.4s;
-}
-.agent-wire-pulse-b {
-  top: 34%;
-  animation-delay: -3.3s;
-  animation-duration: 6.8s;
-}
 .agent-orbit-rail {
   position: relative;
   display: flex;
@@ -565,15 +512,9 @@ html[data-theme="dark"] .minimal-sparkline {
 .agent-orbit-node:hover {
   background: var(--surface-hover) !important;
 }
-@keyframes agentWireTravel {
-  0%   { left: 8%; opacity: 0; transform: translateY(-50%) scale(0.8); }
-  10%  { opacity: 0.9; }
-  88%  { opacity: 0.9; }
-  100% { left: 92%; opacity: 0; transform: translateY(-50%) scale(1); }
-}
 .agent-detail-strip {
-  border-top: 0;
-  border-bottom: 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
   background: transparent;
 }
 
@@ -676,37 +617,29 @@ html[data-theme="dark"] .minimal-sparkline {
 .stream-row:last-child { border-bottom: none; }
 .stream-row:hover { background: var(--surface-hover); }
 .attention-stream-shell {
-  border-top: 0;
-  border-bottom: 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
   background: transparent;
 }
 
 .attention-count-strip {
-  display: grid;
-  min-width: 12rem;
-  grid-template-columns: auto 1fr;
+  display: inline-grid;
+  grid-template-columns: auto auto;
   align-items: baseline;
-  column-gap: 0.55rem;
-  row-gap: 0.1rem;
+  column-gap: 0.45rem;
   padding: 0.15rem 0;
   text-align: right;
 }
 .attention-count-strip strong {
   color: var(--text-primary);
-  font-size: 1.55rem;
+  font-size: 1.05rem;
   font-weight: 650;
   line-height: 1;
 }
 .attention-count-strip span {
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 500;
-}
-.attention-count-strip em {
-  grid-column: 1 / -1;
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  font-style: normal;
 }
 
 .home-live-strip {
@@ -714,8 +647,8 @@ html[data-theme="dark"] .minimal-sparkline {
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
-  border-top: 0;
-  border-bottom: 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
   padding: 0.8rem 0;
 }
 .home-telemetry-strip {

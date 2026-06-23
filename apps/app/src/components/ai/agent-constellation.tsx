@@ -118,14 +118,6 @@ export function AgentConstellationPanel() {
       </div>
 
       <div className="agent-orbit-field">
-        <div className="agent-wiring-plane" aria-hidden="true">
-          <span className="agent-wire agent-wire-a"/>
-          <span className="agent-wire agent-wire-b"/>
-          <span className="agent-wire agent-wire-c"/>
-          <span className="agent-wire-pulse agent-wire-pulse-a"/>
-          <span className="agent-wire-pulse agent-wire-pulse-b"/>
-          <span className="agent-wire-core"><Network size={14}/></span>
-        </div>
         <div className="agent-orbit-rail">
             {constellation.map((agent, i) => {
               const live = isLiveState(agent.state);
