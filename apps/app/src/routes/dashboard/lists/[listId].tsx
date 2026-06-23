@@ -231,7 +231,7 @@ export function ListPage() {
     <div className="list-workspace flex h-full flex-col">
       {/* ── Header ── */}
       <header className="list-header shrink-0 px-6 py-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-4">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--text-faint)" }}>List sheet</p>
             <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3">
@@ -247,7 +247,7 @@ export function ListPage() {
               </span>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="list-toolbar flex items-center gap-2 overflow-x-auto pb-1">
 
         {/* ── Assignment chip + popover ── */}
         <div className="relative" ref={assignRef}>
@@ -413,7 +413,7 @@ export function ListPage() {
           <Globe size={13}/> Find from web
         </button>
         {/* Menu */}
-        <div className="relative">
+        <div className="relative ml-auto">
           <button
             onClick={() => setMenuOpen(o => !o)}
             className="btn-ghost grid !h-7 !w-7 !px-0 !py-0"

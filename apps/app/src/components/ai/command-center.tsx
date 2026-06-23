@@ -127,14 +127,20 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   const hasActivityError = decisionsError || notificationsError || agentError;
 
   return (
-    <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Layers size={13} style={{ color: "var(--text-muted)" }}/>
-          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Attention stream</h2>
-          {decisions.length > 0 && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{decisions.length} awaiting approval</span>}
+    <section className="mb-14">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Layers size={13} style={{ color: "var(--text-muted)" }}/>
+            <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Attention stream</h2>
+          </div>
+          <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Human judgment, approvals, and live agent findings.</p>
         </div>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>ranked by live graph signals</span>
+        <div className="attention-count-strip">
+          <strong>{decisions.length}</strong>
+          <span>awaiting approval</span>
+          <em>ranked by live graph signals</em>
+        </div>
       </div>
 
       <div className="attention-stream-shell">
