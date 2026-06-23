@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { MessageCircle, Plus, Trash2, ChevronDown } from "lucide-react";
+import { MessageCircle, Trash2, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getThreads, saveThreads, loadThreadsFromServer, deleteThreadFromServer, type ChatThread } from "../../lib/chat-store";
 
@@ -30,22 +30,20 @@ export function SidebarAsk() {
   };
 
   // No permanent "Ask Mondaily" row here — the primary nav already has a
-  // single "Ask" entry (→ /ask/new). This section is purely chat history:
-  // a collapsible list plus a "new chat" button, never a second route in.
+  // single "Ask" entry (→ /ask/new). This section is purely quiet chat
+  // history, and disappears entirely when there is no history to show.
+  if (threads.length === 0) return null;
+
   return (
-    <section className="mt-3">
-      <div className="mb-1 flex items-center justify-between px-3">
-        <button onClick={() => setHistoryOpen(o => !o)} className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" style={{ color: "var(--text-faint)" }}>
-          Chat history{threads.length > 0 ? ` (${threads.length})` : ""}
-          <ChevronDown size={10} className={`transition-transform ${historyOpen ? "rotate-180" : ""}`}/>
-        </button>
-        <Link to="/ask/new" title="New chat" className="transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" style={{ color: "var(--text-faint)" }}>
-          <Plus size={13}/>
-        </Link>
-      </div>
-      {threads.length === 0 && (
-        <p className="px-3 text-[11px]" style={{ color: "var(--text-faint)" }}>No chats yet</p>
-      )}
+    <section className="mt-2">
+      <button
+        onClick={() => setHistoryOpen(o => !o)}
+        className="mb-1 flex w-full items-center gap-1.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-neutral-950 dark:hover:text-neutral-50"
+        style={{ color: "var(--text-faint)" }}
+      >
+        Recent chats <span className="font-medium normal-case tracking-normal">({threads.length})</span>
+        <ChevronDown size={10} className={`ml-auto transition-transform ${historyOpen ? "rotate-180" : ""}`}/>
+      </button>
       {historyOpen && threads.slice(0, 10).map(t => (
         <div key={t.id} className="group relative flex items-center">
           <Link

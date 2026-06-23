@@ -247,7 +247,8 @@ export function ListPage() {
               </span>
             </div>
           </div>
-          <div className="list-toolbar flex flex-wrap items-center gap-2">
+          <div className="list-toolbar flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
 
         {/* ── Assignment chip + popover ── */}
         <div className="relative" ref={assignRef}>
@@ -375,7 +376,9 @@ export function ListPage() {
             <Grid2X2 size={12} />
           </button>
         </div>
+            </div>
         {/* Actions */}
+            <div className="flex flex-wrap items-center justify-end gap-2">
         {records.length > 0 && (
           <>
             <button
@@ -413,7 +416,7 @@ export function ListPage() {
           <Globe size={13}/> Find from web
         </button>
         {/* Menu */}
-        <div className="relative ml-auto">
+        <div className="relative">
           <button
             onClick={() => setMenuOpen(o => !o)}
             className="btn-ghost grid !h-7 !w-7 !px-0 !py-0"
@@ -444,6 +447,7 @@ export function ListPage() {
             </div>
           )}
         </div>
+            </div>
           </div>
         </div>
       </header>
