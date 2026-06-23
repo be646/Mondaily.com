@@ -679,16 +679,7 @@ export function HomePage() {
           continuous control-room zone. The components keep their own data
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
       <section className="home-operating-picture mb-9">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>Workspace graph and agent state</h2>
-          </div>
-          <p className="max-w-sm text-right text-[12px] leading-5" style={{ color: "var(--text-muted)" }}>
-            Real counts, live agent registry, and source-backed signals. No invented scores.
-          </p>
-        </div>
-        <div className="space-y-7">
+        <div className="space-y-8">
           <WorkspaceGraphPulse />
           <AgentConstellationPanel />
         </div>
