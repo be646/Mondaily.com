@@ -195,13 +195,13 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
     <div className="shrink-0">
       <Link
         to="/home"
-        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors surface-hover"
+        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900"
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ background: "var(--surface-selected)" }}>
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-neutral-200 dark:border-neutral-800">
           <Sparkles size={12} style={{ color: "var(--accent)" }}/>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[12px] font-medium leading-tight" style={{ color: "var(--text-primary)" }}>Agent Dock</span>
+          <span className="block text-[12px] font-medium leading-tight" style={{ color: "var(--text-primary)" }}>AI agents</span>
           <span className="block truncate text-[10px]" style={{ color: "var(--text-faint)" }}>
             {constellation.length} agents · {activeAgents.length > 0 ? `${activeAgents.length} active` : "quiet"}
           </span>

@@ -300,8 +300,9 @@ function NavItem({
       <Link
         to={to}
         title={label}
-        className={`mb-0.5 relative flex items-center justify-center rounded-lg p-2 transition-colors ${active ? "bg-[#eef2ff] text-[#3730a3] dark:bg-indigo-500/[.13] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-slate-500 dark:hover:bg-white/[.04] dark:hover:text-slate-300"}`}
+        className={`mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"}`}
       >
+        {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50"/>}
         <Icon size={14}/>
         {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-indigo-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
       </Link>
@@ -310,10 +311,10 @@ function NavItem({
   return (
     <Link
       to={to}
-      className={`relative mb-px flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors ${active ? "bg-[#eef2ff] text-[#3730a3] dark:bg-indigo-500/[.13] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-slate-400 dark:hover:bg-white/[.03] dark:hover:text-slate-200"}`}
+      className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] transition-colors ${active ? "font-medium text-neutral-950 dark:text-neutral-50" : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"}`}
     >
-      {active && <span className="absolute left-0 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-full bg-[#6366f1] dark:bg-indigo-400"/>}
-      <Icon size={13} className={active ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-400 dark:text-slate-600"}/>
+      {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50"/>}
+      <Icon size={13} className={active ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-600"}/>
       {label}
       {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-indigo-500 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none">{badge > 99 ? "99+" : badge}</span>}
     </Link>
@@ -365,21 +366,21 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     <>
       <aside
         style={{ transition: "width 0.2s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-zinc-200 dark:border-white/[.07] bg-white dark:bg-[#0b0d10] ${collapsed ? "w-[52px]" : "w-[216px]"}`}
+        className={`relative flex h-full shrink-0 flex-col border-r border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 ${collapsed ? "w-[52px]" : "w-[216px]"}`}
       >
         {/* Collapse toggle */}
         <button
           onClick={() => { if (onMobileClose) onMobileClose(); else setCollapsed(c => !c); }}
-          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-200 dark:border-white/[.08] bg-white dark:bg-[#0b0d10] text-slate-600 hover:text-zinc-900 dark:hover:text-white transition-colors shadow-md"
+          className="absolute -right-3 top-[18px] z-10 flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 shadow-sm transition-colors hover:text-neutral-950 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500 dark:hover:text-neutral-50"
         >
           {onMobileClose ? <X size={10}/> : collapsed ? <ChevronRight size={10}/> : <ChevronLeft size={10}/>}
         </button>
 
         {/* Workspace header */}
-        <div className="relative shrink-0 border-b border-zinc-200 dark:border-white/[.07]">
+        <div className="relative shrink-0 border-b border-neutral-200 dark:border-neutral-800">
           <button
             onClick={() => !collapsed && setWorkspaceOpen(o => !o)}
-            className={`flex w-full items-center gap-2.5 px-3 py-3 hover:bg-[#f4f4f5] dark:hover:bg-white/[.03] transition-colors ${collapsed ? "justify-center" : ""}`}
+            className={`flex w-full items-center gap-2.5 px-3 py-3 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900 ${collapsed ? "justify-center" : ""}`}
           >
             {workspaceLogo
               ? <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover shrink-0"/>
@@ -388,8 +389,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {!collapsed && (
               <>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="truncate text-[13px] font-semibold text-[#18181b] dark:text-white/90 leading-tight">{workspaceName}</div>
-                  <div className="text-[10px] text-zinc-400 dark:text-slate-700">Pro workspace</div>
+                  <div className="truncate text-[13px] font-semibold text-neutral-950 dark:text-neutral-50 leading-tight">{workspaceName}</div>
+                  <div className="text-[10px] text-neutral-400 dark:text-neutral-600">Pro workspace</div>
                 </div>
                 <ChevronsUpDown size={11} className="text-zinc-400 dark:text-slate-700 shrink-0"/>
               </>
@@ -431,7 +432,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
 
         {/* Quick Action — frozen above the scroll area, always visible */}
         {!collapsed && (
-          <div className="shrink-0 border-b border-zinc-200 dark:border-white/[.07] px-2 py-2">
+          <div className="shrink-0 border-b border-neutral-200 px-2 py-2 dark:border-neutral-800">
             <button
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
               className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
@@ -444,7 +445,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         )}
 
         {/* Agent Dock — visible near the top, compact by default. */}
-        <div className="shrink-0 border-b border-zinc-200 px-2 py-2 dark:border-white/[.07]">
+        <div className="shrink-0 border-b border-neutral-200 px-2 py-2 dark:border-neutral-800">
           <AgentPulse collapsed={collapsed}/>
         </div>
 
@@ -494,16 +495,16 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         </nav>
 
         {/* Bottom bar */}
-        <div className="shrink-0 border-t border-[#eef2f7] dark:border-white/[.07] p-2.5">
+        <div className="shrink-0 border-t border-neutral-200 p-2.5 dark:border-neutral-800">
           {collapsed ? (
             <Link to="/settings/account" title="Settings"
               className="flex items-center justify-center rounded-lg p-2 text-zinc-400 hover:bg-[#f4f4f5] hover:text-zinc-700 dark:text-slate-600 dark:hover:bg-white/[.04] dark:hover:text-slate-300 transition-colors">
               <Settings size={14}/>
             </Link>
           ) : (
-            <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="overflow-hidden">
               {/* Trial row */}
-              <div className="flex items-center justify-between border-b px-2.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="flex items-center justify-between border-b border-neutral-200 px-1 py-2 dark:border-neutral-800">
                 <div>
                   <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Trial</span>
                   <span className="text-[11px] ml-1" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
@@ -520,7 +521,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </div>
 
               {/* User row */}
-              <Link to="/settings/account" title="Settings" className="flex items-center gap-2 px-2.5 py-2 transition-colors surface-hover">
+              <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-md px-1 py-2 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900">
                 {user?.imageUrl
                   ? <img src={user.imageUrl} className="h-5 w-5 rounded-full object-cover shrink-0" alt=""/>
                   : <div className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
