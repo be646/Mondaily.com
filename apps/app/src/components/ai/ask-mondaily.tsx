@@ -29,7 +29,7 @@ function renderMarkdown(text: string): React.ReactNode {
     nodes.push(
       <ul key={key} className="my-1.5 space-y-1 pl-1">
         {listBuffer.map((item, i) => (
-          <li key={i} className="flex gap-2.5 text-slate-200">
+          <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
             <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-slate-500"/>
             <span className="leading-7">{inlineFormat(item)}</span>
           </li>
@@ -51,18 +51,18 @@ function renderMarkdown(text: string): React.ReactNode {
     if (/^#{1,3}\s/.test(trimmed)) {
       flushList(`l${i}`);
       const t = trimmed.replace(/^#{1,3}\s/, "");
-      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold text-white">{t}</p>);
+      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t}</p>);
       return;
     }
     if (/^---+$/.test(trimmed)) {
       flushList(`l${i}`);
-      nodes.push(<hr key={i} className="border-white/[.06] my-3"/>);
+      nodes.push(<hr key={i} className="my-3" style={{ borderColor: "var(--border-soft)" }}/>);
       return;
     }
     if (/^[-*•]\s/.test(trimmed)) { listBuffer.push(trimmed.replace(/^[-*•]\s/, "")); return; }
     if (/^\d+\.\s/.test(trimmed)) { listBuffer.push(trimmed.replace(/^\d+\.\s/, "")); return; }
     flushList(`l${i}`);
-    nodes.push(<p key={i} className="leading-7 text-slate-200">{inlineFormat(trimmed)}</p>);
+    nodes.push(<p key={i} className="leading-7" style={{ color: "var(--text-secondary)" }}>{inlineFormat(trimmed)}</p>);
   });
   flushList("end");
   return <>{nodes}</>;
@@ -72,7 +72,7 @@ function inlineFormat(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|__[^_]+__)/g);
   return parts.map((p, i) => {
     if (/^\*\*/.test(p) || /^__/.test(p))
-      return <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+      return <strong key={i} className="font-semibold" style={{ color: "var(--text-primary)" }}>{p.slice(2, -2)}</strong>;
     return p.replace(/[*_`|]/g, "");
   });
 }
@@ -258,10 +258,10 @@ export function AskMondaily() {
   const isChatting = messages.length > 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="ask-frame flex h-full flex-col">
 
       {/* ── Header ── */}
-      <div className="shrink-0 border-b border-[#e5e7eb] dark:border-white/[.06]">
+      <div className="ask-header shrink-0">
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3 text-[#111827] dark:text-white">
             <LogoSymbol size={28} thinking={loading} />
@@ -284,7 +284,7 @@ export function AskMondaily() {
         </div>
 
         {/* Context strip — what the graph spans, kept deliberately broader than "CRM" */}
-        <div className="flex items-center gap-2 px-6 pb-3 overflow-x-auto">
+        <div className="ask-context-strip flex items-center gap-2 px-6 py-3 overflow-x-auto">
           <span className="flex items-center gap-1 text-[11px] text-[#9ca3af] dark:text-slate-600 shrink-0">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-50 animate-ping"/>
@@ -301,7 +301,7 @@ export function AskMondaily() {
       </div>
 
       {/* ── Message area ── */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarWidth: "none" }}>
+      <div className="ask-message-scroll flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarWidth: "none" }}>
 
         {/* Empty state — command center, not a generic chatbot greeting */}
         {!isChatting && (
@@ -312,9 +312,9 @@ export function AskMondaily() {
               </div>
               <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">What do you want to know about the workspace graph?</p>
               <p className="text-xs text-[#9ca3af] dark:text-slate-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="mx-auto flex max-w-md flex-col gap-0">
                 {EMPTY_SUGGESTION_GROUPS.map(s => (
-                  <button key={s} onClick={() => sendSuggestion(s)} className="key-button px-3 py-1.5 text-xs">{s}</button>
+                  <button key={s} onClick={() => sendSuggestion(s)} className="ask-suggestion-row text-xs">{s}</button>
                 ))}
               </div>
             </div>
@@ -340,12 +340,12 @@ export function AskMondaily() {
                 )}
 
                 {m.role === "user" ? (
-                  <div className={`max-w-[72%] rounded-2xl rounded-tr-sm border bg-transparent px-4 py-2.5 text-sm leading-relaxed ${accent.userBorder} ${accent.userText}`}>
+                  <div className="ask-user-bubble max-w-[72%] rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
                     {m.content}
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
-                    <div className={`border-l-2 pl-4 text-sm space-y-0.5 ${accent.border}`}>
+                    <div className="ask-assistant-line pl-4 text-sm space-y-0.5">
                       {renderMarkdown(displayText)}
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
@@ -440,7 +440,7 @@ export function AskMondaily() {
           <div className="flex flex-col gap-1.5 pl-5">
             {suggestions.map((s, i) => (
               <button key={i} onClick={() => sendSuggestion(s)}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-left text-sm text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-colors dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-300 dark:hover:bg-white/[.06] dark:hover:border-white/[.12]">
+                className="ask-suggestion-row group text-sm">
                 <span>{s}</span>
                 <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-slate-600 dark:group-hover:text-slate-400 transition-colors"/>
               </button>
@@ -452,7 +452,7 @@ export function AskMondaily() {
       </div>
 
       {/* ── Input bar ── */}
-      <div className="shrink-0 border-t border-white/[.06] px-6 py-4">
+      <div className="ask-input-shell shrink-0 px-6 py-4">
         <div className="relative mx-auto max-w-3xl" ref={pickerRef}>
 
           {/* Quick prompts picker */}
@@ -479,7 +479,7 @@ export function AskMondaily() {
           )}
 
           {/* Input */}
-          <div className="flex items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] focus-within:border-[#c7d2fe] focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all dark:border-white/[.08] dark:bg-white/[.03] dark:shadow-none dark:focus-within:border-white/[.15] dark:focus-within:bg-white/[.04] dark:focus-within:ring-0">
+          <div className="ask-input flex items-center gap-2 rounded-2xl px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-600 dark:hover:text-slate-300 dark:hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
@@ -487,7 +487,7 @@ export function AskMondaily() {
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 bg-transparent text-sm text-[#111827] placeholder-[#9ca3af] outline-none dark:text-white dark:placeholder-slate-600"/>
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-neutral-400" style={{ color: "var(--text-primary)" }}/>
             {isChatting && (
               <button onClick={clear}
                 className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">

@@ -297,6 +297,60 @@ html[data-theme="dark"] .minimal-sparkline {
 .chat-input-bar {
   min-height: 4.35rem;
 }
+.ask-frame {
+  background: var(--surface-page);
+  color: var(--text-primary);
+}
+.ask-header {
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+}
+.ask-context-strip {
+  border-top: 1px solid var(--border-soft);
+  background: transparent;
+}
+.ask-message-scroll {
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 34%),
+    var(--surface-page);
+}
+.ask-input-shell {
+  background: var(--surface-page);
+  border-top: 1px solid var(--border-soft);
+}
+.ask-input {
+  background: var(--surface-card);
+  border: 1px solid var(--border-soft);
+  box-shadow: none;
+}
+.ask-input:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-soft));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.ask-suggestion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0.65rem 0;
+  color: var(--text-secondary);
+  text-align: left;
+  transition: color 0.15s ease, padding-left 0.15s ease;
+}
+.ask-suggestion-row:last-child { border-bottom: none; }
+.ask-suggestion-row:hover {
+  color: var(--text-primary);
+  padding-left: 0.25rem;
+}
+.ask-user-bubble {
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--text-primary);
+}
+.ask-assistant-line {
+  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-soft));
+}
 
 /* Home's "frames" (Tasks/Meetings cards, the Agent Constellation's empty
    state, the Needs You list) use the same surface-card utility the rest

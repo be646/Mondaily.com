@@ -406,7 +406,7 @@ export function HomePage() {
   const showWorkspaceRecovery = Boolean(populatedWorkspace && (currentDataCount === 0 || currentDataCount === null));
 
   return (
-    <div className="home-control-room mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="home-control-room ask-frame mx-auto max-w-5xl px-4 py-8 sm:px-6">
 
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
@@ -530,12 +530,12 @@ export function HomePage() {
                       </div>
                     )}
                     {m.role === "user" ? (
-                      <div className={`max-w-[72%] rounded-2xl rounded-tr-sm border bg-transparent px-3.5 py-2.5 text-sm leading-relaxed ${accent.userBorder} ${accent.userText}`}>
+                      <div className="ask-user-bubble max-w-[72%] rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-sm leading-relaxed">
                         {m.content}
                       </div>
                     ) : (
                       <div className="flex-1 min-w-0">
-                        <div className={`border-l-2 pl-4 text-sm space-y-0.5 ${accent.border}`}>
+                        <div className="ask-assistant-line pl-4 text-sm space-y-0.5">
                           {renderMarkdown(displayText)}
                           {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
@@ -599,7 +599,7 @@ export function HomePage() {
               <div className="flex flex-col gap-1.5 pl-9">
                 {suggestions.map((s, i) => (
                   <button key={i} onClick={() => sendSuggestion(s)}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 text-left text-sm text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] transition-colors dark:border-white/[.07] dark:bg-white/[.03] dark:text-slate-300 dark:hover:bg-white/[.06] dark:hover:border-white/[.12]">
+                    className="ask-suggestion-row group text-sm">
                     <span>{s}</span>
                     <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-slate-600 dark:group-hover:text-slate-400 transition-colors"/>
                   </button>
@@ -634,8 +634,7 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="chat-input-bar flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all focus-within:ring-2 sm:px-5"
-            style={{ background: "var(--surface-page)", border: "1px solid var(--border-soft)", boxShadow: "0 8px 24px color-mix(in srgb, var(--accent) 5%, transparent)" }}>
+          <div className="ask-input chat-input-bar flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all sm:px-5">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : ""}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>
