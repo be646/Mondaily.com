@@ -25,10 +25,10 @@ const ACTIONS: Action[] = [
 ];
 
 // Shared input style matching CommandPalette
-const inputCls = "h-9 w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 text-sm text-white placeholder-slate-600 outline-none focus:border-white/20 transition-colors";
-const selectCls = "h-9 flex-1 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 outline-none focus:border-white/20";
-const btnPrimary = "flex-1 h-9 rounded-lg bg-indigo-600 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors";
-const btnSecondary = "flex-1 h-9 rounded-lg border border-white/[.08] text-xs text-slate-400 hover:text-white transition-colors";
+const inputCls = "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:placeholder-neutral-600 dark:focus:border-neutral-600";
+const selectCls = "h-9 flex-1 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-700 outline-none transition-colors focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 dark:focus:border-neutral-600";
+const btnPrimary = "flex-1 h-9 rounded-md border border-neutral-950 bg-neutral-950 text-xs font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-40 dark:border-neutral-50 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200";
+const btnSecondary = "flex-1 h-9 rounded-md border border-neutral-200 text-xs text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-950 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:text-neutral-50";
 
 function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const [title, setTitle] = useState("");
@@ -41,11 +41,11 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
   });
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-white/[.07] px-4 py-3.5">
-        <button onClick={onBack} className="text-slate-500 hover:text-white transition-colors shrink-0">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3.5 dark:border-neutral-800">
+        <button onClick={onBack} className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:text-neutral-600 dark:hover:text-neutral-50">
           <ArrowLeft size={14}/>
         </button>
-        <span className="text-sm font-semibold text-white">New Task</span>
+        <span className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">New Task</span>
       </div>
       <div className="p-4 space-y-2.5">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
@@ -59,7 +59,7 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
             <option value="urgent">Urgent</option>
           </select>
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-            className={`${selectCls} flex-1 [color-scheme:dark]`}/>
+            className={`${selectCls} flex-1 dark:[color-scheme:dark]`}/>
         </div>
         <div className="flex gap-2 pt-1">
           <button onClick={onBack} className={btnSecondary}>Back</button>
@@ -99,11 +99,11 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-white/[.07] px-4 py-3.5">
-        <button onClick={onBack} className="text-slate-500 hover:text-white transition-colors shrink-0">
+      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3.5 dark:border-neutral-800">
+        <button onClick={onBack} className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:text-neutral-600 dark:hover:text-neutral-50">
           <ArrowLeft size={14}/>
         </button>
-        <span className="text-sm font-semibold text-white">{titleLabel}</span>
+        <span className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">{titleLabel}</span>
       </div>
       <div className="p-4 space-y-2.5">
         <input autoFocus value={name} onChange={e => setName(e.target.value)}
@@ -112,7 +112,7 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
         {type === "note" ? (
           <textarea value={extra} onChange={e => setExtra(e.target.value)}
             placeholder={extraPlaceholder} rows={3}
-            className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white placeholder-slate-600 outline-none focus:border-white/20 resize-none transition-colors"/>
+            className="w-full resize-none rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:placeholder-neutral-600 dark:focus:border-neutral-600"/>
         ) : (
           <input value={extra} onChange={e => setExtra(e.target.value)}
             placeholder={extraPlaceholder} className={inputCls}/>
@@ -152,15 +152,15 @@ export function QuickActions() {
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4" onClick={close}>
       <div
-        className="w-full max-w-lg rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-2xl overflow-hidden"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-950"
         onClick={e => e.stopPropagation()}
       >
         {!activeCreate ? (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[.07]">
-              <span className="text-sm font-semibold text-white">Quick Create</span>
-              <kbd className="rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-slate-600">ESC</kbd>
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3.5 dark:border-neutral-800">
+              <span className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">Quick Create</span>
+              <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-600">ESC</kbd>
             </div>
 
             {/* Action list */}
@@ -169,26 +169,26 @@ export function QuickActions() {
                 <button
                   key={action.label}
                   onClick={() => setActiveCreate(action.type)}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 hover:bg-white/[.05] transition-colors group"
+                  className="group flex w-full items-center gap-3 px-4 py-2.5 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
                 >
                   <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${action.iconBg}`}>
                     <action.icon size={14} className={action.color}/>
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-sm text-slate-200 group-hover:text-white transition-colors">{action.label}</div>
-                    <div className="text-[11px] text-slate-600">{action.description}</div>
+                    <div className="text-sm text-neutral-700 transition-colors group-hover:text-neutral-950 dark:text-neutral-300 dark:group-hover:text-neutral-50">{action.label}</div>
+                    <div className="text-[11px] text-neutral-400 dark:text-neutral-600">{action.description}</div>
                   </div>
                   {action.shortcut && (
-                    <kbd className="rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-slate-600">{action.shortcut}</kbd>
+                    <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-600">{action.shortcut}</kbd>
                   )}
                 </button>
               ))}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center gap-3 border-t border-white/[.05] px-4 py-2">
-              <span className="text-[10px] text-slate-700">↵ select</span>
-              <span className="text-[10px] text-slate-700 ml-auto">⌘K to search</span>
+            <div className="flex items-center gap-3 border-t border-neutral-200 px-4 py-2 dark:border-neutral-800">
+              <span className="text-[10px] text-neutral-400 dark:text-neutral-600">↵ select</span>
+              <span className="ml-auto text-[10px] text-neutral-400 dark:text-neutral-600">⌘K to search</span>
             </div>
           </>
         ) : (

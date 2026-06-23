@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, MoreHorizontal, Plus, Sparkles, UserCheck, Users, X } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { apiClient } from "../../lib/api-client";
 
@@ -24,6 +24,7 @@ function memberLabel(m: Member) { return m.name || m.email; }
 
 export function SidebarLists() {
   const qc = useQueryClient();
+  const location = useLocation();
   const navigate = useNavigate();
   const { userId } = useAuth();
 
@@ -132,27 +133,33 @@ export function SidebarLists() {
   function renderList(list: ListItem) {
     const assignee = members.find(m => m.user_id === list.assignee_id);
     const sharedCount = (list.shared_with ?? []).length;
+    const active = location.pathname === `/lists/${list.id}`;
     return (
       <div key={list.id} className="group flex items-center">
         <Link
           to={`/lists/${list.id}`}
-          className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-slate-400 hover:bg-white/[.04] hover:text-slate-200 transition-colors"
+          className={`relative flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+            active
+              ? "font-medium text-neutral-950 dark:text-neutral-50"
+              : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
+          }`}
         >
+          {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50" />}
           <span className="min-w-0 flex-1 truncate">{list.name}</span>
           <span className="flex shrink-0 items-center gap-1">
             {assignee && (
               <span title={`Assigned to ${memberLabel(assignee)}`}
-                className="grid h-4 w-4 place-items-center rounded-full border border-white/10 bg-white/[.06] text-[8px] font-bold text-slate-400">
+                className="grid h-4 w-4 place-items-center rounded-full border border-neutral-200 bg-neutral-50 text-[8px] font-bold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
                 {memberInitials(assignee)}
               </span>
             )}
             {sharedCount > 0 && (
-              <span className="text-[9px] text-slate-700">{sharedCount > 1 ? `+${sharedCount}` : ""}</span>
+              <span className="text-[9px] text-neutral-400 dark:text-neutral-600">{sharedCount > 1 ? `+${sharedCount}` : ""}</span>
             )}
-            <span className="text-[10px] text-slate-700">{list.entry_count}</span>
+            <span className="text-[10px] text-neutral-400 dark:text-neutral-600">{list.entry_count}</span>
           </span>
         </Link>
-        <button title="List menu" className="mr-1 shrink-0 text-slate-700 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button title="List menu" className="mr-1 shrink-0 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-950 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-200">
           <MoreHorizontal size={12} />
         </button>
       </div>
@@ -162,8 +169,8 @@ export function SidebarLists() {
   return (
     <section className="mt-5">
       <div className="mb-2 flex items-center justify-between px-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Lists</p>
-        <button onClick={() => setOpen(true)} title="New list" className="text-slate-600 hover:text-white transition-colors">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>Lists</p>
+        <button onClick={() => setOpen(true)} title="New list" className="transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" style={{ color: "var(--text-faint)" }}>
           <Plus size={13} />
         </button>
       </div>
@@ -172,7 +179,7 @@ export function SidebarLists() {
       {myLists.length > 0 && (
         <div className="mb-1">
           <button onClick={() => setMyOpen(v => !v)}
-            className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700 hover:text-slate-500 transition-colors">
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400 transition-colors hover:text-neutral-700 dark:text-neutral-600 dark:hover:text-neutral-300">
             {myOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <UserCheck size={9} /> Mine
           </button>
@@ -184,7 +191,7 @@ export function SidebarLists() {
       {teamLists.length > 0 && (
         <div className="mb-1">
           <button onClick={() => setTeamOpen(v => !v)}
-            className="flex w-full items-center gap-1 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-700 hover:text-slate-500 transition-colors">
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400 transition-colors hover:text-neutral-700 dark:text-neutral-600 dark:hover:text-neutral-300">
             {teamOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <Users size={9} /> Shared
           </button>
@@ -200,7 +207,7 @@ export function SidebarLists() {
       )}
 
       {!myLists.length && !teamLists.length && lists.length === 0 && !query.isLoading && !query.isError && (
-        <button onClick={() => setOpen(true)} className="w-full px-3 py-2 text-left text-xs text-slate-600 hover:text-slate-400 transition-colors">
+        <button onClick={() => setOpen(true)} className="w-full px-2.5 py-2 text-left text-xs transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" style={{ color: "var(--text-faint)" }}>
           Create your first list
         </button>
       )}

@@ -28,7 +28,11 @@ export function SidebarObjects() {
 
   return (
     <section className="mt-3">
-      <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 hover:text-slate-300 transition-colors">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+        style={{ color: "var(--text-faint)" }}
+      >
         <span className="flex-1 text-left">Records{activeObject ? ` · ${activeObject.name_plural}` : ""}</span>
         <ChevronDown size={11} className={`transition-transform ${open ? "rotate-180" : ""}`}/>
       </button>
@@ -41,11 +45,14 @@ export function SidebarObjects() {
               <Link
                 key={obj.id}
                 to={`/objects/${obj.slug}`}
-                className={`mb-1 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  active ? "bg-indigo-500/15 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-slate-200"
+                className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                  active
+                    ? "font-medium text-neutral-950 dark:text-neutral-50"
+                    : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
                 }`}
               >
-                <span className={active ? "text-indigo-400" : "text-slate-600"}>
+                {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50" />}
+                <span className={active ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-600"}>
                   {objectIcon(obj.slug)}
                 </span>
                 {obj.name_plural}
@@ -53,7 +60,7 @@ export function SidebarObjects() {
             );
           })}
           {!query.isLoading && objects.length === 0 && (
-            <p className="px-3 py-2 text-xs text-slate-600">No objects yet</p>
+            <p className="px-2.5 py-2 text-xs" style={{ color: "var(--text-faint)" }}>No objects yet</p>
           )}
         </div>
       )}
