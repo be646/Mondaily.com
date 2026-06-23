@@ -230,14 +230,14 @@ export function ListPage() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <header className="px-6 py-4 flex flex-wrap items-center gap-3 border-b border-white/[.06] shrink-0">
+      <header className="telemetry-strip shrink-0 flex-wrap gap-3 px-6 py-3">
         <input
           value={list.data.name}
           onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
           onBlur={e => update.mutate({ name: e.target.value })}
-          className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none text-white placeholder-zinc-700"
+          className="min-w-0 flex-1 bg-transparent text-lg font-semibold text-neutral-950 outline-none placeholder-neutral-400 dark:text-neutral-50 dark:placeholder-neutral-600"
         />
-        <span className="rounded-full border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-[11px] capitalize text-slate-500">
+        <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] capitalize text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
           {list.data.object_type}
         </span>
 
@@ -474,29 +474,29 @@ export function ListPage() {
           </div>
         ) : view === "table" ? (
           /* ── Table ── */
-          <div className="overflow-auto rounded-xl border border-white/[.07]">
-            <table className="min-w-full border-separate border-spacing-0 text-left text-[12px]">
+          <div className="minimal-sheet overflow-auto">
+            <table className="minimal-table min-w-full text-left text-[12px]">
               <thead>
                 <tr>
                   {columns.map(c => (
-                    <th key={c} className="px-4 py-2.5 bg-white/[.02] border-b border-white/[.06] text-[10px] font-semibold uppercase tracking-widest text-zinc-600 whitespace-nowrap">
+                    <th key={c} className="whitespace-nowrap">
                       {c.replaceAll("_", " ")}
                     </th>
                   ))}
-                  <th className="px-4 py-2.5 bg-white/[.02] border-b border-white/[.06] text-[10px] font-semibold uppercase tracking-widest text-zinc-600 whitespace-nowrap">Updated</th>
-                  <th className="w-8 bg-white/[.02] border-b border-white/[.06]" />
+                  <th className="whitespace-nowrap">Updated</th>
+                  <th className="w-8" />
                 </tr>
               </thead>
               <tbody>
                 {records.map(record => (
-                  <tr key={record.id} className="group hover:bg-white/[.025] transition-colors">
+                  <tr key={record.id} className="group transition-colors">
                     {columns.map((c, i) => (
-                      <td key={c} className="max-w-[240px] truncate px-4 py-2.5 text-zinc-300 border-b border-white/[.04]">
+                      <td key={c} className="max-w-[240px] truncate text-neutral-700 dark:text-neutral-300">
                         {i === 0
                           ? (
                             <Link
                               to={`/objects/${record.object_type}/${record.id}`}
-                              className="font-medium text-zinc-100 hover:text-indigo-400 transition-colors"
+                              className="font-medium text-neutral-950 transition-colors hover:text-neutral-600 dark:text-neutral-50 dark:hover:text-neutral-300"
                             >
                               {display(record.data[c])}
                             </Link>
@@ -504,10 +504,10 @@ export function ListPage() {
                           : display(record.data[c])}
                       </td>
                     ))}
-                    <td className="px-4 py-2.5 text-[11px] text-zinc-600 tabular-nums border-b border-white/[.04]">
+                    <td className="text-[11px] tabular-nums text-neutral-400 dark:text-neutral-600">
                       {fmtDate(record.updated_at)}
                     </td>
-                    <td className="px-2 w-8 border-b border-white/[.04]">
+                    <td className="w-8 px-2">
                       <button
                         onClick={() => removeEntry.mutate(record.id)}
                         title="Remove from list"
@@ -525,7 +525,7 @@ export function ListPage() {
           /* ── Board ── */
           <div className="grid gap-3 md:grid-cols-3">
             {["Unassigned", "Active", "Complete"].map(stage => (
-              <section key={stage} className="rounded-xl border border-white/[.07] bg-white/[.015] p-3">
+              <section key={stage} className="premium-panel p-3">
                 <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{stage}</h2>
                 <div className="space-y-2">
                   {records
@@ -536,7 +536,7 @@ export function ListPage() {
                       <Link
                         key={r.id}
                         to={`/objects/${r.object_type}/${r.id}`}
-                        className="block rounded-lg border border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700/60 hover:bg-zinc-900/70 p-3 transition-all"
+                        className="block border-b border-neutral-200 p-3 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900/60"
                       >
                         <p className="truncate text-[12px] font-medium text-zinc-100">{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
                         <p className="mt-1.5 truncate text-[11px] text-zinc-600">{String(r.data.company ?? r.data.email ?? "")}</p>

@@ -99,7 +99,7 @@ export function InvoicesPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-white/[.06] px-6 py-4">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-white">Invoices</h1>
@@ -118,14 +118,14 @@ export function InvoicesPage() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign size={12} className="text-zinc-500"/>
               <span className="text-[11px] text-zinc-500">Outstanding</span>
             </div>
             <div className="text-[18px] font-semibold text-white">{formatCurrency(totalOwed, "GBP")}</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle size={12} className="text-emerald-400"/>
               <span className="text-[11px] text-zinc-500">Collected</span>
@@ -175,7 +175,7 @@ export function InvoicesPage() {
             </button>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="minimal-table">
             <thead>
               <tr className="border-b border-white/[.04]">
                 {["Invoice", "Client", "Amount", "Status", "Due Date", ""].map(h => (

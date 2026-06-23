@@ -216,7 +216,7 @@ function MembersSection() {
       </div>
 
       {/* Invite */}
-      <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+      <div className="premium-panel p-4">
         <p className="text-[11px] text-zinc-400 mb-3">Invite someone</p>
         <div className="flex gap-2">
           <input
@@ -253,10 +253,10 @@ function MembersSection() {
 
       {/* Members table */}
       {isLoading ? <PageSkeleton rows={4} /> : (
-        <div className="rounded-xl border border-white/[.06] overflow-hidden">
-          <table className="w-full text-left text-[12px]">
+        <div className="minimal-sheet overflow-hidden">
+          <table className="minimal-table text-left text-[12px]">
             <thead>
-              <tr className="border-b border-white/[.06] bg-white/[.015]">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-white/[.015]">
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Member</th>
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Workspace Role</th>
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Finance Role</th>
@@ -442,16 +442,16 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
       </div>
 
       {isLoading ? <PageSkeleton rows={3} /> : (
-        <div className="rounded-xl border border-white/[.06] overflow-hidden">
-          <table className="w-full text-[12px]">
+        <div className="minimal-sheet overflow-hidden">
+          <table className="minimal-table text-[12px]">
             <thead>
-              <tr className="border-b border-white/[.06] bg-white/[.015]">
+              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-white/[.015]">
                 <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Member</th>
                 <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Workspace Role</th>
                 <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Finance Role</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[.03]">
+            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
               {members.map(m => (
                 <tr key={m.user_id} className="hover:bg-white/[.01]">
                   <td className="py-2.5 px-4">

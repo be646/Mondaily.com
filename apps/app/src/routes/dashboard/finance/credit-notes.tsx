@@ -88,7 +88,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-violet-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-violet-400"/></div>
             <span className="text-sm font-semibold text-white">New Credit Note</span>
@@ -174,7 +174,7 @@ export function CreditNotesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/[.06] px-6 py-4">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-white">Credit Notes</h1>
@@ -188,17 +188,17 @@ export function CreditNotesPage() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-zinc-500">Pending</span></div>
             <div className="text-[17px] font-semibold text-amber-400">{fmt(totalPending, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{creditNotes.filter(n => n.status === "pending_review").length} note{creditNotes.filter(n => n.status === "pending_review").length !== 1 ? "s" : ""}</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Executed</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalExecuted, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{creditNotes.filter(n => n.status === "executed").length} note{creditNotes.filter(n => n.status === "executed").length !== 1 ? "s" : ""}</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><DollarSign size={11} className="text-zinc-500"/><span className="text-[11px] text-zinc-500">Total credit issued</span></div>
             <div className="text-[17px] font-semibold text-white">{fmt(totalExecuted, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">this workspace</div>
@@ -233,7 +233,7 @@ export function CreditNotesPage() {
             <button onClick={() => setShowNew(true)} className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">Create your first credit note</button>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="minimal-table">
             <thead>
               <tr className="border-b border-white/[.04]">
                 {["Client", "Amount", "Reason", "Status", "AI Summary", "Created", ""].map(h => (

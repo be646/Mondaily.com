@@ -165,7 +165,7 @@ export function SecuritySettings() {
         </div>
         {data.sessions.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[650px] text-left text-sm">
+            <table className="minimal-table min-w-[650px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/[.05] bg-white/[.015]">
                   {["Device", "Browser", "Location", "IP", "Last active", ""].map(h => (
@@ -279,7 +279,7 @@ export function SecuritySettings() {
         </div>
         {(data.audit_log ?? []).length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-left text-sm">
+            <table className="minimal-table min-w-[600px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/[.05] bg-white/[.015]">
                   {["Actor", "Action", "Target", "Timestamp", "IP"].map(h => (

@@ -343,7 +343,7 @@ export function SequenceBuilderPage() {
   return (
     <div className="flex min-h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
+      <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-3">
         <Link to="/automations" className="text-slate-600 hover:text-slate-300 transition-colors">
           <ArrowLeft size={15}/>
         </Link>
@@ -390,7 +390,7 @@ export function SequenceBuilderPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/[.06] px-6">
+      <div className="flex border-b border-neutral-200 dark:border-neutral-800 px-6">
         {tabs.map(t => (
           <button
             key={t.key}
@@ -459,9 +459,9 @@ export function SequenceBuilderPage() {
                 <p className="mt-1 text-xs text-slate-600">Go to a People or Company record and enroll them in this sequence</p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-white/[.07]">
-                <table className="w-full text-xs">
-                  <thead className="border-b border-white/[.06] bg-white/[.02]">
+              <div className="minimal-sheet overflow-hidden">
+          <table className="minimal-table text-xs">
+                  <thead className="border-b border-neutral-200 dark:border-neutral-800 bg-white/[.02]">
                     <tr>
                       <th className="px-4 py-2.5 text-left font-medium text-slate-500">Contact</th>
                       <th className="px-4 py-2.5 text-left font-medium text-slate-500">Company</th>
@@ -504,7 +504,7 @@ export function SequenceBuilderPage() {
                 { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-slate-400" },
                 { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-slate-400" },
               ].map(({ label, value, color }) => (
-                <div key={label} className="rounded-xl border border-white/[.07] bg-white/[.02] px-4 py-4">
+                <div key={label} className="premium-panel px-4 py-4">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">{label}</p>
                   <p className={`mt-1.5 text-2xl font-bold ${color}`}>{value}</p>
                 </div>
@@ -513,11 +513,11 @@ export function SequenceBuilderPage() {
 
             {/* Step-by-step funnel */}
             {seq.steps.length > 0 && (
-              <div className="rounded-xl border border-white/[.07] bg-white/[.02] overflow-hidden">
-                <div className="border-b border-white/[.06] px-4 py-3">
+              <div className="minimal-sheet overflow-hidden">
+                <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
                   <p className="text-xs font-semibold text-white">Step performance</p>
                 </div>
-                <div className="divide-y divide-white/[.04]">
+                <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
                   {seq.steps.map((step, i) => {
                     const sent = Number(step.sent_count ?? 0);
                     const opened = Number(step.opened_count ?? 0);
@@ -542,7 +542,7 @@ export function SequenceBuilderPage() {
             )}
 
             {/* Unsubscribes */}
-            <div className="rounded-xl border border-white/[.07] bg-white/[.02] px-4 py-4 flex items-center justify-between">
+            <div className="premium-panel px-4 py-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-white">Unsubscribes</p>
                 <p className="text-[11px] text-slate-600 mt-0.5">Contacts who opted out</p>
@@ -564,7 +564,7 @@ export function SequenceBuilderPage() {
           <div className="max-w-lg mx-auto space-y-4">
             {/* Sending window */}
             <div className="rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
-              <div className="border-b border-white/[.06] px-4 py-3">
+              <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
                 <p className="text-xs font-semibold text-white">Sending window</p>
               </div>
               <div className="space-y-4 px-4 py-4">
@@ -622,7 +622,7 @@ export function SequenceBuilderPage() {
 
             {/* Behavior */}
             <div className="rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
-              <div className="border-b border-white/[.06] px-4 py-3">
+              <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
                 <p className="text-xs font-semibold text-white">Behavior</p>
               </div>
               <div className="divide-y divide-white/[.04] px-4">

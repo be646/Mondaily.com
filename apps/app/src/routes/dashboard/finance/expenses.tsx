@@ -81,7 +81,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-amber-500/20 flex items-center justify-center"><Receipt size={12} className="text-amber-400"/></div>
             <span className="text-sm font-semibold text-white">Log Expense</span>
@@ -169,7 +169,7 @@ export function ExpensesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/[.06] px-6 py-4">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-white">Expenses</h1>
@@ -182,17 +182,17 @@ export function ExpensesPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Submitted</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalSubmitted, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Approved</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalApproved, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-zinc-500"/><span className="text-[11px] text-zinc-500">This Month</span></div>
             <div className="text-[17px] font-semibold text-white">{fmt(totalThisMonth, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">all statuses</div>
@@ -229,7 +229,7 @@ export function ExpensesPage() {
             <button onClick={() => setShowNew(true)} className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">Log your first expense</button>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="minimal-table">
             <thead>
               <tr className="border-b border-white/[.04]">
                 {["Date", "Description", "Vendor", "Category", "Amount", "Status"].map(h => (

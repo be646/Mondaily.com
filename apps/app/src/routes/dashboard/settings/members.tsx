@@ -147,19 +147,19 @@ export function MembersSettings() {
           {/* ── Members ── */}
           {tab === "members" && (
             data.members.length ? (
-              <div className="settings-section overflow-x-auto">
-                <table className="w-full min-w-[680px] text-left text-sm">
+              <div className="minimal-sheet overflow-x-auto">
+                <table className="minimal-table min-w-[680px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-white/[.06] bg-white/[.015]">
+                    <tr>
                       {["Member", "Role", "Last active", "Status", ""].map(h => (
-                        <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">{h}</th>
+                        <th key={h}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {data.members.map(m => (
-                      <tr key={m.id} className="border-b border-white/[.04] last:border-0 hover:bg-white/[.015] transition-colors">
-                        <td className="px-4 py-3.5">
+                      <tr key={m.id} className="transition-colors">
+                        <td>
                           <div className="flex items-center gap-3">
                             <Avatar member={m} />
                             <div>
@@ -168,7 +168,7 @@ export function MembersSettings() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td>
                           <select value={m.role} disabled={m.role === "owner"}
                             onChange={e => changeRole.mutate({ id: m.id, role: e.target.value })}
                             className={`rounded-full border px-2.5 py-1 text-xs capitalize outline-none disabled:opacity-60 cursor-pointer ${ROLE_COLORS[m.role] ?? ROLE_COLORS.member} bg-transparent`}>
@@ -178,13 +178,13 @@ export function MembersSettings() {
                             <option value="viewer">Viewer</option>
                           </select>
                         </td>
-                        <td className="px-4 py-3.5 text-sm text-slate-600">{m.last_active ?? "Recently"}</td>
-                        <td className="px-4 py-3.5">
+                        <td className="text-sm text-neutral-400 dark:text-neutral-600">{m.last_active ?? "Recently"}</td>
+                        <td>
                           <span className={`rounded-full px-2 py-1 text-[10px] font-medium capitalize ${m.status === "active" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.03] text-slate-600"}`}>
                             {m.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-right">
+                        <td className="text-right">
                           {m.role !== "owner"
                             ? <button onClick={() => remove.mutate(m.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Remove</button>
                             : <MoreHorizontal size={15} className="ml-auto text-slate-700" />}
@@ -260,12 +260,12 @@ export function MembersSettings() {
           {/* ── Invitations ── */}
           {tab === "invitations" && (
             data.invitations.length ? (
-              <div className="settings-section overflow-x-auto">
-                <table className="w-full min-w-[620px] text-left text-sm">
+              <div className="minimal-sheet overflow-x-auto">
+                <table className="minimal-table min-w-[620px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-white/[.06] bg-white/[.015]">
+                    <tr>
                       {["Email", "Role", "Invited by", "Sent", "Status", ""].map(h => (
-                        <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">{h}</th>
+                        <th key={h}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -276,10 +276,10 @@ export function MembersSettings() {
                         <td className="px-4 py-3.5 capitalize text-slate-500">{inv.role}</td>
                         <td className="px-4 py-3.5 text-slate-600">{inv.invited_by ?? "Workspace admin"}</td>
                         <td className="px-4 py-3.5 text-slate-600">{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "Recently"}</td>
-                        <td className="px-4 py-3.5">
+                        <td>
                           <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-medium capitalize text-amber-400">{inv.status}</span>
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td>
                           <div className="flex justify-end gap-3">
                             <button onClick={() => apiClient.post("/invites", { email: inv.email, role: inv.role })}
                               className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors">

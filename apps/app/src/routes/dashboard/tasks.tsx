@@ -731,7 +731,7 @@ export function TasksPage() {
               </button>
             </div>
             <div className="overflow-auto rounded-2xl border border-zinc-200 dark:border-white/[.07]">
-              <table className="min-w-full border-collapse text-sm">
+              <table className="minimal-table min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-200 bg-[#f9fafb] dark:border-white/[.06] dark:bg-white/[.01]">
                     {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (

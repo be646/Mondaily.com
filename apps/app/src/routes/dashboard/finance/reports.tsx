@@ -146,7 +146,7 @@ export function FinanceReportsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/[.06] px-6 py-4">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
         <h1 className="text-[15px] font-semibold text-white">Finance Reports</h1>
         <p className="text-[12px] text-zinc-500 mt-0.5">Revenue overview, client breakdown and credit analysis</p>
       </div>
@@ -156,7 +156,7 @@ export function FinanceReportsPage() {
 
           {/* Summary cards */}
           <div className="grid grid-cols-4 gap-3">
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+            <div className="premium-panel p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <TrendingUp size={11} className="text-emerald-400"/>
                 <span className="text-[11px] text-zinc-500">Total Revenue</span>
@@ -164,7 +164,7 @@ export function FinanceReportsPage() {
               <div className="text-[20px] font-semibold text-emerald-400">{fmt(totalRevenue, currency)}</div>
               <div className="text-[10px] text-zinc-700 mt-0.5">from paid invoices</div>
             </div>
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+            <div className="premium-panel p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <Clock size={11} className="text-amber-400"/>
                 <span className="text-[11px] text-zinc-500">Outstanding</span>
@@ -172,7 +172,7 @@ export function FinanceReportsPage() {
               <div className="text-[20px] font-semibold text-amber-400">{fmt(outstanding, currency)}</div>
               <div className="text-[10px] text-zinc-700 mt-0.5">sent / viewed / overdue</div>
             </div>
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+            <div className="premium-panel p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <MinusCircle size={11} className="text-violet-400"/>
                 <span className="text-[11px] text-zinc-500">Credits Issued</span>
@@ -180,7 +180,7 @@ export function FinanceReportsPage() {
               <div className="text-[20px] font-semibold text-violet-400">{fmt(creditsIssued, currency)}</div>
               <div className="text-[10px] text-zinc-700 mt-0.5">executed credit notes</div>
             </div>
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+            <div className="premium-panel p-4">
               <div className="flex items-center gap-1.5 mb-2">
                 <DollarSign size={11} className="text-white/60"/>
                 <span className="text-[11px] text-zinc-500">Net Revenue</span>
@@ -191,7 +191,7 @@ export function FinanceReportsPage() {
           </div>
 
           {/* Revenue by month chart */}
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+          <div className="premium-panel p-4">
             <div className="mb-4">
               <div className="text-[13px] font-medium text-white">Revenue by Month</div>
               <div className="text-[11px] text-zinc-600">Last 6 months — billed vs collected</div>
@@ -220,7 +220,7 @@ export function FinanceReportsPage() {
               {topClients.length === 0 ? (
                 <div className="px-4 py-6 text-center text-[12px] text-zinc-600">No invoice data</div>
               ) : (
-                <table className="w-full">
+                <table className="minimal-table">
                   <thead>
                     <tr className="border-b border-white/[.04]">
                       {["Client", "Billed", "Paid", "Outstanding", "#"].map(h => (

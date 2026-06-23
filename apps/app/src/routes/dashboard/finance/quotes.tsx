@@ -78,7 +78,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-blue-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-blue-400"/></div>
             <span className="text-sm font-semibold text-white">New Quote</span>
@@ -152,7 +152,7 @@ export function QuotesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/[.06] px-6 py-4">
+      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-white">Quotes</h1>
@@ -165,17 +165,17 @@ export function QuotesPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Sent</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalPending, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Accepted</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalAccepted, currency)}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
+          <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-zinc-500"/><span className="text-[11px] text-zinc-500">Total quotes</span></div>
             <div className="text-[17px] font-semibold text-white">{quotes.length}</div>
             <div className="text-[10px] text-zinc-700 mt-0.5">all statuses</div>
@@ -208,7 +208,7 @@ export function QuotesPage() {
             <button onClick={() => setShowNew(true)} className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">Create your first quote</button>
           </div>
         ) : (
-          <table className="w-full">
+          <table className="minimal-table">
             <thead>
               <tr className="border-b border-white/[.04]">
                 {["Number", "Client", "Amount", "Status", "Expires", "Created", ""].map(h => (

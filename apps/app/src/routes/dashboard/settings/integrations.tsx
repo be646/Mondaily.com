@@ -147,7 +147,7 @@ export function IntegrationsSettings() {
         </div>
         {data.api_keys.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
+            <table className="minimal-table min-w-[560px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/[.05] bg-white/[.015]">
                   {["Name", "Key", "Created", "Last used", ""].map(h => (

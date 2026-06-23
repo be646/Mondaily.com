@@ -335,8 +335,8 @@ export function ObjectsSettings() {
           }
         />
       ) : (
-        <div className="grid min-h-[560px] grid-cols-[220px_1fr] overflow-hidden rounded-xl border border-white/[.07]">
-          <aside className="border-r border-white/[.06] p-3">
+        <div className="grid min-h-[560px] grid-cols-[220px_1fr] overflow-hidden border-y border-neutral-200 dark:border-neutral-800">
+          <aside className="border-r border-neutral-200 p-3 dark:border-neutral-800">
             <div className="mb-3 flex items-center justify-between px-2">
               <span className="text-xs font-medium uppercase text-slate-500">Objects</span>
               <button onClick={() => setObjectOpen(true)} className="text-indigo-400" aria-label="Create custom object"><Plus size={14}/></button>
@@ -376,19 +376,19 @@ export function ObjectsSettings() {
               </div>
 
               {selected.attributes.length ? (
-                <div className="overflow-hidden rounded-xl border border-white/[.07]">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-white/[.03] text-xs text-slate-500">
-                      <tr><th className="p-3">Attribute name</th><th className="p-3">Type</th><th className="p-3">Required</th><th className="p-3">Unique</th><th className="p-3"/></tr>
+                <div className="minimal-sheet overflow-hidden">
+                  <table className="minimal-table text-left text-sm">
+                    <thead>
+                      <tr><th>Attribute name</th><th>Type</th><th>Required</th><th>Unique</th><th /></tr>
                     </thead>
                     <tbody>
                       {selected.attributes.map((item) => (
-                        <tr key={item.id || item.name} className="border-t border-white/[.06]">
-                          <td className="p-3 font-medium">{item.name}</td>
-                          <td className="p-3 capitalize text-slate-400">{item.type.replace("_", " ")}</td>
-                          <td className="p-3 text-slate-500">{item.required ? "Yes" : "No"}</td>
-                          <td className="p-3 text-slate-500">{item.unique ? "Yes" : "No"}</td>
-                          <td className="p-3 text-right"><button className="text-slate-600 hover:text-indigo-400" aria-label={`Delete ${item.name}`}><Trash2 size={13}/></button></td>
+                        <tr key={item.id || item.name}>
+                          <td className="font-medium">{item.name}</td>
+                          <td className="capitalize text-neutral-500 dark:text-neutral-400">{item.type.replace("_", " ")}</td>
+                          <td className="text-neutral-400 dark:text-neutral-600">{item.required ? "Yes" : "No"}</td>
+                          <td className="text-neutral-400 dark:text-neutral-600">{item.unique ? "Yes" : "No"}</td>
+                          <td className="text-right"><button className="text-slate-600 hover:text-indigo-400" aria-label={`Delete ${item.name}`}><Trash2 size={13}/></button></td>
                         </tr>
                       ))}
                     </tbody>

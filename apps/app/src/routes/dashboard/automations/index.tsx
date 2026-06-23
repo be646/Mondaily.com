@@ -58,7 +58,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
       <div className={`w-full rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
-        <div className="flex items-center justify-between p-5 border-b border-white/[.06]">
+        <div className="flex items-center justify-between p-5 border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center gap-2">
             <Sparkles size={15} className="text-violet-400"/>
             <h2 className="font-semibold text-white">Generate sequence with AI</h2>
@@ -268,7 +268,7 @@ export function AutomationsPage() {
             return (
               <div
                 key={item.id}
-                className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-white/[.02] transition-colors ${i < items.length - 1 ? "border-b border-white/[.06]" : ""}`}
+                className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-white/[.02] transition-colors ${i < items.length - 1 ? "border-b border-neutral-200 dark:border-neutral-800" : ""}`}
               >
                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-purple-500/20 bg-purple-500/[.08] text-purple-400" : "border-indigo-500/20 bg-indigo-500/[.08] text-indigo-400"}`}>
                   <Icon size={14}/>
@@ -326,7 +326,7 @@ export function AutomationsPage() {
   return (
     <div className="flex min-h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
+      <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-3">
         <Zap size={16} className="text-indigo-400"/>
         <h1 className="flex-1 text-[15px] font-semibold text-white tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}

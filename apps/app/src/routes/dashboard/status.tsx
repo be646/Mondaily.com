@@ -162,7 +162,7 @@ export function StatusPage() {
       <section className="mb-10">
         <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Feature reality matrix</h2>
         <div className="surface-card overflow-x-auto rounded-2xl">
-          <table className="w-full text-left text-[12px]">
+          <table className="minimal-table text-left text-[12px]">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border-soft)" }}>
                 {["Feature", "Status", "In app", "Backend ready", "Needs setup", "Notes"].map(h => (

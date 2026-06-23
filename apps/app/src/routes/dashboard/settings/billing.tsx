@@ -58,7 +58,7 @@ export function BillingSettings() {
           </div>
 
           {/* Seats */}
-          <div className="mt-5 rounded-xl border border-white/[.06] bg-white/[.015] p-4">
+          <div className="telemetry-strip mt-5">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-slate-300">
                 <Users size={14} className="text-slate-500" /> Seats used
@@ -108,7 +108,7 @@ export function BillingSettings() {
           <h2 className="text-sm font-semibold text-white">Invoice history</h2>
         </div>
         {billing.invoices.length ? (
-          <div className="divide-y divide-white/[.05] px-5">
+          <div className="minimal-sheet divide-y divide-neutral-200 px-5 dark:divide-neutral-800">
             {billing.invoices.map(inv => (
               <a
                 key={inv.id}

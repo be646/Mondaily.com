@@ -370,7 +370,7 @@ export function InvoiceDetailPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-white/[.06] px-6 py-3">
+      <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-6 py-3">
         <div className="flex items-center gap-3">
           <Link to="/finance/invoices" className="text-zinc-500 hover:text-white transition-colors">
             <ArrowLeft size={15}/>
@@ -514,7 +514,7 @@ export function InvoiceDetailPage() {
               )}
             </div>
 
-            <table className="w-full">
+            <table className="minimal-table">
               <thead>
                 <tr className="border-b border-white/[.04]">
                   <th className="px-4 py-2 text-left text-[11px] font-medium text-zinc-600">Description</th>
