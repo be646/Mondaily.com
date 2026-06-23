@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Network, ArrowUpRight, Sparkles } from "lucide-react";
+import { Network, ArrowUpRight } from "lucide-react";
 import {
   useAgentData, CONSTELLATION_STATE_LABEL,
   type ConstellationAgent, type ConstellationState,
@@ -174,13 +174,13 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
     const activeAgents = constellation.filter(a => isLiveState(a.state));
     return (
       <Link to="/home" title={`${constellation.length} agents`} className="flex flex-col items-center gap-1.5 rounded-lg py-2 surface-hover">
-        <Sparkles size={13} style={{ color: "var(--accent)" }}/>
+        <Network size={13} style={{ color: "var(--text-muted)" }}/>
         <div className="flex flex-col items-center gap-1">
-          {constellation.slice(0, 4).map((a, i) => (
+          {constellation.slice(0, 4).map(a => (
             <span key={a.id} className="relative flex h-2 w-2 shrink-0 items-center justify-center">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}/>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(a.state) ? "var(--text-muted)" : "var(--text-faint)" }}/>
               {isLiveState(a.state) && activeAgents.includes(a) && (
-                <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 0 2px ${AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]}40` }}/>
+                <motion.span animate={{ opacity: [0.35, 0.75, 0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="absolute inset-0 rounded-full" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--text-muted) 28%, transparent)" }}/>
               )}
             </span>
           ))}
@@ -197,18 +197,18 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
         to="/home"
         className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900"
       >
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-neutral-200 dark:border-neutral-800">
-          <Sparkles size={12} style={{ color: "var(--accent)" }}/>
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md">
+          <Network size={13} style={{ color: "var(--text-muted)" }}/>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[12px] font-medium leading-tight" style={{ color: "var(--text-primary)" }}>AI agents</span>
+          <span className="block text-[12px] font-medium leading-tight" style={{ color: "var(--text-secondary)" }}>AI agents</span>
           <span className="block truncate text-[10px]" style={{ color: "var(--text-faint)" }}>
             {constellation.length} agents · {activeAgents.length > 0 ? `${activeAgents.length} active` : "quiet"}
           </span>
         </span>
         <span className="flex shrink-0 items-center gap-1">
-          {constellation.slice(0, 3).map((agent, i) => (
-            <span key={agent.id} className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(agent.state) ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)" }}/>
+          {constellation.slice(0, 3).map(agent => (
+            <span key={agent.id} className="h-1.5 w-1.5 rounded-full" style={{ background: isLiveState(agent.state) ? "var(--text-muted)" : "var(--text-faint)" }}/>
           ))}
         </span>
       </Link>
