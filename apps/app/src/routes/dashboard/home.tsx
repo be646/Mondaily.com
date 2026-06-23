@@ -482,7 +482,7 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="relative mx-auto mb-9 max-w-4xl">
+      <section ref={askSectionRef} className="relative mx-auto mt-4 mb-9 max-w-4xl">
         <div className="relative">
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
@@ -658,7 +658,7 @@ export function HomePage() {
 
         {/* Recent threads */}
         {!isChatting && recentThreads.length > 0 && (
-          <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+          <div className="mx-auto mt-2.5 flex max-w-3xl flex-wrap items-center gap-2">
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
             {recentThreads.map(t => (
               <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
@@ -668,7 +668,7 @@ export function HomePage() {
           </div>
         )}
         {!isChatting && recentThreads.length === 0 && (
-          <div className="mt-2 flex justify-end">
+          <div className="mx-auto mt-2 flex max-w-3xl justify-end">
             <Link to="/ask/new" className="text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
           </div>
         )}
