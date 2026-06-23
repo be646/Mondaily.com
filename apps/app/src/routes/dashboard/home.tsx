@@ -694,20 +694,20 @@ export function HomePage() {
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
       <section className="mb-8">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's flow</p>
-          <div className="inline-flex rounded-full p-0.5" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
+        <div className="today-flow-header mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's work</p>
+            <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Tasks and meetings the agents are watching now.</p>
+          </div>
+          <div className="today-scope-switch" role="group" aria-label="Task scope">
             {(["mine", "all"] as const).map(scope => (
               <button
                 key={scope}
                 onClick={() => setTaskScope(scope)}
-                className="rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
-                style={{
-                  background: taskScope === scope ? "var(--surface-card)" : "transparent",
-                  color: taskScope === scope ? "var(--text-primary)" : "var(--text-muted)",
-                }}
+                className="today-scope-option"
+                data-active={taskScope === scope}
               >
-                {scope === "mine" ? "Mine" : "All"}
+                {scope === "mine" ? "Assigned to me" : "Workspace"}
               </button>
             ))}
           </div>

@@ -466,6 +466,32 @@ html[data-theme="dark"] .minimal-sparkline {
 .today-flow-grid {
   padding-block: 1.25rem 1rem;
 }
+.today-flow-header {
+  padding-top: 0.25rem;
+}
+.today-scope-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 72%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--surface-hover) 48%, transparent);
+}
+.today-scope-option {
+  border-radius: 9999px;
+  padding: 0.42rem 0.72rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.today-scope-option[data-active="true"] {
+  background: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border-soft) 60%, transparent);
+}
 .flow-panel-clean {
   min-width: 0;
 }
