@@ -412,19 +412,19 @@ export function HomePage() {
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-8 px-4 pb-6 pt-8 sm:-mx-6 sm:px-8">
+      <div className="command-room relative -mx-4 -mt-8 mb-10 px-4 pb-4 pt-8 sm:-mx-6 sm:px-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
-            <h1 className="mt-2 text-[28px] font-semibold tracking-tight sm:text-[34px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
-            <p className="mt-2 max-w-2xl text-[13px] leading-6 sm:text-sm" style={{ color: "var(--text-muted)" }}>
+            <p className="home-section-kicker">{todayLabel}</p>
+            <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
+            <p className="home-section-copy mt-2 max-w-2xl">
               Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
             </p>
           </div>
           <div className="home-live-strip">
             <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-            <span className="status-chip" data-tone={notificationsQuery.isError ? "amber" : "violet"}><span className="dot" style={{ animation: "none" }}/>{notificationsQuery.isError ? "Agent status partial" : "Agents active"}</span>
-            <span className="status-chip" data-tone="cyan"><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+            <span className="status-chip" data-tone={notificationsQuery.isError ? "amber" : "default"}><span className="dot" style={{ animation: "none" }}/>{notificationsQuery.isError ? "Agent status partial" : "Agents active"}</span>
+            <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
           </div>
         </div>
 
@@ -482,7 +482,7 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="relative mx-auto mt-4 mb-9 max-w-4xl">
+      <section ref={askSectionRef} className="home-section relative mx-auto max-w-4xl">
         <div className="relative">
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
@@ -678,7 +678,7 @@ export function HomePage() {
       {/* ── Operating Picture — graph telemetry and the agent map share one
           continuous control-room zone. The components keep their own data
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
-      <section className="home-operating-picture mb-9">
+      <section className="home-section home-operating-picture">
         <div className="space-y-8">
           <WorkspaceGraphPulse />
           <AgentConstellationPanel />
@@ -693,10 +693,10 @@ export function HomePage() {
       />
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
-      <section className="mb-8">
-        <div className="today-flow-header mb-3 flex flex-wrap items-center justify-between gap-3">
+      <section className="home-section">
+        <div className="today-flow-header flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Today's work</p>
+            <p className="home-section-kicker">Today's work</p>
           </div>
           <div className="today-scope-switch" role="group" aria-label="Task scope">
             {(["mine", "all"] as const).map(scope => (

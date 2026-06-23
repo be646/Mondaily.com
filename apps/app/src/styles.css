@@ -252,7 +252,7 @@ html[data-theme="dark"] .minimal-sparkline {
    the content below. ── */
 .command-room {
   background: transparent;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 0;
 }
 
 /* Home control room composition — these utilities keep existing Home
@@ -274,13 +274,42 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .home-operating-picture {
   position: relative;
-  padding-block: 1.5rem 1.25rem;
+  padding-block: 0;
 }
 .home-operating-picture::before {
   display: none;
 }
 .home-operating-picture > * {
   position: relative;
+}
+.home-section {
+  margin-bottom: 2.75rem;
+}
+.home-section-kicker {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.home-hero-title {
+  margin-top: 0.5rem;
+  color: var(--text-primary);
+  font-size: clamp(1.85rem, 3.4vw, 2.25rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.home-section-title {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.home-section-copy {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.65;
 }
 /* Chat console — the centered minimalist box for Mondaily Copilot. Same
    color as the page background (ghost style, per the "focus on lines,
@@ -432,13 +461,13 @@ html[data-theme="dark"] .minimal-sparkline {
 
 .workspace-pulse-grid {
   position: relative;
-  border-top: 1px solid color-mix(in srgb, var(--border-soft) 58%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 58%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
   background: transparent;
 }
 .pulse-tile {
-  border-right: 1px solid color-mix(in srgb, var(--border-soft) 46%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 46%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--border-soft) 34%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 34%, transparent);
   background: transparent;
   transition: background-color 0.15s ease;
 }
@@ -464,10 +493,10 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 
 .today-flow-grid {
-  padding-block: 1.25rem 1rem;
+  padding-block: 1rem 0.75rem;
 }
 .today-flow-header {
-  padding-top: 0.4rem;
+  padding-top: 0;
 }
 .today-scope-switch {
   display: inline-flex;
@@ -509,11 +538,11 @@ html[data-theme="dark"] .minimal-sparkline {
   font-size: 0.56rem;
 }
 .flow-list {
-  border-top: 1px solid color-mix(in srgb, var(--border-soft) 54%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border-soft) 36%, transparent);
 }
 .flow-list-row {
   padding-block: 0.85rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 32%, transparent);
 }
 .flow-list-row:last-child {
   border-bottom: 0;
@@ -561,19 +590,9 @@ html[data-theme="dark"] .minimal-sparkline {
   background: var(--surface-hover) !important;
 }
 .agent-detail-strip {
-  border-top: 1px solid var(--border-soft);
-  border-bottom: 1px solid var(--border-soft);
+  border-top: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
+  border-bottom: 0;
   background: transparent;
-}
-
-.flow-list-row {
-  border-bottom: 1px solid var(--border-soft);
-}
-.flow-list-row:last-child {
-  border-bottom: none;
-}
-.flow-list-row:hover {
-  background: var(--surface-hover);
 }
 
 .sidebar-agent-rail {
@@ -627,16 +646,14 @@ html[data-theme="dark"] .minimal-sparkline {
 .status-chip .dot {
   position: relative;
   display: inline-flex; height: 6px; width: 6px; border-radius: 9999px;
-  background: #22c55e;
+  background: var(--text-muted);
   flex-shrink: 0;
 }
 .status-chip .dot::before {
   content: ""; position: absolute; inset: -3px; border-radius: 9999px;
-  background: #22c55e; opacity: 0.35; animation: agentPulse 2.2s ease-in-out infinite;
+  background: var(--text-muted); opacity: 0.24; animation: agentPulse 2.2s ease-in-out infinite;
 }
-.status-chip[data-tone="violet"] .dot, .status-chip[data-tone="violet"] .dot::before { background: #8b5cf6; }
 .status-chip[data-tone="amber"] .dot, .status-chip[data-tone="amber"] .dot::before { background: #d97706; }
-.status-chip[data-tone="cyan"] .dot, .status-chip[data-tone="cyan"] .dot::before { background: #06b6d4; }
 
 /* Graph connector lines — thin animated dashes linking an agent node to the
    central graph core. Only "live" connectors animate; idle ones are a
@@ -665,8 +682,8 @@ html[data-theme="dark"] .minimal-sparkline {
 .stream-row:last-child { border-bottom: none; }
 .stream-row:hover { background: var(--surface-hover); }
 .attention-stream-shell {
-  border-top: 1px solid var(--border-soft);
-  border-bottom: 1px solid var(--border-soft);
+  border-top: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 42%, transparent);
   background: transparent;
 }
 
@@ -700,8 +717,8 @@ html[data-theme="dark"] .minimal-sparkline {
 .home-telemetry-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--border-soft);
-  border-bottom: 1px solid var(--border-soft);
+  border-top: 1px solid color-mix(in srgb, var(--border-soft) 38%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 38%, transparent);
 }
 
 @keyframes chatInputScan {
@@ -714,7 +731,7 @@ html[data-theme="dark"] .minimal-sparkline {
   min-width: 0;
   align-items: center;
   gap: 0.55rem;
-  border-right: 1px solid var(--border-soft);
+  border-right: 1px solid color-mix(in srgb, var(--border-soft) 34%, transparent);
   padding: 0.85rem 0.95rem;
   color: var(--text-muted);
   font-size: 0.75rem;
