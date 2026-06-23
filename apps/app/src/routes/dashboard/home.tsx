@@ -406,7 +406,7 @@ export function HomePage() {
   const showWorkspaceRecovery = Boolean(populatedWorkspace && (currentDataCount === 0 || currentDataCount === null));
 
   return (
-    <div className="home-control-room ask-frame mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="home-control-room ask-frame mx-auto max-w-6xl px-4 py-8 sm:px-6">
 
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
@@ -484,7 +484,7 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="relative mx-auto mb-8 max-w-3xl">
+      <section ref={askSectionRef} className="relative mx-auto mb-9 max-w-4xl">
         <div className="relative">
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
@@ -611,7 +611,7 @@ export function HomePage() {
         )}
 
         {/* Input */}
-        <div className="relative" ref={pickerRef}>
+        <div className="relative mx-auto max-w-3xl" ref={pickerRef}>
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-white/[.08] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
               <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-white/[.06]">
@@ -677,9 +677,24 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ── Agent Constellation — the visual identity piece, right after
-          the console it's powering. ── */}
-      <AgentConstellationPanel />
+      {/* ── Operating Picture — graph telemetry and the agent map share one
+          continuous control-room zone. The components keep their own data
+          and actions; this wrapper only gives the page a clearer hierarchy. ── */}
+      <section className="home-operating-picture mb-9">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Operating picture</p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>Workspace graph and agent state</h2>
+          </div>
+          <p className="max-w-sm text-right text-[12px] leading-5" style={{ color: "var(--text-muted)" }}>
+            Real counts, live agent registry, and source-backed signals. No invented scores.
+          </p>
+        </div>
+        <div className="space-y-7">
+          <WorkspaceGraphPulse />
+          <AgentConstellationPanel />
+        </div>
+      </section>
 
       {/* ── Needs you — the merged decision/risk/activity zone. One ranked
           list instead of two sections doing overlapping jobs. ── */}
@@ -687,9 +702,6 @@ export function HomePage() {
         notifications={notificationsQuery.data ?? []}
         notificationsError={notificationsQuery.isError}
       />
-
-      {/* ── Workspace Graph Pulse — a clean telemetry strip. ── */}
-      <WorkspaceGraphPulse />
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
       <section className="mb-8">

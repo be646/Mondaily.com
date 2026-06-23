@@ -118,7 +118,15 @@ export function AgentConstellationPanel() {
       </div>
 
       <div className="agent-orbit-field">
-        <div className="flex flex-wrap items-center justify-center gap-2.5 py-2 sm:gap-3">
+        <div className="agent-orbit-core">
+          <span className="agent-orbit-core-ring"/>
+          <span className="agent-orbit-core-mark"><Network size={16}/></span>
+          <span className="agent-orbit-core-copy">
+            <span>Workspace Graph</span>
+            <strong>{constellation.length} agents connected</strong>
+          </span>
+        </div>
+        <div className="agent-orbit-rail">
             {constellation.map((agent, i) => {
               const live = isLiveState(agent.state);
               const isSelected = active?.id === agent.id;

@@ -246,6 +246,26 @@ html[data-theme="dark"] .minimal-sparkline {
   mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black, transparent 72%);
   opacity: 0.28;
 }
+.home-operating-picture {
+  position: relative;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  padding-block: 1.25rem;
+}
+.home-operating-picture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 28%),
+    linear-gradient(to right, transparent, color-mix(in srgb, var(--border-soft) 45%, transparent), transparent);
+  opacity: 0.55;
+  mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+}
+.home-operating-picture > * {
+  position: relative;
+}
 /* Chat console — the centered minimalist box for Mondaily Copilot. Same
    color as the page background (ghost style, per the "focus on lines,
    not fills" direction) with a faint circuit/line-grid texture and a
@@ -371,6 +391,7 @@ html[data-theme="dark"] .minimal-sparkline {
   position: relative;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface-page) 82%, transparent);
 }
 .pulse-tile {
   border-right: 1px solid var(--border-soft);
@@ -421,6 +442,7 @@ html[data-theme="dark"] .minimal-sparkline {
   position: relative;
   overflow: hidden;
   background: transparent;
+  padding: 0.75rem 0 0.25rem;
 }
 .agent-orbit-field::before {
   content: "";
@@ -436,6 +458,89 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .agent-orbit-field > * {
   position: relative;
+}
+.agent-orbit-core {
+  position: relative;
+  margin: 0 auto 0.85rem;
+  display: flex;
+  width: min(100%, 28rem);
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0.8rem 1rem;
+}
+.agent-orbit-core::before,
+.agent-orbit-core::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  height: 1px;
+  width: 18vw;
+  max-width: 8rem;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--accent) 40%, var(--border-soft)));
+}
+.agent-orbit-core::before {
+  right: 100%;
+}
+.agent-orbit-core::after {
+  left: 100%;
+  transform: rotate(180deg);
+}
+.agent-orbit-core-ring {
+  position: absolute;
+  inset: 0.35rem 27%;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-soft));
+  opacity: 0.75;
+}
+.agent-orbit-core-mark {
+  position: relative;
+  display: inline-flex;
+  height: 2.35rem;
+  width: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border-soft));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface-page));
+}
+.agent-orbit-core-copy {
+  position: relative;
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+.agent-orbit-core-copy span {
+  color: var(--text-faint);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.agent-orbit-core-copy strong {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.agent-orbit-rail {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.25rem 0 0.4rem;
+}
+.agent-orbit-rail::before {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-soft), transparent);
 }
 .agent-orbit-node:hover {
   background: var(--surface-hover) !important;
@@ -544,6 +649,11 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .stream-row:last-child { border-bottom: none; }
 .stream-row:hover { background: var(--surface-hover); }
+.attention-stream-shell {
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+}
 .surface-hover:hover { background: var(--surface-hover); }
 .surface-selected     { background: var(--surface-selected); }
 .text-token-primary   { color: var(--text-primary); }

@@ -131,17 +131,13 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers size={13} style={{ color: "var(--text-muted)" }}/>
-          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Needs you</h2>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Attention stream</h2>
           {decisions.length > 0 && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{decisions.length} awaiting approval</span>}
         </div>
-        {onAskMondaily && (
-          <button onClick={() => onAskMondaily()} className="btn-ai !px-2.5 !py-1 !text-[11px]">
-            <Sparkles size={10}/> Ask Mondaily
-          </button>
-        )}
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>ranked by live graph signals</span>
       </div>
 
-      <div className="surface-card rounded-2xl">
+      <div className="attention-stream-shell">
         {isLoading ? (
           <div className="p-3"><div className="skeleton-shimmer h-12 rounded-xl"/></div>
         ) : hasActivityError ? (
@@ -178,7 +174,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
           <>
             {/* Wide summary bar — collapsed by default, expands on click
                 instead of always showing the full list. */}
-            <button onClick={() => setPanelOpen(o => !o)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+            <button onClick={() => setPanelOpen(o => !o)} className="flex w-full items-center gap-3 px-1 py-3 text-left sm:px-2">
               <span className="relative flex h-2 w-2 shrink-0">
                 {decisions.length > 0 && <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#d97706" }}/>}
                 {decisions.length === 0 && <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--text-faint)" }}/>}
