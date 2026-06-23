@@ -146,10 +146,69 @@ body {
 /* ── Shared surface utilities — use these instead of ad-hoc bg-[#xxxxxx] ──── */
 .surface-page    { background: var(--surface-page); }
 .surface-sidebar { background: var(--surface-sidebar); }
-.surface-card    { background: var(--surface-card); border: 1px solid var(--border-soft); }
-.surface-card-2  { background: var(--surface-card-2); border: 1px solid var(--border-soft); }
+.surface-card    { background: var(--surface-card); border: 1px solid var(--border-soft); box-shadow: none; }
+.surface-card-2  { background: var(--surface-card-2); border: 1px solid var(--border-soft); box-shadow: none; }
 .surface-input   { background: var(--surface-input); border: 1px solid var(--border-soft); }
 .surface-modal   { background: var(--surface-modal); border: 1px solid var(--border-strong); }
+
+/* Premium minimalist primitives — used as an app-wide safety net for older
+   dashboard sections that still have bespoke table/card markup. These keep
+   the data dense but airy: paper in light mode, rich neutral in dark mode,
+   and separation by hairlines instead of heavy blocks. */
+.premium-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border-soft);
+  box-shadow: none;
+}
+.telemetry-strip {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+}
+.telemetry-strip > * {
+  min-width: max-content;
+  padding: 0.75rem 1rem;
+  border-right: 1px solid var(--border-soft);
+}
+.telemetry-strip > *:last-child {
+  border-right: 0;
+}
+.minimal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.minimal-table th,
+.minimal-table td {
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0.75rem 1rem;
+}
+.minimal-table th {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.minimal-table tr:hover td {
+  background: var(--surface-hover);
+}
+.minimal-sheet {
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+.minimal-sparkline {
+  color: #475569;
+  filter: none;
+}
+html.dark .minimal-sparkline,
+html[data-theme="dark"] .minimal-sparkline {
+  color: #67e8f9;
+  filter: drop-shadow(0 0 8px rgba(103,232,249,0.34));
+}
 
 /* ── AI console surface — for Ask Mondaily and other "intelligence
    terminal" surfaces. A subtle accent-tinted gradient instead of a flat
@@ -679,70 +738,70 @@ body {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* 1. Dark hardcoded hex backgrounds → white / light panels */
-html:not(.dark) [class*="bg-[#0b0d10]"],
-html:not(.dark) [class*="bg-[#0d0f13]"],
-html:not(.dark) [class*="bg-[#0f1114]"],
-html:not(.dark) [class*="bg-[#0f1115]"],
-html:not(.dark) [class*="bg-[#0f1117]"],
-html:not(.dark) [class*="bg-[#111419]"],
-html:not(.dark) [class*="bg-[#13151a]"],
-html:not(.dark) [class*="bg-[#1a1118]"] {
+html[data-theme="light"] [class*="bg-[#0b0d10]"],
+html[data-theme="light"] [class*="bg-[#0d0f13]"],
+html[data-theme="light"] [class*="bg-[#0f1114]"],
+html[data-theme="light"] [class*="bg-[#0f1115]"],
+html[data-theme="light"] [class*="bg-[#0f1117]"],
+html[data-theme="light"] [class*="bg-[#111419]"],
+html[data-theme="light"] [class*="bg-[#13151a]"],
+html[data-theme="light"] [class*="bg-[#1a1118]"] {
   background-color: #ffffff !important;
 }
 /* Red-tinted selected rows → indigo tint */
-html:not(.dark) [class*="bg-[#130d0d]"],
-html:not(.dark) [class*="bg-[#170f0f]"] {
+html[data-theme="light"] [class*="bg-[#130d0d]"],
+html[data-theme="light"] [class*="bg-[#170f0f]"] {
   background-color: rgba(99,102,241,0.06) !important;
 }
 
 /* 2. Semi-transparent white backgrounds → light zinc/indigo */
-html:not(.dark) [class*="bg-white/[.01]"],
-html:not(.dark) [class*="bg-white/[.02]"],
-html:not(.dark) [class*="bg-white/[.03]"],
-html:not(.dark) [class*="bg-white/[.04]"] {
-  background-color: rgba(0,0,0,0.03) !important;
+html[data-theme="light"] [class*="bg-white/[.01]"],
+html[data-theme="light"] [class*="bg-white/[.02]"],
+html[data-theme="light"] [class*="bg-white/[.03]"],
+html[data-theme="light"] [class*="bg-white/[.04]"] {
+  background-color: #ffffff !important;
 }
-html:not(.dark) [class*="bg-white/[.06]"],
-html:not(.dark) [class*="bg-white/[.07]"],
-html:not(.dark) [class*="bg-white/[.08]"] {
-  background-color: rgba(99,102,241,0.07) !important;
+html[data-theme="light"] [class*="bg-white/[.06]"],
+html[data-theme="light"] [class*="bg-white/[.07]"],
+html[data-theme="light"] [class*="bg-white/[.08]"] {
+  background-color: #ffffff !important;
 }
-html:not(.dark) [class*="bg-white/[.09]"],
-html:not(.dark) [class*="bg-white/[.10]"],
-html:not(.dark) [class*="bg-white/[.15]"] {
-  background-color: rgba(99,102,241,0.10) !important;
+html[data-theme="light"] [class*="bg-white/[.09]"],
+html[data-theme="light"] [class*="bg-white/[.10]"],
+html[data-theme="light"] [class*="bg-white/[.15]"] {
+  background-color: #ffffff !important;
 }
 
 /* 3. All borders using white/opacity → zinc-200 */
-html:not(.dark) [class*="border-white/"],
-html:not(.dark) [class*="border-zinc-8"],
-html:not(.dark) [class*="border-zinc-7"] {
-  border-color: #e4e4e7 !important;
+html[data-theme="light"] [class*="border-white/"],
+html[data-theme="light"] [class*="border-zinc-8"],
+html[data-theme="light"] [class*="border-zinc-7"] {
+  border-color: #e5e7eb !important;
 }
 
 /* 4. White text → near-black */
-html:not(.dark) [class*="text-white"] {
+html[data-theme="light"] [class*="text-white"] {
   color: #18181b !important;
 }
 
 /* 5. Slate muted text → readable dark grays */
-html:not(.dark) [class*="text-slate-3"],
-html:not(.dark) [class*="text-slate-4"],
-html:not(.dark) [class*="text-slate-5"] {
+html[data-theme="light"] [class*="text-slate-3"],
+html[data-theme="light"] [class*="text-slate-4"],
+html[data-theme="light"] [class*="text-slate-5"] {
   color: #52525b !important;
 }
-html:not(.dark) [class*="text-slate-6"],
-html:not(.dark) [class*="text-slate-7"] {
+html[data-theme="light"] [class*="text-slate-6"],
+html[data-theme="light"] [class*="text-slate-7"] {
   color: #71717a !important;
 }
-html:not(.dark) [class*="text-zinc-5"],
-html:not(.dark) [class*="text-zinc-6"],
-html:not(.dark) [class*="text-zinc-7"] {
+html[data-theme="light"] [class*="text-zinc-5"],
+html[data-theme="light"] [class*="text-zinc-6"],
+html[data-theme="light"] [class*="text-zinc-7"] {
   color: #71717a !important;
 }
 
 /* 6. Placeholder colors */
-html:not(.dark) ::placeholder {
+html[data-theme="light"] ::placeholder {
   color: #a1a1aa !important;
 }
 
@@ -753,14 +812,14 @@ html:not(.dark) ::placeholder {
 
 /* 12. Hover backgrounds (pseudo-class can't be targeted by attribute selector,
    so we use generic hover rules scoped to light mode) */
-html:not(.dark) a:hover [class*="bg-white"],
-html:not(.dark) button:hover [class*="bg-white"] {
+html[data-theme="light"] a:hover [class*="bg-white"],
+html[data-theme="light"] button:hover [class*="bg-white"] {
   background-color: rgba(99,102,241,0.06) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DARK MODE — preserve existing dark theme as-is.
-   The rules above are all scoped to html:not(.dark) so they don't interfere.
+   The rules above are all scoped to html[data-theme="light"] so they don't interfere.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Record table scroll container ───────────────────────────────────────── */
@@ -779,9 +838,9 @@ html:not(.dark) button:hover [class*="bg-white"] {
 .record-scroll::-webkit-scrollbar-corner { background: transparent; }
 .record-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
 
-html:not(.dark) .record-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
-html:not(.dark) .record-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
-html:not(.dark) .record-scroll { scrollbar-color: rgba(0,0,0,0.15) transparent; }
+html[data-theme="light"] .record-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+html[data-theme="light"] .record-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+html[data-theme="light"] .record-scroll { scrollbar-color: rgba(0,0,0,0.15) transparent; }
 
 /* ── Sidebar scroll ───────────────────────────────────────────────────────── */
 .sidebar-scroll {

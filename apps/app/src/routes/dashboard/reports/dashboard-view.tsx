@@ -42,7 +42,7 @@ function Sparkline({ values, height = 160 }: { values: number[]; height?: number
           vectorEffect="non-scaling-stroke"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="stroke-slate-600 dark:stroke-cyan-300 dark:[filter:drop-shadow(0_0_7px_rgba(103,232,249,.34))]"
+          className="minimal-sparkline stroke-current"
           strokeWidth="1.8"
         />
       </svg>
