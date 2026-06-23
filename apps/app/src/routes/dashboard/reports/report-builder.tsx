@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GripVertical, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Bar, BarChart, CartesianGrid, Cell, Funnel, FunnelChart, LabelList, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
@@ -14,6 +13,36 @@ interface RunData { data: { label: string; value: number; previous?: number; ave
 interface ObjectType { slug: string; name_plural: string }
 
 const defaults: ReportConfig = { object_type: "", metric: "count", group_by: "month", chart_type: "line", compare: false, stage_field: "stage", stages: ["Lead", "Qualified", "Proposal", "Negotiation", "Closed won"], range: "90d" };
+
+function Sparkline({ values, height = 320 }: { values: number[]; height?: number }) {
+  const clean = values.map(v => Number.isFinite(v) ? v : 0);
+  const min = Math.min(...clean, 0);
+  const max = Math.max(...clean, 1);
+  const range = Math.max(max - min, 1);
+  const points = clean.length <= 1
+    ? "0,50 100,50"
+    : clean.map((value, index) => {
+      const x = (index / (clean.length - 1)) * 100;
+      const y = 88 - ((value - min) / range) * 76;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(" ");
+
+  return (
+    <div className="rounded-2xl bg-white p-6 dark:bg-neutral-950/40" style={{ height }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+        <polyline
+          points={points}
+          fill="none"
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="stroke-slate-600 dark:stroke-cyan-300 dark:[filter:drop-shadow(0_0_8px_rgba(103,232,249,.34))]"
+          strokeWidth="1.6"
+        />
+      </svg>
+    </div>
+  );
+}
 
 export function ReportBuilderPage() {
   const { id = "" } = useParams();
@@ -254,35 +283,5 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
     </div>
   );
 
-  if (type === "funnel") return (
-    <ResponsiveContainer width="100%" height={360}>
-      <FunnelChart>
-        <Tooltip />
-        <Funnel data={data} dataKey="value" nameKey="label" fill="#ef4444">
-          <LabelList position="right" dataKey="label" fill="#cbd5e1" />
-          <LabelList position="center" dataKey="value" fill="#fff" />
-        </Funnel>
-      </FunnelChart>
-    </ResponsiveContainer>
-  );
-
-  if (type === "time_in_stage") return (
-    <ResponsiveContainer width="100%" height={360}>
-      <BarChart data={data} layout="vertical">
-        <CartesianGrid stroke="#22262d" />
-        <XAxis type="number" stroke="#64748b" />
-        <YAxis dataKey="label" type="category" width={100} stroke="#64748b" />
-        <Tooltip />
-        <Bar dataKey="value">
-          {data.map(item => <Cell key={item.label} fill={item.value <= 3 ? "#10b981" : item.value <= 7 ? "#f59e0b" : "#ef4444"} />)}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-
-  const chart = type === "historical" || config.chart_type === "line"
-    ? <LineChart data={data}><CartesianGrid stroke="#22262d" /><XAxis dataKey="label" stroke="#64748b" /><YAxis stroke="#64748b" /><Tooltip /><Line dataKey="value" stroke="#ef4444" strokeWidth={2} /></LineChart>
-    : <BarChart data={data}><CartesianGrid stroke="#22262d" /><XAxis dataKey="label" stroke="#64748b" /><YAxis stroke="#64748b" /><Tooltip /><Bar dataKey="value" fill="#ef4444" /></BarChart>;
-
-  return <ResponsiveContainer width="100%" height={320}>{chart}</ResponsiveContainer>;
+  return <Sparkline values={data.map(item => item.value)} height={type === "funnel" || type === "time_in_stage" ? 360 : 320} />;
 }

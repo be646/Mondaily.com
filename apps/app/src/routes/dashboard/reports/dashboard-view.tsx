@@ -6,10 +6,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import {
-  Bar, BarChart, CartesianGrid, Line, LineChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis, Cell,
-} from "recharts";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
@@ -24,10 +20,35 @@ interface Dashboard { id: string; name?: string; access?: "private"|"workspace";
 interface ReportOption { id: string; name: string; type: string }
 interface ObjectType  { slug: string; name_plural: string }
 
-const CHART_TOOLTIP_STYLE = {
-  contentStyle: { background: "#0d0f13", border: "1px solid rgba(255,255,255,.09)", borderRadius: 8, fontSize: 12 },
-  labelStyle: { color: "#94a3b8" },
-};
+function Sparkline({ values, height = 160 }: { values: number[]; height?: number }) {
+  const clean = values.map(v => Number.isFinite(v) ? v : 0);
+  const min = Math.min(...clean, 0);
+  const max = Math.max(...clean, 1);
+  const range = Math.max(max - min, 1);
+  const points = clean.length <= 1
+    ? "0,50 100,50"
+    : clean.map((value, index) => {
+      const x = (index / (clean.length - 1)) * 100;
+      const y = 88 - ((value - min) / range) * 76;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    }).join(" ");
+
+  return (
+    <div className="rounded-xl bg-white p-4 dark:bg-neutral-950/40" style={{ height }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+        <polyline
+          points={points}
+          fill="none"
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="stroke-slate-600 dark:stroke-cyan-300 dark:[filter:drop-shadow(0_0_7px_rgba(103,232,249,.34))]"
+          strokeWidth="1.8"
+        />
+      </svg>
+    </div>
+  );
+}
 
 // ─── Shared widget shell ──────────────────────────────────────────────────────
 function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, onResize, onDragStart, onDragOver, onDrop, children }: {
@@ -177,17 +198,7 @@ function LiveWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, o
               <p className="text-xl font-semibold text-white">{trendData[trendData.length - 1]?.count ?? 0}</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={trendData} barSize={10}>
-              <CartesianGrid stroke="#1e222a" strokeDasharray="3 3"/>
-              <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }}/>
-              <YAxis stroke="#475569" tick={{ fontSize: 10 }} width={28}/>
-              <Tooltip {...CHART_TOOLTIP_STYLE}/>
-              <Bar dataKey={valueCol ? "value" : "count"} name={valueCol ?? "Records"} radius={[3,3,0,0]}>
-                {trendData.map((_,i) => <Cell key={i} fill={i === trendData.length-1 ? "#10b981" : "#10b98140"}/>)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <Sparkline values={trendData.map(item => valueCol ? item.value : item.count)} />
         </>
       )}
     </WidgetShell>
@@ -240,25 +251,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
           {reportId && <Link to={`/reports/${reportId}`} className="text-xs text-indigo-400 hover:text-indigo-300">Configure report →</Link>}
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={200}>
-          {chartType === "bar" ? (
-            <BarChart data={data}>
-              <CartesianGrid stroke="#1e222a" strokeDasharray="3 3"/>
-              <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }}/>
-              <YAxis stroke="#475569" tick={{ fontSize: 10 }} width={28}/>
-              <Tooltip {...CHART_TOOLTIP_STYLE}/>
-              <Bar dataKey="value" fill="#ef4444" radius={[3,3,0,0]}/>
-            </BarChart>
-          ) : (
-            <LineChart data={data}>
-              <CartesianGrid stroke="#1e222a" strokeDasharray="3 3"/>
-              <XAxis dataKey="label" stroke="#475569" tick={{ fontSize: 10 }}/>
-              <YAxis stroke="#475569" tick={{ fontSize: 10 }} width={28}/>
-              <Tooltip {...CHART_TOOLTIP_STYLE}/>
-              <Line dataKey="value" stroke="#ef4444" strokeWidth={2} dot={false}/>
-            </LineChart>
-          )}
-        </ResponsiveContainer>
+        <Sparkline values={data.map(item => item.value)} height={200} />
       )}
     </WidgetShell>
   );
