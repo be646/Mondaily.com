@@ -2470,7 +2470,7 @@ export function LandingPage() {
         transition={{ duration: 0.6, delay: 0.1 }}
         className="min-h-screen bg-white text-zinc-900"
       >
-        <header className="sticky top-0 z-40 border-b border-black/[.04] bg-white/90 backdrop-blur-md">
+        <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/90">
           <Nav />
         </header>
 
