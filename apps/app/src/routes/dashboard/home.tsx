@@ -418,7 +418,7 @@ export function HomePage() {
             <p className="home-section-kicker">{todayLabel}</p>
             <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
             <p className="home-section-copy mt-2 max-w-2xl">
-              Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
+              Mondaily has reviewed the graph. Your next signals are ready.
             </p>
           </div>
           <div className="home-live-strip">
