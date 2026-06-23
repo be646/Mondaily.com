@@ -65,17 +65,17 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-3xl px-6 py-8 text-neutral-900 dark:text-neutral-50">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <p className="text-sm text-slate-500 pt-1">
+      <div className="mb-6 flex items-start justify-between">
+        <p className="pt-1 text-sm text-neutral-500 dark:text-neutral-500">
           {unread > 0 ? `${unread} unread` : "All caught up"}
         </p>
         {unread > 0 && (
           <button
             onClick={() => markAll.mutate()}
             disabled={markAll.isPending}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            className="btn-secondary !px-2.5 !py-1.5 !text-xs disabled:opacity-50"
           >
             <CheckCheck size={13}/> Mark all read
           </button>
@@ -83,14 +83,15 @@ export function NotificationsPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-3 mb-5 flex-wrap">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         {/* Read/unread toggle */}
-        <div className="flex rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
+        <div className="today-scope-switch">
           {(["all", "unread"] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors ${filter === f ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}
+              className="today-scope-option capitalize"
+              data-active={filter === f}
             >
               {f === "all" ? "All" : `Unread (${unread})`}
             </button>
@@ -100,13 +101,13 @@ export function NotificationsPage() {
         {/* Type filter */}
         {types.length > 1 && (
           <div className="flex items-center gap-1.5">
-            <Filter size={11} className="text-slate-600"/>
+            <Filter size={11} className="text-neutral-400 dark:text-neutral-600"/>
             <div className="flex gap-1 flex-wrap">
               {types.map(t => (
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border transition-colors capitalize ${typeFilter === t ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] text-slate-600 hover:text-slate-400"}`}
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize transition-colors ${typeFilter === t ? "border-neutral-900 bg-neutral-900 text-white dark:border-cyan-500/30 dark:bg-white dark:text-neutral-950" : "border-neutral-200 text-neutral-500 hover:border-neutral-300 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-500 dark:hover:border-neutral-700 dark:hover:text-neutral-200"}`}
                 >
                   {t === "all" ? "All types" : (TYPE_LABELS[t] ?? t)}
                 </button>
@@ -119,15 +120,15 @@ export function NotificationsPage() {
       {/* List */}
       {query.isLoading ? (
         <div className="space-y-2">
-          {[...Array(5)].map((_, i) => <div key={i} className="h-16 rounded-xl bg-white/[.03] animate-pulse"/>)}
+          {[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-900"/>)}
         </div>
       ) : visible.length === 0 ? (
         <div className="text-center py-16">
-          <Bell size={32} className="text-[#9ca3af] dark:text-slate-700 mx-auto mb-3"/>
-          <p className="text-[#52525b] dark:text-slate-500 text-sm">
+          <Bell size={32} className="mx-auto mb-3 text-neutral-300 dark:text-neutral-700"/>
+          <p className="text-sm text-neutral-600 dark:text-neutral-500">
             {filter === "unread" ? "No unread notifications" : "No notifications yet"}
           </p>
-          <p className="text-[#9ca3af] dark:text-slate-700 text-xs mt-1">Reviews, approvals, and mentions will appear here</p>
+          <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-700">Reviews, approvals, and mentions will appear here</p>
           {filter !== "unread" && (
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
               <Sparkles size={11} className="shrink-0"/>
@@ -136,16 +137,16 @@ export function NotificationsPage() {
           )}
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {visible.map(n => {
             const isRisk = n.type === "ai_risk";
             return (
             <div
               key={n.id}
-              className={`group flex w-full items-start gap-3 rounded-xl border p-4 transition-colors ${
+              className={`group flex w-full items-start gap-3 px-1 py-4 transition-colors ${
                 !n.is_read
-                  ? isRisk ? "border-amber-500/20 bg-amber-500/[.05]" : "border-indigo-500/15 bg-indigo-500/5"
-                  : "border-white/[.04] hover:bg-white/[.02]"
+                  ? isRisk ? "bg-amber-500/[.04]" : "bg-indigo-500/[.04]"
+                  : "hover:bg-neutral-50 dark:hover:bg-neutral-900/40"
               }`}
             >
               {/* Unread indicator */}
@@ -157,15 +158,15 @@ export function NotificationsPage() {
               {/* Content */}
               <button className="flex-1 min-w-0 text-left" onClick={() => handleClick(n)}>
                 <div className="flex items-center gap-2">
-                  <p className={`text-sm font-medium truncate ${!n.is_read ? "text-white" : "text-slate-400"}`}>{n.title}</p>
+                  <p className={`truncate text-sm font-medium ${!n.is_read ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-600 dark:text-neutral-400"}`}>{n.title}</p>
                   {n.type && (
-                    <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] capitalize ${isRisk ? "border-amber-500/30 bg-amber-500/10 text-amber-400" : "border-white/[.06] bg-white/[.03] text-slate-600"}`}>
+                    <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] capitalize ${isRisk ? "border-amber-500/30 bg-amber-500/10 text-amber-500 dark:text-amber-400" : "border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-500"}`}>
                       {TYPE_LABELS[n.type] ?? n.type}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.body}</p>
-                <p className="text-[11px] text-slate-700 mt-1">{relTime(n.created_at)}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500 dark:text-neutral-500">{n.body}</p>
+                <p className="mt-1 text-[11px] text-neutral-400 dark:text-neutral-700">{relTime(n.created_at)}</p>
               </button>
 
               {/* Actions */}
@@ -174,7 +175,7 @@ export function NotificationsPage() {
                   <button
                     onClick={() => markRead.mutate(n.id)}
                     title="Mark read"
-                    className="rounded-md p-1.5 text-slate-600 hover:bg-emerald-500/10 hover:text-emerald-400 transition-colors"
+                    className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-emerald-500/10 hover:text-emerald-500 dark:text-neutral-600 dark:hover:text-emerald-400"
                   >
                     <Check size={12}/>
                   </button>
@@ -182,7 +183,7 @@ export function NotificationsPage() {
                 <button
                   onClick={() => deleteOne.mutate(n.id)}
                   title="Delete"
-                  className="rounded-md p-1.5 text-slate-600 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors"
+                  className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-indigo-500/10 hover:text-indigo-500 dark:text-neutral-600 dark:hover:text-indigo-400"
                 >
                   <Trash2 size={12}/>
                 </button>

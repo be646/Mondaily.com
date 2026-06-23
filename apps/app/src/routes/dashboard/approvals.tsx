@@ -93,15 +93,15 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
   }
 
   return (
-    <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 hover:border-white/[.09] transition-colors">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4 text-neutral-900 transition-colors hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:hover:border-neutral-700">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
             <ReceiptText size={15} className="text-violet-400"/>
           </div>
           <div>
-            <div className="text-[13px] font-semibold text-white">{fmt(cn.amount_cents, cn.currency)}</div>
-            <div className="text-[11px] text-zinc-500">{cn.client_name ?? "Unknown client"} · {REASON_LABELS[cn.credit_reason]}</div>
+            <div className="text-[13px] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">{fmt(cn.amount_cents, cn.currency)}</div>
+            <div className="text-[11px] text-neutral-500 dark:text-neutral-500">{cn.client_name ?? "Unknown client"} · {REASON_LABELS[cn.credit_reason]}</div>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -120,18 +120,18 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
               <XCircle size={9}/> Rejected
             </span>
           )}
-          <span className="text-[10px] text-zinc-700">{relativeTime(cn.created_at)}</span>
+          <span className="text-[10px] text-neutral-400 dark:text-neutral-600">{relativeTime(cn.created_at)}</span>
         </div>
       </div>
 
       {cn.ai_summary && (
-        <div className="flex items-start gap-1.5 rounded-lg bg-violet-500/[.04] border border-violet-500/10 px-3 py-2 mb-3">
+        <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/[.04]">
           <Sparkles size={10} className="text-violet-400 mt-0.5 shrink-0"/>
-          <p className="text-[11px] text-zinc-400 leading-relaxed">{cn.ai_summary}</p>
+          <p className="text-[11px] leading-relaxed text-neutral-600 dark:text-neutral-300">{cn.ai_summary}</p>
         </div>
       )}
       {cn.notes && !cn.ai_summary && (
-        <p className="text-[11px] text-zinc-500 mb-3 leading-relaxed line-clamp-2">{cn.notes}</p>
+        <p className="mb-3 line-clamp-2 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-500">{cn.notes}</p>
       )}
 
       <ApprovalTrail approvals={cn.approvals} />
@@ -155,10 +155,10 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
             <button
               onClick={() => { doTransition("rejected", rejectNote || undefined); setRejectOpen(false); }}
               disabled={busy}
-              className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-[12px] text-indigo-400 hover:bg-indigo-500/20 transition-colors disabled:opacity-40">
+              className="btn-ai !px-3 !py-1.5 !text-[12px] disabled:opacity-40">
               Confirm Reject
             </button>
-            <button onClick={() => setRejectOpen(false)} className="rounded-lg border border-white/[.06] px-3 py-1.5 text-[12px] text-zinc-500 hover:text-zinc-300 transition-colors">
+            <button onClick={() => setRejectOpen(false)} className="btn-secondary !px-3 !py-1.5 !text-[12px]">
               Cancel
             </button>
           </div>
@@ -171,14 +171,14 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
             <button
               onClick={() => doTransition("verified")}
               disabled={busy}
-              className="flex-1 rounded-lg border border-blue-400/20 bg-blue-400/10 px-3 py-2 text-[12px] font-medium text-blue-300 hover:bg-blue-400/20 transition-colors disabled:opacity-40">
+              className="btn-ai flex-1 !px-3 !py-2 !text-[12px] disabled:opacity-40">
               {busy ? "Processing…" : "Approve → Verified"}
             </button>
             {!rejectOpen && (
               <button
                 onClick={() => setRejectOpen(true)}
                 disabled={busy}
-                className="rounded-lg border border-indigo-500/20 bg-indigo-500/[.05] px-3 py-2 text-[12px] text-indigo-400 hover:bg-indigo-500/[.1] transition-colors disabled:opacity-40">
+                className="btn-secondary !px-3 !py-2 !text-[12px] disabled:opacity-40">
                 Reject
               </button>
             )}
@@ -189,14 +189,14 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
             <button
               onClick={() => doTransition("executed")}
               disabled={busy}
-              className="flex-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-[12px] font-medium text-emerald-300 hover:bg-emerald-400/20 transition-colors disabled:opacity-40">
+              className="btn-ai flex-1 !px-3 !py-2 !text-[12px] disabled:opacity-40">
               {busy ? "Processing…" : "Execute credit"}
             </button>
             {!rejectOpen && (
               <button
                 onClick={() => setRejectOpen(true)}
                 disabled={busy}
-                className="rounded-lg border border-indigo-500/20 bg-indigo-500/[.05] px-3 py-2 text-[12px] text-indigo-400 hover:bg-indigo-500/[.1] transition-colors disabled:opacity-40">
+                className="btn-secondary !px-3 !py-2 !text-[12px] disabled:opacity-40">
                 Reject
               </button>
             )}
@@ -206,12 +206,12 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
           <button
             onClick={() => doTransition("pending_review")}
             disabled={busy}
-            className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2 text-[12px] text-zinc-400 hover:text-zinc-200 hover:bg-white/[.04] transition-colors disabled:opacity-40">
+            className="btn-secondary !px-3 !py-2 !text-[12px] disabled:opacity-40">
             {busy ? "Processing…" : "Resubmit"}
           </button>
         )}
         <Link to={`/finance/credit-notes/${cn.id}`}
-          className="ml-auto flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-300 transition-colors">
+          className="ml-auto flex items-center gap-1 text-[11px] text-neutral-500 transition-colors hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100">
           Details <ChevronRight size={11}/>
         </Link>
       </div>
@@ -260,45 +260,45 @@ export function ApprovalsPage() {
   const totalExecuted = executed.reduce((s, n) => s + n.amount_cents, 0);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50">
       {/* Header */}
-      <div className="border-b border-white/[.06] px-6 py-4 shrink-0">
+      <div className="shrink-0 border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-7 w-7 rounded-xl bg-indigo-500/15 flex items-center justify-center">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 dark:border-cyan-500/20 dark:bg-cyan-500/[.05]">
             <ShieldCheck size={14} className="text-indigo-400"/>
           </div>
           <div>
-            <h1 className="text-[15px] font-semibold text-white">Approval Dashboard</h1>
-            <p className="text-[12px] text-zinc-500">Review and authorise credit notes across the workspace</p>
+            <h1 className="text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Approval Dashboard</h1>
+            <p className="text-[12px] text-neutral-500 dark:text-neutral-500">Review and authorise credit notes across the workspace</p>
           </div>
         </div>
 
         {/* Summary row */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-zinc-500">Needs review</span></div>
+        <div className="telemetry-strip mb-4">
+          <div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-neutral-500 dark:text-neutral-500">Needs review</span></div>
             <div className="text-[17px] font-semibold text-amber-400">{fmt(totalPending, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
+            <div className="mt-0.5 text-[10px] text-neutral-400 dark:text-neutral-600">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Verified, not executed</span></div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-neutral-500 dark:text-neutral-500">Verified, not executed</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalVerified, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
+            <div className="mt-0.5 text-[10px] text-neutral-400 dark:text-neutral-600">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Executed this period</span></div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-neutral-500 dark:text-neutral-500">Executed this period</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalExecuted, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
+            <div className="mt-0.5 text-[10px] text-neutral-400 dark:text-neutral-600">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
         </div>
 
         {/* Tab strip */}
-        <div className="flex items-center gap-1 border-b border-white/[.04] -mb-4">
+        <div className="-mb-4 flex items-center gap-1 border-b border-neutral-200 dark:border-neutral-800">
           {TABS.map(({ key, label }) => {
             const count = key === "pending_review" ? pending.length : key === "verified" ? verified.length : rejected.length;
             return (
               <button key={key} onClick={() => setTab(key)}
-                className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+                className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-200"}`}>
                 {label} ({count})
                 {tab === key && <span className="absolute bottom-0 left-0 right-0 h-px bg-indigo-500"/>}
               </button>
@@ -308,17 +308,17 @@ export function ApprovalsPage() {
       </div>
 
       {/* Tab description */}
-      <div className="px-6 pt-3 pb-1 shrink-0">
-        <p className="text-[11px] text-zinc-600">{TABS.find(t => t.key === tab)?.desc}</p>
+      <div className="shrink-0 px-6 pb-1 pt-3">
+        <p className="text-[11px] text-neutral-500 dark:text-neutral-500">{TABS.find(t => t.key === tab)?.desc}</p>
       </div>
 
       {/* Cards */}
       <div className="flex-1 overflow-auto p-6 pt-3">
-        {isLoading && <div className="flex h-40 items-center justify-center text-[12px] text-zinc-600">Loading…</div>}
+        {isLoading && <div className="flex h-40 items-center justify-center text-[12px] text-neutral-500 dark:text-neutral-500">Loading…</div>}
         {!isLoading && shown.length === 0 && (
           <div className="flex h-56 flex-col items-center justify-center gap-3">
-            <Clock size={32} className="text-zinc-700"/>
-            <div className="text-[13px] text-zinc-500">Nothing in this queue</div>
+            <Clock size={32} className="text-neutral-300 dark:text-neutral-700"/>
+            <div className="text-[13px] text-neutral-500 dark:text-neutral-500">Nothing in this queue</div>
             <Link to="/finance/credit-notes" className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">View all credit notes →</Link>
           </div>
         )}
