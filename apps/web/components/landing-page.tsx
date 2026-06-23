@@ -1261,6 +1261,185 @@ function HeroPipelinePreview() {
   );
 }
 
+const WORKSPACE_GRAPH_NODES = [
+  { label: "Records", x: 19, y: 31, color: "#4f46e5", detail: "People, companies, assets" },
+  { label: "Tasks", x: 25, y: 70, color: "#059669", detail: "Due work and reviews" },
+  { label: "Finance", x: 75, y: 31, color: "#dc2626", detail: "Invoices and approvals" },
+  { label: "Decisions", x: 82, y: 66, color: "#d97706", detail: "Human approval queue" },
+  { label: "Workflows", x: 51, y: 84, color: "#0891b2", detail: "Automations and triggers" },
+  { label: "Files", x: 49, y: 17, color: "#7c3aed", detail: "Source-backed context" },
+];
+
+const WORKSPACE_GRAPH_EVENTS = [
+  "Relationship Agent found an overdue follow-up",
+  "Finance Agent drafted an invoice reminder",
+  "Graph Agent connected 14 related objects",
+  "Operations Agent queued a review task",
+];
+
+function WorkspaceGraphPreview() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActive(i => (i + 1) % WORKSPACE_GRAPH_NODES.length), 2200);
+    return () => clearInterval(t);
+  }, []);
+
+  const activeNode = WORKSPACE_GRAPH_NODES[active]!;
+
+  return (
+    <div className="relative mx-auto w-full max-w-full overflow-hidden rounded-[28px] border border-black/[.07] bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:max-w-6xl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,102,241,0.10),transparent_34%),linear-gradient(135deg,rgba(248,250,252,0.9),rgba(255,255,255,1))]" />
+      <div className="relative grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
+        <div className="relative min-h-[360px] border-b border-black/[.05] p-5 sm:min-h-[430px] sm:p-8 lg:border-b-0 lg:border-r">
+          <div className="mb-6 flex flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-left">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">Living workspace graph</p>
+              <p className="mt-1 text-sm text-zinc-500">One graph connecting every object your team works on</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[.07] px-3 py-1 text-[11px] font-medium text-emerald-700">
+              <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              agents watching
+            </span>
+          </div>
+
+          <div className="relative mx-auto aspect-[1.2/1] max-w-[680px] sm:aspect-[1.55/1]">
+            <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-hidden sm:overflow-visible">
+              <defs>
+                <filter id="graphGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="1.6" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {WORKSPACE_GRAPH_NODES.map((node, i) => (
+                <motion.line
+                  key={node.label}
+                  x1="50"
+                  y1="50"
+                  x2={node.x}
+                  y2={node.y}
+                  stroke={node.color}
+                  strokeWidth={i === active ? 0.42 : 0.22}
+                  strokeDasharray="2 3"
+                  initial={false}
+                  animate={{ opacity: i === active ? 0.55 : 0.17 }}
+                  transition={{ duration: 0.45 }}
+                />
+              ))}
+              <motion.circle
+                cx="50"
+                cy="50"
+                r="13"
+                fill="rgba(79,70,229,0.08)"
+                stroke="rgba(79,70,229,0.28)"
+                animate={{ r: [13, 15, 13], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 2.8, repeat: Infinity }}
+              />
+              <circle cx="50" cy="50" r="5.4" fill="#4f46e5" filter="url(#graphGlow)" />
+              {WORKSPACE_GRAPH_NODES.map((node, i) => (
+                <motion.g key={node.label} initial={false} animate={{ scale: i === active ? 1.08 : 1 }} transition={{ duration: 0.35 }}>
+                  <circle cx={node.x} cy={node.y} r={i === active ? 4.8 : 3.9} fill="white" stroke={node.color} strokeWidth={i === active ? 0.85 : 0.5} />
+                  <circle cx={node.x} cy={node.y} r="1.35" fill={node.color} />
+                </motion.g>
+              ))}
+            </svg>
+
+            <div className="absolute left-1/2 top-1/2 w-[140px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-indigo-500/15 bg-white/90 px-4 py-3 text-center shadow-[0_10px_30px_rgba(79,70,229,0.12)] backdrop-blur">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500">Mondaily</p>
+              <p className="mt-1 text-xs text-zinc-500">AI-native graph core</p>
+            </div>
+
+            {WORKSPACE_GRAPH_NODES.map((node, i) => (
+              <motion.div
+                key={node.label}
+                initial={false}
+                animate={{ opacity: i === active ? 1 : 0.72, y: i === active ? -2 : 0 }}
+                transition={{ duration: 0.35 }}
+                className="absolute hidden w-[136px] -translate-x-1/2 rounded-2xl border bg-white/90 px-3 py-2 text-left shadow-[0_8px_24px_rgba(15,23,42,0.07)] backdrop-blur sm:block"
+                style={{ left: `${node.x}%`, top: `${node.y}%`, borderColor: `${node.color}${i === active ? "55" : "22"}` }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: node.color }} />
+                  <span className="text-[12px] font-semibold text-zinc-800">{node.label}</span>
+                </div>
+                <p className="mt-1 text-[10.5px] leading-snug text-zinc-500">{node.detail}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-black/[.06] bg-white/80 p-3 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-[12px] font-semibold text-white">AI</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-zinc-800">Ask Mondaily</p>
+                <p className="truncate text-xs text-zinc-500">What changed in my workspace graph today?</p>
+              </div>
+              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] text-zinc-500">Enter ↵</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative p-6 sm:p-8">
+          <div className="mb-7 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Operating layer</p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">Agents prepare the next move. You approve what matters.</h3>
+          </div>
+
+          <div className="space-y-3">
+            {WORKSPACE_GRAPH_EVENTS.map((event, i) => (
+              <motion.div
+                key={event}
+                initial={{ opacity: 0.55, x: 8 }}
+                animate={{ opacity: i === active % WORKSPACE_GRAPH_EVENTS.length ? 1 : 0.68, x: 0 }}
+                transition={{ duration: 0.45 }}
+                className="flex items-start gap-3 border-b border-black/[.05] pb-3 last:border-b-0"
+              >
+                <span className="mt-1 h-1.5 w-1.5 rounded-full" style={{ background: WORKSPACE_GRAPH_NODES[(i + active) % WORKSPACE_GRAPH_NODES.length]!.color }} />
+                <div className="text-left">
+                  <p className="text-sm font-medium text-zinc-800">{event}</p>
+                  <p className="mt-1 text-xs text-zinc-500">Source-backed · scoped to your workspace only</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 grid grid-cols-3 divide-x divide-black/[.06] border-y border-black/[.06]">
+            {[
+              ["6+", "agent families"],
+              ["1", "workspace graph"],
+              ["0", "shared client data"],
+            ].map(([value, label]) => (
+              <div key={label} className="px-2 py-4 text-left sm:px-4">
+                <p className="text-xl font-semibold text-zinc-900 sm:text-2xl">{value}</p>
+                <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-zinc-400 sm:text-[11px] sm:tracking-[0.12em]">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl bg-zinc-950 px-4 py-3 text-left text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current focus</p>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={activeNode.label}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.25 }}
+                className="mt-1 text-sm"
+              >
+                {activeNode.label}: {activeNode.detail}
+              </motion.p>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const INVOICE_STAGE_STYLE: Record<string, { dot: string; text: string }> = {
   Draft:    { dot: "bg-zinc-400",    text: "text-zinc-600" },
   Sent:     { dot: "bg-blue-500",    text: "text-blue-700" },
@@ -2468,7 +2647,7 @@ export function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className="min-h-screen bg-white text-zinc-900"
+        className="min-h-screen overflow-x-hidden bg-white text-zinc-900"
       >
         <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/90">
           <Nav />
@@ -2514,14 +2693,14 @@ export function LandingPage() {
                 </div>
 
                 {/* Slogan */}
-                <h1 className="mx-auto mb-4 max-w-3xl font-sans font-semibold leading-[1.08] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}>
-                  Your workspace,{" "}
-                  <span className="text-indigo-500">run by AI agents.</span>
+                <h1 className="mx-auto mb-4 max-w-4xl font-sans font-semibold leading-[1.05] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.45rem, 5.6vw, 4.2rem)" }}>
+                  The AI-native workspace for{" "}
+                  <span className="text-indigo-500">everything your business tracks.</span>
                 </h1>
 
                 {/* Subheading */}
-                <p className="mx-auto mb-7 max-w-xl text-[15px] leading-relaxed text-zinc-500">
-                  Mondaily connects records, tasks, finance, conversations, workflows, and decisions into one living workspace graph. AI agents watch the graph, explain what changed, and prepare the next action with sources.
+                <p className="mx-auto mb-7 max-w-2xl text-[15.5px] leading-relaxed text-zinc-500">
+                  Mondaily connects records, tasks, finance, conversations, workflows, files, and decisions into one living asset graph. Agents watch the graph, explain what changed, and prepare the next action with sources.
                 </p>
 
                 {/* Primary / secondary CTAs */}
@@ -2543,10 +2722,10 @@ export function LandingPage() {
 
                 {/* Agent preview strip — agents are core identity, shown immediately under the fold */}
                 <div className="mb-9 flex flex-wrap items-center justify-center gap-2">
-                  {AGENTS.slice(0, 4).map((agent, i) => (
+                  {AGENTS.slice(0, 6).map((agent, i) => (
                     <span
                       key={agent.name}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[11px]"
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium"
                       style={{ borderColor: `${agent.accent}25`, background: `${agent.accent}08`, color: agent.accent }}
                     >
                       <motion.span
@@ -2584,14 +2763,14 @@ export function LandingPage() {
               </motion.div>
             </div>
 
-            {/* Hero visual proof — stylized pipeline mockup */}
+            {/* Hero visual proof — living workspace graph */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 14 }}
               transition={{ duration: 0.55, delay: 0.45 }}
               className="mt-14"
             >
-              <HeroPipelinePreview />
+              <WorkspaceGraphPreview />
             </motion.div>
           </section>
 
