@@ -412,28 +412,26 @@ export function HomePage() {
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-6 px-4 pb-6 pt-7 sm:-mx-6 sm:px-8">
-        <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
-        <h1 className="text-[26px] font-semibold tracking-tight sm:text-[30px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
-        <p className="mt-1 max-w-xl text-[13px] sm:text-sm" style={{ color: "var(--text-muted)" }}>
-          Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
-        </p>
-
-        {/* Metric pills — flat, transparent, each with its own soft
-            colored border line. No "Ask Mondaily" button here — the
-            console right below is the single entry point. */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="metric-pill" data-tone="indigo"><ListChecks size={11}/>{activeTasks.length} {taskScope === "mine" ? "my open tasks" : "open tasks"}</span>
-          <span className="metric-pill" data-tone="amber"><FileText size={11}/>{pendingDecisionsCount} pending decisions</span>
-          <span className="metric-pill" data-tone="cyan"><Inbox size={11}/>{unreadCount} unread</span>
+      <div className="command-room relative -mx-4 -mt-8 mb-8 px-4 pb-6 pt-8 sm:-mx-6 sm:px-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--text-faint)" }}>{todayLabel}</p>
+            <h1 className="mt-2 text-[28px] font-semibold tracking-tight sm:text-[34px]" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}.</h1>
+            <p className="mt-2 max-w-2xl text-[13px] leading-6 sm:text-sm" style={{ color: "var(--text-muted)" }}>
+              Your workspace graph is running. Agents are watching records, tasks, finance, and decisions.
+            </p>
+          </div>
+          <div className="home-live-strip">
+            <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+            <span className="status-chip" data-tone={notificationsQuery.isError ? "amber" : "violet"}><span className="dot" style={{ animation: "none" }}/>{notificationsQuery.isError ? "Agent status partial" : "Agents active"}</span>
+            <span className="status-chip" data-tone="cyan"><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+          </div>
         </div>
 
-        {/* Live signs — clean, uncrowded, alongside the metrics rather
-            than in their own separate row. No animation. */}
-        <div className="relative mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-          <span className="status-chip" data-tone={notificationsQuery.isError ? "amber" : "violet"}><span className="dot" style={{ animation: "none" }}/>{notificationsQuery.isError ? "Agent status partial" : "Agents active"}</span>
-          <span className="status-chip" data-tone="cyan"><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+        <div className="home-telemetry-strip mt-6">
+          <span><ListChecks size={12}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</span>
+          <span><FileText size={12}/><strong>{pendingDecisionsCount}</strong>pending decisions</span>
+          <span><Inbox size={12}/><strong>{unreadCount}</strong>unread</span>
         </div>
 
         {/* Anything that actually needs attention — kept separate from

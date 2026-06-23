@@ -200,6 +200,28 @@ body {
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
 }
+.list-workspace {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 2%, transparent), transparent 20rem),
+    var(--surface-page);
+  color: var(--text-primary);
+}
+.list-header {
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+}
+.list-sheet {
+  background: transparent;
+}
+.list-sheet .minimal-table th {
+  background: transparent;
+}
+.list-sheet .minimal-table td {
+  background: transparent;
+}
+.list-sheet .minimal-table tr:hover td {
+  background: color-mix(in srgb, var(--surface-hover) 70%, transparent);
+}
 .minimal-sparkline {
   color: #475569;
   filter: none;
@@ -239,29 +261,19 @@ html[data-theme="dark"] .minimal-sparkline {
   inset: 0;
   pointer-events: none;
   z-index: -1;
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--border-soft) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--border-soft) 55%, transparent) 1px, transparent 1px);
-  background-size: 42px 42px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 3%, transparent), transparent 24rem);
   mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black, transparent 72%);
-  opacity: 0.28;
+  opacity: 0.42;
 }
 .home-operating-picture {
   position: relative;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
-  padding-block: 1.25rem;
+  padding-block: 1.6rem;
 }
 .home-operating-picture::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 18% 20%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 28%),
-    linear-gradient(to right, transparent, color-mix(in srgb, var(--border-soft) 45%, transparent), transparent);
-  opacity: 0.55;
-  mask-image: linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+  display: none;
 }
 .home-operating-picture > * {
   position: relative;
@@ -391,7 +403,7 @@ html[data-theme="dark"] .minimal-sparkline {
   position: relative;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
-  background: color-mix(in srgb, var(--surface-page) 82%, transparent);
+  background: transparent;
 }
 .pulse-tile {
   border-right: 1px solid var(--border-soft);
@@ -440,21 +452,12 @@ html[data-theme="dark"] .minimal-sparkline {
 
 .agent-orbit-field {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
-  padding: 0.75rem 0 0.25rem;
+  padding: 0.5rem 0 0.25rem;
 }
 .agent-orbit-field::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background-image:
-    radial-gradient(circle at center, color-mix(in srgb, var(--accent) 14%, transparent) 1px, transparent 1.5px);
-  background-size: 26px 26px;
-  mask-image: linear-gradient(90deg, transparent, black 16%, black 84%, transparent);
-  opacity: 0.28;
+  display: none;
 }
 .agent-orbit-field > * {
   position: relative;
@@ -489,11 +492,7 @@ html[data-theme="dark"] .minimal-sparkline {
   transform: rotate(180deg);
 }
 .agent-orbit-core-ring {
-  position: absolute;
-  inset: 0.35rem 27%;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-soft));
-  opacity: 0.75;
+  display: none;
 }
 .agent-orbit-core-mark {
   position: relative;
@@ -653,6 +652,53 @@ html[data-theme="dark"] .minimal-sparkline {
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
   background: transparent;
+}
+
+.home-live-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 0.8rem 0;
+}
+.home-telemetry-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+.home-telemetry-strip span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.55rem;
+  border-right: 1px solid var(--border-soft);
+  padding: 0.85rem 0.95rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.home-telemetry-strip span:last-child {
+  border-right: 0;
+}
+.home-telemetry-strip strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+}
+@media (max-width: 640px) {
+  .home-telemetry-strip {
+    grid-template-columns: 1fr;
+  }
+  .home-telemetry-strip span {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .home-telemetry-strip span:last-child {
+    border-bottom: 0;
+  }
 }
 .surface-hover:hover { background: var(--surface-hover); }
 .surface-selected     { background: var(--surface-selected); }

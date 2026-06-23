@@ -29,7 +29,7 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5">
+      <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         {children}
       </div>
     </>
@@ -228,28 +228,32 @@ export function ListPage() {
   const isEmpty = entries.isSuccess && records.length === 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="list-workspace flex h-full flex-col">
       {/* ── Header ── */}
-      <header className="telemetry-strip shrink-0 flex-wrap gap-3 px-6 py-3">
-        <input
-          value={list.data.name}
-          onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
-          onBlur={e => update.mutate({ name: e.target.value })}
-          className="min-w-0 flex-1 bg-transparent text-lg font-semibold text-neutral-950 outline-none placeholder-neutral-400 dark:text-neutral-50 dark:placeholder-neutral-600"
-        />
-        <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] capitalize text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
-          {list.data.object_type}
-        </span>
+      <header className="list-header shrink-0 px-6 py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--text-faint)" }}>List sheet</p>
+            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3">
+              <input
+                value={list.data.name}
+                onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
+                onBlur={e => update.mutate({ name: e.target.value })}
+                className="min-w-0 flex-1 bg-transparent text-2xl font-semibold tracking-tight outline-none placeholder-neutral-400 dark:placeholder-neutral-600"
+                style={{ color: "var(--text-primary)" }}
+              />
+              <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                {list.data.object_type}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
 
         {/* ── Assignment chip + popover ── */}
         <div className="relative" ref={assignRef}>
           <button
             onClick={() => setAssignOpen(o => !o)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] transition-colors ${
-              list.data.assignee_id
-                ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/15"
-                : "border-white/[.08] bg-white/[.02] text-slate-500 hover:text-white hover:border-white/[.15]"
-            }`}
+            className="btn-secondary !px-2.5 !py-1.5 !text-[11px]"
           >
             {list.data.assignee_id ? <UserCheck size={11} /> : <Users size={11} />}
             {list.data.assignee_id
@@ -266,18 +270,18 @@ export function ListPage() {
           {assignOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setAssignOpen(false)} />
-              <div className="absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-3 shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Assign to</p>
+              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Assign to</p>
                 {membersQuery.isLoading ? (
-                  <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-slate-600" /></div>
+                  <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: "var(--text-faint)" }} /></div>
                 ) : (
                   <div className="space-y-1">
                     {/* "Unassigned" option */}
                     <button
                       onClick={() => setAssignee(null)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${!list.data!.assignee_id ? "bg-white/[.06] text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${!list.data!.assignee_id ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}
                     >
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-white/[.10] bg-white/[.04] text-[9px] text-slate-600">—</span>
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[9px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>—</span>
                       Unassigned
                     </button>
                     {/* Me first */}
@@ -287,12 +291,12 @@ export function ListPage() {
                       return (
                         <button
                           onClick={() => setAssignee(isAssigned ? null : userId)}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-indigo-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}
                         >
-                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[.10] text-[9px] font-bold">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold" style={{ background: "var(--surface-hover)" }}>
                             {me ? memberInitials(me) : "Me"}
                           </span>
-                          {me ? memberLabel(me) : "Me"} <span className="ml-auto text-[10px] text-slate-700">me</span>
+                          {me ? memberLabel(me) : "Me"} <span className="ml-auto text-[10px]" style={{ color: "var(--text-faint)" }}>me</span>
                         </button>
                       );
                     })()}
@@ -301,9 +305,9 @@ export function ListPage() {
                       return (
                         <button key={m.user_id}
                           onClick={() => setAssignee(isAssigned ? null : m.user_id)}
-                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "bg-indigo-500/10 text-white" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                          className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isAssigned ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}
                         >
-                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/[.10] text-[9px] font-bold">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold" style={{ background: "var(--surface-hover)" }}>
                             {memberInitials(m)}
                           </span>
                           {memberLabel(m)}
@@ -314,12 +318,12 @@ export function ListPage() {
                 )}
 
                 {/* Visibility */}
-                <div className="my-2 border-t border-white/[.06]" />
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Visibility</p>
+                <div className="my-2 border-t" style={{ borderColor: "var(--border-soft)" }} />
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Visibility</p>
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (
                     <button key={v} onClick={() => apiClient.patch(`/lists/${list.data!.id}`, { visibility: v }).then(() => list.refetch())}
-                      className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium capitalize transition-colors ${(list.data!.visibility ?? "workspace") === v ? "bg-indigo-500/20 text-indigo-300" : "bg-white/[.04] text-slate-500 hover:text-slate-300"}`}>
+                      className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium capitalize transition-colors ${(list.data!.visibility ?? "workspace") === v ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}>
                       {v}
                     </button>
                   ))}
@@ -327,22 +331,22 @@ export function ListPage() {
 
                 {members.length > 0 && (
                   <>
-                    <div className="my-2 border-t border-white/[.06]" />
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Share with</p>
+                    <div className="my-2 border-t" style={{ borderColor: "var(--border-soft)" }} />
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Share with</p>
                     <div className="space-y-1">
                       {members.filter(m => m.user_id !== list.data!.assignee_id).map(m => {
                         const isShared = (list.data!.shared_with ?? []).includes(m.user_id);
                         return (
                           <button key={m.user_id}
                             onClick={() => toggleShared(m.user_id)}
-                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isShared ? "bg-blue-500/10 text-blue-300" : "text-slate-400 hover:bg-white/[.04] hover:text-white"}`}
+                            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${isShared ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}
                           >
-                            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold transition-colors ${isShared ? "bg-blue-500/20" : "bg-white/[.10]"}`}>
+                            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[9px] font-bold transition-colors" style={{ background: "var(--surface-hover)" }}>
                               {memberInitials(m)}
                             </span>
                             <span className="truncate">{memberLabel(m)}</span>
-                            {m.role && <span className="text-[9px] text-slate-500 capitalize">{m.role}</span>}
-                            {isShared && <span className="ml-auto text-[10px] text-blue-500">shared</span>}
+                            {m.role && <span className="text-[9px] capitalize" style={{ color: "var(--text-faint)" }}>{m.role}</span>}
+                            {isShared && <span className="ml-auto text-[10px]" style={{ color: "var(--accent)" }}>shared</span>}
                           </button>
                         );
                       })}
@@ -355,18 +359,18 @@ export function ListPage() {
         </div>
 
         {/* View toggle */}
-        <div className="flex items-center rounded-lg border border-white/[.08] bg-white/[.02] p-0.5 gap-0.5">
+        <div className="flex items-center rounded-lg border p-0.5 gap-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
           <button
             title="Table"
             onClick={() => setView("table")}
-            className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${view === "table" ? "bg-white/[.08] text-white" : "text-slate-600 hover:text-slate-400"}`}
+            className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${view === "table" ? "surface-card text-token-primary" : "text-token-muted"}`}
           >
             <Table2 size={12} />
           </button>
           <button
             title="Board"
             onClick={() => setView("board")}
-            className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${view === "board" ? "bg-white/[.08] text-white" : "text-slate-600 hover:text-slate-400"}`}
+            className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${view === "board" ? "surface-card text-token-primary" : "text-token-muted"}`}
           >
             <Grid2X2 size={12} />
           </button>
@@ -377,14 +381,14 @@ export function ListPage() {
             <button
               onClick={enrichAll}
               disabled={enrichingAll}
-              className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-600/10 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/20 transition-colors disabled:opacity-50"
+              className="btn-ai !px-3 !py-1.5 !text-xs"
             >
               {enrichingAll ? <Loader2 size={13} className="animate-spin"/> : enrichAllDone ? <Sparkles size={13}/> : <Wand2 size={13}/>}
               {enrichAllDone ? "Enriching…" : "Enrich All"}
             </button>
             <button
               onClick={() => { setEnrollOpen(true); setEnrollStep("pick"); setEnrollSeqId(""); setEnrollSeqName(""); }}
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-600/20 transition-colors"
+              className="btn-secondary !px-3 !py-1.5 !text-xs"
             >
               <Mail size={13}/> Enroll in Sequence
             </button>
@@ -392,19 +396,19 @@ export function ListPage() {
         )}
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors"
+          className="btn-primary !px-3 !py-1.5 !text-xs"
         >
           <Plus size={13}/> Add record
         </button>
         <button
           onClick={openAi}
-          className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-600/15 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/25 transition-colors"
+          className="btn-ai !px-3 !py-1.5 !text-xs"
         >
           <Sparkles size={13}/> Add with AI
         </button>
         <button
           onClick={() => setProspectOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-indigo-400/30 bg-indigo-500/15 px-3 py-1.5 text-xs font-medium text-indigo-300 hover:bg-indigo-500/25 transition-colors"
+          className="btn-secondary !px-3 !py-1.5 !text-xs"
         >
           <Globe size={13}/> Find from web
         </button>
@@ -412,7 +416,7 @@ export function ListPage() {
         <div className="relative">
           <button
             onClick={() => setMenuOpen(o => !o)}
-            className="grid h-7 w-7 place-items-center rounded-lg border border-white/[.08] bg-white/[.02] text-slate-500 hover:text-white hover:bg-white/[.05] transition-colors"
+            className="btn-ghost grid !h-7 !w-7 !px-0 !py-0"
           >
             <MoreHorizontal size={14} />
           </button>
@@ -440,6 +444,8 @@ export function ListPage() {
             </div>
           )}
         </div>
+          </div>
+        </div>
       </header>
 
       {/* ── Body ── */}
@@ -447,26 +453,26 @@ export function ListPage() {
         {entries.isLoading ? (
           <PageSkeleton rows={6} />
         ) : isEmpty ? (
-          <div className="flex flex-col items-center justify-center gap-6 py-24 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
+          <div className="flex flex-col items-center justify-center gap-6 border-y py-24 text-center" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)", color: "var(--accent)" }}>
               <Sparkles size={24} />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">No records in this list yet</h2>
-              <p className="mt-1.5 text-xs text-slate-500 max-w-sm">
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No records in this list yet</h2>
+              <p className="mt-1.5 max-w-sm text-xs" style={{ color: "var(--text-muted)" }}>
                 Describe what you're looking for and AI will pick the matching {list.data.object_type} — or add them manually.
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={openAi}
-                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-xs font-medium hover:bg-violet-500 transition-colors"
+                className="btn-ai !px-4 !py-2 !text-xs"
               >
                 <Sparkles size={13} /> Add with AI
               </button>
               <button
                 onClick={() => setAddOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-white/[.09] px-4 py-2 text-xs font-medium hover:bg-white/[.04] transition-colors"
+                className="btn-secondary !px-4 !py-2 !text-xs"
               >
                 <Plus size={13} /> Add manually
               </button>
@@ -474,7 +480,7 @@ export function ListPage() {
           </div>
         ) : view === "table" ? (
           /* ── Table ── */
-          <div className="minimal-sheet overflow-auto">
+          <div className="list-sheet minimal-sheet overflow-auto">
             <table className="minimal-table min-w-full text-left text-[12px]">
               <thead>
                 <tr>
@@ -511,7 +517,8 @@ export function ListPage() {
                       <button
                         onClick={() => removeEntry.mutate(record.id)}
                         title="Remove from list"
-                        className="opacity-0 group-hover:opacity-100 grid h-6 w-6 place-items-center rounded text-zinc-700 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                        className="grid h-6 w-6 place-items-center rounded opacity-0 transition-all group-hover:opacity-100 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                        style={{ color: "var(--text-faint)" }}
                       >
                         <X size={12} />
                       </button>
@@ -525,8 +532,8 @@ export function ListPage() {
           /* ── Board ── */
           <div className="grid gap-3 md:grid-cols-3">
             {["Unassigned", "Active", "Complete"].map(stage => (
-              <section key={stage} className="premium-panel p-3">
-                <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">{stage}</h2>
+              <section key={stage} className="border-y p-3" style={{ borderColor: "var(--border-soft)" }}>
+                <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{stage}</h2>
                 <div className="space-y-2">
                   {records
                     .filter(r => stage === "Unassigned"
@@ -536,10 +543,11 @@ export function ListPage() {
                       <Link
                         key={r.id}
                         to={`/objects/${r.object_type}/${r.id}`}
-                        className="block border-b border-neutral-200 p-3 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900/60"
+                        className="block border-b p-3 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
+                        style={{ borderColor: "var(--border-soft)" }}
                       >
-                        <p className="truncate text-[12px] font-medium text-zinc-100">{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
-                        <p className="mt-1.5 truncate text-[11px] text-zinc-600">{String(r.data.company ?? r.data.email ?? "")}</p>
+                        <p className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
+                        <p className="mt-1.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{String(r.data.company ?? r.data.email ?? "")}</p>
                       </Link>
                     ))}
                 </div>
@@ -553,16 +561,16 @@ export function ListPage() {
       {addOpen && (
         <ModalShell onClose={() => { setAddOpen(false); setSearch(""); }}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Add record</h2>
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Add record</h2>
             <button
               onClick={() => { setAddOpen(false); setSearch(""); }}
-              className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"
+              className="btn-ghost !p-1"
             >
               <X size={14} />
             </button>
           </div>
           <label className="relative block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={13} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={13} style={{ color: "var(--text-faint)" }} />
             <input
               autoFocus
               value={search}
@@ -571,30 +579,32 @@ export function ListPage() {
               placeholder={`Search ${list.data.object_type}…`}
             />
           </label>
-          <div className="mt-3 max-h-64 overflow-auto rounded-lg border border-white/[.06]">
+          <div className="mt-3 max-h-64 overflow-auto rounded-lg border" style={{ borderColor: "var(--border-soft)" }}>
             {candidates.isLoading ? (
-              <div className="flex justify-center py-8"><Loader2 size={16} className="animate-spin text-slate-600" /></div>
+              <div className="flex justify-center py-8"><Loader2 size={16} className="animate-spin" style={{ color: "var(--text-faint)" }} /></div>
             ) : available.length === 0 ? (
-              <p className="py-6 text-center text-xs text-slate-600">No matching records found.</p>
+              <p className="py-6 text-center text-xs" style={{ color: "var(--text-muted)" }}>No matching records found.</p>
             ) : (
               available.map(r => (
                 <button
                   key={r.id}
                   onClick={() => addEntry.mutate(r.id)}
-                  className="flex w-full items-center justify-between border-b border-white/[.05] last:border-0 px-3 py-2.5 text-left hover:bg-white/[.03] transition-colors"
+                  className="flex w-full items-center justify-between border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
+                  style={{ borderColor: "var(--border-soft)" }}
                 >
                   <div>
-                    <p className="text-[12px] text-zinc-200">{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
-                    <p className="text-[11px] text-zinc-600">{String(r.data.email ?? r.data.company ?? "")}</p>
+                    <p className="text-[12px]" style={{ color: "var(--text-primary)" }}>{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{String(r.data.email ?? r.data.company ?? "")}</p>
                   </div>
-                  <Plus size={13} className="text-zinc-600 shrink-0"/>
+                  <Plus size={13} className="shrink-0" style={{ color: "var(--text-faint)" }}/>
                 </button>
               ))
             )}
           </div>
           <Link
             to={`/objects/${list.data.object_type}`}
-            className="mt-3 block text-[11px] text-zinc-500 hover:text-indigo-400 transition-colors"
+            className="mt-3 block text-[11px] transition-colors hover:text-indigo-400"
+            style={{ color: "var(--text-muted)" }}
           >
             Go to {list.data.object_type} sheet →
           </Link>
@@ -607,16 +617,16 @@ export function ListPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Sparkles size={14} className="text-violet-400" />
-              <h2 className="text-sm font-semibold text-white">Add with AI</h2>
+              <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Add with AI</h2>
             </div>
             <button
               onClick={() => setAiOpen(false)}
-              className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"
+              className="btn-ghost !p-1"
             >
               <X size={14} />
             </button>
           </div>
-          <p className="text-[11px] text-slate-500 mb-4">
+          <p className="mb-4 text-[11px]" style={{ color: "var(--text-muted)" }}>
             Describe which {list.data.object_type} you want to add. AI will search your existing records and suggest the best matches.
           </p>
           <textarea
@@ -626,13 +636,14 @@ export function ListPage() {
             onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAiMatch(); }}
             rows={3}
             placeholder={`e.g. "Companies in the US with ARR above $1M"`}
-            className="w-full rounded-xl border border-white/[.08] bg-white/[.03] p-3 text-[12px] text-white placeholder-zinc-700 resize-none outline-none focus:border-violet-500/40 transition-colors"
+            className="surface-input w-full resize-none rounded-xl p-3 text-[12px] outline-none transition-colors placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+            style={{ color: "var(--text-primary)" }}
           />
           {aiMatched === null ? (
             <button
               onClick={runAiMatch}
               disabled={aiLoading || !aiPrompt.trim() || candidates.isLoading}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-xs font-medium disabled:opacity-50 hover:bg-violet-500 transition-colors"
+              className="btn-ai mt-3 flex w-full !py-2.5 !text-xs"
             >
               {aiLoading || candidates.isLoading
                 ? <><Loader2 size={13} className="animate-spin" /> {candidates.isLoading ? "Loading records…" : "Finding matches…"}</>
@@ -641,11 +652,11 @@ export function ListPage() {
           ) : (
             <>
               {aiReason && (
-                <p className="mt-3 text-[11px] text-slate-500 italic">"{aiReason}"</p>
+                <p className="mt-3 text-[11px] italic" style={{ color: "var(--text-muted)" }}>"{aiReason}"</p>
               )}
-              <div className="mt-3 max-h-56 overflow-auto rounded-xl border border-white/[.07]">
+              <div className="mt-3 max-h-56 overflow-auto rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
                 {aiMatched.length === 0 ? (
-                  <p className="py-8 text-center text-xs text-slate-600">No matching records found. Try a different description.</p>
+                  <p className="py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>No matching records found. Try a different description.</p>
                 ) : (
                   aiMatched.map(r => {
                     const sel = aiSelected.has(r.id);
@@ -653,14 +664,15 @@ export function ListPage() {
                       <button
                         key={r.id}
                         onClick={() => setAiSelected(prev => { const n = new Set(prev); sel ? n.delete(r.id) : n.add(r.id); return n; })}
-                        className={`flex w-full items-center gap-3 border-b border-white/[.05] last:border-0 px-3 py-2.5 text-left hover:bg-white/[.03] transition-colors ${sel ? "bg-violet-500/[.05]" : ""}`}
+                        className={`flex w-full items-center gap-3 border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-900/60 ${sel ? "surface-selected" : ""}`}
+                        style={{ borderColor: "var(--border-soft)" }}
                       >
-                        <div className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${sel ? "bg-violet-600 border-violet-600" : "border-white/20"}`}>
+                        <div className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${sel ? "bg-violet-600 border-violet-600" : ""}`} style={sel ? undefined : { borderColor: "var(--border-strong)" }}>
                           {sel && <svg viewBox="0 0 10 8" className="h-2.5 w-2.5 fill-white"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-[12px] text-zinc-200">{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
-                          <p className="truncate text-[11px] text-zinc-600">{String(r.data.email ?? r.data.company ?? r.data.status ?? "")}</p>
+                          <p className="truncate text-[12px]" style={{ color: "var(--text-primary)" }}>{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
+                          <p className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{String(r.data.email ?? r.data.company ?? r.data.status ?? "")}</p>
                         </div>
                       </button>
                     );
@@ -670,16 +682,17 @@ export function ListPage() {
               <div className="mt-4 flex items-center justify-between gap-2">
                 <button
                   onClick={() => { setAiMatched(null); setAiPrompt(""); }}
-                  className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
+                  className="text-[11px] transition-colors hover:text-indigo-400"
+                  style={{ color: "var(--text-muted)" }}
                 >
                   Try again
                 </button>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-zinc-600">{aiSelected.size} selected</span>
+                  <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{aiSelected.size} selected</span>
                   <button
                     onClick={addAiSelected}
                     disabled={aiSelected.size === 0 || addEntry.isPending}
-                    className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-1.5 text-xs font-medium disabled:opacity-50 hover:bg-violet-500 transition-colors"
+                    className="btn-ai !px-4 !py-1.5 !text-xs"
                   >
                     {addEntry.isPending ? <Loader2 size={12} className="animate-spin" /> : null}
                     Add {aiSelected.size > 0 ? aiSelected.size : ""} to list
@@ -704,19 +717,19 @@ export function ListPage() {
       {deleteConfirm && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteConfirm(false)}/>
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5">
-            <h2 className="text-sm font-semibold text-white mb-2">Delete "{list.data.name}"?</h2>
-            <p className="text-[12px] text-slate-500">The records themselves will not be deleted — only this list.</p>
+          <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+            <h2 className="mb-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Delete "{list.data.name}"?</h2>
+            <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>The records themselves will not be deleted — only this list.</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setDeleteConfirm(false)}
-                className="rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+                className="btn-secondary !px-3 !py-1.5 !text-xs"
               >
                 Cancel
               </button>
               <button
                 onClick={() => removeList.mutate()}
-                className="rounded-lg border border-indigo-400/40 bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+                className="btn-primary !px-3 !py-1.5 !text-xs"
               >
                 Delete list
               </button>
