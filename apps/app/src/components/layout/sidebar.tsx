@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle,
+  FileSignature, Wallet, MessageCircle, Sun, Moon, Monitor,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -75,6 +75,21 @@ const MORE_NAV: { label: string; items: { to: string; label: string; icon: React
     ],
   },
 ];
+
+type Appearance = "light" | "dark" | "system";
+
+const APPEARANCE_OPTIONS: { value: Appearance; label: string; icon: React.ElementType }[] = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Monitor },
+];
+
+function applySidebarTheme(appearance: Appearance) {
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = appearance === "dark" || (appearance === "system" && prefersDark);
+  document.documentElement.dataset.theme = isDark ? "dark" : "light";
+  document.documentElement.classList.toggle("dark", isDark);
+}
 
 // ─── Getting Started checklist ────────────────────────────────────────────────
 const CHECKLIST = [
@@ -206,8 +221,8 @@ export function GettingStarted() {
                   onMouseLeave={() => setHoverId(null)}
                 >
                   <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-zinc-100 dark:bg-white/[.06]" : ""}`}>
-                    <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-indigo-500 border-indigo-500" : "border-indigo-500/30"}`}>
-                      {checked && <Check size={7} className="text-white" strokeWidth={3.5}/>}
+                    <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-neutral-950 border-neutral-950 dark:bg-neutral-50 dark:border-neutral-50" : "border-neutral-300 dark:border-neutral-800"}`}>
+                      {checked && <Check size={7} className="text-white dark:text-black" strokeWidth={3.5}/>}
                     </div>
                     <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
                       <span className={`text-[11px] leading-tight ${checked ? "line-through text-zinc-400 dark:text-white/20" : "text-zinc-600 dark:text-white/55"}`}>
@@ -219,11 +234,11 @@ export function GettingStarted() {
                   {/* Tooltip — pops right */}
                   {hovered && !checked && (
                     <div className="absolute left-full top-0 z-[210] ml-2.5 w-56 pointer-events-none">
-                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-indigo-200 bg-white dark:border-indigo-500/20 dark:bg-[#1a1118]"/>
-                      <div className="rounded-xl border border-indigo-200 bg-white px-3 py-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)] dark:border-indigo-500/20 dark:bg-[#1a1118] dark:shadow-[0_12px_40px_rgba(0,0,0,0.7)]">
+                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-neutral-200 bg-white dark:border-neutral-800 dark:bg-black"/>
+                      <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3 shadow-none dark:border-neutral-800 dark:bg-black">
                         <div className="text-[12px] font-semibold text-[#111827] dark:text-white mb-1.5">{item.label}</div>
                         <div className="text-[11px] text-zinc-500 dark:text-white/40 leading-relaxed">{item.hint}</div>
-                        <div className="mt-2.5 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">→ Go there</div>
+                        <div className="mt-2.5 text-[10px] font-semibold text-neutral-950 dark:text-neutral-50">→ Go there</div>
                       </div>
                     </div>
                   )}
@@ -232,9 +247,9 @@ export function GettingStarted() {
             })}
 
             {/* Dismiss */}
-            <div className="border-t border-indigo-500/10 mt-1 px-1 py-2 flex items-center justify-between">
+            <div className="border-t border-neutral-200 mt-1 px-1 py-2 flex items-center justify-between dark:border-neutral-900">
               <span className="text-[10px] text-zinc-400 dark:text-white/20">Auto-detected · updates live</span>
-              <button onClick={dismiss} className="text-[10px] font-semibold text-indigo-400/70 hover:text-indigo-600 dark:text-indigo-400/50 dark:hover:text-indigo-400 transition-colors">
+              <button onClick={dismiss} className="text-[10px] font-semibold text-neutral-500 hover:text-neutral-950 dark:text-neutral-600 dark:hover:text-neutral-50 transition-colors">
                 Mark all done
               </button>
             </div>
@@ -255,8 +270,8 @@ export function GettingStarted() {
         </button>
 
         {open && (
-          <div className="mx-3 mb-2.5 mt-1 h-[3px] rounded-full bg-indigo-500/10 overflow-hidden">
-            <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${pct}%` }}/>
+          <div className="mx-3 mb-2.5 mt-1 h-px rounded-full bg-neutral-200 overflow-hidden dark:bg-neutral-900">
+            <div className="h-full rounded-full bg-neutral-950 transition-all duration-500 dark:bg-neutral-50" style={{ width: `${pct}%` }}/>
           </div>
         )}
       </div>
@@ -304,7 +319,7 @@ function NavItem({
       >
         {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50"/>}
         <Icon size={14}/>
-        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-indigo-500 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none">{badge > 9 ? "9+" : badge}</span>}
+        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-neutral-950 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 9 ? "9+" : badge}</span>}
       </Link>
     );
   }
@@ -316,7 +331,7 @@ function NavItem({
       {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50"/>}
       <Icon size={13} className={active ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-600"}/>
       {label}
-      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-indigo-500 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none">{badge > 99 ? "99+" : badge}</span>}
+      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-neutral-950 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 99 ? "99+" : badge}</span>}
     </Link>
   );
 }
@@ -341,6 +356,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
+  const [appearance, setAppearance] = useState<Appearance>(() => {
+    const saved = localStorage.getItem("mondaily_appearance");
+    return saved === "light" || saved === "dark" || saved === "system" ? saved : "dark";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("mondaily_appearance", appearance);
+    applySidebarTheme(appearance);
+  }, [appearance]);
 
   useEffect(() => {
     const email = user?.primaryEmailAddress?.emailAddress;
@@ -361,6 +385,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     refetchInterval: 60_000,
   });
   const unreadCount = notifications.filter(n => !n.read_at).length;
+  const currentAppearance = APPEARANCE_OPTIONS.find(option => option.value === appearance) ?? { value: "dark", label: "Dark", icon: Moon };
+  const CollapsedThemeIcon = currentAppearance.icon;
+  const nextAppearance = APPEARANCE_OPTIONS[(APPEARANCE_OPTIONS.findIndex(option => option.value === appearance) + 1) % APPEARANCE_OPTIONS.length]?.value ?? "dark";
 
   return (
     <>
@@ -404,7 +431,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <div className="flex items-center gap-2.5 border-b border-zinc-100 dark:border-white/[.06] px-3 py-2.5">
                   {workspaceLogo
                     ? <img src={workspaceLogo} alt={workspaceName} className="h-5 w-5 rounded-md object-cover shrink-0"/>
-                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-500/20 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">{workspaceInitial}</div>
+                    : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-neutral-100 dark:bg-neutral-900 text-[10px] font-semibold text-neutral-950 dark:text-neutral-50">{workspaceInitial}</div>
                   }
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-white">{workspaceName}</div>
@@ -437,7 +464,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
               className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
             >
-              <Zap size={12} className="text-indigo-500 dark:text-indigo-400 shrink-0"/>
+              <Zap size={12} className="text-neutral-500 dark:text-neutral-500 shrink-0"/>
               <span>Quick action</span>
               <Plus size={11} className="ml-auto text-zinc-400 dark:text-slate-600"/>
             </button>
@@ -497,12 +524,45 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-neutral-200 p-2.5 dark:border-neutral-800">
           {collapsed ? (
-            <Link to="/settings/account" title="Settings"
-              className="flex items-center justify-center rounded-lg p-2 text-zinc-400 hover:bg-[#f4f4f5] hover:text-zinc-700 dark:text-slate-600 dark:hover:bg-white/[.04] dark:hover:text-slate-300 transition-colors">
-              <Settings size={14}/>
-            </Link>
+            <div className="space-y-1">
+              <button
+                type="button"
+                title={`Theme: ${currentAppearance.label}`}
+                onClick={() => setAppearance(nextAppearance)}
+                className="flex w-full items-center justify-center rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+              >
+                <CollapsedThemeIcon size={14}/>
+              </button>
+              <Link to="/settings/account" title="Settings"
+                className="flex items-center justify-center rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50 transition-colors">
+                <Settings size={14}/>
+              </Link>
+            </div>
           ) : (
             <div className="overflow-hidden">
+              <div className="grid grid-cols-3 gap-1 border-b border-neutral-200 pb-2 dark:border-neutral-800">
+                {APPEARANCE_OPTIONS.map(option => {
+                  const Icon = option.icon;
+                  const active = appearance === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setAppearance(option.value)}
+                      className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[10px] font-medium tracking-tight transition-colors ${
+                        active
+                          ? "bg-neutral-950 text-white dark:bg-white dark:text-black"
+                          : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      <Icon size={11}/>
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Trial row */}
               <div className="flex items-center justify-between border-b border-neutral-200 px-1 py-2 dark:border-neutral-800">
                 <div>
@@ -512,7 +572,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <Link
                   to="/settings/billing"
                   className="rounded-md px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors"
-                  style={{ color: "var(--accent)" }}
+                  style={{ color: "var(--text-primary)" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--surface-selected)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}
                 >
@@ -571,7 +631,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </button>
               <button
                 onClick={() => { if (newWsName.trim()) { alert(`Workspace "${newWsName}" will be created. Coming soon!`); setNewWorkspaceOpen(false); setNewWsName(""); } }}
-                className="flex-1 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors"
+                className="flex-1 rounded-xl bg-neutral-950 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black transition-opacity"
               >
                 Create
               </button>
