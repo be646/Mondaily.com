@@ -22,8 +22,8 @@ body {
   --landing-text: #0a0a0a;
   --landing-muted: #737373;
   --landing-faint: #a3a3a3;
-  --landing-line: #f5f5f5;
-  --landing-line-strong: #e5e5e5;
+  --landing-line: #fafafa;
+  --landing-line-strong: #ececec;
   --landing-hover: #f7f7f7;
   background: var(--landing-canvas);
   color: var(--landing-text);
@@ -37,8 +37,8 @@ body {
   --landing-text: #ffffff;
   --landing-muted: #a3a3a3;
   --landing-faint: #737373;
-  --landing-line: #171717;
-  --landing-line-strong: #262626;
+  --landing-line: #0d0d0d;
+  --landing-line-strong: #202020;
   --landing-hover: #0a0a0a;
   color-scheme: dark;
 }
@@ -260,6 +260,37 @@ body {
 
 .landing-shell .landing-soft-panel {
   background: color-mix(in srgb, var(--landing-canvas) 92%, var(--landing-hover)) !important;
+}
+
+.landing-shell .landing-chat-pill {
+  border-radius: 9999px !important;
+  background: color-mix(in srgb, var(--landing-canvas) 88%, #f4f4f2) !important;
+  border: 1px solid color-mix(in srgb, var(--landing-line-strong) 88%, var(--landing-text)) !important;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.055) !important;
+}
+
+.landing-shell[data-theme="dark"] .landing-chat-pill,
+.landing-shell.dark .landing-chat-pill {
+  background: #090909 !important;
+  border-color: #242424 !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 22px 60px rgba(0,0,0,0.36) !important;
+}
+
+.landing-shell .landing-chat-pill button,
+.landing-shell .landing-chat-pill textarea {
+  border-radius: 9999px !important;
+}
+
+.landing-shell .landing-chat-pulse {
+  background: #050505 !important;
+  color: #fff !important;
+  border-radius: 9999px !important;
+}
+
+.landing-shell[data-theme="dark"] .landing-chat-pulse,
+.landing-shell.dark .landing-chat-pulse {
+  background: #ffffff !important;
+  color: #050505 !important;
 }
 
 .landing-shell .landing-process-tabs [class*="text-blue-"],

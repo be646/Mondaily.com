@@ -1249,11 +1249,12 @@ const WORKSPACE_GRAPH_NODES = [
   { label: "Ask AI", x: 50, y: 90, color: "#607078", detail: "Turns the graph into an ongoing conversation" },
 ];
 
-const WORKSPACE_GRAPH_EVENTS = [
-  { agent: "relationship", action: "found overdue follow-up", target: "Acme Corp", tone: "#a68762" },
-  { agent: "finance", action: "prepared invoice reminder", target: "INV-0031", tone: "#a07164" },
-  { agent: "graph", action: "linked related objects", target: "14 records", tone: "#9fb08f" },
-  { agent: "operations", action: "queued review task", target: "Decision Queue", tone: "#6f8068" },
+const WORKSPACE_TERMINAL_ROWS = [
+  { prompt: "graph.read", subject: "workspace_nodes", result: "records linked", tone: "#9fb08f" },
+  { prompt: "enrich.run", subject: "new_records", result: "sources attached", tone: "#8fb3b0" },
+  { prompt: "relationship.scan", subject: "open_loops", result: "follow-up prepared", tone: "#d7c6a3" },
+  { prompt: "finance.watch", subject: "invoice_age", result: "reminder drafted", tone: "#c59a8d" },
+  { prompt: "ops.queue", subject: "stalled_tasks", result: "decision ready", tone: "#6f8068" },
 ];
 
 function TerminalLine({ children, active }: { children: ReactNode; active?: boolean }) {
@@ -1268,30 +1269,6 @@ function TerminalLine({ children, active }: { children: ReactNode; active?: bool
   );
 }
 
-function TerminalTypewriter({ text }: { text: string }) {
-  const [shown, setShown] = useState("");
-
-  useEffect(() => {
-    setShown("");
-    let i = 0;
-    const t = setInterval(() => {
-      i++;
-      setShown(text.slice(0, i));
-      if (i >= text.length) clearInterval(t);
-    }, 18);
-    return () => clearInterval(t);
-  }, [text]);
-
-  return (
-    <span>
-      {shown}
-      {shown.length < text.length && (
-        <span className="ml-1 inline-block h-[0.9em] w-px animate-pulse bg-[#9fb08f] align-middle" />
-      )}
-    </span>
-  );
-}
-
 function WorkspaceGraphPreview() {
   const [active, setActive] = useState(0);
 
@@ -1301,7 +1278,6 @@ function WorkspaceGraphPreview() {
   }, []);
 
   const activeNode = WORKSPACE_GRAPH_NODES[active]!;
-  const activeEvent = WORKSPACE_GRAPH_EVENTS[active % WORKSPACE_GRAPH_EVENTS.length]!;
 
   return (
     <div className="relative mx-auto w-full max-w-full overflow-hidden sm:max-w-6xl">
@@ -1327,17 +1303,17 @@ function WorkspaceGraphPreview() {
           </div>
 
           <div className="grid gap-7 md:grid-cols-[1fr_230px] md:items-center">
-            <div className="relative mx-auto h-[330px] w-full max-w-[430px]">
+            <div className="relative mx-auto h-[350px] w-full max-w-[430px]">
               <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible">
-                <path d="M50 17 V31" stroke="#8a8378" strokeWidth="0.35" opacity="0.7" />
-                <path d="M50 31 H25 V43" stroke="#8a8378" strokeWidth="0.35" opacity="0.55" fill="none" />
-                <path d="M50 31 H75 V43" stroke="#8a8378" strokeWidth="0.35" opacity="0.55" fill="none" />
-                <path d="M25 57 V69" stroke="#8a8378" strokeWidth="0.35" opacity="0.45" fill="none" />
-                <path d="M75 57 V69" stroke="#8a8378" strokeWidth="0.35" opacity="0.45" fill="none" />
-                <path d="M25 84 H50 V85" stroke="#8a8378" strokeWidth="0.35" opacity="0.38" fill="none" />
-                <path d="M75 84 H50 V85" stroke="#8a8378" strokeWidth="0.35" opacity="0.38" fill="none" />
+                <path d="M50 16 V28" stroke="#8a8378" strokeWidth="0.34" opacity="0.72" />
+                <path d="M50 28 H25 V43" stroke="#8a8378" strokeWidth="0.34" opacity="0.55" fill="none" />
+                <path d="M50 28 H75 V43" stroke="#8a8378" strokeWidth="0.34" opacity="0.55" fill="none" />
+                <path d="M25 57 V68" stroke="#8a8378" strokeWidth="0.34" opacity="0.46" fill="none" />
+                <path d="M75 57 V68" stroke="#8a8378" strokeWidth="0.34" opacity="0.46" fill="none" />
+                <path d="M25 82 H50 V84" stroke="#8a8378" strokeWidth="0.34" opacity="0.38" fill="none" />
+                <path d="M75 82 H50 V84" stroke="#8a8378" strokeWidth="0.34" opacity="0.38" fill="none" />
               </svg>
-              <div className="absolute left-1/2 top-[8%] flex h-20 w-32 -translate-x-1/2 flex-col items-center justify-center bg-[var(--landing-canvas)] text-center">
+              <div className="absolute left-1/2 top-[5%] flex h-20 w-32 -translate-x-1/2 flex-col items-center justify-center bg-[var(--landing-canvas)] text-center">
                 <motion.span
                   animate={{ opacity: [0.45, 1, 0.45] }}
                   transition={{ duration: 2, repeat: Infinity }}
@@ -1413,30 +1389,34 @@ function WorkspaceGraphPreview() {
 
         <div className="landing-terminal relative min-h-[430px] p-6 sm:p-8">
           <div className="relative flex h-full min-h-[380px] flex-col">
-            <div className="mb-7 text-left">
-              <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#9fb08f]">
+            <div className="mb-6 text-left">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#9fb08f]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
                 operating layer
               </div>
             </div>
 
-            <div className="mb-5 h-12 overflow-hidden text-left font-mono text-[13px] leading-6">
-              <span className="terminal-muted">$ </span>
-              <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: activeEvent.tone }}>{activeEvent.agent}</span>
-              <span className="terminal-muted"> </span>
-              <span className="terminal-amber">
-                <TerminalTypewriter text={`prepare "${activeEvent.action}" for ${activeEvent.target}`} />
-              </span>
-            </div>
-
-            <div className="min-h-[130px] space-y-1 overflow-hidden">
-              {WORKSPACE_GRAPH_EVENTS.map((event, i) => (
-                <TerminalLine key={`${event.agent}-${event.target}`} active={i === active % WORKSPACE_GRAPH_EVENTS.length}>
-                  <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: event.tone }}>{event.agent}</span>
-                  <span className="terminal-muted"> run </span><span className="terminal-amber">"{event.action}"</span>
-                  <span className="terminal-muted"> → </span><span className="terminal-blue">{event.target}</span>
+            <div className="min-h-[208px] space-y-1 overflow-hidden">
+              {WORKSPACE_TERMINAL_ROWS.map((row, i) => (
+                <TerminalLine key={row.prompt} active={i === active % WORKSPACE_TERMINAL_ROWS.length}>
+                  <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: row.tone }}>{row.prompt}</span>
+                  <span className="terminal-muted"> --input </span><span className="terminal-blue">{row.subject}</span>
+                  <span className="terminal-muted"> --result </span><span className="terminal-amber">{row.result}</span>
+                  {i === active % WORKSPACE_TERMINAL_ROWS.length && <span className="ml-1 inline-block h-[0.9em] w-px animate-pulse bg-[#9fb08f] align-middle" />}
                 </TerminalLine>
               ))}
+              <div className="h-7 truncate text-left font-mono text-[12px] leading-7">
+                <span className="terminal-muted">$ </span>
+                <span className="terminal-rose">approval.queue</span>
+                <span className="terminal-muted"> --mode </span>
+                <span className="terminal-blue">human_review</span>
+              </div>
+              <div className="h-7 truncate text-left font-mono text-[12px] leading-7">
+                <span className="terminal-muted">$ </span>
+                <span className="terminal-green">sources.attach</span>
+                <span className="terminal-muted"> --scope </span>
+                <span className="terminal-amber">workspace_graph</span>
+              </div>
             </div>
 
             <div className="mt-auto pt-6 text-left">

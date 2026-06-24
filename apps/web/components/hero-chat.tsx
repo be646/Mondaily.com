@@ -22,8 +22,30 @@ const PROCESS_STEPS = [
 
 function SendIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M5 12v3" />
+      <path d="M9 7v10" />
+      <path d="M13 4v16" />
+      <path d="M17 8v8" />
+      <path d="M21 11v2" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
+      <path d="M19 11a7 7 0 0 1-14 0" />
+      <path d="M12 18v3" />
     </svg>
   );
 }
@@ -210,26 +232,42 @@ export function HeroChat() {
             )}
           </AnimatePresence>
 
-          {/* Textarea */}
-          <div className="landing-soft-panel mx-auto max-w-xl border border-black/[.1] px-4 pt-4 pb-2 transition-colors focus-within:border-neutral-950 dark:border-white/15 dark:focus-within:border-white/60">
+          <div className="landing-chat-pill mx-auto flex max-w-3xl items-center gap-3 px-5 py-3.5 transition-colors focus-within:border-neutral-950">
+            <button
+              type="button"
+              aria-label="Add context"
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-950 transition-opacity hover:opacity-70 dark:text-white"
+            >
+              <PlusIcon />
+            </button>
             <textarea
               ref={textareaRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Ask AI about your workspace graph…"
-              rows={2}
-              className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
+              placeholder="What do you want to know?"
+              rows={1}
+              className="min-h-[30px] flex-1 resize-none bg-transparent py-1 text-[16px] leading-7 text-zinc-900 outline-none placeholder:text-zinc-500 dark:text-white dark:placeholder:text-zinc-500"
             />
-          </div>
-
-          {/* Bottom bar */}
-          <div className="landing-soft-panel mx-auto flex max-w-xl items-center justify-between border-x border-b border-black/[.1] px-4 pb-4 dark:border-white/15">
-            <span className="text-[12px] text-zinc-400">Enter to send</span>
+            <button
+              type="button"
+              className="hidden shrink-0 items-center gap-1.5 px-2 text-[13px] font-semibold text-neutral-950 transition-opacity hover:opacity-70 sm:inline-flex dark:text-white"
+            >
+              Fast
+              <span className="text-[15px] text-zinc-500">⌄</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Voice input"
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-950 transition-opacity hover:opacity-70 dark:text-white"
+            >
+              <MicIcon />
+            </button>
             <button
               onClick={() => void send()}
               disabled={!input.trim() || loading}
-              className="flex h-8 w-8 items-center justify-center border border-neutral-950 bg-neutral-950 text-white transition-opacity hover:opacity-85 disabled:opacity-20 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
+              className="landing-chat-pulse flex h-11 w-11 shrink-0 items-center justify-center transition-opacity hover:opacity-85 disabled:opacity-25"
+              aria-label="Send"
             >
               <SendIcon />
             </button>
