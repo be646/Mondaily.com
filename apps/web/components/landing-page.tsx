@@ -1,5 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
+import type { ReactNode } from "react";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
@@ -364,11 +365,14 @@ function FeatureSection() {
         ))}
       </div>
 
-      {/* What Mondaily does automatically — broad, honest, no terminal-log
-          theatrics. Each line maps to a real job/route in the product. */}
-      <div className="rounded-2xl border border-black/[.05] bg-zinc-50/60 p-6 sm:p-8">
-        <p className="mb-4 text-[13px] font-medium uppercase tracking-widest text-zinc-500">What Mondaily does automatically</p>
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* What Mondaily does automatically — rendered as a stable operation
+          stream so it feels active without pretending to be live telemetry. */}
+      <div className="landing-terminal p-6 sm:p-7">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-[#9fb08f]">What Mondaily does automatically</p>
+          <span className="text-[11px] text-[#7c8379]">operation stream</span>
+        </div>
+        <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
           {[
             "Turns messy records into one connected workspace graph",
             "Enriches new records with source-backed data from the web",
@@ -376,11 +380,11 @@ function FeatureSection() {
             "Drafts tasks, messages, and workflows for your approval",
             "Watches finance, decisions, and operations continuously",
             "Discovers new candidates and assets when you ask the Prospecting Agent",
-          ].map(line => (
-            <div key={line} className="flex items-start gap-2.5">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"/>
-              <p className="text-[14px] leading-relaxed text-zinc-700">{line}</p>
-            </div>
+          ].map((line, i) => (
+            <TerminalLine key={line} active={i < 3}>
+              <span className="terminal-green">agent</span><span className="terminal-muted">.</span><span className="terminal-blue">{["graph", "enrich", "signal", "draft", "monitor", "prospect"][i]}</span>
+              <span className="terminal-muted"> → </span><span className="terminal-amber">{line}</span>
+            </TerminalLine>
           ))}
         </div>
       </div>
@@ -583,10 +587,8 @@ function FAQSection() {
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">FAQ</p>
       <h2 className="mb-8 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">Questions before switching</h2>
 
-      <div
-        className="overflow-hidden border-y border-black/[.06]"
-      >
-        <div className="flex items-center gap-2 border-b border-black/[.06] py-3">
+      <div className="overflow-hidden">
+        <div className="flex items-center gap-2 py-3">
           <span className="text-[13px] font-medium text-zinc-700">Workspace answers</span>
           <motion.span
             animate={{ opacity: [0.4, 1, 0.4] }}
@@ -598,19 +600,19 @@ function FAQSection() {
         {/* Transcript */}
         <div className="py-5">
           <div className="flex justify-end mb-3">
-            <div className="max-w-[80%] border border-black/[.08] px-4 py-2.5 text-[13px] text-zinc-800">
+            <div className="max-w-[80%] px-1 py-2.5 text-right text-[13px] text-zinc-800">
               {FAQ_ITEMS[active]!.q}
             </div>
           </div>
           <div className="flex justify-start">
-            <div className="max-w-[85%] border border-black/[.06] px-4 py-2.5 text-[13px] leading-relaxed text-zinc-600">
+            <div className="max-w-[85%] px-1 py-2.5 text-[13px] leading-relaxed text-zinc-600">
               <FAQTypewriter key={active} text={FAQ_ITEMS[active]!.a} />
             </div>
           </div>
         </div>
 
         {/* Question list */}
-        <div className="border-t border-black/[.06] py-2">
+        <div className="py-2">
           {FAQ_ITEMS.map((item, i) => (
             <button
               key={i}
@@ -1248,6 +1250,42 @@ const WORKSPACE_GRAPH_EVENTS = [
   { agent: "operations", action: "queued review task", target: "Decision Queue", tone: "#6f8068" },
 ];
 
+function TerminalLine({ children, active }: { children: ReactNode; active?: boolean }) {
+  return (
+    <motion.div
+      animate={{ opacity: active ? 1 : 0.58 }}
+      transition={{ duration: 0.25 }}
+      className="h-7 whitespace-nowrap font-mono text-[12px] leading-7"
+    >
+      <span className="terminal-muted">$ </span>{children}
+    </motion.div>
+  );
+}
+
+function TerminalTypewriter({ text }: { text: string }) {
+  const [shown, setShown] = useState("");
+
+  useEffect(() => {
+    setShown("");
+    let i = 0;
+    const t = setInterval(() => {
+      i++;
+      setShown(text.slice(0, i));
+      if (i >= text.length) clearInterval(t);
+    }, 18);
+    return () => clearInterval(t);
+  }, [text]);
+
+  return (
+    <span>
+      {shown}
+      {shown.length < text.length && (
+        <span className="ml-1 inline-block h-[0.9em] w-px animate-pulse bg-[#9fb08f] align-middle" />
+      )}
+    </span>
+  );
+}
+
 function WorkspaceGraphPreview() {
   const [active, setActive] = useState(0);
 
@@ -1257,11 +1295,12 @@ function WorkspaceGraphPreview() {
   }, []);
 
   const activeNode = WORKSPACE_GRAPH_NODES[active]!;
+  const activeEvent = WORKSPACE_GRAPH_EVENTS[active % WORKSPACE_GRAPH_EVENTS.length]!;
 
   return (
-    <div className="relative mx-auto w-full max-w-full overflow-hidden border-y border-black/[.07] sm:max-w-6xl">
-      <div className="grid gap-0 lg:grid-cols-[1fr_.92fr]">
-        <div className="relative min-h-[420px] border-b border-black/[.06] p-5 sm:p-8 lg:border-b-0 lg:border-r">
+    <div className="relative mx-auto w-full max-w-full overflow-hidden sm:max-w-6xl">
+      <div className="grid gap-6 lg:grid-cols-[1fr_.92fr]">
+        <div className="relative min-h-[430px] p-5 sm:p-8">
           <div className="mb-6 flex flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-2">
@@ -1275,60 +1314,51 @@ function WorkspaceGraphPreview() {
                   agents watching
                 </span>
               </div>
-              <h3 className="max-w-xl text-2xl font-medium leading-tight tracking-tight text-zinc-900 sm:text-[2rem]">
+              <h3 className="max-w-xl text-xl font-semibold leading-tight tracking-tight text-zinc-900 sm:text-2xl">
                 Agents operate on one shared graph.
               </h3>
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-[1fr_210px] md:items-center">
-            <div className="relative mx-auto aspect-square w-full max-w-[440px]">
-              <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible">
-                <defs>
-                  <radialGradient id="coreFill" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#f7f7f4" />
-                    <stop offset="100%" stopColor="#e7e4dc" />
-                  </radialGradient>
-                </defs>
-                {WORKSPACE_GRAPH_NODES.map((node, i) => (
-                  <motion.line
-                    key={node.label}
-                    x1="50"
-                    y1="50"
-                    x2={node.x}
-                    y2={node.y}
-                    stroke={node.color}
-                    strokeWidth={i === active ? 0.7 : 0.32}
-                    initial={false}
-                    animate={{ opacity: i === active ? 0.75 : 0.22 }}
-                    transition={{ duration: 0.45 }}
-                  />
-                ))}
-                <motion.circle
-                  cx="50"
-                  cy="50"
-                  r="12"
-                  fill="url(#coreFill)"
-                  stroke="currentColor"
-                  strokeWidth="0.28"
-                  animate={{ r: [12, 13.4, 12] }}
-                  transition={{ duration: 3, repeat: Infinity }}
+          <div className="grid gap-7 md:grid-cols-[1fr_230px] md:items-center">
+            <div className="relative mx-auto h-[300px] w-full max-w-[430px]">
+              <div className="absolute inset-x-8 top-1/2 h-px bg-gradient-to-r from-transparent via-[#8a8378]/45 to-transparent" />
+              <div className="absolute inset-y-8 left-1/2 w-px bg-gradient-to-b from-transparent via-[#8a8378]/35 to-transparent" />
+              <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center bg-[var(--landing-canvas)] text-center">
+                <motion.span
+                  animate={{ opacity: [0.45, 1, 0.45] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="mb-2 h-2 w-2 rounded-full bg-[#6f8068]"
                 />
-                <circle cx="50" cy="50" r="2.2" fill="#111" />
-                {WORKSPACE_GRAPH_NODES.map((node, i) => (
-                  <motion.g key={node.label} initial={false} animate={{ scale: i === active ? 1.08 : 1 }} transition={{ duration: 0.35 }}>
-                    <circle cx={node.x} cy={node.y} r={i === active ? 5.1 : 4.1} fill="var(--landing-canvas, white)" stroke={node.color} strokeWidth={i === active ? 1.1 : 0.62} />
-                    <circle cx={node.x} cy={node.y} r="1.45" fill={node.color} />
-                  </motion.g>
-                ))}
-              </svg>
-              <div className="absolute left-1/2 top-1/2 w-[118px] -translate-x-1/2 -translate-y-1/2 text-center">
-                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-700">Graph core</p>
-                <p className="mt-1 text-[11px] text-zinc-500">live memory</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800">Mondaily</p>
+                <p className="mt-1 text-[11px] text-zinc-500">graph core</p>
               </div>
+              {WORKSPACE_GRAPH_NODES.map((node, i) => {
+                const style = {
+                  left: `${node.x}%`,
+                  top: `${node.y}%`,
+                };
+                return (
+                  <motion.button
+                    key={node.label}
+                    type="button"
+                    onClick={() => setActive(i)}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 bg-[var(--landing-canvas)] px-3 py-2 text-left"
+                    style={style}
+                    animate={{ opacity: i === active ? 1 : 0.66, scale: i === active ? 1.03 : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="mb-1 flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: node.color }} />
+                      <span className="whitespace-nowrap text-[11px] font-medium text-zinc-800">{node.label}</span>
+                    </span>
+                    <span className="block max-w-[130px] text-[10px] leading-snug text-zinc-500">{node.detail}</span>
+                  </motion.button>
+                );
+              })}
             </div>
 
-            <div className="border-y border-black/[.06]">
+            <div>
               {WORKSPACE_GRAPH_NODES.map((node, i) => (
                 <motion.button
                   key={node.label}
@@ -1336,7 +1366,7 @@ function WorkspaceGraphPreview() {
                   onClick={() => setActive(i)}
                   initial={false}
                   animate={{ opacity: i === active ? 1 : 0.62 }}
-                  className="grid w-full grid-cols-[10px_1fr] items-start gap-3 border-b border-black/[.05] py-3 text-left last:border-b-0"
+                  className="grid w-full grid-cols-[10px_1fr] items-start gap-3 py-2 text-left"
                 >
                   <span className="mt-1.5 h-2 w-2 rounded-full" style={{ background: node.color }} />
                   <span>
@@ -1348,92 +1378,69 @@ function WorkspaceGraphPreview() {
             </div>
           </div>
 
-          <div className="mt-6 border-y border-black/[.06] py-3 text-left">
-            <div className="flex items-start gap-3">
+          <div className="mt-6 py-3 text-left">
+            <div className="flex min-h-[44px] items-start gap-3">
               <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#607078]" />
               <div className="min-w-0 flex-1">
                 <p className="text-[12px] font-medium text-zinc-800">Ask AI</p>
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={activeNode.label}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.25 }}
-                    className="truncate text-[12px] text-zinc-500"
-                  >
-                    Continue from {activeNode.label}: what changed, what matters, what should happen next?
-                  </motion.p>
-                </AnimatePresence>
+                <motion.p
+                  key={activeNode.label}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.25 }}
+                  className="truncate text-[12px] text-zinc-500"
+                >
+                  Continue from {activeNode.label}: what changed, what matters, what should happen next?
+                </motion.p>
               </div>
               <span className="text-[12px] text-zinc-400">↵</span>
             </div>
           </div>
         </div>
 
-        <div className="landing-terminal relative p-6 sm:p-8">
-          <div className="relative">
+        <div className="landing-terminal relative min-h-[430px] p-6 sm:p-8">
+          <div className="relative flex h-full min-h-[380px] flex-col">
             <div className="mb-7 text-left">
               <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#9fb08f]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
                 operating layer
               </div>
-              <h3 className="text-2xl font-medium tracking-tight text-white">AI process terminal</h3>
+              <h3 className="text-xl font-medium tracking-tight text-white">AI process terminal</h3>
             </div>
 
-            <div className="space-y-3 font-mono text-[12.5px]">
+            <div className="mb-5 h-12 overflow-hidden font-mono text-[13px] leading-6">
+              <span className="terminal-muted">$ </span>
+              <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: activeEvent.tone }}>{activeEvent.agent}</span>
+              <span className="terminal-muted"> </span>
+              <span className="terminal-amber">
+                <TerminalTypewriter text={`prepare "${activeEvent.action}" for ${activeEvent.target}`} />
+              </span>
+            </div>
+
+            <div className="min-h-[130px] space-y-1 overflow-hidden">
               {WORKSPACE_GRAPH_EVENTS.map((event, i) => (
-                <motion.div
-                  key={`${event.agent}-${event.target}`}
-                  initial={{ opacity: 0.55, x: 8 }}
-                  animate={{ opacity: i === active % WORKSPACE_GRAPH_EVENTS.length ? 1 : 0.64, x: 0 }}
-                  transition={{ duration: 0.45 }}
-                  className="border-b border-white/[.08] pb-3 last:border-b-0"
-                >
-                  <p>
-                    <span className="text-[#9fb08f]">mondaily</span>
-                    <span className="text-zinc-500">.</span>
-                    <span style={{ color: event.tone }}>{event.agent}</span>
-                    <span className="text-zinc-500"> --run </span>
-                    <span className="text-[#d7c6a3]">"{event.action}"</span>
-                  </p>
-                  <p className="mt-1 pl-4 text-zinc-400">
-                    source=<span className="text-[#8fb3b0]">workspace_graph</span> target=<span className="text-[#d7c6a3]">{event.target}</span> status=<span className="text-[#9fb08f]">prepared</span>
-                  </p>
-                </motion.div>
+                <TerminalLine key={`${event.agent}-${event.target}`} active={i === active % WORKSPACE_GRAPH_EVENTS.length}>
+                  <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: event.tone }}>{event.agent}</span>
+                  <span className="terminal-muted"> run </span><span className="terminal-amber">"{event.action}"</span>
+                  <span className="terminal-muted"> → </span><span className="terminal-blue">{event.target}</span>
+                </TerminalLine>
               ))}
             </div>
 
-            <div className="mt-8 grid grid-cols-3 divide-x divide-white/[.08] border-y border-white/[.08]">
-              {[
-                ["6+", "agents"],
-                ["1", "graph"],
-                ["0", "data leaks"],
-              ].map(([value, label]) => (
-                <div key={label} className="px-2 py-4 text-left sm:px-4">
-                  <p className="text-xl font-medium text-white sm:text-2xl">{value}</p>
-                  <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-zinc-500 sm:text-[11px] sm:tracking-[0.12em]">{label}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 border-t border-white/[.08] pt-5 text-left">
-              <div className="flex items-start gap-3">
+            <div className="mt-auto pt-6 text-left">
+              <div className="flex min-h-[54px] items-start gap-3">
                 <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current process</p>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={activeNode.label}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.25 }}
-                      className="mt-1 text-sm font-medium text-zinc-200"
-                    >
-                      {activeNode.label}: {activeNode.detail}
-                    </motion.p>
-                  </AnimatePresence>
+                  <motion.p
+                    key={activeNode.label}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.25 }}
+                    className="mt-1 text-sm font-medium text-zinc-200"
+                  >
+                    {activeNode.label}: {activeNode.detail}
+                  </motion.p>
                 </div>
               </div>
             </div>
@@ -2430,7 +2437,10 @@ export function PricingSection() {
             >
               <div className="relative flex h-full flex-col">
                 {plan.highlight && (
-                  <div className="mb-3 inline-block border border-black/[.1] px-2.5 py-0.5 text-[11px] uppercase tracking-[0.16em] text-zinc-600">Most popular</div>
+                  <div className="mb-3 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.16em] text-zinc-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#8a8378]" />
+                    Most popular
+                  </div>
                 )}
                 <div className="mb-0.5 text-[15px] font-semibold text-zinc-800">{plan.name}</div>
                 <div className="mb-1 text-[12px] text-zinc-500">{plan.bestFor}</div>
@@ -2633,7 +2643,7 @@ export function LandingPage() {
                 transition={{ duration: 0.55, delay: 0.2 }}
               >
                 {/* Live badge */}
-                <div className="mb-4 inline-flex items-center gap-2 border px-3.5 py-1.5 text-[13px] font-medium text-neutral-600 dark:text-neutral-300">
+                <div className="mb-4 inline-flex items-center gap-2 px-1 py-1.5 text-[13px] font-medium text-neutral-600 dark:text-neutral-300">
                   <motion.span animate={{ opacity: [0.3,1,0.3], boxShadow: ["0 0 0 0 rgba(90,120,92,0)", "0 0 0 4px rgba(90,120,92,0.12)", "0 0 0 0 rgba(90,120,92,0)"] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"/>
                   An autonomous AI workspace
                 </div>

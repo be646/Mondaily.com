@@ -164,16 +164,7 @@ export function HeroChat() {
   return (
     <div className="mx-auto w-full max-w-2xl">
       <div className="relative">
-        {/* Chat card */}
-        <motion.div
-          className="bg-white dark:bg-black"
-          animate={{
-            boxShadow: loading
-              ? ["0 0 0 1px rgba(10,10,10,0.2)", "0 0 0 1px rgba(10,10,10,0.45)", "0 0 0 1px rgba(10,10,10,0.2)"]
-              : ["0 0 0 1px rgba(10,10,10,0.02)", "0 0 0 1px rgba(10,10,10,0.08)", "0 0 0 1px rgba(10,10,10,0.02)"],
-          }}
-          transition={{ duration: loading ? 1.0 : 3.8, repeat: Infinity, ease: "easeInOut" }}
-        >
+        <div>
           {/* Suggestion messages — shown when idle, no history */}
           <AnimatePresence>
             {showSuggestions && (
@@ -182,10 +173,10 @@ export function HeroChat() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="px-0 pb-3"
+                className="mx-auto mb-4 max-w-xl px-0"
               >
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">Try asking</p>
-                <div className="grid gap-0">
+                <p className="mb-2 text-left text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">Try asking</p>
+                <div className="grid gap-1">
                   {SUGGESTIONS.map((s, i) => (
                     <motion.button
                       key={i}
@@ -193,7 +184,7 @@ export function HeroChat() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.06 }}
                       onClick={() => void send(s.text)}
-                      className="group flex w-full items-center justify-between gap-4 border-t border-black/[.05] py-2.5 text-left text-[13px] transition-colors last:border-b hover:text-neutral-950"
+                      className="group flex w-full items-center justify-between gap-4 py-1.5 text-left text-[13px] transition-colors hover:text-neutral-950"
                     >
                       <span className="text-zinc-500 transition-colors group-hover:text-neutral-950">{s.text}</span>
                       <span className="text-[13px] text-zinc-400 transition-colors group-hover:text-neutral-800">↵</span>
@@ -210,21 +201,21 @@ export function HeroChat() {
               <motion.div
                 key="reply-area"
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
+                animate={{ opacity: 1, height: 86 }}
                 exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden border-y border-black/[.05] px-4 py-4"
+                className="mx-auto mb-3 max-w-xl overflow-hidden px-1 py-3 text-left"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
                     {[0,1,2].map(i => (
-                      <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-indigo-700"
+                      <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-neutral-800 dark:bg-neutral-100"
                         animate={{ opacity: [0.3,1,0.3] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
                       />
                     ))}
-                    <span className="font-mono text-[13px] text-zinc-500 ml-1">processing…</span>
+                    <span className="ml-1 text-[13px] text-zinc-500">processing…</span>
                   </div>
                 ) : reply ? (
-                  <p className="font-mono text-[14px] leading-relaxed text-zinc-600">
+                  <p className="text-[14px] leading-relaxed text-zinc-600">
                     <ReplyTypewriter key={reply} text={reply} />
                   </p>
                 ) : null}
@@ -233,20 +224,20 @@ export function HeroChat() {
           </AnimatePresence>
 
           {/* Textarea */}
-          <div className="landing-soft-panel border border-black/[.1] px-4 pt-4 pb-2 transition-colors focus-within:border-neutral-950 dark:border-white/15 dark:focus-within:border-white/60">
+          <div className="landing-soft-panel mx-auto max-w-xl border border-black/[.1] px-4 pt-4 pb-2 transition-colors focus-within:border-neutral-950 dark:border-white/15 dark:focus-within:border-white/60">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="Ask Mondaily AI anything…"
+              placeholder="Ask AI about your workspace graph…"
               rows={2}
               className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
             />
           </div>
 
           {/* Bottom bar */}
-          <div className="landing-soft-panel flex items-center justify-between border-x border-b border-black/[.1] px-4 pb-4 dark:border-white/15">
+          <div className="landing-soft-panel mx-auto flex max-w-xl items-center justify-between border-x border-b border-black/[.1] px-4 pb-4 dark:border-white/15">
             <span className="text-[12px] text-zinc-400">Enter to send</span>
             <button
               onClick={() => void send()}
@@ -256,7 +247,7 @@ export function HeroChat() {
               <SendIcon />
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* Process panel — right side, desktop only */}
         <ProcessPanel visible={loading} />

@@ -63,7 +63,7 @@ body {
 }
 
 .landing-shell section {
-  border-top: 1px solid var(--landing-line);
+  border-top: 0;
 }
 
 .landing-shell main > section:first-child {
@@ -232,6 +232,26 @@ body {
     #050706 !important;
   background-size: 28px 28px, 28px 28px, auto !important;
   color: #f4f7f2 !important;
+}
+
+.landing-shell .landing-terminal .terminal-muted {
+  color: #7c8379 !important;
+}
+
+.landing-shell .landing-terminal .terminal-green {
+  color: #9fb08f !important;
+}
+
+.landing-shell .landing-terminal .terminal-amber {
+  color: #d7c6a3 !important;
+}
+
+.landing-shell .landing-terminal .terminal-blue {
+  color: #8fb3b0 !important;
+}
+
+.landing-shell .landing-terminal .terminal-rose {
+  color: #c59a8d !important;
 }
 
 .landing-shell .landing-terminal * {
