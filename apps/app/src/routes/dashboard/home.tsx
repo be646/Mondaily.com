@@ -140,10 +140,10 @@ interface WorkspaceSummary {
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: "bg-indigo-400/10 text-indigo-400",
-  high:   "bg-orange-400/10 text-orange-400",
-  medium: "bg-blue-400/10 text-blue-400",
-  low:    "bg-slate-400/10 text-slate-400",
+  urgent: "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  high:   "border border-neutral-300 bg-neutral-100 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
+  medium: "border border-neutral-300 bg-neutral-100 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
+  low:    "border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500",
 };
 
 export function HomePage() {
@@ -503,19 +503,7 @@ export function HomePage() {
         {isChatting && (
           <div className="mb-6 max-h-[560px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
             {(() => {
-              // Colour palette that cycles per AI reply
-              const ACCENTS = [
-                { border: "border-l-violet-500/50", dot: "bg-violet-400", userBorder: "border-violet-500/30", userText: "text-violet-200" },
-                { border: "border-l-blue-500/50",   dot: "bg-blue-400",   userBorder: "border-blue-500/30",   userText: "text-blue-200"   },
-                { border: "border-l-emerald-500/50",dot: "bg-emerald-400",userBorder: "border-emerald-500/30",userText: "text-emerald-200"},
-                { border: "border-l-rose-500/50",   dot: "bg-rose-400",   userBorder: "border-rose-500/30",   userText: "text-rose-200"   },
-                { border: "border-l-amber-500/50",  dot: "bg-amber-400",  userBorder: "border-amber-500/30",  userText: "text-amber-200"  },
-              ];
-              // Count which AI reply index we're on to pick the colour
-              let aiIdx = -1;
               return messages.map((m, i) => {
-                if (m.role === "assistant") aiIdx++;
-                const accent = ACCENTS[aiIdx % ACCENTS.length] ?? ACCENTS[0]!;
                 const isStreaming = streamingMsgIdx === i;
                 const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
                 const meta = messageMeta[i];
@@ -523,7 +511,7 @@ export function HomePage() {
                 return (
                   <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                     {m.role === "assistant" && (
-                      <div className="mt-0.5 shrink-0 text-indigo-400">
+                      <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
                         <LogoMark size={16}/>
                       </div>
                     )}
@@ -599,7 +587,7 @@ export function HomePage() {
                   <button key={i} onClick={() => sendSuggestion(s)}
                     className="ask-suggestion-row group text-sm">
                     <span>{s}</span>
-                    <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-slate-600 dark:group-hover:text-slate-400 transition-colors"/>
+                    <CornerDownLeft size={12} className="shrink-0 transition-colors" style={{ color: "var(--text-faint)" }}/>
                   </button>
                 ))}
               </div>
@@ -611,20 +599,20 @@ export function HomePage() {
         {/* Input */}
         <div className="relative mx-auto max-w-3xl" ref={pickerRef}>
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-white/[.08] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-              <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-white/[.06]">
-                <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest">Quick prompts</p>
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+              <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => firePrompt(prompt)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-white/[.05] transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 group-hover:bg-indigo-100 dark:bg-indigo-500/10 dark:group-hover:bg-indigo-500/20 transition-colors">
-                      <Icon size={13} className="text-indigo-600 dark:text-indigo-400"/>
+                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 transition-colors group-hover:bg-neutral-200 dark:bg-neutral-900 dark:group-hover:bg-neutral-800">
+                      <Icon size={13} className="text-neutral-500 dark:text-neutral-400"/>
                     </span>
                     <span>
-                      <span className="block text-sm text-[#111827] group-hover:text-indigo-700 dark:text-slate-200 dark:group-hover:text-white transition-colors">{label}</span>
-                      <span className="block text-[11px] text-[#9ca3af] dark:text-slate-600">{description}</span>
+                      <span className="block text-sm transition-colors" style={{ color: "var(--text-primary)" }}>{label}</span>
+                      <span className="block text-[11px]" style={{ color: "var(--text-muted)" }}>{description}</span>
                     </span>
                   </button>
                 ))}
@@ -634,7 +622,7 @@ export function HomePage() {
 
           <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all sm:px-5">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : ""}`}
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200" : ""}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>
               <Zap size={14}/>
             </button>
@@ -649,7 +637,7 @@ export function HomePage() {
               <Mic size={13}/>
             </button>
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : ""}`}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200" : ""}`}
               style={input.trim() && !loading ? undefined : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
@@ -661,15 +649,15 @@ export function HomePage() {
           <div className="mx-auto mt-2.5 flex max-w-3xl flex-wrap items-center gap-2">
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
             {recentThreads.map(t => (
-              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
+              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
             ))}
             <span className="text-xs" style={{ color: "var(--text-faint)" }}>·</span>
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
           </div>
         )}
         {!isChatting && recentThreads.length === 0 && (
           <div className="mx-auto mt-2 flex max-w-3xl justify-end">
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
           </div>
         )}
         </div>
@@ -717,13 +705,13 @@ export function HomePage() {
         <section className="flow-panel-clean flex flex-col overflow-hidden">
           <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckSquare size={13} className="text-emerald-400"/>
+              <CheckSquare size={13} className="text-neutral-500 dark:text-neutral-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tasks</span>
               <span className="flow-micro-badge">
                 <Sparkles size={8}/> AI sorted
               </span>
             </div>
-            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-indigo-400" style={{ color: "var(--text-muted)" }}>
+            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>
               View all <ArrowUpRight size={11}/>
             </Link>
           </div>
@@ -750,7 +738,7 @@ export function HomePage() {
                 {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusColor = item.status === "in_progress" ? "bg-blue-400" : item.status === "review" ? "bg-yellow-400" : item.status === "done" ? "bg-emerald-400" : "bg-slate-700";
+                  const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "bg-neutral-900 dark:bg-neutral-100" : item.status === "in_progress" ? "bg-neutral-500 dark:bg-neutral-400" : "bg-neutral-300 dark:bg-neutral-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
                       className="flow-list-row group flex cursor-pointer items-center gap-3 transition-colors">
@@ -761,7 +749,7 @@ export function HomePage() {
                           <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
                         )}
                         {item.due_date && (
-                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "var(--accent)" : "var(--text-faint)" }}>
+                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "#d97706" : "var(--text-faint)" }}>
                             <Clock size={9}/>
                             {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
@@ -782,7 +770,7 @@ export function HomePage() {
           {/* Task AI footer */}
           <div className="flow-panel-footer" ref={taskPickerRef}>
             <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "color-mix(in srgb, var(--surface-hover) 48%, transparent)" }}>
-              <Sparkles size={11} className="text-indigo-400 shrink-0"/>
+              <Sparkles size={11} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
@@ -797,7 +785,7 @@ export function HomePage() {
                     {scanLoading ? <Loader2 size={9} className="animate-spin"/> : "Scan"}
                   </button>
                   <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()}
-                    className="shrink-0 text-indigo-400 hover:text-indigo-300 disabled:opacity-30 transition-colors">
+                    className="shrink-0 text-neutral-500 transition-colors hover:text-neutral-900 disabled:opacity-30 dark:text-neutral-400 dark:hover:text-neutral-100">
                     <Send size={11}/>
                   </button>
                 </>
@@ -810,7 +798,7 @@ export function HomePage() {
         <section className="flow-panel-clean flex flex-col overflow-hidden">
           <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Calendar size={13} className="text-blue-400"/>
+              <Calendar size={13} className="text-neutral-500 dark:text-neutral-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
             </div>
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Today</span>
@@ -863,48 +851,48 @@ export function HomePage() {
       {/* Scan report modal */}
       {(scanReport || scanLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
-          <div className="relative w-full max-w-lg rounded-2xl border border-[#e0e7ff] bg-white shadow-2xl flex flex-col max-h-[80vh] dark:border-white/10 dark:bg-[#111419]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f7] dark:border-white/[.06] shrink-0">
+          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl border shadow-2xl" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex shrink-0 items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-500/15">
-                  <Sparkles size={11} className="text-indigo-600 dark:text-indigo-400"/>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
+                  <Sparkles size={11} style={{ color: "var(--text-muted)" }}/>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-[#111827] dark:text-inherit">AI Scan Report</p>
-                    <span className="flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-px text-[9px] font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>AI Scan Report</p>
+                    <span className="flex items-center gap-1 rounded-full px-1.5 py-px text-[9px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
                       <span className="relative flex h-1 w-1">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-60 animate-ping"/>
-                        <span className="relative inline-flex h-1 w-1 rounded-full bg-indigo-500"/>
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-40" style={{ background: "var(--text-muted)" }}/>
+                        <span className="relative inline-flex h-1 w-1 rounded-full" style={{ background: "var(--text-muted)" }}/>
                       </span>
                       AI Signal
                     </span>
                   </div>
-                  {scanTimestamp && <p className="text-[10px] text-[#9ca3af] dark:text-slate-600 mt-px">{scanTimestamp}</p>}
+                  {scanTimestamp && <p className="mt-px text-[10px]" style={{ color: "var(--text-faint)" }}>{scanTimestamp}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {!scanLoading && scanReport && (
-                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-xs text-[#6b7280] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:border-white/20">
+                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                     <Printer size={11}/> Print
                   </button>
                 )}
                 {!scanLoading && (
-                  <button onClick={() => setScanReport(null)} className="text-[#9ca3af] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors text-xl leading-none">×</button>
+                  <button onClick={() => setScanReport(null)} className="text-xl leading-none transition-colors hover:opacity-70" style={{ color: "var(--text-muted)" }}>×</button>
                 )}
               </div>
             </div>
-            <div className="overflow-y-auto px-5 py-5 text-sm space-y-1 flex-1 text-[#374151] dark:text-inherit">
+            <div className="flex-1 space-y-1 overflow-y-auto px-5 py-5 text-sm" style={{ color: "var(--text-secondary)" }}>
               {scanLoading ? (
-                <div className="flex items-center gap-3 text-[#6b7280] dark:text-slate-400 py-4">
+                <div className="flex items-center gap-3 py-4" style={{ color: "var(--text-muted)" }}>
                   <LogoMark size={22} thinking />
                   <span className="text-sm italic tracking-wide">Searching workspace…</span>
                 </div>
               ) : scanReport ? renderMarkdown(scanReport) : null}
             </div>
             {!scanLoading && scanReport && (
-              <div className="px-5 py-3 border-t border-[#eef2f7] dark:border-white/[.06] shrink-0">
-                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border border-[#e5e7eb] py-2 text-xs text-[#6b7280] hover:text-[#111827] hover:border-[#cbd5e1] transition-colors dark:border-white/10 dark:text-slate-400 dark:hover:text-white dark:hover:border-white/20">
+              <div className="shrink-0 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
+                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border py-2 text-xs transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                   Close
                 </button>
               </div>

@@ -268,9 +268,9 @@ html[data-theme="dark"] .minimal-sparkline {
   pointer-events: none;
   z-index: -1;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 3%, transparent), transparent 24rem);
+    linear-gradient(180deg, color-mix(in srgb, var(--text-primary) 1.5%, transparent), transparent 24rem);
   mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black, transparent 72%);
-  opacity: 0.42;
+  opacity: 0.24;
 }
 .home-operating-picture {
   position: relative;
@@ -317,10 +317,10 @@ html[data-theme="dark"] .minimal-sparkline {
    plain hairline border — no shadow, no tinted gradient. */
 .chat-console {
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 3%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--text-primary) 1.5%, transparent), transparent 42%),
     var(--surface-page);
-  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border-soft));
-  box-shadow: 0 18px 60px color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 72%, transparent);
+  box-shadow: none;
 }
 .chat-console::before {
   content: "";
@@ -373,10 +373,10 @@ html[data-theme="dark"] .minimal-sparkline {
   pointer-events: none;
   border-radius: inherit;
   background:
-    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 18%, transparent), transparent);
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--text-muted) 16%, transparent), transparent);
   transform: translateX(-120%);
   animation: chatInputScan 5.5s ease-in-out infinite;
-  opacity: 0.7;
+  opacity: 0.42;
 }
 .chat-input-orbit::after {
   content: "";
@@ -385,8 +385,8 @@ html[data-theme="dark"] .minimal-sparkline {
   right: 1.25rem;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 42%, var(--border-soft)), transparent);
-  opacity: 0.62;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--border-strong) 82%, transparent), transparent);
+  opacity: 0.48;
 }
 .chat-input-orbit > * {
   position: relative;
@@ -404,7 +404,7 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .ask-message-scroll {
   background:
-    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 34%),
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--text-primary) 1.5%, transparent), transparent 34%),
     var(--surface-page);
 }
 .ask-input-shell {
@@ -416,8 +416,8 @@ html[data-theme="dark"] .minimal-sparkline {
   box-shadow: none;
 }
 .ask-input:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--border-soft));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--text-muted) 38%, var(--border-soft));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-muted) 8%, transparent);
 }
 .ask-suggestion-row {
   display: flex;
@@ -441,7 +441,7 @@ html[data-theme="dark"] .minimal-sparkline {
   color: var(--text-primary);
 }
 .ask-assistant-line {
-  border-left: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-soft));
+  border-left: 1px solid color-mix(in srgb, var(--border-strong) 80%, transparent);
 }
 
 /* Home's "frames" (Tasks/Meetings cards, the Agent Constellation's empty
@@ -453,10 +453,30 @@ html[data-theme="dark"] .minimal-sparkline {
    elevated surface, unaffected. */
 .home-control-room .surface-card,
 .home-control-room .flow-panel {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 2%, transparent), transparent 56%),
-    var(--surface-page);
+  background: var(--surface-page);
   box-shadow: none;
+}
+
+.home-control-room .btn-ai {
+  color: var(--surface-page);
+  background: var(--text-primary);
+  border-color: color-mix(in srgb, var(--text-primary) 18%, var(--border-soft));
+  box-shadow: none;
+}
+.home-control-room .btn-ai:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary) 90%, var(--surface-page));
+  border-color: color-mix(in srgb, var(--text-primary) 26%, var(--border-soft));
+  box-shadow: none;
+}
+.home-control-room .btn-suggested {
+  color: var(--text-secondary);
+  background: transparent;
+  border-color: var(--border-soft);
+}
+.home-control-room .btn-suggested:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
 }
 
 .workspace-pulse-grid {
@@ -605,7 +625,7 @@ html[data-theme="dark"] .minimal-sparkline {
    monospace-leaning, a live dot rather than an icon-in-a-box. */
 .telemetry-pill {
   @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium tabular-nums;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  background: color-mix(in srgb, var(--surface-hover) 65%, transparent);
   border: 1px solid var(--border-soft);
   color: var(--text-secondary);
 }
@@ -664,7 +684,7 @@ html[data-theme="dark"] .minimal-sparkline {
   fill: none;
 }
 .graph-line[data-live="true"] {
-  stroke: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  stroke: color-mix(in srgb, var(--text-muted) 62%, var(--border-strong));
   stroke-dasharray: 4 5;
   animation: graphFlow 1.8s linear infinite;
 }
