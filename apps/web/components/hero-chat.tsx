@@ -4,19 +4,12 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 const API_URL = "/api/ask";
 
-const FEATURE_LINES = [
-  { icon: "◆", text: "Enrich any company — ARR, headcount & signals in seconds" },
-  { icon: "▣", text: "Ask in plain English — get answers from your live data" },
-  { icon: "▶", text: "Design workflows and sequences, agents recommend the next step" },
-  { icon: "◈", text: "Every object connected to the graph" },
-];
-
 // Shown as fake user message bubbles — click to fire
-const SUGGESTIONS: { text: string; icon: string }[] = [
-  { icon: "◈", text: "How does AI enrichment work?" },
-  { icon: "◈", text: "Walk me through the opportunity flow on the graph" },
-  { icon: "◈", text: "What can Ask AI do?" },
-  { icon: "◈", text: "How do automations work?" },
+const SUGGESTIONS: { text: string }[] = [
+  { text: "What changed in my graph today?" },
+  { text: "Which tasks need attention?" },
+  { text: "Where is revenue at risk?" },
+  { text: "What should the agents prepare next?" },
 ];
 
 // Plain-language reasoning flow — no raw code/log syntax, just what the AI is actually doing
@@ -27,34 +20,11 @@ const PROCESS_STEPS = [
   { lines: ["Drafting an answer"],        delay: 4600 },
 ];
 
-const SOURCE_CHIPS = ["Records", "Relationships", "Messages", "Finance", "Tasks"];
-
 function SendIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
     </svg>
-  );
-}
-
-function TypewriterLine({ text, delay = 0 }: { text: string; delay?: number }) {
-  const [shown, setShown] = useState("");
-  useEffect(() => {
-    setShown("");
-    const timer = setTimeout(() => {
-      let i = 0;
-      const t = setInterval(() => { i++; setShown(text.slice(0, i)); if (i >= text.length) clearInterval(t); }, 28);
-      return () => clearInterval(t);
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [text, delay]);
-  return (
-    <span>
-      {shown}
-      {shown.length < text.length && (
-        <span className="inline-block w-[1px] h-[0.85em] bg-indigo-600 ml-[1px] opacity-70 animate-pulse align-middle"/>
-      )}
-    </span>
   );
 }
 
@@ -196,35 +166,14 @@ export function HeroChat() {
       <div className="relative">
         {/* Chat card */}
         <motion.div
-          className="rounded-2xl"
+          className="border border-black/[.08] bg-white dark:border-white/10 dark:bg-black"
           animate={{
             boxShadow: loading
-              ? ["0 0 0 1px rgba(99,102,241,0.45), 0 0 50px rgba(99,102,241,0.18), 0 16px 48px rgba(0,0,0,0.08)",
-                 "0 0 0 1px rgba(99,102,241,0.7),  0 0 70px rgba(99,102,241,0.26), 0 16px 48px rgba(0,0,0,0.08)",
-                 "0 0 0 1px rgba(99,102,241,0.45), 0 0 50px rgba(99,102,241,0.18), 0 16px 48px rgba(0,0,0,0.08)"]
-              : ["0 0 0 1px rgba(99,102,241,0.12), 0 0 24px rgba(99,102,241,0.05), 0 16px 48px rgba(0,0,0,0.06)",
-                 "0 0 0 1px rgba(99,102,241,0.32), 0 0 40px rgba(99,102,241,0.1), 0 16px 48px rgba(0,0,0,0.06)",
-                 "0 0 0 1px rgba(99,102,241,0.12), 0 0 24px rgba(99,102,241,0.05), 0 16px 48px rgba(0,0,0,0.06)"],
+              ? ["0 0 0 1px rgba(10,10,10,0.2)", "0 0 0 1px rgba(10,10,10,0.45)", "0 0 0 1px rgba(10,10,10,0.2)"]
+              : ["0 0 0 1px rgba(10,10,10,0.02)", "0 0 0 1px rgba(10,10,10,0.08)", "0 0 0 1px rgba(10,10,10,0.02)"],
           }}
-          transition={{ duration: loading ? 1.0 : 3.5, repeat: Infinity, ease: "easeInOut" }}
-          style={{ border: "1px solid rgba(99,102,241,0.18)", background: "#ffffff" }}
+          transition={{ duration: loading ? 1.0 : 3.8, repeat: Infinity, ease: "easeInOut" }}
         >
-          {/* Source chips — what Ask Mondaily actually reads from. Scrolls
-              on narrow widths rather than overflowing; the gradient mask
-              makes that scrollability visible instead of looking like a
-              cut-off layout bug. */}
-          <div className="relative">
-            <div className="flex items-center gap-1.5 overflow-x-auto px-4 pt-3.5 pb-2.5" style={{ scrollbarWidth: "none" }}>
-              <span className="shrink-0 text-[11px] text-zinc-400">Reads from</span>
-              {SOURCE_CHIPS.map(s => (
-                <span key={s} className="shrink-0 rounded-full border border-indigo-100 bg-indigo-50/70 px-2.5 py-0.5 text-[11px] font-medium text-indigo-600">
-                  {s}
-                </span>
-              ))}
-            </div>
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 sm:hidden" style={{ background: "linear-gradient(to right, transparent, #ffffff)" }}/>
-          </div>
-
           {/* Suggestion messages — shown when idle, no history */}
           <AnimatePresence>
             {showSuggestions && (
@@ -233,26 +182,24 @@ export function HeroChat() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="border-b border-black/[.05] px-4 py-3 space-y-1.5"
+                className="border-b border-black/[.06] px-4 py-4"
               >
-                <p className="font-mono text-[11px] text-zinc-500 mb-2 tracking-widest uppercase">// try asking</p>
-                {SUGGESTIONS.map((s, i) => (
-                  <motion.button
-                    key={i}
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.07 }}
-                    onClick={() => void send(s.text)}
-                    className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left font-mono text-[13px] transition-all"
-                    style={{ background: "rgba(0,0,0,0.02)", border: "1px solid rgba(0,0,0,0.05)" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.25)"; (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.05)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,0,0,0.05)"; (e.currentTarget as HTMLElement).style.background = "rgba(0,0,0,0.02)"; }}
-                  >
-                    <span className="text-indigo-700 text-[14px] shrink-0">{s.icon}</span>
-                    <span className="text-zinc-500 group-hover:text-indigo-600 transition-colors">{s.text}</span>
-                    <span className="ml-auto text-[14px] text-zinc-500 group-hover:text-indigo-700 transition-colors shrink-0">↵</span>
-                  </motion.button>
-                ))}
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">Try asking</p>
+                <div className="grid gap-0.5">
+                  {SUGGESTIONS.map((s, i) => (
+                    <motion.button
+                      key={i}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      onClick={() => void send(s.text)}
+                      className="group flex w-full items-center justify-between gap-4 border-t border-black/[.05] py-2.5 text-left text-[13px] transition-colors last:border-b hover:text-neutral-950"
+                    >
+                      <span className="text-zinc-500 transition-colors group-hover:text-neutral-950">{s.text}</span>
+                      <span className="text-[13px] text-zinc-400 transition-colors group-hover:text-neutral-800">↵</span>
+                    </motion.button>
+                  ))}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -286,7 +233,7 @@ export function HeroChat() {
           </AnimatePresence>
 
           {/* Textarea */}
-          <div className="px-5 pt-4 pb-2">
+          <div className="px-4 pt-4 pb-2">
             <textarea
               ref={textareaRef}
               value={input}
@@ -294,17 +241,17 @@ export function HeroChat() {
               onKeyDown={handleKey}
               placeholder="Ask Mondaily AI anything…"
               rows={2}
-              className="w-full resize-none bg-transparent font-mono text-[13px] text-zinc-900 placeholder-zinc-600 outline-none leading-relaxed"
+              className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
             />
           </div>
 
           {/* Bottom bar */}
-          <div className="flex items-center justify-between px-5 pb-4">
-            <span className="font-mono text-[14px] text-zinc-600">Enter ↵ to send</span>
+          <div className="flex items-center justify-between px-4 pb-4">
+            <span className="text-[12px] text-zinc-400">Enter to send</span>
             <button
               onClick={() => void send()}
               disabled={!input.trim() || loading}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-20 active:scale-95 transition-all"
+              className="flex h-8 w-8 items-center justify-center border border-neutral-950 bg-neutral-950 text-white transition-opacity hover:opacity-85 disabled:opacity-20 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
             >
               <SendIcon />
             </button>
@@ -313,29 +260,6 @@ export function HeroChat() {
 
         {/* Process panel — right side, desktop only */}
         <ProcessPanel visible={loading} />
-      </div>
-
-      {/* Feature lines */}
-      <div className="mt-8 flex flex-col gap-1.5">
-        {FEATURE_LINES.map((line, i) => (
-          <motion.div
-            key={i}
-            className="group flex cursor-default items-center gap-3 rounded-lg border border-transparent px-3 py-2.5"
-            whileHover={{ backgroundColor: "rgba(99,102,241,0.06)", borderColor: "rgba(99,102,241,0.15)" }}
-          >
-            <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-black/[.06] bg-black/[.02] text-[11px] text-indigo-500 group-hover:border-indigo-500/30 group-hover:text-indigo-600 transition-colors">
-              {line.icon}
-              <motion.span
-                animate={{ opacity: [0, 1, 0] }}
-                transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.6 }}
-                className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-indigo-500"
-              />
-            </span>
-            <span className="font-mono text-[14px] leading-snug text-zinc-500 group-hover:text-indigo-600 transition-colors">
-              <TypewriterLine text={line.text} delay={800 + i * 600} />
-            </span>
-          </motion.div>
-        ))}
       </div>
     </div>
   );

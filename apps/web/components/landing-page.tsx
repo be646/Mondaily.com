@@ -227,26 +227,30 @@ const FLOW_ORDER = ["crm","enrich","pipeline","sequences","ask","automations","f
 
 // Footer ticker — slow scrolling log-line stream, same mono/terminal language as the rest of the page
 const FOOTER_TICKER_LINES = [
-  "One workspace graph for records, tasks, finance, and decisions",
-  "Agents read, recommend, and prepare — you approve",
-  "Every answer comes with the source it came from",
-  "Built for any workspace graph, not just sales pipelines",
-  "Graph Agent · Operations Agent · Relationship Agent · Finance Agent — always watching",
-  "Source-backed signals, never a guess presented as fact",
+  "graph.sync(records)",
+  "agents.watch(changes)",
+  "sources.attach(evidence)",
+  "human.approve(actions)",
+  "finance.monitor(invoices)",
+  "workflow.prepare(next)",
 ];
 
 function FooterTicker() {
   const line = (text: string, i: number) => (
-    <span key={i} className="inline-flex items-center gap-2 border-r px-4 py-2 last:border-r-0">
+    <span key={`${text}-${i}`} className="inline-flex items-center gap-2 border-r px-5 py-2 last:border-r-0">
       <span className="h-1.5 w-1.5 rounded-full border border-current opacity-60" aria-hidden="true" />
       <span className="text-[12px] text-zinc-400">{text}</span>
     </span>
   );
   return (
-    <div className="border-b border-black/[.04]">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center divide-x px-6 font-mono">
-        {FOOTER_TICKER_LINES.map(line)}
-      </div>
+    <div className="overflow-hidden border-b border-black/[.04]">
+      <motion.div
+        className="flex w-max font-mono"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+      >
+        {[...FOOTER_TICKER_LINES, ...FOOTER_TICKER_LINES].map(line)}
+      </motion.div>
     </div>
   );
 }
@@ -279,6 +283,32 @@ function LiveStat({ start, step, intervalMs }: { start: number; step: [number, n
     >
       {value.toLocaleString()}
     </motion.span>
+  );
+}
+
+function RotatingWord({ words }: { words: string[] }) {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % words.length), 1700);
+    return () => clearInterval(t);
+  }, [words.length]);
+
+  return (
+    <span className="relative inline-flex min-w-[7.2ch] justify-start text-neutral-950 dark:text-neutral-50">
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={words[idx]}
+          initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+          transition={{ duration: 0.28 }}
+          className="inline-block"
+        >
+          {words[idx]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }
 
@@ -462,62 +492,35 @@ const REPLACES_ROWS = [
 ];
 
 function ComparisonSection() {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % REPLACES_ROWS.length), 1800);
+    return () => clearInterval(t);
+  }, []);
+
+  const row = REPLACES_ROWS[idx]!;
+
   return (
-    <section className="mx-auto max-w-5xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">How it's different</p>
-      <h2 className="mb-3 font-sans text-4xl font-semibold tracking-tight text-zinc-800">What Mondaily replaces</h2>
-      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Stop stitching together disconnected tools for every part of the business. One workspace graph, operated by AI, runs all of it.
-      </p>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {REPLACES_ROWS.map((row, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.4, delay: i * 0.08 }}
-            className="relative overflow-hidden rounded-xl border border-black/[.05] bg-white p-4"
-          >
-            {/* Old way */}
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] text-zinc-400">✕</span>
-              <span className="font-mono text-[13px] text-zinc-400 line-through">{row.before}</span>
-            </div>
-
-            {/* Animated connector */}
-            <div className="my-2 flex items-center gap-2 pl-[10px]">
-              <motion.div
-                className="h-px flex-1 origin-left bg-gradient-to-r from-indigo-400/50 to-emerald-500/50"
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.08 + 0.2 }}
-              />
-              <motion.span
-                animate={{ y: [0, 2, 0] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                className="text-[11px] text-zinc-400"
-              >
-                ↓ now
-              </motion.span>
-            </div>
-
-            {/* New way */}
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-[10px] text-emerald-600">
-                ✓
-                <motion.span
-                  animate={{ opacity: [0, 0.6, 0], scale: [1, 1.6, 1.6] }}
-                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                  className="absolute inset-0 rounded-full bg-emerald-500/40"
-                />
-              </span>
-              <span className="font-mono text-[13px] font-medium text-zinc-800">{row.after}</span>
-            </div>
-          </motion.div>
-        ))}
+    <section className="mx-auto max-w-6xl px-6 py-14">
+      <div className="border-y border-black/[.06] py-6">
+        <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">What Mondaily replaces</p>
+        <div className="flex flex-col gap-2 text-left text-2xl font-semibold tracking-tight text-zinc-900 sm:flex-row sm:items-baseline sm:text-3xl">
+          <span>From {row.before.toLowerCase()}</span>
+          <span className="hidden text-zinc-300 sm:inline">→</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={row.after}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28 }}
+              className="text-zinc-500"
+            >
+              {row.after.toLowerCase()}.
+            </motion.span>
+          </AnimatePresence>
+        </div>
       </div>
     </section>
   );
@@ -593,54 +596,53 @@ function FAQSection() {
   const [active, setActive] = useState(0);
 
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">FAQ</p>
-      <h2 className="mb-10 font-sans text-4xl font-semibold tracking-tight text-zinc-800">Ask Mondaily AI</h2>
+    <section id="faq" className="mx-auto max-w-4xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">FAQ</p>
+      <h2 className="mb-8 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">Questions before switching</h2>
 
       <div
-        className="overflow-hidden rounded-2xl"
-        style={{ border: "1px solid rgba(99,102,241,0.15)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
+        className="overflow-hidden border-y border-black/[.06]"
       >
-        <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
-          <span className="text-[13px] font-medium text-zinc-700">Ask Mondaily</span>
+        <div className="flex items-center gap-2 border-b border-black/[.06] py-3">
+          <span className="text-[13px] font-medium text-zinc-700">Workspace answers</span>
           <motion.span
             animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 1.8, repeat: Infinity }}
-            className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+            className="ml-auto h-1.5 w-1.5 rounded-full bg-zinc-500"
           />
         </div>
 
         {/* Transcript */}
-        <div className="px-5 py-5">
+        <div className="py-5">
           <div className="flex justify-end mb-3">
-            <div className="max-w-[80%] rounded-xl rounded-tr-sm bg-indigo-600/15 border border-indigo-500/20 px-4 py-2.5 font-mono text-[13px] text-zinc-800">
+            <div className="max-w-[80%] border border-black/[.08] px-4 py-2.5 text-[13px] text-zinc-800">
               {FAQ_ITEMS[active]!.q}
             </div>
           </div>
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-xl rounded-tl-sm border border-black/[.06] bg-black/[.02] px-4 py-2.5 font-mono text-[13px] leading-relaxed text-zinc-600">
+            <div className="max-w-[85%] border border-black/[.06] px-4 py-2.5 text-[13px] leading-relaxed text-zinc-600">
               <FAQTypewriter key={active} text={FAQ_ITEMS[active]!.a} />
             </div>
           </div>
         </div>
 
         {/* Question list */}
-        <div className="border-t border-black/[.05] px-5 py-2">
+        <div className="border-t border-black/[.06] py-2">
           {FAQ_ITEMS.map((item, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`flex w-full items-center gap-3 border-b border-black/[.04] py-3 text-left font-mono text-[13px] transition-colors last:border-b-0 ${
-                active === i ? "text-indigo-600" : "text-zinc-500 hover:text-zinc-700"
+              className={`flex w-full items-center gap-3 border-b border-black/[.05] py-3 text-left text-[13px] transition-colors last:border-b-0 ${
+                active === i ? "text-zinc-900" : "text-zinc-500 hover:text-zinc-700"
               }`}
             >
-              <span className={active === i ? "text-indigo-500" : "text-zinc-300"}>{'>'}</span>
+              <span className={active === i ? "text-zinc-900" : "text-zinc-300"}>{'>'}</span>
               <span className="flex-1 truncate">{item.q}</span>
               {active === i && (
                 <motion.span
                   animate={{ opacity: [0.4, 1, 0.4] }}
                   transition={{ duration: 1.6, repeat: Infinity }}
-                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-500"
                 />
               )}
             </button>
@@ -1374,10 +1376,10 @@ function WorkspaceGraphPreview() {
           </div>
         </div>
 
-        <div className="relative p-6 sm:p-8">
+        <div className="relative bg-black p-6 text-white sm:p-8">
           <div className="mb-7 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-400">Operating layer</p>
-            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900">Agents prepare the next move. You approve what matters.</h3>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Operating layer</p>
+            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">Agents prepare the next move. You approve what matters.</h3>
           </div>
 
           <div className="space-y-3">
@@ -1387,31 +1389,31 @@ function WorkspaceGraphPreview() {
                 initial={{ opacity: 0.55, x: 8 }}
                 animate={{ opacity: i === active % WORKSPACE_GRAPH_EVENTS.length ? 1 : 0.68, x: 0 }}
                 transition={{ duration: 0.45 }}
-                className="flex items-start gap-3 border-b border-black/[.05] pb-3 last:border-b-0"
+                className="flex items-start gap-3 border-b border-white/[.08] pb-3 last:border-b-0"
               >
                 <span className="mt-1 h-1.5 w-1.5 rounded-full" style={{ background: WORKSPACE_GRAPH_NODES[(i + active) % WORKSPACE_GRAPH_NODES.length]!.color }} />
                 <div className="text-left">
-                  <p className="text-sm font-medium text-zinc-800">{event}</p>
-                  <p className="mt-1 text-xs text-zinc-500">Source-backed · scoped to your workspace only</p>
+                  <p className="text-sm font-medium text-zinc-100">{'>'} {event}</p>
+                  <p className="mt-1 text-xs text-zinc-500">source-backed · scoped to this workspace</p>
                 </div>
               </motion.div>
             ))}
           </div>
 
-          <div className="mt-8 grid grid-cols-3 divide-x divide-black/[.06] border-y border-black/[.06]">
+          <div className="mt-8 grid grid-cols-3 divide-x divide-white/[.08] border-y border-white/[.08]">
             {[
               ["6+", "agent families"],
               ["1", "workspace graph"],
               ["0", "shared client data"],
             ].map(([value, label]) => (
               <div key={label} className="px-2 py-4 text-left sm:px-4">
-                <p className="text-xl font-semibold text-zinc-900 sm:text-2xl">{value}</p>
-                <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-zinc-400 sm:text-[11px] sm:tracking-[0.12em]">{label}</p>
+                <p className="text-xl font-semibold text-white sm:text-2xl">{value}</p>
+                <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-zinc-500 sm:text-[11px] sm:tracking-[0.12em]">{label}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 border-t border-black/[.06] pt-5 text-left">
+          <div className="mt-6 border-t border-white/[.08] pt-5 text-left">
             <div className="flex items-start gap-3">
               <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
               <div>
@@ -1423,7 +1425,7 @@ function WorkspaceGraphPreview() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25 }}
-                className="mt-1 text-sm font-medium text-zinc-800"
+                className="mt-1 text-sm font-medium text-zinc-200"
               >
                 {activeNode.label}: {activeNode.detail}
               </motion.p>
@@ -1876,6 +1878,50 @@ function FinanceBoardSection() {
   );
 }
 
+function ProcessTabsSection() {
+  const tabs = [
+    { label: "Record enters Mondaily", node: <WorkflowDemo /> },
+    { label: "Object design", node: <AutomationFlow /> },
+    { label: "Records kept current", node: <RecordsSheetSection /> },
+    { label: "Invoice to payment", node: <FinanceBoardSection /> },
+  ];
+  const [active, setActive] = useState(0);
+
+  return (
+    <section id="product" className="mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Product engine</p>
+      <h2 className="mb-8 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+        Four processes, one graph
+      </h2>
+      <div className="mb-6 flex flex-wrap border-y border-black/[.06]">
+        {tabs.map((tab, i) => (
+          <button
+            key={tab.label}
+            onClick={() => setActive(i)}
+            className={`border-r border-black/[.06] px-4 py-3 text-left text-[13px] font-medium transition-colors ${
+              active === i ? "bg-black text-white" : "text-zinc-500 hover:text-zinc-900"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.25 }}
+          className="[&>section]:px-0 [&>section]:py-6"
+        >
+          {tabs[active]!.node}
+        </motion.div>
+      </AnimatePresence>
+    </section>
+  );
+}
+
 const AGENTS = [
   {
     icon: "◈", name: "Graph Agent", accent: "#4f46e5",
@@ -1929,115 +1975,59 @@ const AGENTS = [
 ];
 
 function AgentsSection() {
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [openIdx, setOpenIdx] = useState(0);
+  const agent = AGENTS[openIdx]!;
 
   return (
-    <section id="agents" className="relative mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-violet-500">Agent constellation</p>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+    <section id="agents" className="relative mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Agent layer</p>
+      <h2 className="mb-2 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         A team of agents, watching one graph
       </h2>
       <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Not bots bolted onto a CRM — every agent below reads from the same workspace graph, prepares a specific kind of work, and tells you plainly whether it needs your approval. Click one to see how it works.
+        Compact agents, one shared memory. Click a tile to inspect what it watches, prepares, and routes for approval.
       </p>
 
-      {/* Central graph node — agents are spokes off the same workspace graph,
-          not a row of unrelated SaaS feature cards. Purely decorative
-          (pointer-events-none), so it can never break layout or block clicks. */}
-      <div className="relative mb-2 hidden flex-col items-center sm:flex" aria-hidden="true">
-        <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-violet-500/25 bg-violet-500/[.06]">
-          <motion.span
-            animate={{ opacity: [0.35, 0.8, 0.35], scale: [1, 1.25, 1] }}
-            transition={{ duration: 2.4, repeat: Infinity }}
-            className="absolute inset-0 rounded-full border border-violet-500/30"
-          />
-          <span className="font-mono text-[10px] font-semibold text-violet-600">graph</span>
-        </div>
-        {/* Connector spine — a single line dropping from the hub into the
-            grid; ambient and schematic, not pinned to exact card positions
-            (which would break across responsive column counts). */}
-        <div className="h-8 w-px bg-gradient-to-b from-violet-400/40 to-transparent"/>
-        <div className="absolute top-[52px] h-px w-full max-w-2xl bg-gradient-to-r from-transparent via-violet-400/25 to-transparent"/>
-      </div>
-
-      <div className="grid gap-4 pt-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 border-y border-black/[.06] sm:grid-cols-4 lg:grid-cols-7">
         {AGENTS.map((agent, i) => {
           const open = openIdx === i;
           return (
             <motion.div
               key={agent.name}
-              layout
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.4, delay: i * 0.07 }}
-              whileHover={{ y: -3 }}
-              onClick={() => setOpenIdx(open ? null : i)}
-              className="relative cursor-pointer overflow-hidden rounded-xl border p-5 transition-colors"
-              style={{
-                borderColor: open ? `${agent.accent}40` : "rgba(0,0,0,.05)",
-                background: open ? `${agent.accent}08` : "#ffffff",
-              }}
+              onClick={() => setOpenIdx(i)}
+              className="group aspect-square cursor-pointer border-b border-r border-black/[.06] p-3 text-left transition-colors hover:bg-black/[.025] sm:p-4"
             >
-              {/* Short connector stub at the top of each card — echoes the
-                  hub line above so each node reads as "plugged into the
-                  graph" rather than a standalone card. Hidden on mobile
-                  along with the hub, so nothing can overflow narrow widths. */}
-              <div className="absolute left-1/2 top-0 hidden h-2 w-px -translate-x-1/2 sm:block" style={{ background: `${agent.accent}45` }} aria-hidden="true"/>
-
-              <div className="mb-3 flex items-center gap-3">
-                <span
-                  className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px]"
-                  style={{ background: `${agent.accent}12`, color: agent.accent, border: `1px solid ${agent.accent}30` }}
-                >
-                  {agent.icon}
-                  <motion.span
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
-                    className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full"
-                    style={{ background: agent.accent }}
-                  />
-                </span>
-                <span className="text-[14.5px] font-semibold text-zinc-800">{agent.name}</span>
-                <motion.span
-                  animate={{ rotate: open ? 180 : 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="ml-auto text-[11px] text-zinc-400"
-                >
-                  ▾
-                </motion.span>
-              </div>
-              <p className="text-[13px] leading-relaxed text-zinc-500">{agent.desc}</p>
-
-              <AnimatePresence initial={false}>
-                {open && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: "auto", marginTop: 12 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-2 rounded-lg p-3" style={{ background: `${agent.accent}07` }}>
-                      <div className="flex gap-2 text-[12px]">
-                        <span className="shrink-0 font-medium" style={{ color: agent.accent }}>Watches</span>
-                        <span className="text-zinc-600">{agent.watches}</span>
-                      </div>
-                      <div className="flex gap-2 text-[12px]">
-                        <span className="shrink-0 font-medium" style={{ color: agent.accent }}>Prepares</span>
-                        <span className="text-zinc-600">{agent.prepares}</span>
-                      </div>
-                      <div className="flex gap-2 text-[12px]">
-                        <span className="shrink-0 font-medium" style={{ color: agent.accent }}>Approval</span>
-                        <span className="text-zinc-600">{agent.approval}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <span className="mb-5 block h-2 w-2 rounded-full" style={{ background: open ? agent.accent : "#a8a29e" }} />
+              <span className="block text-[13px] font-semibold leading-tight text-zinc-800">{agent.name}</span>
+              <span className="mt-2 block text-[11px] leading-snug text-zinc-500">{open ? "selected" : "watching"}</span>
             </motion.div>
           );
         })}
+      </div>
+
+      <div className="border-b border-black/[.06] bg-black px-4 py-4 text-left text-white">
+        <div className="mb-3 flex items-center gap-2 text-[12px] text-zinc-400">
+          <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-white" />
+          {agent.name.toLowerCase().replace(" agent", "")}.inspect()
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={agent.name}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.24 }}
+            className="grid gap-3 text-[13px] leading-relaxed text-zinc-300 md:grid-cols-3"
+          >
+            <p><span className="text-zinc-500">watches:</span> {agent.watches}</p>
+            <p><span className="text-zinc-500">prepares:</span> {agent.prepares}</p>
+            <p><span className="text-zinc-500">approval:</span> {agent.approval}</p>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
@@ -2068,40 +2058,34 @@ const LIVE_SIGNALS = [
 
 function LiveSignalsSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Source-backed signals</p>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+    <section className="mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Source-backed signals</p>
+      <h2 className="mb-2 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         What Mondaily notices while you work
       </h2>
-      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Every signal below comes with where it was found and a suggested next step — source-backed, never a guess presented as fact.
+      <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        A signal feed with source, status, and next action.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="border-y border-black/[.06]">
         {LIVE_SIGNALS.map((s, i) => (
           <motion.div
             key={s.text}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.07 }}
-            whileHover={{ y: -3 }}
-            className="rounded-xl border border-black/[.05] bg-white p-4"
+            className="grid gap-3 border-b border-black/[.06] py-4 text-left last:border-b-0 sm:grid-cols-[1fr_150px_150px]"
           >
-            <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full opacity-50 animate-ping" style={{ background: s.accent }}/>
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping" style={{ background: s.accent }}/>
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: s.accent }}/>
               </span>
-              <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: `${s.accent}12`, color: s.accent }}>
-                Source-backed
-              </span>
+              <p className="text-[15px] font-medium text-zinc-800">{s.text}</p>
             </div>
-            <p className="mb-2.5 text-[15px] font-medium text-zinc-800">{s.text}</p>
-            <div className="mb-3.5 flex items-center gap-1.5">
-              <span className="rounded-full border border-black/[.06] bg-black/[.02] px-2 py-0.5 text-[11px] text-zinc-500">{s.source}</span>
-            </div>
-            <button className="text-[13px] font-medium transition-opacity hover:opacity-70" style={{ color: s.accent }}>
+            <span className="text-[13px] text-zinc-500">{s.source}</span>
+            <button className="text-left text-[13px] font-medium text-zinc-800 transition-opacity hover:opacity-70">
               {s.action}
             </button>
           </motion.div>
@@ -2189,16 +2173,16 @@ const APPROVAL_STEPS = [
 
 function ApprovalSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Decision Queue</p>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+    <section className="mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Decision Queue</p>
+      <h2 className="mb-2 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         Agents prepare. You stay in control.
       </h2>
-      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Agents prepare, recommend, draft, and monitor continuously — but sensitive actions wait for your approval. Nothing executes on the graph without a human in the loop when it matters.
+      <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        Sensitive actions wait in a queue with evidence, owner, and approval state.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="border-y border-black/[.06]">
         {APPROVAL_STEPS.map((s, i) => (
           <motion.div
             key={s.label}
@@ -2206,11 +2190,14 @@ function ApprovalSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.07 }}
-            className="relative rounded-xl border border-black/[.05] bg-white p-4"
+            className="grid gap-3 border-b border-black/[.06] py-4 text-left last:border-b-0 sm:grid-cols-[90px_1fr_120px]"
           >
-            <span className="mb-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-[11px] font-semibold text-indigo-600">{i + 1}</span>
-            <p className="mb-1 text-[14px] font-medium text-zinc-800">{s.label}</p>
-            <p className="text-[12.5px] leading-relaxed text-zinc-500">{s.desc}</p>
+            <span className="text-[12px] uppercase tracking-[0.16em] text-zinc-400">0{i + 1}</span>
+            <div>
+              <p className="text-[14px] font-semibold text-zinc-800">{s.label}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">{s.desc}</p>
+            </div>
+            <span className="text-[13px] font-medium text-zinc-700">Review →</span>
           </motion.div>
         ))}
       </div>
@@ -2219,25 +2206,25 @@ function ApprovalSection() {
 }
 
 const USE_CASES = [
-  { label: "Client workspaces", desc: "People, companies, and every interaction connected on one graph.", icon: "◈" },
-  { label: "Investment pipelines", desc: "Track deals, diligence, and portfolio companies as connected records.", icon: "◆" },
-  { label: "Finance operations", desc: "Invoices, credit notes, and approvals on the same graph as everything else.", icon: "▲" },
-  { label: "Hiring & people operations", desc: "Candidates, roles, and interview notes as one connected flow.", icon: "♥" },
-  { label: "Project delivery", desc: "Tasks, documents, and decisions tied to the work they belong to.", icon: "▶" },
-  { label: "Partner & supplier tracking", desc: "Organizations and contracts, enriched and kept current automatically.", icon: "⚙" },
+  { label: "Client workspaces", desc: "People, companies, and every interaction connected on one graph.", tone: "#78716c" },
+  { label: "Investment pipelines", desc: "Deals, diligence, and portfolio companies as connected records.", tone: "#6f8068" },
+  { label: "Finance operations", desc: "Invoices, credit notes, and approvals beside the work they belong to.", tone: "#8a6f5a" },
+  { label: "Hiring & people operations", desc: "Candidates, roles, and interview notes as one connected flow.", tone: "#736b7f" },
+  { label: "Project delivery", desc: "Tasks, documents, and decisions tied to the source object.", tone: "#607078" },
+  { label: "Partner & supplier tracking", desc: "Organizations and contracts enriched and kept current.", tone: "#8b7355" },
 ];
 
 function UseCasesSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Any workspace graph</p>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+    <section id="solutions" className="mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Any workspace graph</p>
+      <h2 className="mb-2 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         Built for what your team actually tracks
       </h2>
-      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Mondaily isn't a CRM with a new coat of paint — the workspace graph adapts to whatever records your team needs to connect.
+      <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+        The graph adapts to the records your team needs to connect.
       </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 border-y border-black/[.06] sm:grid-cols-3 lg:grid-cols-6">
         {USE_CASES.map((u, i) => (
           <motion.div
             key={u.label}
@@ -2245,11 +2232,11 @@ function UseCasesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="rounded-xl border border-black/[.05] bg-white p-5"
+            className="aspect-square border-b border-r border-black/[.06] p-4 text-left"
           >
-            <span className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/[.07] text-[14px] text-indigo-500">{u.icon}</span>
-            <p className="mb-1 text-[14px] font-semibold text-zinc-800">{u.label}</p>
-            <p className="text-[12.5px] leading-relaxed text-zinc-500">{u.desc}</p>
+            <span className="mb-5 block h-2 w-2 rounded-full" style={{ background: u.tone }} />
+            <p className="mb-2 text-[13px] font-semibold leading-tight text-zinc-800">{u.label}</p>
+            <p className="text-[11.5px] leading-snug text-zinc-500">{u.desc}</p>
           </motion.div>
         ))}
       </div>
@@ -2259,16 +2246,16 @@ function UseCasesSection() {
 
 function TrustSection() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Security & data separation</p>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+    <section id="company" className="mx-auto max-w-6xl px-6 py-12">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Security & data separation</p>
+      <h2 className="mb-2 font-sans text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
         Your data, isolated and protected
       </h2>
-      <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
+      <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
         Mondaily is built so the AI is as trustworthy as the team using it. Isolation and permissions aren&apos;t an afterthought — they&apos;re the foundation.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid border-y border-black/[.06] sm:grid-cols-2 lg:grid-cols-3">
         {TRUST_POINTS.map((p, i) => (
           <motion.div
             key={p.title}
@@ -2276,13 +2263,13 @@ function TrustSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="rounded-xl border border-black/[.05] bg-white p-5"
+            className="border-b border-r border-black/[.06] p-4"
           >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-500/[.07] text-indigo-600">
+            <div className="mb-3 flex h-7 w-7 items-center justify-center text-zinc-500">
               {p.icon}
             </div>
-            <p className="mb-1.5 text-[15px] font-medium text-zinc-800">{p.title}</p>
-            <p className="text-[13px] leading-relaxed text-zinc-500">{p.desc}</p>
+            <p className="mb-1.5 text-[14px] font-medium text-zinc-800">{p.title}</p>
+            <p className="text-[12px] leading-relaxed text-zinc-500">{p.desc}</p>
           </motion.div>
         ))}
       </div>
@@ -2321,19 +2308,19 @@ function EmailSignup() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full flex-col gap-2.5 sm:flex-row"
+      className="mx-auto flex w-full flex-col border border-black/[.08] bg-white sm:flex-row dark:border-white/10 dark:bg-black"
     >
       <input
         type="email"
         value={email}
         onChange={e => setEmail(e.target.value)}
-        placeholder="your@email.com"
-        className="flex-1 rounded-xl border border-black/[.08] bg-white px-5 py-3 font-mono text-[14px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
+        placeholder="Work email"
+        className="min-w-0 flex-1 bg-transparent px-5 py-3.5 text-[14px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
         required
       />
       <button
         type="submit"
-        className="shrink-0 rounded-xl bg-indigo-600 px-6 py-3 font-mono text-[14px] font-medium text-white hover:bg-indigo-500 active:translate-y-[1px] transition-all whitespace-nowrap"
+        className="shrink-0 border-t border-black/[.08] bg-neutral-950 px-6 py-3.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 sm:border-l sm:border-t-0 dark:bg-white dark:text-neutral-950"
       >
         Start free →
       </button>
@@ -2393,8 +2380,8 @@ export function PricingSection() {
 
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">Pricing</p>
-      <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Pricing</p>
+      <h2 className="mb-2 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         Simple, transparent pricing
       </h2>
       <p className="mb-6 text-[15px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
@@ -2404,12 +2391,12 @@ export function PricingSection() {
         <span className={annual ? "text-zinc-400" : "text-zinc-800 font-medium"}>Monthly</span>
         <button
           onClick={() => setAnnual(a => !a)}
-          className="relative h-6 w-11 rounded-full transition-colors"
-          style={{ background: annual ? "#4f46e5" : "rgba(0,0,0,.12)" }}
+          className="relative h-6 w-11 border border-black/[.12] transition-colors"
+          style={{ background: annual ? "#0a0a0a" : "transparent" }}
           aria-label="Toggle annual billing"
         >
           <motion.span
-            className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow"
+            className="absolute left-0.5 top-0.5 h-5 w-5 bg-white shadow-sm ring-1 ring-black/[.08]"
             animate={{ x: annual ? 20 : 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 28 }}
           />
@@ -2421,7 +2408,7 @@ export function PricingSection() {
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0 }}
-              className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600"
+              className="border border-black/[.08] px-2 py-0.5 text-[11px] font-medium text-zinc-600"
             >
               Save ~20%
             </motion.span>
@@ -2429,7 +2416,7 @@ export function PricingSection() {
         </AnimatePresence>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid border-y border-black/[.06] md:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan, i) => {
           const price = annual ? plan.priceAnnual : plan.priceMonthly;
           const hovered = hoverIdx === i;
@@ -2438,62 +2425,31 @@ export function PricingSection() {
               key={plan.name}
               onMouseEnter={() => setHoverIdx(i)}
               onMouseLeave={() => setHoverIdx(null)}
-              className="relative flex flex-col overflow-hidden rounded-2xl border p-5"
-              style={{
-                borderColor: plan.highlight ? "rgba(79,70,229,0.25)" : "rgba(0,0,0,.05)",
-                background: plan.highlight ? "rgba(99,102,241,0.025)" : "rgba(0,0,0,.01)",
-              }}
+              className="relative flex flex-col border-b border-r border-black/[.06] p-5"
             >
-              {/* Pro card — subtle moving AI glow, not a static shadow */}
-              {plan.highlight && (
-                <motion.div
-                  className="pointer-events-none absolute -inset-px rounded-2xl opacity-40"
-                  style={{ background: "conic-gradient(from 0deg, transparent, rgba(99,102,241,0.25), transparent 40%)" }}
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                />
-              )}
               <div className="relative">
                 {plan.highlight && (
-                  <div className="mb-3 self-start rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2.5 py-0.5 font-mono text-[11px] text-indigo-600 uppercase tracking-wider inline-block">Most popular</div>
+                  <div className="mb-3 inline-block border border-black/[.1] px-2.5 py-0.5 text-[11px] uppercase tracking-[0.16em] text-zinc-600">Most popular</div>
                 )}
-                <div className="mb-0.5 font-mono text-[13px] font-semibold text-zinc-700">{plan.name}</div>
-                <div className="mb-1 font-mono text-[10.5px] text-indigo-500">{plan.bestFor}</div>
+                <div className="mb-0.5 text-[15px] font-semibold text-zinc-800">{plan.name}</div>
+                <div className="mb-1 text-[12px] text-zinc-500">{plan.bestFor}</div>
                 <div className="mb-1 flex items-end gap-1">
                   {price === null ? (
-                    <span className="font-mono text-2xl font-light text-zinc-900">Custom</span>
+                    <span className="text-2xl font-semibold tracking-tight text-zinc-900">Custom</span>
                   ) : (
                     <>
-                      <span className="font-mono text-2xl font-light text-zinc-900">${price}</span>
-                      <span className="mb-1 font-mono text-[13px] text-zinc-500">/{plan.period}</span>
+                      <span className="text-2xl font-semibold tracking-tight text-zinc-900">${price}</span>
+                      <span className="mb-1 text-[13px] text-zinc-500">/{plan.period}</span>
                     </>
                   )}
                 </div>
-                {price === null && <div className="mb-1 font-mono text-[13px] text-zinc-500">{plan.period}</div>}
-                <p className="mb-3 mt-1.5 font-mono text-[13px] leading-relaxed text-zinc-500">{plan.desc}</p>
-
-                {/* Animated AI capacity meter — illustrative relative tier
-                    sizing, not a literal usage metric. */}
-                <div className="mb-4">
-                  <div className="mb-1 flex items-center justify-between font-mono text-[10px] text-zinc-400">
-                    <span>AI capacity</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-black/[.04] overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ background: plan.highlight ? "#4f46e5" : "#a5b4fc" }}
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${plan.capacityPct}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                    />
-                  </div>
-                </div>
+                {price === null && <div className="mb-1 text-[13px] text-zinc-500">{plan.period}</div>}
+                <p className="mb-4 mt-1.5 text-[13px] leading-relaxed text-zinc-500">{plan.desc}</p>
 
                 <ul className="mb-5 flex-1 space-y-1.5">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 font-mono text-[13px] text-zinc-500">
-                      <span className="mt-0.5 text-indigo-700">›</span>{f}
+                    <li key={f} className="flex items-start gap-2 text-[13px] text-zinc-500">
+                      <span className="mt-0.5 text-zinc-400">›</span>{f}
                     </li>
                   ))}
                 </ul>
@@ -2506,14 +2462,14 @@ export function PricingSection() {
                       animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
                       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="overflow-hidden font-mono text-[11.5px] leading-relaxed text-indigo-600"
+                      className="overflow-hidden text-[11.5px] leading-relaxed text-zinc-600"
                     >
                       {plan.unlocks}
                     </motion.p>
                   )}
                 </AnimatePresence>
 
-                <a href={plan.href} className={`mt-auto block rounded-lg py-2.5 text-center font-mono text-[13px] transition-all ${plan.highlight ? "border border-indigo-500/25 bg-indigo-600 text-white hover:bg-indigo-500 active:translate-y-[1px]" : "border border-black/[.05] bg-black/[.02] text-zinc-600 hover:text-zinc-900 hover:bg-black/[.05]"}`}>
+                <a href={plan.href} className={`mt-auto block border py-2.5 text-center text-[13px] font-semibold transition-opacity hover:opacity-85 ${plan.highlight ? "border-neutral-950 bg-neutral-950 text-white dark:bg-white dark:text-neutral-950" : "border-black/[.1] text-zinc-700"}`}>
                   {plan.cta}
                 </a>
               </div>
@@ -2688,8 +2644,8 @@ export function LandingPage() {
                 transition={{ duration: 0.55, delay: 0.2 }}
               >
                 {/* Live badge */}
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 text-[13px] font-medium text-indigo-500">
-                  <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full border border-current"/>
+                <div className="mb-4 inline-flex items-center gap-2 border px-3.5 py-1.5 text-[13px] font-medium text-neutral-600 dark:text-neutral-300">
+                  <motion.span animate={{ opacity: [0.35,1,0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-current"/>
                   An autonomous AI workspace
                 </div>
 
@@ -2697,7 +2653,7 @@ export function LandingPage() {
                     breathe, echoing the same vocabulary used inside the app
                     (Home's command room) so the landing page feels alive
                     rather than static marketing copy. */}
-                <div className="mb-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-zinc-400">
+                <div className="mb-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-zinc-400">
                   {[
                     { label: "Graph synced" },
                     { label: "Agents active" },
@@ -2717,48 +2673,30 @@ export function LandingPage() {
                 </div>
 
                 {/* Slogan */}
-                <h1 className="mx-auto mb-4 max-w-4xl font-sans font-semibold leading-[1.05] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.45rem, 5.6vw, 4.2rem)" }}>
-                  The AI-native workspace for{" "}
-                  <span className="text-indigo-500">everything your business tracks.</span>
+                <h1 className="mx-auto mb-5 max-w-4xl font-sans font-semibold leading-[1.02] tracking-tight text-zinc-900" style={{ fontSize: "clamp(2.6rem, 6vw, 4.75rem)" }}>
+                  Your business, always{" "}
+                  <RotatingWord words={["thinking.", "tracking.", "enriching.", "deciding.", "moving."]} />
                 </h1>
 
                 {/* Subheading */}
-                <p className="mx-auto mb-7 max-w-2xl text-[15.5px] leading-relaxed text-zinc-500">
-                  Mondaily connects records, tasks, finance, conversations, workflows, files, and decisions into one living asset graph. Agents watch the graph, explain what changed, and prepare the next action with sources.
+                <p className="mx-auto mb-7 max-w-xl text-[16px] leading-relaxed text-zinc-500">
+                  One living workspace graph. Agents watch, explain, and prepare the next move with sources.
                 </p>
 
                 {/* Primary / secondary CTAs */}
-                <div className="mb-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <div className="mb-7 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
                   <a
                     href="https://app.mondaily.com/sign-up"
-                    className="rounded-full bg-indigo-600 px-7 py-3 text-[14.5px] font-semibold text-white shadow-[0_8px_24px_rgba(79,70,229,0.28)] transition-all hover:bg-indigo-500 hover:shadow-[0_10px_30px_rgba(79,70,229,0.35)] active:translate-y-[1px]"
+                    className="border border-neutral-950 bg-neutral-950 px-5 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
                   >
-                    Start your workspace graph →
+                    Start free →
                   </a>
                   <a
                     href="#agents"
-                    className="flex items-center gap-2 rounded-full border border-black/[.08] bg-white px-7 py-3 text-[14.5px] font-medium text-zinc-700 transition-all hover:border-indigo-500/30 hover:text-indigo-600 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                    className="border border-black/[.1] px-5 py-2.5 text-[14px] font-medium text-zinc-700 transition-colors hover:border-neutral-950 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-neutral-50"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
                     See agents operate
                   </a>
-                </div>
-
-                {/* Agent preview strip — agents are core identity, shown immediately under the fold */}
-                <div className="mb-9 flex flex-wrap items-center justify-center gap-2">
-                  {AGENTS.slice(0, 6).map((agent, i) => (
-                  <span
-                      key={agent.name}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium text-zinc-500"
-                    >
-                      <motion.span
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
-                        className="h-1.5 w-1.5 rounded-full border border-current"
-                      />
-                      {agent.name}
-                    </span>
-                  ))}
                 </div>
               </motion.div>
 
@@ -2808,17 +2746,8 @@ export function LandingPage() {
           {/* ── Use cases — no narrow CRM framing ── */}
           <UseCasesSection />
 
-          {/* ── Workflow demo ── */}
-          <WorkflowDemo />
-
-          {/* ── Automation flow diagram ── */}
-          <AutomationFlow />
-
-          {/* ── Records sheet demo ── */}
-          <RecordsSheetSection />
-
-          {/* ── Finance / invoice board demo ── */}
-          <FinanceBoardSection />
+          {/* ── Product process tabs ── */}
+          <ProcessTabsSection />
 
           {/* ── Feature map ── */}
           <FeatureSection />
@@ -2829,11 +2758,11 @@ export function LandingPage() {
           {/* ── AI with approval — agents act, humans stay in control ── */}
           <ApprovalSection />
 
-          {/* ── Trust / data isolation ── */}
-          <TrustSection />
-
           {/* ── FAQ ── */}
           <FAQSection />
+
+          {/* ── Trust / data isolation ── */}
+          <TrustSection />
 
           {/* ── Final CTA ── */}
           <section className="mx-auto max-w-6xl px-6 py-20 text-center">
