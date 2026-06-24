@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Sun, Moon, Monitor,
+  FileSignature, Wallet, MessageCircle,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -75,21 +75,6 @@ const MORE_NAV: { label: string; items: { to: string; label: string; icon: React
     ],
   },
 ];
-
-type Appearance = "light" | "dark" | "system";
-
-const APPEARANCE_OPTIONS: { value: Appearance; label: string; icon: React.ElementType }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Monitor },
-];
-
-function applySidebarTheme(appearance: Appearance) {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const isDark = appearance === "dark" || (appearance === "system" && prefersDark);
-  document.documentElement.dataset.theme = isDark ? "dark" : "light";
-  document.documentElement.classList.toggle("dark", isDark);
-}
 
 // ─── Getting Started checklist ────────────────────────────────────────────────
 const CHECKLIST = [
@@ -356,15 +341,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
-  const [appearance, setAppearance] = useState<Appearance>(() => {
-    const saved = localStorage.getItem("mondaily_appearance");
-    return saved === "light" || saved === "dark" || saved === "system" ? saved : "dark";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("mondaily_appearance", appearance);
-    applySidebarTheme(appearance);
-  }, [appearance]);
 
   useEffect(() => {
     const email = user?.primaryEmailAddress?.emailAddress;
@@ -385,9 +361,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     refetchInterval: 60_000,
   });
   const unreadCount = notifications.filter(n => !n.read_at).length;
-  const currentAppearance = APPEARANCE_OPTIONS.find(option => option.value === appearance) ?? { value: "dark", label: "Dark", icon: Moon };
-  const CollapsedThemeIcon = currentAppearance.icon;
-  const nextAppearance = APPEARANCE_OPTIONS[(APPEARANCE_OPTIONS.findIndex(option => option.value === appearance) + 1) % APPEARANCE_OPTIONS.length]?.value ?? "dark";
 
   return (
     <>
@@ -524,45 +497,12 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {/* Bottom bar */}
         <div className="shrink-0 border-t border-neutral-200 p-2.5 dark:border-neutral-800">
           {collapsed ? (
-            <div className="space-y-1">
-              <button
-                type="button"
-                title={`Theme: ${currentAppearance.label}`}
-                onClick={() => setAppearance(nextAppearance)}
-                className="flex w-full items-center justify-center rounded-lg p-2 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
-              >
-                <CollapsedThemeIcon size={14}/>
-              </button>
-              <Link to="/settings/account" title="Settings"
-                className="flex items-center justify-center rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50 transition-colors">
-                <Settings size={14}/>
-              </Link>
-            </div>
+            <Link to="/settings/account" title="Settings"
+              className="flex items-center justify-center rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50 transition-colors">
+              <Settings size={14}/>
+            </Link>
           ) : (
             <div className="overflow-hidden">
-              <div className="grid grid-cols-3 gap-1 border-b border-neutral-200 pb-2 dark:border-neutral-800">
-                {APPEARANCE_OPTIONS.map(option => {
-                  const Icon = option.icon;
-                  const active = appearance === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setAppearance(option.value)}
-                      className={`flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[10px] font-medium tracking-tight transition-colors ${
-                        active
-                          ? "bg-neutral-950 text-white dark:bg-white dark:text-black"
-                          : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
-                      }`}
-                      aria-pressed={active}
-                    >
-                      <Icon size={11}/>
-                      <span>{option.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
               {/* Trial row */}
               <div className="flex items-center justify-between border-b border-neutral-200 px-1 py-2 dark:border-neutral-800">
                 <div>

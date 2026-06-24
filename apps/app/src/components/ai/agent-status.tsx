@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2, Sparkles,
-  ThumbsUp, ThumbsDown,
+  ThumbsUp, ThumbsDown, Sun, Moon,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
@@ -263,6 +263,17 @@ function ShareModal({ onClose }: { onClose: () => void }) {
 
 const SHARE_PATHS = ["/objects/", "/lists/", "/search"];
 
+function getCurrentTheme() {
+  const theme = document.documentElement.dataset.theme;
+  return theme === "light" ? "light" : "dark";
+}
+
+function applyHeaderTheme(theme: "light" | "dark") {
+  localStorage.setItem("mondaily_appearance", theme);
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.classList.toggle("dark", theme === "dark");
+}
+
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}) {
   const { user } = useUser();
@@ -272,11 +283,19 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => getCurrentTheme());
 
   const initials = user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "U";
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account";
   const avatarUrl = user?.imageUrl;
   const showShare = SHARE_PATHS.some(p => location.pathname.includes(p));
+  const ThemeIcon = theme === "dark" ? Sun : Moon;
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    applyHeaderTheme(next);
+  }
 
   return (
     <>
@@ -303,6 +322,16 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             title="Help"
           >
             <HelpCircle size={14}/>
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <ThemeIcon size={15}/>
           </button>
 
           <NotificationsBell/>
