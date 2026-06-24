@@ -1233,19 +1233,19 @@ function HeroPipelinePreview() {
 }
 
 const WORKSPACE_GRAPH_NODES = [
-  { label: "Records", x: 19, y: 31, color: "#6b7280", detail: "People, companies, assets" },
-  { label: "Tasks", x: 25, y: 70, color: "#6f8068", detail: "Due work and reviews" },
-  { label: "Finance", x: 75, y: 31, color: "#8a6f5a", detail: "Invoices and approvals" },
-  { label: "Decisions", x: 82, y: 66, color: "#8b7355", detail: "Human approval queue" },
-  { label: "Workflows", x: 51, y: 84, color: "#607078", detail: "Automations and triggers" },
-  { label: "Files", x: 49, y: 17, color: "#736b7f", detail: "Source-backed context" },
+  { label: "Graph Agent", x: 50, y: 16, color: "#9fb08f", detail: "Searches, links, and explains records" },
+  { label: "Enrichment Agent", x: 22, y: 34, color: "#8a8071", detail: "Adds sourced fields from the web" },
+  { label: "Relationship Agent", x: 78, y: 34, color: "#a68762", detail: "Watches follow-ups and relationship health" },
+  { label: "Finance Agent", x: 78, y: 68, color: "#a07164", detail: "Prepares invoice and credit-note actions" },
+  { label: "Operations Agent", x: 22, y: 68, color: "#6f8068", detail: "Finds overdue and stalled work" },
+  { label: "Ask AI", x: 50, y: 86, color: "#607078", detail: "Turns the graph into an ongoing conversation" },
 ];
 
 const WORKSPACE_GRAPH_EVENTS = [
-  "Relationship Agent found an overdue follow-up",
-  "Finance Agent drafted an invoice reminder",
-  "Graph Agent connected 14 related objects",
-  "Operations Agent queued a review task",
+  { agent: "relationship", action: "found overdue follow-up", target: "Acme Corp", tone: "#a68762" },
+  { agent: "finance", action: "prepared invoice reminder", target: "INV-0031", tone: "#a07164" },
+  { agent: "graph", action: "linked related objects", target: "14 records", tone: "#9fb08f" },
+  { agent: "operations", action: "queued review task", target: "Decision Queue", tone: "#6f8068" },
 ];
 
 function WorkspaceGraphPreview() {
@@ -1259,171 +1259,184 @@ function WorkspaceGraphPreview() {
   const activeNode = WORKSPACE_GRAPH_NODES[active]!;
 
   return (
-    <div className="relative mx-auto w-full max-w-full overflow-hidden border border-black/[.07] bg-white sm:max-w-6xl">
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.035)_1px,transparent_1px),linear-gradient(180deg,rgba(0,0,0,0.035)_1px,transparent_1px)] bg-[size:44px_44px] opacity-45" />
-      <div className="relative grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
-        <div className="relative min-h-[360px] border-b border-black/[.05] p-5 sm:min-h-[430px] sm:p-8 lg:border-b-0 lg:border-r">
-          <div className="mb-6 flex flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-left">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Living workspace graph</p>
-              <h3 className="mt-2 max-w-xl text-2xl font-semibold leading-tight tracking-tight text-zinc-900 sm:text-3xl">
-                One graph connecting every object your team works on.
+    <div className="relative mx-auto w-full max-w-full overflow-hidden border-y border-black/[.07] sm:max-w-6xl">
+      <div className="grid gap-0 lg:grid-cols-[1fr_.92fr]">
+        <div className="relative min-h-[420px] border-b border-black/[.06] p-5 sm:p-8 lg:border-b-0 lg:border-r">
+          <div className="mb-6 flex flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">Living workspace graph</p>
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+                  <motion.span
+                    animate={{ opacity: [0.35, 1, 0.35], boxShadow: ["0 0 0 0 rgba(111,128,104,0)", "0 0 0 4px rgba(111,128,104,0.16)", "0 0 0 0 rgba(111,128,104,0)"] }}
+                    transition={{ duration: 1.8, repeat: Infinity }}
+                    className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"
+                  />
+                  agents watching
+                </span>
+              </div>
+              <h3 className="max-w-xl text-2xl font-medium leading-tight tracking-tight text-zinc-900 sm:text-[2rem]">
+                Agents operate on one shared graph.
               </h3>
             </div>
-            <span className="inline-flex w-fit items-center gap-2 py-1 text-[11px] font-medium text-zinc-500">
-              <motion.span
-                animate={{ opacity: [0.35, 1, 0.35], boxShadow: ["0 0 0 0 rgba(111,128,104,0)", "0 0 0 4px rgba(111,128,104,0.16)", "0 0 0 0 rgba(111,128,104,0)"] }}
-                transition={{ duration: 1.8, repeat: Infinity }}
-                className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"
-              />
-              agents watching
-            </span>
           </div>
 
-          <div className="relative mx-auto aspect-[1.18/1] max-w-[640px] sm:aspect-[1.55/1]">
-            <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-hidden sm:overflow-visible">
-              <defs>
-                <filter id="graphGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="1.6" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              {WORKSPACE_GRAPH_NODES.map((node, i) => (
-                <motion.line
-                  key={node.label}
-                  x1="50"
-                  y1="50"
-                  x2={node.x}
-                  y2={node.y}
-                  stroke={node.color}
-                  strokeWidth={i === active ? 0.48 : 0.22}
-                  strokeDasharray="1.5 3"
-                  initial={false}
-                  animate={{ opacity: i === active ? 0.55 : 0.17 }}
-                  transition={{ duration: 0.45 }}
+          <div className="grid gap-6 md:grid-cols-[1fr_210px] md:items-center">
+            <div className="relative mx-auto aspect-square w-full max-w-[440px]">
+              <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible">
+                <defs>
+                  <radialGradient id="coreFill" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#f7f7f4" />
+                    <stop offset="100%" stopColor="#e7e4dc" />
+                  </radialGradient>
+                </defs>
+                {WORKSPACE_GRAPH_NODES.map((node, i) => (
+                  <motion.line
+                    key={node.label}
+                    x1="50"
+                    y1="50"
+                    x2={node.x}
+                    y2={node.y}
+                    stroke={node.color}
+                    strokeWidth={i === active ? 0.7 : 0.32}
+                    initial={false}
+                    animate={{ opacity: i === active ? 0.75 : 0.22 }}
+                    transition={{ duration: 0.45 }}
+                  />
+                ))}
+                <motion.circle
+                  cx="50"
+                  cy="50"
+                  r="12"
+                  fill="url(#coreFill)"
+                  stroke="currentColor"
+                  strokeWidth="0.28"
+                  animate={{ r: [12, 13.4, 12] }}
+                  transition={{ duration: 3, repeat: Infinity }}
                 />
-              ))}
-              <motion.circle
-                cx="50"
-                cy="50"
-                r="13"
-                fill="transparent"
-                stroke="currentColor"
-                opacity="0.18"
-                animate={{ r: [13, 15, 13], opacity: [0.8, 1, 0.8] }}
-                transition={{ duration: 2.8, repeat: Infinity }}
-              />
-              <circle cx="50" cy="50" r="5.4" fill="currentColor" filter="url(#graphGlow)" />
-              {WORKSPACE_GRAPH_NODES.map((node, i) => (
-                <motion.g key={node.label} initial={false} animate={{ scale: i === active ? 1.08 : 1 }} transition={{ duration: 0.35 }}>
-                  <circle cx={node.x} cy={node.y} r={i === active ? 4.8 : 3.9} fill="var(--landing-canvas, white)" stroke={node.color} strokeWidth={i === active ? 0.85 : 0.5} />
-                  <circle cx={node.x} cy={node.y} r="1.35" fill={node.color} />
-                </motion.g>
-              ))}
-            </svg>
+                <circle cx="50" cy="50" r="2.2" fill="#111" />
+                {WORKSPACE_GRAPH_NODES.map((node, i) => (
+                  <motion.g key={node.label} initial={false} animate={{ scale: i === active ? 1.08 : 1 }} transition={{ duration: 0.35 }}>
+                    <circle cx={node.x} cy={node.y} r={i === active ? 5.1 : 4.1} fill="var(--landing-canvas, white)" stroke={node.color} strokeWidth={i === active ? 1.1 : 0.62} />
+                    <circle cx={node.x} cy={node.y} r="1.45" fill={node.color} />
+                  </motion.g>
+                ))}
+              </svg>
+              <div className="absolute left-1/2 top-1/2 w-[118px] -translate-x-1/2 -translate-y-1/2 text-center">
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-700">Graph core</p>
+                <p className="mt-1 text-[11px] text-zinc-500">live memory</p>
+              </div>
+            </div>
 
-            <div className="absolute left-1/2 top-1/2 w-[156px] -translate-x-1/2 -translate-y-1/2 bg-white/90 px-4 py-4 text-center backdrop-blur">
-              <div className="mx-auto mb-2 h-px w-12 bg-black/[.14]" />
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-700">Mondaily core</p>
-              <p className="mt-1 text-[11px] text-zinc-500">workspace graph</p>
-              <div className="mx-auto mt-2 h-px w-12 bg-black/[.14]" />
+            <div className="border-y border-black/[.06]">
+              {WORKSPACE_GRAPH_NODES.map((node, i) => (
+                <motion.button
+                  key={node.label}
+                  type="button"
+                  onClick={() => setActive(i)}
+                  initial={false}
+                  animate={{ opacity: i === active ? 1 : 0.62 }}
+                  className="grid w-full grid-cols-[10px_1fr] items-start gap-3 border-b border-black/[.05] py-3 text-left last:border-b-0"
+                >
+                  <span className="mt-1.5 h-2 w-2 rounded-full" style={{ background: node.color }} />
+                  <span>
+                    <span className="block text-[12px] font-medium text-zinc-800">{node.label}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-zinc-500">{node.detail}</span>
+                  </span>
+                </motion.button>
+              ))}
             </div>
           </div>
 
-          <div className="mt-5 grid border-y border-black/[.06] sm:grid-cols-3">
-            {WORKSPACE_GRAPH_NODES.map((node, i) => (
-              <motion.div
-                key={node.label}
-                initial={false}
-                animate={{ opacity: i === active ? 1 : 0.62 }}
-                transition={{ duration: 0.35 }}
-                className={`flex items-start gap-3 border-b border-black/[.05] px-3 py-3 text-left sm:border-r ${
-                  i % 3 === 2 ? "sm:border-r-0" : ""
-                } ${i >= WORKSPACE_GRAPH_NODES.length - 3 ? "sm:border-b-0" : ""}`}
-              >
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
-                <span>
-                  <span className="block text-[12px] font-semibold text-zinc-800">{node.label}</span>
-                  <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">{node.detail}</span>
-                </span>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="mt-5 border border-black/[.06] bg-white/80 p-3 text-left">
-            <div className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center border text-[12px] font-semibold text-zinc-700">AI</span>
+          <div className="mt-6 border-y border-black/[.06] py-3 text-left">
+            <div className="flex items-start gap-3">
+              <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#607078]" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-zinc-800">Ask Mondaily</p>
-                <p className="truncate text-xs text-zinc-500">What changed in my workspace graph today?</p>
+                <p className="text-[12px] font-medium text-zinc-800">Ask AI</p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={activeNode.label}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.25 }}
+                    className="truncate text-[12px] text-zinc-500"
+                  >
+                    Continue from {activeNode.label}: what changed, what matters, what should happen next?
+                  </motion.p>
+                </AnimatePresence>
               </div>
-              <span className="border px-2.5 py-1 text-[11px] text-zinc-500">Enter ↵</span>
+              <span className="text-[12px] text-zinc-400">↵</span>
             </div>
           </div>
         </div>
 
-        <div className="relative bg-[#050706] p-6 text-white sm:p-8">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(111,128,104,0.08)_1px,transparent_1px),linear-gradient(180deg,rgba(111,128,104,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-35" />
+        <div className="landing-terminal relative p-6 sm:p-8">
           <div className="relative">
-          <div className="mb-7 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Operating layer</p>
-            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">Agents prepare the next move. You approve what matters.</h3>
-          </div>
-
-          <div className="space-y-3">
-            {WORKSPACE_GRAPH_EVENTS.map((event, i) => (
-              <motion.div
-                key={event}
-                initial={{ opacity: 0.55, x: 8 }}
-                animate={{ opacity: i === active % WORKSPACE_GRAPH_EVENTS.length ? 1 : 0.68, x: 0 }}
-                transition={{ duration: 0.45 }}
-                className="flex items-start gap-3 border-b border-white/[.08] pb-3 last:border-b-0"
-              >
-                <span className="mt-1 h-1.5 w-1.5 rounded-full" style={{ background: WORKSPACE_GRAPH_NODES[(i + active) % WORKSPACE_GRAPH_NODES.length]!.color }} />
-                <div className="text-left">
-                  <p className="text-sm font-medium text-zinc-100"><span className="text-[#9fb08f]">{'>'}</span> {event}</p>
-                  <p className="mt-1 text-xs text-zinc-500">source-backed · scoped to this workspace</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="mt-8 grid grid-cols-3 divide-x divide-white/[.08] border-y border-white/[.08]">
-            {[
-              ["6+", "agent families"],
-              ["1", "workspace graph"],
-              ["0", "shared client data"],
-            ].map(([value, label]) => (
-              <div key={label} className="px-2 py-4 text-left sm:px-4">
-                <p className="text-xl font-semibold text-white sm:text-2xl">{value}</p>
-                <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-zinc-500 sm:text-[11px] sm:tracking-[0.12em]">{label}</p>
+            <div className="mb-7 text-left">
+              <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#9fb08f]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
+                operating layer
               </div>
-            ))}
-          </div>
+              <h3 className="text-2xl font-medium tracking-tight text-white">AI process terminal</h3>
+            </div>
 
-          <div className="mt-6 border-t border-white/[.08] pt-5 text-left">
-            <div className="flex items-start gap-3">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current focus</p>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={activeNode.label}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.25 }}
-                className="mt-1 text-sm font-medium text-zinc-200"
-              >
-                {activeNode.label}: {activeNode.detail}
-              </motion.p>
-            </AnimatePresence>
+            <div className="space-y-3 font-mono text-[12.5px]">
+              {WORKSPACE_GRAPH_EVENTS.map((event, i) => (
+                <motion.div
+                  key={`${event.agent}-${event.target}`}
+                  initial={{ opacity: 0.55, x: 8 }}
+                  animate={{ opacity: i === active % WORKSPACE_GRAPH_EVENTS.length ? 1 : 0.64, x: 0 }}
+                  transition={{ duration: 0.45 }}
+                  className="border-b border-white/[.08] pb-3 last:border-b-0"
+                >
+                  <p>
+                    <span className="text-[#9fb08f]">mondaily</span>
+                    <span className="text-zinc-500">.</span>
+                    <span style={{ color: event.tone }}>{event.agent}</span>
+                    <span className="text-zinc-500"> --run </span>
+                    <span className="text-[#d7c6a3]">"{event.action}"</span>
+                  </p>
+                  <p className="mt-1 pl-4 text-zinc-400">
+                    source=<span className="text-[#8fb3b0]">workspace_graph</span> target=<span className="text-[#d7c6a3]">{event.target}</span> status=<span className="text-[#9fb08f]">prepared</span>
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="mt-8 grid grid-cols-3 divide-x divide-white/[.08] border-y border-white/[.08]">
+              {[
+                ["6+", "agents"],
+                ["1", "graph"],
+                ["0", "data leaks"],
+              ].map(([value, label]) => (
+                <div key={label} className="px-2 py-4 text-left sm:px-4">
+                  <p className="text-xl font-medium text-white sm:text-2xl">{value}</p>
+                  <p className="mt-1 text-[9px] uppercase tracking-[0.1em] text-zinc-500 sm:text-[11px] sm:tracking-[0.12em]">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 border-t border-white/[.08] pt-5 text-left">
+              <div className="flex items-start gap-3">
+                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current process</p>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={activeNode.label}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-1 text-sm font-medium text-zinc-200"
+                    >
+                      {activeNode.label}: {activeNode.detail}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
       </div>
@@ -1880,7 +1893,7 @@ function ProcessTabsSection() {
   const [active, setActive] = useState(0);
 
   return (
-    <section id="product" className="mx-auto max-w-6xl px-6 py-16">
+    <section id="product" className="landing-process-tabs mx-auto max-w-6xl px-6 py-16">
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Product engine</p>
       <h2 className="mb-8 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         Four processes, one graph
@@ -2371,8 +2384,6 @@ const PLANS = [
 // which contradicted the landing page.
 export function PricingSection() {
   const [annual, setAnnual] = useState(false);
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Pricing</p>
@@ -2412,13 +2423,10 @@ export function PricingSection() {
       <div className="grid items-stretch border-y border-black/[.06] md:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan, i) => {
           const price = annual ? plan.priceAnnual : plan.priceMonthly;
-          const hovered = hoverIdx === i;
           return (
             <motion.div
               key={plan.name}
-              onMouseEnter={() => setHoverIdx(i)}
-              onMouseLeave={() => setHoverIdx(null)}
-              className="relative flex h-full flex-col border-b border-r border-black/[.06] p-5"
+              className="group relative flex h-full flex-col border-b border-r border-black/[.06] p-5 transition-transform duration-150 hover:-translate-y-1"
             >
               <div className="relative flex h-full flex-col">
                 {plan.highlight && (
@@ -2447,20 +2455,9 @@ export function PricingSection() {
                   ))}
                 </ul>
 
-                {/* Hover reveal — what this plan unlocks */}
-                <AnimatePresence initial={false}>
-                  {hovered && (
-                    <motion.p
-                      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                      animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
-                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden text-[11.5px] leading-relaxed text-zinc-600"
-                    >
-                      {plan.unlocks}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
+                <p className="mb-4 min-h-[46px] text-[11.5px] leading-relaxed text-zinc-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                  {plan.unlocks}
+                </p>
 
                 <a href={plan.href} className={`mt-auto block border py-2.5 text-center text-[13px] font-semibold transition-opacity hover:opacity-85 ${plan.highlight ? "border-neutral-950 bg-neutral-950 text-white dark:bg-white dark:text-neutral-950" : "border-black/[.1] text-zinc-700"}`}>
                   {plan.cta}
@@ -2577,7 +2574,6 @@ function FooterThemeToggle({ theme, onToggle }: { theme: "light" | "dark"; onTog
       aria-label={theme === "dark" ? "Switch landing page to light mode" : "Switch landing page to dark mode"}
     >
       <span className="landing-theme-toggle__icon" aria-hidden="true">{theme === "dark" ? "☼" : "●"}</span>
-      <span>{theme === "dark" ? "Light" : "Dark"}</span>
     </button>
   );
 }

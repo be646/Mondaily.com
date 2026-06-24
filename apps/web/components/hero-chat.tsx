@@ -182,7 +182,7 @@ export function HeroChat() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="px-1 pb-4"
+                className="px-0 pb-3"
               >
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">Try asking</p>
                 <div className="grid gap-0">
@@ -233,7 +233,7 @@ export function HeroChat() {
           </AnimatePresence>
 
           {/* Textarea */}
-          <div className="border border-black/[.1] px-4 pt-4 pb-2 transition-colors focus-within:border-neutral-950 dark:border-white/15 dark:focus-within:border-white/60">
+          <div className="landing-soft-panel border border-black/[.1] px-4 pt-4 pb-2 transition-colors focus-within:border-neutral-950 dark:border-white/15 dark:focus-within:border-white/60">
             <textarea
               ref={textareaRef}
               value={input}
@@ -246,7 +246,7 @@ export function HeroChat() {
           </div>
 
           {/* Bottom bar */}
-          <div className="flex items-center justify-between border-x border-b border-black/[.1] px-4 pb-4 dark:border-white/15">
+          <div className="landing-soft-panel flex items-center justify-between border-x border-b border-black/[.1] px-4 pb-4 dark:border-white/15">
             <span className="text-[12px] text-zinc-400">Enter to send</span>
             <button
               onClick={() => void send()}

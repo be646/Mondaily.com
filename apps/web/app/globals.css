@@ -200,11 +200,14 @@ body {
 .landing-shell .landing-theme-toggle {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   border: 1px solid var(--landing-line-strong);
   background: transparent;
   color: var(--landing-muted);
-  padding: 0.45rem 0.7rem;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
   font-size: 0.72rem;
   line-height: 1;
   text-transform: uppercase;
@@ -220,6 +223,44 @@ body {
   color: var(--landing-text) !important;
   font-size: 0.72rem;
   line-height: 1;
+}
+
+.landing-shell .landing-terminal {
+  background:
+    linear-gradient(90deg, rgba(127, 163, 129, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(127, 163, 129, 0.05) 1px, transparent 1px),
+    #050706 !important;
+  background-size: 28px 28px, 28px 28px, auto !important;
+  color: #f4f7f2 !important;
+}
+
+.landing-shell .landing-terminal * {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.landing-shell .landing-soft-panel {
+  background: color-mix(in srgb, var(--landing-canvas) 92%, var(--landing-hover)) !important;
+}
+
+.landing-shell .landing-process-tabs [class*="text-blue-"],
+.landing-shell .landing-process-tabs [class*="text-amber-"],
+.landing-shell .landing-process-tabs [class*="text-violet-"],
+.landing-shell .landing-process-tabs [class*="text-red-"],
+.landing-shell .landing-process-tabs [class*="text-emerald-"] {
+  color: var(--landing-muted) !important;
+}
+
+.landing-shell .landing-process-tabs [class*="bg-blue-"],
+.landing-shell .landing-process-tabs [class*="bg-amber-"],
+.landing-shell .landing-process-tabs [class*="bg-violet-"],
+.landing-shell .landing-process-tabs [class*="bg-red-"],
+.landing-shell .landing-process-tabs [class*="bg-emerald-"] {
+  background: #8a8378 !important;
+}
+
+.landing-shell header,
+.landing-shell nav {
+  box-shadow: none !important;
 }
 
 .landing-shell[data-theme="dark"] .text-zinc-900,
