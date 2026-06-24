@@ -46,7 +46,7 @@ function Preloader({ onDone }: { onDone: () => void }) {
     <motion.div
       animate={{ opacity: fade ? 0 : 1 }}
       transition={{ duration: 0.35 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-8 text-neutral-950"
     >
       <div className="w-full max-w-sm">
         <div className="mb-2 flex items-center justify-center">
@@ -60,7 +60,7 @@ function Preloader({ onDone }: { onDone: () => void }) {
               <motion.line
                 key={i}
                 x1={50} y1={50} x2={n.x} y2={n.y}
-                stroke="#6366f1"
+                stroke="currentColor"
                 strokeWidth={1}
                 initial={{ opacity: 0.08 }}
                 animate={{ opacity: i < litCount ? 0.5 : 0.08 }}
@@ -71,13 +71,13 @@ function Preloader({ onDone }: { onDone: () => void }) {
           <motion.span
             animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
             transition={{ duration: 1.6, repeat: Infinity }}
-            className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500"
+            className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-950"
           />
           {PRELOADER_NODES.map((n, i) => (
             <motion.span
               key={i}
               className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{ left: `${n.x}%`, top: `${n.y}%`, background: i < litCount ? "#6366f1" : "#d4d4d8" }}
+              style={{ left: `${n.x}%`, top: `${n.y}%`, background: i < litCount ? "#0a0a0a" : "#d4d4d8" }}
               animate={i < litCount ? { scale: [1, 1.4, 1] } : { scale: 1 }}
               transition={{ duration: 0.5 }}
             />
@@ -85,7 +85,7 @@ function Preloader({ onDone }: { onDone: () => void }) {
         </div>
 
         <div className="h-px w-full bg-black/[.06]">
-          <motion.div className="h-px bg-indigo-500" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }}/>
+          <motion.div className="h-px bg-neutral-950" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }}/>
         </div>
         <AnimatePresence mode="wait">
           <motion.p
@@ -237,30 +237,16 @@ const FOOTER_TICKER_LINES = [
 
 function FooterTicker() {
   const line = (text: string, i: number) => (
-    <span key={i} className="inline-flex items-center gap-2 px-6">
-      <span className="relative flex h-1.5 w-1.5">
-        <motion.span
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: (i % 6) * 0.3 }}
-          className="absolute inline-flex h-full w-full rounded-full bg-indigo-400"
-        />
-      </span>
+    <span key={i} className="inline-flex items-center gap-2 border-r px-4 py-2 last:border-r-0">
+      <span className="h-1.5 w-1.5 rounded-full border border-current opacity-60" aria-hidden="true" />
       <span className="text-[12px] text-zinc-400">{text}</span>
     </span>
   );
   return (
-    <div className="relative h-7 overflow-hidden border-b border-black/[.04]" style={{
-      maskImage: "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
-      WebkitMaskImage: "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
-    }}>
-      <motion.div
-        className="absolute top-0 left-0 flex h-7 items-center whitespace-nowrap"
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-      >
+    <div className="border-b border-black/[.04]">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center divide-x px-6 font-mono">
         {FOOTER_TICKER_LINES.map(line)}
-        {FOOTER_TICKER_LINES.map((l, i) => line(l, i + FOOTER_TICKER_LINES.length))}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -2620,22 +2606,49 @@ function StickyStartBar() {
 }
 
 const PRELOADER_SESSION_KEY = "mondaily_preloader_seen";
+const LANDING_THEME_KEY = "mondaily_landing_theme";
+
+function FooterThemeToggle({ theme, onToggle }: { theme: "light" | "dark"; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="landing-theme-toggle"
+      aria-label={theme === "dark" ? "Switch landing page to light mode" : "Switch landing page to dark mode"}
+    >
+      <span className="landing-theme-toggle__icon" aria-hidden="true">{theme === "dark" ? "☼" : "●"}</span>
+      <span>{theme === "dark" ? "Light" : "Dark"}</span>
+    </button>
+  );
+}
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export function LandingPage() {
   const [ready, setReady] = useState(false);
   const [skipPreloader, setSkipPreloader] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useLayoutEffect(() => {
     if (sessionStorage.getItem(PRELOADER_SESSION_KEY)) {
       setSkipPreloader(true);
       setReady(true);
     }
+    const saved = localStorage.getItem(LANDING_THEME_KEY);
+    const nextTheme = saved === "dark" || saved === "light" ? saved : "light";
+    setTheme(nextTheme);
   }, []);
 
   const handleDone = useCallback(() => {
     setReady(true);
     sessionStorage.setItem(PRELOADER_SESSION_KEY, "1");
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const next = prev === "dark" ? "light" : "dark";
+      localStorage.setItem(LANDING_THEME_KEY, next);
+      return next;
+    });
   }, []);
 
   return (
@@ -2647,7 +2660,8 @@ export function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        className="min-h-screen overflow-x-hidden bg-white text-zinc-900"
+        data-theme={theme}
+        className={`landing-shell min-h-screen overflow-x-hidden bg-white text-zinc-900 ${theme === "dark" ? "dark" : ""}`}
       >
         <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/90">
           <Nav />
@@ -2664,7 +2678,7 @@ export function LandingPage() {
               >
                 {/* Live badge */}
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-indigo-500/[.07] px-3.5 py-1.5 text-[13px] font-medium text-indigo-500">
-                  <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-600"/>
+                  <motion.span animate={{ opacity: [0.4,1,0.4] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full border border-current"/>
                   An autonomous AI workspace
                 </div>
 
@@ -2674,17 +2688,16 @@ export function LandingPage() {
                     rather than static marketing copy. */}
                 <div className="mb-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-zinc-400">
                   {[
-                    { label: "Graph synced", color: "#10b981" },
-                    { label: "Agents active", color: "#8b5cf6" },
-                    { label: "Sources checked", color: "#06b6d4" },
+                    { label: "Graph synced" },
+                    { label: "Agents active" },
+                    { label: "Sources checked" },
                   ].map((s, i) => (
                     <span key={s.label} className="inline-flex items-center gap-1.5">
                       <span className="relative flex h-1.5 w-1.5">
                         <motion.span
                           animate={{ opacity: [0.3, 1, 0.3] }}
                           transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
-                          className="absolute inline-flex h-full w-full rounded-full"
-                          style={{ background: s.color }}
+                          className="absolute inline-flex h-full w-full rounded-full border border-current"
                         />
                       </span>
                       {s.label}
@@ -2723,16 +2736,14 @@ export function LandingPage() {
                 {/* Agent preview strip — agents are core identity, shown immediately under the fold */}
                 <div className="mb-9 flex flex-wrap items-center justify-center gap-2">
                   {AGENTS.slice(0, 6).map((agent, i) => (
-                    <span
+                  <span
                       key={agent.name}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium"
-                      style={{ borderColor: `${agent.accent}25`, background: `${agent.accent}08`, color: agent.accent }}
+                      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium text-zinc-500"
                     >
                       <motion.span
                         animate={{ opacity: [0.3, 1, 0.3] }}
                         transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3 }}
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{ background: agent.accent }}
+                        className="h-1.5 w-1.5 rounded-full border border-current"
                       />
                       {agent.name}
                     </span>
@@ -2835,7 +2846,7 @@ export function LandingPage() {
 
         {/* ── Footer ── */}
         <footer className="relative bg-zinc-50">
-          <div className="absolute top-0 left-1/2 h-px w-full max-w-3xl -translate-x-1/2" style={{ background: "linear-gradient(90deg, transparent, rgba(99,102,241,0.35), transparent)" }}/>
+          <div className="absolute top-0 left-0 h-px w-full bg-current opacity-10"/>
           <FooterTicker />
           <div className="mx-auto max-w-6xl px-6 py-14">
             <div className="mb-10 flex flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
@@ -2875,9 +2886,12 @@ export function LandingPage() {
             </div>
             <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 font-mono text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
-              <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors">
-                System status
-              </a>
+              <div className="flex items-center gap-3">
+                <FooterThemeToggle theme={theme} onToggle={toggleTheme} />
+                <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors">
+                  System status
+                </a>
+              </div>
             </div>
           </div>
         </footer>

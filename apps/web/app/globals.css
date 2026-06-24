@@ -14,3 +14,217 @@ body {
   color: #18181b;
   font-family: var(--font-mono), ui-monospace, monospace;
 }
+
+/* Mondaily public site: premium monochrome landing system.
+   This is intentionally scoped so Clerk/auth/legal pages keep their own layout. */
+.landing-shell {
+  --landing-canvas: #ffffff;
+  --landing-text: #0a0a0a;
+  --landing-muted: #737373;
+  --landing-faint: #a3a3a3;
+  --landing-line: #f5f5f5;
+  --landing-line-strong: #e5e5e5;
+  --landing-hover: #f7f7f7;
+  background: var(--landing-canvas);
+  color: var(--landing-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+
+.landing-shell.dark,
+.landing-shell[data-theme="dark"] {
+  --landing-canvas: #000000;
+  --landing-text: #ffffff;
+  --landing-muted: #a3a3a3;
+  --landing-faint: #737373;
+  --landing-line: #171717;
+  --landing-line-strong: #262626;
+  --landing-hover: #0a0a0a;
+  color-scheme: dark;
+}
+
+.landing-shell,
+.landing-shell header,
+.landing-shell footer,
+.landing-shell section,
+.landing-shell main,
+.landing-shell nav {
+  background: var(--landing-canvas) !important;
+  color: var(--landing-text);
+}
+
+.landing-shell header {
+  border-color: var(--landing-line) !important;
+  backdrop-filter: blur(18px);
+}
+
+.landing-shell footer {
+  border-top: 1px solid var(--landing-line);
+}
+
+.landing-shell section {
+  border-top: 1px solid var(--landing-line);
+}
+
+.landing-shell main > section:first-child {
+  border-top: 0;
+}
+
+.landing-shell h1,
+.landing-shell h2,
+.landing-shell h3,
+.landing-shell h4,
+.landing-shell .font-sans {
+  color: var(--landing-text) !important;
+  letter-spacing: -0.045em;
+}
+
+.landing-shell h1 {
+  font-weight: 650;
+}
+
+.landing-shell h2 {
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 0.98;
+  font-weight: 640;
+}
+
+.landing-shell p,
+.landing-shell li,
+.landing-shell span,
+.landing-shell .font-mono {
+  border-color: var(--landing-line);
+}
+
+.landing-shell p,
+.landing-shell li {
+  color: var(--landing-muted) !important;
+}
+
+.landing-shell .text-zinc-400,
+.landing-shell .text-zinc-500,
+.landing-shell .text-zinc-600,
+.landing-shell .text-neutral-400,
+.landing-shell .text-neutral-500,
+.landing-shell .text-neutral-600,
+.landing-shell .text-indigo-400,
+.landing-shell .text-indigo-500,
+.landing-shell .text-indigo-600,
+.landing-shell .text-emerald-500,
+.landing-shell .text-emerald-600 {
+  color: var(--landing-muted) !important;
+}
+
+.landing-shell [class*="bg-indigo-"],
+.landing-shell [class*="bg-violet-"],
+.landing-shell [class*="bg-emerald-"],
+.landing-shell [class*="bg-cyan-"],
+.landing-shell [class*="bg-zinc-50"],
+.landing-shell [class*="bg-zinc-100"],
+.landing-shell [class*="bg-neutral-50"],
+.landing-shell [class*="bg-black/"],
+.landing-shell [class*="bg-white/"] {
+  background: transparent !important;
+}
+
+.landing-shell [class*="shadow"],
+.landing-shell [style*="box-shadow"] {
+  box-shadow: none !important;
+}
+
+.landing-shell [class*="border-black/"],
+.landing-shell [class*="border-white/"],
+.landing-shell [class*="border-zinc-"],
+.landing-shell [class*="border-neutral-"],
+.landing-shell [class*="border-indigo-"],
+.landing-shell [class*="border-emerald-"] {
+  border-color: var(--landing-line) !important;
+}
+
+.landing-shell [class*="rounded-2xl"],
+.landing-shell [class*="rounded-xl"] {
+  border-radius: 0 !important;
+}
+
+.landing-shell a,
+.landing-shell button {
+  border-color: var(--landing-line-strong) !important;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.landing-shell a:hover,
+.landing-shell button:hover {
+  color: var(--landing-text) !important;
+  background: var(--landing-hover) !important;
+}
+
+.landing-shell a[href*="sign-up"],
+.landing-shell button[type="submit"] {
+  background: var(--landing-text) !important;
+  color: var(--landing-canvas) !important;
+  border: 1px solid var(--landing-text) !important;
+  font-weight: 650;
+}
+
+.landing-shell a[href*="sign-up"]:hover,
+.landing-shell button[type="submit"]:hover {
+  opacity: 0.86;
+  background: var(--landing-text) !important;
+  color: var(--landing-canvas) !important;
+}
+
+.landing-shell input,
+.landing-shell textarea {
+  background: transparent !important;
+  color: var(--landing-text) !important;
+  border-color: var(--landing-line-strong) !important;
+  border-radius: 0 !important;
+}
+
+.landing-shell input::placeholder,
+.landing-shell textarea::placeholder {
+  color: var(--landing-faint) !important;
+}
+
+.landing-shell svg,
+.landing-shell .font-orbitron {
+  color: currentColor;
+}
+
+.landing-shell .grid > div,
+.landing-shell ul > li,
+.landing-shell tbody > tr {
+  border-color: var(--landing-line) !important;
+}
+
+.landing-shell .landing-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--landing-line-strong);
+  background: transparent;
+  color: var(--landing-muted);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.landing-shell .landing-theme-toggle:hover {
+  color: var(--landing-text);
+  background: var(--landing-hover);
+}
+
+.landing-shell .landing-theme-toggle__icon {
+  color: var(--landing-text) !important;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.landing-shell[data-theme="dark"] .text-zinc-900,
+.landing-shell[data-theme="dark"] .text-zinc-800,
+.landing-shell[data-theme="dark"] .text-neutral-950,
+.landing-shell[data-theme="dark"] .text-neutral-900 {
+  color: var(--landing-text) !important;
+}

@@ -6,10 +6,10 @@ export function Logo({ size = 52 }: { size?: number }) {
 
   return (
     <div className="flex items-center" style={{ gap: Math.round(size * 0.14), lineHeight: 1 }}>
-      <svg width={mark} height={mark} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block" }}>
-        <circle cx="16" cy="16" r="6.5" fill="#6366f1"/>
-        <circle cx="16" cy="16" r="13" stroke="#6366f1" strokeWidth="1.4" opacity="0.35"/>
-        <circle cx="0" cy="0" r="2.4" fill="#6366f1" opacity="0.85">
+      <svg width={mark} height={mark} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block", color: "currentColor" }}>
+        <circle cx="16" cy="16" r="6.5" fill="currentColor"/>
+        <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="1.4" opacity="0.35"/>
+        <circle cx="0" cy="0" r="2.4" fill="currentColor" opacity="0.85">
           <animateMotion
             dur="6s"
             repeatCount="indefinite"
@@ -24,7 +24,7 @@ export function Logo({ size = 52 }: { size?: number }) {
           fontSize: `${fs}px`,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "#18181b",
+          color: "currentColor",
           lineHeight: 1,
           whiteSpace: "nowrap",
         }}
