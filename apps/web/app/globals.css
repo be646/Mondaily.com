@@ -270,12 +270,30 @@ body {
   color: var(--landing-muted) !important;
 }
 
-.landing-shell .landing-process-tabs [class*="bg-blue-"],
-.landing-shell .landing-process-tabs [class*="bg-amber-"],
-.landing-shell .landing-process-tabs [class*="bg-violet-"],
-.landing-shell .landing-process-tabs [class*="bg-red-"],
-.landing-shell .landing-process-tabs [class*="bg-emerald-"] {
-  background: #8a8378 !important;
+.landing-shell .agent-brush {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.landing-shell .agent-brush::before {
+  content: "";
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  opacity: 0.28;
+  background:
+    radial-gradient(circle at 14% 88%, rgba(15, 92, 137, 0.88), transparent 34%),
+    radial-gradient(circle at 84% 16%, rgba(238, 83, 55, 0.78), transparent 32%),
+    radial-gradient(circle at 58% 50%, rgba(247, 184, 91, 0.42), transparent 28%),
+    linear-gradient(135deg, rgba(245, 239, 231, 0.85), rgba(198, 229, 234, 0.24));
+  transform: rotate(var(--brush-rotate, -8deg)) scale(1.12);
+  filter: saturate(var(--brush-saturation, 0.88));
+}
+
+.landing-shell.dark .agent-brush::before,
+.landing-shell[data-theme="dark"] .agent-brush::before {
+  opacity: 0.42;
 }
 
 .landing-shell header,

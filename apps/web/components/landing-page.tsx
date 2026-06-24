@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
@@ -298,7 +298,13 @@ function RotatingWord({ words }: { words: string[] }) {
 
 function FeatureSection() {
   const [active, setActive] = useState<string | null>(null);
+  const [operationIdx, setOperationIdx] = useState(0);
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
+
+  useEffect(() => {
+    const t = setInterval(() => setOperationIdx(i => (i + 1) % 6), 1600);
+    return () => clearInterval(t);
+  }, []);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
@@ -374,15 +380,15 @@ function FeatureSection() {
         </div>
         <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
           {[
-            "Turns messy records into one connected workspace graph",
-            "Enriches new records with source-backed data from the web",
-            "Finds signals and explains what changed, with evidence",
-            "Drafts tasks, messages, and workflows for your approval",
-            "Watches finance, decisions, and operations continuously",
-            "Discovers new candidates and assets when you ask the Prospecting Agent",
-          ].map((line, i) => (
-            <TerminalLine key={line} active={i < 3}>
-              <span className="terminal-green">agent</span><span className="terminal-muted">.</span><span className="terminal-blue">{["graph", "enrich", "signal", "draft", "monitor", "prospect"][i]}</span>
+            ["graph", "connect messy records"],
+            ["enrich", "attach web-backed fields"],
+            ["signal", "explain changed records"],
+            ["draft", "prepare tasks and messages"],
+            ["monitor", "watch finance and decisions"],
+            ["prospect", "discover sourced candidates"],
+          ].map(([agent, line], i) => (
+            <TerminalLine key={line} active={i === operationIdx}>
+              <span className="terminal-green">agent</span><span className="terminal-muted">.</span><span className="terminal-blue">{agent}</span>
               <span className="terminal-muted"> → </span><span className="terminal-amber">{line}</span>
             </TerminalLine>
           ))}
@@ -1235,12 +1241,12 @@ function HeroPipelinePreview() {
 }
 
 const WORKSPACE_GRAPH_NODES = [
-  { label: "Graph Agent", x: 50, y: 16, color: "#9fb08f", detail: "Searches, links, and explains records" },
-  { label: "Enrichment Agent", x: 22, y: 34, color: "#8a8071", detail: "Adds sourced fields from the web" },
-  { label: "Relationship Agent", x: 78, y: 34, color: "#a68762", detail: "Watches follow-ups and relationship health" },
-  { label: "Finance Agent", x: 78, y: 68, color: "#a07164", detail: "Prepares invoice and credit-note actions" },
-  { label: "Operations Agent", x: 22, y: 68, color: "#6f8068", detail: "Finds overdue and stalled work" },
-  { label: "Ask AI", x: 50, y: 86, color: "#607078", detail: "Turns the graph into an ongoing conversation" },
+  { label: "Graph Agent", x: 50, y: 25, color: "#9fb08f", detail: "Searches, links, and explains records" },
+  { label: "Enrichment Agent", x: 25, y: 50, color: "#8a8071", detail: "Adds sourced fields from the web" },
+  { label: "Relationship Agent", x: 75, y: 50, color: "#a68762", detail: "Watches follow-ups and relationship health" },
+  { label: "Finance Agent", x: 25, y: 76, color: "#a07164", detail: "Prepares invoice and credit-note actions" },
+  { label: "Operations Agent", x: 75, y: 76, color: "#6f8068", detail: "Finds overdue and stalled work" },
+  { label: "Ask AI", x: 50, y: 90, color: "#607078", detail: "Turns the graph into an ongoing conversation" },
 ];
 
 const WORKSPACE_GRAPH_EVENTS = [
@@ -1255,7 +1261,7 @@ function TerminalLine({ children, active }: { children: ReactNode; active?: bool
     <motion.div
       animate={{ opacity: active ? 1 : 0.58 }}
       transition={{ duration: 0.25 }}
-      className="h-7 whitespace-nowrap font-mono text-[12px] leading-7"
+      className="h-7 truncate whitespace-nowrap text-left font-mono text-[12px] leading-7"
     >
       <span className="terminal-muted">$ </span>{children}
     </motion.div>
@@ -1321,10 +1327,17 @@ function WorkspaceGraphPreview() {
           </div>
 
           <div className="grid gap-7 md:grid-cols-[1fr_230px] md:items-center">
-            <div className="relative mx-auto h-[300px] w-full max-w-[430px]">
-              <div className="absolute inset-x-8 top-1/2 h-px bg-gradient-to-r from-transparent via-[#8a8378]/45 to-transparent" />
-              <div className="absolute inset-y-8 left-1/2 w-px bg-gradient-to-b from-transparent via-[#8a8378]/35 to-transparent" />
-              <div className="absolute left-1/2 top-1/2 flex h-28 w-28 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center bg-[var(--landing-canvas)] text-center">
+            <div className="relative mx-auto h-[330px] w-full max-w-[430px]">
+              <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible">
+                <path d="M50 17 V31" stroke="#8a8378" strokeWidth="0.35" opacity="0.7" />
+                <path d="M50 31 H25 V43" stroke="#8a8378" strokeWidth="0.35" opacity="0.55" fill="none" />
+                <path d="M50 31 H75 V43" stroke="#8a8378" strokeWidth="0.35" opacity="0.55" fill="none" />
+                <path d="M25 57 V69" stroke="#8a8378" strokeWidth="0.35" opacity="0.45" fill="none" />
+                <path d="M75 57 V69" stroke="#8a8378" strokeWidth="0.35" opacity="0.45" fill="none" />
+                <path d="M25 84 H50 V85" stroke="#8a8378" strokeWidth="0.35" opacity="0.38" fill="none" />
+                <path d="M75 84 H50 V85" stroke="#8a8378" strokeWidth="0.35" opacity="0.38" fill="none" />
+              </svg>
+              <div className="absolute left-1/2 top-[8%] flex h-20 w-32 -translate-x-1/2 flex-col items-center justify-center bg-[var(--landing-canvas)] text-center">
                 <motion.span
                   animate={{ opacity: [0.45, 1, 0.45] }}
                   transition={{ duration: 2, repeat: Infinity }}
@@ -1343,7 +1356,7 @@ function WorkspaceGraphPreview() {
                     key={node.label}
                     type="button"
                     onClick={() => setActive(i)}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 bg-[var(--landing-canvas)] px-3 py-2 text-left"
+                    className="absolute w-[144px] -translate-x-1/2 -translate-y-1/2 bg-[var(--landing-canvas)] px-3 py-2 text-left"
                     style={style}
                     animate={{ opacity: i === active ? 1 : 0.66, scale: i === active ? 1.03 : 1 }}
                     transition={{ duration: 0.3 }}
@@ -1352,7 +1365,7 @@ function WorkspaceGraphPreview() {
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: node.color }} />
                       <span className="whitespace-nowrap text-[11px] font-medium text-zinc-800">{node.label}</span>
                     </span>
-                    <span className="block max-w-[130px] text-[10px] leading-snug text-zinc-500">{node.detail}</span>
+                    <span className="block text-[10px] leading-snug text-zinc-500">{node.detail}</span>
                   </motion.button>
                 );
               })}
@@ -1405,10 +1418,9 @@ function WorkspaceGraphPreview() {
                 <span className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
                 operating layer
               </div>
-              <h3 className="text-xl font-medium tracking-tight text-white">AI process terminal</h3>
             </div>
 
-            <div className="mb-5 h-12 overflow-hidden font-mono text-[13px] leading-6">
+            <div className="mb-5 h-12 overflow-hidden text-left font-mono text-[13px] leading-6">
               <span className="terminal-muted">$ </span>
               <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: activeEvent.tone }}>{activeEvent.agent}</span>
               <span className="terminal-muted"> </span>
@@ -1936,49 +1948,49 @@ function ProcessTabsSection() {
 
 const AGENTS = [
   {
-    icon: "◈", name: "Graph Agent", accent: "#4f46e5",
+    icon: "◈", name: "Graph Agent", accent: "#4f46e5", brush: "0deg",
     desc: "The conversational interface to your workspace graph — creates and searches records, builds lists, sets up workflows, and answers questions in plain English.",
     watches: "Every record, conversation, and question asked of the graph",
     prepares: "Filtered lists, new records, draft workflows, and answers with sources attached",
     approval: "No approval needed to answer — sensitive actions still route to the Decision Queue",
   },
   {
-    icon: "◆", name: "Enrichment Agent", accent: "#7c3aed",
+    icon: "◆", name: "Enrichment Agent", accent: "#7c3aed", brush: "-18deg",
     desc: "Fires the moment a new record enters the graph — pulls ARR, headcount, funding, tech stack, and other public signals automatically from the web.",
     watches: "New records as they're created",
     prepares: "Firmographic and contact fields, sourced and attached to the record",
     approval: "Writes directly — no sensitive action, so no approval required",
   },
   {
-    icon: "♥", name: "Relationship Agent", accent: "#d97706",
+    icon: "♥", name: "Relationship Agent", accent: "#d97706", brush: "24deg",
     desc: "Scores every relationship daily based on contact recency, open loops, and recent activity across the graph.",
     watches: "Last-touch dates and open items across every relationship",
     prepares: "An updated relationship health score on each record",
     approval: "Writes directly — no sensitive action, so no approval required",
   },
   {
-    icon: "▲", name: "Finance Agent", accent: "#dc2626",
+    icon: "▲", name: "Finance Agent", accent: "#dc2626", brush: "48deg",
     desc: "Watches invoices and credit notes across the graph, drafts the reminder or adjustment, and queues it for your approval before anything is sent.",
     watches: "Invoice due dates and credit note disputes",
     prepares: "Draft reminders and adjustments",
     approval: "Requires approval before anything is sent or applied",
   },
   {
-    icon: "▶", name: "Operations Agent", accent: "#059669",
+    icon: "▶", name: "Operations Agent", accent: "#059669", brush: "-42deg",
     desc: "Tracks overdue and stalled work across the graph and queues a recommendation the moment something needs attention.",
     watches: "Task due dates, review status, and stalled work",
     prepares: "A recommendation in the Decision Queue, with the record attached",
     approval: "Requires approval before reassigning or rescheduling",
   },
   {
-    icon: "⚙", name: "Workflow Agent", accent: "#0891b2",
+    icon: "⚙", name: "Workflow Agent", accent: "#0891b2", brush: "72deg",
     desc: "Designs trigger → condition → action automations across the graph, no code required. Autonomous execution is coming online — today, a human reviews and runs each one.",
     watches: "Workflow definitions you design",
     prepares: "A runnable workflow draft",
     approval: "Always requires a human to review and run it today",
   },
   {
-    icon: "✦", name: "Prospecting Agent", accent: "#0ea5e9",
+    icon: "✦", name: "Prospecting Agent", accent: "#0ea5e9", brush: "-70deg",
     desc: "Searches the live web for new candidates — people, organizations, investors, suppliers, or any record type your workspace tracks — and proposes them with a real source attached.",
     watches: "A query you give it, plus your existing graph for duplicates",
     prepares: "New candidate records, each with a source URL — never invented",
@@ -2011,9 +2023,10 @@ function AgentsSection() {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.4, delay: i * 0.07 }}
               onClick={() => setOpenIdx(i)}
-              className="group aspect-square cursor-pointer border-b border-r border-black/[.06] p-3 text-left transition-colors hover:bg-black/[.025] sm:p-4"
+              className="agent-brush group aspect-square cursor-pointer border-b border-r border-black/[.06] p-3 text-left transition-colors hover:bg-black/[.025] sm:p-4"
+              style={{ "--brush-rotate": agent.brush, "--brush-saturation": open ? "1.06" : "0.72" } as CSSProperties}
             >
-              <span className="mb-5 block h-2 w-2 rounded-full" style={{ background: open ? agent.accent : "#a8a29e" }} />
+              <span className="mb-5 block h-2 w-2 rounded-full" style={{ background: open ? agent.accent : "#a8a29e", boxShadow: open ? `0 0 0 4px ${agent.accent}1f` : "none" }} />
               <span className="block text-[13px] font-semibold leading-tight text-zinc-800">{agent.name}</span>
               <span className="mt-2 block text-[11px] leading-snug text-zinc-500">{open ? "selected" : "watching"}</span>
             </motion.div>
@@ -2024,9 +2037,9 @@ function AgentsSection() {
       <div className="relative overflow-hidden border-b border-black/[.06] bg-[#050706] px-4 py-4 text-left text-white">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(111,128,104,0.08)_1px,transparent_1px),linear-gradient(180deg,rgba(111,128,104,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-35" />
         <div className="relative">
-        <div className="mb-3 flex items-center gap-2 text-[12px] text-zinc-400">
+        <div className="mb-3 flex items-center gap-2 font-mono text-[12px] text-zinc-400">
           <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
-          {agent.name.toLowerCase().replace(" agent", "")}.inspect()
+          <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: agent.accent }}>{agent.name.toLowerCase().replace(" agent", "")}</span><span className="terminal-muted">.inspect()</span>
         </div>
         <AnimatePresence mode="wait">
           <motion.div
@@ -2037,9 +2050,9 @@ function AgentsSection() {
             transition={{ duration: 0.24 }}
             className="grid gap-3 text-[13px] leading-relaxed text-zinc-300 md:grid-cols-3"
           >
-            <p><span className="text-zinc-500">watches:</span> {agent.watches}</p>
-            <p><span className="text-zinc-500">prepares:</span> {agent.prepares}</p>
-            <p><span className="text-zinc-500">approval:</span> {agent.approval}</p>
+            <p><span className="terminal-blue">watches:</span> {agent.watches}</p>
+            <p><span className="terminal-amber">prepares:</span> {agent.prepares}</p>
+            <p><span className="terminal-green">approval:</span> {agent.approval}</p>
           </motion.div>
         </AnimatePresence>
         </div>
@@ -2072,6 +2085,15 @@ const LIVE_SIGNALS = [
 ];
 
 function LiveSignalsSection() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActive(i => (i + 1) % LIVE_SIGNALS.length), 1800);
+    return () => clearInterval(t);
+  }, []);
+
+  const signal = LIVE_SIGNALS[active]!;
+
   return (
     <section className="mx-auto max-w-6xl px-6 py-16">
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Source-backed signals</p>
@@ -2082,29 +2104,27 @@ function LiveSignalsSection() {
         A signal feed with source, status, and next action.
       </p>
 
-      <div className="border-y border-black/[.06]">
-        {LIVE_SIGNALS.map((s, i) => (
-          <motion.div
-            key={s.text}
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.4, delay: i * 0.07 }}
-            className="grid gap-3 border-b border-black/[.06] py-4 text-left last:border-b-0 sm:grid-cols-[1fr_150px_150px]"
-          >
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping" style={{ background: s.accent }}/>
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: s.accent }}/>
-              </span>
-              <p className="text-[15px] font-medium text-zinc-800">{s.text}</p>
-            </div>
-            <span className="text-[13px] text-zinc-500">{s.source}</span>
-            <span className="text-left text-[13px] font-medium text-zinc-700">
-              {s.action}
-            </span>
-          </motion.div>
-        ))}
+      <div className="border-y border-black/[.06] py-5">
+        <div className="flex flex-col gap-3 text-left sm:flex-row sm:items-center">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping" style={{ background: signal.accent }}/>
+            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: signal.accent }}/>
+          </span>
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={signal.text}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="flex-1 text-[18px] font-medium tracking-tight text-zinc-900"
+            >
+              {signal.text}
+            </motion.p>
+          </AnimatePresence>
+          <span className="text-[13px] text-zinc-500">{signal.source}</span>
+          <span className="text-[13px] font-medium text-zinc-700">{signal.action}</span>
+        </div>
       </div>
     </section>
   );
@@ -2180,13 +2200,20 @@ const TRUST_POINTS = [
 
 // ── AI with approval — agents act, humans stay in control ───────────────────
 const APPROVAL_STEPS = [
-  { label: "Prepare",  desc: "Agents draft the change before anything touches the graph" },
-  { label: "Recommend", desc: "A suggested action appears with the records and evidence behind it" },
-  { label: "Monitor",  desc: "Signals and risks are tracked continuously in the background" },
-  { label: "Execute",  desc: "Once approved, the action runs and is logged to the source object" },
+  { label: "Prepare",  desc: "Agents draft the change before anything touches the graph", status: "drafting", tone: "#607078" },
+  { label: "Recommend", desc: "A suggested action appears with the records and evidence behind it", status: "ready", tone: "#8b7355" },
+  { label: "Monitor",  desc: "Signals and risks are tracked continuously in the background", status: "watching", tone: "#6f8068" },
+  { label: "Execute",  desc: "Once approved, the action runs and is logged to the source object", status: "approved", tone: "#a68762" },
 ];
 
 function ApprovalSection() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActive(i => (i + 1) % APPROVAL_STEPS.length), 2000);
+    return () => clearInterval(t);
+  }, []);
+
   return (
     <section className="mx-auto max-w-6xl px-6 py-16">
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Decision Queue</p>
@@ -2205,14 +2232,18 @@ function ApprovalSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.07 }}
-            className="grid gap-3 border-b border-black/[.06] py-4 text-left last:border-b-0 sm:grid-cols-[90px_1fr_120px]"
+            animate={{ opacity: active === i ? 1 : 0.68 }}
+            className="grid gap-3 border-b border-black/[.06] py-3 text-left last:border-b-0 sm:grid-cols-[90px_1fr_120px]"
           >
-            <span className="text-[12px] uppercase tracking-[0.16em] text-zinc-400">0{i + 1}</span>
+            <span className="text-[12px] uppercase tracking-[0.16em]" style={{ color: active === i ? s.tone : "#a1a1aa" }}>0{i + 1}</span>
             <div>
               <p className="text-[14px] font-semibold text-zinc-800">{s.label}</p>
               <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">{s.desc}</p>
             </div>
-            <span className="text-[13px] font-medium text-zinc-500">Waiting</span>
+            <span className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-500">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tone }} />
+              {s.status}
+            </span>
           </motion.div>
         ))}
       </div>
@@ -2583,7 +2614,7 @@ function FooterThemeToggle({ theme, onToggle }: { theme: "light" | "dark"; onTog
       className="landing-theme-toggle"
       aria-label={theme === "dark" ? "Switch landing page to light mode" : "Switch landing page to dark mode"}
     >
-      <span className="landing-theme-toggle__icon" aria-hidden="true">{theme === "dark" ? "☼" : "●"}</span>
+      <span className="landing-theme-toggle__icon" aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
     </button>
   );
 }

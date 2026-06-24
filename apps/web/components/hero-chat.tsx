@@ -6,10 +6,10 @@ const API_URL = "/api/ask";
 
 // Shown as fake user message bubbles — click to fire
 const SUGGESTIONS: { text: string }[] = [
-  { text: "What changed in my graph today?" },
-  { text: "Which tasks need attention?" },
-  { text: "Where is revenue at risk?" },
-  { text: "What should the agents prepare next?" },
+  { text: "How does AI enrichment work?" },
+  { text: "Walk me through the opportunity flow on the graph" },
+  { text: "What can Ask AI do?" },
+  { text: "How do automations work?" },
 ];
 
 // Plain-language reasoning flow — no raw code/log syntax, just what the AI is actually doing
@@ -76,41 +76,28 @@ function ProcessPanel({ visible }: { visible: boolean }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 6, transition: { duration: 1.2, ease: "easeOut" } }}
           transition={{ duration: 0.4 }}
-          className="hidden lg:flex absolute top-0 left-[calc(100%+1.5rem)] w-60 flex-col rounded-xl overflow-hidden"
-          style={{
-            border: "1px solid rgba(99,102,241,0.1)",
-            background: "rgba(255,255,255,0.9)",
-            backdropFilter: "blur(8px)",
-          }}
+          className="landing-terminal absolute left-[calc(100%+1.5rem)] top-0 hidden w-64 flex-col overflow-hidden p-4 lg:flex"
         >
-          {/* Title bar */}
-          <div className="flex items-center gap-2 border-b border-black/[.04] px-3 py-2">
-            <span className="text-[12px] text-zinc-600 font-medium">Ask Mondaily is thinking</span>
+          <div className="mb-3 flex items-center gap-2 text-left">
+            <span className="text-[12px] font-medium text-[#9fb08f]">ask.process</span>
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 0.9, repeat: Infinity }}
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-[#9fb08f]"
             />
           </div>
 
-          {/* Reasoning steps */}
-          <div className="px-3.5 py-3.5 flex flex-col gap-2.5">
+          <div className="flex flex-col gap-1 font-mono">
             {PROCESS_STEPS.map((s, i) => {
               const done = i < activeStep;
               const current = i === activeStep;
               const pending = i > activeStep;
               return (
-                <div key={i} className={`flex items-center gap-2.5 transition-opacity ${pending ? "opacity-35" : "opacity-100"}`}>
-                  <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-                    {done ? (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                    ) : current ? (
-                      <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-indigo-500"/>
-                    ) : (
-                      <span className="h-1.5 w-1.5 rounded-full bg-zinc-300"/>
-                    )}
-                  </span>
-                  <span className={`text-[13px] ${current ? "text-indigo-600 font-medium" : "text-zinc-500"}`}>{s.lines[0]}</span>
+                <div key={i} className={`h-7 truncate text-left text-[12px] leading-7 transition-opacity ${pending ? "opacity-35" : "opacity-100"}`}>
+                  <span className="terminal-muted">$ </span>
+                  <span className={current ? "terminal-green" : done ? "terminal-blue" : "terminal-muted"}>{done ? "done" : current ? "run" : "queue"}</span>
+                  <span className="terminal-muted"> -- </span>
+                  <span className="terminal-amber">{s.lines[0]}</span>
                 </div>
               );
             })}
