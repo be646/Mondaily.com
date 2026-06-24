@@ -11,20 +11,16 @@ import { Logo } from "./logo";
 // plain-language status text. No boot-log brackets, no timestamps — just
 // motion that reads as AI-native rather than a terminal. ───────────────────
 const PRELOADER_STATUS = [
-  "Connecting to your workspace graph",
-  "Waking agents",
-  "Loading records",
+  "Reading graph",
+  "Checking sources",
+  "Preparing agents",
   "Ready",
-];
-const PRELOADER_NODES = [
-  { x: 50, y: 14 }, { x: 86, y: 50 }, { x: 50, y: 86 }, { x: 14, y: 50 },
 ];
 
 function Preloader({ onDone }: { onDone: () => void }) {
   const [progress, setProgress] = useState(0);
   const [fade, setFade] = useState(false);
   const [statusIdx, setStatusIdx] = useState(0);
-  const litCount = Math.min(Math.floor((progress / 100) * (PRELOADER_NODES.length + 1)), PRELOADER_NODES.length);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -53,35 +49,22 @@ function Preloader({ onDone }: { onDone: () => void }) {
           <Logo size={32} />
         </div>
 
-        {/* Animated graph core — nodes light up around a center as progress advances */}
-        <div className="relative mx-auto mb-6 h-28 w-28">
-          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-            {PRELOADER_NODES.map((n, i) => (
-              <motion.line
-                key={i}
-                x1={50} y1={50} x2={n.x} y2={n.y}
-                stroke="currentColor"
-                strokeWidth={1}
-                initial={{ opacity: 0.08 }}
-                animate={{ opacity: i < litCount ? 0.5 : 0.08 }}
-                transition={{ duration: 0.4 }}
-              />
-            ))}
-          </svg>
-          <motion.span
-            animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
-            className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-950"
-          />
-          {PRELOADER_NODES.map((n, i) => (
-            <motion.span
-              key={i}
-              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{ left: `${n.x}%`, top: `${n.y}%`, background: i < litCount ? "#0a0a0a" : "#d4d4d8" }}
-              animate={i < litCount ? { scale: [1, 1.4, 1] } : { scale: 1 }}
-              transition={{ duration: 0.5 }}
-            />
-          ))}
+        <div className="mx-auto mb-6 mt-8 w-full max-w-xs space-y-3">
+          {PRELOADER_STATUS.slice(0, 3).map((label, i) => {
+            const active = statusIdx >= i;
+            return (
+              <div key={label} className="grid grid-cols-[92px_1fr] items-center gap-3 text-[12px]">
+                <span className={active ? "text-neutral-950" : "text-zinc-400"}>{label}</span>
+                <div className="h-px bg-black/[.08]">
+                  <motion.div
+                    className="h-px bg-neutral-950"
+                    animate={{ width: active ? "100%" : "0%" }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="h-px w-full bg-black/[.06]">
@@ -1287,8 +1270,12 @@ function WorkspaceGraphPreview() {
                 One graph connecting every object your team works on.
               </h3>
             </div>
-            <span className="inline-flex w-fit items-center gap-2 border px-3 py-1 text-[11px] font-medium text-zinc-500">
-              <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full border border-current" />
+            <span className="inline-flex w-fit items-center gap-2 py-1 text-[11px] font-medium text-zinc-500">
+              <motion.span
+                animate={{ opacity: [0.35, 1, 0.35], boxShadow: ["0 0 0 0 rgba(111,128,104,0)", "0 0 0 4px rgba(111,128,104,0.16)", "0 0 0 0 rgba(111,128,104,0)"] }}
+                transition={{ duration: 1.8, repeat: Infinity }}
+                className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"
+              />
               agents watching
             </span>
           </div>
@@ -1338,9 +1325,11 @@ function WorkspaceGraphPreview() {
               ))}
             </svg>
 
-            <div className="absolute left-1/2 top-1/2 w-[136px] -translate-x-1/2 -translate-y-1/2 border bg-white/90 px-4 py-3 text-center backdrop-blur">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Mondaily</p>
-              <p className="mt-1 text-xs text-zinc-500">AI-native graph core</p>
+            <div className="absolute left-1/2 top-1/2 w-[156px] -translate-x-1/2 -translate-y-1/2 bg-white/90 px-4 py-4 text-center backdrop-blur">
+              <div className="mx-auto mb-2 h-px w-12 bg-black/[.14]" />
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-700">Mondaily core</p>
+              <p className="mt-1 text-[11px] text-zinc-500">workspace graph</p>
+              <div className="mx-auto mt-2 h-px w-12 bg-black/[.14]" />
             </div>
           </div>
 
@@ -1376,7 +1365,9 @@ function WorkspaceGraphPreview() {
           </div>
         </div>
 
-        <div className="relative bg-black p-6 text-white sm:p-8">
+        <div className="relative bg-[#050706] p-6 text-white sm:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(111,128,104,0.08)_1px,transparent_1px),linear-gradient(180deg,rgba(111,128,104,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-35" />
+          <div className="relative">
           <div className="mb-7 text-left">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Operating layer</p>
             <h3 className="mt-2 text-2xl font-semibold tracking-tight text-white">Agents prepare the next move. You approve what matters.</h3>
@@ -1393,7 +1384,7 @@ function WorkspaceGraphPreview() {
               >
                 <span className="mt-1 h-1.5 w-1.5 rounded-full" style={{ background: WORKSPACE_GRAPH_NODES[(i + active) % WORKSPACE_GRAPH_NODES.length]!.color }} />
                 <div className="text-left">
-                  <p className="text-sm font-medium text-zinc-100">{'>'} {event}</p>
+                  <p className="text-sm font-medium text-zinc-100"><span className="text-[#9fb08f]">{'>'}</span> {event}</p>
                   <p className="mt-1 text-xs text-zinc-500">source-backed · scoped to this workspace</p>
                 </div>
               </motion.div>
@@ -1432,6 +1423,7 @@ function WorkspaceGraphPreview() {
             </AnimatePresence>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
@@ -2009,9 +2001,11 @@ function AgentsSection() {
         })}
       </div>
 
-      <div className="border-b border-black/[.06] bg-black px-4 py-4 text-left text-white">
+      <div className="relative overflow-hidden border-b border-black/[.06] bg-[#050706] px-4 py-4 text-left text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(111,128,104,0.08)_1px,transparent_1px),linear-gradient(180deg,rgba(111,128,104,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-35" />
+        <div className="relative">
         <div className="mb-3 flex items-center gap-2 text-[12px] text-zinc-400">
-          <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-white" />
+          <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
           {agent.name.toLowerCase().replace(" agent", "")}.inspect()
         </div>
         <AnimatePresence mode="wait">
@@ -2028,6 +2022,7 @@ function AgentsSection() {
             <p><span className="text-zinc-500">approval:</span> {agent.approval}</p>
           </motion.div>
         </AnimatePresence>
+        </div>
       </div>
     </section>
   );
@@ -2040,19 +2035,19 @@ function AgentsSection() {
 const LIVE_SIGNALS = [
   {
     text: "2 opportunities at risk", source: "Opportunity flow", accent: "#dc2626",
-    action: "Review →",
+    action: "Review suggested",
   },
   {
     text: "Follow-up drafted", source: "Emails", accent: "#4f46e5",
-    action: "Review draft →",
+    action: "Draft ready",
   },
   {
     text: "Invoice likely overdue", source: "Finance", accent: "#d97706",
-    action: "Send reminder →",
+    action: "Reminder prepared",
   },
   {
     text: "New record enriched", source: "Records", accent: "#059669",
-    action: "View record →",
+    action: "Record updated",
   },
 ];
 
@@ -2085,9 +2080,9 @@ function LiveSignalsSection() {
               <p className="text-[15px] font-medium text-zinc-800">{s.text}</p>
             </div>
             <span className="text-[13px] text-zinc-500">{s.source}</span>
-            <button className="text-left text-[13px] font-medium text-zinc-800 transition-opacity hover:opacity-70">
+            <span className="text-left text-[13px] font-medium text-zinc-700">
               {s.action}
-            </button>
+            </span>
           </motion.div>
         ))}
       </div>
@@ -2197,7 +2192,7 @@ function ApprovalSection() {
               <p className="text-[14px] font-semibold text-zinc-800">{s.label}</p>
               <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">{s.desc}</p>
             </div>
-            <span className="text-[13px] font-medium text-zinc-700">Review →</span>
+            <span className="text-[13px] font-medium text-zinc-500">Waiting</span>
           </motion.div>
         ))}
       </div>
@@ -2387,21 +2382,19 @@ export function PricingSection() {
       <p className="mb-6 text-[15px] text-zinc-500">Start free. Upgrade when you&apos;re ready. No hidden fees.</p>
 
       {/* Monthly / Annual toggle */}
-      <div className="mb-10 flex items-center gap-3 text-[13px]">
-        <span className={annual ? "text-zinc-400" : "text-zinc-800 font-medium"}>Monthly</span>
+      <div className="mb-10 inline-flex border border-black/[.1] text-[13px]">
         <button
-          onClick={() => setAnnual(a => !a)}
-          className="relative h-6 w-11 border border-black/[.12] transition-colors"
-          style={{ background: annual ? "#0a0a0a" : "transparent" }}
-          aria-label="Toggle annual billing"
+          onClick={() => setAnnual(false)}
+          className={`px-4 py-2 transition-colors ${!annual ? "bg-black text-white" : "text-zinc-500 hover:text-zinc-900"}`}
         >
-          <motion.span
-            className="absolute left-0.5 top-0.5 h-5 w-5 bg-white shadow-sm ring-1 ring-black/[.08]"
-            animate={{ x: annual ? 20 : 0 }}
-            transition={{ type: "spring", stiffness: 400, damping: 28 }}
-          />
+          Monthly
         </button>
-        <span className={annual ? "text-zinc-800 font-medium" : "text-zinc-400"}>Annual</span>
+        <button
+          onClick={() => setAnnual(true)}
+          className={`border-l border-black/[.1] px-4 py-2 transition-colors ${annual ? "bg-black text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+        >
+          Annual
+        </button>
         <AnimatePresence>
           {annual && (
             <motion.span
@@ -2416,7 +2409,7 @@ export function PricingSection() {
         </AnimatePresence>
       </div>
 
-      <div className="grid border-y border-black/[.06] md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid items-stretch border-y border-black/[.06] md:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan, i) => {
           const price = annual ? plan.priceAnnual : plan.priceMonthly;
           const hovered = hoverIdx === i;
@@ -2425,9 +2418,9 @@ export function PricingSection() {
               key={plan.name}
               onMouseEnter={() => setHoverIdx(i)}
               onMouseLeave={() => setHoverIdx(null)}
-              className="relative flex flex-col border-b border-r border-black/[.06] p-5"
+              className="relative flex h-full flex-col border-b border-r border-black/[.06] p-5"
             >
-              <div className="relative">
+              <div className="relative flex h-full flex-col">
                 {plan.highlight && (
                   <div className="mb-3 inline-block border border-black/[.1] px-2.5 py-0.5 text-[11px] uppercase tracking-[0.16em] text-zinc-600">Most popular</div>
                 )}
@@ -2645,7 +2638,7 @@ export function LandingPage() {
               >
                 {/* Live badge */}
                 <div className="mb-4 inline-flex items-center gap-2 border px-3.5 py-1.5 text-[13px] font-medium text-neutral-600 dark:text-neutral-300">
-                  <motion.span animate={{ opacity: [0.35,1,0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-current"/>
+                  <motion.span animate={{ opacity: [0.3,1,0.3], boxShadow: ["0 0 0 0 rgba(90,120,92,0)", "0 0 0 4px rgba(90,120,92,0.12)", "0 0 0 0 rgba(90,120,92,0)"] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"/>
                   An autonomous AI workspace
                 </div>
 
@@ -2655,16 +2648,17 @@ export function LandingPage() {
                     rather than static marketing copy. */}
                 <div className="mb-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-zinc-400">
                   {[
-                    { label: "Graph synced" },
-                    { label: "Agents active" },
-                    { label: "Sources checked" },
+                    { label: "Graph synced", tone: "#6f8068" },
+                    { label: "Agents active", tone: "#607078" },
+                    { label: "Sources checked", tone: "#8b7355" },
                   ].map((s, i) => (
                     <span key={s.label} className="inline-flex items-center gap-1.5">
                       <span className="relative flex h-1.5 w-1.5">
                         <motion.span
                           animate={{ opacity: [0.3, 1, 0.3] }}
                           transition={{ duration: 2, repeat: Infinity, delay: i * 0.4 }}
-                          className="absolute inline-flex h-full w-full rounded-full border border-current"
+                          className="absolute inline-flex h-full w-full rounded-full"
+                          style={{ background: s.tone }}
                         />
                       </span>
                       {s.label}
@@ -2683,21 +2677,6 @@ export function LandingPage() {
                   One living workspace graph. Agents watch, explain, and prepare the next move with sources.
                 </p>
 
-                {/* Primary / secondary CTAs */}
-                <div className="mb-7 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-                  <a
-                    href="https://app.mondaily.com/sign-up"
-                    className="border border-neutral-950 bg-neutral-950 px-5 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-                  >
-                    Start free →
-                  </a>
-                  <a
-                    href="#agents"
-                    className="border border-black/[.1] px-5 py-2.5 text-[14px] font-medium text-zinc-700 transition-colors hover:border-neutral-950 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-neutral-50"
-                  >
-                    See agents operate
-                  </a>
-                </div>
               </motion.div>
 
               {/* Chat search bar */}
@@ -2765,18 +2744,21 @@ export function LandingPage() {
           <TrustSection />
 
           {/* ── Final CTA ── */}
-          <section className="mx-auto max-w-6xl px-6 py-20 text-center">
-            <h2 className="mx-auto mb-3 max-w-2xl font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-              Ready to put your workspace on autopilot?
-            </h2>
-            <p className="mb-8 font-mono text-[14px] text-zinc-500">
-              Join the teams already running records, pipeline, and finance from one place.
-            </p>
-            <div className="mx-auto max-w-2xl">
-              <EmailSignup />
-              <p className="mt-3 text-center font-mono text-[13px] text-zinc-500">
-                Free forever · no card required · takes 90 seconds
+          <section className="mx-auto max-w-6xl px-6 py-16">
+            <div className="border-y border-black/[.06] py-10 text-center">
+              <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Start</p>
+              <h2 className="mx-auto mb-3 max-w-2xl font-sans text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+                Build your workspace graph.
+              </h2>
+              <p className="mb-8 text-[14px] text-zinc-500">
+                Start with records. Let the agents prepare the next move.
               </p>
+              <div className="mx-auto max-w-2xl">
+                <EmailSignup />
+                <p className="mt-3 text-center text-[12px] text-zinc-500">
+                  Free forever · no card required · takes 90 seconds
+                </p>
+              </div>
             </div>
           </section>
         </main>
@@ -2794,10 +2776,10 @@ export function LandingPage() {
                 <div className="mb-4">
                   <Logo size={38} />
                 </div>
-                <p className="font-mono text-[13px] text-zinc-500 leading-relaxed">Autonomous AI workspace platform. Built for teams that move fast.</p>
+                <p className="text-[13px] leading-relaxed text-zinc-500">Autonomous AI workspace platform. Built for teams that move fast.</p>
               </div>
 
-              <div className="flex flex-wrap gap-x-14 gap-y-8 font-mono text-[13px]">
+              <div className="flex flex-wrap gap-x-14 gap-y-8 text-[13px]">
                 <div className="flex flex-col gap-2.5">
                   <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Product</span>
                   <a href="#pricing" className="text-zinc-500 hover:text-indigo-400 transition-colors">Pricing</a>
@@ -2824,7 +2806,7 @@ export function LandingPage() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 font-mono text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
               <div className="flex items-center gap-3">
                 <FooterThemeToggle theme={theme} onToggle={toggleTheme} />

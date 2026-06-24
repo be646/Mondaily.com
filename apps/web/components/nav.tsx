@@ -13,7 +13,7 @@ export function Nav() {
         <Logo size={48} />
       </Link>
 
-      <div className="hidden flex-1 items-center gap-7 text-[14px] font-medium text-neutral-500 md:flex dark:text-neutral-400">
+      <div className="hidden flex-1 items-center gap-7 text-[14px] font-normal text-neutral-500 md:flex dark:text-neutral-400">
         {[
           ["Product", "#product"],
           ["Solutions", "#solutions"],

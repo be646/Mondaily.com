@@ -166,7 +166,7 @@ export function HeroChat() {
       <div className="relative">
         {/* Chat card */}
         <motion.div
-          className="border border-black/[.08] bg-white dark:border-white/10 dark:bg-black"
+          className="bg-white dark:bg-black"
           animate={{
             boxShadow: loading
               ? ["0 0 0 1px rgba(10,10,10,0.2)", "0 0 0 1px rgba(10,10,10,0.45)", "0 0 0 1px rgba(10,10,10,0.2)"]
@@ -182,10 +182,10 @@ export function HeroChat() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="border-b border-black/[.06] px-4 py-4"
+                className="px-1 pb-4"
               >
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">Try asking</p>
-                <div className="grid gap-0.5">
+                <div className="grid gap-0">
                   {SUGGESTIONS.map((s, i) => (
                     <motion.button
                       key={i}
@@ -212,7 +212,7 @@ export function HeroChat() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden border-b border-black/[.05] px-5 py-4"
+                className="overflow-hidden border-y border-black/[.05] px-4 py-4"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export function HeroChat() {
           </AnimatePresence>
 
           {/* Textarea */}
-          <div className="px-4 pt-4 pb-2">
+          <div className="border border-black/[.1] px-4 pt-4 pb-2 transition-colors focus-within:border-neutral-950 dark:border-white/15 dark:focus-within:border-white/60">
             <textarea
               ref={textareaRef}
               value={input}
@@ -246,7 +246,7 @@ export function HeroChat() {
           </div>
 
           {/* Bottom bar */}
-          <div className="flex items-center justify-between px-4 pb-4">
+          <div className="flex items-center justify-between border-x border-b border-black/[.1] px-4 pb-4 dark:border-white/15">
             <span className="text-[12px] text-zinc-400">Enter to send</span>
             <button
               onClick={() => void send()}
