@@ -1248,12 +1248,12 @@ function HeroPipelinePreview() {
 }
 
 const WORKSPACE_GRAPH_NODES = [
-  { label: "Records", x: 19, y: 31, color: "#4f46e5", detail: "People, companies, assets" },
-  { label: "Tasks", x: 25, y: 70, color: "#059669", detail: "Due work and reviews" },
-  { label: "Finance", x: 75, y: 31, color: "#dc2626", detail: "Invoices and approvals" },
-  { label: "Decisions", x: 82, y: 66, color: "#d97706", detail: "Human approval queue" },
-  { label: "Workflows", x: 51, y: 84, color: "#0891b2", detail: "Automations and triggers" },
-  { label: "Files", x: 49, y: 17, color: "#7c3aed", detail: "Source-backed context" },
+  { label: "Records", x: 19, y: 31, color: "#6b7280", detail: "People, companies, assets" },
+  { label: "Tasks", x: 25, y: 70, color: "#6f8068", detail: "Due work and reviews" },
+  { label: "Finance", x: 75, y: 31, color: "#8a6f5a", detail: "Invoices and approvals" },
+  { label: "Decisions", x: 82, y: 66, color: "#8b7355", detail: "Human approval queue" },
+  { label: "Workflows", x: 51, y: 84, color: "#607078", detail: "Automations and triggers" },
+  { label: "Files", x: 49, y: 17, color: "#736b7f", detail: "Source-backed context" },
 ];
 
 const WORKSPACE_GRAPH_EVENTS = [
@@ -1274,22 +1274,24 @@ function WorkspaceGraphPreview() {
   const activeNode = WORKSPACE_GRAPH_NODES[active]!;
 
   return (
-    <div className="relative mx-auto w-full max-w-full overflow-hidden rounded-[28px] border border-black/[.07] bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)] sm:max-w-6xl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,102,241,0.10),transparent_34%),linear-gradient(135deg,rgba(248,250,252,0.9),rgba(255,255,255,1))]" />
+    <div className="relative mx-auto w-full max-w-full overflow-hidden border border-black/[.07] bg-white sm:max-w-6xl">
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.035)_1px,transparent_1px),linear-gradient(180deg,rgba(0,0,0,0.035)_1px,transparent_1px)] bg-[size:44px_44px] opacity-45" />
       <div className="relative grid gap-0 lg:grid-cols-[1.1fr_.9fr]">
         <div className="relative min-h-[360px] border-b border-black/[.05] p-5 sm:min-h-[430px] sm:p-8 lg:border-b-0 lg:border-r">
           <div className="mb-6 flex flex-col gap-3 text-left sm:flex-row sm:items-center sm:justify-between">
             <div className="text-left">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">Living workspace graph</p>
-              <p className="mt-1 text-sm text-zinc-500">One graph connecting every object your team works on</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Living workspace graph</p>
+              <h3 className="mt-2 max-w-xl text-2xl font-semibold leading-tight tracking-tight text-zinc-900 sm:text-3xl">
+                One graph connecting every object your team works on.
+              </h3>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[.07] px-3 py-1 text-[11px] font-medium text-emerald-700">
-              <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="inline-flex w-fit items-center gap-2 border px-3 py-1 text-[11px] font-medium text-zinc-500">
+              <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.8, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full border border-current" />
               agents watching
             </span>
           </div>
 
-          <div className="relative mx-auto aspect-[1.2/1] max-w-[680px] sm:aspect-[1.55/1]">
+          <div className="relative mx-auto aspect-[1.18/1] max-w-[640px] sm:aspect-[1.55/1]">
             <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-hidden sm:overflow-visible">
               <defs>
                 <filter id="graphGlow" x="-50%" y="-50%" width="200%" height="200%">
@@ -1308,8 +1310,8 @@ function WorkspaceGraphPreview() {
                   x2={node.x}
                   y2={node.y}
                   stroke={node.color}
-                  strokeWidth={i === active ? 0.42 : 0.22}
-                  strokeDasharray="2 3"
+                  strokeWidth={i === active ? 0.48 : 0.22}
+                  strokeDasharray="1.5 3"
                   initial={false}
                   animate={{ opacity: i === active ? 0.55 : 0.17 }}
                   transition={{ duration: 0.45 }}
@@ -1319,51 +1321,55 @@ function WorkspaceGraphPreview() {
                 cx="50"
                 cy="50"
                 r="13"
-                fill="rgba(79,70,229,0.08)"
-                stroke="rgba(79,70,229,0.28)"
+                fill="transparent"
+                stroke="currentColor"
+                opacity="0.18"
                 animate={{ r: [13, 15, 13], opacity: [0.8, 1, 0.8] }}
                 transition={{ duration: 2.8, repeat: Infinity }}
               />
-              <circle cx="50" cy="50" r="5.4" fill="#4f46e5" filter="url(#graphGlow)" />
+              <circle cx="50" cy="50" r="5.4" fill="currentColor" filter="url(#graphGlow)" />
               {WORKSPACE_GRAPH_NODES.map((node, i) => (
                 <motion.g key={node.label} initial={false} animate={{ scale: i === active ? 1.08 : 1 }} transition={{ duration: 0.35 }}>
-                  <circle cx={node.x} cy={node.y} r={i === active ? 4.8 : 3.9} fill="white" stroke={node.color} strokeWidth={i === active ? 0.85 : 0.5} />
+                  <circle cx={node.x} cy={node.y} r={i === active ? 4.8 : 3.9} fill="var(--landing-canvas, white)" stroke={node.color} strokeWidth={i === active ? 0.85 : 0.5} />
                   <circle cx={node.x} cy={node.y} r="1.35" fill={node.color} />
                 </motion.g>
               ))}
             </svg>
 
-            <div className="absolute left-1/2 top-1/2 w-[140px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-indigo-500/15 bg-white/90 px-4 py-3 text-center shadow-[0_10px_30px_rgba(79,70,229,0.12)] backdrop-blur">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-indigo-500">Mondaily</p>
+            <div className="absolute left-1/2 top-1/2 w-[136px] -translate-x-1/2 -translate-y-1/2 border bg-white/90 px-4 py-3 text-center backdrop-blur">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Mondaily</p>
               <p className="mt-1 text-xs text-zinc-500">AI-native graph core</p>
             </div>
+          </div>
 
+          <div className="mt-5 grid border-y border-black/[.06] sm:grid-cols-3">
             {WORKSPACE_GRAPH_NODES.map((node, i) => (
               <motion.div
                 key={node.label}
                 initial={false}
-                animate={{ opacity: i === active ? 1 : 0.72, y: i === active ? -2 : 0 }}
+                animate={{ opacity: i === active ? 1 : 0.62 }}
                 transition={{ duration: 0.35 }}
-                className="absolute hidden w-[136px] -translate-x-1/2 rounded-2xl border bg-white/90 px-3 py-2 text-left shadow-[0_8px_24px_rgba(15,23,42,0.07)] backdrop-blur sm:block"
-                style={{ left: `${node.x}%`, top: `${node.y}%`, borderColor: `${node.color}${i === active ? "55" : "22"}` }}
+                className={`flex items-start gap-3 border-b border-black/[.05] px-3 py-3 text-left sm:border-r ${
+                  i % 3 === 2 ? "sm:border-r-0" : ""
+                } ${i >= WORKSPACE_GRAPH_NODES.length - 3 ? "sm:border-b-0" : ""}`}
               >
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: node.color }} />
-                  <span className="text-[12px] font-semibold text-zinc-800">{node.label}</span>
-                </div>
-                <p className="mt-1 text-[10.5px] leading-snug text-zinc-500">{node.detail}</p>
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
+                <span>
+                  <span className="block text-[12px] font-semibold text-zinc-800">{node.label}</span>
+                  <span className="mt-0.5 block text-[10.5px] leading-snug text-zinc-500">{node.detail}</span>
+                </span>
               </motion.div>
             ))}
           </div>
 
-          <div className="mt-5 rounded-2xl border border-black/[.06] bg-white/80 p-3 text-left shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+          <div className="mt-5 border border-black/[.06] bg-white/80 p-3 text-left">
             <div className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-indigo-600 text-[12px] font-semibold text-white">AI</span>
+              <span className="grid h-7 w-7 place-items-center border text-[12px] font-semibold text-zinc-700">AI</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-zinc-800">Ask Mondaily</p>
                 <p className="truncate text-xs text-zinc-500">What changed in my workspace graph today?</p>
               </div>
-              <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] text-zinc-500">Enter ↵</span>
+              <span className="border px-2.5 py-1 text-[11px] text-zinc-500">Enter ↵</span>
             </div>
           </div>
         </div>
@@ -1405,8 +1411,11 @@ function WorkspaceGraphPreview() {
             ))}
           </div>
 
-          <div className="mt-6 rounded-2xl bg-zinc-950 px-4 py-3 text-left text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current focus</p>
+          <div className="mt-6 border-t border-black/[.06] pt-5 text-left">
+            <div className="flex items-start gap-3">
+              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current focus</p>
             <AnimatePresence mode="wait">
               <motion.p
                 key={activeNode.label}
@@ -1414,11 +1423,13 @@ function WorkspaceGraphPreview() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25 }}
-                className="mt-1 text-sm"
+                className="mt-1 text-sm font-medium text-zinc-800"
               >
                 {activeNode.label}: {activeNode.detail}
               </motion.p>
             </AnimatePresence>
+              </div>
+            </div>
           </div>
         </div>
       </div>
