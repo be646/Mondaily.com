@@ -20,21 +20,21 @@ function getPageMeta(pathname: string): PageMeta {
     const seg = pathname.split("/objects/")[1]?.split("/")[0] ?? "";
     const label = seg.replace(/[-_]/g, " ");
     const icon: Record<string, LucideIcon> = { people: Users, companies: Building2, deals: TrendingUp };
-    return { label, Icon: icon[seg] ?? List, color: "text-violet-400" };
+    return { label, Icon: icon[seg] ?? List, color: "text-neutral-500 dark:text-neutral-400" };
   }
   const map: [string, PageMeta][] = [
-    ["/home",          { label: "Home",          Icon: Home,        color: "text-blue-400"    }],
-    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-emerald-400" }],
-    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-amber-400"   }],
-    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-red-400"     }],
-    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-cyan-400"    }],
-    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-yellow-400"  }],
-    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-teal-400"    }],
-    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-indigo-400"  }],
-    ["/lists",         { label: "Lists",          Icon: List,        color: "text-slate-400"   }],
-    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-slate-400"   }],
-    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-indigo-400"   }],
-    ["/search",        { label: "Search",         Icon: Search,      color: "text-slate-400"   }],
+    ["/home",          { label: "Home",          Icon: Home,        color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/lists",         { label: "Lists",          Icon: List,        color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/search",        { label: "Search",         Icon: Search,      color: "text-neutral-500 dark:text-neutral-400" }],
   ];
   for (const [prefix, meta] of map) {
     if (pathname.startsWith(prefix)) return meta;
@@ -62,7 +62,7 @@ function MobileNav() {
               to={to}
               className="flex min-w-[64px] flex-col items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors"
               style={{
-                color: active ? "var(--accent)" : "var(--text-faint)",
+                color: active ? "var(--text-primary)" : "var(--text-faint)",
                 background: active ? "var(--surface-selected)" : undefined,
               }}
             >
@@ -142,11 +142,12 @@ export function DashboardLayout() {
             {/* Search trigger */}
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
-              className="hidden sm:flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-2.5 py-1.5 text-xs text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-white/[.07] dark:bg-white/[.02] dark:text-slate-500 dark:hover:text-slate-300 dark:hover:bg-white/[.04]"
+              className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-neutral-50 sm:flex"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)", background: "transparent" }}
             >
               <Search size={12}/>
               <span>Search…</span>
-              <kbd className="rounded border border-[#e5e7eb] bg-[#f9fafb] px-1 text-[10px] text-[#9ca3af] dark:border-white/[.08] dark:bg-white/[.04] dark:text-slate-700">⌘K</kbd>
+              <kbd className="rounded border px-1 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)", background: "transparent" }}>⌘K</kbd>
             </button>
             {/* Page-specific action buttons are portaled here by sub-pages */}
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>

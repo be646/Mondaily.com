@@ -3,26 +3,24 @@
 @tailwind utilities;
 
 /* ── Design tokens — shared surfaces, both themes ─────────────────────────────
-   Every surface in the app maps to one of these. Dark mode uses genuinely
-   distinct shades per surface (page < sidebar < card < input/modal) so panels
-   don't collapse into the same flat black. Light mode is crisp white with
-   soft greys for separation, never grey-on-grey blocks. ── */
+   Premium grid system: pure paper in light mode, absolute black in dark mode,
+   with separation carried by hairline dividers instead of nested cards. ── */
 :root {
   /* dark (default) */
-  --surface-page:     #0a0b0d;
-  --surface-sidebar:  #0c0e11;
-  --surface-card:     #14161b;
-  --surface-card-2:   #181a20;
-  --surface-input:    #1a1d24;
-  --surface-modal:    #16181e;
-  --surface-hover:    rgba(255,255,255,0.05);
-  --surface-selected: rgba(99,102,241,0.12);
-  --border-soft:      rgba(255,255,255,0.06);
-  --border-strong:    rgba(255,255,255,0.10);
-  --text-primary:     #f1f5f9;
-  --text-secondary:   #cbd5e1;
-  --text-muted:       #8b97a8;
-  --text-faint:       #5b6472;
+  --surface-page:     #000000;
+  --surface-sidebar:  #000000;
+  --surface-card:     #000000;
+  --surface-card-2:   #000000;
+  --surface-input:    #000000;
+  --surface-modal:    #000000;
+  --surface-hover:    rgba(255,255,255,0.045);
+  --surface-selected: rgba(255,255,255,0.08);
+  --border-soft:      #171717;
+  --border-strong:    #262626;
+  --text-primary:     #ffffff;
+  --text-secondary:   #d4d4d4;
+  --text-muted:       #a3a3a3;
+  --text-faint:       #737373;
   --accent:           #6366f1;
   --accent-hover:     #818cf8;
 
@@ -35,20 +33,20 @@
 }
 
 html[data-theme="light"] {
-  --surface-page:     #f6f7f9;
+  --surface-page:     #ffffff;
   --surface-sidebar:  #ffffff;
   --surface-card:     #ffffff;
-  --surface-card-2:   #fafbfc;
+  --surface-card-2:   #ffffff;
   --surface-input:    #ffffff;
   --surface-modal:    #ffffff;
-  --surface-hover:    #f1f2f5;
-  --surface-selected: #eef0ff;
-  --border-soft:      #e8e9ed;
-  --border-strong:    #dcdee3;
-  --text-primary:     #16181d;
-  --text-secondary:   #4b5160;
-  --text-muted:       #80869a;
-  --text-faint:       #a6abb7;
+  --surface-hover:    #f5f5f5;
+  --surface-selected: #eeeeee;
+  --border-soft:      #f5f5f5;
+  --border-strong:    #e5e5e5;
+  --text-primary:     #0a0a0a;
+  --text-secondary:   #404040;
+  --text-muted:       #737373;
+  --text-faint:       #a3a3a3;
   --accent:           #4f46e5;
   --accent-hover:     #4338ca;
 
@@ -146,8 +144,8 @@ body {
 /* ── Shared surface utilities — use these instead of ad-hoc bg-[#xxxxxx] ──── */
 .surface-page    { background: var(--surface-page); }
 .surface-sidebar { background: var(--surface-sidebar); }
-.surface-card    { background: var(--surface-card); border: 1px solid var(--border-soft); box-shadow: none; }
-.surface-card-2  { background: var(--surface-card-2); border: 1px solid var(--border-soft); box-shadow: none; }
+.surface-card    { background: transparent; border: 1px solid var(--border-soft); box-shadow: none; }
+.surface-card-2  { background: transparent; border: 1px solid var(--border-soft); box-shadow: none; }
 .surface-input   { background: var(--surface-input); border: 1px solid var(--border-soft); }
 .surface-modal   { background: var(--surface-modal); border: 1px solid var(--border-strong); }
 
@@ -156,7 +154,7 @@ body {
    the data dense but airy: paper in light mode, rich neutral in dark mode,
    and separation by hairlines instead of heavy blocks. */
 .premium-panel {
-  background: var(--surface-card);
+  background: transparent;
   border: 1px solid var(--border-soft);
   box-shadow: none;
 }
@@ -170,7 +168,7 @@ body {
 }
 .telemetry-strip > * {
   min-width: max-content;
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   border-right: 1px solid var(--border-soft);
 }
 .telemetry-strip > *:last-child {
@@ -183,27 +181,30 @@ body {
 .minimal-table th,
 .minimal-table td {
   border-bottom: 1px solid var(--border-soft);
-  padding: 0.75rem 1rem;
+  padding: 0.82rem 1rem;
 }
 .minimal-table th {
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+.minimal-table td {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 .minimal-table tr:hover td {
   background: var(--surface-hover);
 }
 .minimal-sheet {
-  background: var(--surface-card);
+  background: transparent;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
 }
 .list-workspace {
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent) 2%, transparent), transparent 20rem),
-    var(--surface-page);
+  background: var(--surface-page);
   color: var(--text-primary);
 }
 .list-header {
@@ -283,22 +284,22 @@ html[data-theme="dark"] .minimal-sparkline {
   position: relative;
 }
 .home-section {
-  margin-bottom: 2.75rem;
+  margin-bottom: 2.25rem;
 }
 .home-section-kicker {
   color: var(--text-faint);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 650;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 .home-hero-title {
-  margin-top: 0.5rem;
+  margin-top: 0;
   color: var(--text-primary);
-  font-size: clamp(1.85rem, 3.4vw, 2.25rem);
+  font-size: clamp(1.1rem, 2vw, 1.28rem);
   font-weight: 650;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
 }
 .home-section-title {
   color: var(--text-primary);
@@ -308,8 +309,8 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .home-section-copy {
   color: var(--text-muted);
-  font-size: 0.875rem;
-  line-height: 1.65;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 /* Chat console — the centered minimalist box for Mondaily Copilot. Same
    color as the page background (ghost style, per the "focus on lines,
@@ -815,19 +816,26 @@ html[data-theme="dark"] .minimal-sparkline {
    strings so primary/secondary/ghost/tab buttons feel like one system. ── */
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium text-white transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
-    background: var(--accent);
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
+    background: transparent;
+    border: 1px solid var(--border-soft);
+    color: var(--text-secondary);
   }
-  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent); }
-  .btn-primary:disabled {
+  .btn-primary:hover:not(:disabled) {
     background: var(--surface-hover);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+    box-shadow: none;
+  }
+  .btn-primary:disabled {
+    background: transparent;
     color: var(--text-faint);
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
-    background: var(--surface-card);
-    border: 1px solid var(--border-strong);
+    background: transparent;
+    border: 1px solid var(--border-soft);
     color: var(--text-secondary);
   }
   .btn-secondary:hover:not(:disabled) {
@@ -844,47 +852,43 @@ html[data-theme="dark"] .minimal-sparkline {
     color: var(--text-primary);
   }
 
-  /* AI action button — distinct from human primary/secondary actions.
-     Soft violet/cyan tint + thin gradient ring + sparkle icon, never a
-     solid loud fill — it should read as "the AI offers to do this",
-     not "the most important button on the page". */
+  /* AI action button — high-contrast monochrome command block. */
   .btn-ai {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
-    color: #7c3aed;
-    background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(34,211,238,0.06));
-    border: 1px solid rgba(124,58,237,0.22);
+    color: var(--surface-page);
+    background: var(--text-primary);
+    border: 1px solid var(--text-primary);
   }
   .btn-ai:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(124,58,237,0.14), rgba(34,211,238,0.10));
-    border-color: rgba(124,58,237,0.35);
-    box-shadow: 0 0 0 1px rgba(124,58,237,0.08), 0 4px 16px rgba(124,58,237,0.18);
+    opacity: 0.86;
+    box-shadow: none;
   }
   html.dark .btn-ai, html[data-theme="dark"] .btn-ai {
-    color: #c4b5fd;
-    background: linear-gradient(135deg, rgba(139,92,246,0.14), rgba(34,211,238,0.08));
-    border-color: rgba(139,92,246,0.30);
+    color: #000000;
+    background: #ffffff;
+    border-color: #ffffff;
   }
   html.dark .btn-ai:hover:not(:disabled), html[data-theme="dark"] .btn-ai:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(139,92,246,0.22), rgba(34,211,238,0.12));
-    border-color: rgba(139,92,246,0.45);
-    box-shadow: 0 0 0 1px rgba(139,92,246,0.12), 0 4px 20px rgba(139,92,246,0.25);
+    opacity: 0.86;
+    box-shadow: none;
   }
 
   /* Suggested action — lighter touch than .btn-ai, for inline "you could do X" chips */
   .btn-suggested {
     @apply inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors;
-    color: #0891b2;
-    background: rgba(34,211,238,0.08);
-    border: 1px solid rgba(34,211,238,0.20);
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-soft);
   }
   .btn-suggested:hover {
-    background: rgba(34,211,238,0.14);
-    border-color: rgba(34,211,238,0.32);
+    color: var(--text-primary);
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
   }
   html.dark .btn-suggested, html[data-theme="dark"] .btn-suggested {
-    color: #67e8f9;
-    background: rgba(34,211,238,0.08);
-    border-color: rgba(34,211,238,0.22);
+    color: var(--text-secondary);
+    background: transparent;
+    border-color: var(--border-soft);
   }
 
   .btn-destructive {
@@ -899,12 +903,12 @@ html[data-theme="dark"] .minimal-sparkline {
   }
   .btn-tab:hover { color: var(--text-primary); }
   .btn-tab[data-active="true"] {
-    background: var(--surface-selected);
-    color: var(--accent);
+    background: var(--text-primary);
+    color: var(--surface-page);
   }
   html[data-theme="dark"] .btn-tab[data-active="true"],
   .dark .btn-tab[data-active="true"] {
-    color: var(--accent-hover);
+    color: var(--surface-page);
   }
 
   .btn-icon {
@@ -1015,6 +1019,69 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .settings-row:last-child { border-bottom: none; }
 
+/* ── Dashboard-wide premium grid convergence ───────────────────────────────
+   A presentation-only safety net for older route files with hardcoded blocks.
+   It deliberately avoids button/input/select/textarea elements so handlers,
+   forms, and controls keep their behavior while passive panels flatten into
+   the same Finance Reports-style canvas. */
+main,
+aside {
+  background: var(--surface-page);
+  color: var(--text-primary);
+}
+aside {
+  background: var(--surface-sidebar);
+}
+main div:not([class*="fixed"]):not([class*="absolute"])[class*="bg-[#"],
+main section:not([class*="fixed"]):not([class*="absolute"])[class*="bg-[#"],
+main article:not([class*="fixed"]):not([class*="absolute"])[class*="bg-[#"],
+main ul:not([class*="fixed"]):not([class*="absolute"])[class*="bg-[#"],
+main li:not([class*="fixed"]):not([class*="absolute"])[class*="bg-[#"],
+main div:not([class*="fixed"]):not([class*="absolute"])[class*="bg-white/"],
+main section:not([class*="fixed"]):not([class*="absolute"])[class*="bg-white/"],
+main article:not([class*="fixed"]):not([class*="absolute"])[class*="bg-white/"],
+main ul:not([class*="fixed"]):not([class*="absolute"])[class*="bg-white/"],
+main li:not([class*="fixed"]):not([class*="absolute"])[class*="bg-white/"],
+main div:not([class*="fixed"]):not([class*="absolute"])[class*="bg-slate-"],
+main section:not([class*="fixed"]):not([class*="absolute"])[class*="bg-slate-"],
+main article:not([class*="fixed"]):not([class*="absolute"])[class*="bg-slate-"],
+main div:not([class*="fixed"]):not([class*="absolute"])[class*="bg-zinc-"],
+main section:not([class*="fixed"]):not([class*="absolute"])[class*="bg-zinc-"],
+main article:not([class*="fixed"]):not([class*="absolute"])[class*="bg-zinc-"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+main div[class*="shadow"],
+main section[class*="shadow"],
+main article[class*="shadow"],
+aside div[class*="shadow"] {
+  box-shadow: none !important;
+}
+main [class*="border-white/"],
+main [class*="border-zinc-"],
+main [class*="border-slate-"],
+aside [class*="border-white/"],
+aside [class*="border-zinc-"],
+aside [class*="border-slate-"] {
+  border-color: var(--border-soft) !important;
+}
+main table {
+  border-collapse: collapse;
+}
+main tr {
+  border-color: var(--border-soft);
+}
+main td,
+main th {
+  border-color: var(--border-soft);
+}
+aside nav a,
+aside nav button,
+.dropdown-item {
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    LIGHT-MODE FALLBACK NET — for pages not yet migrated to the surface tokens
    above. New/updated components should use .surface-*, .btn-*, var(--text-*)
@@ -1063,7 +1130,7 @@ html[data-theme="light"] [class*="bg-white/[.15]"] {
 html[data-theme="light"] [class*="border-white/"],
 html[data-theme="light"] [class*="border-zinc-8"],
 html[data-theme="light"] [class*="border-zinc-7"] {
-  border-color: #e5e7eb !important;
+  border-color: #f5f5f5 !important;
 }
 
 /* 4. White text → near-black */
@@ -1101,7 +1168,26 @@ html[data-theme="light"] ::placeholder {
    so we use generic hover rules scoped to light mode) */
 html[data-theme="light"] a:hover [class*="bg-white"],
 html[data-theme="light"] button:hover [class*="bg-white"] {
-  background-color: rgba(99,102,241,0.06) !important;
+  background-color: #f5f5f5 !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#0b0d10]"],
+html[data-theme="dark"] [class*="bg-[#0d0f13]"],
+html[data-theme="dark"] [class*="bg-[#0f1114]"],
+html[data-theme="dark"] [class*="bg-[#0f1115]"],
+html[data-theme="dark"] [class*="bg-[#0f1117]"],
+html[data-theme="dark"] [class*="bg-[#111419]"],
+html[data-theme="dark"] [class*="bg-[#13151a]"],
+html[data-theme="dark"] [class*="bg-[#1a1118]"],
+html.dark [class*="bg-[#0b0d10]"],
+html.dark [class*="bg-[#0d0f13]"],
+html.dark [class*="bg-[#0f1114]"],
+html.dark [class*="bg-[#0f1115]"],
+html.dark [class*="bg-[#0f1117]"],
+html.dark [class*="bg-[#111419]"],
+html.dark [class*="bg-[#13151a]"],
+html.dark [class*="bg-[#1a1118]"] {
+  background-color: #000000 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

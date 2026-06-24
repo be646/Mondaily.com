@@ -412,12 +412,14 @@ export function HomePage() {
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-10 px-4 pb-4 pt-8 sm:-mx-6 sm:px-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="home-section-kicker">{todayLabel}</p>
-            <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
-            <p className="home-section-copy mt-2 max-w-2xl">
+      <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p className="home-section-kicker">{todayLabel}</p>
+              <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
+            </div>
+            <p className="home-section-copy mt-1 max-w-2xl">
               Mondaily has reviewed the graph. Your next signals are ready.
             </p>
           </div>
@@ -428,7 +430,7 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="home-telemetry-strip mt-6">
+        <div className="home-telemetry-strip mt-3">
           <span><ListChecks size={12}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</span>
           <span><FileText size={12}/><strong>{pendingDecisionsCount}</strong>pending decisions</span>
           <span><Inbox size={12}/><strong>{unreadCount}</strong>unread</span>
