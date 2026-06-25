@@ -374,28 +374,27 @@ async function runOpenAICompatAgent(
   }
 
   // Llama models often finish tool rounds without producing a text reply.
-  // Make one final no-tools call to get a plain-language summary.
+  // Make one clean conversational call — no tool definitions, no tool history —
+  // so the model can at least answer the question directly.
   if (!reply) {
     const originalUserMsg = [...req.messages].reverse().find(m => m.role === "user")
       ?? req.messages[req.messages.length - 1];
     const originalText = typeof originalUserMsg?.content === "string"
-      ? originalUserMsg.content
-      : "";
-    console.log(`[gateway:openai-compat] no text reply after ${rounds} round(s) — requesting summary`);
-    messages.push({
-      role: "user",
-      content: `The user asked: "${originalText}". Based on the tool results above, write a clear, concise reply directly answering their request. If nothing was found, say so plainly.`,
-    });
+      ? originalUserMsg.content : "";
+    console.log(`[gateway:openai-compat] no text reply after ${rounds} round(s) — clean fallback call`);
     try {
       const summary = await client.chat.completions.create({
         model: activeModel,
         max_tokens: 512,
-        messages,
+        messages: [
+          { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct. If workspace data is unavailable or empty, say so and suggest what the user can do next." },
+          { role: "user", content: originalText || "Hello" },
+        ],
       });
       reply = summary.choices[0]?.message.content ?? "";
-      if (reply) console.log(`[gateway:openai-compat] summary reply obtained (${reply.length} chars)`);
+      console.log(`[gateway:openai-compat] clean fallback reply: ${reply.length} chars`);
     } catch (e: any) {
-      console.error(`[gateway:openai-compat] summary call failed: ${e?.message}`);
+      console.error(`[gateway:openai-compat] clean fallback call failed: ${e?.message}`);
     }
   }
 

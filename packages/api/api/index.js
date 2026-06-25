@@ -69905,21 +69905,20 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
   if (!reply) {
     const originalUserMsg = [...req.messages].reverse().find((m2) => m2.role === "user") ?? req.messages[req.messages.length - 1];
     const originalText = typeof originalUserMsg?.content === "string" ? originalUserMsg.content : "";
-    console.log(`[gateway:openai-compat] no text reply after ${rounds} round(s) \u2014 requesting summary`);
-    messages.push({
-      role: "user",
-      content: `The user asked: "${originalText}". Based on the tool results above, write a clear, concise reply directly answering their request. If nothing was found, say so plainly.`
-    });
+    console.log(`[gateway:openai-compat] no text reply after ${rounds} round(s) \u2014 clean fallback call`);
     try {
       const summary = await client.chat.completions.create({
         model: activeModel,
         max_tokens: 512,
-        messages
+        messages: [
+          { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct. If workspace data is unavailable or empty, say so and suggest what the user can do next." },
+          { role: "user", content: originalText || "Hello" }
+        ]
       });
       reply = summary.choices[0]?.message.content ?? "";
-      if (reply) console.log(`[gateway:openai-compat] summary reply obtained (${reply.length} chars)`);
+      console.log(`[gateway:openai-compat] clean fallback reply: ${reply.length} chars`);
     } catch (e2) {
-      console.error(`[gateway:openai-compat] summary call failed: ${e2?.message}`);
+      console.error(`[gateway:openai-compat] clean fallback call failed: ${e2?.message}`);
     }
   }
   return { reply, provider: "openai-compat", model: activeModel, rounds };
