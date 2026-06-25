@@ -7,7 +7,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
-import { aiGatewayToolUse } from "../lib/ai-gateway";
+import { aiGatewayToolUse, aiGatewayAgent } from "../lib/ai-gateway";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -1059,14 +1059,20 @@ router.post("/", requireAuth, zValidator("json", z.object({
   }).optional()
 })), async (c) => {
   const { message, model: modelPref, web_search, history, context } = c.req.valid("json");
-  const modelMap: Record<string, string> = {
-    fast: "claude-haiku-4-5-20251001",
-    smart: "claude-sonnet-4-6",
-    auto: "claude-sonnet-4-6"
-  };
-  const model = modelMap[modelPref ?? "auto"] ?? "claude-sonnet-4-6";
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return c.json({ reply: "Anthropic API key not configured on server." }, 500);
+
+  // AI_AGENT_MODEL env var overrides user preference (swap provider without code change).
+  // When not set, honour the user's fast/smart/auto preference mapped to Claude models.
+  const agentModelSpec = process.env.AI_AGENT_MODEL ?? (() => {
+    const map: Record<string, string> = {
+      fast: "anthropic/claude-haiku-4-5-20251001",
+      smart: "anthropic/claude-sonnet-4-6",
+      auto: "anthropic/claude-sonnet-4-6",
+    };
+    return map[modelPref ?? "auto"] ?? "anthropic/claude-sonnet-4-6";
+  })();
+
+  // Model ID string for usage tracking (strip provider prefix)
+  const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
 
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
@@ -1109,62 +1115,19 @@ router.post("/", requireAuth, zValidator("json", z.object({
     const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
     const messages: any[] = [...priorTurns, { role: "user", content: message }];
 
-    let reply = "";
-    const MAX_TOOL_ROUNDS = 5;
     const sources: SourceMeta[] = [];
 
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 2048,
-          system: systemPrompt,
-          tools: TOOLS,
-          messages
-        })
-      });
+    const { reply: agentReply } = await aiGatewayAgent({
+      system: systemPrompt,
+      tools: TOOLS,
+      messages,
+      maxTokens: 2048,
+      model: agentModelSpec,
+      onToolCall: async (name, input) =>
+        executeTool(name, input as Record<string, any>, workspaceId, userId, sources),
+    });
 
-      if (!res.ok) {
-        const err = await res.text();
-        return c.json({ reply: `AI error: ${err}` }, 500);
-      }
-
-      const data = await res.json() as any;
-      const stopReason = data.stop_reason;
-
-      // Collect text blocks
-      const textBlocks = (data.content ?? []).filter((b: any) => b.type === "text").map((b: any) => b.text);
-      if (textBlocks.length) reply = textBlocks.join("\n");
-
-      // If no tool calls, we're done
-      if (stopReason !== "tool_use") break;
-
-      // Process tool calls
-      const toolUseBlocks = (data.content ?? []).filter((b: any) => b.type === "tool_use");
-      if (!toolUseBlocks.length) break;
-
-      // Add assistant turn with tool calls
-      messages.push({ role: "assistant", content: data.content });
-
-      // Execute each tool and collect results
-      const toolResults: any[] = [];
-      for (const toolCall of toolUseBlocks) {
-        const result = await executeTool(toolCall.name, toolCall.input ?? {}, workspaceId, userId, sources);
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: toolCall.id,
-          content: result
-        });
-      }
-
-      messages.push({ role: "user", content: toolResults });
-    }
+    let reply = agentReply;
 
     if (!reply) reply = "Done — I took action on your request.";
 

@@ -6,13 +6,18 @@
  *   AI_PROVIDER_MODEL = "anthropic/claude-haiku-4-5-20251001"  (default)
  *                     | "openai-compat/<model-id>"
  *
+ *   AI_AGENT_MODEL    = same format — overrides AI_PROVIDER_MODEL for the
+ *                       multi-round agentic loop (aiGatewayAgent) only.
+ *                       Falls back to AI_PROVIDER_MODEL if not set.
+ *
  * For the "openai-compat" route, set:
- *   AI_GATEWAY_BASE_URL  e.g. "https://api.groq.com/openai/v1"  (Llama 3.3)
+ *   AI_GATEWAY_BASE_URL  e.g. "https://api.fireworks.ai/inference/v1"
  *   AI_GATEWAY_API_KEY   your key for that provider
  *
- * Two exported functions:
+ * Three exported functions:
  *   aiGateway        — plain text generation (no tools)
- *   aiGatewayToolUse — single-tool structured extraction (replaces tool_use / function-calling)
+ *   aiGatewayToolUse — single-tool structured extraction
+ *   aiGatewayAgent   — multi-round agentic loop with tool callbacks
  */
 
 import { generateText } from "ai";
@@ -53,16 +58,16 @@ type ResolvedModel =
   | { type: "anthropic"; modelId: string }
   | { type: "openai-compat"; modelId: string };
 
-function resolveModel(): ResolvedModel {
-  const spec = process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+function resolveModel(spec?: string): ResolvedModel {
+  const s = spec ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
 
-  if (spec.startsWith("openai-compat/")) {
-    return { type: "openai-compat", modelId: spec.slice("openai-compat/".length) };
+  if (s.startsWith("openai-compat/")) {
+    return { type: "openai-compat", modelId: s.slice("openai-compat/".length) };
   }
 
-  const modelId = spec.startsWith("anthropic/")
-    ? spec.slice("anthropic/".length)
-    : spec;
+  const modelId = s.startsWith("anthropic/")
+    ? s.slice("anthropic/".length)
+    : s;
 
   return { type: "anthropic", modelId: modelId || "claude-haiku-4-5-20251001" };
 }
@@ -165,4 +170,147 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
   } catch {
     return {};
   }
+}
+
+// ── Multi-round agentic loop ────────────────────────────────────────────────────
+
+export type AgentTool = {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+};
+
+export type AgentRequest = {
+  system: string;
+  tools: AgentTool[];
+  messages: Array<{ role: string; content: unknown }>;
+  maxRounds?: number;
+  maxTokens?: number;
+  /** Full model spec: "anthropic/claude-sonnet-4-6" or "openai-compat/llama-3.3-70b-versatile".
+   *  Overrides AI_AGENT_MODEL env var when provided. */
+  model?: string;
+  onToolCall: (name: string, input: Record<string, unknown>) => Promise<string>;
+};
+
+export type AgentResponse = {
+  reply: string;
+  provider: string;
+  model: string;
+  rounds: number;
+};
+
+/**
+ * Multi-round agentic loop. Handles tool execution via the onToolCall callback
+ * and feeds results back until the model stops calling tools or maxRounds is reached.
+ *
+ * Model priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → default
+ */
+export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> {
+  const spec = req.model
+    ?? process.env.AI_AGENT_MODEL
+    ?? process.env.AI_PROVIDER_MODEL
+    ?? "anthropic/claude-haiku-4-5-20251001";
+
+  const resolved = resolveModel(spec);
+  const MAX_ROUNDS = req.maxRounds ?? 5;
+  let reply = "";
+  let rounds = 0;
+
+  // ── Anthropic path ────────────────────────────────────────────────────────────
+  if (resolved.type === "anthropic") {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+
+    const messages: unknown[] = [...req.messages];
+
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      rounds = round + 1;
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: resolved.modelId,
+          max_tokens: req.maxTokens ?? 2048,
+          system: req.system,
+          tools: req.tools,
+          messages,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Anthropic agent error: ${await res.text()}`);
+
+      const data = await res.json() as {
+        stop_reason: string;
+        content: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
+      };
+
+      const textBlocks = data.content.filter(b => b.type === "text").map(b => b.text ?? "");
+      if (textBlocks.length) reply = textBlocks.join("\n");
+
+      if (data.stop_reason !== "tool_use") break;
+
+      const toolBlocks = data.content.filter(b => b.type === "tool_use");
+      if (!toolBlocks.length) break;
+
+      messages.push({ role: "assistant", content: data.content });
+
+      const toolResults: unknown[] = [];
+      for (const tb of toolBlocks) {
+        const result = await req.onToolCall(tb.name!, tb.input ?? {});
+        toolResults.push({ type: "tool_result", tool_use_id: tb.id!, content: result });
+      }
+
+      messages.push({ role: "user", content: toolResults });
+    }
+
+    return { reply, provider: "anthropic", model: resolved.modelId, rounds };
+  }
+
+  // ── OpenAI-compatible path ────────────────────────────────────────────────────
+  const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
+    type: "function" as const,
+    function: { name: t.name, description: t.description, parameters: t.input_schema },
+  }));
+
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: req.system },
+    ...req.messages.map(m => ({
+      role: m.role as "user" | "assistant",
+      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+    })),
+  ];
+
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    rounds = round + 1;
+    const completion = await openAIClient().chat.completions.create({
+      model: resolved.modelId,
+      max_tokens: req.maxTokens ?? 2048,
+      messages,
+      tools: openaiTools,
+      tool_choice: "auto",
+    });
+
+    const choice = completion.choices[0];
+    if (!choice) break;
+
+    const textContent = choice.message.content ?? "";
+    if (textContent) reply = textContent;
+
+    if (choice.finish_reason !== "tool_calls" || !choice.message.tool_calls?.length) break;
+
+    messages.push(choice.message);
+
+    for (const toolCall of choice.message.tool_calls) {
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(toolCall.function.arguments) as Record<string, unknown>; } catch {}
+      const result = await req.onToolCall(toolCall.function.name, args);
+      messages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+    }
+  }
+
+  return { reply, provider: "openai-compat", model: resolved.modelId, rounds };
 }
