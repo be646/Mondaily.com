@@ -1,11 +1,70 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Network, ArrowUpRight } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Network, ArrowUpRight, Play, Loader2, Check } from "lucide-react";
+import { apiClient } from "../../lib/api-client";
 import {
   useAgentData, CONSTELLATION_STATE_LABEL,
   type ConstellationAgent, type ConstellationState,
 } from "./agent-dock";
+
+/** Agents that expose an on-demand POST /api/v1/agents/:id/run runner. */
+const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment"]);
+
+/** Turn a runner's result payload into one short human line. */
+function summarizeRun(result: Record<string, unknown>): string {
+  const r = (result?.result ?? result) as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof r.total_scored === "number") parts.push(`scored ${r.total_scored}`);
+  if (typeof r.alerts_created === "number" && r.alerts_created > 0) parts.push(`${r.alerts_created} alert(s)`);
+  if (typeof r.queued === "number") parts.push(`${r.queued} decision(s) queued`);
+  if (typeof r.total_chased === "number") parts.push(`${r.total_chased} chase(s) drafted`);
+  if (typeof r.generated === "number" && r.generated > 0) parts.push(`${r.generated} invoice(s)`);
+  if (typeof r.enriched_count === "number") parts.push(`enriched ${r.enriched_count}`);
+  return parts.length ? `Done — ${parts.join(", ")}.` : "Done — nothing new to act on.";
+}
+
+function RunAgentButton({ agentId }: { agentId: string }) {
+  const qc = useQueryClient();
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!RUNNABLE_AGENTS.has(agentId)) return null;
+
+  async function run() {
+    setRunning(true); setResult(null); setError(null);
+    try {
+      const res = await apiClient.post<Record<string, unknown>>(`/agents/${agentId}/run`);
+      setResult(summarizeRun(res));
+      // Refresh the registry + dock data so new state/decisions show up.
+      qc.invalidateQueries({ queryKey: ["agent-registry"] });
+      qc.invalidateQueries({ queryKey: ["decisions"] });
+      qc.invalidateQueries({ queryKey: ["agent-dock"] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Run failed");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={run}
+        disabled={running}
+        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
+        style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}
+      >
+        {running ? <Loader2 size={11} className="animate-spin"/> : result ? <Check size={11}/> : <Play size={11}/>}
+        {running ? "Running…" : "Run now"}
+      </button>
+      {result && <span className="text-[10.5px]" style={{ color: "var(--text-secondary)" }}>{result}</span>}
+      {error && <span className="text-[10.5px] text-rose-500">{error}</span>}
+    </div>
+  );
+}
 
 /**
  * Agent Constellation — the one honest model of "every agent concept that
@@ -51,6 +110,11 @@ function NodeDetail({ agent }: { agent: ConstellationAgent }) {
       )}
       {agent.suggestedAction && (
         <p className="mt-1.5 text-[11px] font-medium" style={{ color: "var(--accent)" }}>→ {agent.suggestedAction}</p>
+      )}
+      {RUNNABLE_AGENTS.has(agent.id) && (
+        <div className="mt-2.5">
+          <RunAgentButton agentId={agent.id}/>
+        </div>
       )}
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
         {agent.backedBy && agent.backedBy.length > 0 && <span>Backed by: {agent.backedBy.join(", ")}</span>}
