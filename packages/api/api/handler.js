@@ -68688,10 +68688,14 @@ async function aiGateway(req) {
   messages.push({ role: "user", content: req.prompt });
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
-    max_tokens: req.maxTokens ?? 512,
+    // Reasoning models (e.g. gpt-oss) spend tokens "thinking" before emitting
+    // the answer in `content`; a small budget gets fully consumed by reasoning
+    // and leaves content empty. Keep a generous floor so content is produced.
+    max_tokens: Math.max(req.maxTokens ?? 512, 2048),
     messages
   });
-  const text2 = completion.choices[0]?.message.content ?? "";
+  const msg = completion.choices[0]?.message;
+  const text2 = msg?.content && msg.content.trim() ? msg.content : msg?.reasoning ?? "";
   return { text: text2, provider: "openai-compat", model: resolved.modelId };
 }
 async function aiGatewayToolUse(req) {
@@ -68840,7 +68844,8 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     }
     const choice = completion.choices[0];
     if (!choice) break;
-    const textContent = choice.message.content ?? "";
+    const rmsg = choice.message;
+    const textContent = rmsg.content && rmsg.content.trim() ? rmsg.content : rmsg.reasoning ?? "";
     if (textContent) reply = textContent;
     if (choice.finish_reason !== "tool_calls" || !choice.message.tool_calls?.length) break;
     messages.push(choice.message);
@@ -68862,13 +68867,15 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     try {
       const summary = await client.chat.completions.create({
         model: activeModel,
-        max_tokens: 512,
+        // Generous budget so reasoning models can think AND still emit content.
+        max_tokens: 2048,
         messages: [
           { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct. If workspace data is unavailable or empty, say so and suggest what the user can do next." },
           { role: "user", content: originalText || "Hello" }
         ]
       });
-      reply = summary.choices[0]?.message.content ?? "";
+      const smsg = summary.choices[0]?.message;
+      reply = smsg?.content && smsg.content.trim() ? smsg.content : smsg?.reasoning ?? "";
       console.log(`[gateway:openai-compat] clean fallback reply: ${reply.length} chars`);
     } catch (e2) {
       console.error(`[gateway:openai-compat] clean fallback call failed: ${e2?.message}`);
