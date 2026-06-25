@@ -72429,7 +72429,17 @@ ${webContext}` : "") + contextNote;
     });
     console.log(`[ask] done provider=${provider} rounds=${rounds} replyLen=${agentReply.length} sources=${sources.length}`);
     let reply = agentReply;
-    if (!reply) reply = "I looked through your workspace but couldn't find anything relevant to that request. Try asking in a different way or add some data first.";
+    if (!reply) {
+      console.log(`[ask] agent empty \u2014 trying direct aiGateway fallback`);
+      const fallback = await aiGateway({
+        system: "You are Mondaily AI, a helpful business workspace assistant. Answer concisely. If the workspace appears empty, say so and suggest the user adds contacts, deals, or tasks to get started.",
+        prompt: message,
+        maxTokens: 400
+      }).catch(() => ({ text: "" }));
+      reply = fallback.text;
+      console.log(`[ask] direct fallback replyLen=${reply.length}`);
+    }
+    if (!reply) reply = "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";
     let suggestions = [];
     const followupMatch = reply.match(/<followups>([\s\S]*?)<\/followups>/);
     if (followupMatch) {

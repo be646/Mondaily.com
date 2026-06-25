@@ -7,7 +7,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
-import { aiGatewayToolUse, aiGatewayAgent } from "../lib/ai-gateway";
+import { aiGatewayToolUse, aiGatewayAgent, aiGateway } from "../lib/ai-gateway";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -1131,7 +1131,19 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     let reply = agentReply;
 
-    if (!reply) reply = "I looked through your workspace but couldn't find anything relevant to that request. Try asking in a different way or add some data first.";
+    // Agent returned empty — try a simple direct call with no tools
+    if (!reply) {
+      console.log(`[ask] agent empty — trying direct aiGateway fallback`);
+      const fallback = await aiGateway({
+        system: "You are Mondaily AI, a helpful business workspace assistant. Answer concisely. If the workspace appears empty, say so and suggest the user adds contacts, deals, or tasks to get started.",
+        prompt: message,
+        maxTokens: 400,
+      }).catch(() => ({ text: "" }));
+      reply = fallback.text;
+      console.log(`[ask] direct fallback replyLen=${reply.length}`);
+    }
+
+    if (!reply) reply = "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";
 
     // Extract follow-up suggestions
     let suggestions: string[] = [];
