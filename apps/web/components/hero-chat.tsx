@@ -60,7 +60,7 @@ function ReplyTypewriter({ text }: { text: string }) {
     <>
       {shown}
       {shown.length < text.length && (
-        <span className="inline-block w-[1px] h-[0.85em] bg-indigo-500 ml-[1px] opacity-60 animate-pulse align-middle"/>
+        <span className="inline-block w-[1px] h-[0.85em] bg-zinc-800 ml-[1px] opacity-50 animate-pulse align-middle"/>
       )}
     </>
   );

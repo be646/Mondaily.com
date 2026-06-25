@@ -586,7 +586,7 @@ function FAQTypewriter({ text }: { text: string }) {
     <>
       {shown}
       {shown.length < text.length && (
-        <span className="inline-block w-[1px] h-[0.85em] bg-indigo-500 ml-[1px] opacity-60 animate-pulse align-middle"/>
+        <span className="inline-block w-[1px] h-[0.85em] bg-zinc-800 ml-[1px] opacity-50 animate-pulse align-middle"/>
       )}
     </>
   );
@@ -685,7 +685,7 @@ function WorkflowDemo() {
 
   return (
     <section id="workflow" className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-violet-500">Live on the graph</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-zinc-500">Live on the graph</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         What happens when a record enters Mondaily
       </h2>
@@ -699,7 +699,7 @@ function WorkflowDemo() {
           {/* Card header */}
           <div className="mb-5 flex items-center justify-between border-b border-black/[.04] pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-indigo-500/20 bg-indigo-600/10 text-[14px] text-indigo-500 font-bold">{scenario.initials}</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/[.07] bg-zinc-100 text-[14px] text-zinc-600 font-bold">{scenario.initials}</div>
               <div>
                 <div className="text-[13px] text-zinc-900 font-medium">{scenario.company}</div>
                 <div className="text-[14px] text-zinc-600">{scenario.domain}</div>
@@ -709,9 +709,9 @@ function WorkflowDemo() {
               <motion.span
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 1.6, repeat: Infinity }}
-                className="h-1.5 w-1.5 rounded-full bg-indigo-600"
+                className="h-1.5 w-1.5 rounded-full bg-zinc-500"
               />
-              <span className="text-[14px] text-indigo-700">enriched</span>
+              <span className="text-[14px] text-zinc-500">enriched</span>
             </div>
           </div>
 
@@ -726,7 +726,7 @@ function WorkflowDemo() {
                 className="flex items-baseline gap-3"
               >
                 <span className="w-24 shrink-0 text-[14px] text-zinc-500">{f.key}</span>
-                <span className={`text-[13px] ${f.key === "Signal" ? "text-indigo-500" : f.key === "Relationship Health" ? "text-indigo-400" : "text-zinc-600"}`}>
+                <span className={`text-[13px] ${f.key === "Signal" ? "text-zinc-700" : f.key === "Relationship Health" ? "text-zinc-600" : "text-zinc-600"}`}>
                   {f.val}
                 </span>
               </motion.div>
@@ -755,7 +755,7 @@ function WorkflowDemo() {
             <motion.span
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.4, repeat: Infinity }}
-              className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+              className="ml-auto h-1.5 w-1.5 rounded-full bg-zinc-500"
             />
           </div>
 
@@ -772,14 +772,14 @@ function WorkflowDemo() {
                 >
                   {/* Step connector */}
                   <div className="flex flex-col items-center">
-                    <div className="h-2 w-2 rounded-full mt-1 shrink-0" style={{ background: step.tagCol === "#4f46e5" ? "#4f46e5" : "#27272a" }}/>
+                    <div className="h-2 w-2 rounded-full mt-1 shrink-0 bg-zinc-400" />
                     {i < shownSteps - 1 && (
                       <div className="mt-1 flex-1 w-px bg-black/[.04] min-h-[20px]"/>
                     )}
                   </div>
                   <div className="min-w-0 pb-1">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[14px]" style={{ color: step.tagCol }}>{step.tag}</span>
+                      <span className="text-[14px] text-zinc-500">{step.tag}</span>
                       <span className="text-[13px] text-zinc-600">{step.title}</span>
                     </div>
                     <div className="text-[14px] text-zinc-500 leading-relaxed">{step.detail}</div>
@@ -792,7 +792,7 @@ function WorkflowDemo() {
             {shownSteps < steps.length && shownSteps > 0 && (
               <div className="flex items-center gap-2 pl-5">
                 {[0,1,2].map(i => (
-                  <motion.span key={i} className="h-1 w-1 rounded-full bg-indigo-800"
+                  <motion.span key={i} className="h-1 w-1 rounded-full bg-zinc-500"
                     animate={{ opacity: [0.2, 1, 0.2] }}
                     transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15 }}
                   />
@@ -809,7 +809,7 @@ function WorkflowDemo() {
                 transition={{ duration: 0.4 }}
                 className="flex items-center gap-2 pl-5 pt-1"
               >
-                <span className="text-[14px] text-indigo-700">[DONE]</span>
+                <span className="text-[14px] text-zinc-500">[DONE]</span>
                 <span className="text-[14px] text-zinc-500">6 actions completed · 0 errors · 0 manual steps</span>
               </motion.div>
             )}
@@ -885,7 +885,7 @@ const FLOW_NODES = [
 function FlowNode({ node, active, alwaysShow = false }: { node: typeof FLOW_NODES[number]; active: boolean; alwaysShow?: boolean }) {
   const isVisible = active || alwaysShow;
   const borderCol = active
-    ? (node.type === "trigger" ? "border-indigo-500/40" : node.type === "condition" ? "border-zinc-300/60" : "border-black/[.1]")
+    ? (node.type === "trigger" ? "border-zinc-400/60" : node.type === "condition" ? "border-zinc-300/60" : "border-black/[.1]")
     : "border-black/[.04]";
 
   return (
@@ -896,16 +896,16 @@ function FlowNode({ node, active, alwaysShow = false }: { node: typeof FLOW_NODE
       className={`rounded-xl border ${borderCol} bg-white px-5 py-3.5 font-mono`}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className={`text-[14px] ${active ? (node.type === "trigger" || node.type === "action" ? "text-indigo-500" : "text-zinc-500") : "text-zinc-500"}`}>
+        <span className={`text-[14px] ${active ? (node.type === "trigger" || node.type === "action" ? "text-zinc-700" : "text-zinc-500") : "text-zinc-500"}`}>
           {node.tag}
         </span>
         {active && node.type !== "condition" && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[14px] text-indigo-800">
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[14px] text-zinc-500">
             ✓ completed
           </motion.span>
         )}
         {active && node.type === "condition" && (
-          <span className="text-[14px] text-indigo-600">branching →</span>
+          <span className="text-[14px] text-zinc-600">branching →</span>
         )}
       </div>
       <div className={`text-[14px] ${isVisible ? "text-zinc-900" : "text-zinc-600"}`}>{node.label}</div>
@@ -940,7 +940,7 @@ function AutomationFlow() {
       <motion.div
         animate={{ opacity: active ? 1 : 0.08 }}
         transition={{ duration: 0.4 }}
-        className={`w-px ${short ? "h-5" : "h-8"} bg-gradient-to-b from-indigo-800/60 to-transparent`}
+        className={`w-px ${short ? "h-5" : "h-8"} bg-gradient-to-b from-zinc-400/60 to-transparent`}
       />
     </div>
   );
@@ -950,21 +950,21 @@ function AutomationFlow() {
       ref={ref}
       className="mx-auto max-w-6xl px-6 py-20"
     >
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-amber-500">How the graph works</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-zinc-500">How the graph works</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         Design once. Apply to every object on the graph.
       </h2>
       <p className="mb-6 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Visual flows built on real graph events — no code required. Today a human reviews and runs each
-        one; autonomous execution is on the <a href="/roadmap" className="text-indigo-500 hover:underline">roadmap</a>.
+        one; autonomous execution is on the <a href="/roadmap" className="text-zinc-600 hover:underline">roadmap</a>.
       </p>
 
       {/* Plain-language framing — the full lifecycle of an object in the graph, not a technical diagram */}
       <div className="mb-10 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-xl border border-black/[.05] bg-zinc-50/70 px-5 py-4 text-[13.5px] font-medium text-zinc-700">
         {["Object enters", "Becomes a graph node", "Enriched", "Connected to related nodes", "Agents monitor", "Signal created", "Decision queued", "Action approved"].map((step, i, arr) => (
           <span key={step} className="flex items-center gap-2">
-            <span className={i % 2 === 1 ? "text-indigo-600" : ""}>{step}</span>
-            {i < arr.length - 1 && <span className="text-indigo-400">→</span>}
+            <span className={i % 2 === 1 ? "text-zinc-700" : ""}>{step}</span>
+            {i < arr.length - 1 && <span className="text-zinc-400">→</span>}
           </span>
         ))}
       </div>
@@ -986,7 +986,7 @@ function AutomationFlow() {
             className="my-3 grid grid-cols-2 gap-4 font-mono"
           >
             <div className="flex justify-center">
-              <span className="rounded-full border border-indigo-500/20 bg-indigo-600/10 px-3 py-0.5 text-[14px] text-indigo-500">High intent</span>
+              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-[14px] text-zinc-700">High intent</span>
             </div>
             <div className="flex justify-center">
               <span className="rounded-full border border-zinc-300/30 bg-zinc-300/10 px-3 py-0.5 text-[14px] text-zinc-500">Nurture</span>
@@ -1029,7 +1029,7 @@ function AutomationFlow() {
               className="mt-6 flex items-center gap-3 font-mono"
             >
               <div className="h-px flex-1 bg-black/[.04]"/>
-              <span className="text-[14px] text-indigo-800">[FLOW COMPLETE]</span>
+              <span className="text-[14px] text-zinc-500">[FLOW COMPLETE]</span>
               <div className="h-px flex-1 bg-black/[.04]"/>
             </motion.div>
           )}
@@ -1052,7 +1052,7 @@ function AutomationFlow() {
               className="rounded-xl border border-black/[.04] bg-white p-4"
             >
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 text-indigo-700 text-[14px]">{row.icon}</span>
+                <span className="mt-0.5 text-zinc-500 text-[14px]">{row.icon}</span>
                 <div>
                   <div className="text-[14px] text-zinc-600 line-through mb-0.5">{row.before}</div>
                   <div className="text-[13px] text-zinc-700">{row.after}</div>
@@ -1066,7 +1066,7 @@ function AutomationFlow() {
             initial={{ opacity: 0 }}
             animate={{ opacity: shownCount >= FLOW_NODES.length ? 1 : 0 }}
             transition={{ duration: 0.5 }}
-            className="mt-2 rounded-xl border border-indigo-500/25 bg-indigo-600/10 px-5 py-3 text-center text-[13px] text-indigo-400 hover:bg-indigo-600/20 hover:text-indigo-200 transition-all"
+            className="mt-2 rounded-xl border border-black/[.08] bg-zinc-50 px-5 py-3 text-center text-[13px] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-all"
           >
             Build your first flow →
           </motion.a>
@@ -1079,11 +1079,11 @@ function AutomationFlow() {
 // ── Email signup ──────────────────────────────────────────────────────────────
 // ── Hero visual proof — pipeline board, styled like the real app ──────────────
 const STAGE_STYLE: Record<string, { dot: string; text: string }> = {
-  New:         { dot: "bg-zinc-400",    text: "text-zinc-600" },
-  Qualified:   { dot: "bg-blue-500",    text: "text-blue-700" },
-  Proposal:    { dot: "bg-amber-500",   text: "text-amber-700" },
-  Negotiation: { dot: "bg-violet-500",  text: "text-violet-700" },
-  Won:         { dot: "bg-emerald-500", text: "text-emerald-700" },
+  New:         { dot: "bg-zinc-300",    text: "text-zinc-500" },
+  Qualified:   { dot: "bg-zinc-400",    text: "text-zinc-600" },
+  Proposal:    { dot: "bg-zinc-500",    text: "text-zinc-600" },
+  Negotiation: { dot: "bg-zinc-600",    text: "text-zinc-700" },
+  Won:         { dot: "bg-zinc-900",    text: "text-zinc-900" },
 };
 
 const STAGE_NAMES = ["New", "Qualified", "Proposal", "Negotiation", "Won"] as const;
@@ -1597,10 +1597,10 @@ function WorkspaceGraphPreview() {
 }
 
 const INVOICE_STAGE_STYLE: Record<string, { dot: string; text: string }> = {
-  Draft:    { dot: "bg-zinc-400",    text: "text-zinc-600" },
-  Sent:     { dot: "bg-blue-500",    text: "text-blue-700" },
-  Approved: { dot: "bg-amber-500",   text: "text-amber-700" },
-  Paid:     { dot: "bg-emerald-500", text: "text-emerald-700" },
+  Draft:    { dot: "bg-zinc-300",    text: "text-zinc-500" },
+  Sent:     { dot: "bg-zinc-500",    text: "text-zinc-600" },
+  Approved: { dot: "bg-zinc-600",    text: "text-zinc-700" },
+  Paid:     { dot: "bg-zinc-900",    text: "text-zinc-900" },
 };
 const INVOICE_STAGE_NAMES = ["Draft", "Sent", "Approved", "Paid"] as const;
 type InvoiceStage = typeof INVOICE_STAGE_NAMES[number];
@@ -1773,11 +1773,11 @@ const SHEET_VIEWS: SheetView[] = [
     stageCol: "stage",
     stageOrder: ["New", "Qualified", "Proposal", "Negotiation", "Won"],
     stageStyle: {
-      New:         { dot: "bg-zinc-400",    text: "text-zinc-600" },
-      Qualified:   { dot: "bg-blue-500",    text: "text-blue-700" },
-      Proposal:    { dot: "bg-amber-500",   text: "text-amber-700" },
-      Negotiation: { dot: "bg-violet-500",  text: "text-violet-700" },
-      Won:         { dot: "bg-emerald-500", text: "text-emerald-700" },
+      New:         { dot: "bg-zinc-300",    text: "text-zinc-500" },
+      Qualified:   { dot: "bg-zinc-400",    text: "text-zinc-600" },
+      Proposal:    { dot: "bg-zinc-500",    text: "text-zinc-600" },
+      Negotiation: { dot: "bg-zinc-600",    text: "text-zinc-700" },
+      Won:         { dot: "bg-zinc-900",    text: "text-zinc-900" },
     },
     rows: [
       { id: "vandelay", company: "Vandelay Industries", stage: "New",         score: 58, owner: "MK" },
@@ -1798,10 +1798,10 @@ const SHEET_VIEWS: SheetView[] = [
     stageCol: "stage",
     stageOrder: ["Draft", "Sent", "Approved", "Paid"],
     stageStyle: {
-      Draft:    { dot: "bg-zinc-400",    text: "text-zinc-600" },
-      Sent:     { dot: "bg-blue-500",    text: "text-blue-700" },
-      Approved: { dot: "bg-amber-500",   text: "text-amber-700" },
-      Paid:     { dot: "bg-emerald-500", text: "text-emerald-700" },
+      Draft:    { dot: "bg-zinc-300",    text: "text-zinc-500" },
+      Sent:     { dot: "bg-zinc-500",    text: "text-zinc-600" },
+      Approved: { dot: "bg-zinc-600",    text: "text-zinc-700" },
+      Paid:     { dot: "bg-zinc-900",    text: "text-zinc-900" },
     },
     rows: [
       { id: "globex",  company: "Globex Inc",  ref: "INV-0032", stage: "Draft",    amt: "£3,150" },
@@ -1822,9 +1822,9 @@ const SHEET_VIEWS: SheetView[] = [
     stageCol: "status",
     stageOrder: ["Healthy", "At risk", "Cold"],
     stageStyle: {
-      Healthy: { dot: "bg-emerald-500", text: "text-emerald-700" },
-      "At risk": { dot: "bg-amber-500", text: "text-amber-700" },
-      Cold:    { dot: "bg-red-500",     text: "text-red-700" },
+      Healthy:   { dot: "bg-zinc-500",  text: "text-zinc-600" },
+      "At risk": { dot: "bg-zinc-400",  text: "text-zinc-600" },
+      Cold:      { dot: "bg-zinc-300",  text: "text-zinc-500" },
     },
     rows: [
       { id: "priya",  contact: "Priya Anand",  company: "Initech",    status: "Healthy", score: 91 },
@@ -2667,8 +2667,8 @@ function CookieBanner() {
         >
           <div className="rounded-2xl border border-black/[.07] bg-white shadow-[0_24px_64px_rgba(0,0,0,0.10)] overflow-hidden">
             <div className="flex items-start gap-4 px-6 py-5">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500/10">
-                <span className="font-mono text-[11px] font-semibold text-indigo-600">EU</span>
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100">
+                <span className="font-mono text-[11px] font-semibold text-zinc-600">EU</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="mb-1 font-mono text-[12px] font-semibold text-zinc-800">We respect your privacy</p>
@@ -2688,7 +2688,7 @@ function CookieBanner() {
                 <button onClick={decline} className="rounded-xl border border-black/[.08] px-4 py-1.5 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
                   Decline
                 </button>
-                <button onClick={accept} className="rounded-xl bg-indigo-600 px-4 py-1.5 font-mono text-[12px] font-medium text-white hover:bg-indigo-500 transition-colors">
+                <button onClick={accept} className="rounded-xl bg-zinc-900 px-4 py-1.5 font-mono text-[12px] font-medium text-white hover:bg-zinc-800 transition-colors">
                   Accept all
                 </button>
               </div>
@@ -2722,7 +2722,7 @@ function StickyStartBar() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 16, opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.3 }}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-600 px-5 py-3 font-mono text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(79,70,229,0.35)] hover:bg-indigo-500 transition-colors"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-black/[.12] bg-zinc-900 px-5 py-3 font-mono text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:bg-zinc-800 transition-colors"
         >
           <motion.span
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -2952,27 +2952,27 @@ export function LandingPage() {
               <div className="flex flex-wrap gap-x-14 gap-y-8 text-[13px]">
                 <div className="flex flex-col gap-2.5">
                   <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Product</span>
-                  <a href="#pricing" className="text-zinc-500 hover:text-indigo-400 transition-colors">Pricing</a>
-                  <a href="/changelog" className="text-zinc-500 hover:text-indigo-400 transition-colors">Changelog</a>
+                  <a href="#pricing" className="text-zinc-500 hover:text-zinc-700 transition-colors">Pricing</a>
+                  <a href="/changelog" className="text-zinc-500 hover:text-zinc-700 transition-colors">Changelog</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Platform</span>
-                  <a href="/status" className="text-zinc-500 hover:text-indigo-400 transition-colors">System status</a>
-                  <a href="/roadmap" className="text-zinc-500 hover:text-indigo-400 transition-colors">Roadmap</a>
-                  <a href="/security" className="text-zinc-500 hover:text-indigo-400 transition-colors">Security</a>
-                  <a href="/docs" className="text-zinc-500 hover:text-indigo-400 transition-colors">API docs</a>
-                  <a href="/help" className="text-zinc-500 hover:text-indigo-400 transition-colors">Help center</a>
+                  <a href="/status" className="text-zinc-500 hover:text-zinc-700 transition-colors">System status</a>
+                  <a href="/roadmap" className="text-zinc-500 hover:text-zinc-700 transition-colors">Roadmap</a>
+                  <a href="/security" className="text-zinc-500 hover:text-zinc-700 transition-colors">Security</a>
+                  <a href="/docs" className="text-zinc-500 hover:text-zinc-700 transition-colors">API docs</a>
+                  <a href="/help" className="text-zinc-500 hover:text-zinc-700 transition-colors">Help center</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Legal</span>
-                  <a href="/privacy" className="text-zinc-500 hover:text-indigo-400 transition-colors">Privacy</a>
-                  <a href="/terms" className="text-zinc-500 hover:text-indigo-400 transition-colors">Terms</a>
-                  <a href="/dpa" className="text-zinc-500 hover:text-indigo-400 transition-colors">DPA</a>
+                  <a href="/privacy" className="text-zinc-500 hover:text-zinc-700 transition-colors">Privacy</a>
+                  <a href="/terms" className="text-zinc-500 hover:text-zinc-700 transition-colors">Terms</a>
+                  <a href="/dpa" className="text-zinc-500 hover:text-zinc-700 transition-colors">DPA</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Contact</span>
-                  <a href="mailto:support@mondaily.com" className="text-zinc-500 hover:text-indigo-400 transition-colors">Support</a>
-                  <a href="mailto:sales@mondaily.com" className="text-zinc-500 hover:text-indigo-400 transition-colors">Sales</a>
+                  <a href="mailto:support@mondaily.com" className="text-zinc-500 hover:text-zinc-700 transition-colors">Support</a>
+                  <a href="mailto:sales@mondaily.com" className="text-zinc-500 hover:text-zinc-700 transition-colors">Sales</a>
                 </div>
               </div>
             </div>
@@ -2980,7 +2980,7 @@ export function LandingPage() {
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
               <div className="flex items-center gap-3">
                 <FooterThemeToggle theme={theme} onToggle={toggleTheme} />
-                <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-indigo-400 transition-colors">
+                <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-700 transition-colors">
                   System status
                 </a>
               </div>
