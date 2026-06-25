@@ -1249,64 +1249,182 @@ const WORKSPACE_GRAPH_NODES = [
   { label: "Ask AI", x: 50, y: 90, color: "#607078", detail: "Turns the graph into an ongoing conversation" },
 ];
 
-const WORKSPACE_TERMINAL_ROWS = [
-  { prompt: "graph.read", subject: "workspace_nodes", result: "records linked", tone: "#9fb08f" },
-  { prompt: "enrich.run", subject: "new_records", result: "sources attached", tone: "#8fb3b0" },
-  { prompt: "relationship.scan", subject: "open_loops", result: "follow-up prepared", tone: "#d7c6a3" },
-  { prompt: "finance.watch", subject: "invoice_age", result: "reminder drafted", tone: "#c59a8d" },
-  { prompt: "ops.queue", subject: "stalled_tasks", result: "decision ready", tone: "#6f8068" },
+const WORKSPACE_TERMINAL_ROWS: Array<{
+  prompt: string;
+  segments: Array<{ text: string; color: string }>;
+}> = [
+  {
+    prompt: "graph.read",
+    segments: [
+      { text: "mondaily", color: "#9fb08f" },
+      { text: ".", color: "#7c8379" },
+      { text: "graph.read", color: "#9fb08f" },
+      { text: " --input ", color: "#7c8379" },
+      { text: "workspace_nodes", color: "#8fb3b0" },
+      { text: " --output ", color: "#7c8379" },
+      { text: '"records_linked"', color: "#d7c6a3" },
+    ],
+  },
+  {
+    prompt: "enrich.run",
+    segments: [
+      { text: "mondaily", color: "#8a8071" },
+      { text: ".", color: "#7c8379" },
+      { text: "enrich.run", color: "#8fb3b0" },
+      { text: " --scope ", color: "#7c8379" },
+      { text: "new_records", color: "#8fb3b0" },
+      { text: " --attach ", color: "#7c8379" },
+      { text: '"web_sources"', color: "#d7c6a3" },
+    ],
+  },
+  {
+    prompt: "relationship.scan",
+    segments: [
+      { text: "mondaily", color: "#a68762" },
+      { text: ".", color: "#7c8379" },
+      { text: "relationship.scan", color: "#d7c6a3" },
+      { text: " --filter ", color: "#7c8379" },
+      { text: "open_loops", color: "#8fb3b0" },
+      { text: " --prepare ", color: "#7c8379" },
+      { text: '"follow_up"', color: "#d7c6a3" },
+    ],
+  },
+  {
+    prompt: "finance.watch",
+    segments: [
+      { text: "mondaily", color: "#a07164" },
+      { text: ".", color: "#7c8379" },
+      { text: "finance.watch", color: "#c59a8d" },
+      { text: " --check ", color: "#7c8379" },
+      { text: "invoice_age", color: "#8fb3b0" },
+      { text: " --draft ", color: "#7c8379" },
+      { text: '"reminder"', color: "#d7c6a3" },
+    ],
+  },
+  {
+    prompt: "ops.queue",
+    segments: [
+      { text: "mondaily", color: "#6f8068" },
+      { text: ".", color: "#7c8379" },
+      { text: "ops.queue", color: "#9fb08f" },
+      { text: " --scan ", color: "#7c8379" },
+      { text: "stalled_tasks", color: "#8fb3b0" },
+      { text: " --route ", color: "#7c8379" },
+      { text: '"decision_ready"', color: "#d7c6a3" },
+    ],
+  },
 ];
 
-function TerminalLine({ children, active }: { children: ReactNode; active?: boolean }) {
+const AGENT_ASK_PROMPTS = [
+  "What records did the graph link or surface this week?",
+  "Which records have been enriched from the web recently?",
+  "Which relationships have gone quiet or need a follow-up?",
+  "Which invoices are overdue or need chasing right now?",
+  "What tasks are stalled or overdue across the workspace?",
+  "What should I act on across the workspace today?",
+];
+
+function TerminalLine({
+  segments,
+  children,
+  active,
+  typedChars,
+}: {
+  segments?: Array<{ text: string; color: string }>;
+  children?: ReactNode;
+  active?: boolean;
+  typedChars?: number;
+}) {
+  // Children-only usage (legacy call sites without segments)
+  if (!segments) {
+    return (
+      <div
+        style={{ opacity: active ? 1 : 0.45, transition: "opacity 0.35s" }}
+        className="h-7 overflow-hidden whitespace-nowrap text-left font-mono text-[12px] leading-7"
+      >
+        <span style={{ color: "#7c8379" }}>$ </span>{children}
+      </div>
+    );
+  }
+
+  const totalLength = segments.reduce((s, seg) => s + seg.text.length, 0);
+  const isTyping = active && typedChars !== undefined;
+
+  if (isTyping) {
+    let remaining = typedChars!;
+    const visible: Array<{ text: string; color: string }> = [];
+    for (const seg of segments) {
+      if (remaining <= 0) break;
+      visible.push({ text: seg.text.slice(0, remaining), color: seg.color });
+      remaining -= seg.text.length;
+    }
+    const complete = typedChars! >= totalLength;
+    return (
+      <div className="h-7 overflow-hidden whitespace-nowrap text-left font-mono text-[12px] leading-7">
+        <span style={{ color: "#7c8379" }}>$ </span>
+        {visible.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+        {!complete && <span className="ml-px inline-block h-[0.85em] w-px animate-pulse bg-[#9fb08f] align-middle" />}
+      </div>
+    );
+  }
+
   return (
-    <motion.div
-      animate={{ opacity: active ? 1 : 0.58 }}
-      transition={{ duration: 0.25 }}
-      className="h-7 truncate whitespace-nowrap text-left font-mono text-[12px] leading-7"
+    <div
+      style={{ opacity: active ? 1 : 0.38, transition: "opacity 0.35s" }}
+      className="h-7 overflow-hidden whitespace-nowrap text-left font-mono text-[12px] leading-7"
     >
-      <span className="terminal-muted">$ </span>{children}
-    </motion.div>
+      <span style={{ color: "#7c8379" }}>$ </span>
+      {segments.map((seg, i) => <span key={i} style={{ color: seg.color }}>{seg.text}</span>)}
+    </div>
   );
 }
 
 function WorkspaceGraphPreview() {
   const [active, setActive] = useState(0);
+  const [typedChars, setTypedChars] = useState(0);
 
   useEffect(() => {
-    const t = setInterval(() => setActive(i => (i + 1) % WORKSPACE_GRAPH_NODES.length), 2200);
+    const t = setInterval(() => setActive(i => (i + 1) % WORKSPACE_GRAPH_NODES.length), 2600);
     return () => clearInterval(t);
   }, []);
 
+  const activeRowIndex = active % WORKSPACE_TERMINAL_ROWS.length;
+  const activeRow = WORKSPACE_TERMINAL_ROWS[activeRowIndex]!;
+  const activeRowLength = activeRow.segments.reduce((s, seg) => s + seg.text.length, 0);
+
+  useEffect(() => {
+    setTypedChars(0);
+    const t = setInterval(() => {
+      setTypedChars(c => (c < activeRowLength ? c + 1 : c));
+    }, 30);
+    return () => clearInterval(t);
+  }, [active, activeRowLength]);
+
   const activeNode = WORKSPACE_GRAPH_NODES[active]!;
+  const askPrompt = AGENT_ASK_PROMPTS[active]!;
 
   return (
     <div className="relative mx-auto w-full max-w-full overflow-hidden sm:max-w-6xl">
-      <div className="grid gap-6 lg:grid-cols-[1fr_.92fr]">
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* LEFT PANEL — graph tree */}
         <div className="relative min-h-[430px] p-5 sm:p-8">
-          <div className="mb-6 flex flex-col gap-3 text-left sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">Living workspace graph</p>
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
-                  <motion.span
-                    animate={{ opacity: [0.35, 1, 0.35], boxShadow: ["0 0 0 0 rgba(111,128,104,0)", "0 0 0 4px rgba(111,128,104,0.16)", "0 0 0 0 rgba(111,128,104,0)"] }}
-                    transition={{ duration: 1.8, repeat: Infinity }}
-                    className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"
-                  />
-                  agents watching
-                </span>
-              </div>
-              <h3 className="max-w-xl text-xl font-semibold leading-tight tracking-tight text-zinc-900 sm:text-2xl">
-                Agents operate on one shared graph.
-              </h3>
+          <div className="mb-6 text-left">
+            <div className="mb-2 flex items-center gap-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">Living workspace graph</p>
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+                <motion.span
+                  animate={{ opacity: [0.35, 1, 0.35] }}
+                  transition={{ duration: 1.8, repeat: Infinity }}
+                  className="h-1.5 w-1.5 rounded-full bg-[#6f8068]"
+                />
+                agents watching
+              </span>
             </div>
+            <h3 className="max-w-xl text-xl font-semibold leading-tight tracking-tight text-zinc-900 sm:text-2xl">
+              Agents operate on one shared graph.
+            </h3>
           </div>
 
-          {/* One clean structured tree — graph core at the top, agents
-              branching below as evenly-spaced rows. Replaces the old
-              absolute-positioned node cloud (which overlapped and was then
-              duplicated by a second list beside it). Flexbox/grid only,
-              so nothing drifts or clips. */}
           <div className="flex flex-col items-center">
             <div className="flex flex-col items-center gap-1.5">
               <motion.span
@@ -1319,7 +1437,6 @@ function WorkspaceGraphPreview() {
             </div>
 
             <div className="relative mt-4 w-full">
-              {/* trunk + horizontal rail */}
               <div className="absolute left-1/2 -top-4 h-4 w-px -translate-x-1/2" style={{ background: "#8a8378", opacity: 0.5 }} />
               <div className="absolute left-6 right-6 top-0 h-px" style={{ background: "#8a8378", opacity: 0.4 }} />
               <div className="grid grid-cols-1 gap-x-8 gap-y-px pt-5 sm:grid-cols-2">
@@ -1329,7 +1446,7 @@ function WorkspaceGraphPreview() {
                     type="button"
                     onClick={() => setActive(i)}
                     initial={false}
-                    animate={{ opacity: i === active ? 1 : 0.55 }}
+                    animate={{ opacity: i === active ? 1 : 0.5 }}
                     transition={{ duration: 0.3 }}
                     className="flex items-start gap-2.5 py-2.5 text-left"
                   >
@@ -1337,7 +1454,7 @@ function WorkspaceGraphPreview() {
                       <span className="h-2 w-2 rounded-full" style={{ background: node.color }} />
                       {i === active && (
                         <motion.span
-                          animate={{ opacity: [0.5, 0, 0.5], scale: [1, 2.4, 1] }}
+                          animate={{ opacity: [0.6, 0, 0.6], scale: [1, 2.2, 1] }}
                           transition={{ duration: 1.7, repeat: Infinity }}
                           className="absolute inset-0 rounded-full"
                           style={{ background: node.color }}
@@ -1354,73 +1471,115 @@ function WorkspaceGraphPreview() {
             </div>
           </div>
 
-          <div className="mt-6 py-3 text-left">
-            <div className="flex min-h-[44px] items-start gap-3">
+          {/* Ask AI — agent-specific prompt chip */}
+          <div className="mt-6 border-t border-zinc-100 pt-4 text-left">
+            <div className="flex items-start gap-3">
               <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#607078]" />
               <div className="min-w-0 flex-1">
                 <p className="text-[12px] font-medium text-zinc-800">Ask AI</p>
                 <motion.p
-                  key={activeNode.label}
+                  key={active}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.25 }}
-                  className="truncate text-[12px] text-zinc-500"
+                  transition={{ duration: 0.2 }}
+                  className="mt-0.5 text-[12px] leading-snug text-zinc-500"
                 >
-                  Continue from {activeNode.label}: what changed, what matters, what should happen next?
+                  {askPrompt}
                 </motion.p>
               </div>
-              <span className="text-[12px] text-zinc-400">↵</span>
+              <span className="shrink-0 text-[12px] text-zinc-400">↵</span>
             </div>
           </div>
         </div>
 
+        {/* RIGHT PANEL — terminal / operating layer */}
         <div className="landing-terminal relative min-h-[430px] p-6 sm:p-8">
           <div className="relative flex h-full min-h-[380px] flex-col">
-            <div className="mb-6 text-left">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-[#9fb08f]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#9fb08f]" />
+            <div className="mb-5 text-left">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em]" style={{ color: "#9fb08f" }}>
+                <motion.span
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: "#9fb08f" }}
+                />
                 operating layer
               </div>
             </div>
 
-            <div className="min-h-[208px] space-y-1 overflow-hidden">
+            {/* Terminal rows — fixed-height lines, no layout shift */}
+            <div className="space-y-1 overflow-hidden">
               {WORKSPACE_TERMINAL_ROWS.map((row, i) => (
-                <TerminalLine key={row.prompt} active={i === active % WORKSPACE_TERMINAL_ROWS.length}>
-                  <span className="terminal-green">mondaily</span><span className="terminal-muted">.</span><span style={{ color: row.tone }}>{row.prompt}</span>
-                  <span className="terminal-muted"> --input </span><span className="terminal-blue">{row.subject}</span>
-                  <span className="terminal-muted"> --result </span><span className="terminal-amber">{row.result}</span>
-                  {i === active % WORKSPACE_TERMINAL_ROWS.length && <span className="ml-1 inline-block h-[0.9em] w-px animate-pulse bg-[#9fb08f] align-middle" />}
-                </TerminalLine>
+                <TerminalLine
+                  key={row.prompt}
+                  segments={row.segments}
+                  active={i === activeRowIndex}
+                  typedChars={i === activeRowIndex ? typedChars : undefined}
+                />
               ))}
-              <div className="h-7 truncate text-left font-mono text-[12px] leading-7">
-                <span className="terminal-muted">$ </span>
-                <span className="terminal-rose">approval.queue</span>
-                <span className="terminal-muted"> --mode </span>
-                <span className="terminal-blue">human_review</span>
+              <div style={{ opacity: 0.28 }} className="h-7 overflow-hidden whitespace-nowrap font-mono text-[12px] leading-7">
+                <span style={{ color: "#7c8379" }}>$ </span>
+                <span style={{ color: "#c59a8d" }}>approval.queue</span>
+                <span style={{ color: "#7c8379" }}> --mode </span>
+                <span style={{ color: "#8fb3b0" }}>human_review</span>
               </div>
-              <div className="h-7 truncate text-left font-mono text-[12px] leading-7">
-                <span className="terminal-muted">$ </span>
-                <span className="terminal-green">sources.attach</span>
-                <span className="terminal-muted"> --scope </span>
-                <span className="terminal-amber">workspace_graph</span>
+              <div style={{ opacity: 0.18 }} className="h-7 overflow-hidden whitespace-nowrap font-mono text-[12px] leading-7">
+                <span style={{ color: "#7c8379" }}>$ </span>
+                <span style={{ color: "#9fb08f" }}>sources.attach</span>
+                <span style={{ color: "#7c8379" }}> --scope </span>
+                <span style={{ color: "#d7c6a3" }}>workspace_graph</span>
               </div>
             </div>
 
-            <div className="mt-auto pt-6 text-left">
-              <div className="flex min-h-[54px] items-start gap-3">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-zinc-500">Current process</p>
-                  <motion.p
-                    key={activeNode.label}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.25 }}
-                    className="mt-1 text-sm font-medium text-zinc-200"
-                  >
-                    {activeNode.label}: {activeNode.detail}
-                  </motion.p>
+            {/* Current process + connected Ask AI prompt */}
+            <div className="mt-auto pt-5">
+              <div style={{ borderTop: "1px solid rgba(159,176,143,0.18)" }} className="pt-4">
+                <p className="mb-3 text-[11px] uppercase tracking-[0.16em]" style={{ color: "#7c8379" }}>Current process</p>
+                <div className="flex items-start gap-3">
+                  <span className="mt-[3px] h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
+                  <div className="min-w-0 flex-1">
+                    <motion.p
+                      key={activeNode.label}
+                      initial={{ opacity: 0, y: 3 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.22 }}
+                      className="text-[13px] font-semibold leading-snug"
+                      style={{ color: "#f4f7f2" }}
+                    >
+                      {activeNode.label}
+                    </motion.p>
+                    <motion.p
+                      key={`${activeNode.label}-d`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.22, delay: 0.07 }}
+                      className="mt-0.5 text-[12px] leading-snug"
+                      style={{ color: "#7c8379" }}
+                    >
+                      {activeNode.detail}
+                    </motion.p>
+                  </div>
                 </div>
+
+                {/* Ask AI chip — visually connected to current process */}
+                <motion.div
+                  key={`ask-${active}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.22, delay: 0.14 }}
+                  className="mt-3 flex items-center gap-2"
+                >
+                  <div className="h-px flex-1" style={{ background: "rgba(159,176,143,0.18)" }} />
+                  <div
+                    className="flex max-w-[280px] items-center gap-1.5 rounded px-2.5 py-1.5"
+                    style={{ background: "rgba(159,176,143,0.07)", border: "1px solid rgba(159,176,143,0.16)" }}
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#607078" }} />
+                    <span className="font-mono text-[11px] font-medium" style={{ color: "#9fb08f" }}>ask →</span>
+                    <span className="truncate text-[11px]" style={{ color: "#d7c6a3" }}>{askPrompt}</span>
+                    <span className="shrink-0 text-[11px]" style={{ color: "#7c8379" }}>↵</span>
+                  </div>
+                </motion.div>
               </div>
             </div>
           </div>
