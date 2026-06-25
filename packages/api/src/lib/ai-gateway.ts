@@ -81,10 +81,14 @@ function getAnthropicKey(): string | undefined {
 }
 
 /** Fireworks serverless models tried in order when the primary model 404s. */
-const FIREWORKS_FALLBACK_MODELS = [
-  "accounts/fireworks/models/llama-v3p1-70b-instruct",
-  "accounts/fireworks/models/llama-v3-70b-instruct",
-  "accounts/fireworks/models/mixtral-8x7b-instruct",
+// Fallback model IDs tried in order on 404. Works for any OpenAI-compat provider
+// (Groq model IDs shown; Fireworks IDs also accepted if AI_AGENT_MODEL overrides).
+const PROVIDER_FALLBACK_MODELS = [
+  "llama-3.3-70b-versatile",        // Groq — Llama 3.3 70B (primary)
+  "llama-3.1-70b-versatile",        // Groq — Llama 3.1 70B
+  "llama3-70b-8192",                 // Groq — legacy alias
+  "accounts/fireworks/models/llama-v3p3-70b-instruct",   // Fireworks serverless
+  "accounts/fireworks/models/qwen2p5-72b-instruct",      // Fireworks serverless fallback
 ];
 
 function openAIClient(): OpenAI {
@@ -342,8 +346,8 @@ async function runOpenAICompatAgent(
 
       // On 404 try the next known-good serverless model before giving up
       if (status === 404 || (typeof msg === "string" && msg.includes("not found"))) {
-        const tried = [modelId, ...FIREWORKS_FALLBACK_MODELS.slice(0, FIREWORKS_FALLBACK_MODELS.indexOf(activeModel))];
-        const next = FIREWORKS_FALLBACK_MODELS.find(m => !tried.includes(m));
+        const tried = [modelId, ...PROVIDER_FALLBACK_MODELS.slice(0, PROVIDER_FALLBACK_MODELS.indexOf(activeModel))];
+        const next = PROVIDER_FALLBACK_MODELS.find(m => !tried.includes(m));
         if (next) {
           console.warn(`[gateway:openai-compat] 404 on "${activeModel}" — retrying with fallback "${next}"`);
           activeModel = next;

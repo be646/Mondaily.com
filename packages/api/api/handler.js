@@ -68651,10 +68651,17 @@ function resolveModel(spec) {
 function getAnthropicKey() {
   return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || void 0;
 }
-var FIREWORKS_FALLBACK_MODELS = [
-  "accounts/fireworks/models/llama-v3p1-70b-instruct",
-  "accounts/fireworks/models/llama-v3-70b-instruct",
-  "accounts/fireworks/models/mixtral-8x7b-instruct"
+var PROVIDER_FALLBACK_MODELS = [
+  "llama-3.3-70b-versatile",
+  // Groq — Llama 3.3 70B (primary)
+  "llama-3.1-70b-versatile",
+  // Groq — Llama 3.1 70B
+  "llama3-70b-8192",
+  // Groq — legacy alias
+  "accounts/fireworks/models/llama-v3p3-70b-instruct",
+  // Fireworks serverless
+  "accounts/fireworks/models/qwen2p5-72b-instruct"
+  // Fireworks serverless fallback
 ];
 function openAIClient() {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
@@ -68826,8 +68833,8 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       const msg = e2?.message ?? String(e2);
       console.error(`[gateway:openai-compat] request failed status=${status} model=${activeModel} baseURL=${baseURL} error="${msg}"`);
       if (status === 404 || typeof msg === "string" && msg.includes("not found")) {
-        const tried = [modelId, ...FIREWORKS_FALLBACK_MODELS.slice(0, FIREWORKS_FALLBACK_MODELS.indexOf(activeModel))];
-        const next = FIREWORKS_FALLBACK_MODELS.find((m2) => !tried.includes(m2));
+        const tried = [modelId, ...PROVIDER_FALLBACK_MODELS.slice(0, PROVIDER_FALLBACK_MODELS.indexOf(activeModel))];
+        const next = PROVIDER_FALLBACK_MODELS.find((m2) => !tried.includes(m2));
         if (next) {
           console.warn(`[gateway:openai-compat] 404 on "${activeModel}" \u2014 retrying with fallback "${next}"`);
           activeModel = next;
