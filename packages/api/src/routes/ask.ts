@@ -1205,7 +1205,7 @@ router.get("/credits", requireAuth, async (c) => {
   return c.json({ used, limit: 1000, period_end: periodEnd });
 });
 
-router.get("/env-check", requireAuth, async (c) => {
+router.get("/env-check", async (c) => {
   return c.json({
     AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
     AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",

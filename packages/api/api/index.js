@@ -72487,7 +72487,7 @@ router6.get("/credits", requireAuth, async (c2) => {
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
   return c2.json({ used, limit: 1e3, period_end: periodEnd });
 });
-router6.get("/env-check", requireAuth, async (c2) => {
+router6.get("/env-check", async (c2) => {
   return c2.json({
     AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
     AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",
