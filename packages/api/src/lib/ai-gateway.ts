@@ -212,6 +212,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
     ?? "anthropic/claude-haiku-4-5-20251001";
 
   const resolved = resolveModel(spec);
+  console.log(`[aiGatewayAgent] provider=${resolved.type} model=${resolved.modelId} baseURL=${process.env.AI_GATEWAY_BASE_URL ?? "n/a"}`);
   const MAX_ROUNDS = req.maxRounds ?? 5;
   let reply = "";
   let rounds = 0;
@@ -286,13 +287,19 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     rounds = round + 1;
-    const completion = await openAIClient().chat.completions.create({
-      model: resolved.modelId,
-      max_tokens: req.maxTokens ?? 2048,
-      messages,
-      tools: openaiTools,
-      tool_choice: "auto",
-    });
+    let completion: OpenAI.Chat.ChatCompletion;
+    try {
+      completion = await openAIClient().chat.completions.create({
+        model: resolved.modelId,
+        max_tokens: req.maxTokens ?? 2048,
+        messages,
+        tools: openaiTools,
+        tool_choice: "auto",
+      });
+    } catch (e: any) {
+      console.error(`[aiGatewayAgent] openai-compat error:`, e?.status, e?.message, e?.error);
+      throw new Error(`Fireworks error ${e?.status ?? ""}: ${e?.message ?? e}`);
+    }
 
     const choice = completion.choices[0];
     if (!choice) break;

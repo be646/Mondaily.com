@@ -1165,6 +1165,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null });
   } catch (err: any) {
+    console.error("[ask] agent error:", err?.message ?? err);
     return c.json({ reply: `Connection error: ${err.message}` }, 500);
   }
 });
