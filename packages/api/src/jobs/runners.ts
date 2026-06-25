@@ -110,43 +110,76 @@ export async function runRelationshipHealth(workspaceId?: string): Promise<{ tot
       trigger_type: workspaceId ? "manual" : "scheduled", input: { workspace_id: wsId },
     });
     try {
-      // Fetch all nodes and filter by stem — workspaces use plural/hyphenated
+      // Fetch all nodes once and filter by stem — workspaces use plural/hyphenated
       // type names ("people", "contact-leads", "companies") that exact-match misses.
       const { data: allNodes } = await supabase
         .from("nodes").select("id, data, object_type").eq("workspace_id", wsId).limit(5000);
-      const contacts = (allNodes ?? []).filter((n) => isRelationshipType(String(n.object_type)));
+      const nodes = allNodes ?? [];
+      const contacts = nodes.filter((n) => isRelationshipType(String(n.object_type)));
       if (!contacts.length) { await completeJob(jobId, { scored: 0 }, []); continue; }
 
-      for (const contact of contacts) {
+      // Bulk-load signals ONCE instead of 3 queries per contact (which times
+      // out on serverless for hundreds of records). Build in-memory tallies.
+      const openTasksByRecord = new Map<string, number>();
+      const openDealsByContact = new Map<string, number>();
+      for (const n of nodes) {
+        const t = String(n.object_type).toLowerCase();
+        const d = (n.data ?? {}) as Record<string, unknown>;
+        if (t.includes("task") && String(d.status ?? "") === "todo" && d.record_id) {
+          openTasksByRecord.set(String(d.record_id), (openTasksByRecord.get(String(d.record_id)) ?? 0) + 1);
+        }
+        if (t.includes("deal")) {
+          const stage = String(d.stage ?? "").toLowerCase();
+          if (stage !== "closed_won" && stage !== "closed_lost" && d.contact_id) {
+            openDealsByContact.set(String(d.contact_id), (openDealsByContact.get(String(d.contact_id)) ?? 0) + 1);
+          }
+        }
+      }
+      // One activities query for the whole workspace's contacts, counted in memory.
+      const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const contactIds = contacts.map((c) => c.id);
+      const activityByNode = new Map<string, number>();
+      const { data: acts } = await supabase
+        .from("activities").select("node_id").gte("created_at", since).in("node_id", contactIds);
+      for (const a of acts ?? []) activityByNode.set(String(a.node_id), (activityByNode.get(String(a.node_id)) ?? 0) + 1);
+
+      const nowIso = new Date().toISOString();
+      const updates = contacts.map((contact) => {
         const signals: Record<string, unknown> = {};
         let score = 50;
-        const lastContact = contact.data?.last_contacted_at ?? contact.data?.last_contact;
+        const cdata = (contact.data ?? {}) as Record<string, unknown>;
+        const lastContact = cdata.last_contacted_at ?? cdata.last_contact;
         if (lastContact) {
-          const days = Math.floor((Date.now() - new Date(lastContact).getTime()) / 86400000);
+          const days = Math.floor((Date.now() - new Date(lastContact as string).getTime()) / 86400000);
           signals.days_since_contact = days;
           if (days <= 7) score += 25; else if (days <= 30) score += 10; else if (days <= 90) score -= 10; else score -= 25;
         } else { signals.days_since_contact = null; score -= 15; }
 
-        const { count: openTasks } = await supabase.from("nodes").select("id", { count: "exact", head: true })
-          .eq("workspace_id", wsId).eq("object_type", "task").eq("data->>status", "todo").eq("data->>record_id", contact.id);
-        signals.open_tasks = openTasks ?? 0;
-        if ((openTasks ?? 0) > 3) score -= 10;
+        const openTasks = openTasksByRecord.get(contact.id) ?? 0;
+        signals.open_tasks = openTasks;
+        if (openTasks > 3) score -= 10;
 
-        const { count: openDeals } = await supabase.from("nodes").select("id", { count: "exact", head: true })
-          .eq("workspace_id", wsId).eq("object_type", "deal").not("data->>stage", "in", '("closed_won","closed_lost")').eq("data->>contact_id", contact.id);
-        signals.open_deals = openDeals ?? 0;
-        if ((openDeals ?? 0) > 0) score += 15;
+        const openDeals = openDealsByContact.get(contact.id) ?? 0;
+        signals.open_deals = openDeals;
+        if (openDeals > 0) score += 15;
 
-        const { count: recentActivity } = await supabase.from("activities").select("id", { count: "exact", head: true })
-          .eq("node_id", contact.id).gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString());
-        signals.recent_activity_30d = recentActivity ?? 0;
-        if ((recentActivity ?? 0) >= 5) score += 15; else if ((recentActivity ?? 0) >= 2) score += 5; else if ((recentActivity ?? 0) === 0) score -= 10;
+        const recentActivity = activityByNode.get(contact.id) ?? 0;
+        signals.recent_activity_30d = recentActivity;
+        if (recentActivity >= 5) score += 15; else if (recentActivity >= 2) score += 5; else if (recentActivity === 0) score -= 10;
 
-        const finalScore = Math.max(0, Math.min(100, score));
-        await supabase.from("nodes").update({ relationship_health: finalScore, health_updated_at: new Date().toISOString(), health_signals: signals }).eq("id", contact.id);
-        totalScored++;
+        return { id: contact.id, finalScore: Math.max(0, Math.min(100, score)), signals };
+      });
+
+      // Run updates in parallel chunks so hundreds of records finish well
+      // within the serverless time budget.
+      const CHUNK = 25;
+      for (let i = 0; i < updates.length; i += CHUNK) {
+        await Promise.all(updates.slice(i, i + CHUNK).map((u) =>
+          supabase.from("nodes").update({ relationship_health: u.finalScore, health_updated_at: nowIso, health_signals: u.signals }).eq("id", u.id)
+        ));
       }
-      await completeJob(jobId, { scored: contacts.length, summary: `Scored ${contacts.length} relationship(s)` }, []);
+      totalScored += updates.length;
+      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} relationship(s)` }, []);
     } catch (err: unknown) {
       await failJob(jobId, err instanceof Error ? err.message : String(err));
     }

@@ -70166,15 +70166,38 @@ async function runRelationshipHealth(workspaceId) {
     });
     try {
       const { data: allNodes } = await supabase.from("nodes").select("id, data, object_type").eq("workspace_id", wsId).limit(5e3);
-      const contacts = (allNodes ?? []).filter((n2) => isRelationshipType(String(n2.object_type)));
+      const nodes = allNodes ?? [];
+      const contacts = nodes.filter((n2) => isRelationshipType(String(n2.object_type)));
       if (!contacts.length) {
         await completeJob(jobId, { scored: 0 }, []);
         continue;
       }
-      for (const contact of contacts) {
+      const openTasksByRecord = /* @__PURE__ */ new Map();
+      const openDealsByContact = /* @__PURE__ */ new Map();
+      for (const n2 of nodes) {
+        const t2 = String(n2.object_type).toLowerCase();
+        const d2 = n2.data ?? {};
+        if (t2.includes("task") && String(d2.status ?? "") === "todo" && d2.record_id) {
+          openTasksByRecord.set(String(d2.record_id), (openTasksByRecord.get(String(d2.record_id)) ?? 0) + 1);
+        }
+        if (t2.includes("deal")) {
+          const stage = String(d2.stage ?? "").toLowerCase();
+          if (stage !== "closed_won" && stage !== "closed_lost" && d2.contact_id) {
+            openDealsByContact.set(String(d2.contact_id), (openDealsByContact.get(String(d2.contact_id)) ?? 0) + 1);
+          }
+        }
+      }
+      const since = new Date(Date.now() - 30 * 864e5).toISOString();
+      const contactIds = contacts.map((c2) => c2.id);
+      const activityByNode = /* @__PURE__ */ new Map();
+      const { data: acts } = await supabase.from("activities").select("node_id").gte("created_at", since).in("node_id", contactIds);
+      for (const a2 of acts ?? []) activityByNode.set(String(a2.node_id), (activityByNode.get(String(a2.node_id)) ?? 0) + 1);
+      const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+      const updates = contacts.map((contact) => {
         const signals = {};
         let score = 50;
-        const lastContact = contact.data?.last_contacted_at ?? contact.data?.last_contact;
+        const cdata = contact.data ?? {};
+        const lastContact = cdata.last_contacted_at ?? cdata.last_contact;
         if (lastContact) {
           const days = Math.floor((Date.now() - new Date(lastContact).getTime()) / 864e5);
           signals.days_since_contact = days;
@@ -70186,22 +70209,27 @@ async function runRelationshipHealth(workspaceId) {
           signals.days_since_contact = null;
           score -= 15;
         }
-        const { count: openTasks } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("object_type", "task").eq("data->>status", "todo").eq("data->>record_id", contact.id);
-        signals.open_tasks = openTasks ?? 0;
-        if ((openTasks ?? 0) > 3) score -= 10;
-        const { count: openDeals } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("object_type", "deal").not("data->>stage", "in", '("closed_won","closed_lost")').eq("data->>contact_id", contact.id);
-        signals.open_deals = openDeals ?? 0;
-        if ((openDeals ?? 0) > 0) score += 15;
-        const { count: recentActivity } = await supabase.from("activities").select("id", { count: "exact", head: true }).eq("node_id", contact.id).gte("created_at", new Date(Date.now() - 30 * 864e5).toISOString());
-        signals.recent_activity_30d = recentActivity ?? 0;
-        if ((recentActivity ?? 0) >= 5) score += 15;
-        else if ((recentActivity ?? 0) >= 2) score += 5;
-        else if ((recentActivity ?? 0) === 0) score -= 10;
-        const finalScore = Math.max(0, Math.min(100, score));
-        await supabase.from("nodes").update({ relationship_health: finalScore, health_updated_at: (/* @__PURE__ */ new Date()).toISOString(), health_signals: signals }).eq("id", contact.id);
-        totalScored++;
+        const openTasks = openTasksByRecord.get(contact.id) ?? 0;
+        signals.open_tasks = openTasks;
+        if (openTasks > 3) score -= 10;
+        const openDeals = openDealsByContact.get(contact.id) ?? 0;
+        signals.open_deals = openDeals;
+        if (openDeals > 0) score += 15;
+        const recentActivity = activityByNode.get(contact.id) ?? 0;
+        signals.recent_activity_30d = recentActivity;
+        if (recentActivity >= 5) score += 15;
+        else if (recentActivity >= 2) score += 5;
+        else if (recentActivity === 0) score -= 10;
+        return { id: contact.id, finalScore: Math.max(0, Math.min(100, score)), signals };
+      });
+      const CHUNK = 25;
+      for (let i2 = 0; i2 < updates.length; i2 += CHUNK) {
+        await Promise.all(updates.slice(i2, i2 + CHUNK).map(
+          (u2) => supabase.from("nodes").update({ relationship_health: u2.finalScore, health_updated_at: nowIso, health_signals: u2.signals }).eq("id", u2.id)
+        ));
       }
-      await completeJob(jobId, { scored: contacts.length, summary: `Scored ${contacts.length} relationship(s)` }, []);
+      totalScored += updates.length;
+      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} relationship(s)` }, []);
     } catch (err2) {
       await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
     }
