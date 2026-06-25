@@ -417,6 +417,43 @@ function FeatureSection() {
           ))}
         </div>
       </div>
+
+      {/* Integrations strip */}
+      <div className="mt-10 border-t border-black/[.05] pt-8 space-y-4">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400 w-28">Integrations</span>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Gmail */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Gmail"><path fill="#EA4335" d="M6 8h36a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2Z"/><path fill="#fff" d="M4 10.5 24 26l20-15.5"/><path fill="#C5221F" d="M4 10.5V38l9-9-9-18.5Z"/><path fill="#FF4131" d="M44 10.5V38l-9-9 9-18.5Z"/><path fill="#FBBC04" d="M4 38h9V29L4 10.5V38Z"/><path fill="#34A853" d="M44 38h-9V29l9-18.5V38Z"/><path fill="#4285F4" d="M4 10.5 24 26l20-15.5H4Z"/></svg>
+            {/* Outlook */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Outlook"><rect width="48" height="48" rx="6" fill="#0072C6"/><rect x="4" y="4" width="20" height="40" rx="2" fill="#0078D4"/><path fill="#fff" d="M14 14a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 13a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/><path fill="#fff" d="M24 13h18a1 1 0 0 1 1 1v20a1 1 0 0 1-1 1H24v-3l13-8-13-8v-3Z"/></svg>
+            {/* Google Calendar */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Google Calendar"><rect x="5" y="5" width="38" height="38" rx="4" fill="#fff"/><rect x="5" y="5" width="38" height="11" rx="4" fill="#1A73E8"/><rect x="5" y="10" width="38" height="6" fill="#1A73E8"/><path fill="#1A73E8" d="M5 16h38v27a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V16Z"/><rect x="5" y="16" width="38" height="4" fill="#E8F0FE"/><text x="24" y="36" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="16" fill="#1A73E8">31</text><circle cx="14" cy="11" r="3" fill="#fff"/><circle cx="34" cy="11" r="3" fill="#fff"/></svg>
+            {/* Slack */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Slack"><path fill="#E01E5A" d="M18 6a4 4 0 0 0-4 4v4h8v-4a4 4 0 0 0-4-4Z"/><path fill="#E01E5A" d="M10 18H6a4 4 0 0 0 0 8h4v-8Z"/><path fill="#36C5F0" d="M30 42a4 4 0 0 0 4-4v-4h-8v4a4 4 0 0 0 4 4Z"/><path fill="#36C5F0" d="M38 30h4a4 4 0 0 0 0-8h-4v8Z"/><path fill="#2EB67D" d="M42 18h-4v8h4a4 4 0 0 0 0-8Z"/><path fill="#2EB67D" d="M30 6a4 4 0 0 0-4 4v8h8v-8a4 4 0 0 0-4-4Z"/><path fill="#ECB22E" d="M6 30h4v-8H6a4 4 0 0 0 0 8Z"/><path fill="#ECB22E" d="M18 42a4 4 0 0 0 4-4v-8h-8v8a4 4 0 0 0 4 4Z"/><rect x="14" y="18" width="8" height="8" rx="2" fill="#E01E5A"/><rect x="26" y="18" width="8" height="8" rx="2" fill="#36C5F0"/><rect x="14" y="22" width="8" height="8" rx="2" fill="#ECB22E"/><rect x="26" y="22" width="8" height="8" rx="2" fill="#2EB67D"/></svg>
+            {/* Zapier */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Zapier"><rect width="48" height="48" rx="10" fill="#FF4A00"/><path fill="#fff" d="M30.5 10.5H17.5l-4 13H24l-7 14 17.5-17H24l6.5-10Z"/></svg>
+            {/* Typeform */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Typeform"><rect width="48" height="48" rx="10" fill="#262627"/><text x="24" y="34" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="26" fill="#fff">T</text></svg>
+            {/* Segment */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Segment"><rect width="48" height="48" rx="10" fill="#52BD94"/><circle cx="24" cy="24" r="13" fill="none" stroke="#fff" strokeWidth="4"/><path d="M24 11v13h13" stroke="#fff" strokeWidth="4" strokeLinecap="round"/></svg>
+            {/* Mailchimp */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Mailchimp"><rect width="48" height="48" rx="10" fill="#FFE01B"/><path fill="#241C15" d="M24 8c-6 0-10 4-10 8 0 2 1 4 3 5-1 2-2 4-2 7 0 6 4 12 9 12s9-6 9-12c0-3-1-5-2-7 2-1 3-3 3-5 0-4-4-8-10-8Zm0 4c3 0 6 2 6 4s-3 4-6 4-6-2-6-4 3-4 6-4Z"/></svg>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400 w-28">For developers</span>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* REST API */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="REST API"><rect width="48" height="48" rx="10" fill="#3D3D3D"/><text x="24" y="30" textAnchor="middle" fontFamily="monospace" fontWeight="700" fontSize="11" fill="#fff">API</text></svg>
+            {/* Webhooks */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="Webhooks"><rect width="48" height="48" rx="10" fill="#6366F1"/><circle cx="24" cy="24" r="5" fill="#fff"/><circle cx="24" cy="24" r="10" fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.5"/><circle cx="24" cy="24" r="16" fill="none" stroke="#fff" strokeWidth="2" opacity="0.25"/></svg>
+            {/* MCP / Claude */}
+            <svg width="22" height="22" viewBox="0 0 48 48" title="MCP Server"><rect width="48" height="48" rx="10" fill="#CC785C"/><path fill="#fff" d="M24 10c-7.7 0-14 6.3-14 14 0 5.1 2.7 9.5 6.8 12L14 38l7.5-2.3c.8.2 1.6.3 2.5.3 7.7 0 14-6.3 14-14S31.7 10 24 10Z"/></svg>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -3133,9 +3170,6 @@ export function LandingPage() {
 
           {/* ── FAQ ── */}
           <FAQSection />
-
-          {/* ── Integrations ── */}
-          <FadeIn><IntegrationsSection /></FadeIn>
 
           {/* ── Trust / data isolation ── */}
           <TrustSection />
