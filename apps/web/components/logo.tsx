@@ -9,13 +9,7 @@ export function Logo({ size = 52 }: { size?: number }) {
       <svg width={mark} height={mark} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block", color: "currentColor" }}>
         <circle cx="16" cy="16" r="6.5" fill="currentColor"/>
         <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="1.4" opacity="0.35"/>
-        <circle cx="0" cy="0" r="2.4" fill="currentColor" opacity="0.85">
-          <animateMotion
-            dur="6s"
-            repeatCount="indefinite"
-            path="M27,9 A13,13 0 1 1 5,23 A13,13 0 1 1 27,9"
-          />
-        </circle>
+        <circle cx="26" cy="9.5" r="2.4" fill="currentColor" opacity="0.85" />
       </svg>
       <span
         className="font-orbitron"
