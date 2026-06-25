@@ -1302,68 +1302,55 @@ function WorkspaceGraphPreview() {
             </div>
           </div>
 
-          <div className="grid gap-7 md:grid-cols-[1fr_230px] md:items-center">
-            <div className="relative mx-auto h-[350px] w-full max-w-[430px]">
-              <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible">
-                <path d="M50 16 V28" stroke="#8a8378" strokeWidth="0.34" opacity="0.72" />
-                <path d="M50 28 H25 V43" stroke="#8a8378" strokeWidth="0.34" opacity="0.55" fill="none" />
-                <path d="M50 28 H75 V43" stroke="#8a8378" strokeWidth="0.34" opacity="0.55" fill="none" />
-                <path d="M25 57 V68" stroke="#8a8378" strokeWidth="0.34" opacity="0.46" fill="none" />
-                <path d="M75 57 V68" stroke="#8a8378" strokeWidth="0.34" opacity="0.46" fill="none" />
-                <path d="M25 82 H50 V84" stroke="#8a8378" strokeWidth="0.34" opacity="0.38" fill="none" />
-                <path d="M75 82 H50 V84" stroke="#8a8378" strokeWidth="0.34" opacity="0.38" fill="none" />
-              </svg>
-              <div className="absolute left-1/2 top-[5%] flex h-20 w-32 -translate-x-1/2 flex-col items-center justify-center bg-[var(--landing-canvas)] text-center">
-                <motion.span
-                  animate={{ opacity: [0.45, 1, 0.45] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="mb-2 h-2 w-2 rounded-full bg-[#6f8068]"
-                />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800">Mondaily</p>
-                <p className="mt-1 text-[11px] text-zinc-500">graph core</p>
-              </div>
-              {WORKSPACE_GRAPH_NODES.map((node, i) => {
-                const style = {
-                  left: `${node.x}%`,
-                  top: `${node.y}%`,
-                };
-                return (
+          {/* One clean structured tree — graph core at the top, agents
+              branching below as evenly-spaced rows. Replaces the old
+              absolute-positioned node cloud (which overlapped and was then
+              duplicated by a second list beside it). Flexbox/grid only,
+              so nothing drifts or clips. */}
+          <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <motion.span
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="h-2 w-2 rounded-full bg-[#6f8068]"
+              />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800">Mondaily</p>
+              <p className="text-[11px] text-zinc-500">graph core</p>
+            </div>
+
+            <div className="relative mt-4 w-full">
+              {/* trunk + horizontal rail */}
+              <div className="absolute left-1/2 -top-4 h-4 w-px -translate-x-1/2" style={{ background: "#8a8378", opacity: 0.5 }} />
+              <div className="absolute left-6 right-6 top-0 h-px" style={{ background: "#8a8378", opacity: 0.4 }} />
+              <div className="grid grid-cols-1 gap-x-8 gap-y-px pt-5 sm:grid-cols-2">
+                {WORKSPACE_GRAPH_NODES.map((node, i) => (
                   <motion.button
                     key={node.label}
                     type="button"
                     onClick={() => setActive(i)}
-                    className="absolute w-[144px] -translate-x-1/2 -translate-y-1/2 bg-[var(--landing-canvas)] px-3 py-2 text-left"
-                    style={style}
-                    animate={{ opacity: i === active ? 1 : 0.66, scale: i === active ? 1.03 : 1 }}
+                    initial={false}
+                    animate={{ opacity: i === active ? 1 : 0.55 }}
                     transition={{ duration: 0.3 }}
+                    className="flex items-start gap-2.5 py-2.5 text-left"
                   >
-                    <span className="mb-1 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: node.color }} />
-                      <span className="whitespace-nowrap text-[11px] font-medium text-zinc-800">{node.label}</span>
+                    <span className="relative mt-1 flex h-2 w-2 shrink-0 items-center justify-center">
+                      <span className="h-2 w-2 rounded-full" style={{ background: node.color }} />
+                      {i === active && (
+                        <motion.span
+                          animate={{ opacity: [0.5, 0, 0.5], scale: [1, 2.4, 1] }}
+                          transition={{ duration: 1.7, repeat: Infinity }}
+                          className="absolute inset-0 rounded-full"
+                          style={{ background: node.color }}
+                        />
+                      )}
                     </span>
-                    <span className="block text-[10px] leading-snug text-zinc-500">{node.detail}</span>
+                    <span className="min-w-0">
+                      <span className="block whitespace-nowrap text-[12px] font-medium text-zinc-800">{node.label}</span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-zinc-500">{node.detail}</span>
+                    </span>
                   </motion.button>
-                );
-              })}
-            </div>
-
-            <div>
-              {WORKSPACE_GRAPH_NODES.map((node, i) => (
-                <motion.button
-                  key={node.label}
-                  type="button"
-                  onClick={() => setActive(i)}
-                  initial={false}
-                  animate={{ opacity: i === active ? 1 : 0.62 }}
-                  className="grid w-full grid-cols-[10px_1fr] items-start gap-3 py-2 text-left"
-                >
-                  <span className="mt-1.5 h-2 w-2 rounded-full" style={{ background: node.color }} />
-                  <span>
-                    <span className="block text-[12px] font-medium text-zinc-800">{node.label}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-zinc-500">{node.detail}</span>
-                  </span>
-                </motion.button>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
@@ -2713,7 +2700,7 @@ export function LandingPage() {
                 className="mx-auto mt-12 max-w-2xl"
               >
                 <EmailSignup />
-                <p className="mt-3 text-center font-mono text-[13px] text-zinc-500">
+                <p className="mt-3 text-center text-[13px] text-zinc-500">
                   Free forever · no card required · takes 90 seconds
                 </p>
               </motion.div>
