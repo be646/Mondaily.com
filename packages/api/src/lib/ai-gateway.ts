@@ -84,11 +84,10 @@ function getAnthropicKey(): string | undefined {
 // Fallback model IDs tried in order on 404. Works for any OpenAI-compat provider
 // (Groq model IDs shown; Fireworks IDs also accepted if AI_AGENT_MODEL overrides).
 const PROVIDER_FALLBACK_MODELS = [
-  "llama-3.3-70b-versatile",        // Groq — Llama 3.3 70B (primary)
-  "llama-3.1-70b-versatile",        // Groq — Llama 3.1 70B
-  "llama3-70b-8192",                 // Groq — legacy alias
-  "accounts/fireworks/models/llama-v3p3-70b-instruct",   // Fireworks serverless
-  "accounts/fireworks/models/qwen2p5-72b-instruct",      // Fireworks serverless fallback
+  "accounts/fireworks/models/llama-v3p3-70b-instruct",
+  "accounts/fireworks/models/llama-v3p1-70b-instruct",
+  "accounts/fireworks/models/qwen2p5-72b-instruct",
+  "accounts/fireworks/models/mixtral-8x22b-instruct",
 ];
 
 function openAIClient(): OpenAI {

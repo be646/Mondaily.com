@@ -69701,16 +69701,10 @@ function getAnthropicKey() {
   return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || void 0;
 }
 var PROVIDER_FALLBACK_MODELS = [
-  "llama-3.3-70b-versatile",
-  // Groq — Llama 3.3 70B (primary)
-  "llama-3.1-70b-versatile",
-  // Groq — Llama 3.1 70B
-  "llama3-70b-8192",
-  // Groq — legacy alias
   "accounts/fireworks/models/llama-v3p3-70b-instruct",
-  // Fireworks serverless
-  "accounts/fireworks/models/qwen2p5-72b-instruct"
-  // Fireworks serverless fallback
+  "accounts/fireworks/models/llama-v3p1-70b-instruct",
+  "accounts/fireworks/models/qwen2p5-72b-instruct",
+  "accounts/fireworks/models/mixtral-8x22b-instruct"
 ];
 function openAIClient() {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
