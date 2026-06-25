@@ -1,5 +1,6 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
+import { aiGateway } from "../lib/ai-gateway";
 
 /**
  * Inngest function: auto-provision a credit_note from a client dispute email.
@@ -15,26 +16,25 @@ export const creditNoteDisputeHandler = inngest.createFunction(
   async ({ event, step }) => {
     const { workspaceId, clientName, disputeBody, invoiceId, suggestedAmountCents, currency } = event.data;
 
-    // Step 1: Ask OpenAI to extract amount + reason + generate summary
+    // Step 1: Classify dispute via the AI gateway (model chosen by AI_PROVIDER_MODEL env var)
     const aiResult = await step.run("classify-dispute", async () => {
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) return { amount_cents: suggestedAmountCents ?? 0, reason: "billing_error", summary: disputeBody };
+      if (!process.env.ANTHROPIC_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
+        return { amount_cents: suggestedAmountCents ?? 0, reason: "billing_error", summary: disputeBody.slice(0, 200) };
+      }
 
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          max_tokens: 256,
-          messages: [
-            { role: "system", content: "You are a billing analyst. Extract from the dispute email: the credit reason (one of: refund, billing_error, goodwill, contract_discount), the disputed amount in cents as an integer, and write a 1-sentence professional summary. Reply as JSON: {\"reason\":\"...\",\"amount_cents\":0,\"summary\":\"...\"}" },
-            { role: "user", content: disputeBody },
-          ],
-        }),
+      const { text } = await aiGateway({
+        system: `You are a billing analyst. Extract from the dispute email:
+- reason: one of "refund", "billing_error", "goodwill", "contract_discount"
+- amount_cents: integer (disputed amount in cents, 0 if unclear)
+- summary: 1-sentence professional summary
+
+Reply ONLY with valid JSON: {"reason":"...","amount_cents":0,"summary":"..."}`,
+        prompt: disputeBody,
+        maxTokens: 256,
       });
-      const json = await res.json() as { choices: { message: { content: string } }[] };
+
       try {
-        return JSON.parse(json.choices[0]!.message.content) as { reason: string; amount_cents: number; summary: string };
+        return JSON.parse(text) as { reason: string; amount_cents: number; summary: string };
       } catch {
         return { amount_cents: suggestedAmountCents ?? 0, reason: "billing_error", summary: disputeBody.slice(0, 200) };
       }
