@@ -4,30 +4,25 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 const API_URL = "/api/ask";
 
-// Shown as fake user message bubbles — click to fire
-const SUGGESTIONS: { text: string }[] = [
-  { text: "How does AI enrichment work?" },
-  { text: "Walk me through the opportunity flow on the graph" },
-  { text: "What can Ask AI do?" },
-  { text: "How do automations work?" },
+const SUGGESTIONS = [
+  { text: "How does AI enrichment work?", tag: "Enrichment" },
+  { text: "Walk me through the opportunity flow on the graph", tag: "Graph" },
+  { text: "What can Ask AI do?", tag: "Ask AI" },
+  { text: "How do automations work?", tag: "Automations" },
 ];
 
-// Plain-language reasoning flow — no raw code/log syntax, just what the AI is actually doing
 const PROCESS_STEPS = [
-  { lines: ["Reading workspace graph"],   delay: 0 },
-  { lines: ["Finding relevant signals"],  delay: 1400 },
-  { lines: ["Cross-checking records"],    delay: 3000 },
-  { lines: ["Drafting an answer"],        delay: 4600 },
+  { lines: ["Reading workspace graph"],  delay: 0 },
+  { lines: ["Finding relevant signals"], delay: 1400 },
+  { lines: ["Cross-checking records"],   delay: 3000 },
+  { lines: ["Drafting an answer"],       delay: 4600 },
 ];
 
-function SendIcon() {
+function ArrowUpIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M5 12v3" />
-      <path d="M9 7v10" />
-      <path d="M13 4v16" />
-      <path d="M17 8v8" />
-      <path d="M21 11v2" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19V5" />
+      <path d="M5 12l7-7 7 7" />
     </svg>
   );
 }
@@ -71,7 +66,6 @@ function ReplyTypewriter({ text }: { text: string }) {
   );
 }
 
-// Transparent, persistent reasoning panel — a tasteful step list, not a fake terminal log
 function ProcessPanel({ visible }: { visible: boolean }) {
   const [activeStep, setActiveStep] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -108,18 +102,23 @@ function ProcessPanel({ visible }: { visible: boolean }) {
               className="ml-auto h-1.5 w-1.5 rounded-full bg-[#9fb08f]"
             />
           </div>
-
           <div className="flex flex-col gap-1 font-mono">
             {PROCESS_STEPS.map((s, i) => {
               const done = i < activeStep;
               const current = i === activeStep;
               const pending = i > activeStep;
               return (
-                <div key={i} className={`h-7 truncate text-left text-[12px] leading-7 transition-opacity ${pending ? "opacity-35" : "opacity-100"}`}>
-                  <span className="terminal-muted">$ </span>
-                  <span className={current ? "terminal-green" : done ? "terminal-blue" : "terminal-muted"}>{done ? "done" : current ? "run" : "queue"}</span>
-                  <span className="terminal-muted"> -- </span>
-                  <span className="terminal-amber">{s.lines[0]}</span>
+                <div
+                  key={i}
+                  style={{ opacity: pending ? 0.35 : 1, transition: "opacity 0.3s" }}
+                  className="h-7 overflow-hidden whitespace-nowrap text-left text-[12px] leading-7"
+                >
+                  <span style={{ color: "#7c8379" }}>$ </span>
+                  <span style={{ color: current ? "#9fb08f" : done ? "#8fb3b0" : "#7c8379" }}>
+                    {done ? "done" : current ? "run" : "queue"}
+                  </span>
+                  <span style={{ color: "#7c8379" }}> -- </span>
+                  <span style={{ color: "#d7c6a3" }}>{s.lines[0]}</span>
                 </div>
               );
             })}
@@ -174,7 +173,7 @@ export function HeroChat() {
     <div className="mx-auto w-full max-w-2xl">
       <div className="relative">
         <div>
-          {/* Suggestion messages — shown when idle, no history */}
+          {/* Suggestion chips — shown when idle, no history */}
           <AnimatePresence>
             {showSuggestions && (
               <motion.div
@@ -182,21 +181,29 @@ export function HeroChat() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mx-auto mb-4 max-w-xl px-0"
+                className="mx-auto mb-5 max-w-xl"
               >
-                <p className="mb-2 text-left text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">Try asking</p>
-                <div className="grid gap-1">
+                <p className="mb-3 text-left text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">
+                  Try asking
+                </p>
+                <div className="flex flex-col gap-1.5">
                   {SUGGESTIONS.map((s, i) => (
                     <motion.button
                       key={i}
-                      initial={{ opacity: 0, x: -6 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.06 }}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.07 }}
                       onClick={() => void send(s.text)}
-                      className="group flex w-full items-center justify-between gap-4 py-1.5 text-left text-[13px] transition-colors hover:text-neutral-950"
+                      className="group flex w-full items-center gap-3 rounded-xl border border-black/[.06] bg-black/[.02] px-4 py-2.5 text-left transition-all hover:border-black/[.1] hover:bg-black/[.04]"
                     >
-                      <span className="text-zinc-500 transition-colors group-hover:text-neutral-950">{s.text}</span>
-                      <span className="text-[13px] text-zinc-400 transition-colors group-hover:text-neutral-800">↵</span>
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300 transition-colors group-hover:bg-zinc-500" />
+                      <span className="flex-1 text-[13px] text-zinc-600 transition-colors group-hover:text-zinc-900">
+                        {s.text}
+                      </span>
+                      <span className="shrink-0 rounded-md border border-black/[.06] bg-white px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 transition-colors group-hover:border-black/[.1] group-hover:text-zinc-600">
+                        {s.tag}
+                      </span>
+                      <span className="shrink-0 text-[13px] text-zinc-300 transition-colors group-hover:text-zinc-600">↵</span>
                     </motion.button>
                   ))}
                 </div>
@@ -232,7 +239,8 @@ export function HeroChat() {
             )}
           </AnimatePresence>
 
-          <div className="landing-chat-pill mx-auto flex max-w-3xl items-center gap-3 px-5 py-3.5 transition-colors focus-within:border-neutral-950">
+          {/* Input pill */}
+          <div className="landing-chat-pill mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 transition-colors focus-within:border-neutral-950">
             <button
               type="button"
               aria-label="Add context"
@@ -251,25 +259,18 @@ export function HeroChat() {
             />
             <button
               type="button"
-              className="hidden shrink-0 items-center gap-1.5 px-2 text-[13px] font-semibold text-neutral-950 transition-opacity hover:opacity-70 sm:inline-flex dark:text-white"
-            >
-              Fast
-              <span className="text-[15px] text-zinc-500">⌄</span>
-            </button>
-            <button
-              type="button"
               aria-label="Voice input"
-              className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-950 transition-opacity hover:opacity-70 dark:text-white"
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-500 transition-opacity hover:opacity-70 hover:text-neutral-950 dark:text-white"
             >
               <MicIcon />
             </button>
             <button
               onClick={() => void send()}
               disabled={!input.trim() || loading}
-              className="landing-chat-pulse flex h-11 w-11 shrink-0 items-center justify-center transition-opacity hover:opacity-85 disabled:opacity-25"
               aria-label="Send"
+              className="landing-chat-pulse flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-85 disabled:opacity-25"
             >
-              <SendIcon />
+              <ArrowUpIcon />
             </button>
           </div>
         </div>

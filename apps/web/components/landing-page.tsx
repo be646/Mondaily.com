@@ -379,18 +379,25 @@ function FeatureSection() {
           <span className="text-[11px] text-[#7c8379]">operation stream</span>
         </div>
         <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
-          {[
-            ["graph", "connect messy records"],
-            ["enrich", "attach web-backed fields"],
-            ["signal", "explain changed records"],
-            ["draft", "prepare tasks and messages"],
+          {([
+            ["graph",   "connect messy records"],
+            ["enrich",  "attach web-backed fields"],
+            ["signal",  "explain changed records"],
+            ["draft",   "prepare tasks and messages"],
             ["monitor", "watch finance and decisions"],
-            ["prospect", "discover sourced candidates"],
-          ].map(([agent, line], i) => (
-            <TerminalLine key={line} active={i === operationIdx}>
-              <span className="terminal-green">agent</span><span className="terminal-muted">.</span><span className="terminal-blue">{agent}</span>
-              <span className="terminal-muted"> → </span><span className="terminal-amber">{line}</span>
-            </TerminalLine>
+            ["prospect","discover sourced candidates"],
+          ] as [string, string][]).map(([agent, line], i) => (
+            <TerminalLine
+              key={line}
+              active={i === operationIdx}
+              segments={[
+                { text: "agent", color: "#9fb08f" },
+                { text: ".", color: "#7c8379" },
+                { text: agent, color: "#8fb3b0" },
+                { text: " → ", color: "#7c8379" },
+                { text: line, color: "#d7c6a3" },
+              ]}
+            />
           ))}
         </div>
       </div>
