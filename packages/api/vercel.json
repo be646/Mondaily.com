@@ -2,5 +2,8 @@
   "buildCommand": "npx tsup",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/handler" }
+  ],
+  "crons": [
+    { "path": "/api/cron/daily", "schedule": "0 6 * * *" }
   ]
 }

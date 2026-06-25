@@ -1,9 +1,40 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import {
+  runDealAlerts, runRelationshipHealth, runOverdueTaskDecisions,
+  runInvoiceChaser, runRecurringInvoices, runEnrichWorkspace,
+} from "../jobs/runners";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
+
+/**
+ * On-demand "Run now" — executes an agent's real job for THIS workspace
+ * immediately, instead of waiting for the daily Vercel Cron. Same runner
+ * functions the cron uses, scoped to the caller's workspace. Lets the app
+ * surface a "Run" action and show results in real time.
+ */
+const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<string, unknown>>> = {
+  relationship: async (ws) => ({ ...(await runDealAlerts(ws)), ...(await runRelationshipHealth(ws)) }),
+  operations: async (ws) => runOverdueTaskDecisions(ws),
+  finance: async (ws) => ({ ...(await runInvoiceChaser(ws)), ...(await runRecurringInvoices(ws)) }),
+  "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
+};
+
+router.post("/:id/run", async (c) => {
+  const id = c.req.param("id");
+  const runner = AGENT_RUNNERS[id];
+  if (!runner) {
+    return c.json({ error: `Agent "${id}" has no on-demand run action.`, runnable: Object.keys(AGENT_RUNNERS) }, 400);
+  }
+  try {
+    const result = await runner(c.get("workspaceId"));
+    return c.json({ ran: true, agent: id, result });
+  } catch (err: unknown) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+});
 
 /**
  * Real Agent Registry — every agent concept that actually exists in this

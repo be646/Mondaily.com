@@ -69037,31 +69037,173 @@ ${webContext}` : ""}`,
   }
 );
 
-// src/jobs/invoice-chaser.ts
+// src/jobs/runners.ts
+async function listWorkspaceIds(workspaceId) {
+  if (workspaceId) return [workspaceId];
+  const { data } = await supabase.from("workspaces").select("id");
+  return (data ?? []).map((w2) => w2.id);
+}
+async function runDealAlerts(workspaceId) {
+  const jobId = await startJob({
+    workspace_id: workspaceId ?? "system",
+    agent_name: "deal_alerts",
+    trigger_type: workspaceId ? "manual" : "scheduled",
+    input: {},
+    node_ids: []
+  });
+  try {
+    const wsIds = await listWorkspaceIds(workspaceId);
+    let totalAlerts = 0;
+    for (const wsId of wsIds) {
+      const { data: deals } = await supabase.from("nodes").select("id, data, updated_at").eq("workspace_id", wsId).ilike("object_type", "%deal%");
+      for (const deal of deals ?? []) {
+        const data = deal.data;
+        const stage = String(data.stage ?? data.status ?? "").toLowerCase();
+        if (["won", "lost", "closed"].some((s3) => stage.includes(s3))) continue;
+        const daysInactive = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 864e5);
+        if (daysInactive < 14) continue;
+        const { data: existing } = await supabase.from("deal_alerts").select("id").eq("node_id", deal.id).eq("alert_type", "cold_deal").is("dismissed_at", null).single();
+        if (existing) continue;
+        await supabase.from("deal_alerts").insert({
+          workspace_id: wsId,
+          node_id: deal.id,
+          alert_type: "cold_deal",
+          days_inactive: daysInactive
+        });
+        await supabase.from("notifications").insert({
+          workspace_id: wsId,
+          type: "alert",
+          title: "\u{1F976} Cold deal detected",
+          body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
+          metadata: { node_id: deal.id, days_inactive: daysInactive }
+        });
+        await supabase.from("decision_queue").insert({
+          workspace_id: wsId,
+          source_type: "node",
+          source_id: deal.id,
+          agent_name: "relationship",
+          title: `${data.name ?? data.title ?? "This relationship"} has gone quiet`,
+          summary: `No activity for ${daysInactive} days.`,
+          recommended_action: "Reach out to re-engage, or mark as lost",
+          risk_level: daysInactive > 30 ? "high" : "medium",
+          evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }]
+        }).then(() => {
+        }, () => {
+        });
+        totalAlerts++;
+      }
+    }
+    await completeJob(jobId, { alerts_created: totalAlerts, summary: `Flagged ${totalAlerts} cold deal(s)` }, []);
+    return { alerts_created: totalAlerts };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runRelationshipHealth(workspaceId) {
+  const wsIds = await listWorkspaceIds(workspaceId);
+  let totalScored = 0;
+  for (const wsId of wsIds) {
+    const jobId = await startJob({
+      workspace_id: wsId,
+      agent_name: "relationship_health",
+      trigger_type: workspaceId ? "manual" : "scheduled",
+      input: { workspace_id: wsId }
+    });
+    try {
+      const { data: contacts } = await supabase.from("nodes").select("id, data").eq("workspace_id", wsId).in("object_type", ["contact", "person", "lead", "company", "account"]);
+      if (!contacts?.length) {
+        await completeJob(jobId, { scored: 0 }, []);
+        continue;
+      }
+      for (const contact of contacts) {
+        const signals = {};
+        let score = 50;
+        const lastContact = contact.data?.last_contacted_at ?? contact.data?.last_contact;
+        if (lastContact) {
+          const days = Math.floor((Date.now() - new Date(lastContact).getTime()) / 864e5);
+          signals.days_since_contact = days;
+          if (days <= 7) score += 25;
+          else if (days <= 30) score += 10;
+          else if (days <= 90) score -= 10;
+          else score -= 25;
+        } else {
+          signals.days_since_contact = null;
+          score -= 15;
+        }
+        const { count: openTasks } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("object_type", "task").eq("data->>status", "todo").eq("data->>record_id", contact.id);
+        signals.open_tasks = openTasks ?? 0;
+        if ((openTasks ?? 0) > 3) score -= 10;
+        const { count: openDeals } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("object_type", "deal").not("data->>stage", "in", '("closed_won","closed_lost")').eq("data->>contact_id", contact.id);
+        signals.open_deals = openDeals ?? 0;
+        if ((openDeals ?? 0) > 0) score += 15;
+        const { count: recentActivity } = await supabase.from("activities").select("id", { count: "exact", head: true }).eq("node_id", contact.id).gte("created_at", new Date(Date.now() - 30 * 864e5).toISOString());
+        signals.recent_activity_30d = recentActivity ?? 0;
+        if ((recentActivity ?? 0) >= 5) score += 15;
+        else if ((recentActivity ?? 0) >= 2) score += 5;
+        else if ((recentActivity ?? 0) === 0) score -= 10;
+        const finalScore = Math.max(0, Math.min(100, score));
+        await supabase.from("nodes").update({ relationship_health: finalScore, health_updated_at: (/* @__PURE__ */ new Date()).toISOString(), health_signals: signals }).eq("id", contact.id);
+        totalScored++;
+      }
+      await completeJob(jobId, { scored: contacts.length, summary: `Scored ${contacts.length} relationship(s)` }, []);
+    } catch (err2) {
+      await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    }
+  }
+  return { total_scored: totalScored };
+}
+async function runOverdueTaskDecisions(workspaceId) {
+  const jobId = await startJob({
+    workspace_id: workspaceId ?? "system",
+    agent_name: "operations",
+    trigger_type: workspaceId ? "manual" : "scheduled",
+    input: {}
+  });
+  try {
+    const wsIds = await listWorkspaceIds(workspaceId);
+    let queued = 0;
+    for (const wsId of wsIds) {
+      const { data: tasks2 } = await supabase.from("tasks").select("id, title, due_date, priority, assignee_email").eq("workspace_id", wsId).eq("completed", false).lt("due_date", (/* @__PURE__ */ new Date()).toISOString());
+      for (const task of tasks2 ?? []) {
+        const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", wsId).eq("source_type", "task").eq("source_id", task.id).eq("agent_name", "operations").eq("status", "pending").maybeSingle();
+        if (existing) continue;
+        const daysOverdue2 = Math.floor((Date.now() - new Date(task.due_date).getTime()) / 864e5);
+        await supabase.from("decision_queue").insert({
+          workspace_id: wsId,
+          source_type: "task",
+          source_id: task.id,
+          agent_name: "operations",
+          title: `Overdue: ${task.title}`,
+          summary: `${daysOverdue2} day(s) overdue${task.assignee_email ? `, assigned to ${task.assignee_email}` : ", unassigned"}.`,
+          recommended_action: "Reassign, reschedule, or mark complete",
+          risk_level: daysOverdue2 > 7 || task.priority === "urgent" ? "high" : daysOverdue2 > 2 ? "medium" : "low",
+          evidence: [{ type: "task", title: task.title, node_id: task.id, match_reason: `${daysOverdue2} days overdue`, timestamp: task.due_date }]
+        });
+        queued++;
+      }
+    }
+    await completeJob(jobId, { queued, summary: `Queued ${queued} overdue-task decision(s)` }, []);
+    return { queued };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
 function daysOverdue(dueDateStr) {
-  const due = new Date(dueDateStr);
-  const now = /* @__PURE__ */ new Date();
-  return Math.floor((now.getTime() - due.getTime()) / (1e3 * 60 * 60 * 24));
+  return Math.floor((Date.now() - new Date(dueDateStr).getTime()) / 864e5);
 }
 function chaseMessage(invoice, days) {
   const num = invoice.invoice_number ?? "your invoice";
   const amount = invoice.amount ? new Intl.NumberFormat("en-US", { style: "currency", currency: invoice.currency ?? "USD" }).format(invoice.amount) : "the outstanding amount";
-  if (days <= 7) {
-    return {
-      subject: `Friendly reminder: ${num} is overdue`,
-      body: `Hi ${invoice.client_name ?? "there"},
+  if (days <= 7) return { subject: `Friendly reminder: ${num} is overdue`, body: `Hi ${invoice.client_name ?? "there"},
 
 This is a friendly reminder that ${num} for ${amount} was due ${days} day${days === 1 ? "" : "s"} ago.
 
 Please let us know if you have any questions.
 
-Thank you!`
-    };
-  }
-  if (days <= 14) {
-    return {
-      subject: `Second notice: ${num} \u2014 ${days} days overdue`,
-      body: `Hi ${invoice.client_name ?? "there"},
+Thank you!` };
+  if (days <= 14) return { subject: `Second notice: ${num} \u2014 ${days} days overdue`, body: `Hi ${invoice.client_name ?? "there"},
 
 We noticed that ${num} for ${amount} remains unpaid and is now ${days} days overdue.
 
@@ -69069,161 +69211,259 @@ Please arrange payment at your earliest convenience.
 
 If there's an issue, please reach out so we can resolve it.
 
-Regards`
-    };
-  }
-  return {
-    subject: `Urgent: ${num} \u2014 ${days} days past due`,
-    body: `Hi ${invoice.client_name ?? "there"},
+Regards` };
+  return { subject: `Urgent: ${num} \u2014 ${days} days past due`, body: `Hi ${invoice.client_name ?? "there"},
 
 Despite previous reminders, ${num} for ${amount} remains unpaid at ${days} days overdue.
 
 Please treat this as urgent. If payment cannot be made immediately, contact us to discuss arrangements.
 
-This matter may be escalated if not resolved promptly.`
-  };
+This matter may be escalated if not resolved promptly.` };
 }
+async function runInvoiceChaser(workspaceId) {
+  const wsIds = await listWorkspaceIds(workspaceId);
+  let totalChased = 0, totalSkipped = 0;
+  for (const wsId of wsIds) {
+    const jobId = await startJob({
+      workspace_id: wsId,
+      agent_name: "invoice_chaser",
+      trigger_type: workspaceId ? "manual" : "scheduled",
+      input: { workspace_id: wsId }
+    });
+    try {
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", wsId).eq("object_type", "invoice").lt("data->>due_date", today).in("data->>status", ["sent", "overdue", "unpaid"]);
+      if (!invoices?.length) {
+        await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, []);
+        continue;
+      }
+      const steps = [];
+      let chased = 0;
+      for (const invoice of invoices) {
+        const due = invoice.data.due_date;
+        if (!due) continue;
+        const days = daysOverdue(due);
+        if (days <= 0) continue;
+        const lastChased = invoice.data.last_chased_at;
+        if (lastChased && daysOverdue(lastChased) < 3) {
+          totalSkipped++;
+          continue;
+        }
+        const { subject } = chaseMessage(invoice.data, days);
+        const chaseCount = (invoice.data.chase_count ?? 0) + 1;
+        await logStep(jobId, { invoice_id: invoice.id, days_overdue: days, chase_count: chaseCount });
+        const { data: existingDecision } = await supabase.from("decision_queue").select("id").eq("workspace_id", wsId).eq("source_type", "invoice").eq("source_id", invoice.id).eq("agent_name", "invoice_chaser").eq("status", "pending").maybeSingle();
+        if (existingDecision) {
+          totalSkipped++;
+          continue;
+        }
+        await supabase.from("decision_queue").insert({
+          workspace_id: wsId,
+          source_type: "invoice",
+          source_id: invoice.id,
+          agent_name: "invoice_chaser",
+          title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} \u2014 ${days} days overdue`,
+          summary: `Draft reminder ready to send to ${invoice.data.client_email ?? "no email on file"}.`,
+          recommended_action: `Send: "${subject}"`,
+          risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
+          evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }]
+        });
+        steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
+        await supabase.from("notifications").insert({
+          workspace_id: wsId,
+          type: "agent",
+          title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
+          body: `${days} days overdue \xB7 reminder #${chaseCount} drafted, awaiting your approval`,
+          metadata: { invoice_id: invoice.id, days_overdue: days }
+        });
+        chased++;
+        totalChased++;
+      }
+      await completeJob(jobId, { chased, skipped: totalSkipped, summary: `Drafted ${chased} chase(s) for approval` }, steps);
+    } catch (err2) {
+      await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    }
+  }
+  return { total_chased: totalChased, total_skipped: totalSkipped };
+}
+function addMonths(dateStr, months) {
+  const d2 = new Date(dateStr);
+  d2.setMonth(d2.getMonth() + months);
+  return d2.toISOString().split("T")[0] ?? dateStr;
+}
+function nextDueDateAfter(current, frequency) {
+  if (frequency === "quarterly") return addMonths(current, 3);
+  if (frequency === "annual") return addMonths(current, 12);
+  return addMonths(current, 1);
+}
+async function nextInvoiceNumber(workspaceId) {
+  const { count } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "invoice");
+  return `INV-${String((count ?? 0) + 1).padStart(4, "0")}`;
+}
+async function runRecurringInvoices(workspaceId) {
+  const wsIds = await listWorkspaceIds(workspaceId);
+  let totalGenerated = 0;
+  for (const wsId of wsIds) {
+    const jobId = await startJob({
+      workspace_id: wsId,
+      agent_name: "recurring_invoices",
+      trigger_type: workspaceId ? "manual" : "scheduled",
+      input: { workspace_id: wsId }
+    });
+    try {
+      const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0] ?? "";
+      const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", wsId).eq("object_type", "invoice").eq("data->>is_recurring", "true").neq("data->>status", "cancelled");
+      if (!invoices?.length) {
+        await completeJob(jobId, { generated: 0, message: "no recurring invoices" }, []);
+        continue;
+      }
+      let generated = 0;
+      const steps = [];
+      for (const invoice of invoices) {
+        const nextDue = invoice.data.next_due_date;
+        if (!nextDue) continue;
+        if (today < nextDue) continue;
+        const newNumber = await nextInvoiceNumber(wsId);
+        const newInvoiceData = {
+          number: newNumber,
+          client_name: invoice.data.client_name ?? "",
+          client_email: invoice.data.client_email ?? null,
+          client_address: invoice.data.client_address ?? null,
+          line_items: invoice.data.line_items ?? [],
+          currency: invoice.data.currency ?? "GBP",
+          subtotal: invoice.data.subtotal ?? 0,
+          tax_total: invoice.data.tax_total ?? 0,
+          total: invoice.data.total ?? 0,
+          notes: invoice.data.notes ?? null,
+          status: "draft",
+          sent_at: null,
+          paid_at: null,
+          chase_count: 0,
+          ...invoice.data.linked_record_id ? { linked_record_id: invoice.data.linked_record_id } : {}
+        };
+        const { data: newInvoice, error: insertErr } = await supabase.from("nodes").insert({ workspace_id: wsId, vertical: "finance", object_type: "invoice", data: newInvoiceData, created_by: "agent:recurring_invoices" }).select("id").single();
+        if (insertErr) {
+          steps.push({ error: insertErr.message, original_id: invoice.id });
+          continue;
+        }
+        const updatedNextDue = nextDueDateAfter(nextDue, invoice.data.recurring_frequency ?? "monthly");
+        await supabase.from("nodes").update({ data: { ...invoice.data, next_due_date: updatedNextDue } }).eq("id", invoice.id);
+        await supabase.from("notifications").insert({
+          workspace_id: wsId,
+          type: "agent",
+          title: `Recurring invoice generated: ${newNumber}`,
+          body: `Cloned from ${invoice.data.number ?? invoice.id} \xB7 Next due: ${updatedNextDue}`,
+          metadata: { original_invoice_id: invoice.id, new_invoice_id: newInvoice.id }
+        });
+        steps.push({ generated: newNumber, original_id: invoice.id, new_id: newInvoice.id });
+        generated++;
+        totalGenerated++;
+      }
+      await completeJob(jobId, { generated, summary: `Generated ${generated} recurring invoice(s)` }, steps);
+    } catch (err2) {
+      await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    }
+  }
+  return { generated: totalGenerated };
+}
+var ENRICHABLE2 = ["contact", "person", "people", "lead", "company", "account", "organization"];
+async function tavilySearch2(query) {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return "";
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" })
+    });
+    if (!res.ok) return "";
+    const json = await res.json();
+    return (json.results ?? []).slice(0, 4).map((r2) => `${r2.title}: ${r2.content}`).join("\n");
+  } catch {
+    return "";
+  }
+}
+async function enrichOne(nodeId, objectType2, recordData) {
+  const normalizedType = objectType2.toLowerCase();
+  const isPerson = ["contact", "person", "people", "lead"].some((t2) => normalizedType.includes(t2));
+  const name17 = recordData.name ?? recordData.Name ?? recordData.company_name ?? recordData.full_name ?? "";
+  const email = recordData.email ?? recordData.Email ?? "";
+  const domain = recordData.domain ?? recordData.website ?? "";
+  const query = isPerson ? email ? `${email} linkedin job title company` : `${name17} linkedin job title company professional` : `${name17} ${domain} company funding employees revenue industry`;
+  const webContext = await tavilySearch2(query);
+  const schema = isPerson ? { type: "object", properties: { company: { type: "string" }, job_title: { type: "string" }, linkedin: { type: "string" }, location: { type: "string" }, twitter: { type: "string" }, bio: { type: "string" } } } : { type: "object", properties: { description: { type: "string" }, country: { type: "string" }, employee_range: { type: "string" }, arr: { type: "number" }, funding_raised: { type: "number" }, website: { type: "string" }, industry: { type: "string" }, founded_year: { type: "number" } } };
+  const raw2 = await aiGatewayToolUse({
+    prompt: isPerson ? `Enrich this person. Name: "${name17}", Email: "${email}"
+${webContext ? `Web context:
+${webContext}` : ""}` : `Enrich this company. Name: "${name17}", Domain: "${domain}"
+${webContext ? `Web context:
+${webContext}` : ""}`,
+    toolName: isPerson ? "enrich_person" : "enrich_company",
+    toolDescription: "Extract enrichment fields",
+    toolSchema: schema,
+    maxTokens: 1024
+  }).catch(() => ({}));
+  const fields = Object.fromEntries(Object.entries(raw2).filter(([, v2]) => v2 != null && v2 !== ""));
+  if (Object.keys(fields).length === 0) return 0;
+  const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
+  const merged = { ...node?.data ?? {}, ...fields };
+  await supabase.from("nodes").update({ data: merged }).eq("id", nodeId);
+  await supabase.from("nodes").update({ enriched_at: (/* @__PURE__ */ new Date()).toISOString(), enrichment_status: "done" }).eq("id", nodeId);
+  return Object.keys(fields).length;
+}
+async function runEnrichWorkspace(workspaceId, limit2 = 10) {
+  const jobId = await startJob({
+    workspace_id: workspaceId,
+    agent_name: "crm_enricher",
+    trigger_type: "manual",
+    input: { limit: limit2 }
+  });
+  try {
+    const { data: nodes } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }).limit(200);
+    const enrichable = (nodes ?? []).filter((n2) => ENRICHABLE2.some((t2) => String(n2.object_type).toLowerCase().includes(t2))).slice(0, limit2);
+    let enrichedCount = 0;
+    for (const n2 of enrichable) {
+      const added = await enrichOne(n2.id, n2.object_type, n2.data ?? {});
+      if (added > 0) {
+        enrichedCount++;
+        await supabase.from("notifications").insert({
+          workspace_id: workspaceId,
+          type: "agent",
+          title: "\u2726 Record enriched",
+          body: `AI filled in ${added} field(s)`,
+          metadata: { nodeId: n2.id, fields_added: added }
+        });
+      }
+    }
+    await completeJob(jobId, { enriched_count: enrichedCount, summary: `Enriched ${enrichedCount} record(s)` }, []);
+    return { enriched_count: enrichedCount, records: enrichable.length };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runAllDaily() {
+  const results = {};
+  results.relationship_health = await runRelationshipHealth().catch((e2) => ({ error: String(e2) }));
+  results.recurring_invoices = await runRecurringInvoices().catch((e2) => ({ error: String(e2) }));
+  results.overdue_task_decisions = await runOverdueTaskDecisions().catch((e2) => ({ error: String(e2) }));
+  results.deal_alerts = await runDealAlerts().catch((e2) => ({ error: String(e2) }));
+  results.invoice_chaser = await runInvoiceChaser().catch((e2) => ({ error: String(e2) }));
+  return results;
+}
+
+// src/jobs/invoice-chaser.ts
 var invoiceChaser = inngest.createFunction(
   { id: "finance-invoice-chaser", name: "Finance: Invoice Chaser", concurrency: { limit: 1 } },
   { cron: "0 9 * * *" },
-  async () => {
-    const { data: workspaces } = await supabase.from("workspaces").select("id, name");
-    if (!workspaces?.length) return { workspaces_processed: 0 };
-    let totalChased = 0;
-    let totalSkipped = 0;
-    for (const ws of workspaces) {
-      const jobId = await startJob({
-        workspace_id: ws.id,
-        agent_name: "invoice_chaser",
-        trigger_type: "scheduled",
-        input: { workspace_id: ws.id }
-      });
-      try {
-        const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-        const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", ws.id).eq("object_type", "invoice").lt("data->>due_date", today).in("data->>status", ["sent", "overdue", "unpaid"]);
-        if (!invoices?.length) {
-          await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, []);
-          continue;
-        }
-        const steps = [];
-        let chased = 0;
-        for (const invoice of invoices) {
-          const due = invoice.data.due_date;
-          if (!due) continue;
-          const days = daysOverdue(due);
-          if (days <= 0) continue;
-          const lastChased = invoice.data.last_chased_at;
-          if (lastChased) {
-            const daysSinceChase = daysOverdue(lastChased);
-            if (daysSinceChase < 3) {
-              totalSkipped++;
-              continue;
-            }
-          }
-          const { subject, body } = chaseMessage(invoice.data, days);
-          const clientEmail = invoice.data.client_email;
-          const chaseCount = (invoice.data.chase_count ?? 0) + 1;
-          await logStep(jobId, { invoice_id: invoice.id, days_overdue: days, chase_count: chaseCount });
-          const { data: existingDecision } = await supabase.from("decision_queue").select("id").eq("workspace_id", ws.id).eq("source_type", "invoice").eq("source_id", invoice.id).eq("agent_name", "invoice_chaser").eq("status", "pending").maybeSingle();
-          if (existingDecision) {
-            totalSkipped++;
-            continue;
-          }
-          await supabase.from("decision_queue").insert({
-            workspace_id: ws.id,
-            source_type: "invoice",
-            source_id: invoice.id,
-            agent_name: "invoice_chaser",
-            title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} \u2014 ${days} days overdue`,
-            summary: `Draft reminder ready to send to ${clientEmail ?? "no email on file"}.`,
-            recommended_action: `Send: "${subject}"`,
-            risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
-            evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }]
-          });
-          steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
-          await supabase.from("notifications").insert({
-            workspace_id: ws.id,
-            type: "agent",
-            title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
-            body: `${days} days overdue \xB7 reminder #${chaseCount} drafted, awaiting your approval`,
-            metadata: { invoice_id: invoice.id, days_overdue: days }
-          });
-          chased++;
-          totalChased++;
-        }
-        await completeJob(jobId, { chased, skipped: totalSkipped }, steps);
-      } catch (err2) {
-        const msg = err2 instanceof Error ? err2.message : String(err2);
-        await failJob(jobId, msg);
-      }
-    }
-    return { workspaces_processed: workspaces.length, total_chased: totalChased, total_skipped: totalSkipped };
-  }
+  async () => runInvoiceChaser()
 );
 
 // src/jobs/relationship-health.ts
 var relationshipHealth = inngest.createFunction(
   { id: "crm-relationship-health", name: "CRM: Relationship Health Scoring", concurrency: { limit: 1 } },
   { cron: "0 2 * * *" },
-  async () => {
-    const { data: workspaces } = await supabase.from("workspaces").select("id");
-    if (!workspaces?.length) return { processed: 0 };
-    let totalScored = 0;
-    for (const ws of workspaces) {
-      const jobId = await startJob({
-        workspace_id: ws.id,
-        agent_name: "relationship_health",
-        trigger_type: "scheduled",
-        input: { workspace_id: ws.id }
-      });
-      try {
-        const { data: contacts } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws.id).in("object_type", ["contact", "person", "lead", "company", "account"]);
-        if (!contacts?.length) {
-          await completeJob(jobId, { scored: 0 }, []);
-          continue;
-        }
-        for (const contact of contacts) {
-          const signals = {};
-          let score = 50;
-          const lastContact = contact.data?.last_contacted_at ?? contact.data?.last_contact;
-          if (lastContact) {
-            const days = Math.floor((Date.now() - new Date(lastContact).getTime()) / 864e5);
-            signals.days_since_contact = days;
-            if (days <= 7) score += 25;
-            else if (days <= 30) score += 10;
-            else if (days <= 90) score -= 10;
-            else score -= 25;
-          } else {
-            signals.days_since_contact = null;
-            score -= 15;
-          }
-          const { count: openTasks } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("object_type", "task").eq("data->>status", "todo").eq("data->>record_id", contact.id);
-          signals.open_tasks = openTasks ?? 0;
-          if ((openTasks ?? 0) > 3) score -= 10;
-          const { count: openDeals } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", ws.id).eq("object_type", "deal").not("data->>stage", "in", '("closed_won","closed_lost")').eq("data->>contact_id", contact.id);
-          signals.open_deals = openDeals ?? 0;
-          if ((openDeals ?? 0) > 0) score += 15;
-          const { count: recentActivity } = await supabase.from("activities").select("id", { count: "exact", head: true }).eq("node_id", contact.id).gte("created_at", new Date(Date.now() - 30 * 864e5).toISOString());
-          signals.recent_activity_30d = recentActivity ?? 0;
-          if ((recentActivity ?? 0) >= 5) score += 15;
-          else if ((recentActivity ?? 0) >= 2) score += 5;
-          else if ((recentActivity ?? 0) === 0) score -= 10;
-          const finalScore = Math.max(0, Math.min(100, score));
-          await supabase.from("nodes").update({
-            relationship_health: finalScore,
-            health_updated_at: (/* @__PURE__ */ new Date()).toISOString(),
-            health_signals: signals
-          }).eq("id", contact.id);
-          totalScored++;
-        }
-        await completeJob(jobId, { scored: contacts.length }, []);
-      } catch (err2) {
-        const msg = err2 instanceof Error ? err2.message : String(err2);
-        await failJob(jobId, msg);
-      }
-    }
-    return { total_scored: totalScored };
-  }
+  async () => runRelationshipHealth()
 );
 
 // src/jobs/deal-alerts.ts
@@ -69231,67 +69471,7 @@ var dealAlerts = inngest.createFunction(
   { id: "crm-deal-alerts", name: "CRM: Deal Alerts", concurrency: { limit: 2 } },
   { cron: "0 8 * * *" },
   // 8am daily
-  async () => {
-    const jobId = await startJob({
-      workspace_id: "system",
-      agent_name: "deal_alerts",
-      trigger_type: "scheduled",
-      input: {},
-      node_ids: []
-    });
-    try {
-      const { data: workspaces } = await supabase.from("workspaces").select("id");
-      let totalAlerts = 0;
-      for (const ws of workspaces ?? []) {
-        const { data: deals } = await supabase.from("nodes").select("id, data, updated_at").eq("workspace_id", ws.id).ilike("object_type", "%deal%");
-        for (const deal of deals ?? []) {
-          const data = deal.data;
-          const stage = String(data.stage ?? data.status ?? "").toLowerCase();
-          if (["won", "lost", "closed"].some((s3) => stage.includes(s3))) continue;
-          const lastActivity = new Date(deal.updated_at);
-          const daysInactive = Math.floor((Date.now() - lastActivity.getTime()) / 864e5);
-          if (daysInactive >= 14) {
-            const { data: existing } = await supabase.from("deal_alerts").select("id").eq("node_id", deal.id).eq("alert_type", "cold_deal").is("dismissed_at", null).single();
-            if (!existing) {
-              await supabase.from("deal_alerts").insert({
-                workspace_id: ws.id,
-                node_id: deal.id,
-                alert_type: "cold_deal",
-                days_inactive: daysInactive
-              });
-              await supabase.from("notifications").insert({
-                workspace_id: ws.id,
-                type: "alert",
-                title: "\u{1F976} Cold deal detected",
-                body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
-                metadata: { node_id: deal.id, days_inactive: daysInactive }
-              });
-              await supabase.from("decision_queue").insert({
-                workspace_id: ws.id,
-                source_type: "node",
-                source_id: deal.id,
-                agent_name: "relationship",
-                title: `${data.name ?? data.title ?? "This relationship"} has gone quiet`,
-                summary: `No activity for ${daysInactive} days.`,
-                recommended_action: "Reach out to re-engage, or mark as lost",
-                risk_level: daysInactive > 30 ? "high" : "medium",
-                evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }]
-              }).then(() => {
-              }, () => {
-              });
-              totalAlerts++;
-            }
-          }
-        }
-      }
-      await completeJob(jobId, { alerts_created: totalAlerts }, []);
-      return { alerts_created: totalAlerts };
-    } catch (err2) {
-      const msg = err2 instanceof Error ? err2.message : String(err2);
-      await failJob(jobId, msg);
-      throw err2;
-    }
-  }
+  async () => runDealAlerts()
 );
 
 // src/jobs/credit-note-dispute.ts
@@ -69389,104 +69569,10 @@ ${disputeBody.slice(0, 500)}`,
 );
 
 // src/jobs/recurring-invoices.ts
-function addMonths(dateStr, months) {
-  const d2 = new Date(dateStr);
-  d2.setMonth(d2.getMonth() + months);
-  return d2.toISOString().split("T")[0] ?? dateStr;
-}
-function nextDueDateAfter(current, frequency) {
-  if (frequency === "quarterly") return addMonths(current, 3);
-  if (frequency === "annual") return addMonths(current, 12);
-  return addMonths(current, 1);
-}
-async function nextInvoiceNumber(workspaceId) {
-  const { count } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "invoice");
-  const n2 = (count ?? 0) + 1;
-  return `INV-${String(n2).padStart(4, "0")}`;
-}
 var recurringInvoices = inngest.createFunction(
   { id: "finance-recurring-invoices", name: "Finance: Generate Recurring Invoices", concurrency: { limit: 1 } },
   { cron: "0 6 * * *" },
-  async () => {
-    const { data: workspaces } = await supabase.from("workspaces").select("id, name");
-    if (!workspaces?.length) return { workspaces_processed: 0, generated: 0 };
-    let totalGenerated = 0;
-    for (const ws of workspaces) {
-      const jobId = await startJob({
-        workspace_id: ws.id,
-        agent_name: "recurring_invoices",
-        trigger_type: "scheduled",
-        input: { workspace_id: ws.id }
-      });
-      try {
-        const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0] ?? "";
-        const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", ws.id).eq("object_type", "invoice").eq("data->>is_recurring", "true").neq("data->>status", "cancelled");
-        if (!invoices?.length) {
-          await completeJob(jobId, { generated: 0, message: "no recurring invoices" }, []);
-          continue;
-        }
-        let generated = 0;
-        const steps = [];
-        for (const invoice of invoices) {
-          const nextDue = invoice.data.next_due_date;
-          if (!nextDue) continue;
-          if (today < nextDue) continue;
-          const newNumber = await nextInvoiceNumber(ws.id);
-          const newInvoiceData = {
-            number: newNumber,
-            client_name: invoice.data.client_name ?? "",
-            client_email: invoice.data.client_email ?? null,
-            client_address: invoice.data.client_address ?? null,
-            line_items: invoice.data.line_items ?? [],
-            currency: invoice.data.currency ?? "GBP",
-            subtotal: invoice.data.subtotal ?? 0,
-            tax_total: invoice.data.tax_total ?? 0,
-            total: invoice.data.total ?? 0,
-            notes: invoice.data.notes ?? null,
-            status: "draft",
-            sent_at: null,
-            paid_at: null,
-            chase_count: 0,
-            ...invoice.data.linked_record_id ? { linked_record_id: invoice.data.linked_record_id } : {}
-          };
-          const { data: newInvoice, error: insertErr } = await supabase.from("nodes").insert({
-            workspace_id: ws.id,
-            vertical: "finance",
-            object_type: "invoice",
-            data: newInvoiceData,
-            created_by: "agent:recurring_invoices"
-          }).select("id").single();
-          if (insertErr) {
-            steps.push({ error: insertErr.message, original_id: invoice.id });
-            continue;
-          }
-          const frequency = invoice.data.recurring_frequency ?? "monthly";
-          const updatedNextDue = nextDueDateAfter(nextDue, frequency);
-          await supabase.from("nodes").update({
-            data: { ...invoice.data, next_due_date: updatedNextDue }
-          }).eq("id", invoice.id);
-          await supabase.from("notifications").insert({
-            workspace_id: ws.id,
-            type: "agent",
-            title: `Recurring invoice generated: ${newNumber}`,
-            body: `Cloned from ${invoice.data.number ?? invoice.id} \xB7 Next due: ${updatedNextDue}`,
-            metadata: {
-              original_invoice_id: invoice.id,
-              new_invoice_id: newInvoice.id
-            }
-          });
-          steps.push({ generated: newNumber, original_id: invoice.id, new_id: newInvoice.id });
-          generated++;
-          totalGenerated++;
-        }
-        await completeJob(jobId, { generated }, steps);
-      } catch (err2) {
-        const msg = err2 instanceof Error ? err2.message : String(err2);
-        await failJob(jobId, msg);
-      }
-    }
-    return { generated: totalGenerated };
-  }
+  async () => runRecurringInvoices()
 );
 
 // src/jobs/overdue-task-decisions.ts
@@ -69494,44 +69580,7 @@ var overdueTaskDecisions = inngest.createFunction(
   { id: "operations-overdue-task-decisions", name: "Operations: Overdue Task Decisions", concurrency: { limit: 2 } },
   { cron: "0 7 * * *" },
   // 7am daily, ahead of invoice-chaser/deal-alerts
-  async () => {
-    const jobId = await startJob({
-      workspace_id: "system",
-      agent_name: "operations",
-      trigger_type: "scheduled",
-      input: {}
-    });
-    try {
-      const { data: workspaces } = await supabase.from("workspaces").select("id");
-      let queued = 0;
-      for (const ws of workspaces ?? []) {
-        const { data: tasks2 } = await supabase.from("tasks").select("id, title, due_date, priority, assignee_email").eq("workspace_id", ws.id).eq("completed", false).lt("due_date", (/* @__PURE__ */ new Date()).toISOString());
-        for (const task of tasks2 ?? []) {
-          const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", ws.id).eq("source_type", "task").eq("source_id", task.id).eq("agent_name", "operations").eq("status", "pending").maybeSingle();
-          if (existing) continue;
-          const daysOverdue2 = Math.floor((Date.now() - new Date(task.due_date).getTime()) / 864e5);
-          await supabase.from("decision_queue").insert({
-            workspace_id: ws.id,
-            source_type: "task",
-            source_id: task.id,
-            agent_name: "operations",
-            title: `Overdue: ${task.title}`,
-            summary: `${daysOverdue2} day(s) overdue${task.assignee_email ? `, assigned to ${task.assignee_email}` : ", unassigned"}.`,
-            recommended_action: "Reassign, reschedule, or mark complete",
-            risk_level: daysOverdue2 > 7 || task.priority === "urgent" ? "high" : daysOverdue2 > 2 ? "medium" : "low",
-            evidence: [{ type: "task", title: task.title, node_id: task.id, match_reason: `${daysOverdue2} days overdue`, timestamp: task.due_date }]
-          });
-          queued++;
-        }
-      }
-      await completeJob(jobId, { queued }, []);
-      return { queued };
-    } catch (err2) {
-      const msg = err2 instanceof Error ? err2.message : String(err2);
-      await failJob(jobId, msg);
-      throw err2;
-    }
-  }
+  async () => runOverdueTaskDecisions()
 );
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
@@ -70060,7 +70109,7 @@ var runSchema = external_exports.object({
   destination_list_id: external_exports.string().uuid().optional(),
   require_approval: external_exports.boolean().default(true)
 });
-async function tavilySearch2(query, maxResults) {
+async function tavilySearch3(query, maxResults) {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return [];
   try {
@@ -70188,7 +70237,7 @@ async function runProspecting(workspaceId, userId, input) {
     input: { query: input.query, object_type: input.object_type, count: input.count }
   });
   try {
-    const searchResults = await tavilySearch2(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
+    const searchResults = await tavilySearch3(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const candidates = await extractCandidates(input.query, input.object_type, input.count, searchResults);
     const result = {
       created: 0,
@@ -71483,6 +71532,25 @@ User: ${lastMsg.content}` : lastMsg.content;
 // src/routes/agents.ts
 var router8 = new Hono2();
 router8.use("*", requireAuth);
+var AGENT_RUNNERS = {
+  relationship: async (ws) => ({ ...await runDealAlerts(ws), ...await runRelationshipHealth(ws) }),
+  operations: async (ws) => runOverdueTaskDecisions(ws),
+  finance: async (ws) => ({ ...await runInvoiceChaser(ws), ...await runRecurringInvoices(ws) }),
+  "graph-enrichment": async (ws) => runEnrichWorkspace(ws)
+};
+router8.post("/:id/run", async (c2) => {
+  const id = c2.req.param("id");
+  const runner = AGENT_RUNNERS[id];
+  if (!runner) {
+    return c2.json({ error: `Agent "${id}" has no on-demand run action.`, runnable: Object.keys(AGENT_RUNNERS) }, 400);
+  }
+  try {
+    const result = await runner(c2.get("workspaceId"));
+    return c2.json({ ran: true, agent: id, result });
+  } catch (err2) {
+    return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
+  }
+});
 function latestJob(jobs, agentName) {
   const matches2 = jobs.filter((j2) => j2.agent_name === agentName);
   if (!matches2.length) return null;
@@ -73001,8 +73069,8 @@ router18.delete("/:id/entries/:nodeId", async (c2) => {
 router18.post("/:id/enrich", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
-  const ENRICHABLE2 = ["contact", "person", "people", "lead", "company", "account", "organization"];
-  if (!ENRICHABLE2.some((t2) => list.object_type.toLowerCase().includes(t2))) {
+  const ENRICHABLE3 = ["contact", "person", "people", "lead", "company", "account", "organization"];
+  if (!ENRICHABLE3.some((t2) => list.object_type.toLowerCase().includes(t2))) {
     return c2.json({ error: "This list type is not enrichable" }, 400);
   }
   const { data: entries } = await supabase.from("list_entries").select("node_id, nodes(id, data, object_type)").eq("list_id", list.id);
@@ -73780,8 +73848,8 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
       errors.push({ row: i2 + 1, error: e2?.message ?? "unknown error" });
     }
   }
-  const ENRICHABLE2 = ["contact", "person", "people", "lead", "company", "account", "organization"];
-  if (ENRICHABLE2.some((t2) => safeType.toLowerCase().includes(t2))) {
+  const ENRICHABLE3 = ["contact", "person", "people", "lead", "company", "account", "organization"];
+  if (ENRICHABLE3.some((t2) => safeType.toLowerCase().includes(t2))) {
     for (const nodeId of created) {
       inngest.send({
         name: "crm/record.created",
@@ -73790,7 +73858,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
       });
     }
   }
-  return c2.json({ ok: true, created: created.length, errors, column_types: columnTypes, auto_enriching: ENRICHABLE2.some((t2) => safeType.toLowerCase().includes(t2)) }, 201);
+  return c2.json({ ok: true, created: created.length, errors, column_types: columnTypes, auto_enriching: ENRICHABLE3.some((t2) => safeType.toLowerCase().includes(t2)) }, 201);
 });
 
 // src/routes/generate.ts
@@ -75763,6 +75831,15 @@ app.route("/api/v1/onboarding", router35);
 app.route("/api/v1", router11);
 var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
 app.all("/api/inngest", inngestHandler);
+app.get("/api/cron/daily", async (c2) => {
+  const secret = process.env.CRON_SECRET;
+  const auth = c2.req.header("Authorization");
+  if (secret && auth !== `Bearer ${secret}`) {
+    return c2.json({ error: "Unauthorized" }, 401);
+  }
+  const results = await runAllDaily();
+  return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results });
+});
 app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.0.0" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");

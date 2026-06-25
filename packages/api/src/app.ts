@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
 import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
+import { runAllDaily } from "./jobs/runners";
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { askRouter } from "./routes/ask";
@@ -92,6 +93,22 @@ app.route("/api/v1", appDataRouter);
 
 const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
 app.all("/api/inngest", inngestHandler);
+
+/**
+ * Vercel Cron entry point — runs the daily agent jobs without depending on
+ * Inngest. Configured in packages/api/vercel.json (`crons`). Vercel sends
+ * `Authorization: Bearer $CRON_SECRET` on scheduled invocations; we reject
+ * anything else so the endpoint can't be triggered by the public.
+ */
+app.get("/api/cron/daily", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  const auth = c.req.header("Authorization");
+  if (secret && auth !== `Bearer ${secret}`) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  const results = await runAllDaily();
+  return c.json({ ran: true, at: new Date().toISOString(), results });
+});
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
 
