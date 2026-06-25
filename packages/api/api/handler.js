@@ -69665,13 +69665,14 @@ async function evaluateConditions(conditions, record) {
     });
   }
   const recordText = JSON.stringify(record.data).toLowerCase();
-  const keywordPass = conditions.every((c2) => {
-    const label = (c2.label ?? c2.type).toLowerCase();
-    const m2 = label.match(/(?:equals?|is|=|matches)\s+["']?([a-z0-9 _-]{2,})["']?$/i) ?? (c2.label ?? "").match(/\b([A-Z][a-zA-Z]{2,})\s*$/);
-    const val = (m2?.[1] ?? "").trim().toLowerCase();
-    return val.length >= 2 && recordText.includes(val);
+  const extracted = conditions.map((c2) => {
+    const label = (c2.label ?? c2.type ?? "").toLowerCase();
+    const m2 = label.match(/(?:equals?|is|=|matches|contains)\s+["']?([a-z0-9 _-]{2,})["']?\s*$/i);
+    return m2?.[1]?.trim() ?? null;
   });
-  if (keywordPass) return true;
+  if (extracted.every((v2) => v2 !== null)) {
+    return extracted.every((v2) => recordText.includes(v2));
+  }
   const { text: text2 } = await aiGateway({
     system: "You evaluate workflow conditions. Answer with exactly one word: YES or NO.",
     prompt: `Record (${record.object_type}):
@@ -69683,7 +69684,7 @@ ${conditions.map((c2, i2) => `${i2 + 1}. ${c2.label ?? c2.type}`).join("\n")}
 Do ALL conditions hold for this record? Answer YES or NO.`,
     maxTokens: 1500
   }).catch(() => ({ text: "" }));
-  return /\byes\b/i.test(text2) && !/\bno\b/i.test(text2.replace(/\byes\b/i, ""));
+  return /\byes\b/i.test(text2) && !/\bno\b/i.test(text2.replace(/yes/gi, ""));
 }
 async function runAction(workspaceId, action, record) {
   const type = action.type.toLowerCase();
