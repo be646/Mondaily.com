@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Network, ShieldAlert, Workflow, Receipt, Users, Sparkles } from "lucide-react";
 import {
   CheckSquare, FileSignature, UserRound, Box, GitBranch, BarChart2,
@@ -174,6 +175,18 @@ export interface BackendSourceMeta {
 /** Maps the backend's real tool-call sources into frontend SourceCardData.
  * Never fabricates a source — only called with what the backend actually
  * returned for this specific response. */
+/** Resolve a real in-app route for a source so its card is clickable. Routes
+ *  match App.tsx: records → /objects/:type/:id, reports → /reports/:id,
+ *  invoices → /finance/invoices/:id, tasks → /tasks (no per-task route). */
+function hrefForSource(s: BackendSourceMeta): string | undefined {
+  const type = s.type === "related_object" ? "record" : s.type;
+  if (type === "report" && s.node_id) return `/reports/${s.node_id}`;
+  if ((type === "invoice" || type === "finance") && s.node_id) return `/finance/invoices/${s.node_id}`;
+  if (type === "task") return `/tasks`;
+  if (s.object_type && s.node_id) return `/objects/${s.object_type}/${s.node_id}`;
+  return undefined;
+}
+
 export function mapBackendSources(raw: BackendSourceMeta[] | undefined): SourceCardData[] {
   if (!raw?.length) return [];
   return raw.map(s => ({
@@ -181,7 +194,7 @@ export function mapBackendSources(raw: BackendSourceMeta[] | undefined): SourceC
     title: s.title,
     timestamp: s.timestamp,
     relevance: s.relationship ?? s.match_reason,
-    href: s.object_type && s.node_id ? `/objects/${s.object_type}/${s.node_id}` : undefined,
+    href: hrefForSource(s),
   }));
 }
 
@@ -191,13 +204,17 @@ export function SourceCard({ source }: { source: SourceCardData }) {
   // updated) must never crash the render tree. Database is a neutral
   // generic-record icon, used only when the real type isn't mapped yet.
   const Icon = SOURCE_ICON[source.type] ?? Database;
-  const Tag = source.href ? "a" : "div";
+  const navigate = useNavigate();
+  const clickable = Boolean(source.href);
   return (
-    <Tag
-      {...(source.href ? { href: source.href } : {})}
-      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${source.href ? "cursor-pointer hover:border-cyan-400/50 hover:bg-[var(--surface-hover)]" : ""}`}
+    <div
+      onClick={clickable ? () => navigate(source.href!) : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter") navigate(source.href!); } : undefined}
+      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${clickable ? "cursor-pointer hover:border-cyan-400/50 hover:bg-[var(--surface-hover)]" : ""}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-      title={source.href ? "Open record" : undefined}
+      title={clickable ? "Open record" : undefined}
     >
       <Icon size={12} className="shrink-0 text-cyan-600 dark:text-cyan-400"/>
       <div className="min-w-0 flex-1">
@@ -213,7 +230,7 @@ export function SourceCard({ source }: { source: SourceCardData }) {
           </div>
         )}
       </div>
-    </Tag>
+    </div>
   );
 }
 
