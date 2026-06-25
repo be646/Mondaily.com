@@ -26,7 +26,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { messages, loading, messageMeta, doSend, buildChipText } = useAskEngine({
+  const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText } = useAskEngine({
     context: pageContext ?? { scope_label: "the workspace (no page context)" },
   });
 
@@ -189,9 +189,17 @@ function AskPanel({ onClose }: { onClose: () => void }) {
               <LogoMark size={16} thinking/>
             </div>
             <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:0ms]"/>
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:150ms]"/>
-              <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:300ms]"/>
+              {streamStatus ? (
+                <span className="text-[10.5px] text-zinc-400">{streamStatus}</span>
+              ) : tokenCount > 0 ? (
+                <span className="text-[10.5px] text-zinc-500">{tokenCount} tokens</span>
+              ) : (
+                <>
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:0ms]"/>
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:150ms]"/>
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:300ms]"/>
+                </>
+              )}
             </div>
           </div>
         )}

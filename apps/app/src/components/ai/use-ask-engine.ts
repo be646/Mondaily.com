@@ -41,6 +41,10 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [messageMeta, setMessageMeta] = useState<MessageMeta>({});
+  /** Live token count of the answer currently streaming (resets each send). */
+  const [tokenCount, setTokenCount] = useState(0);
+  /** Current tool-activity status during streaming, e.g. "Running search records…". */
+  const [streamStatus, setStreamStatus] = useState<string | null>(null);
 
   const loadThread = useCallback((threadId: string | null) => {
     if (!threadId) { setMessages([]); setCurrentThreadId(null); setMessageMeta({}); setSuggestions([]); return; }
@@ -69,38 +73,96 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     addMessageToThread(tid, userMsg);
     setLoading(true);
     setSuggestions([]);
+    setTokenCount(0);
+    setStreamStatus(null);
+
+    let model = "auto";
+    let web_search = false;
     try {
-      let model = "auto";
-      let web_search = false;
-      try {
-        const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}");
-        model = s.model ?? "auto";
-        web_search = s.webSearch === "allow";
-      } catch {}
-      const headers = await getAuthHeaders();
-      const apiUrl = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${apiUrl}/api/v1/ask`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ message: text, model, web_search, history, thread_id: tid, context: opts.context }),
-      });
-      if (!res.ok) throw new Error(`AI error: ${res.status}`);
-      const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[] };
-      const reply = data.reply || "No response.";
-      const aiMsg: ChatMessage = { role: "assistant", content: reply };
-      const finalMsgs = [...withUser, aiMsg];
-      setMessages(finalMsgs);
-      addMessageToThread(tid, aiMsg);
-      const idx = finalMsgs.length - 1;
-      setMessageMeta(prev => ({ ...prev, [idx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
-      if (data.suggestions?.length) setSuggestions(data.suggestions);
-      opts.onAssistantMessage?.(idx, reply);
+      const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}");
+      model = s.model ?? "auto";
+      web_search = s.webSearch === "allow";
+    } catch {}
+    const headers = await getAuthHeaders();
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    const body = JSON.stringify({ message: text, model, web_search, history, thread_id: tid, context: opts.context });
+    const aiIdx = withUser.length; // index the assistant message will occupy
+
+    try {
+      // ── Streaming path (SSE): tokens render live, like Claude.ai ──
+      const res = await fetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body });
+      if (!res.ok || !res.body) throw new Error(`AI error: ${res.status}`);
+
+      // Seed an empty assistant message we fill as tokens arrive.
+      setMessages([...withUser, { role: "assistant", content: "" }]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamed = "";
+      let tokens = 0;
+      let finalReply = "";
+      let finalSources: BackendSourceMeta[] | undefined;
+      let finalSuggestions: string[] = [];
+
+      const applyText = (t: string) =>
+        setMessages(prev => { const c = [...prev]; c[aiIdx] = { role: "assistant", content: t }; return c; });
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const payload = trimmed.slice(5).trim();
+          if (!payload) continue;
+          let ev: any;
+          try { ev = JSON.parse(payload); } catch { continue; }
+          if (ev.type === "token") {
+            streamed += ev.text;
+            tokens += 1;
+            setTokenCount(tokens);
+            setStreamStatus(null);
+            applyText(streamed.replace(/<followups>[\s\S]*$/, "")); // never show the control block
+          } else if (ev.type === "status") {
+            setStreamStatus(ev.text);
+          } else if (ev.type === "done") {
+            finalReply = ev.reply ?? streamed;
+            finalSources = ev.sources;
+            finalSuggestions = ev.suggestions ?? [];
+          }
+        }
+      }
+
+      const reply = finalReply || streamed || "No response.";
+      applyText(reply);
+      addMessageToThread(tid, { role: "assistant", content: reply });
+      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(finalSources) } }));
+      if (finalSuggestions.length) setSuggestions(finalSuggestions);
+      setStreamStatus(null);
+      opts.onAssistantMessage?.(aiIdx, reply);
     } catch (err: any) {
-      const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err) };
-      setMessages([...withUser, errMsg]);
-      addMessageToThread(tid, errMsg);
+      // ── Fallback: non-streaming endpoint if streaming is unavailable ──
+      try {
+        const res = await fetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body });
+        if (!res.ok) throw new Error(`AI error: ${res.status}`);
+        const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[] };
+        const reply = data.reply || "No response.";
+        setMessages([...withUser, { role: "assistant", content: reply }]);
+        addMessageToThread(tid, { role: "assistant", content: reply });
+        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
+        if (data.suggestions?.length) setSuggestions(data.suggestions);
+        opts.onAssistantMessage?.(aiIdx, reply);
+      } catch (err2: any) {
+        const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err2) };
+        setMessages([...withUser, errMsg]);
+        addMessageToThread(tid, errMsg);
+      }
     }
     setLoading(false);
+    setStreamStatus(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, currentThreadId, loading, opts.context]);
 
@@ -136,6 +198,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     currentThreadId, setCurrentThreadId,
     loading, suggestions, setSuggestions,
     messageMeta, setMessageMeta,
+    tokenCount, streamStatus,
     doSend, loadThread, buildChipText, clear,
   };
 }

@@ -151,28 +151,15 @@ export function AskMondaily() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const startStreaming = (msgIdx: number, fullText: string) => {
-    if (streamRef.current) clearInterval(streamRef.current);
-    setStreamingMsgIdx(msgIdx);
-    setStreamedUpTo(0);
-    let pos = 0;
-    streamRef.current = setInterval(() => {
-      pos += Math.floor(Math.random() * 5) + 3;
-      if (pos >= fullText.length) {
-        pos = fullText.length;
-        clearInterval(streamRef.current!);
-        streamRef.current = null;
-        setStreamingMsgIdx(null);
-      }
-      setStreamedUpTo(pos);
-    }, 18);
-  };
+  // The answer now streams token-by-token for real (SSE) — see use-ask-engine.
+  // The old client-side typewriter is disabled so tokens aren't animated twice.
+  const startStreaming = (_msgIdx: number, _fullText: string) => { /* real streaming handles display */ };
 
   // Same request pipeline as every other Ask surface (Home, right-side
   // drawer): same endpoint, thread_id/history handling, agent inference,
   // and real sources. This page's context is general workspace scope
   // unless a thread is already open.
-  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, doSend, loadThread, buildChipText, clear } =
+  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, streamStatus, doSend, loadThread, buildChipText, clear } =
     useAskEngine({
       initialThreadId: threadId && threadId !== "new" ? threadId : null,
       context: { scope_label: "the Ask Mondaily page (general workspace)" },
@@ -273,7 +260,7 @@ export function AskMondaily() {
               </span>
               {loading && (
                 <span className="text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-slate-500">
-                  {GRAPH_REASONING_STEPS[thinkingStep]}…
+                  {streamStatus ? streamStatus : tokenCount > 0 ? `${tokenCount} tokens` : `${GRAPH_REASONING_STEPS[thinkingStep]}…`}
                 </span>
               )}
             </h1>

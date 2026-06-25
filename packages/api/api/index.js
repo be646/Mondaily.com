@@ -1240,8 +1240,8 @@ var require_supports_color = __commonJS({
       }
       return min;
     }
-    function getSupportLevel(stream) {
-      const level = supportsColor(stream, stream && stream.isTTY);
+    function getSupportLevel(stream2) {
+      const level = supportsColor(stream2, stream2 && stream2.isTTY);
       return translateLevel(level);
     }
     module2.exports = {
@@ -18739,10 +18739,10 @@ function writeFromReadableStreamDefaultReader(reader, writable, currentReadPromi
     }
   }
 }
-function writeFromReadableStream(stream, writable) {
-  if (stream.locked) throw new TypeError("ReadableStream is locked.");
+function writeFromReadableStream(stream2, writable) {
+  if (stream2.locked) throw new TypeError("ReadableStream is locked.");
   else if (writable.destroyed) return;
-  return writeFromReadableStreamDefaultReader(stream.getReader(), writable);
+  return writeFromReadableStreamDefaultReader(stream2.getReader(), writable);
 }
 var buildOutgoingHttpHeaders = (headers, defaultContentType2) => {
   const res = {};
@@ -31182,7 +31182,7 @@ var InngestCommHandler = class {
     };
     if (await this.shouldStream(actions)) {
       if (await actions.method("starting streaming response") === "POST") {
-        const { stream, finalize } = await createStream();
+        const { stream: stream2, finalize } = await createStream();
         actionRes.then((res) => {
           return finalize(prepareActionRes(res));
         });
@@ -31190,7 +31190,7 @@ var InngestCommHandler = class {
           return actions.transformStreamingResponse?.("starting streaming response", {
             status: 201,
             headers: await getHeaders2(),
-            body: stream,
+            body: stream2,
             version: null
           });
         });
@@ -52759,7 +52759,7 @@ var GoTrueClient = class _GoTrueClient {
     }
   }
   async _verify(params) {
-    const run = async () => {
+    const run2 = async () => {
       try {
         return await this._useSession(async (result) => {
           var _a18;
@@ -52790,12 +52790,12 @@ var GoTrueClient = class _GoTrueClient {
       }
     };
     if (this.lock != null) {
-      return this._acquireLock(this.lockAcquireTimeout, run);
+      return this._acquireLock(this.lockAcquireTimeout, run2);
     }
-    return run();
+    return run2();
   }
   async _challenge(params) {
-    const run = async () => {
+    const run2 = async () => {
       try {
         return await this._useSession(async (result) => {
           var _a18;
@@ -52836,9 +52836,9 @@ var GoTrueClient = class _GoTrueClient {
       }
     };
     if (this.lock != null) {
-      return this._acquireLock(this.lockAcquireTimeout, run);
+      return this._acquireLock(this.lockAcquireTimeout, run2);
     }
-    return run();
+    return run2();
   }
   /**
    * {@see GoTrueMFAApi#challengeAndVerify}
@@ -60604,8 +60604,8 @@ function createCallbacksTransformer(callbacks = {}) {
     }
   });
 }
-function toDataStreamInternal(stream, callbacks) {
-  return stream.pipeThrough(
+function toDataStreamInternal(stream2, callbacks) {
+  return stream2.pipeThrough(
     new TransformStream({
       transform: async (value, controller) => {
         var _a172;
@@ -60633,15 +60633,15 @@ function toDataStreamInternal(stream, callbacks) {
     })
   );
 }
-function toDataStream(stream, callbacks) {
-  return toDataStreamInternal(stream, callbacks).pipeThrough(
+function toDataStream(stream2, callbacks) {
+  return toDataStreamInternal(stream2, callbacks).pipeThrough(
     new TextEncoderStream()
   );
 }
-function toDataStreamResponse(stream, options) {
+function toDataStreamResponse(stream2, options) {
   var _a172;
   const dataStream = toDataStreamInternal(
-    stream,
+    stream2,
     options == null ? void 0 : options.callbacks
   ).pipeThrough(new TextEncoderStream());
   const data = options == null ? void 0 : options.data;
@@ -60656,8 +60656,8 @@ function toDataStreamResponse(stream, options) {
     })
   });
 }
-function mergeIntoDataStream(stream, options) {
-  options.dataStream.merge(toDataStreamInternal(stream, options.callbacks));
+function mergeIntoDataStream(stream2, options) {
+  options.dataStream.merge(toDataStreamInternal(stream2, options.callbacks));
 }
 function forwardAIMessageChunk(chunk, controller) {
   if (typeof chunk.content === "string") {
@@ -60677,9 +60677,9 @@ __export2(llamaindex_adapter_exports, {
   toDataStream: () => toDataStream2,
   toDataStreamResponse: () => toDataStreamResponse2
 });
-function toDataStreamInternal2(stream, callbacks) {
+function toDataStreamInternal2(stream2, callbacks) {
   const trimStart = trimStartOfStream();
-  return convertAsyncIteratorToReadableStream(stream[Symbol.asyncIterator]()).pipeThrough(
+  return convertAsyncIteratorToReadableStream(stream2[Symbol.asyncIterator]()).pipeThrough(
     new TransformStream({
       async transform(message, controller) {
         controller.enqueue(trimStart(message.delta));
@@ -60693,15 +60693,15 @@ function toDataStreamInternal2(stream, callbacks) {
     })
   );
 }
-function toDataStream2(stream, callbacks) {
-  return toDataStreamInternal2(stream, callbacks).pipeThrough(
+function toDataStream2(stream2, callbacks) {
+  return toDataStreamInternal2(stream2, callbacks).pipeThrough(
     new TextEncoderStream()
   );
 }
-function toDataStreamResponse2(stream, options = {}) {
+function toDataStreamResponse2(stream2, options = {}) {
   var _a172;
   const { init: init2, data, callbacks } = options;
-  const dataStream = toDataStreamInternal2(stream, callbacks).pipeThrough(
+  const dataStream = toDataStreamInternal2(stream2, callbacks).pipeThrough(
     new TextEncoderStream()
   );
   const responseStream = data ? mergeStreams(data.stream, dataStream) : dataStream;
@@ -60714,8 +60714,8 @@ function toDataStreamResponse2(stream, options = {}) {
     })
   });
 }
-function mergeIntoDataStream2(stream, options) {
-  options.dataStream.merge(toDataStreamInternal2(stream, options.callbacks));
+function mergeIntoDataStream2(stream2, options) {
+  options.dataStream.merge(toDataStreamInternal2(stream2, options.callbacks));
 }
 function trimStartOfStream() {
   let isStreamStart = true;
@@ -63490,12 +63490,12 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
     }
   });
 }
-function destroyStream(stream, err2) {
-  if (stream.destroy) {
-    stream.destroy(err2);
+function destroyStream(stream2, err2) {
+  if (stream2.destroy) {
+    stream2.destroy(err2);
   } else {
-    stream.emit("error", err2);
-    stream.end();
+    stream2.emit("error", err2);
+    stream2.end();
   }
 }
 fetch4.isRedirect = function(code) {
@@ -64104,10 +64104,10 @@ function findDoubleNewlineIndex(buffer) {
 }
 
 // ../../node_modules/.pnpm/openai@4.104.0_zod@3.25.76/node_modules/openai/internal/stream-utils.mjs
-function ReadableStreamToAsyncIterable(stream) {
-  if (stream[Symbol.asyncIterator])
-    return stream;
-  const reader = stream.getReader();
+function ReadableStreamToAsyncIterable(stream2) {
+  if (stream2[Symbol.asyncIterator])
+    return stream2;
+  const reader = stream2.getReader();
   return {
     async next() {
       try {
@@ -65792,9 +65792,9 @@ var AssistantStream = class _AssistantStream extends EventStream {
       }
     };
   }
-  static fromReadableStream(stream) {
+  static fromReadableStream(stream2) {
     const runner = new _AssistantStream();
-    runner._run(() => runner._fromReadableStream(stream));
+    runner._run(() => runner._fromReadableStream(stream2));
     return runner;
   }
   async _fromReadableStream(readableStream, options) {
@@ -65805,18 +65805,18 @@ var AssistantStream = class _AssistantStream extends EventStream {
       signal.addEventListener("abort", () => this.controller.abort());
     }
     this._connected();
-    const stream = Stream2.fromReadableStream(readableStream, this.controller);
-    for await (const event of stream) {
+    const stream2 = Stream2.fromReadableStream(readableStream, this.controller);
+    for await (const event of stream2) {
       __classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return this._addRun(__classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
   }
   toReadableStream() {
-    const stream = new Stream2(this[Symbol.asyncIterator].bind(this), this.controller);
-    return stream.toReadableStream();
+    const stream2 = new Stream2(this[Symbol.asyncIterator].bind(this), this.controller);
+    return stream2.toReadableStream();
   }
   static createToolAssistantStream(threadId, runId, runs, params, options) {
     const runner = new _AssistantStream();
@@ -65826,7 +65826,7 @@ var AssistantStream = class _AssistantStream extends EventStream {
     }));
     return runner;
   }
-  async _createToolAssistantStream(run, threadId, runId, params, options) {
+  async _createToolAssistantStream(run2, threadId, runId, params, options) {
     const signal = options?.signal;
     if (signal) {
       if (signal.aborted)
@@ -65834,15 +65834,15 @@ var AssistantStream = class _AssistantStream extends EventStream {
       signal.addEventListener("abort", () => this.controller.abort());
     }
     const body = { ...params, stream: true };
-    const stream = await run.submitToolOutputs(threadId, runId, body, {
+    const stream2 = await run2.submitToolOutputs(threadId, runId, body, {
       ...options,
       signal: this.controller.signal
     });
     this._connected();
-    for await (const event of stream) {
+    for await (const event of stream2) {
       __classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return this._addRun(__classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
@@ -65897,17 +65897,17 @@ var AssistantStream = class _AssistantStream extends EventStream {
       signal.addEventListener("abort", () => this.controller.abort());
     }
     const body = { ...params, stream: true };
-    const stream = await thread.createAndRun(body, { ...options, signal: this.controller.signal });
+    const stream2 = await thread.createAndRun(body, { ...options, signal: this.controller.signal });
     this._connected();
-    for await (const event of stream) {
+    for await (const event of stream2) {
       __classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return this._addRun(__classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
   }
-  async _createAssistantStream(run, threadId, params, options) {
+  async _createAssistantStream(run2, threadId, params, options) {
     const signal = options?.signal;
     if (signal) {
       if (signal.aborted)
@@ -65915,12 +65915,12 @@ var AssistantStream = class _AssistantStream extends EventStream {
       signal.addEventListener("abort", () => this.controller.abort());
     }
     const body = { ...params, stream: true };
-    const stream = await run.create(threadId, body, { ...options, signal: this.controller.signal });
+    const stream2 = await run2.create(threadId, body, { ...options, signal: this.controller.signal });
     this._connected();
-    for await (const event of stream) {
+    for await (const event of stream2) {
       __classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_addEvent).call(this, event);
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return this._addRun(__classPrivateFieldGet9(this, _AssistantStream_instances, "m", _AssistantStream_endRequest).call(this));
@@ -65978,8 +65978,8 @@ var AssistantStream = class _AssistantStream extends EventStream {
     }
     return acc;
   }
-  _addRun(run) {
-    return run;
+  _addRun(run2) {
+    return run2;
   }
   async _threadAssistantStream(params, thread, options) {
     return await this._createThreadAssistantStream(thread, params, options);
@@ -66566,7 +66566,7 @@ var AbstractChatCompletionRunner = class extends EventStream {
   }
   async _runFunctions(client, params, options) {
     const role = "function";
-    const { function_call = "auto", stream, ...restParams } = params;
+    const { function_call = "auto", stream: stream2, ...restParams } = params;
     const singleFunctionToCall = typeof function_call !== "string" && function_call?.name;
     const { maxChatCompletions = DEFAULT_MAX_CHAT_COMPLETIONS } = options || {};
     const functionsByName = {};
@@ -66625,7 +66625,7 @@ var AbstractChatCompletionRunner = class extends EventStream {
   }
   async _runTools(client, params, options) {
     const role = "tool";
-    const { tool_choice = "auto", stream, ...restParams } = params;
+    const { tool_choice = "auto", stream: stream2, ...restParams } = params;
     const singleFunctionToCall = typeof tool_choice !== "string" && tool_choice?.function?.name;
     const { maxChatCompletions = DEFAULT_MAX_CHAT_COMPLETIONS } = options || {};
     const inputTools = params.tools.map((tool) => {
@@ -67062,9 +67062,9 @@ var ChatCompletionStream = class _ChatCompletionStream extends AbstractChatCompl
    * Note that messages sent to the model do not appear in `.on('message')`
    * in this context.
    */
-  static fromReadableStream(stream) {
+  static fromReadableStream(stream2) {
     const runner = new _ChatCompletionStream(null);
-    runner._run(() => runner._fromReadableStream(stream));
+    runner._run(() => runner._fromReadableStream(stream2));
     return runner;
   }
   static createChatCompletion(client, params, options) {
@@ -67081,12 +67081,12 @@ var ChatCompletionStream = class _ChatCompletionStream extends AbstractChatCompl
       signal.addEventListener("abort", () => this.controller.abort());
     }
     __classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
-    const stream = await client.chat.completions.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
+    const stream2 = await client.chat.completions.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
     this._connected();
-    for await (const chunk of stream) {
+    for await (const chunk of stream2) {
       __classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return this._addChatCompletion(__classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
@@ -67100,16 +67100,16 @@ var ChatCompletionStream = class _ChatCompletionStream extends AbstractChatCompl
     }
     __classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_beginRequest).call(this);
     this._connected();
-    const stream = Stream2.fromReadableStream(readableStream, this.controller);
+    const stream2 = Stream2.fromReadableStream(readableStream, this.controller);
     let chatId;
-    for await (const chunk of stream) {
+    for await (const chunk of stream2) {
       if (chatId && chatId !== chunk.id) {
         this._addChatCompletion(__classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
       }
       __classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_addChunk).call(this, chunk);
       chatId = chunk.id;
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return this._addChatCompletion(__classPrivateFieldGet11(this, _ChatCompletionStream_instances, "m", _ChatCompletionStream_endRequest).call(this));
@@ -67411,8 +67411,8 @@ var ChatCompletionStream = class _ChatCompletionStream extends AbstractChatCompl
     };
   }
   toReadableStream() {
-    const stream = new Stream2(this[Symbol.asyncIterator].bind(this), this.controller);
-    return stream.toReadableStream();
+    const stream2 = new Stream2(this[Symbol.asyncIterator].bind(this), this.controller);
+    return stream2.toReadableStream();
   }
 };
 function finalizeChatCompletion(snapshot, params) {
@@ -67511,9 +67511,9 @@ function assertNever2(_x) {
 
 // ../../node_modules/.pnpm/openai@4.104.0_zod@3.25.76/node_modules/openai/lib/ChatCompletionStreamingRunner.mjs
 var ChatCompletionStreamingRunner = class _ChatCompletionStreamingRunner extends ChatCompletionStream {
-  static fromReadableStream(stream) {
+  static fromReadableStream(stream2) {
     const runner = new _ChatCompletionStreamingRunner(null);
-    runner._run(() => runner._fromReadableStream(stream));
+    runner._run(() => runner._fromReadableStream(stream2));
     return runner;
   }
   /** @deprecated - please use `runTools` instead. */
@@ -67802,8 +67802,8 @@ var Runs = class extends APIResource {
    * https://platform.openai.com/docs/assistants/how-it-works/runs-and-run-steps
    */
   async createAndPoll(threadId, body, options) {
-    const run = await this.create(threadId, body, options);
-    return await this.poll(threadId, run.id, options);
+    const run2 = await this.create(threadId, body, options);
+    return await this.poll(threadId, run2.id, options);
   }
   /**
    * Create a Run stream
@@ -67824,11 +67824,11 @@ var Runs = class extends APIResource {
       headers["X-Stainless-Custom-Poll-Interval"] = options.pollIntervalMs.toString();
     }
     while (true) {
-      const { data: run, response: response3 } = await this.retrieve(threadId, runId, {
+      const { data: run2, response: response3 } = await this.retrieve(threadId, runId, {
         ...options,
         headers: { ...options?.headers, ...headers }
       }).withResponse();
-      switch (run.status) {
+      switch (run2.status) {
         //If we are in any sort of intermediate state we poll
         case "queued":
         case "in_progress":
@@ -67854,7 +67854,7 @@ var Runs = class extends APIResource {
         case "completed":
         case "failed":
         case "expired":
-          return run;
+          return run2;
       }
     }
   }
@@ -67878,8 +67878,8 @@ var Runs = class extends APIResource {
    * https://platform.openai.com/docs/assistants/how-it-works/runs-and-run-steps
    */
   async submitToolOutputsAndPoll(threadId, runId, body, options) {
-    const run = await this.submitToolOutputs(threadId, runId, body, options);
-    return await this.poll(threadId, run.id, options);
+    const run2 = await this.submitToolOutputs(threadId, runId, body, options);
+    return await this.poll(threadId, run2.id, options);
   }
   /**
    * Submit the tool outputs from a previous run and stream the run to a terminal
@@ -67961,8 +67961,8 @@ var Threads = class extends APIResource {
    * https://platform.openai.com/docs/assistants/how-it-works/runs-and-run-steps
    */
   async createAndRunPoll(body, options) {
-    const run = await this.createAndRun(body, options);
-    return await this.runs.poll(run.thread_id, run.id, options);
+    const run2 = await this.createAndRun(body, options);
+    return await this.runs.poll(run2.thread_id, run2.id, options);
   }
   /**
    * Create a thread and stream the run back
@@ -68873,19 +68873,19 @@ var ResponseStream = class _ResponseStream extends EventStream {
       signal.addEventListener("abort", () => this.controller.abort());
     }
     __classPrivateFieldGet12(this, _ResponseStream_instances, "m", _ResponseStream_beginRequest).call(this);
-    let stream;
+    let stream2;
     let starting_after = null;
     if ("response_id" in params) {
-      stream = await client.responses.retrieve(params.response_id, { stream: true }, { ...options, signal: this.controller.signal, stream: true });
+      stream2 = await client.responses.retrieve(params.response_id, { stream: true }, { ...options, signal: this.controller.signal, stream: true });
       starting_after = params.starting_after ?? null;
     } else {
-      stream = await client.responses.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
+      stream2 = await client.responses.create({ ...params, stream: true }, { ...options, signal: this.controller.signal });
     }
     this._connected();
-    for await (const event of stream) {
+    for await (const event of stream2) {
       __classPrivateFieldGet12(this, _ResponseStream_instances, "m", _ResponseStream_addEvent).call(this, event, starting_after);
     }
-    if (stream.controller.signal?.aborted) {
+    if (stream2.controller.signal?.aborted) {
       throw new APIUserAbortError();
     }
     return __classPrivateFieldGet12(this, _ResponseStream_instances, "m", _ResponseStream_endRequest).call(this);
@@ -69964,6 +69964,116 @@ async function aiGatewayAgent(req) {
       rounds: 0
     };
   }
+}
+async function aiGatewayAgentStream(req, onEvent) {
+  const spec = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  const resolved = resolveModel(spec);
+  const MAX_ROUNDS = req.maxRounds ?? 5;
+  if (resolved.type !== "openai-compat") {
+    const r2 = await aiGatewayAgent(req);
+    if (r2.reply) await onEvent({ type: "token", text: r2.reply });
+    return r2;
+  }
+  try {
+    return await runOpenAICompatAgentStream(resolved.modelId, req, MAX_ROUNDS, onEvent);
+  } catch (err2) {
+    console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 falling back to non-streaming`);
+    const r2 = await aiGatewayAgent(req).catch(() => null);
+    const reply = r2?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
+    await onEvent({ type: "token", text: reply });
+    return r2 ?? { reply, provider: "none", model: "none", rounds: 0 };
+  }
+}
+async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
+  const baseURL = process.env.AI_GATEWAY_BASE_URL;
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
+  const client = new openai_default({ baseURL, apiKey });
+  const openaiTools = req.tools.map((t2) => ({
+    type: "function",
+    function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
+  }));
+  const messages = [
+    { role: "system", content: redactSecrets(req.system) },
+    ...req.messages.map((m2) => ({
+      role: m2.role,
+      content: redactSecrets(typeof m2.content === "string" ? m2.content : JSON.stringify(m2.content))
+    }))
+  ];
+  let reply = "";
+  let rounds = 0;
+  for (let round = 0; round < maxRounds; round++) {
+    rounds = round + 1;
+    const stream2 = await client.chat.completions.create({
+      model: modelId,
+      max_tokens: req.maxTokens ?? 2048,
+      messages,
+      tools: openaiTools,
+      tool_choice: "auto",
+      stream: true
+    });
+    let content = "";
+    const toolAcc = {};
+    let finishReason = null;
+    for await (const chunk of stream2) {
+      const choice = chunk.choices[0];
+      if (!choice) continue;
+      const delta = choice.delta;
+      if (delta.content) {
+        content += delta.content;
+        await onEvent({ type: "token", text: delta.content });
+      }
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const i2 = tc.index ?? 0;
+          if (!toolAcc[i2]) toolAcc[i2] = { id: "", name: "", args: "" };
+          if (tc.id) toolAcc[i2].id = tc.id;
+          if (tc.function?.name) toolAcc[i2].name += tc.function.name;
+          if (tc.function?.arguments) toolAcc[i2].args += tc.function.arguments;
+        }
+      }
+      if (choice.finish_reason) finishReason = choice.finish_reason;
+    }
+    if (content.trim()) reply = content;
+    const calls = Object.values(toolAcc).filter((t2) => t2.name);
+    if (finishReason !== "tool_calls" || calls.length === 0) break;
+    messages.push({
+      role: "assistant",
+      content: content || null,
+      tool_calls: calls.map((t2) => ({ id: t2.id, type: "function", function: { name: t2.name, arguments: t2.args || "{}" } }))
+    });
+    for (const t2 of calls) {
+      await onEvent({ type: "status", text: `Running ${t2.name.replace(/_/g, " ")}\u2026` });
+      let args = {};
+      try {
+        args = JSON.parse(t2.args || "{}");
+      } catch {
+      }
+      const result = await req.onToolCall(t2.name, args);
+      messages.push({ role: "tool", tool_call_id: t2.id, content: redactSecrets(result) });
+    }
+  }
+  if (!reply.trim()) {
+    const original = [...req.messages].reverse().find((m2) => m2.role === "user");
+    const originalText = typeof original?.content === "string" ? original.content : "Hello";
+    const stream2 = await client.chat.completions.create({
+      model: modelId,
+      max_tokens: 2048,
+      stream: true,
+      messages: [
+        { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct." },
+        { role: "user", content: redactSecrets(originalText) }
+      ]
+    });
+    for await (const chunk of stream2) {
+      const d2 = chunk.choices[0]?.delta;
+      if (d2?.content) {
+        reply += d2.content;
+        await onEvent({ type: "token", text: d2.content });
+      }
+    }
+  }
+  return { reply, provider: "openai-compat", model: modelId, rounds };
 }
 
 // src/jobs/enrich-record.ts
@@ -71551,6 +71661,157 @@ router2.post("/", requireAuth, zValidator("json", external_exports.object({
   return c2.json([...nodeItems, ...taskItems]);
 });
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/stream.js
+var StreamingApi = class {
+  writer;
+  encoder;
+  writable;
+  abortSubscribers = [];
+  responseReadable;
+  /**
+   * Whether the stream has been aborted.
+   */
+  aborted = false;
+  /**
+   * Whether the stream has been closed normally.
+   */
+  closed = false;
+  constructor(writable, _readable) {
+    this.writable = writable;
+    this.writer = writable.getWriter();
+    this.encoder = new TextEncoder();
+    const reader = _readable.getReader();
+    this.abortSubscribers.push(async () => {
+      await reader.cancel();
+    });
+    this.responseReadable = new ReadableStream({
+      async pull(controller) {
+        const { done, value } = await reader.read();
+        done ? controller.close() : controller.enqueue(value);
+      },
+      cancel: () => {
+        if (!this.closed) {
+          this.abort();
+        }
+      }
+    });
+  }
+  async write(input) {
+    try {
+      if (typeof input === "string") {
+        input = this.encoder.encode(input);
+      }
+      await this.writer.write(input);
+    } catch {
+    }
+    return this;
+  }
+  async writeln(input) {
+    await this.write(input + "\n");
+    return this;
+  }
+  sleep(ms5) {
+    return new Promise((res) => setTimeout(res, ms5));
+  }
+  async close() {
+    this.closed = true;
+    try {
+      await this.writer.close();
+    } catch {
+    }
+  }
+  async pipe(body) {
+    this.writer.releaseLock();
+    await body.pipeTo(this.writable, { preventClose: true });
+    this.writer = this.writable.getWriter();
+  }
+  onAbort(listener) {
+    this.abortSubscribers.push(listener);
+  }
+  /**
+   * Abort the stream.
+   * You can call this method when stream is aborted by external event.
+   */
+  abort() {
+    if (!this.aborted) {
+      this.aborted = true;
+      this.abortSubscribers.forEach((subscriber) => subscriber());
+    }
+  }
+};
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/streaming/utils.js
+var isOldBunVersion = () => {
+  const version6 = typeof Bun !== "undefined" ? Bun.version : void 0;
+  if (version6 === void 0) {
+    return false;
+  }
+  const result = version6.startsWith("1.1") || version6.startsWith("1.0") || version6.startsWith("0.");
+  isOldBunVersion = () => result;
+  return result;
+};
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/streaming/sse.js
+var SSEStreamingApi = class extends StreamingApi {
+  constructor(writable, readable) {
+    super(writable, readable);
+  }
+  async writeSSE(message) {
+    const data = await resolveCallback(message.data, HtmlEscapedCallbackPhase.Stringify, false, {});
+    const dataLines = data.split(/\r\n|\r|\n/).map((line) => {
+      return `data: ${line}`;
+    }).join("\n");
+    for (const key of ["event", "id", "retry"]) {
+      if (message[key] && /[\r\n]/.test(message[key])) {
+        throw new Error(`${key} must not contain "\\r" or "\\n"`);
+      }
+    }
+    const sseData = [
+      message.event && `event: ${message.event}`,
+      dataLines,
+      message.id && `id: ${message.id}`,
+      message.retry && `retry: ${message.retry}`
+    ].filter(Boolean).join("\n") + "\n\n";
+    await this.write(sseData);
+  }
+};
+var run = async (stream2, cb, onError) => {
+  try {
+    await cb(stream2);
+  } catch (e2) {
+    if (e2 instanceof Error && onError) {
+      await onError(e2, stream2);
+      await stream2.writeSSE({
+        event: "error",
+        data: e2.message
+      });
+    } else {
+      console.error(e2);
+    }
+  } finally {
+    stream2.close();
+  }
+};
+var contextStash = /* @__PURE__ */ new WeakMap();
+var streamSSE = (c2, cb, onError) => {
+  const { readable, writable } = new TransformStream();
+  const stream2 = new SSEStreamingApi(writable, readable);
+  if (isOldBunVersion()) {
+    c2.req.raw.signal.addEventListener("abort", () => {
+      if (!stream2.closed) {
+        stream2.abort();
+      }
+    });
+  }
+  contextStash.set(stream2.responseReadable, c2);
+  c2.header("Transfer-Encoding", "chunked");
+  c2.header("Content-Type", "text/event-stream");
+  c2.header("Cache-Control", "no-cache");
+  c2.header("Connection", "keep-alive");
+  run(stream2, cb, onError);
+  return c2.newResponse(stream2.responseReadable);
+};
+
 // src/routes/reports.ts
 var router3 = new Hono2();
 router3.use("*", requireAuth);
@@ -72915,6 +73176,48 @@ var OBJECT_LABEL = {
 };
 var router6 = new Hono2();
 var HISTORY_TURN_LIMIT = 16;
+function buildContextNote(context2) {
+  let contextNote = "";
+  if (!context2) return contextNote;
+  if (context2.node_id || context2.node_name) {
+    const objectLabel = context2.object_type ? OBJECT_LABEL[context2.object_type.toLowerCase()] ?? context2.object_type : "object";
+    contextNote += `
+
+The user currently has a record selected/open: ${context2.node_name ?? "(name unknown)"}${context2.object_type ? ` (${context2.object_type})` : ""}${context2.node_id ? ` \u2014 node_id: ${context2.node_id}` : ""}. If their message refers to "this", "this record", "this ${objectLabel}", or names the object type directly (e.g. "this company", "this person", "this deal"), it means this one \u2014 you can call find_related_objects with this node_id directly without searching for it first.`;
+  }
+  if (context2.task_id) {
+    contextNote += `
+
+The user currently has a task open: "${context2.task_title ?? "(title unknown)"}" \u2014 task_id: ${context2.task_id}.${context2.task_status ? ` Status: ${context2.task_status}.` : ""}${context2.task_assignee ? ` Assignee: ${context2.task_assignee}.` : ""}${context2.task_record_id ? ` Linked record node_id: ${context2.task_record_id}.` : ""} If their message refers to "this" or "this task", it means this one \u2014 you can call update_task with this task_id directly without searching for it first. If they ask to create a follow-up from this, base it on this task's title/status and (if present) its linked record.`;
+  }
+  if (context2.invoice_id) {
+    contextNote += `
+
+The user currently has invoice ${context2.invoice_id} open. If their message refers to "this invoice" or "this", it means this one \u2014 call get_invoice with this invoice_id directly without searching for it first.`;
+  }
+  if (context2.report_id || context2.report_title) {
+    contextNote += `
+
+The user is currently viewing a report/dashboard: "${context2.report_title ?? "(title unknown)"}"${context2.report_id ? ` \u2014 report_id: ${context2.report_id}` : ""}. If their message refers to "this report" or "this", it means this one. To explain or describe it, call run_report with this report_id to get its real computed numbers \u2014 do not guess at the numbers from the name alone. Call get_report first if you also need its config/type.`;
+  }
+  if (context2.scope_label && /finance|invoice/i.test(context2.scope_label) && !context2.invoice_id) {
+    contextNote += `
+
+The user is currently viewing: ${context2.scope_label}. For "what needs attention here" or any finance question, call list_finance_summary (or list_invoices for the underlying list) to ground your answer in real invoice data \u2014 do not answer generically without checking.`;
+  } else if (context2.scope_label && /report/i.test(context2.scope_label) && !context2.report_id) {
+    contextNote += `
+
+The user is currently viewing: ${context2.scope_label}. For questions about it, call list_reports to find the relevant one, then run_report \u2014 do not answer generically without checking.`;
+  } else if (context2.scope_label && !context2.node_id && !context2.task_id && !context2.invoice_id && !context2.report_id) {
+    contextNote += `
+
+The user is currently viewing: ${context2.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
+  }
+  if (context2.route) contextNote += `
+
+Current route: ${context2.route}`;
+  return contextNote;
+}
 router6.post("/", requireAuth, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().optional(),
@@ -72966,46 +73269,7 @@ router6.post("/", requireAuth, zValidator("json", external_exports.object({
     if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") {
       webContext = await searchWeb(message);
     }
-    let contextNote = "";
-    if (context2?.node_id || context2?.node_name) {
-      const objectLabel = context2.object_type ? OBJECT_LABEL[context2.object_type.toLowerCase()] ?? context2.object_type : "object";
-      contextNote += `
-
-The user currently has a record selected/open: ${context2.node_name ?? "(name unknown)"}${context2.object_type ? ` (${context2.object_type})` : ""}${context2.node_id ? ` \u2014 node_id: ${context2.node_id}` : ""}. If their message refers to "this", "this record", "this ${objectLabel}", or names the object type directly (e.g. "this company", "this person", "this deal"), it means this one \u2014 you can call find_related_objects with this node_id directly without searching for it first.`;
-    }
-    if (context2?.task_id) {
-      contextNote += `
-
-The user currently has a task open: "${context2.task_title ?? "(title unknown)"}" \u2014 task_id: ${context2.task_id}.${context2.task_status ? ` Status: ${context2.task_status}.` : ""}${context2.task_assignee ? ` Assignee: ${context2.task_assignee}.` : ""}${context2.task_record_id ? ` Linked record node_id: ${context2.task_record_id}.` : ""} If their message refers to "this" or "this task", it means this one \u2014 you can call update_task with this task_id directly without searching for it first. If they ask to create a follow-up from this, base it on this task's title/status and (if present) its linked record.`;
-    }
-    if (context2?.invoice_id) {
-      contextNote += `
-
-The user currently has invoice ${context2.invoice_id} open. If their message refers to "this invoice" or "this", it means this one \u2014 call get_invoice with this invoice_id directly without searching for it first.`;
-    }
-    if (context2?.report_id || context2?.report_title) {
-      contextNote += `
-
-The user is currently viewing a report/dashboard: "${context2.report_title ?? "(title unknown)"}"${context2.report_id ? ` \u2014 report_id: ${context2.report_id}` : ""}. If their message refers to "this report" or "this", it means this one. To explain or describe it, call run_report with this report_id to get its real computed numbers \u2014 do not guess at the numbers from the name alone. Call get_report first if you also need its config/type.`;
-    }
-    if (context2?.scope_label && /finance|invoice/i.test(context2.scope_label) && !context2.invoice_id) {
-      contextNote += `
-
-The user is currently viewing: ${context2.scope_label}. For "what needs attention here" or any finance question, call list_finance_summary (or list_invoices for the underlying list) to ground your answer in real invoice data \u2014 do not answer generically without checking.`;
-    } else if (context2?.scope_label && /report/i.test(context2.scope_label) && !context2.report_id) {
-      contextNote += `
-
-The user is currently viewing: ${context2.scope_label}. For questions about it, call list_reports to find the relevant one, then run_report \u2014 do not answer generically without checking.`;
-    } else if (context2?.scope_label && !context2.node_id && !context2.task_id && !context2.invoice_id && !context2.report_id) {
-      contextNote += `
-
-The user is currently viewing: ${context2.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
-    }
-    if (context2?.route) {
-      contextNote += `
-
-Current route: ${context2.route}`;
-    }
+    const contextNote = buildContextNote(context2);
     const systemPrompt = SYSTEM_PROMPT + (webContext ? `
 
 Web context:
@@ -73090,9 +73354,78 @@ router6.get("/credits", requireAuth, async (c2) => {
 });
 router6.post("/stream", requireAuth, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
-  thread_id: external_exports.string().uuid().optional()
+  thread_id: external_exports.string().optional(),
+  model: external_exports.enum(["auto", "fast", "smart"]).optional(),
+  web_search: external_exports.boolean().optional(),
+  history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional(),
+  context: external_exports.record(external_exports.any()).optional()
 })), async (c2) => {
-  return c2.json({ ok: true });
+  const { message, web_search, history, context: context2 } = c2.req.valid("json");
+  const agentModelSpec = process.env.AI_AGENT_MODEL ?? "anthropic/claude-sonnet-4-6";
+  const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  return streamSSE(c2, async (stream2) => {
+    try {
+      let webContext = "";
+      if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
+      const systemPrompt = SYSTEM_PROMPT + (webContext ? `
+
+Web context:
+${webContext}` : "") + buildContextNote(context2);
+      const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content }));
+      const messages = [...priorTurns, { role: "user", content: message }];
+      const sources = [];
+      const { reply: agentReply } = await aiGatewayAgentStream({
+        system: systemPrompt,
+        tools: TOOLS,
+        messages,
+        maxTokens: 2048,
+        model: agentModelSpec,
+        onToolCall: async (name17, input) => {
+          const guardError = validateToolCall(name17, input);
+          if (guardError) return guardError;
+          return executeTool(name17, input, workspaceId, userId, sources);
+        }
+      }, async (e2) => {
+        if (e2.type === "token" && e2.text.includes("<followups>")) return;
+        await stream2.writeSSE({ data: JSON.stringify(e2) });
+      });
+      let reply = agentReply || "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";
+      let suggestions = [];
+      const fm = reply.match(/<followups>([\s\S]*?)<\/followups>/);
+      if (fm) {
+        try {
+          suggestions = JSON.parse(fm[1] ?? "[]");
+        } catch {
+        }
+        reply = reply.replace(/<followups>[\s\S]*?<\/followups>/, "").trim();
+      }
+      const seen = /* @__PURE__ */ new Set();
+      const dedupedSources = sources.filter((s3) => {
+        const k2 = s3.node_id ?? s3.title;
+        if (seen.has(k2)) return false;
+        seen.add(k2);
+        return true;
+      }).slice(0, 10);
+      try {
+        const now = /* @__PURE__ */ new Date();
+        await supabase.from("ai_usage").insert({
+          workspace_id: workspaceId,
+          user_id: userId,
+          model,
+          message_count: 1,
+          period_start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+          period_end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
+        });
+      } catch {
+      }
+      await stream2.writeSSE({ data: JSON.stringify({ type: "done", reply, suggestions, sources: dedupedSources }) });
+    } catch (err2) {
+      console.error("[ask:stream] error:", err2?.message ?? err2);
+      await stream2.writeSSE({ data: JSON.stringify({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] }) });
+    }
+  });
 });
 router6.get("/threads", requireAuth, async (c2) => c2.json([]));
 
@@ -74471,7 +74804,7 @@ ${transcript ? `Transcript reviewed: ${normalized.transcript.length} segments.` 
   }
   const encoder = new TextEncoder();
   const words = output.split(/(\s+)/);
-  const stream = new ReadableStream({
+  const stream2 = new ReadableStream({
     async start(controller) {
       for (let index = 0; index < words.length; index += 8) {
         controller.enqueue(encoder.encode(words.slice(index, index + 8).join("")));
@@ -74480,7 +74813,7 @@ ${transcript ? `Transcript reviewed: ${normalized.transcript.length} segments.` 
       controller.close();
     }
   });
-  return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache" } });
+  return new Response(stream2, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache" } });
 });
 
 // src/routes/dashboards.ts

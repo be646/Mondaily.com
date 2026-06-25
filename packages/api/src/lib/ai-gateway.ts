@@ -501,3 +501,140 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
     };
   }
 }
+
+// ── Public: streaming agentic loop ──────────────────────────────────────────────
+
+export type AgentStreamEvent =
+  | { type: "status"; text: string }   // tool activity, e.g. "Searching records…"
+  | { type: "token"; text: string };   // a chunk of the final answer
+
+/**
+ * Streaming variant of aiGatewayAgent. Emits `token` events as the model
+ * produces the final answer (live, like Claude.ai) and `status` events while
+ * tools run, then returns the full AgentResponse. Streams only for the
+ * openai-compat provider (Cerebras); the Anthropic path and any failure fall
+ * back to the non-streaming loop, emitting the whole reply as one token so the
+ * caller's rendering path is identical. Never throws.
+ */
+export async function aiGatewayAgentStream(
+  req: AgentRequest,
+  onEvent: (e: AgentStreamEvent) => void | Promise<void>,
+): Promise<AgentResponse> {
+  const spec = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  const resolved = resolveModel(spec);
+  const MAX_ROUNDS = req.maxRounds ?? 5;
+
+  if (resolved.type !== "openai-compat") {
+    const r = await aiGatewayAgent(req);
+    if (r.reply) await onEvent({ type: "token", text: r.reply });
+    return r;
+  }
+
+  try {
+    return await runOpenAICompatAgentStream(resolved.modelId, req, MAX_ROUNDS, onEvent);
+  } catch (err: any) {
+    console.error(`[gateway:agent-stream] streaming failed: ${err?.message} — falling back to non-streaming`);
+    const r = await aiGatewayAgent(req).catch(() => null);
+    const reply = r?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
+    await onEvent({ type: "token", text: reply });
+    return r ?? { reply, provider: "none", model: "none", rounds: 0 };
+  }
+}
+
+async function runOpenAICompatAgentStream(
+  modelId: string,
+  req: AgentRequest,
+  maxRounds: number,
+  onEvent: (e: AgentStreamEvent) => void | Promise<void>,
+): Promise<AgentResponse> {
+  const baseURL = process.env.AI_GATEWAY_BASE_URL;
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
+  const client = new OpenAI({ baseURL, apiKey });
+
+  const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
+    type: "function" as const,
+    function: { name: t.name, description: t.description, parameters: t.input_schema },
+  }));
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: redactSecrets(req.system) },
+    ...req.messages.map(m => ({
+      role: m.role as "user" | "assistant",
+      content: redactSecrets(typeof m.content === "string" ? m.content : JSON.stringify(m.content)),
+    })),
+  ];
+
+  let reply = "";
+  let rounds = 0;
+
+  for (let round = 0; round < maxRounds; round++) {
+    rounds = round + 1;
+    const stream = await client.chat.completions.create({
+      model: modelId,
+      max_tokens: req.maxTokens ?? 2048,
+      messages,
+      tools: openaiTools,
+      tool_choice: "auto",
+      stream: true,
+    });
+
+    let content = "";
+    const toolAcc: Record<number, { id: string; name: string; args: string }> = {};
+    let finishReason: string | null = null;
+
+    for await (const chunk of stream) {
+      const choice = chunk.choices[0];
+      if (!choice) continue;
+      const delta = choice.delta as { content?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
+      if (delta.content) { content += delta.content; await onEvent({ type: "token", text: delta.content }); }
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          const i = tc.index ?? 0;
+          if (!toolAcc[i]) toolAcc[i] = { id: "", name: "", args: "" };
+          if (tc.id) toolAcc[i].id = tc.id;
+          if (tc.function?.name) toolAcc[i].name += tc.function.name;
+          if (tc.function?.arguments) toolAcc[i].args += tc.function.arguments;
+        }
+      }
+      if (choice.finish_reason) finishReason = choice.finish_reason;
+    }
+
+    if (content.trim()) reply = content;
+
+    const calls = Object.values(toolAcc).filter(t => t.name);
+    if (finishReason !== "tool_calls" || calls.length === 0) break;
+
+    messages.push({
+      role: "assistant",
+      content: content || null,
+      tool_calls: calls.map(t => ({ id: t.id, type: "function" as const, function: { name: t.name, arguments: t.args || "{}" } })),
+    });
+    for (const t of calls) {
+      await onEvent({ type: "status", text: `Running ${t.name.replace(/_/g, " ")}…` });
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(t.args || "{}") as Record<string, unknown>; } catch {}
+      const result = await req.onToolCall(t.name, args);
+      messages.push({ role: "tool", tool_call_id: t.id, content: redactSecrets(result) });
+    }
+  }
+
+  // Reasoning models sometimes end tool rounds with no text — one clean
+  // streamed conversational call so the user still gets an answer.
+  if (!reply.trim()) {
+    const original = [...req.messages].reverse().find(m => m.role === "user");
+    const originalText = typeof original?.content === "string" ? original.content : "Hello";
+    const stream = await client.chat.completions.create({
+      model: modelId, max_tokens: 2048, stream: true,
+      messages: [
+        { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct." },
+        { role: "user", content: redactSecrets(originalText) },
+      ],
+    });
+    for await (const chunk of stream) {
+      const d = chunk.choices[0]?.delta as { content?: string } | undefined;
+      if (d?.content) { reply += d.content; await onEvent({ type: "token", text: d.content }); }
+    }
+  }
+
+  return { reply, provider: "openai-compat", model: modelId, rounds };
+}

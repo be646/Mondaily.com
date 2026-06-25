@@ -30,8 +30,22 @@ async function handler(req: IncomingMessage, res: ServerResponse) {
     res.statusCode = webResponse.status
     webResponse.headers.forEach((value, key) => res.setHeader(key, value))
 
-    const responseBody = await webResponse.arrayBuffer()
-    res.end(Buffer.from(responseBody))
+    // Stream the body chunk-by-chunk so Server-Sent Events (the /ask/stream
+    // endpoint) actually reach the client live instead of being buffered to
+    // completion first. Falls back gracefully for normal buffered responses.
+    if (webResponse.body) {
+      const reader = webResponse.body.getReader()
+      // Flush SSE headers immediately so the connection opens before tokens.
+      if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (value) res.write(Buffer.from(value))
+      }
+      res.end()
+    } else {
+      res.end()
+    }
   } catch (err: any) {
     res.statusCode = 500
     res.setHeader('content-type', 'application/json')

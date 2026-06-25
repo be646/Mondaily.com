@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
@@ -7,7 +8,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
-import { aiGatewayToolUse, aiGatewayAgent, aiGateway } from "../lib/ai-gateway";
+import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway } from "../lib/ai-gateway";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -1075,6 +1076,35 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
 
 const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined) sent for context
 
+/** Builds the "what the user currently has open" note appended to the system
+ *  prompt. Shared by the non-streaming and streaming ask endpoints. */
+function buildContextNote(context: Record<string, any> | undefined): string {
+  let contextNote = "";
+  if (!context) return contextNote;
+  if (context.node_id || context.node_name) {
+    const objectLabel = context.object_type ? OBJECT_LABEL[context.object_type.toLowerCase()] ?? context.object_type : "object";
+    contextNote += `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this", "this record", "this ${objectLabel}", or names the object type directly (e.g. "this company", "this person", "this deal"), it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
+  }
+  if (context.task_id) {
+    contextNote += `\n\nThe user currently has a task open: "${context.task_title ?? "(title unknown)"}" — task_id: ${context.task_id}.${context.task_status ? ` Status: ${context.task_status}.` : ""}${context.task_assignee ? ` Assignee: ${context.task_assignee}.` : ""}${context.task_record_id ? ` Linked record node_id: ${context.task_record_id}.` : ""} If their message refers to "this" or "this task", it means this one — you can call update_task with this task_id directly without searching for it first. If they ask to create a follow-up from this, base it on this task's title/status and (if present) its linked record.`;
+  }
+  if (context.invoice_id) {
+    contextNote += `\n\nThe user currently has invoice ${context.invoice_id} open. If their message refers to "this invoice" or "this", it means this one — call get_invoice with this invoice_id directly without searching for it first.`;
+  }
+  if (context.report_id || context.report_title) {
+    contextNote += `\n\nThe user is currently viewing a report/dashboard: "${context.report_title ?? "(title unknown)"}"${context.report_id ? ` — report_id: ${context.report_id}` : ""}. If their message refers to "this report" or "this", it means this one. To explain or describe it, call run_report with this report_id to get its real computed numbers — do not guess at the numbers from the name alone. Call get_report first if you also need its config/type.`;
+  }
+  if (context.scope_label && /finance|invoice/i.test(context.scope_label) && !context.invoice_id) {
+    contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. For "what needs attention here" or any finance question, call list_finance_summary (or list_invoices for the underlying list) to ground your answer in real invoice data — do not answer generically without checking.`;
+  } else if (context.scope_label && /report/i.test(context.scope_label) && !context.report_id) {
+    contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. For questions about it, call list_reports to find the relevant one, then run_report — do not answer generically without checking.`;
+  } else if (context.scope_label && !context.node_id && !context.task_id && !context.invoice_id && !context.report_id) {
+    contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
+  }
+  if (context.route) contextNote += `\n\nCurrent route: ${context.route}`;
+  return contextNote;
+}
+
 router.post("/", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().optional(),
@@ -1134,30 +1164,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
       webContext = await searchWeb(message);
     }
 
-    let contextNote = "";
-    if (context?.node_id || context?.node_name) {
-      const objectLabel = context.object_type ? OBJECT_LABEL[context.object_type.toLowerCase()] ?? context.object_type : "object";
-      contextNote += `\n\nThe user currently has a record selected/open: ${context.node_name ?? "(name unknown)"}${context.object_type ? ` (${context.object_type})` : ""}${context.node_id ? ` — node_id: ${context.node_id}` : ""}. If their message refers to "this", "this record", "this ${objectLabel}", or names the object type directly (e.g. "this company", "this person", "this deal"), it means this one — you can call find_related_objects with this node_id directly without searching for it first.`;
-    }
-    if (context?.task_id) {
-      contextNote += `\n\nThe user currently has a task open: "${context.task_title ?? "(title unknown)"}" — task_id: ${context.task_id}.${context.task_status ? ` Status: ${context.task_status}.` : ""}${context.task_assignee ? ` Assignee: ${context.task_assignee}.` : ""}${context.task_record_id ? ` Linked record node_id: ${context.task_record_id}.` : ""} If their message refers to "this" or "this task", it means this one — you can call update_task with this task_id directly without searching for it first. If they ask to create a follow-up from this, base it on this task's title/status and (if present) its linked record.`;
-    }
-    if (context?.invoice_id) {
-      contextNote += `\n\nThe user currently has invoice ${context.invoice_id} open. If their message refers to "this invoice" or "this", it means this one — call get_invoice with this invoice_id directly without searching for it first.`;
-    }
-    if (context?.report_id || context?.report_title) {
-      contextNote += `\n\nThe user is currently viewing a report/dashboard: "${context.report_title ?? "(title unknown)"}"${context.report_id ? ` — report_id: ${context.report_id}` : ""}. If their message refers to "this report" or "this", it means this one. To explain or describe it, call run_report with this report_id to get its real computed numbers — do not guess at the numbers from the name alone. Call get_report first if you also need its config/type.`;
-    }
-    if (context?.scope_label && /finance|invoice/i.test(context.scope_label) && !context.invoice_id) {
-      contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. For "what needs attention here" or any finance question, call list_finance_summary (or list_invoices for the underlying list) to ground your answer in real invoice data — do not answer generically without checking.`;
-    } else if (context?.scope_label && /report/i.test(context.scope_label) && !context.report_id) {
-      contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. For questions about it, call list_reports to find the relevant one, then run_report — do not answer generically without checking.`;
-    } else if (context?.scope_label && !context.node_id && !context.task_id && !context.invoice_id && !context.report_id) {
-      contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
-    }
-    if (context?.route) {
-      contextNote += `\n\nCurrent route: ${context.route}`;
-    }
+    const contextNote = buildContextNote(context);
 
     const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;
 
@@ -1263,11 +1270,81 @@ router.get("/credits", requireAuth, async (c) => {
   return c.json({ used, limit: 1000, period_end: periodEnd });
 });
 
+/**
+ * Streaming Ask endpoint (Server-Sent Events). Same agentic loop, tools, and
+ * context as POST "/", but emits the answer token-by-token as it's generated
+ * (like Claude.ai) plus tool-activity status, then a final "done" event with
+ * the cleaned reply, sources, and follow-up suggestions.
+ *
+ * Event shapes (each SSE `data:` line is one JSON object):
+ *   { type: "status", text }        — a tool is running
+ *   { type: "token",  text }        — a chunk of the answer
+ *   { type: "done", reply, suggestions, sources } — final, authoritative
+ */
 router.post("/stream", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
-  thread_id: z.string().uuid().optional()
+  thread_id: z.string().optional(),
+  model: z.enum(["auto", "fast", "smart"]).optional(),
+  web_search: z.boolean().optional(),
+  history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).optional(),
+  context: z.record(z.any()).optional(),
 })), async (c) => {
-  return c.json({ ok: true });
+  const { message, web_search, history, context } = c.req.valid("json");
+  const agentModelSpec = process.env.AI_AGENT_MODEL ?? "anthropic/claude-sonnet-4-6";
+  const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+
+  return streamSSE(c, async (stream) => {
+    try {
+      let webContext = "";
+      if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
+      const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined);
+      const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
+      const messages: any[] = [...priorTurns, { role: "user", content: message }];
+      const sources: SourceMeta[] = [];
+
+      const { reply: agentReply } = await aiGatewayAgentStream({
+        system: systemPrompt,
+        tools: TOOLS,
+        messages,
+        maxTokens: 2048,
+        model: agentModelSpec,
+        onToolCall: async (name, input) => {
+          const guardError = validateToolCall(name, input as Record<string, any>);
+          if (guardError) return guardError;
+          return executeTool(name, input as Record<string, any>, workspaceId, userId, sources);
+        },
+      }, async (e) => {
+        // Don't stream the <followups> control block to the user's view.
+        if (e.type === "token" && e.text.includes("<followups>")) return;
+        await stream.writeSSE({ data: JSON.stringify(e) });
+      });
+
+      // Clean the final reply: strip the followups block, parse suggestions.
+      let reply = agentReply || "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";
+      let suggestions: string[] = [];
+      const fm = reply.match(/<followups>([\s\S]*?)<\/followups>/);
+      if (fm) { try { suggestions = JSON.parse(fm[1] ?? "[]"); } catch {} reply = reply.replace(/<followups>[\s\S]*?<\/followups>/, "").trim(); }
+
+      const seen = new Set<string>();
+      const dedupedSources = sources.filter(s => { const k = s.node_id ?? s.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10);
+
+      try {
+        const now = new Date();
+        await supabase.from("ai_usage").insert({
+          workspace_id: workspaceId, user_id: userId, model, message_count: 1,
+          period_start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+          period_end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
+        });
+      } catch {}
+
+      await stream.writeSSE({ data: JSON.stringify({ type: "done", reply, suggestions, sources: dedupedSources }) });
+    } catch (err: any) {
+      console.error("[ask:stream] error:", err?.message ?? err);
+      await stream.writeSSE({ data: JSON.stringify({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] }) });
+    }
+  });
 });
 
 router.get("/threads", requireAuth, async (c) => c.json([]));
