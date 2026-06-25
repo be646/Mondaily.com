@@ -20,8 +20,10 @@
  *   aiGatewayAgent   — multi-round agentic loop with automatic provider fallback
  *
  * Fallback chain for aiGatewayAgent:
- *   primary spec → if openai-compat fails + ANTHROPIC_API_KEY present → Anthropic haiku
+ *   primary spec → on 404 try Fireworks fallback models → if ANTHROPIC_API_KEY/CLAUDE_API_KEY → Anthropic haiku
  *   → if all fail → graceful reply string (never throws to caller)
+ *
+ * Anthropic API key: reads ANTHROPIC_API_KEY or CLAUDE_API_KEY (whichever is set)
  */
 
 import { generateText } from "ai";
@@ -73,6 +75,18 @@ function resolveModel(spec?: string): ResolvedModel {
   return { type: "anthropic", modelId: modelId || "claude-haiku-4-5-20251001" };
 }
 
+/** Reads ANTHROPIC_API_KEY or CLAUDE_API_KEY — whichever is set. */
+function getAnthropicKey(): string | undefined {
+  return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || undefined;
+}
+
+/** Fireworks serverless models tried in order when the primary model 404s. */
+const FIREWORKS_FALLBACK_MODELS = [
+  "accounts/fireworks/models/llama-v3p1-70b-instruct",
+  "accounts/fireworks/models/llama-v3-70b-instruct",
+  "accounts/fireworks/models/mixtral-8x7b-instruct",
+];
+
 function openAIClient(): OpenAI {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
@@ -96,7 +110,7 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
   const resolved = resolveModel();
 
   if (resolved.type === "anthropic") {
-    const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = createAnthropic({ apiKey: getAnthropicKey() });
     const { text } = await generateText({
       model: anthropic(resolved.modelId),
       ...(req.system ? { system: req.system } : {}),
@@ -125,7 +139,7 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
   const resolved = resolveModel();
 
   if (resolved.type === "anthropic") {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = getAnthropicKey();
     if (!apiKey) return {};
 
     const body: Record<string, unknown> = {
@@ -209,8 +223,8 @@ async function runAnthropicAgent(
   req: AgentRequest,
   maxRounds: number,
 ): Promise<AgentResponse> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const apiKey = getAnthropicKey();
+  if (!apiKey) throw new Error("No Anthropic key found (checked ANTHROPIC_API_KEY and CLAUDE_API_KEY)");
 
   const messages: unknown[] = [...req.messages];
   let reply = "";
@@ -305,14 +319,17 @@ async function runOpenAICompatAgent(
   let reply = "";
   let rounds = 0;
 
+  // Resolve active model — may be swapped to a fallback on 404
+  let activeModel = modelId;
+
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
-    console.log(`[gateway:openai-compat] round=${round + 1} model=${modelId} baseURL=${baseURL}`);
+    console.log(`[gateway:openai-compat] round=${round + 1} model=${activeModel} baseURL=${baseURL}`);
 
     let completion: OpenAI.Chat.ChatCompletion;
     try {
       completion = await client.chat.completions.create({
-        model: modelId,
+        model: activeModel,
         max_tokens: req.maxTokens ?? 2048,
         messages,
         tools: openaiTools,
@@ -321,7 +338,19 @@ async function runOpenAICompatAgent(
     } catch (e: any) {
       const status = e?.status ?? e?.code ?? "unknown";
       const msg = e?.message ?? String(e);
-      console.error(`[gateway:openai-compat] request failed status=${status} model=${modelId} baseURL=${baseURL} error="${msg}"`);
+      console.error(`[gateway:openai-compat] request failed status=${status} model=${activeModel} baseURL=${baseURL} error="${msg}"`);
+
+      // On 404 try the next known-good serverless model before giving up
+      if (status === 404 || (typeof msg === "string" && msg.includes("not found"))) {
+        const tried = [modelId, ...FIREWORKS_FALLBACK_MODELS.slice(0, FIREWORKS_FALLBACK_MODELS.indexOf(activeModel))];
+        const next = FIREWORKS_FALLBACK_MODELS.find(m => !tried.includes(m));
+        if (next) {
+          console.warn(`[gateway:openai-compat] 404 on "${activeModel}" — retrying with fallback "${next}"`);
+          activeModel = next;
+          continue;
+        }
+      }
+
       throw new Error(`openai-compat HTTP ${status}: ${msg}`);
     }
 
@@ -379,10 +408,10 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
   } catch (primaryErr: any) {
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
 
-    // ── Fallback: openai-compat failed → try Anthropic if key is available ──────
-    if (resolved.type === "openai-compat" && process.env.ANTHROPIC_API_KEY) {
+    // ── Fallback: openai-compat exhausted → try Anthropic if key is available ────
+    if (resolved.type === "openai-compat" && getAnthropicKey()) {
       const fallbackModel = "claude-haiku-4-5-20251001";
-      console.log(`[gateway:agent] falling back to Anthropic ${fallbackModel}`);
+      console.log(`[gateway:agent] falling back to Anthropic ${fallbackModel} (key=${process.env.ANTHROPIC_API_KEY ? "ANTHROPIC_API_KEY" : "CLAUDE_API_KEY"})`);
       try {
         return await runAnthropicAgent(fallbackModel, req, MAX_ROUNDS);
       } catch (fallbackErr: any) {
