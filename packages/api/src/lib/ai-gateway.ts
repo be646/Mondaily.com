@@ -304,6 +304,7 @@ async function runOpenAICompatAgent(
     );
   }
 
+  console.log(`[gateway:openai-compat] baseURL=${baseURL} model=${modelId} keyPrefix=${apiKey.slice(0,6)}`);
   const client = new OpenAI({ baseURL, apiKey });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({

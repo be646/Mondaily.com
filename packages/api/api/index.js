@@ -69844,6 +69844,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
+  console.log(`[gateway:openai-compat] baseURL=${baseURL} model=${modelId} keyPrefix=${apiKey.slice(0, 6)}`);
   const client = new openai_default({ baseURL, apiKey });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
