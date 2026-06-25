@@ -373,7 +373,24 @@ async function runOpenAICompatAgent(
     }
   }
 
-  return { reply, provider: "openai-compat", model: modelId, rounds };
+  // Llama models often finish tool rounds without producing a text reply.
+  // Make one final no-tools call to get a plain-language summary.
+  if (!reply && rounds > 0) {
+    console.log(`[gateway:openai-compat] no text reply after ${rounds} round(s) — requesting summary`);
+    messages.push({ role: "user", content: "Please briefly summarize what you just did or found." });
+    try {
+      const summary = await client.chat.completions.create({
+        model: activeModel,
+        max_tokens: 512,
+        messages,
+      });
+      reply = summary.choices[0]?.message.content ?? "";
+    } catch {
+      // summary call failed — leave reply empty, caller handles fallback text
+    }
+  }
+
+  return { reply, provider: "openai-compat", model: activeModel, rounds };
 }
 
 // ── Public: aiGatewayAgent ──────────────────────────────────────────────────────
