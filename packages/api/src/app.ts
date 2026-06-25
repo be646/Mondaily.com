@@ -5,6 +5,7 @@ import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
 import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
 import { runAllDaily } from "./jobs/runners";
+import { runAllWorkflows } from "./jobs/workflow-engine";
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { askRouter } from "./routes/ask";
@@ -107,7 +108,8 @@ app.get("/api/cron/daily", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
   const results = await runAllDaily();
-  return c.json({ ran: true, at: new Date().toISOString(), results });
+  const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));
+  return c.json({ ran: true, at: new Date().toISOString(), results, workflows });
 });
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));

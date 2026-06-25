@@ -70666,6 +70666,249 @@ var overdueTaskDecisions = inngest.createFunction(
   async () => runOverdueTaskDecisions()
 );
 
+// src/jobs/workflow-engine.ts
+var SAFE_ACTIONS = /* @__PURE__ */ new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note"]);
+var RISKY_ACTIONS = /* @__PURE__ */ new Set(["send_email", "send_message", "send_sms", "create_invoice", "charge", "charge_invoice", "delete_record", "archive_record", "send"]);
+function parseWorkflow(blocks) {
+  return {
+    trigger: blocks.find((b2) => b2.kind === "trigger") ?? null,
+    conditions: blocks.filter((b2) => b2.kind === "condition"),
+    actions: blocks.filter((b2) => b2.kind === "action")
+  };
+}
+async function candidateRecords(workspaceId, trigger) {
+  const t2 = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
+  const base = supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId);
+  let q2 = base;
+  if (t2.includes("deal")) q2 = base.ilike("object_type", "%deal%");
+  else if (t2.includes("invoice")) q2 = base.eq("object_type", "invoice");
+  else if (t2.includes("contact") || t2.includes("person") || t2.includes("lead") || t2.includes("compan")) {
+    q2 = base.or("object_type.ilike.%contact%,object_type.ilike.%people%,object_type.ilike.%lead%,object_type.ilike.%compan%");
+  } else if (t2.includes("task")) q2 = base.ilike("object_type", "%task%");
+  const { data } = await q2.order("updated_at", { ascending: false }).limit(200);
+  return data ?? [];
+}
+function triggerKeyFor(trigger, record) {
+  const t2 = `${trigger.type}`.toLowerCase();
+  if (t2.includes("stage") || t2.includes("deal")) {
+    const stage = String(record.data.stage ?? record.data.status ?? record.data.deal_stage ?? "");
+    return `stage:${stage}`;
+  }
+  return trigger.type || "fired";
+}
+async function evaluateConditions(conditions, record) {
+  if (conditions.length === 0) return true;
+  const structured = conditions.every((c2) => c2.config && c2.config.field && "value" in (c2.config ?? {}));
+  if (structured) {
+    return conditions.every((c2) => {
+      const cfg = c2.config;
+      const actual = String(record.data[String(cfg.field)] ?? "").toLowerCase();
+      const expected = String(cfg.value ?? "").toLowerCase();
+      const op = String(cfg.operator ?? "equals");
+      if (op === "equals") return actual === expected;
+      if (op === "not_equals") return actual !== expected;
+      if (op === "contains") return actual.includes(expected);
+      if (op === "gt") return Number(actual) > Number(expected);
+      if (op === "lt") return Number(actual) < Number(expected);
+      return actual === expected;
+    });
+  }
+  const res = await aiGatewayToolUse({
+    prompt: `Record (${record.object_type}):
+${JSON.stringify(record.data).slice(0, 1500)}
+
+Conditions (ALL must hold):
+${conditions.map((c2, i2) => `${i2 + 1}. ${c2.label ?? c2.type}`).join("\n")}
+
+Do all conditions hold for this record?`,
+    toolName: "evaluate_conditions",
+    toolDescription: "Decide whether all workflow conditions are satisfied by the record",
+    toolSchema: { type: "object", properties: { pass: { type: "boolean" }, reason: { type: "string" } }, required: ["pass"] },
+    maxTokens: 600
+  }).catch(() => ({ pass: false }));
+  return Boolean(res.pass);
+}
+async function runAction(workspaceId, action, record) {
+  const type = action.type.toLowerCase();
+  const recName = String(record.data.name ?? record.data.title ?? record.data.full_name ?? record.id);
+  if (RISKY_ACTIONS.has(type) || !SAFE_ACTIONS.has(type)) {
+    const draft = await aiGatewayToolUse({
+      prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName}".
+Record:
+${JSON.stringify(record.data).slice(0, 1200)}
+
+Draft the content this action would produce (e.g. the email subject+body, or a one-line description).`,
+      toolName: "draft_action",
+      toolDescription: "Draft the content for a sensitive workflow action awaiting approval",
+      toolSchema: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["title"] },
+      maxTokens: 800
+    }).catch(() => ({ title: action.label ?? action.type }));
+    const d2 = draft;
+    await supabase.from("decision_queue").insert({
+      workspace_id: workspaceId,
+      source_type: "node",
+      source_id: record.id,
+      agent_name: "workflow",
+      title: `Workflow: ${d2.title ?? action.label ?? action.type}`,
+      summary: (d2.body ?? "").slice(0, 1e3) || `Action "${action.label ?? action.type}" ready for ${recName}.`,
+      recommended_action: action.label ?? action.type,
+      risk_level: type.includes("delete") || type.includes("charge") || type.includes("invoice") ? "high" : "medium",
+      evidence: [{ type: "record", title: recName, node_id: record.id, match_reason: `Workflow action: ${action.label ?? action.type}` }]
+    });
+    return { action: action.type, mode: "queued", detail: d2.title ?? action.label ?? action.type };
+  }
+  if (type === "create_task") {
+    const p2 = await aiGatewayToolUse({
+      prompt: `Create a task for this workflow action: "${action.label}". Record: ${recName} (${record.object_type}).`,
+      toolName: "task_fields",
+      toolDescription: "Extract task fields",
+      toolSchema: { type: "object", properties: { title: { type: "string" }, priority: { type: "string", enum: ["low", "medium", "high", "urgent"] } }, required: ["title"] },
+      maxTokens: 300
+    }).catch(() => ({ title: action.label ?? "Workflow task" }));
+    const pf = p2;
+    await supabase.from("tasks").insert({
+      workspace_id: workspaceId,
+      title: pf.title ?? action.label ?? "Workflow task",
+      completed: false,
+      priority: pf.priority ?? "medium",
+      status: "todo",
+      notes: `Created by workflow for ${recName}`
+    });
+    return { action: action.type, mode: "executed", detail: pf.title ?? "task" };
+  }
+  if (type === "create_note" || type === "add_note") {
+    const p2 = await aiGatewayToolUse({
+      prompt: `Write a short note for this workflow action: "${action.label}". Record: ${recName}.
+${JSON.stringify(record.data).slice(0, 800)}`,
+      toolName: "note_fields",
+      toolDescription: "Draft a note",
+      toolSchema: { type: "object", properties: { title: { type: "string" }, content: { type: "string" } }, required: ["content"] },
+      maxTokens: 500
+    }).catch(() => ({ content: action.label ?? "Workflow note" }));
+    const nf = p2;
+    await supabase.from("nodes").insert({
+      workspace_id: workspaceId,
+      vertical: "shared",
+      object_type: "note",
+      created_by: "agent:workflow",
+      data: { parent_id: record.id, title: nf.title ?? "Workflow note", content: nf.content ?? action.label, created_at: (/* @__PURE__ */ new Date()).toISOString() }
+    });
+    return { action: action.type, mode: "executed", detail: nf.title ?? "note" };
+  }
+  if (type === "update_field" || type === "set_field" || type === "add_tag") {
+    const p2 = await aiGatewayToolUse({
+      prompt: `Workflow action: "${action.label}" on ${record.object_type} "${recName}". Current data: ${JSON.stringify(record.data).slice(0, 800)}.
+What single field should be set to what value?`,
+      toolName: "field_update",
+      toolDescription: "Extract the field and value to set",
+      toolSchema: { type: "object", properties: { field: { type: "string" }, value: { type: "string" } }, required: ["field", "value"] },
+      maxTokens: 200
+    }).catch(() => ({}));
+    const fu = p2;
+    if (fu.field) {
+      const merged = { ...record.data };
+      if (type === "add_tag") {
+        const tags = Array.isArray(merged.tags) ? merged.tags : [];
+        merged.tags = [.../* @__PURE__ */ new Set([...tags.map(String), fu.value ?? String(fu.field)])];
+      } else {
+        merged[fu.field] = fu.value;
+      }
+      await supabase.from("nodes").update({ data: merged }).eq("id", record.id);
+      return { action: action.type, mode: "executed", detail: `${fu.field}=${fu.value}` };
+    }
+    return { action: action.type, mode: "executed", detail: "no field resolved" };
+  }
+  if (type === "notify") {
+    await supabase.from("notifications").insert({
+      workspace_id: workspaceId,
+      type: "agent",
+      title: `Workflow: ${action.label ?? "notification"}`,
+      body: `Triggered for ${recName}`,
+      metadata: { node_id: record.id }
+    });
+    return { action: action.type, mode: "executed", detail: "notified" };
+  }
+  return { action: action.type, mode: "executed", detail: "no-op" };
+}
+async function runWorkflowsForWorkspace(workspaceId, opts = {}) {
+  const jobId = await startJob({
+    workspace_id: workspaceId,
+    agent_name: "workflow",
+    trigger_type: opts.workflowId ? "manual" : "scheduled",
+    input: opts
+  });
+  const summary = { workflows_evaluated: 0, records_matched: 0, actions_executed: 0, actions_queued: 0 };
+  try {
+    let wfQuery = supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", "automation").eq("data->>type", "workflow");
+    if (opts.workflowId) wfQuery = wfQuery.eq("id", opts.workflowId);
+    else wfQuery = wfQuery.eq("data->>status", "active");
+    const { data: workflows } = await wfQuery;
+    for (const wf of workflows ?? []) {
+      const blocks = wf.data.nodes ?? [];
+      const parsed = parseWorkflow(blocks);
+      if (!parsed.trigger || parsed.actions.length === 0) continue;
+      summary.workflows_evaluated++;
+      const candidates = (await candidateRecords(workspaceId, parsed.trigger)).slice(0, opts.limitRecords ?? 25);
+      for (const record of candidates) {
+        const triggerKey = triggerKeyFor(parsed.trigger, record);
+        const { data: existing } = await supabase.from("workflow_runs").select("id").eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey).maybeSingle();
+        if (existing) continue;
+        const pass = await evaluateConditions(parsed.conditions, record);
+        if (!pass) {
+          await supabase.from("workflow_runs").insert({
+            workspace_id: workspaceId,
+            workflow_id: wf.id,
+            record_id: record.id,
+            trigger_key: triggerKey,
+            status: "condition_failed",
+            actions: []
+          }).then(() => {
+          }, () => {
+          });
+          continue;
+        }
+        summary.records_matched++;
+        const outcomes = [];
+        for (const action of parsed.actions) {
+          const outcome = await runAction(workspaceId, action, record).catch((e2) => ({ action: action.type, mode: "queued", detail: `error: ${e2 instanceof Error ? e2.message : String(e2)}` }));
+          outcomes.push(outcome);
+          if (outcome.mode === "executed") summary.actions_executed++;
+          else summary.actions_queued++;
+        }
+        await supabase.from("workflow_runs").insert({
+          workspace_id: workspaceId,
+          workflow_id: wf.id,
+          record_id: record.id,
+          trigger_key: triggerKey,
+          status: outcomes.some((o2) => o2.mode === "queued") ? "queued" : "executed",
+          actions: outcomes,
+          detail: `${outcomes.length} action(s)`
+        }).then(() => {
+        }, () => {
+        });
+      }
+    }
+    await completeJob(jobId, { ...summary, summary: `${summary.records_matched} record(s) matched, ${summary.actions_executed} action(s) run, ${summary.actions_queued} queued` }, []);
+    return summary;
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runAllWorkflows() {
+  const { data: workspaces } = await supabase.from("workspaces").select("id");
+  let totalMatched = 0, totalExecuted = 0, totalQueued = 0;
+  for (const ws of workspaces ?? []) {
+    const s3 = await runWorkflowsForWorkspace(ws.id).catch(() => null);
+    if (s3) {
+      totalMatched += s3.records_matched;
+      totalExecuted += s3.actions_executed;
+      totalQueued += s3.actions_queued;
+    }
+  }
+  return { matched: totalMatched, executed: totalExecuted, queued: totalQueued };
+}
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
 var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
 var validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
@@ -72619,7 +72862,8 @@ var AGENT_RUNNERS = {
   relationship: async (ws) => ({ ...await runDealAlerts(ws), ...await runRelationshipHealth(ws) }),
   operations: async (ws) => runOverdueTaskDecisions(ws),
   finance: async (ws) => ({ ...await runInvoiceChaser(ws), ...await runRecurringInvoices(ws) }),
-  "graph-enrichment": async (ws) => runEnrichWorkspace(ws)
+  "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
+  workflow: async (ws) => ({ ...await runWorkflowsForWorkspace(ws) })
 };
 router8.post("/:id/run", async (c2) => {
   const id = c2.req.param("id");
@@ -72848,19 +73092,25 @@ router8.get("/", async (c2) => {
       destination: "/search"
     });
   }
-  agents.push({
-    id: "workflow",
-    name: "Workflow Agent",
-    category: "automation",
-    status: "Designs workflows \u2014 autonomous execution not yet implemented",
-    state: "not_configured",
-    backed_by: [],
-    last_run_at: null,
-    last_action: "Workflow configs can be designed and saved; running them today is a manual, human-triggered action.",
-    evidence_count: 0,
-    suggested_action: null,
-    destination: "/automations"
-  });
+  {
+    const workflowNodes = nodes.filter((n2) => n2.object_type === "automation" && n2.data?.type === "workflow");
+    const activeWorkflows = workflowNodes.filter((n2) => String(n2.data?.status ?? "") === "active");
+    const workflowJob = jobSummary(latestJob(jobs, "workflow"), "No workflow run yet");
+    const { state, pendingCount } = withDecisions(activeWorkflows.length > 0 ? "active" : "monitoring", ["workflow"]);
+    agents.push({
+      id: "workflow",
+      name: "Workflow Agent",
+      category: "automation",
+      status: pendingCount > 0 ? `${pendingCount} workflow action(s) awaiting approval` : activeWorkflows.length > 0 ? `${activeWorkflows.length} active workflow(s) executing` : `${workflowNodes.length} workflow(s) \u2014 none active yet`,
+      state,
+      backed_by: ["workflow_engine"],
+      last_run_at: workflowJob.lastRunAt,
+      last_action: workflowJob.lastAction,
+      evidence_count: activeWorkflows.length + pendingCount,
+      suggested_action: pendingCount > 0 ? "Review workflow actions in the Decision Queue" : activeWorkflows.length === 0 ? "Activate a workflow to start automating" : null,
+      destination: "/automations"
+    });
+  }
   agents.push({
     id: "opportunity",
     name: "Opportunity Agent",
@@ -75970,6 +76220,16 @@ router29.patch("/:id", async (c2) => {
   });
   return c2.json(response2(result.data));
 });
+router29.post("/:id/run", async (c2) => {
+  const id = c2.req.param("id");
+  if (id === "new") return c2.json({ error: "Save the workflow before running it." }, 400);
+  try {
+    const summary = await runWorkflowsForWorkspace(c2.get("workspaceId"), { workflowId: id });
+    return c2.json({ ran: true, ...summary });
+  } catch (err2) {
+    return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
+  }
+});
 router29.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
@@ -76965,7 +77225,8 @@ app.get("/api/cron/daily", async (c2) => {
     return c2.json({ error: "Unauthorized" }, 401);
   }
   const results = await runAllDaily();
-  return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results });
+  const workflows = await runAllWorkflows().catch((e2) => ({ error: String(e2) }));
+  return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows });
 });
 app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.0.0" }));
 app.get("/api/debug-auth", async (c2) => {

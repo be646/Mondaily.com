@@ -10,7 +10,7 @@ import {
 } from "./agent-dock";
 
 /** Agents that expose an on-demand POST /api/v1/agents/:id/run runner. */
-const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment"]);
+const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow"]);
 
 /** Turn a runner's result payload into one short human line. */
 function summarizeRun(result: Record<string, unknown>): string {
@@ -22,6 +22,9 @@ function summarizeRun(result: Record<string, unknown>): string {
   if (typeof r.total_chased === "number") parts.push(`${r.total_chased} chase(s) drafted`);
   if (typeof r.generated === "number" && r.generated > 0) parts.push(`${r.generated} invoice(s)`);
   if (typeof r.enriched_count === "number") parts.push(`enriched ${r.enriched_count}`);
+  if (typeof r.records_matched === "number") parts.push(`${r.records_matched} matched`);
+  if (typeof r.actions_executed === "number" && r.actions_executed > 0) parts.push(`${r.actions_executed} action(s) run`);
+  if (typeof r.actions_queued === "number" && r.actions_queued > 0) parts.push(`${r.actions_queued} queued`);
   return parts.length ? `Done — ${parts.join(", ")}.` : "Done — nothing new to act on.";
 }
 

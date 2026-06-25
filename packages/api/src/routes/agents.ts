@@ -5,6 +5,7 @@ import {
   runDealAlerts, runRelationshipHealth, runOverdueTaskDecisions,
   runInvoiceChaser, runRecurringInvoices, runEnrichWorkspace,
 } from "../jobs/runners";
+import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -20,6 +21,7 @@ const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<stri
   operations: async (ws) => runOverdueTaskDecisions(ws),
   finance: async (ws) => ({ ...(await runInvoiceChaser(ws)), ...(await runRecurringInvoices(ws)) }),
   "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
+  workflow: async (ws) => ({ ...(await runWorkflowsForWorkspace(ws)) }),
 };
 
 router.post("/:id/run", async (c) => {
@@ -291,18 +293,32 @@ router.get("/", async (c) => {
     });
   }
 
-  // Workflow Agent — the workflow builder (packages/api/src/routes/workflows.ts)
-  // only stores trigger/condition/action config; there is no real execution
-  // engine that runs it autonomously. Always "not_configured" rather than
-  // implying it executes graph actions on its own — never upgraded to
-  // active/monitoring until real execution exists.
-  agents.push({
-    id: "workflow", name: "Workflow Agent", category: "automation",
-    status: "Designs workflows — autonomous execution not yet implemented",
-    state: "not_configured", backed_by: [], last_run_at: null,
-    last_action: "Workflow configs can be designed and saved; running them today is a manual, human-triggered action.",
-    evidence_count: 0, suggested_action: null, destination: "/automations",
-  });
+  // Workflow Agent — now backed by a real execution engine
+  // (packages/api/src/jobs/workflow-engine.ts): active workflows run
+  // trigger -> condition -> action against current records, executing safe
+  // actions and queuing risky ones for approval. State derives from how many
+  // workflows are active and any pending workflow decisions.
+  {
+    const workflowNodes = nodes.filter(n => n.object_type === "automation" && (n.data as Record<string, unknown>)?.type === "workflow");
+    const activeWorkflows = workflowNodes.filter(n => String((n.data as Record<string, unknown>)?.status ?? "") === "active");
+    const workflowJob = jobSummary(latestJob(jobs, "workflow"), "No workflow run yet");
+    const { state, pendingCount } = withDecisions(activeWorkflows.length > 0 ? "active" : "monitoring", ["workflow"]);
+    agents.push({
+      id: "workflow", name: "Workflow Agent", category: "automation",
+      status: pendingCount > 0
+        ? `${pendingCount} workflow action(s) awaiting approval`
+        : activeWorkflows.length > 0
+          ? `${activeWorkflows.length} active workflow(s) executing`
+          : `${workflowNodes.length} workflow(s) — none active yet`,
+      state,
+      backed_by: ["workflow_engine"],
+      last_run_at: workflowJob.lastRunAt,
+      last_action: workflowJob.lastAction,
+      evidence_count: activeWorkflows.length + pendingCount,
+      suggested_action: pendingCount > 0 ? "Review workflow actions in the Decision Queue" : activeWorkflows.length === 0 ? "Activate a workflow to start automating" : null,
+      destination: "/automations",
+    });
+  }
 
   // Scaffold-only vertical agents — code exists under packages/agents/src
   // but no live job/route surfaces them yet. Never shown as active.

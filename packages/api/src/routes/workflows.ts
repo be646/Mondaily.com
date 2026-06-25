@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkflowData = Record<string, unknown> & { name?: string; status?: string; nodes?: Record<string, unknown>[] };
@@ -75,6 +76,21 @@ router.patch("/:id", async (c) => {
     diff: { workflow: true },
   });
   return c.json(response(result.data as never));
+});
+
+/**
+ * Run a workflow now — executes its trigger -> condition -> action logic
+ * against current records. Safe actions run; risky ones queue for approval.
+ */
+router.post("/:id/run", async (c) => {
+  const id = c.req.param("id");
+  if (id === "new") return c.json({ error: "Save the workflow before running it." }, 400);
+  try {
+    const summary = await runWorkflowsForWorkspace(c.get("workspaceId"), { workflowId: id });
+    return c.json({ ran: true, ...summary });
+  } catch (err: unknown) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
+  }
 });
 
 router.delete("/:id", async (c) => {
