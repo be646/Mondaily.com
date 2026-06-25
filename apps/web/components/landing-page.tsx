@@ -240,10 +240,10 @@ function FooterTicker() {
 }
 
 const MODULE_ZONES: { zone: string; ids: string[]; accent: string }[] = [
-  { zone: "Data",         ids: ["crm", "enrich"],          accent: "#4f46e5" },
-  { zone: "Intelligence", ids: ["pipeline", "ask"],        accent: "#7c3aed" },
-  { zone: "Action",       ids: ["sequences", "automations"], accent: "#d97706" },
-  { zone: "Operations",   ids: ["finance", "mcp"],         accent: "#059669" },
+  { zone: "Data",         ids: ["crm", "enrich"],            accent: "#9fb08f" },
+  { zone: "Intelligence", ids: ["pipeline", "ask"],          accent: "#a68762" },
+  { zone: "Action",       ids: ["sequences", "automations"], accent: "#a07164" },
+  { zone: "Operations",   ids: ["finance", "mcp"],           accent: "#6f8068" },
 ];
 
 function LiveStat({ start, step, intervalMs }: { start: number; step: [number, number]; intervalMs: number }) {
@@ -263,7 +263,7 @@ function LiveStat({ start, step, intervalMs }: { start: number; step: [number, n
     <motion.span
       animate={{ opacity: [0.5, 1, 0.5], scale: bump ? [1, 1.08, 1] : 1 }}
       transition={{ opacity: { duration: 3, repeat: Infinity }, scale: { duration: 0.4 } }}
-      className="text-indigo-600"
+      className="text-zinc-800"
     >
       {value.toLocaleString()}
     </motion.span>
@@ -308,7 +308,7 @@ function FeatureSection() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-indigo-500">One workspace graph</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#9fb08f" }}>One workspace graph</p>
       <h2 className="mb-4 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         Every part of the business, one connected graph
       </h2>
@@ -685,7 +685,7 @@ function WorkflowDemo() {
 
   return (
     <section id="workflow" className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-zinc-500">Live on the graph</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#9fb08f" }}>Live on the graph</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         What happens when a record enters Mondaily
       </h2>
@@ -950,7 +950,7 @@ function AutomationFlow() {
       ref={ref}
       className="mx-auto max-w-6xl px-6 py-20"
     >
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-zinc-500">How the graph works</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#a68762" }}>How the graph works</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         Design once. Apply to every object on the graph.
       </h2>
@@ -1020,24 +1020,20 @@ function AutomationFlow() {
             </div>
           </div>
 
-          {/* Done state */}
-          {shownCount >= FLOW_NODES.length && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-6 flex items-center gap-3 font-mono"
-            >
-              <div className="h-px flex-1 bg-black/[.04]"/>
-              <span className="text-[14px] text-zinc-500">[FLOW COMPLETE]</span>
-              <div className="h-px flex-1 bg-black/[.04]"/>
-            </motion.div>
-          )}
+          {/* Done state — always in DOM, opacity-only transition to prevent layout shift */}
+          <div
+            style={{ opacity: shownCount >= FLOW_NODES.length ? 1 : 0, transition: "opacity 0.5s ease 0.2s" }}
+            className="mt-6 flex items-center gap-3 font-mono"
+          >
+            <div className="h-px flex-1 bg-black/[.04]"/>
+            <span className="text-[14px] text-zinc-500">[FLOW COMPLETE]</span>
+            <div className="h-px flex-1 bg-black/[.04]"/>
+          </div>
         </div>
 
         {/* Right: stat callouts */}
-        <div className="flex flex-col gap-4 font-mono">
-          <div className="text-[14px] text-zinc-500 uppercase tracking-widest mb-2">// what this replaces</div>
+        <div className="flex flex-col gap-4">
+          <div className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest mb-2">// what this replaces</div>
           {[
             { before: "Manual scoring in a spreadsheet", after: "AI scores relationships automatically, daily", icon: "◈" },
             { before: "Forgetting to follow up",         after: "Sequences enroll without manual setup",   icon: "◈" },
@@ -1165,20 +1161,21 @@ function HeroPipelinePreview() {
         <motion.span
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity }}
-          className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-500"
+          className="ml-auto h-1.5 w-1.5 rounded-full"
+          style={{ background: "#9fb08f" }}
         />
-        <span className="text-[11px] text-indigo-500">agent-monitored</span>
+        <span className="text-[11px]" style={{ color: "#9fb08f" }}>agent-monitored</span>
       </div>
 
       {/* Stats bar */}
       <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 text-[12px]">
         <span className="text-zinc-500">Opportunity value <span className="text-zinc-800">{totalValue}</span></span>
         <span className="text-zinc-500">Open opportunities <span className="text-zinc-800">{openDeals}</span></span>
-        <span className="text-zinc-500">Won this month <span className="text-emerald-600">£40k</span></span>
+        <span className="text-zinc-500">Won this month <span className="text-zinc-700">£40k</span></span>
       </div>
 
       {/* Live activity ticker */}
-      <div className="border-b border-black/[.05] bg-indigo-500/[.03] px-4 py-2 font-mono text-[11px] text-indigo-600">
+      <div className="border-b border-black/[.05] px-4 py-2 font-mono text-[11px]" style={{ background: "rgba(159,176,143,0.04)", color: "#9fb08f" }}>
         <AnimatePresence mode="wait">
           <motion.span
             key={activity}
@@ -1188,7 +1185,7 @@ function HeroPipelinePreview() {
             transition={{ duration: 0.3 }}
             className="inline-flex items-center gap-2"
           >
-            <span className="text-indigo-500">⚡</span>{activity}
+            <span>⚡</span>{activity}
           </motion.span>
         </AnimatePresence>
       </div>
@@ -1233,7 +1230,7 @@ function HeroPipelinePreview() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-[10px] text-zinc-400">{STAGE_AI_LABEL[d.stage]}</span>
-                        <span className="font-mono text-[11px] text-indigo-500">{d.val}</span>
+                        <span className="font-mono text-[11px]" style={{ color: "#9fb08f" }}>{d.val}</span>
                       </div>
                     </motion.div>
                   ))}
@@ -1674,17 +1671,18 @@ function InvoiceBoardPreview() {
         <motion.span
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity }}
-          className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-500"
+          className="ml-auto h-1.5 w-1.5 rounded-full"
+          style={{ background: "#a07164" }}
         />
-        <span className="text-[11px] text-emerald-600">tracked by Finance Agent</span>
+        <span className="text-[11px]" style={{ color: "#a07164" }}>tracked by Finance Agent</span>
       </div>
 
       <div className="flex items-center gap-6 border-b border-black/[.05] bg-black/[.015] px-4 py-2.5 font-mono text-[11px]">
         <span className="text-zinc-500">Open quotes <span className="text-zinc-800">{totalOpen}</span></span>
-        <span className="text-zinc-500">Paid this month <span className="text-emerald-600">£18.6k</span></span>
+        <span className="text-zinc-500">Paid this month <span className="text-zinc-700">£18.6k</span></span>
       </div>
 
-      <div className="border-b border-black/[.05] bg-emerald-500/[.04] px-4 py-2 font-mono text-[11px] text-emerald-700">
+      <div className="border-b border-black/[.05] px-4 py-2 font-mono text-[11px]" style={{ background: "rgba(160,113,100,0.04)", color: "#a07164" }}>
         <AnimatePresence mode="wait">
           <motion.span
             key={activity}
@@ -1694,7 +1692,7 @@ function InvoiceBoardPreview() {
             transition={{ duration: 0.3 }}
             className="inline-flex items-center gap-2"
           >
-            <span className="text-emerald-600">⚡</span>{activity}
+            <span>⚡</span>{activity}
           </motion.span>
         </AnimatePresence>
       </div>
@@ -1735,7 +1733,7 @@ function InvoiceBoardPreview() {
                         <span className="font-mono text-[10px] text-zinc-400">{d.ref}</span>
                       </div>
                       <div className="flex items-center justify-end">
-                        <span className="font-mono text-[11px] text-emerald-600">{d.amt}</span>
+                        <span className="font-mono text-[11px]" style={{ color: "#a07164" }}>{d.amt}</span>
                       </div>
                     </motion.div>
                   ))}
@@ -1763,7 +1761,7 @@ type SheetView = {
 
 const SHEET_VIEWS: SheetView[] = [
   {
-    name: "Opportunity flow", accent: "#4f46e5",
+    name: "Opportunity flow", accent: "#9fb08f",
     columns: [
       { key: "company", label: "Company", type: "text" },
       { key: "stage",   label: "Stage",    type: "badge" },
@@ -1788,7 +1786,7 @@ const SHEET_VIEWS: SheetView[] = [
     ],
   },
   {
-    name: "Finance — quotes", accent: "#059669",
+    name: "Finance — quotes", accent: "#a07164",
     columns: [
       { key: "company", label: "Company", type: "text" },
       { key: "ref",     label: "Quote",   type: "text" },
@@ -1812,7 +1810,7 @@ const SHEET_VIEWS: SheetView[] = [
     ],
   },
   {
-    name: "Relationship health", accent: "#d97706",
+    name: "Relationship health", accent: "#a68762",
     columns: [
       { key: "contact",  label: "Contact",    type: "text" },
       { key: "company",  label: "Company",    type: "text" },
@@ -1905,7 +1903,7 @@ function RecordsSheetPreview() {
   }, [view]);
 
   const cellClass = (id: string, col: string) =>
-    `px-3 py-2.5 text-[12px] transition-colors ${glowCell?.id === id && glowCell.col === col ? "bg-indigo-500/[.08]" : ""}`;
+    `px-3 py-2.5 text-[12px] transition-colors ${glowCell?.id === id && glowCell.col === col ? "cell-glow-active" : ""}`;
 
   return (
     <div
@@ -2008,7 +2006,7 @@ function RecordsSheetPreview() {
 function RecordsSheetSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-emerald-500">Records sheet</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#8fb3b0" }}>Records sheet</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         Your records, kept current automatically
       </h2>
@@ -2023,7 +2021,7 @@ function RecordsSheetSection() {
 function FinanceBoardSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-widest text-emerald-500">Finance</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#a07164" }}>Finance</p>
       <h2 className="mb-2 font-sans text-4xl font-semibold tracking-tight text-zinc-800">
         Invoices tracked to payment, automatically
       </h2>
@@ -2050,18 +2048,35 @@ function ProcessTabsSection() {
       <h2 className="mb-8 font-sans text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
         Four processes, one graph
       </h2>
-      <div className="mb-6 flex flex-wrap border-y border-black/[.06]">
-        {tabs.map((tab, i) => (
-          <button
-            key={tab.label}
-            onClick={() => setActive(i)}
-            className={`border-r border-black/[.06] px-4 py-3 text-left text-[13px] font-medium transition-colors ${
-              active === i ? "bg-black text-white" : "text-zinc-500 hover:text-zinc-900"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="mb-8 flex flex-wrap gap-2">
+        {tabs.map((tab, i) => {
+          const accents = ["#9fb08f", "#a68762", "#8fb3b0", "#a07164"];
+          const isActive = active === i;
+          return (
+            <button
+              key={tab.label}
+              onClick={() => setActive(i)}
+              style={isActive ? {
+                background: `${accents[i]}14`,
+                borderColor: `${accents[i]}50`,
+                color: accents[i],
+              } : {}}
+              className={`relative rounded-full border px-5 py-2 text-left text-[12px] font-medium uppercase tracking-[0.12em] transition-all ${
+                isActive
+                  ? "border-transparent"
+                  : "border-black/[.07] bg-transparent text-zinc-400 hover:border-black/[.14] hover:text-zinc-700"
+              }`}
+            >
+              {isActive && (
+                <span
+                  className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
+                  style={{ background: accents[i] }}
+                />
+              )}
+              <span className={isActive ? "pl-4" : ""}>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
       <AnimatePresence mode="wait">
         <motion.div
@@ -2081,49 +2096,49 @@ function ProcessTabsSection() {
 
 const AGENTS = [
   {
-    icon: "◈", name: "Graph Agent", accent: "#4f46e5", brush: "0deg",
+    icon: "◈", name: "Graph Agent", accent: "#9fb08f", brush: "0deg",
     desc: "The conversational interface to your workspace graph — creates and searches records, builds lists, sets up workflows, and answers questions in plain English.",
     watches: "Every record, conversation, and question asked of the graph",
     prepares: "Filtered lists, new records, draft workflows, and answers with sources attached",
     approval: "No approval needed to answer — sensitive actions still route to the Decision Queue",
   },
   {
-    icon: "◆", name: "Enrichment Agent", accent: "#7c3aed", brush: "-18deg",
+    icon: "◆", name: "Enrichment Agent", accent: "#8a8071", brush: "-18deg",
     desc: "Fires the moment a new record enters the graph — pulls ARR, headcount, funding, tech stack, and other public signals automatically from the web.",
     watches: "New records as they're created",
     prepares: "Firmographic and contact fields, sourced and attached to the record",
     approval: "Writes directly — no sensitive action, so no approval required",
   },
   {
-    icon: "♥", name: "Relationship Agent", accent: "#d97706", brush: "24deg",
+    icon: "♥", name: "Relationship Agent", accent: "#a68762", brush: "24deg",
     desc: "Scores every relationship daily based on contact recency, open loops, and recent activity across the graph.",
     watches: "Last-touch dates and open items across every relationship",
     prepares: "An updated relationship health score on each record",
     approval: "Writes directly — no sensitive action, so no approval required",
   },
   {
-    icon: "▲", name: "Finance Agent", accent: "#dc2626", brush: "48deg",
+    icon: "▲", name: "Finance Agent", accent: "#a07164", brush: "48deg",
     desc: "Watches invoices and credit notes across the graph, drafts the reminder or adjustment, and queues it for your approval before anything is sent.",
     watches: "Invoice due dates and credit note disputes",
     prepares: "Draft reminders and adjustments",
     approval: "Requires approval before anything is sent or applied",
   },
   {
-    icon: "▶", name: "Operations Agent", accent: "#059669", brush: "-42deg",
+    icon: "▶", name: "Operations Agent", accent: "#6f8068", brush: "-42deg",
     desc: "Tracks overdue and stalled work across the graph and queues a recommendation the moment something needs attention.",
     watches: "Task due dates, review status, and stalled work",
     prepares: "A recommendation in the Decision Queue, with the record attached",
     approval: "Requires approval before reassigning or rescheduling",
   },
   {
-    icon: "⚙", name: "Workflow Agent", accent: "#0891b2", brush: "72deg",
+    icon: "⚙", name: "Workflow Agent", accent: "#607078", brush: "72deg",
     desc: "Designs trigger → condition → action automations across the graph, no code required. Autonomous execution is coming online — today, a human reviews and runs each one.",
     watches: "Workflow definitions you design",
     prepares: "A runnable workflow draft",
     approval: "Always requires a human to review and run it today",
   },
   {
-    icon: "✦", name: "Prospecting Agent", accent: "#0ea5e9", brush: "-70deg",
+    icon: "✦", name: "Prospecting Agent", accent: "#8fb3b0", brush: "-70deg",
     desc: "Searches the live web for new candidates — people, organizations, investors, suppliers, or any record type your workspace tracks — and proposes them with a real source attached.",
     watches: "A query you give it, plus your existing graph for duplicates",
     prepares: "New candidate records, each with a source URL — never invented",
@@ -2200,19 +2215,19 @@ function AgentsSection() {
 // the landing page doesn't either. ──────────────────────────────────────
 const LIVE_SIGNALS = [
   {
-    text: "2 opportunities at risk", source: "Opportunity flow", accent: "#dc2626",
+    text: "2 opportunities at risk", source: "Opportunity flow", accent: "#a07164",
     action: "Review suggested",
   },
   {
-    text: "Follow-up drafted", source: "Emails", accent: "#4f46e5",
+    text: "Follow-up drafted", source: "Emails", accent: "#9fb08f",
     action: "Draft ready",
   },
   {
-    text: "Invoice likely overdue", source: "Finance", accent: "#d97706",
+    text: "Invoice likely overdue", source: "Finance", accent: "#a68762",
     action: "Reminder prepared",
   },
   {
-    text: "New record enriched", source: "Records", accent: "#059669",
+    text: "New record enriched", source: "Records", accent: "#8fb3b0",
     action: "Record updated",
   },
 ];

@@ -334,14 +334,18 @@ body {
   position: absolute;
   inset: -22%;
   z-index: -1;
-  opacity: 0.28;
+  opacity: 0.22;
   background:
-    radial-gradient(circle at 14% 88%, rgba(15, 92, 137, 0.88), transparent 34%),
-    radial-gradient(circle at 84% 16%, rgba(238, 83, 55, 0.78), transparent 32%),
-    radial-gradient(circle at 58% 50%, rgba(247, 184, 91, 0.42), transparent 28%),
-    linear-gradient(135deg, rgba(245, 239, 231, 0.85), rgba(198, 229, 234, 0.24));
+    radial-gradient(circle at 14% 88%, rgba(159, 176, 143, 0.9), transparent 36%),
+    radial-gradient(circle at 84% 16%, rgba(166, 135, 98, 0.8), transparent 34%),
+    radial-gradient(circle at 58% 50%, rgba(160, 113, 100, 0.5), transparent 30%),
+    linear-gradient(135deg, rgba(245, 240, 233, 0.9), rgba(143, 179, 176, 0.18));
   transform: rotate(var(--brush-rotate, -8deg)) scale(1.12);
-  filter: saturate(var(--brush-saturation, 0.88));
+  filter: saturate(var(--brush-saturation, 0.7));
+}
+
+.landing-shell .cell-glow-active {
+  background: rgba(159, 176, 143, 0.1) !important;
 }
 
 .landing-shell.dark .agent-brush::before,

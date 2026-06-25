@@ -241,19 +241,12 @@ export function HeroChat() {
 
           {/* Input pill */}
           <div className="landing-chat-pill mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 transition-colors focus-within:border-neutral-950">
-            <button
-              type="button"
-              aria-label="Add context"
-              className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-950 transition-opacity hover:opacity-70 dark:text-white"
-            >
-              <PlusIcon />
-            </button>
             <textarea
               ref={textareaRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}
-              placeholder="What do you want to know?"
+              placeholder="Ask anything about Mondaily…"
               rows={1}
               className="min-h-[30px] flex-1 resize-none bg-transparent py-1 text-[16px] leading-7 text-zinc-900 outline-none placeholder:text-zinc-500 dark:text-white dark:placeholder:text-zinc-500"
             />
