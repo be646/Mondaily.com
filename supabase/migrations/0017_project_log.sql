@@ -89,3 +89,4 @@ insert into project_log (kind, title, detail, category, status, sort_order, crea
   ('roadmap', 'Voice input for Ask Mondaily',
    'Enable the currently-disabled mic for spoken questions.',
    'future', 'todo', 33, now(), null);
+-- (created_at present on every row — all VALUES tuples are 8 columns)
