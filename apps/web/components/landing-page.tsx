@@ -419,39 +419,43 @@ function FeatureSection() {
       </div>
 
       {/* Integrations strip */}
-      <div className="mt-10 border-t border-black/[.05] pt-8 space-y-4">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400 w-28">Integrations</span>
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Gmail */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Gmail"><path fill="#EA4335" d="M6 8h36a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2Z"/><path fill="#fff" d="M4 10.5 24 26l20-15.5"/><path fill="#C5221F" d="M4 10.5V38l9-9-9-18.5Z"/><path fill="#FF4131" d="M44 10.5V38l-9-9 9-18.5Z"/><path fill="#FBBC04" d="M4 38h9V29L4 10.5V38Z"/><path fill="#34A853" d="M44 38h-9V29l9-18.5V38Z"/><path fill="#4285F4" d="M4 10.5 24 26l20-15.5H4Z"/></svg>
-            {/* Outlook */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Outlook"><rect width="48" height="48" rx="6" fill="#0072C6"/><rect x="4" y="4" width="20" height="40" rx="2" fill="#0078D4"/><path fill="#fff" d="M14 14a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 13a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z"/><path fill="#fff" d="M24 13h18a1 1 0 0 1 1 1v20a1 1 0 0 1-1 1H24v-3l13-8-13-8v-3Z"/></svg>
-            {/* Google Calendar */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Google Calendar"><rect x="5" y="5" width="38" height="38" rx="4" fill="#fff"/><rect x="5" y="5" width="38" height="11" rx="4" fill="#1A73E8"/><rect x="5" y="10" width="38" height="6" fill="#1A73E8"/><path fill="#1A73E8" d="M5 16h38v27a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V16Z"/><rect x="5" y="16" width="38" height="4" fill="#E8F0FE"/><text x="24" y="36" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="16" fill="#1A73E8">31</text><circle cx="14" cy="11" r="3" fill="#fff"/><circle cx="34" cy="11" r="3" fill="#fff"/></svg>
-            {/* Slack */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Slack"><path fill="#E01E5A" d="M18 6a4 4 0 0 0-4 4v4h8v-4a4 4 0 0 0-4-4Z"/><path fill="#E01E5A" d="M10 18H6a4 4 0 0 0 0 8h4v-8Z"/><path fill="#36C5F0" d="M30 42a4 4 0 0 0 4-4v-4h-8v4a4 4 0 0 0 4 4Z"/><path fill="#36C5F0" d="M38 30h4a4 4 0 0 0 0-8h-4v8Z"/><path fill="#2EB67D" d="M42 18h-4v8h4a4 4 0 0 0 0-8Z"/><path fill="#2EB67D" d="M30 6a4 4 0 0 0-4 4v8h8v-8a4 4 0 0 0-4-4Z"/><path fill="#ECB22E" d="M6 30h4v-8H6a4 4 0 0 0 0 8Z"/><path fill="#ECB22E" d="M18 42a4 4 0 0 0 4-4v-8h-8v8a4 4 0 0 0 4 4Z"/><rect x="14" y="18" width="8" height="8" rx="2" fill="#E01E5A"/><rect x="26" y="18" width="8" height="8" rx="2" fill="#36C5F0"/><rect x="14" y="22" width="8" height="8" rx="2" fill="#ECB22E"/><rect x="26" y="22" width="8" height="8" rx="2" fill="#2EB67D"/></svg>
-            {/* Zapier */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Zapier"><rect width="48" height="48" rx="10" fill="#FF4A00"/><path fill="#fff" d="M30.5 10.5H17.5l-4 13H24l-7 14 17.5-17H24l6.5-10Z"/></svg>
-            {/* Typeform */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Typeform"><rect width="48" height="48" rx="10" fill="#262627"/><text x="24" y="34" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="26" fill="#fff">T</text></svg>
-            {/* Segment */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Segment"><rect width="48" height="48" rx="10" fill="#52BD94"/><circle cx="24" cy="24" r="13" fill="none" stroke="#fff" strokeWidth="4"/><path d="M24 11v13h13" stroke="#fff" strokeWidth="4" strokeLinecap="round"/></svg>
-            {/* Mailchimp */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Mailchimp"><rect width="48" height="48" rx="10" fill="#FFE01B"/><path fill="#241C15" d="M24 8c-6 0-10 4-10 8 0 2 1 4 3 5-1 2-2 4-2 7 0 6 4 12 9 12s9-6 9-12c0-3-1-5-2-7 2-1 3-3 3-5 0-4-4-8-10-8Zm0 4c3 0 6 2 6 4s-3 4-6 4-6-2-6-4 3-4 6-4Z"/></svg>
-          </div>
+      <div className="mt-10 border-t border-black/[.05] pt-8 space-y-5">
+        {/* App integrations */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400 mr-1">Integrations ·</span>
+          {([
+            { name: "Gmail", bg: "#EA4335", icon: <path fill="white" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/> },
+            { name: "Outlook", bg: "#0078D4", icon: <><rect x="1" y="2" width="13" height="20" rx="2" fill="white" opacity="0.9"/><circle cx="7.5" cy="12" r="4" fill="#0078D4"/><rect x="14" y="5" width="10" height="14" rx="1" fill="white" opacity="0.7"/><path d="M14 7l5 5-5 5" fill="none" stroke="white" strokeWidth="1.5"/></> },
+            { name: "Google Calendar", bg: "#1A73E8", icon: <><rect x="2" y="3" width="20" height="18" rx="2" fill="white" opacity="0.15" stroke="white" strokeWidth="1.5"/><rect x="2" y="3" width="20" height="6" rx="2" fill="white" opacity="0.3"/><text x="12" y="18" textAnchor="middle" fontFamily="Arial" fontWeight="800" fontSize="9" fill="white">31</text><line x1="7" y1="1" x2="7" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/><line x1="17" y1="1" x2="17" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></> },
+            { name: "Slack", bg: "#4A154B", icon: <path fill="white" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.123 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.166 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.166 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/> },
+            { name: "Zapier", bg: "#FF4A00", icon: <path fill="white" d="M13.617 11.997l5.247-5.248H19v-.003l.003.003L24 6.745v-4.49L19.008 2.25 13.753 7.5H13.5L10.24 7.49 15.75 2H11.25L6 7.5h-.247L.003 2.253 0 2.25v4.49l5 .009v.001h.247L0 12v4.5l5.25-.001L10.5 12h.253v.003L5.25 17.49v.003h-.003L.003 17.502 0 17.5V22l5.25.001L10.5 16.5h.253l3.255.009-5.508 5.509v-.001L8.25 22h4.5l5.25-5.5h.247l4.998.009.005-.009V22h.75v-4.5l-5.25-.009V17.49l5.25-5.49V7.5l-5.25 4.497h-.135Z"/> },
+            { name: "Typeform", bg: "#262627", icon: <><line x1="4" y1="5" x2="20" y2="5" stroke="white" strokeWidth="2.5" strokeLinecap="round"/><line x1="12" y1="5" x2="12" y2="19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/></> },
+            { name: "Segment", bg: "#52BD94", icon: <path fill="white" d="M22 11h-1.032A9.004 9.004 0 0 0 13 3.032V2h-2v1.032A9.004 9.004 0 0 0 3.032 11H2v2h1.032A9.004 9.004 0 0 0 11 20.968V22h2v-1.032A9.004 9.004 0 0 0 20.968 13H22v-2zm-9 8a7 7 0 1 1 0-14 7 7 0 0 1 0 14zm4-8H13V7h-2v4H7v2h4v4h2v-4h4v-2z"/> },
+            { name: "Mailchimp", bg: "#FFE01B", icon: <path fill="#241C15" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2a7.2 7.2 0 0 1-6-3.22c.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08a7.2 7.2 0 0 1-6 3.22z"/> },
+          ] as { name: string; bg: string; icon: React.ReactNode }[]).map(item => (
+            <div
+              key={item.name}
+              aria-label={item.name}
+              title={item.name}
+              className="flex items-center justify-center shrink-0"
+              style={{ width: 36, height: 36, borderRadius: 9, background: item.bg }}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18">{item.icon}</svg>
+            </div>
+          ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400 w-28">For developers</span>
-          <div className="flex flex-wrap items-center gap-4">
-            {/* REST API */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="REST API"><rect width="48" height="48" rx="10" fill="#3D3D3D"/><text x="24" y="30" textAnchor="middle" fontFamily="monospace" fontWeight="700" fontSize="11" fill="#fff">API</text></svg>
-            {/* Webhooks */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="Webhooks"><rect width="48" height="48" rx="10" fill="#6366F1"/><circle cx="24" cy="24" r="5" fill="#fff"/><circle cx="24" cy="24" r="10" fill="none" stroke="#fff" strokeWidth="2.5" opacity="0.5"/><circle cx="24" cy="24" r="16" fill="none" stroke="#fff" strokeWidth="2" opacity="0.25"/></svg>
-            {/* MCP / Claude */}
-            <svg width="22" height="22" viewBox="0 0 48 48" aria-label="MCP Server"><rect width="48" height="48" rx="10" fill="#CC785C"/><path fill="#fff" d="M24 10c-7.7 0-14 6.3-14 14 0 5.1 2.7 9.5 6.8 12L14 38l7.5-2.3c.8.2 1.6.3 2.5.3 7.7 0 14-6.3 14-14S31.7 10 24 10Z"/></svg>
-          </div>
+        {/* Developer tools */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400 mr-1">For developers ·</span>
+          {["REST API", "Webhooks", "MCP Server"].map(label => (
+            <span
+              key={label}
+              className="rounded-full border border-black/[.08] px-3 py-1 text-[11.5px] font-medium text-zinc-600"
+            >
+              {label}
+            </span>
+          ))}
         </div>
       </div>
     </section>
