@@ -123,4 +123,65 @@ router.get("/", async (c) => {
   });
 });
 
+/**
+ * Project log — the live, DB-backed record powering the Status page's
+ * "Recent updates" (kind='update') and "What's next" (kind='roadmap')
+ * sections. Replaces the previously hardcoded arrays so what we've done and
+ * what's left is always current. Table created in migration 0017.
+ */
+interface ProjectLogRow {
+  id: string; kind: "update" | "roadmap"; title: string; detail: string | null;
+  category: string | null; status: string; sort_order: number;
+  created_at: string; completed_at: string | null;
+}
+
+router.get("/log", async (c) => {
+  const { data, error } = await supabase
+    .from("project_log")
+    .select("id,kind,title,detail,category,status,sort_order,created_at,completed_at")
+    .order("sort_order", { ascending: true });
+  // Table may not exist yet (migration 0017 not applied) — report that
+  // honestly rather than 500ing, so the page can show a setup hint.
+  if (error) return c.json({ available: false, reason: error.message, updates: [], roadmap: [] });
+  const rows = (data ?? []) as ProjectLogRow[];
+  return c.json({
+    available: true,
+    updates: rows.filter(r => r.kind === "update"),
+    roadmap: rows.filter(r => r.kind === "roadmap"),
+  });
+});
+
+router.post("/log", async (c) => {
+  const body = await c.req.json().catch(() => ({})) as Partial<ProjectLogRow>;
+  if (!body.kind || !body.title || !body.status) {
+    return c.json({ error: "kind, title and status are required" }, 400);
+  }
+  const { data, error } = await supabase.from("project_log").insert({
+    kind: body.kind, title: body.title, detail: body.detail ?? null,
+    category: body.category ?? null, status: body.status,
+    sort_order: body.sort_order ?? 0,
+    completed_at: body.status === "shipped" || body.status === "done" ? new Date().toISOString() : null,
+  }).select("id").single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ id: data?.id, created: true });
+});
+
+router.patch("/log/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => ({})) as Partial<ProjectLogRow>;
+  const patch: Record<string, unknown> = {};
+  if (body.status !== undefined) {
+    patch.status = body.status;
+    patch.completed_at = (body.status === "shipped" || body.status === "done") ? new Date().toISOString() : null;
+  }
+  if (body.title !== undefined) patch.title = body.title;
+  if (body.detail !== undefined) patch.detail = body.detail;
+  if (body.category !== undefined) patch.category = body.category;
+  if (body.sort_order !== undefined) patch.sort_order = body.sort_order;
+  if (Object.keys(patch).length === 0) return c.json({ error: "no fields to update" }, 400);
+  const { error } = await supabase.from("project_log").update(patch).eq("id", id);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ updated: true });
+});
+
 export { router as statusRouter };

@@ -76831,6 +76831,50 @@ router36.get("/", async (c2) => {
     migrations
   });
 });
+router36.get("/log", async (c2) => {
+  const { data, error } = await supabase.from("project_log").select("id,kind,title,detail,category,status,sort_order,created_at,completed_at").order("sort_order", { ascending: true });
+  if (error) return c2.json({ available: false, reason: error.message, updates: [], roadmap: [] });
+  const rows2 = data ?? [];
+  return c2.json({
+    available: true,
+    updates: rows2.filter((r2) => r2.kind === "update"),
+    roadmap: rows2.filter((r2) => r2.kind === "roadmap")
+  });
+});
+router36.post("/log", async (c2) => {
+  const body = await c2.req.json().catch(() => ({}));
+  if (!body.kind || !body.title || !body.status) {
+    return c2.json({ error: "kind, title and status are required" }, 400);
+  }
+  const { data, error } = await supabase.from("project_log").insert({
+    kind: body.kind,
+    title: body.title,
+    detail: body.detail ?? null,
+    category: body.category ?? null,
+    status: body.status,
+    sort_order: body.sort_order ?? 0,
+    completed_at: body.status === "shipped" || body.status === "done" ? (/* @__PURE__ */ new Date()).toISOString() : null
+  }).select("id").single();
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ id: data?.id, created: true });
+});
+router36.patch("/log/:id", async (c2) => {
+  const id = c2.req.param("id");
+  const body = await c2.req.json().catch(() => ({}));
+  const patch = {};
+  if (body.status !== void 0) {
+    patch.status = body.status;
+    patch.completed_at = body.status === "shipped" || body.status === "done" ? (/* @__PURE__ */ new Date()).toISOString() : null;
+  }
+  if (body.title !== void 0) patch.title = body.title;
+  if (body.detail !== void 0) patch.detail = body.detail;
+  if (body.category !== void 0) patch.category = body.category;
+  if (body.sort_order !== void 0) patch.sort_order = body.sort_order;
+  if (Object.keys(patch).length === 0) return c2.json({ error: "no fields to update" }, 400);
+  const { error } = await supabase.from("project_log").update(patch).eq("id", id);
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ updated: true });
+});
 
 // src/routes/workspaces.ts
 var router37 = new Hono2();

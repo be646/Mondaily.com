@@ -6,12 +6,11 @@ import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 /**
  * Workspace Status — the honest "what's real today" page. Live System
  * Status and Migrations come from a real backend probe (GET
- * /api/v1/status, packages/api/src/routes/status.ts). The Feature
- * Reality Matrix, Agent Capability Board, Recent Updates, and What's
- * Next sections are code-backed (written from this codebase's actual
- * routes/jobs as of this change) rather than live-queried, because there
- * is no feature-flag registry or version-metadata endpoint to read from
- * yet — that limitation is stated on the page itself, not hidden.
+ * /api/v1/status). Recent Updates and What's Next are now LIVE and
+ * DB-backed (GET /api/v1/status/log, table project_log from migration
+ * 0017) — a persistent record of what shipped and what's left, updated as
+ * work lands. The Feature Reality Matrix and Agent Capability Board remain
+ * code-backed snapshots audited as part of their change.
  */
 
 type CheckState = "operational" | "needs_setup" | "disabled" | "error" | "not_checked";
@@ -66,15 +65,30 @@ const FEATURES: FeatureRow[] = [
   { feature: "Billing checkout/portal", status: "not_built", inApp: true, backendReady: false, needsSetup: true, notes: "Frontend links exist; no /api/v1/billing/portal or /checkout route exists in the API yet — these will 404." },
 ];
 
-// ── Recent Updates — manual log. No git/version-metadata endpoint exists
-// yet to auto-populate this; that's a real gap, not hidden. ─────────────
-interface UpdateEntry { date: string; title: string; area: string; impact: string; status: "shipped" | "pending_deploy" | "needs_migration" | "needs_setup"; }
-const UPDATES: UpdateEntry[] = [
-  { date: "2026-06-21", title: "Home rebuilt as an AI control room", area: "Home, Agent Constellation, Command Center", impact: "Radial agent map, unified attention stream, command-room band replace the old card-grid dashboard.", status: "shipped" },
-  { date: "2026-06-21", title: "Prospecting Agent shipped", area: "packages/api/src/routes/prospecting.ts, Ask tool, Lists, Records table", impact: "Web-search-backed candidate discovery with dedupe and Decision Queue approval.", status: "shipped" },
-  { date: "2026-06-21", title: "Landing positioning + dead-link cleanup", area: "apps/web landing page, footer pages, API URL bugs", impact: "Removed CRM-first framing and fake AI-score language; fixed billing/integration buttons pointing at the wrong domain.", status: "shipped" },
-  { date: "2026-06-19", title: "Decision Queue + Agent Registry", area: "decision_queue table, /api/v1/agents, /api/v1/decisions", impact: "Real approve/reject/snooze flow backing every agent's \"needs approval\" state.", status: "shipped" },
+// ── Project log — live, DB-backed. Recent updates (kind='update') and
+// What's next (kind='roadmap') are read from GET /api/v1/status/log so the
+// record of what shipped and what's left is always current, never hardcoded. ──
+interface ProjectLogEntry {
+  id: string; kind: "update" | "roadmap"; title: string; detail: string | null;
+  category: string | null; status: string; sort_order: number;
+  created_at: string; completed_at: string | null;
+}
+interface ProjectLogResponse { available: boolean; reason?: string; updates: ProjectLogEntry[]; roadmap: ProjectLogEntry[]; }
+
+const ROADMAP_TIERS: { key: string; label: string; tone: string }[] = [
+  { key: "must_fix", label: "Must fix before clients", tone: "#dc2626" },
+  { key: "should_improve", label: "Should improve", tone: "#d97706" },
+  { key: "future", label: "Future AI-native upgrades", tone: "#8b5cf6" },
 ];
+
+function useProjectLog() {
+  return useQuery({
+    queryKey: ["status-log"],
+    queryFn: () => apiClient.get<ProjectLogResponse>("/status/log"),
+    refetchInterval: 60_000,
+    retry: false,
+  });
+}
 
 // ── Agent Capability Board — code-backed against packages/api/src/jobs
 // and packages/api/src/routes/agents.ts as of this change. ──────────────
@@ -91,24 +105,6 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
   { name: "Prospecting Agent", canRead: "The live web (Tavily) + existing workspace nodes for dedupe", canWrite: "New nodes or Decision Queue rows", autonomous: true, requiresApproval: true, sourcesEvidence: true, limitations: "Every candidate requires a real source URL — drops anything it can't trace back to a search result." },
 ];
 
-// ── What's next — prioritized, code-backed roadmap. ──────────────────────
-const ROADMAP: { tier: string; tone: string; items: string[] }[] = [
-  { tier: "Must fix before clients", tone: "#dc2626", items: [
-    "Build /api/v1/billing/portal and /checkout — the billing UI currently links to routes that don't exist.",
-    "Decide and communicate Inngest's production signing-key setup so background jobs are confirmed running, not just registered.",
-  ] },
-  { tier: "Should improve", tone: "#d97706", items: [
-    "Re-enrichment on demand, not just on record creation.",
-    "Auto-detect Recent Updates from deploy/commit metadata instead of a manual log.",
-    "MCP server for third-party AI clients.",
-  ] },
-  { tier: "Future AI-native upgrades", tone: "#8b5cf6", items: [
-    "Real trigger→condition→action execution engine for the Workflow Agent.",
-    "Deal-stage-triggered quote drafting (Finance Agent).",
-    "Voice input for Ask Mondaily.",
-  ] },
-];
-
 function useStatus() {
   return useQuery({
     queryKey: ["status"],
@@ -120,6 +116,9 @@ function useStatus() {
 
 export function StatusPage() {
   const { data, isLoading, isError, error } = useStatus();
+  const { data: log } = useProjectLog();
+  const updates = log?.updates ?? [];
+  const logUnavailable = log && !log.available;
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
@@ -191,30 +190,38 @@ export function StatusPage() {
         </div>
       </section>
 
-      {/* ── 3. Recent Updates ── */}
+      {/* ── 3. Recent Updates (live, DB-backed) ── */}
       <section className="mb-10">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Recent updates</h2>
-          <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Manual log — no git/version-metadata endpoint exists yet</span>
+          <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Live log · refreshes every 60s</span>
         </div>
-        <div className="surface-card rounded-2xl">
-          {UPDATES.map((u, i) => (
-            <div key={i} className="stream-row">
-              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
-                <Sparkles size={11} style={{ color: "var(--accent)" }}/>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{u.title}</p>
-                  <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{u.date}</span>
-                  <span className="rounded-full px-1.5 py-px text-[9.5px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{u.status.replace("_", " ")}</span>
+        {logUnavailable ? (
+          <div className="surface-card rounded-2xl p-4 text-[12px]" style={{ color: "var(--text-faint)" }}>
+            Project log table not found — run migration <code>0017_project_log.sql</code> in Supabase to enable the live log.
+          </div>
+        ) : updates.length === 0 ? (
+          <div className="skeleton-shimmer h-28 rounded-2xl"/>
+        ) : (
+          <div className="surface-card rounded-2xl">
+            {updates.map((u) => (
+              <div key={u.id} className="stream-row">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
+                  <Sparkles size={11} style={{ color: "var(--accent)" }}/>
                 </div>
-                <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{u.impact}</p>
-                <p className="mt-0.5 text-[10px]" style={{ color: "var(--text-faint)" }}>{u.area}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{u.title}</p>
+                    <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{new Date(u.completed_at ?? u.created_at).toLocaleDateString()}</span>
+                    <span className="rounded-full px-1.5 py-px text-[9.5px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{u.status.replace("_", " ")}</span>
+                  </div>
+                  {u.detail && <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{u.detail}</p>}
+                  {u.category && <p className="mt-0.5 text-[10px]" style={{ color: "var(--text-faint)" }}>{u.category}</p>}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ── 4. Migrations & Setup Required ── */}
@@ -267,26 +274,43 @@ export function StatusPage() {
         </div>
       </section>
 
-      {/* ── 6. What's next ── */}
+      {/* ── 6. What's next (live, DB-backed) ── */}
       <section>
-        <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>What's next</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>What's next</h2>
+          <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Live roadmap · {(log?.roadmap ?? []).filter(r => r.status === "done").length} done · {(log?.roadmap ?? []).filter(r => r.status !== "done").length} open</span>
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          {ROADMAP.map(col => (
-            <div key={col.tier} className="surface-card rounded-2xl p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <StatusDot color={col.tone}/>
-                <p className="text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{col.tier}</p>
+          {ROADMAP_TIERS.map(tier => {
+            const items = (log?.roadmap ?? []).filter(r => r.category === tier.key);
+            return (
+              <div key={tier.key} className="surface-card rounded-2xl p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <StatusDot color={tier.tone}/>
+                  <p className="text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{tier.label}</p>
+                </div>
+                <ul className="space-y-2">
+                  {items.length === 0 && <li className="text-[11px]" style={{ color: "var(--text-faint)" }}>Nothing here.</li>}
+                  {items.map(item => {
+                    const done = item.status === "done";
+                    return (
+                      <li key={item.id} className="flex items-start gap-1.5 text-[11.5px]">
+                        {done
+                          ? <CheckCircle2 size={12} className="mt-0.5 shrink-0" style={{ color: "#10b981" }}/>
+                          : item.status === "in_progress"
+                            ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: "#d97706" }}/>
+                            : <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>}
+                        <div className="min-w-0">
+                          <span style={{ color: done ? "var(--text-faint)" : "var(--text-primary)", textDecoration: done ? "line-through" : "none" }}>{item.title}</span>
+                          {item.detail && <span className="block text-[10px]" style={{ color: "var(--text-faint)" }}>{item.detail}</span>}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-              <ul className="space-y-1.5">
-                {col.items.map(item => (
-                  <li key={item} className="flex items-start gap-1.5 text-[11.5px]" style={{ color: "var(--text-secondary)" }}>
-                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>
