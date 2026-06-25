@@ -8,16 +8,20 @@
  *
  *   AI_AGENT_MODEL    = same format — overrides AI_PROVIDER_MODEL for the
  *                       multi-round agentic loop (aiGatewayAgent) only.
- *                       Falls back to AI_PROVIDER_MODEL if not set.
+ *                       Falls back to AI_PROVIDER_MODEL → Anthropic default.
  *
- * For the "openai-compat" route, set:
+ * For the "openai-compat" route:
  *   AI_GATEWAY_BASE_URL  e.g. "https://api.fireworks.ai/inference/v1"
  *   AI_GATEWAY_API_KEY   your key for that provider
  *
  * Three exported functions:
  *   aiGateway        — plain text generation (no tools)
  *   aiGatewayToolUse — single-tool structured extraction
- *   aiGatewayAgent   — multi-round agentic loop with tool callbacks
+ *   aiGatewayAgent   — multi-round agentic loop with automatic provider fallback
+ *
+ * Fallback chain for aiGatewayAgent:
+ *   primary spec → if openai-compat fails + ANTHROPIC_API_KEY present → Anthropic haiku
+ *   → if all fail → graceful reply string (never throws to caller)
  */
 
 import { generateText } from "ai";
@@ -65,17 +69,24 @@ function resolveModel(spec?: string): ResolvedModel {
     return { type: "openai-compat", modelId: s.slice("openai-compat/".length) };
   }
 
-  const modelId = s.startsWith("anthropic/")
-    ? s.slice("anthropic/".length)
-    : s;
-
+  const modelId = s.startsWith("anthropic/") ? s.slice("anthropic/".length) : s;
   return { type: "anthropic", modelId: modelId || "claude-haiku-4-5-20251001" };
 }
 
 function openAIClient(): OpenAI {
+  const baseURL = process.env.AI_GATEWAY_BASE_URL;
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+
+  if (!baseURL) {
+    console.error("[gateway] AI_GATEWAY_BASE_URL is not set — openai-compat calls will fail");
+  }
+  if (!apiKey) {
+    console.error("[gateway] AI_GATEWAY_API_KEY is not set — openai-compat calls will fail");
+  }
+
   return new OpenAI({
-    baseURL: process.env.AI_GATEWAY_BASE_URL,
-    apiKey: process.env.AI_GATEWAY_API_KEY ?? "none",
+    baseURL: baseURL ?? "https://api.openai.com/v1",
+    apiKey: apiKey ?? "missing-key",
   });
 }
 
@@ -95,7 +106,6 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
     return { text, provider: "anthropic", model: resolved.modelId };
   }
 
-  // OpenAI-compatible route — Groq (Llama 3.3), Together, Ollama, etc.
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: req.system });
   messages.push({ role: "user", content: req.prompt });
@@ -111,12 +121,6 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
 
 // ── Structured tool-use extraction ─────────────────────────────────────────────
 
-/**
- * Single-tool structured extraction. Equivalent to calling Claude with
- * `tool_choice: { type: "tool", name }` or OpenAI with `function_call`.
- *
- * Returns the raw tool input object (no null-filtering — callers handle that).
- */
 export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<string, unknown>> {
   const resolved = resolveModel();
 
@@ -147,7 +151,6 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
     return data.content?.find(b => b.type === "tool_use")?.input ?? {};
   }
 
-  // OpenAI-compatible route — function calling
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: req.system });
   messages.push({ role: "user", content: req.prompt });
@@ -199,79 +202,93 @@ export type AgentResponse = {
   rounds: number;
 };
 
-/**
- * Multi-round agentic loop. Handles tool execution via the onToolCall callback
- * and feeds results back until the model stops calling tools or maxRounds is reached.
- *
- * Model priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → default
- */
-export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> {
-  const spec = req.model
-    ?? process.env.AI_AGENT_MODEL
-    ?? process.env.AI_PROVIDER_MODEL
-    ?? "anthropic/claude-haiku-4-5-20251001";
+// ── Internal: Anthropic multi-round loop ────────────────────────────────────────
 
-  const resolved = resolveModel(spec);
-  console.log(`[aiGatewayAgent] provider=${resolved.type} model=${resolved.modelId} baseURL=${process.env.AI_GATEWAY_BASE_URL ?? "n/a"}`);
-  const MAX_ROUNDS = req.maxRounds ?? 5;
+async function runAnthropicAgent(
+  modelId: string,
+  req: AgentRequest,
+  maxRounds: number,
+): Promise<AgentResponse> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+
+  const messages: unknown[] = [...req.messages];
   let reply = "";
   let rounds = 0;
 
-  // ── Anthropic path ────────────────────────────────────────────────────────────
-  if (resolved.type === "anthropic") {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
+  for (let round = 0; round < maxRounds; round++) {
+    rounds = round + 1;
+    console.log(`[gateway:anthropic] round=${round + 1} model=${modelId}`);
 
-    const messages: unknown[] = [...req.messages];
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: modelId,
+        max_tokens: req.maxTokens ?? 2048,
+        system: req.system,
+        tools: req.tools,
+        messages,
+      }),
+    });
 
-    for (let round = 0; round < MAX_ROUNDS; round++) {
-      rounds = round + 1;
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: resolved.modelId,
-          max_tokens: req.maxTokens ?? 2048,
-          system: req.system,
-          tools: req.tools,
-          messages,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`Anthropic agent error: ${await res.text()}`);
-
-      const data = await res.json() as {
-        stop_reason: string;
-        content: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
-      };
-
-      const textBlocks = data.content.filter(b => b.type === "text").map(b => b.text ?? "");
-      if (textBlocks.length) reply = textBlocks.join("\n");
-
-      if (data.stop_reason !== "tool_use") break;
-
-      const toolBlocks = data.content.filter(b => b.type === "tool_use");
-      if (!toolBlocks.length) break;
-
-      messages.push({ role: "assistant", content: data.content });
-
-      const toolResults: unknown[] = [];
-      for (const tb of toolBlocks) {
-        const result = await req.onToolCall(tb.name!, tb.input ?? {});
-        toolResults.push({ type: "tool_result", tool_use_id: tb.id!, content: result });
-      }
-
-      messages.push({ role: "user", content: toolResults });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`[gateway:anthropic] HTTP ${res.status}:`, body);
+      throw new Error(`Anthropic HTTP ${res.status}: ${body}`);
     }
 
-    return { reply, provider: "anthropic", model: resolved.modelId, rounds };
+    const data = await res.json() as {
+      stop_reason: string;
+      content: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
+    };
+
+    const textBlocks = data.content.filter(b => b.type === "text").map(b => b.text ?? "");
+    if (textBlocks.length) reply = textBlocks.join("\n");
+
+    if (data.stop_reason !== "tool_use") break;
+
+    const toolBlocks = data.content.filter(b => b.type === "tool_use");
+    if (!toolBlocks.length) break;
+
+    messages.push({ role: "assistant", content: data.content });
+
+    const toolResults: unknown[] = [];
+    for (const tb of toolBlocks) {
+      console.log(`[gateway:anthropic] tool_call name=${tb.name}`);
+      const result = await req.onToolCall(tb.name!, tb.input ?? {});
+      toolResults.push({ type: "tool_result", tool_use_id: tb.id!, content: result });
+    }
+
+    messages.push({ role: "user", content: toolResults });
   }
 
-  // ── OpenAI-compatible path ────────────────────────────────────────────────────
+  return { reply, provider: "anthropic", model: modelId, rounds };
+}
+
+// ── Internal: OpenAI-compat multi-round loop ────────────────────────────────────
+
+async function runOpenAICompatAgent(
+  modelId: string,
+  req: AgentRequest,
+  maxRounds: number,
+): Promise<AgentResponse> {
+  const baseURL = process.env.AI_GATEWAY_BASE_URL;
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
+
+  if (!baseURL || !apiKey) {
+    throw new Error(
+      `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY — ` +
+      `baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`,
+    );
+  }
+
+  const client = new OpenAI({ baseURL, apiKey });
+
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
     function: { name: t.name, description: t.description, parameters: t.input_schema },
@@ -285,20 +302,27 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
     })),
   ];
 
-  for (let round = 0; round < MAX_ROUNDS; round++) {
+  let reply = "";
+  let rounds = 0;
+
+  for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
+    console.log(`[gateway:openai-compat] round=${round + 1} model=${modelId} baseURL=${baseURL}`);
+
     let completion: OpenAI.Chat.ChatCompletion;
     try {
-      completion = await openAIClient().chat.completions.create({
-        model: resolved.modelId,
+      completion = await client.chat.completions.create({
+        model: modelId,
         max_tokens: req.maxTokens ?? 2048,
         messages,
         tools: openaiTools,
         tool_choice: "auto",
       });
     } catch (e: any) {
-      console.error(`[aiGatewayAgent] openai-compat error:`, e?.status, e?.message, e?.error);
-      throw new Error(`Fireworks error ${e?.status ?? ""}: ${e?.message ?? e}`);
+      const status = e?.status ?? e?.code ?? "unknown";
+      const msg = e?.message ?? String(e);
+      console.error(`[gateway:openai-compat] request failed status=${status} model=${modelId} baseURL=${baseURL} error="${msg}"`);
+      throw new Error(`openai-compat HTTP ${status}: ${msg}`);
     }
 
     const choice = completion.choices[0];
@@ -314,10 +338,65 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
     for (const toolCall of choice.message.tool_calls) {
       let args: Record<string, unknown> = {};
       try { args = JSON.parse(toolCall.function.arguments) as Record<string, unknown>; } catch {}
+      console.log(`[gateway:openai-compat] tool_call name=${toolCall.function.name}`);
       const result = await req.onToolCall(toolCall.function.name, args);
       messages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
     }
   }
 
-  return { reply, provider: "openai-compat", model: resolved.modelId, rounds };
+  return { reply, provider: "openai-compat", model: modelId, rounds };
+}
+
+// ── Public: aiGatewayAgent ──────────────────────────────────────────────────────
+
+/**
+ * Multi-round agentic loop with automatic provider fallback.
+ *
+ * Priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → anthropic default
+ *
+ * Fallback chain:
+ *   1. Primary provider (resolved from spec above)
+ *   2. If primary is openai-compat and fails → Anthropic haiku (if ANTHROPIC_API_KEY set)
+ *   3. If all fail → returns graceful reply, never throws
+ */
+export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> {
+  const spec = req.model
+    ?? process.env.AI_AGENT_MODEL
+    ?? process.env.AI_PROVIDER_MODEL
+    ?? "anthropic/claude-haiku-4-5-20251001";
+
+  const resolved = resolveModel(spec);
+  const MAX_ROUNDS = req.maxRounds ?? 5;
+
+  console.log(`[gateway:agent] spec="${spec}" provider=${resolved.type} model=${resolved.modelId}`);
+
+  // ── Primary attempt ───────────────────────────────────────────────────────────
+  try {
+    if (resolved.type === "anthropic") {
+      return await runAnthropicAgent(resolved.modelId, req, MAX_ROUNDS);
+    }
+    return await runOpenAICompatAgent(resolved.modelId, req, MAX_ROUNDS);
+  } catch (primaryErr: any) {
+    console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
+
+    // ── Fallback: openai-compat failed → try Anthropic if key is available ──────
+    if (resolved.type === "openai-compat" && process.env.ANTHROPIC_API_KEY) {
+      const fallbackModel = "claude-haiku-4-5-20251001";
+      console.log(`[gateway:agent] falling back to Anthropic ${fallbackModel}`);
+      try {
+        return await runAnthropicAgent(fallbackModel, req, MAX_ROUNDS);
+      } catch (fallbackErr: any) {
+        console.error(`[gateway:agent] Anthropic fallback also failed: ${fallbackErr?.message}`);
+      }
+    }
+
+    // ── All providers failed — return graceful reply (never throw to caller) ─────
+    console.error(`[gateway:agent] all providers exhausted — returning graceful reply`);
+    return {
+      reply: "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
+      provider: "none",
+      model: "none",
+      rounds: 0,
+    };
+  }
 }
