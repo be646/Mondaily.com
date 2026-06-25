@@ -69700,6 +69700,10 @@ function resolveModel(spec) {
 function getAnthropicKey() {
   return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || void 0;
 }
+function redactSecrets(text2) {
+  if (!text2) return text2;
+  return text2.replace(/\b(?:sk|pk|rk)[-_](?:live|test)?_?[A-Za-z0-9]{16,}\b/g, "[REDACTED_KEY]").replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]").replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]").replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "Bearer [REDACTED_TOKEN]").replace(/\b(?:\d[ -]?){13,16}\b/g, (m2) => /^\d{13,16}$/.test(m2.replace(/[ -]/g, "")) ? "[REDACTED_CARD]" : m2).replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
+}
 var PROVIDER_FALLBACK_MODELS = [
   "accounts/fireworks/models/llama-v3p3-70b-instruct",
   "accounts/fireworks/models/llama-v3p1-70b-instruct",
@@ -69733,8 +69737,8 @@ async function aiGateway(req) {
     return { text: text3, provider: "anthropic", model: resolved.modelId };
   }
   const messages = [];
-  if (req.system) messages.push({ role: "system", content: req.system });
-  messages.push({ role: "user", content: req.prompt });
+  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
+  messages.push({ role: "user", content: redactSecrets(req.prompt) });
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
     // Reasoning models (e.g. gpt-oss) spend tokens "thinking" before emitting
@@ -69854,10 +69858,10 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
   }));
   const messages = [
-    { role: "system", content: req.system },
+    { role: "system", content: redactSecrets(req.system) },
     ...req.messages.map((m2) => ({
       role: m2.role,
-      content: typeof m2.content === "string" ? m2.content : JSON.stringify(m2.content)
+      content: redactSecrets(typeof m2.content === "string" ? m2.content : JSON.stringify(m2.content))
     }))
   ];
   let reply = "";
@@ -69905,7 +69909,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       }
       console.log(`[gateway:openai-compat] tool_call name=${toolCall.function.name}`);
       const result = await req.onToolCall(toolCall.function.name, args);
-      messages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+      messages.push({ role: "tool", tool_call_id: toolCall.id, content: redactSecrets(result) });
     }
   }
   if (!reply) {
@@ -72397,6 +72401,44 @@ ${results}` : "";
     return "";
   }
 }
+function validateToolCall(name17, input) {
+  const tool = TOOLS.find((t2) => t2.name === name17);
+  if (!tool) {
+    return `Error: "${name17}" is not a real tool. Available tools: ${TOOLS.map((t2) => t2.name).join(", ")}. Call one of these exactly, or answer directly without a tool.`;
+  }
+  if (input == null || typeof input !== "object" || Array.isArray(input)) {
+    return `Error: arguments for "${name17}" must be a JSON object.`;
+  }
+  const schema = tool.input_schema;
+  const props = schema.properties ?? {};
+  for (const r2 of schema.required ?? []) {
+    if (input[r2] === void 0 || input[r2] === null || input[r2] === "") {
+      return `Error: tool "${name17}" requires "${r2}". Add it and call "${name17}" again.`;
+    }
+  }
+  for (const [k2, v2] of Object.entries(input)) {
+    const spec = props[k2];
+    if (!spec || v2 === void 0 || v2 === null) continue;
+    const expected = spec.type;
+    const actual = Array.isArray(v2) ? "array" : typeof v2;
+    if (expected === "number" && !(actual === "number" || actual === "string" && v2 !== "" && !isNaN(Number(v2)))) {
+      return `Error: "${k2}" for "${name17}" must be a number (got ${actual}).`;
+    }
+    if (expected === "boolean" && actual !== "boolean") {
+      return `Error: "${k2}" for "${name17}" must be true or false (got ${actual}).`;
+    }
+    if (expected === "array" && actual !== "array") {
+      return `Error: "${k2}" for "${name17}" must be an array (got ${actual}).`;
+    }
+    if (expected === "string" && actual !== "string") {
+      return `Error: "${k2}" for "${name17}" must be a string (got ${actual}).`;
+    }
+    if (Array.isArray(spec.enum) && !spec.enum.includes(v2)) {
+      return `Error: "${k2}" for "${name17}" must be one of: ${spec.enum.join(", ")} (got "${v2}").`;
+    }
+  }
+  return null;
+}
 async function executeTool(name17, input, workspaceId, userId, sources) {
   try {
     switch (name17) {
@@ -72973,7 +73015,14 @@ ${webContext}` : "") + contextNote;
       messages,
       maxTokens: 2048,
       model: agentModelSpec,
-      onToolCall: async (name17, input) => executeTool(name17, input, workspaceId, userId, sources)
+      onToolCall: async (name17, input) => {
+        const guardError = validateToolCall(name17, input);
+        if (guardError) {
+          console.warn(`[ask] tool guardrail blocked call: ${guardError}`);
+          return guardError;
+        }
+        return executeTool(name17, input, workspaceId, userId, sources);
+      }
     });
     console.log(`[ask] done provider=${provider} rounds=${rounds} replyLen=${agentReply.length} sources=${sources.length}`);
     let reply = agentReply;

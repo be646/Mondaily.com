@@ -80,6 +80,41 @@ function getAnthropicKey(): string | undefined {
   return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || undefined;
 }
 
+/**
+ * Outbound data sanitizer — masks raw secrets and financial identifiers in any
+ * text before it leaves our infrastructure for an external model API.
+ *
+ * Scope is deliberate: it redacts things that must NEVER reach a third-party
+ * LLM (API keys/tokens, JWTs, AWS keys, credit-card numbers, SSNs) but leaves
+ * ordinary business data — names, and contact emails — intact, because that's
+ * the legitimate payload the workspace assistant exists to reason over. Masking
+ * every email would break contact lookups, enrichment, and chasing. Use
+ * `redactPII` when you explicitly need email/phone masking too.
+ */
+export function redactSecrets(text: string): string {
+  if (!text) return text;
+  return text
+    // Provider API keys / tokens (OpenAI sk-, Fireworks fw_, Cerebras csk-, Groq gsk_, xAI xai-, Stripe sk_live)
+    .replace(/\b(?:sk|pk|rk)[-_](?:live|test)?_?[A-Za-z0-9]{16,}\b/g, "[REDACTED_KEY]")
+    .replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]")
+    .replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]")
+    // JWTs / bearer tokens
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]")
+    .replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "Bearer [REDACTED_TOKEN]")
+    // Credit-card-like 13–16 digit runs (allow space/dash separators)
+    .replace(/\b(?:\d[ -]?){13,16}\b/g, (m) => (/^\d{13,16}$/.test(m.replace(/[ -]/g, "")) ? "[REDACTED_CARD]" : m))
+    // US SSN
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
+}
+
+/** Stricter variant that ALSO masks emails and phone numbers — opt-in only. */
+export function redactPII(text: string): string {
+  if (!text) return text;
+  return redactSecrets(text)
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[REDACTED_EMAIL]")
+    .replace(/\b\+?\d[\d ()-]{8,}\d\b/g, "[REDACTED_PHONE]");
+}
+
 /** Fireworks serverless models tried in order when the primary model 404s. */
 // Fallback model IDs tried in order on 404. Works for any OpenAI-compat provider
 // (Groq model IDs shown; Fireworks IDs also accepted if AI_AGENT_MODEL overrides).
@@ -124,8 +159,8 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
   }
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-  if (req.system) messages.push({ role: "system", content: req.system });
-  messages.push({ role: "user", content: req.prompt });
+  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
+  messages.push({ role: "user", content: redactSecrets(req.prompt) });
 
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
@@ -316,10 +351,10 @@ async function runOpenAICompatAgent(
   }));
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: "system", content: req.system },
+    { role: "system", content: redactSecrets(req.system) },
     ...req.messages.map(m => ({
       role: m.role as "user" | "assistant",
-      content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      content: redactSecrets(typeof m.content === "string" ? m.content : JSON.stringify(m.content)),
     })),
   ];
 
@@ -379,7 +414,7 @@ async function runOpenAICompatAgent(
       try { args = JSON.parse(toolCall.function.arguments) as Record<string, unknown>; } catch {}
       console.log(`[gateway:openai-compat] tool_call name=${toolCall.function.name}`);
       const result = await req.onToolCall(toolCall.function.name, args);
-      messages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+      messages.push({ role: "tool", tool_call_id: toolCall.id, content: redactSecrets(result) });
     }
   }
 

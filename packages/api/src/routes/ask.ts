@@ -382,6 +382,53 @@ export interface SourceMeta {
   timestamp?: string;
 }
 
+/**
+ * Deterministic tool guardrail — runs locally BEFORE executeTool, validating
+ * the model's tool call against the real TOOLS schema. Catches hallucinated
+ * tool names and malformed/mistyped arguments and returns a corrective message
+ * the model can recover from, instead of letting a bad payload reach the
+ * handlers or crash the agentic loop. Lenient on unknown extra properties
+ * (ignored) but strict on tool existence, required fields, types, and enums.
+ */
+function validateToolCall(name: string, input: Record<string, any>): string | null {
+  const tool = TOOLS.find(t => t.name === name);
+  if (!tool) {
+    return `Error: "${name}" is not a real tool. Available tools: ${TOOLS.map(t => t.name).join(", ")}. Call one of these exactly, or answer directly without a tool.`;
+  }
+  if (input == null || typeof input !== "object" || Array.isArray(input)) {
+    return `Error: arguments for "${name}" must be a JSON object.`;
+  }
+  const schema = tool.input_schema as { properties?: Record<string, any>; required?: string[] };
+  const props = schema.properties ?? {};
+  for (const r of schema.required ?? []) {
+    if (input[r] === undefined || input[r] === null || input[r] === "") {
+      return `Error: tool "${name}" requires "${r}". Add it and call "${name}" again.`;
+    }
+  }
+  for (const [k, v] of Object.entries(input)) {
+    const spec = props[k];
+    if (!spec || v === undefined || v === null) continue; // ignore unknown/empty extras
+    const expected = spec.type as string | undefined;
+    const actual = Array.isArray(v) ? "array" : typeof v;
+    if (expected === "number" && !(actual === "number" || (actual === "string" && v !== "" && !isNaN(Number(v))))) {
+      return `Error: "${k}" for "${name}" must be a number (got ${actual}).`;
+    }
+    if (expected === "boolean" && actual !== "boolean") {
+      return `Error: "${k}" for "${name}" must be true or false (got ${actual}).`;
+    }
+    if (expected === "array" && actual !== "array") {
+      return `Error: "${k}" for "${name}" must be an array (got ${actual}).`;
+    }
+    if (expected === "string" && actual !== "string") {
+      return `Error: "${k}" for "${name}" must be a string (got ${actual}).`;
+    }
+    if (Array.isArray(spec.enum) && !spec.enum.includes(v)) {
+      return `Error: "${k}" for "${name}" must be one of: ${spec.enum.join(", ")} (got "${v}").`;
+    }
+  }
+  return null;
+}
+
 async function executeTool(
   name: string,
   input: Record<string, any>,
@@ -1123,8 +1170,15 @@ router.post("/", requireAuth, zValidator("json", z.object({
       messages,
       maxTokens: 2048,
       model: agentModelSpec,
-      onToolCall: async (name, input) =>
-        executeTool(name, input as Record<string, any>, workspaceId, userId, sources),
+      onToolCall: async (name, input) => {
+        // Deterministic local guardrail before any handler runs.
+        const guardError = validateToolCall(name, input as Record<string, any>);
+        if (guardError) {
+          console.warn(`[ask] tool guardrail blocked call: ${guardError}`);
+          return guardError;
+        }
+        return executeTool(name, input as Record<string, any>, workspaceId, userId, sources);
+      },
     });
 
     console.log(`[ask] done provider=${provider} rounds=${rounds} replyLen=${agentReply.length} sources=${sources.length}`);
