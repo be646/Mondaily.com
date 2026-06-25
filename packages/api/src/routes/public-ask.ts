@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { aiGateway } from "../lib/ai-gateway";
 
 const router = new Hono();
 
@@ -15,28 +16,18 @@ router.post(
   })),
   async (c) => {
     const { messages } = c.req.valid("json");
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return c.json({ reply: "Mondaily AI is initialising — try again in a moment." });
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 300,
-          system: SYSTEM,
-          messages: messages.slice(-4), // last 4 turns only
-        }),
-      });
-      if (!res.ok) return c.json({ reply: "Mondaily AI is here — ask me about enrichment, pipelines, sequences, or automations." });
-      const data = await res.json() as { content?: { type: string; text: string }[] };
-      const reply = data.content?.find(b => b.type === "text")?.text ?? "Ask me anything about Mondaily.";
-      return c.json({ reply });
+      const lastMsg = messages[messages.length - 1];
+      if (!lastMsg) return c.json({ reply: "Ask me anything about Mondaily." });
+
+      const prior = messages.slice(-4, -1);
+      const prompt = prior.length > 0
+        ? prior.map((m) => `${m.role === "user" ? "User" : "Mondaily AI"}: ${m.content}`).join("\n") + `\nUser: ${lastMsg.content}`
+        : lastMsg.content;
+
+      const { text: reply } = await aiGateway({ system: SYSTEM, prompt, maxTokens: 300 });
+      return c.json({ reply: reply || "Ask me anything about Mondaily." });
     } catch {
       return c.json({ reply: "Mondaily AI connects your data, enriches your records, and runs your workflows — ask me anything." });
     }

@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { aiGateway } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type CallNode = {
@@ -96,24 +97,12 @@ router.post("/:id/analyze", zValidator("json", z.object({ template_id: z.enum(["
   };
 
   let output = "";
-  if (process.env.ANTHROPIC_API_KEY && transcript) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5",
-        max_tokens: 900,
-        messages: [{ role: "user", content: `${prompts[templateId]}\n\nTranscript:\n${transcript}` }]
-      })
-    });
-    if (response.ok) {
-      const payload = await response.json() as { content?: { type: string; text?: string }[] };
-      output = payload.content?.filter((item) => item.type === "text").map((item) => item.text ?? "").join("") ?? "";
-    }
+  if (transcript) {
+    const result = await aiGateway({
+      prompt: `${prompts[templateId]}\n\nTranscript:\n${transcript}`,
+      maxTokens: 900,
+    }).catch(() => null);
+    if (result) output = result.text;
   }
   if (!output) {
     const summary = normalized.ai_summary || normalized.overview || "No AI summary is available.";

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
+import { aiGateway } from "../lib/ai-gateway";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -20,38 +21,18 @@ router.post("/", requireAuth, zValidator("json", importBodySchema), async (c) =>
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
 
-  // ── 1. Claude schema inference ───────────────────────────────────────────────
+  // ── 1. AI schema inference ───────────────────────────────────────────────────
   let columnTypes: Record<string, string> = {};
   try {
     const sampleText = [headers.join(","), ...samples.map(r => r.join(","))].join("\n");
-    const inferRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        messages: [{
-          role: "user",
-          content: `You are a data schema expert. Given the following CSV headers and sample rows, classify each column as one of: Text, Number, Email, URL, Date, Status, Currency, Phone, Boolean.
-
-CSV:
-${sampleText}
-
-Reply with ONLY a JSON object mapping each header to its type. Example: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
-        }],
-      }),
+    const { text } = await aiGateway({
+      system: "You are a data schema expert. Reply ONLY with a valid JSON object — no prose, no markdown.",
+      prompt: `Given the following CSV headers and sample rows, classify each column as one of: Text, Number, Email, URL, Date, Status, Currency, Phone, Boolean.\n\nCSV:\n${sampleText}\n\nExample output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
+      maxTokens: 512,
     });
-    if (inferRes.ok) {
-      const inferJson = await inferRes.json() as { content?: Array<{ type: string; text?: string }> };
-      const text = inferJson.content?.find(b => b.type === "text")?.text ?? "{}";
-      const parsed = JSON.parse(text.trim());
-      if (typeof parsed === "object" && parsed !== null) {
-        columnTypes = parsed as Record<string, string>;
-      }
+    const parsed = JSON.parse(text.trim());
+    if (typeof parsed === "object" && parsed !== null) {
+      columnTypes = parsed as Record<string, string>;
     }
   } catch {
     // schema inference failed — fall back to Text for everything

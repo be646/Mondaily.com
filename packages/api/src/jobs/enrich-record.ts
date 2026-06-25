@@ -1,6 +1,7 @@
 import { inngest, type Events } from "../lib/inngest";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { supabase } from "@mondaily/db/client";
+import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 
 const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
 
@@ -22,24 +23,14 @@ async function tavilySearch(query: string): Promise<string> {
 }
 
 async function callClaude(prompt: string, toolName: string, toolSchema: object): Promise<Record<string, unknown>> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return {};
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      tools: [{ name: toolName, description: "Extract enrichment fields", input_schema: toolSchema }],
-      tool_choice: { type: "tool", name: toolName },
-      messages: [{ role: "user", content: prompt }],
-    }),
+  const raw = await aiGatewayToolUse({
+    prompt,
+    toolName,
+    toolDescription: "Extract enrichment fields",
+    toolSchema: toolSchema as GatewayToolRequest["toolSchema"],
+    maxTokens: 512,
   });
-  if (!res.ok) return {};
-  const data = await res.json() as { content?: { type: string; input?: Record<string, unknown> }[] };
-  const toolBlock = data.content?.find(b => b.type === "tool_use");
-  const fields = toolBlock?.input ?? {};
-  return Object.fromEntries(Object.entries(fields).filter(([, v]) => v != null && v !== ""));
+  return Object.fromEntries(Object.entries(raw).filter(([, v]) => v != null && v !== ""));
 }
 
 export const enrichRecord = inngest.createFunction(

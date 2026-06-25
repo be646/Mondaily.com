@@ -3,19 +3,32 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
-async function callAnthropic(body: object): Promise<any> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("Anthropic API key not configured");
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify(body),
+/**
+ * Internal helper — routes structured tool-use calls through the AI gateway.
+ * Accepts the same shape callers already construct so zero call-site changes.
+ * Returns `any` to preserve the loose typing all 14 call-sites rely on.
+ * Model is determined by AI_PROVIDER_MODEL env var (gateway owns routing).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function callAnthropic(body: any): Promise<any> {
+  const tool = body.tools?.[0];
+  const lastMsg = body.messages?.[body.messages.length - 1];
+  if (!tool || !lastMsg) throw new Error("Invalid AI request body");
+
+  const input = await aiGatewayToolUse({
+    prompt: lastMsg.content as string,
+    toolName: tool.name as string,
+    toolDescription: tool.description as string,
+    toolSchema: tool.input_schema as GatewayToolRequest["toolSchema"],
+    maxTokens: body.max_tokens as number,
+    ...(body.system ? { system: body.system as string } : {}),
   });
-  if (!res.ok) throw new Error(`Anthropic error: ${await res.text()}`);
-  return res.json();
+
+  return { content: [{ type: "tool_use", name: tool.name, input }] };
 }
 
 // ─── Schema generation via tool_use (guarantees valid JSON) ───────────────────

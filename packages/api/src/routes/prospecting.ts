@@ -6,6 +6,7 @@ import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 import { startJob, completeJob, failJob } from "../lib/agent-logger";
+import { aiGatewayToolUse } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -80,12 +81,11 @@ async function extractCandidates(
   count: number,
   results: { url: string; title: string; content: string }[],
 ): Promise<ProspectCandidate[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || results.length === 0) return [];
+  if (results.length === 0) return [];
 
   const sourceList = results.map((r, i) => `[${i}] ${r.title}\nURL: ${r.url}\n${r.content}`).join("\n\n");
   const toolSchema = {
-    type: "object",
+    type: "object" as const,
     properties: {
       candidates: {
         type: "array",
@@ -111,24 +111,15 @@ async function extractCandidates(
     required: ["candidates"],
   };
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 2048,
-      tools: [{ name: "extract_candidates", description: "Extract distinct, real candidates strictly from the provided sources", input_schema: toolSchema }],
-      tool_choice: { type: "tool", name: "extract_candidates" },
-      messages: [{
-        role: "user",
-        content: `Query: "${query}"\nObject type: "${objectType}"\nFind up to ${count} distinct ${objectType} candidates that genuinely match the query, using ONLY the sources below. Every candidate must map to exactly one source_index. Never fabricate an email, domain, or LinkedIn URL — leave fields you can't find as omitted. If fewer than ${count} real, distinct candidates exist in these sources, return fewer.\n\nSources:\n${sourceList}`,
-      }],
-    }),
-  });
-  if (!res.ok) return [];
-  const data = await res.json() as { content?: { type: string; input?: Record<string, unknown> }[] };
-  const toolBlock = data.content?.find(b => b.type === "tool_use");
-  const raw = (toolBlock?.input?.candidates as Record<string, unknown>[] | undefined) ?? [];
+  const toolResult = await aiGatewayToolUse({
+    prompt: `Query: "${query}"\nObject type: "${objectType}"\nFind up to ${count} distinct ${objectType} candidates that genuinely match the query, using ONLY the sources below. Every candidate must map to exactly one source_index. Never fabricate an email, domain, or LinkedIn URL — leave fields you can't find as omitted. If fewer than ${count} real, distinct candidates exist in these sources, return fewer.\n\nSources:\n${sourceList}`,
+    toolName: "extract_candidates",
+    toolDescription: "Extract distinct, real candidates strictly from the provided sources",
+    toolSchema,
+    maxTokens: 2048,
+  }).catch(() => ({} as Record<string, unknown>));
+
+  const raw = (toolResult.candidates as Record<string, unknown>[] | undefined) ?? [];
 
   const candidates: ProspectCandidate[] = [];
   for (const c of raw) {

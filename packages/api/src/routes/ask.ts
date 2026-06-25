@@ -7,6 +7,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
+import { aiGatewayToolUse } from "../lib/ai-gateway";
 
 const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -620,9 +621,6 @@ async function executeTool(
       }
 
       case "create_object_type": {
-        const apiKey = process.env.ANTHROPIC_API_KEY;
-        if (!apiKey) return "Cannot create object type: AI service not configured.";
-
         // Generate slug from name
         const slug = (input.name as string)
           .toLowerCase()
@@ -638,62 +636,43 @@ async function executeTool(
           .maybeSingle();
         if (existing) return `An object type with slug "${slug}" already exists.`;
 
-        // Use Claude to generate a smart attribute list
+        // Use AI gateway to generate a smart attribute list
         let attributes: Array<{ id: string; name: string; type: string }> = [];
         try {
-          const schemaRes = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": apiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model: "claude-haiku-4-5-20251001",
-              max_tokens: 1024,
-              tools: [{
-                name: "define_attributes",
-                description: "Define the fields for a custom object type",
-                input_schema: {
-                  type: "object",
-                  properties: {
-                    attributes: {
-                      type: "array",
-                      minItems: 4,
-                      maxItems: 12,
-                      items: {
-                        type: "object",
-                        properties: {
-                          name: { type: "string", description: "Field name in snake_case, e.g. fund_size, meeting_date, follow_up_status" },
-                          type: {
-                            type: "string",
-                            enum: ["text", "long_text", "number", "currency", "percentage", "date", "datetime", "checkbox", "select", "url", "email", "phone"],
-                          },
-                        },
-                        required: ["name", "type"],
+          const toolResult = await aiGatewayToolUse({
+            prompt: `Generate 5-10 useful fields for a "${input.name}" object. Context: ${input.description}. Use snake_case names, appropriate types (currency for money, date for dates, select for status fields, checkbox for yes/no). Always include a status or stage select field.`,
+            toolName: "define_attributes",
+            toolDescription: "Define the fields for a custom object type",
+            toolSchema: {
+              type: "object",
+              properties: {
+                attributes: {
+                  type: "array",
+                  minItems: 4,
+                  maxItems: 12,
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string", description: "Field name in snake_case, e.g. fund_size, meeting_date, follow_up_status" },
+                      type: {
+                        type: "string",
+                        enum: ["text", "long_text", "number", "currency", "percentage", "date", "datetime", "checkbox", "select", "url", "email", "phone"],
                       },
                     },
+                    required: ["name", "type"],
                   },
-                  required: ["attributes"],
                 },
-              }],
-              tool_choice: { type: "tool", name: "define_attributes" },
-              messages: [{
-                role: "user",
-                content: `Generate 5-10 useful fields for a "${input.name}" object. Context: ${input.description}. Use snake_case names, appropriate types (currency for money, date for dates, select for status fields, checkbox for yes/no). Always include a status or stage select field.`,
-              }],
-            }),
+              },
+              required: ["attributes"],
+            },
+            maxTokens: 1024,
           });
-          if (schemaRes.ok) {
-            const schemaData = await schemaRes.json() as any;
-            const toolUse = (schemaData.content ?? []).find((b: any) => b.type === "tool_use");
-            if (toolUse?.input?.attributes) {
-              attributes = (toolUse.input.attributes as any[]).map((a: any) => ({
-                id: crypto.randomUUID(),
-                name: a.name,
-                type: a.type,
-              }));
-            }
+          if (toolResult.attributes) {
+            attributes = (toolResult.attributes as any[]).map((a: any) => ({
+              id: crypto.randomUUID(),
+              name: a.name,
+              type: a.type,
+            }));
           }
         } catch (_) { /* fallback: create with no attributes, user can add later */ }
 
