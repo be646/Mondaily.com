@@ -10,7 +10,7 @@ import {
 } from "./agent-dock";
 
 /** Agents that expose an on-demand POST /api/v1/agents/:id/run runner. */
-const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow"]);
+const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"]);
 
 /** Turn a runner's result payload into one short human line. */
 function summarizeRun(result: Record<string, unknown>): string {
@@ -25,6 +25,11 @@ function summarizeRun(result: Record<string, unknown>): string {
   if (typeof r.records_matched === "number") parts.push(`${r.records_matched} matched`);
   if (typeof r.actions_executed === "number" && r.actions_executed > 0) parts.push(`${r.actions_executed} action(s) run`);
   if (typeof r.actions_queued === "number" && r.actions_queued > 0) parts.push(`${r.actions_queued} queued`);
+  if (typeof r.opportunities === "number") parts.push(`${r.opportunities} opportunity(ies)`);
+  if (typeof r.incomplete === "number") parts.push(`${r.incomplete} incomplete`);
+  if (typeof r.needs_review === "number") parts.push(`${r.needs_review} to review`);
+  if (typeof r.assets === "number") parts.push(`${r.assets} asset(s)`);
+  if (typeof r.queued === "number" && r.queued > 0 && parts.length === 0) parts.push(`${r.queued} queued`);
   return parts.length ? `Done — ${parts.join(", ")}.` : "Done — nothing new to act on.";
 }
 

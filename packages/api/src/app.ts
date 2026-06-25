@@ -6,6 +6,7 @@ import { inngest } from "./lib/inngest";
 import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
 import { runAllDaily } from "./jobs/runners";
 import { runAllWorkflows } from "./jobs/workflow-engine";
+import { runAllVertical } from "./jobs/vertical-agents";
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { askRouter } from "./routes/ask";
@@ -109,7 +110,8 @@ app.get("/api/cron/daily", async (c) => {
   }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));
-  return c.json({ ran: true, at: new Date().toISOString(), results, workflows });
+  const vertical = await runAllVertical().catch((e) => ({ error: String(e) }));
+  return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
 });
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));

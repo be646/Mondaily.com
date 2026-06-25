@@ -1325,13 +1325,13 @@ var require_templates = __commonJS({
     function parseArguments(name17, arguments_) {
       const results = [];
       const chunks = arguments_.trim().split(/\s*,\s*/g);
-      let matches2;
+      let matches3;
       for (const chunk of chunks) {
         const number = Number(chunk);
         if (!Number.isNaN(number)) {
           results.push(number);
-        } else if (matches2 = chunk.match(STRING_REGEX)) {
-          results.push(matches2[2].replace(ESCAPE_REGEX, (m2, escape2, character) => escape2 ? unescape2(escape2) : character));
+        } else if (matches3 = chunk.match(STRING_REGEX)) {
+          results.push(matches3[2].replace(ESCAPE_REGEX, (m2, escape2, character) => escape2 ? unescape2(escape2) : character));
         } else {
           throw new Error(`Invalid Chalk template style argument: ${chunk} (in style '${name17}')`);
         }
@@ -1341,11 +1341,11 @@ var require_templates = __commonJS({
     function parseStyle(style) {
       STYLE_REGEX.lastIndex = 0;
       const results = [];
-      let matches2;
-      while ((matches2 = STYLE_REGEX.exec(style)) !== null) {
-        const name17 = matches2[1];
-        if (matches2[2]) {
-          const args = parseArguments(name17, matches2[2]);
+      let matches3;
+      while ((matches3 = STYLE_REGEX.exec(style)) !== null) {
+        const name17 = matches3[1];
+        if (matches3[2]) {
+          const args = parseArguments(name17, matches3[2]);
           results.push([name17].concat(args));
         } else {
           results.push([name17]);
@@ -10342,8 +10342,8 @@ function buildErrorThrower({ packageName, customMessages }) {
   function buildMessage(rawMessage, replacements) {
     if (!replacements) return `${pkg}: ${rawMessage}`;
     let msg = rawMessage;
-    const matches2 = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
-    for (const match3 of matches2) {
+    const matches3 = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
+    for (const match3 of matches3) {
       const replacement = (replacements[match3[1]] || "").toString();
       msg = msg.replace(`{{${match3[1]}}}`, replacement);
     }
@@ -11962,7 +11962,7 @@ function snakecaseKeys(obj, options) {
     return obj.map((item) => {
       return mapObject(item, (key, val) => {
         return [
-          matches(options.exclude, key) ? key : convertCase2(key),
+          matches2(options.exclude, key) ? key : convertCase2(key),
           val,
           mapperOptions(key, val, options)
         ];
@@ -11977,13 +11977,13 @@ function snakecaseKeys(obj, options) {
   const convertCase = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
   return mapObject(obj, (key, val) => {
     return [
-      matches(options.exclude, key) ? key : convertCase(key),
+      matches2(options.exclude, key) ? key : convertCase(key),
       val,
       mapperOptions(key, val, options)
     ];
   }, options);
 }
-function matches(patterns, value) {
+function matches2(patterns, value) {
   return patterns.some((pattern) => {
     return typeof pattern === "string" ? pattern === value : pattern.test(value);
   });
@@ -70730,10 +70730,10 @@ Do all conditions hold for this record?`,
 }
 async function runAction(workspaceId, action, record) {
   const type = action.type.toLowerCase();
-  const recName = String(record.data.name ?? record.data.title ?? record.data.full_name ?? record.id);
+  const recName2 = String(record.data.name ?? record.data.title ?? record.data.full_name ?? record.id);
   if (RISKY_ACTIONS.has(type) || !SAFE_ACTIONS.has(type)) {
     const draft = await aiGatewayToolUse({
-      prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName}".
+      prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName2}".
 Record:
 ${JSON.stringify(record.data).slice(0, 1200)}
 
@@ -70750,16 +70750,16 @@ Draft the content this action would produce (e.g. the email subject+body, or a o
       source_id: record.id,
       agent_name: "workflow",
       title: `Workflow: ${d2.title ?? action.label ?? action.type}`,
-      summary: (d2.body ?? "").slice(0, 1e3) || `Action "${action.label ?? action.type}" ready for ${recName}.`,
+      summary: (d2.body ?? "").slice(0, 1e3) || `Action "${action.label ?? action.type}" ready for ${recName2}.`,
       recommended_action: action.label ?? action.type,
       risk_level: type.includes("delete") || type.includes("charge") || type.includes("invoice") ? "high" : "medium",
-      evidence: [{ type: "record", title: recName, node_id: record.id, match_reason: `Workflow action: ${action.label ?? action.type}` }]
+      evidence: [{ type: "record", title: recName2, node_id: record.id, match_reason: `Workflow action: ${action.label ?? action.type}` }]
     });
     return { action: action.type, mode: "queued", detail: d2.title ?? action.label ?? action.type };
   }
   if (type === "create_task") {
     const p2 = await aiGatewayToolUse({
-      prompt: `Create a task for this workflow action: "${action.label}". Record: ${recName} (${record.object_type}).`,
+      prompt: `Create a task for this workflow action: "${action.label}". Record: ${recName2} (${record.object_type}).`,
       toolName: "task_fields",
       toolDescription: "Extract task fields",
       toolSchema: { type: "object", properties: { title: { type: "string" }, priority: { type: "string", enum: ["low", "medium", "high", "urgent"] } }, required: ["title"] },
@@ -70772,13 +70772,13 @@ Draft the content this action would produce (e.g. the email subject+body, or a o
       completed: false,
       priority: pf.priority ?? "medium",
       status: "todo",
-      notes: `Created by workflow for ${recName}`
+      notes: `Created by workflow for ${recName2}`
     });
     return { action: action.type, mode: "executed", detail: pf.title ?? "task" };
   }
   if (type === "create_note" || type === "add_note") {
     const p2 = await aiGatewayToolUse({
-      prompt: `Write a short note for this workflow action: "${action.label}". Record: ${recName}.
+      prompt: `Write a short note for this workflow action: "${action.label}". Record: ${recName2}.
 ${JSON.stringify(record.data).slice(0, 800)}`,
       toolName: "note_fields",
       toolDescription: "Draft a note",
@@ -70797,7 +70797,7 @@ ${JSON.stringify(record.data).slice(0, 800)}`,
   }
   if (type === "update_field" || type === "set_field" || type === "add_tag") {
     const p2 = await aiGatewayToolUse({
-      prompt: `Workflow action: "${action.label}" on ${record.object_type} "${recName}". Current data: ${JSON.stringify(record.data).slice(0, 800)}.
+      prompt: `Workflow action: "${action.label}" on ${record.object_type} "${recName2}". Current data: ${JSON.stringify(record.data).slice(0, 800)}.
 What single field should be set to what value?`,
       toolName: "field_update",
       toolDescription: "Extract the field and value to set",
@@ -70823,7 +70823,7 @@ What single field should be set to what value?`,
       workspace_id: workspaceId,
       type: "agent",
       title: `Workflow: ${action.label ?? "notification"}`,
-      body: `Triggered for ${recName}`,
+      body: `Triggered for ${recName2}`,
       metadata: { node_id: record.id }
     });
     return { action: action.type, mode: "executed", detail: "notified" };
@@ -70907,6 +70907,207 @@ async function runAllWorkflows() {
     }
   }
   return { matched: totalMatched, executed: totalExecuted, queued: totalQueued };
+}
+
+// src/jobs/vertical-agents.ts
+async function loadNodes(workspaceId) {
+  const { data } = await supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).limit(5e3);
+  return data ?? [];
+}
+function matches(objectType2, stems) {
+  const t2 = objectType2.toLowerCase();
+  return stems.some((s3) => t2.includes(s3));
+}
+var DAY = 864e5;
+function daysSince(iso) {
+  if (!iso) return Infinity;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
+}
+async function notify(workspaceId, title, body, metadata = {}) {
+  await supabase.from("notifications").insert({ workspace_id: workspaceId, type: "agent", title, body, metadata }).then(() => {
+  }, () => {
+  });
+}
+async function queueDecision(workspaceId, agent, recordId, title, summary, action, risk, evidenceTitle) {
+  const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_id", recordId).eq("agent_name", agent).eq("status", "pending").maybeSingle();
+  if (existing) return false;
+  await supabase.from("decision_queue").insert({
+    workspace_id: workspaceId,
+    source_type: "node",
+    source_id: recordId,
+    agent_name: agent,
+    title,
+    summary,
+    recommended_action: action,
+    risk_level: risk,
+    evidence: [{ type: "record", title: evidenceTitle, node_id: recordId, match_reason: summary }]
+  }).then(() => {
+  }, () => {
+  });
+  return true;
+}
+function recName(d2) {
+  return String(d2.name ?? d2.title ?? d2.full_name ?? d2.company ?? "Record");
+}
+async function runOpportunityScan(workspaceId) {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "opportunity", trigger_type: "manual", input: {} });
+  try {
+    const nodes = await loadNodes(workspaceId);
+    const deals = nodes.filter((n2) => matches(n2.object_type, ["deal"]));
+    const linked = /* @__PURE__ */ new Set();
+    for (const d2 of deals) {
+      for (const k2 of ["contact_id", "linked_record_id", "company_id", "account_id"]) {
+        const v2 = d2.data[k2];
+        if (v2) linked.add(String(v2));
+      }
+    }
+    const leads = nodes.filter((n2) => matches(n2.object_type, ["lead", "contact", "people", "person", "compan"]));
+    const opportunities = leads.filter((l2) => !linked.has(l2.id));
+    let queued = 0;
+    for (const lead of opportunities.sort((a2, b2) => daysSince(a2.updated_at) - daysSince(b2.updated_at)).slice(0, 3)) {
+      const ok2 = await queueDecision(
+        workspaceId,
+        "opportunity",
+        lead.id,
+        `Opportunity: ${recName(lead.data)} has no active deal`,
+        `This ${lead.object_type} record has no linked deal yet \u2014 a potential conversion.`,
+        "Create a deal/opportunity for this record, or mark as not a fit",
+        "low",
+        recName(lead.data)
+      );
+      if (ok2) queued++;
+    }
+    if (opportunities.length > 0) {
+      await notify(workspaceId, "\u2726 Opportunity Agent", `${opportunities.length} record(s) with no active deal \u2014 potential conversions.`, { opportunities: opportunities.length });
+    }
+    await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, []);
+    return { opportunities: opportunities.length, queued };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runPeopleScan(workspaceId) {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "people", trigger_type: "manual", input: {} });
+  try {
+    const nodes = await loadNodes(workspaceId);
+    const people = nodes.filter((n2) => matches(n2.object_type, ["people", "person", "employee", "candidate", "contact"]));
+    const incomplete = people.filter((p2) => {
+      const d2 = p2.data;
+      const hasEmail = d2.email || d2.Email;
+      const hasRole = d2.role || d2.title || d2.job_title || d2.position;
+      return !hasEmail || !hasRole;
+    });
+    let queued = 0;
+    for (const p2 of incomplete.slice(0, 3)) {
+      const missing = [!(p2.data.email || p2.data.Email) ? "email" : null, !(p2.data.role || p2.data.title || p2.data.job_title) ? "role/title" : null].filter(Boolean).join(" and ");
+      const ok2 = await queueDecision(
+        workspaceId,
+        "people",
+        p2.id,
+        `People: ${recName(p2.data)} is missing ${missing}`,
+        `This person record is missing ${missing}.`,
+        "Complete the missing fields or enrich the record",
+        "low",
+        recName(p2.data)
+      );
+      if (ok2) queued++;
+    }
+    if (incomplete.length > 0) {
+      await notify(workspaceId, "\u2726 People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
+    }
+    await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, []);
+    return { people: people.length, incomplete: incomplete.length, queued };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runPortfolioScan(workspaceId) {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "portfolio", trigger_type: "manual", input: {} });
+  try {
+    const nodes = await loadNodes(workspaceId);
+    const holdings = nodes.filter((n2) => matches(n2.object_type, ["invest", "portfolio", "fund", "holding", "asset-under"]));
+    const needsReview = holdings.filter((h2) => {
+      const d2 = h2.data;
+      const hasValue = d2.value ?? d2.valuation ?? d2.amount ?? d2.current_value;
+      return !hasValue || daysSince(h2.updated_at) > 90;
+    });
+    let queued = 0;
+    for (const h2 of needsReview.slice(0, 3)) {
+      const stale = daysSince(h2.updated_at) > 90;
+      const ok2 = await queueDecision(
+        workspaceId,
+        "portfolio",
+        h2.id,
+        `Portfolio: ${recName(h2.data)} ${stale ? "not updated in 90+ days" : "is missing a valuation"}`,
+        stale ? `No update in ${daysSince(h2.updated_at)} days.` : "No valuation/value recorded.",
+        "Update the valuation or latest figures",
+        "low",
+        recName(h2.data)
+      );
+      if (ok2) queued++;
+    }
+    if (holdings.length > 0) {
+      await notify(workspaceId, "\u2726 Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
+    }
+    await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, []);
+    return { holdings: holdings.length, needs_review: needsReview.length, queued };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runAssetScan(workspaceId) {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "asset", trigger_type: "manual", input: {} });
+  try {
+    const nodes = await loadNodes(workspaceId);
+    const assets = nodes.filter((n2) => matches(n2.object_type, ["asset", "property", "equipment", "real-estate", "realestate", "supplier", "facility", "vehicle"]));
+    const flagged = assets.filter((a2) => {
+      const d2 = a2.data;
+      const renewal = d2.lease_end ?? d2.renewal_date ?? d2.next_service ?? d2.warranty_end;
+      const renewalSoon = renewal && daysSince(String(renewal)) > -30 && daysSince(String(renewal)) < Infinity && new Date(String(renewal)).getTime() - Date.now() < 30 * DAY;
+      return renewalSoon || daysSince(a2.updated_at) > 180;
+    });
+    let queued = 0;
+    for (const a2 of flagged.slice(0, 3)) {
+      const ok2 = await queueDecision(
+        workspaceId,
+        "asset",
+        a2.id,
+        `Asset: ${recName(a2.data)} needs attention`,
+        `This asset has an upcoming renewal/service date or hasn't been reviewed in 180+ days.`,
+        "Review the asset's renewal, service, or valuation",
+        "low",
+        recName(a2.data)
+      );
+      if (ok2) queued++;
+    }
+    if (assets.length > 0) {
+      await notify(workspaceId, "\u2726 Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
+    }
+    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, []);
+    return { assets: assets.length, flagged: flagged.length, queued };
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runAllVertical() {
+  const { data: workspaces } = await supabase.from("workspaces").select("id");
+  const totals = { opportunity: 0, people: 0, portfolio: 0, asset: 0 };
+  for (const ws of workspaces ?? []) {
+    const id = ws.id;
+    const o2 = await runOpportunityScan(id).catch(() => null);
+    if (o2) totals.opportunity += o2.queued;
+    const p2 = await runPeopleScan(id).catch(() => null);
+    if (p2) totals.people += p2.queued;
+    const pf = await runPortfolioScan(id).catch(() => null);
+    if (pf) totals.portfolio += pf.queued;
+    const a2 = await runAssetScan(id).catch(() => null);
+    if (a2) totals.asset += a2.queued;
+  }
+  return totals;
 }
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
@@ -72405,10 +72606,10 @@ ${results.join("\n")}`;
         let nodeId = input.node_id;
         let sourceLabel = "";
         if (!nodeId && input.name) {
-          const { data: matches2 } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).ilike("data->>name", `%${input.name}%`).limit(1);
-          if (!matches2?.length) return `No record found matching "${input.name}" \u2014 cannot look up related objects.`;
-          nodeId = matches2[0].id;
-          sourceLabel = `${matches2[0].data.name ?? input.name} (${matches2[0].object_type})`;
+          const { data: matches3 } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).ilike("data->>name", `%${input.name}%`).limit(1);
+          if (!matches3?.length) return `No record found matching "${input.name}" \u2014 cannot look up related objects.`;
+          nodeId = matches3[0].id;
+          sourceLabel = `${matches3[0].data.name ?? input.name} (${matches3[0].object_type})`;
         }
         if (!nodeId) return "No node_id or name provided \u2014 cannot look up related objects.";
         const related = await getRelated(nodeId);
@@ -72863,7 +73064,11 @@ var AGENT_RUNNERS = {
   operations: async (ws) => runOverdueTaskDecisions(ws),
   finance: async (ws) => ({ ...await runInvoiceChaser(ws), ...await runRecurringInvoices(ws) }),
   "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
-  workflow: async (ws) => ({ ...await runWorkflowsForWorkspace(ws) })
+  workflow: async (ws) => ({ ...await runWorkflowsForWorkspace(ws) }),
+  opportunity: async (ws) => runOpportunityScan(ws),
+  people: async (ws) => runPeopleScan(ws),
+  portfolio: async (ws) => runPortfolioScan(ws),
+  asset: async (ws) => runAssetScan(ws)
 };
 router8.post("/:id/run", async (c2) => {
   const id = c2.req.param("id");
@@ -72879,9 +73084,9 @@ router8.post("/:id/run", async (c2) => {
   }
 });
 function latestJob(jobs, agentName) {
-  const matches2 = jobs.filter((j2) => j2.agent_name === agentName);
-  if (!matches2.length) return null;
-  return matches2.reduce((latest, j2) => {
+  const matches3 = jobs.filter((j2) => j2.agent_name === agentName);
+  if (!matches3.length) return null;
+  return matches3.reduce((latest, j2) => {
     const jt2 = new Date(j2.completed_at ?? j2.started_at ?? 0).getTime();
     const lt2 = new Date(latest.completed_at ?? latest.started_at ?? 0).getTime();
     return jt2 > lt2 ? j2 : latest;
@@ -73111,58 +73316,74 @@ router8.get("/", async (c2) => {
       destination: "/automations"
     });
   }
-  agents.push({
-    id: "opportunity",
-    name: "Opportunity Agent",
-    category: "relationship",
-    status: "Scaffold only \u2014 no live job wired up",
-    state: "not_configured",
-    backed_by: [],
-    last_run_at: null,
-    last_action: "Relationship signals currently surfaced via Relationship Agent.",
-    evidence_count: 0,
-    suggested_action: null,
-    destination: "/settings/workspace"
-  });
-  agents.push({
-    id: "people",
-    name: "People Agent",
-    category: "hr",
-    status: hasHR ? "Module enabled \u2014 no live job wired up yet" : "Module disabled",
-    state: hasHR ? "not_configured" : "disabled",
-    backed_by: [],
-    last_run_at: null,
-    last_action: hasHR ? "No automation exists yet for this module." : "Enable the HR module to turn this on.",
-    evidence_count: 0,
-    suggested_action: null,
-    destination: "/settings/workspace"
-  });
-  agents.push({
-    id: "portfolio",
-    name: "Portfolio Agent",
-    category: "investments",
-    status: hasInvestments ? "Module enabled \u2014 no live job wired up yet" : "Module disabled",
-    state: hasInvestments ? "not_configured" : "disabled",
-    backed_by: [],
-    last_run_at: null,
-    last_action: hasInvestments ? "No automation exists yet for this module." : "Enable the Investments module to turn this on.",
-    evidence_count: 0,
-    suggested_action: null,
-    destination: "/settings/workspace"
-  });
-  agents.push({
-    id: "asset",
-    name: "Asset Agent",
-    category: "realestate",
-    status: "Not yet enableable in this workspace",
-    state: "not_configured",
-    backed_by: [],
-    last_run_at: null,
-    last_action: "Code scaffold exists \u2014 no module toggle exists yet.",
-    evidence_count: 0,
-    suggested_action: null,
-    destination: "/settings/workspace"
-  });
+  {
+    const j2 = jobSummary(latestJob(jobs, "opportunity"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["opportunity"]);
+    agents.push({
+      id: "opportunity",
+      name: "Opportunity Agent",
+      category: "relationship",
+      status: pendingCount > 0 ? `${pendingCount} opportunity(ies) to review` : j2.lastAction,
+      state: pendingCount > 0 ? state : latestJob(jobs, "opportunity") ? "active" : "monitoring",
+      backed_by: ["opportunity_scan"],
+      last_run_at: j2.lastRunAt,
+      last_action: j2.lastAction,
+      evidence_count: pendingCount,
+      suggested_action: pendingCount > 0 ? "Review conversion opportunities" : null,
+      destination: "/pipeline"
+    });
+  }
+  {
+    const j2 = jobSummary(latestJob(jobs, "people"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["people"]);
+    agents.push({
+      id: "people",
+      name: "People Agent",
+      category: "hr",
+      status: pendingCount > 0 ? `${pendingCount} people record(s) to complete` : j2.lastAction,
+      state: pendingCount > 0 ? state : latestJob(jobs, "people") ? "active" : "monitoring",
+      backed_by: ["people_scan"],
+      last_run_at: j2.lastRunAt,
+      last_action: j2.lastAction,
+      evidence_count: pendingCount,
+      suggested_action: pendingCount > 0 ? "Complete flagged people records" : null,
+      destination: "/search"
+    });
+  }
+  {
+    const j2 = jobSummary(latestJob(jobs, "portfolio"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["portfolio"]);
+    agents.push({
+      id: "portfolio",
+      name: "Portfolio Agent",
+      category: "investments",
+      status: pendingCount > 0 ? `${pendingCount} holding(s) need review` : j2.lastAction,
+      state: pendingCount > 0 ? state : latestJob(jobs, "portfolio") ? "active" : "monitoring",
+      backed_by: ["portfolio_scan"],
+      last_run_at: j2.lastRunAt,
+      last_action: j2.lastAction,
+      evidence_count: pendingCount,
+      suggested_action: pendingCount > 0 ? "Review flagged holdings" : null,
+      destination: "/search"
+    });
+  }
+  {
+    const j2 = jobSummary(latestJob(jobs, "asset"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["asset"]);
+    agents.push({
+      id: "asset",
+      name: "Asset Agent",
+      category: "realestate",
+      status: pendingCount > 0 ? `${pendingCount} asset(s) need attention` : j2.lastAction,
+      state: pendingCount > 0 ? state : latestJob(jobs, "asset") ? "active" : "monitoring",
+      backed_by: ["asset_scan"],
+      last_run_at: j2.lastRunAt,
+      last_action: j2.lastAction,
+      evidence_count: pendingCount,
+      suggested_action: pendingCount > 0 ? "Review flagged assets" : null,
+      destination: "/search"
+    });
+  }
   return c2.json({ agents });
 });
 
@@ -77226,7 +77447,8 @@ app.get("/api/cron/daily", async (c2) => {
   }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e2) => ({ error: String(e2) }));
-  return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows });
+  const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
+  return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
 app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.0.0" }));
 app.get("/api/debug-auth", async (c2) => {

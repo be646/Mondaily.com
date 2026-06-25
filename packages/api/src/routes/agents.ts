@@ -6,6 +6,7 @@ import {
   runInvoiceChaser, runRecurringInvoices, runEnrichWorkspace,
 } from "../jobs/runners";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
+import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } from "../jobs/vertical-agents";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -22,6 +23,10 @@ const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<stri
   finance: async (ws) => ({ ...(await runInvoiceChaser(ws)), ...(await runRecurringInvoices(ws)) }),
   "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
   workflow: async (ws) => ({ ...(await runWorkflowsForWorkspace(ws)) }),
+  opportunity: async (ws) => runOpportunityScan(ws),
+  people: async (ws) => runPeopleScan(ws),
+  portfolio: async (ws) => runPortfolioScan(ws),
+  asset: async (ws) => runAssetScan(ws),
 };
 
 router.post("/:id/run", async (c) => {
@@ -320,36 +325,57 @@ router.get("/", async (c) => {
     });
   }
 
-  // Scaffold-only vertical agents — code exists under packages/agents/src
-  // but no live job/route surfaces them yet. Never shown as active.
-  agents.push({
-    id: "opportunity", name: "Opportunity Agent", category: "relationship",
-    status: "Scaffold only — no live job wired up", state: "not_configured",
-    backed_by: [], last_run_at: null, last_action: "Relationship signals currently surfaced via Relationship Agent.",
-    evidence_count: 0, suggested_action: null, destination: "/settings/workspace",
-  });
-  agents.push({
-    id: "people", name: "People Agent", category: "hr",
-    status: hasHR ? "Module enabled — no live job wired up yet" : "Module disabled",
-    state: hasHR ? "not_configured" : "disabled",
-    backed_by: [], last_run_at: null,
-    last_action: hasHR ? "No automation exists yet for this module." : "Enable the HR module to turn this on.",
-    evidence_count: 0, suggested_action: null, destination: "/settings/workspace",
-  });
-  agents.push({
-    id: "portfolio", name: "Portfolio Agent", category: "investments",
-    status: hasInvestments ? "Module enabled — no live job wired up yet" : "Module disabled",
-    state: hasInvestments ? "not_configured" : "disabled",
-    backed_by: [], last_run_at: null,
-    last_action: hasInvestments ? "No automation exists yet for this module." : "Enable the Investments module to turn this on.",
-    evidence_count: 0, suggested_action: null, destination: "/settings/workspace",
-  });
-  agents.push({
-    id: "asset", name: "Asset Agent", category: "realestate",
-    status: "Not yet enableable in this workspace", state: "not_configured",
-    backed_by: [], last_run_at: null, last_action: "Code scaffold exists — no module toggle exists yet.",
-    evidence_count: 0, suggested_action: null, destination: "/settings/workspace",
-  });
+  // Vertical agents — now backed by real scan jobs (packages/api/src/jobs/
+  // vertical-agents.ts). Each runs daily via cron and on demand, derives
+  // findings from real records, and queues the top items for approval.
+  {
+    const j = jobSummary(latestJob(jobs, "opportunity"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["opportunity"]);
+    agents.push({
+      id: "opportunity", name: "Opportunity Agent", category: "relationship",
+      status: pendingCount > 0 ? `${pendingCount} opportunity(ies) to review` : j.lastAction,
+      state: pendingCount > 0 ? state : (latestJob(jobs, "opportunity") ? "active" : "monitoring"),
+      backed_by: ["opportunity_scan"], last_run_at: j.lastRunAt, last_action: j.lastAction,
+      evidence_count: pendingCount, suggested_action: pendingCount > 0 ? "Review conversion opportunities" : null,
+      destination: "/pipeline",
+    });
+  }
+  {
+    const j = jobSummary(latestJob(jobs, "people"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["people"]);
+    agents.push({
+      id: "people", name: "People Agent", category: "hr",
+      status: pendingCount > 0 ? `${pendingCount} people record(s) to complete` : j.lastAction,
+      state: pendingCount > 0 ? state : (latestJob(jobs, "people") ? "active" : "monitoring"),
+      backed_by: ["people_scan"], last_run_at: j.lastRunAt, last_action: j.lastAction,
+      evidence_count: pendingCount, suggested_action: pendingCount > 0 ? "Complete flagged people records" : null,
+      destination: "/search",
+    });
+  }
+  {
+    const j = jobSummary(latestJob(jobs, "portfolio"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["portfolio"]);
+    agents.push({
+      id: "portfolio", name: "Portfolio Agent", category: "investments",
+      status: pendingCount > 0 ? `${pendingCount} holding(s) need review` : j.lastAction,
+      state: pendingCount > 0 ? state : (latestJob(jobs, "portfolio") ? "active" : "monitoring"),
+      backed_by: ["portfolio_scan"], last_run_at: j.lastRunAt, last_action: j.lastAction,
+      evidence_count: pendingCount, suggested_action: pendingCount > 0 ? "Review flagged holdings" : null,
+      destination: "/search",
+    });
+  }
+  {
+    const j = jobSummary(latestJob(jobs, "asset"), "No scan run yet");
+    const { state, pendingCount } = withDecisions("monitoring", ["asset"]);
+    agents.push({
+      id: "asset", name: "Asset Agent", category: "realestate",
+      status: pendingCount > 0 ? `${pendingCount} asset(s) need attention` : j.lastAction,
+      state: pendingCount > 0 ? state : (latestJob(jobs, "asset") ? "active" : "monitoring"),
+      backed_by: ["asset_scan"], last_run_at: j.lastRunAt, last_action: j.lastAction,
+      evidence_count: pendingCount, suggested_action: pendingCount > 0 ? "Review flagged assets" : null,
+      destination: "/search",
+    });
+  }
 
   return c.json({ agents });
 });
