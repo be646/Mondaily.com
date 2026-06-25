@@ -74845,7 +74845,15 @@ router19.post("/", async (c2) => {
 });
 router19.patch("/:id", async (c2) => {
   const body = await c2.req.json();
-  const { data, error } = await supabase.from("chat_threads").update({ ...body, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", c2.req.param("id")).eq("user_id", c2.get("userId")).select().single();
+  const id = c2.req.param("id");
+  const { data, error } = await supabase.from("chat_threads").upsert({
+    id,
+    workspace_id: c2.get("workspaceId"),
+    user_id: c2.get("userId"),
+    title: (body.title ?? "Chat").slice(0, 45),
+    messages: body.messages ?? [],
+    updated_at: (/* @__PURE__ */ new Date()).toISOString()
+  }, { onConflict: "id" }).select().single();
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });

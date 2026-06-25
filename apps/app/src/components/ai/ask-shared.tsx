@@ -1,8 +1,65 @@
+import React from "react";
 import { Network, ShieldAlert, Workflow, Receipt, Users, Sparkles } from "lucide-react";
 import {
   CheckSquare, FileSignature, UserRound, Box, GitBranch, BarChart2,
   FileText, Mail, Bell, Wallet, Database,
 } from "lucide-react";
+
+/**
+ * Lightweight, zero-dependency Markdown renderer for assistant replies.
+ * The model returns Markdown (**bold**, `code`, ## headings, -/1. lists,
+ * [links](url)); rendering it as plain whitespace-pre text showed the raw
+ * symbols and looked messy. This handles the common subset cleanly without
+ * pulling in react-markdown.
+ */
+function renderInline(text: string, keyBase: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  // Split on **bold**, *italic*, `code`, and [text](url) while keeping delimiters.
+  const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
+  let last = 0; let m: RegExpExecArray | null; let i = 0;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith("**")) out.push(<strong key={`${keyBase}-${i}`}>{tok.slice(2, -2)}</strong>);
+    else if (tok.startsWith("`")) out.push(<code key={`${keyBase}-${i}`} className="rounded px-1 py-0.5 text-[0.92em]" style={{ background: "var(--surface-hover)" }}>{tok.slice(1, -1)}</code>);
+    else if (tok.startsWith("[")) {
+      const lm = tok.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      if (lm) out.push(<a key={`${keyBase}-${i}`} href={lm[2]} target="_blank" rel="noreferrer" className="underline" style={{ color: "var(--accent)" }}>{lm[1]}</a>);
+    } else out.push(<em key={`${keyBase}-${i}`}>{tok.slice(1, -1)}</em>);
+    last = m.index + tok.length; i++;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+export function Markdown({ text }: { text: string }) {
+  const lines = (text ?? "").split("\n");
+  const blocks: React.ReactNode[] = [];
+  let list: { ordered: boolean; items: string[] } | null = null;
+  const flush = () => {
+    if (!list) return;
+    const Tag = list.ordered ? "ol" : "ul";
+    blocks.push(
+      <Tag key={`l-${blocks.length}`} className={list.ordered ? "list-decimal pl-5 space-y-0.5" : "list-disc pl-5 space-y-0.5"}>
+        {list.items.map((it, j) => <li key={j}>{renderInline(it, `li-${blocks.length}-${j}`)}</li>)}
+      </Tag>
+    );
+    list = null;
+  };
+  lines.forEach((raw, idx) => {
+    const line = raw.trimEnd();
+    const h = line.match(/^(#{1,3})\s+(.*)$/);
+    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
+    const num = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (h) { flush(); const lvl = (h[1] ?? "#").length; blocks.push(<p key={idx} className="font-semibold mt-2 mb-0.5" style={{ fontSize: lvl === 1 ? "1.05em" : "1em" }}>{renderInline(h[2] ?? "", `h-${idx}`)}</p>); }
+    else if (bullet) { if (!list || list.ordered) { flush(); list = { ordered: false, items: [] }; } list.items.push(bullet[1] ?? ""); }
+    else if (num) { if (!list || !list.ordered) { flush(); list = { ordered: true, items: [] }; } list.items.push(num[1] ?? ""); }
+    else if (line === "") { flush(); }
+    else { flush(); blocks.push(<p key={idx} className="my-0.5">{renderInline(line, `p-${idx}`)}</p>); }
+  });
+  flush();
+  return <div className="space-y-0.5">{blocks}</div>;
+}
 
 /**
  * Shared primitives for the "Ask the Workspace Graph" experience — used by
@@ -138,8 +195,9 @@ export function SourceCard({ source }: { source: SourceCardData }) {
   return (
     <Tag
       {...(source.href ? { href: source.href } : {})}
-      className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors"
+      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${source.href ? "cursor-pointer hover:border-cyan-400/50 hover:bg-[var(--surface-hover)]" : ""}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+      title={source.href ? "Open record" : undefined}
     >
       <Icon size={12} className="shrink-0 text-cyan-600 dark:text-cyan-400"/>
       <div className="min-w-0 flex-1">

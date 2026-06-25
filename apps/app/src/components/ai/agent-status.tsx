@@ -12,7 +12,7 @@ import { LogoMark } from "../logo";
 import { getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
-import { EvidenceStrip, SourceCard } from "./ask-shared";
+import { EvidenceStrip, SourceCard, Markdown } from "./ask-shared";
 
 // ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
 // main Ask page and Home: same endpoint, history/thread_id handling, real
@@ -122,12 +122,12 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 </div>
               )}
               <div className="flex flex-col gap-1 max-w-[85%]">
-                <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed whitespace-pre-wrap ${
+                <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
-                    ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm"
+                    ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm whitespace-pre-wrap"
                     : "text-slate-300"
                 }`}>
-                  {m.content}
+                  {m.role === "assistant" ? <Markdown text={m.content}/> : m.content}
                 </div>
 
                 {m.role === "assistant" && meta && AgentIcon && (

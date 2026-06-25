@@ -37,20 +37,14 @@ export function addMessageToThread(threadId: string, message: ChatMessage): void
 async function syncThreadToServer(thread: ChatThread): Promise<void> {
   const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
   const headers = await getAuthHeaders();
-  // Check if thread exists on server
-  const res = await fetch(`${apiUrl}/api/v1/chats/${thread.id}`, {
+  // PATCH upserts by the client thread id (see packages/api/src/routes/chats.ts),
+  // so the same thread always maps to one server row. No POST fallback — that
+  // was creating a new chat on every message and flooding history with dupes.
+  await fetch(`${apiUrl}/api/v1/chats/${thread.id}`, {
     method: "PATCH",
     headers,
-    body: JSON.stringify({ title: thread.title, messages: thread.messages })
+    body: JSON.stringify({ title: thread.title, messages: thread.messages }),
   });
-  if (res.status === 404 || res.status === 500) {
-    // Create it
-    await fetch(`${apiUrl}/api/v1/chats`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ title: thread.title, messages: thread.messages })
-    });
-  }
 }
 
 export async function loadThreadsFromServer(): Promise<ChatThread[]> {
