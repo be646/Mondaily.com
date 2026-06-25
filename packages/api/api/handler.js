@@ -68799,7 +68799,6 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
-  console.log(`[gateway:openai-compat] baseURL=${baseURL} model=${modelId} keyPrefix=${apiKey.slice(0, 6)}`);
   const client = new openai_default({ baseURL, apiKey });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
@@ -71447,16 +71446,6 @@ router6.get("/credits", requireAuth, async (c2) => {
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
   return c2.json({ used, limit: 1e3, period_end: periodEnd });
 });
-router6.get("/env-check", async (c2) => {
-  return c2.json({
-    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
-    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",
-    AI_GATEWAY_BASE_URL: process.env.AI_GATEWAY_BASE_URL ?? "NOT SET",
-    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY ? "SET" : "NOT SET",
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? "SET" : "NOT SET",
-    CLAUDE_API_KEY: process.env.CLAUDE_API_KEY ? "SET" : "NOT SET"
-  });
-});
 router6.post("/stream", requireAuth, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().uuid().optional()
@@ -71490,16 +71479,6 @@ User: ${lastMsg.content}` : lastMsg.content;
     }
   }
 );
-router7.get("/env-check", (c2) => {
-  return c2.json({
-    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
-    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",
-    AI_GATEWAY_BASE_URL: process.env.AI_GATEWAY_BASE_URL ?? "NOT SET",
-    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY ? `SET (${process.env.AI_GATEWAY_API_KEY.slice(0, 6)}...)` : "NOT SET",
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? "SET" : "NOT SET",
-    CLAUDE_API_KEY: process.env.CLAUDE_API_KEY ? "SET" : "NOT SET"
-  });
-});
 
 // src/routes/agents.ts
 var router8 = new Hono2();

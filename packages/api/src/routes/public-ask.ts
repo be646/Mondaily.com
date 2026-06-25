@@ -34,15 +34,4 @@ router.post(
   }
 );
 
-router.get("/env-check", (c) => {
-  return c.json({
-    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
-    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",
-    AI_GATEWAY_BASE_URL: process.env.AI_GATEWAY_BASE_URL ?? "NOT SET",
-    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY ? `SET (${process.env.AI_GATEWAY_API_KEY.slice(0,6)}...)` : "NOT SET",
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? "SET" : "NOT SET",
-    CLAUDE_API_KEY: process.env.CLAUDE_API_KEY ? "SET" : "NOT SET",
-  });
-});
-
 export { router as publicAskRouter };
