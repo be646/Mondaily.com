@@ -7,6 +7,19 @@ import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
 
+function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 // ── Preloader — calm, premium, but alive: a small animated graph of nodes
 // lighting up in sequence (the workspace graph "waking up"), with cycling
 // plain-language status text. No boot-log brackets, no timestamps — just
@@ -1062,7 +1075,7 @@ function AutomationFlow() {
             initial={{ opacity: 0 }}
             animate={{ opacity: shownCount >= FLOW_NODES.length ? 1 : 0 }}
             transition={{ duration: 0.5 }}
-            className="mt-2 rounded-xl border border-black/[.08] bg-zinc-50 px-5 py-3 text-center text-[13px] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition-all"
+            className="mt-2 rounded-full border border-black/[.1] bg-transparent px-5 py-3 text-center text-[13px] text-zinc-600 hover:border-black/[.2] hover:text-zinc-900 transition-all"
           >
             Build your first flow →
           </motion.a>
@@ -2502,19 +2515,19 @@ function EmailSignup() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full flex-col border border-black/[.08] bg-white sm:flex-row dark:border-white/10 dark:bg-black"
+      className="mx-auto flex w-full flex-col overflow-hidden rounded-full border border-black/[.1] bg-white sm:flex-row dark:border-white/10 dark:bg-black"
     >
       <input
         type="email"
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="Work email"
-        className="min-w-0 flex-1 bg-transparent px-5 py-3.5 text-[14px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
+        className="min-w-0 flex-1 bg-transparent px-6 py-3.5 text-[14px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
         required
       />
       <button
         type="submit"
-        className="shrink-0 border-t border-black/[.08] bg-neutral-950 px-6 py-3.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 sm:border-l sm:border-t-0 dark:bg-white dark:text-neutral-950"
+        className="shrink-0 rounded-full bg-zinc-900 px-7 py-3.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 dark:bg-white dark:text-zinc-900"
       >
         Start free →
       </button>
@@ -2648,7 +2661,7 @@ export function PricingSection() {
                   {plan.unlocks}
                 </p>
 
-                <a href={plan.href} className={`mt-auto block border py-2.5 text-center text-[13px] font-semibold transition-opacity hover:opacity-85 ${plan.highlight ? "border-neutral-950 bg-neutral-950 text-white dark:bg-white dark:text-neutral-950" : "border-black/[.1] text-zinc-700"}`}>
+                <a href={plan.href} className={`mt-auto block rounded-full border py-2.5 text-center text-[13px] font-semibold transition-opacity hover:opacity-85 ${plan.highlight ? "border-neutral-950 bg-neutral-950 text-white dark:bg-white dark:text-neutral-950" : "border-black/[.12] text-zinc-700"}`}>
                   {plan.cta}
                 </a>
               </div>
@@ -2899,28 +2912,28 @@ export function LandingPage() {
           </section>
 
           {/* ── Agents — moved close to the hero: agents are the core identity, not a footnote ── */}
-          <AgentsSection />
+          <FadeIn><AgentsSection /></FadeIn>
 
           {/* ── Live signal cards ── */}
-          <LiveSignalsSection />
+          <FadeIn><LiveSignalsSection /></FadeIn>
 
           {/* ── How it's different ── */}
-          <ComparisonSection />
+          <FadeIn><ComparisonSection /></FadeIn>
 
           {/* ── Use cases — no narrow CRM framing ── */}
-          <UseCasesSection />
+          <FadeIn><UseCasesSection /></FadeIn>
 
           {/* ── Product process tabs ── */}
-          <ProcessTabsSection />
+          <FadeIn><ProcessTabsSection /></FadeIn>
 
           {/* ── Feature map ── */}
-          <FeatureSection />
+          <FadeIn><FeatureSection /></FadeIn>
 
           {/* ── Pricing ── */}
-          <PricingSection/>
+          <FadeIn><PricingSection /></FadeIn>
 
           {/* ── AI with approval — agents act, humans stay in control ── */}
-          <ApprovalSection />
+          <FadeIn><ApprovalSection /></FadeIn>
 
           {/* ── FAQ ── */}
           <FAQSection />
@@ -2952,7 +2965,7 @@ export function LandingPage() {
         <TrustBadges />
 
         {/* ── Footer ── */}
-        <footer className="relative bg-zinc-50">
+        <footer className="relative" style={{ background: "#f7f6f3" }}>
           <div className="absolute top-0 left-0 h-px w-full bg-current opacity-10"/>
           <FooterTicker />
           <div className="mx-auto max-w-6xl px-6 py-14">
