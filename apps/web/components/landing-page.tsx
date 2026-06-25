@@ -2483,6 +2483,168 @@ function UseCasesSection() {
   );
 }
 
+// ── Integrations ─────────────────────────────────────────────────────────────
+const INTEGRATIONS = [
+  {
+    id: "gmail",
+    name: "Gmail",
+    desc: "Sync inbox threads and contacts into the graph.",
+    accent: "#a07164",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <path d="M2 6.5C2 5.67 2.67 5 3.5 5h17C21.33 5 22 5.67 22 6.5v11c0 .83-.67 1.5-1.5 1.5h-17C2.67 19 2 18.33 2 17.5V6.5Z" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M2 7l10 7 10-7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: "outlook",
+    name: "Outlook",
+    desc: "Sync Microsoft email and calendar events.",
+    accent: "#607078",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+        <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M2 9h20" stroke="currentColor" strokeWidth="1.4"/>
+      </svg>
+    ),
+  },
+  {
+    id: "google-calendar",
+    name: "Google Calendar",
+    desc: "Import meetings, attendees, and follow-up context.",
+    accent: "#9fb08f",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M3 9h18M8 4v3M16 4v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <rect x="7" y="13" width="4" height="4" rx="0.8" fill="currentColor" opacity="0.5"/>
+      </svg>
+    ),
+  },
+  {
+    id: "slack",
+    name: "Slack",
+    desc: "Receive agent alerts and graph signals in channels.",
+    accent: "#a68762",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <path d="M9 3.5A2.5 2.5 0 0 0 6.5 6v1H9a2.5 2.5 0 0 0 0-5v1.5ZM6.5 9H4a2.5 2.5 0 0 0 0 5h2.5V9ZM9 14.5A2.5 2.5 0 1 0 9 20v-1.5H6.5M14.5 20a2.5 2.5 0 0 0 2.5-2.5V16h-2.5a2.5 2.5 0 0 0 0 5ZM17.5 15H20a2.5 2.5 0 0 0 0-5h-2.5v5ZM14.5 9.5A2.5 2.5 0 1 0 14.5 4V5.5H17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: "zapier",
+    name: "Zapier",
+    desc: "Connect Mondaily to thousands of apps via Zaps.",
+    accent: "#8fb3b0",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <path d="M13 3L4 14h7l-1 7 9-11h-7l1-7Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: "typeform",
+    name: "Typeform",
+    desc: "Turn form responses into workspace graph records.",
+    accent: "#6f8068",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <path d="M4 7h16M12 7v13M8 7v2M16 7v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
+      </svg>
+    ),
+  },
+  {
+    id: "segment",
+    name: "Segment",
+    desc: "Stream customer events directly into the graph.",
+    accent: "#8a8071",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: "mailchimp",
+    name: "Mailchimp",
+    desc: "Sync audiences and track campaign engagement.",
+    accent: "#a07164",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <path d="M4 6h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z" stroke="currentColor" strokeWidth="1.4"/>
+        <path d="M4 6l8 7 8-7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+];
+
+const DEV_TOOLS = [
+  { name: "REST API", desc: "Full programmatic access to every record and action", accent: "#9fb08f" },
+  { name: "Webhooks", desc: "Real-time events on record changes, stage moves, and agent completions", accent: "#a68762" },
+  { name: "MCP Server", desc: "Connect Mondaily to Claude, ChatGPT, and any MCP-compatible AI tool", accent: "#8fb3b0" },
+];
+
+function IntegrationsSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em]" style={{ color: "#9fb08f" }}>Integrations</p>
+      <h2 className="mb-2 font-sans font-semibold tracking-tight text-zinc-900">
+        Works with your existing stack
+      </h2>
+      <p className="mb-10 max-w-xl text-[14px] leading-relaxed text-zinc-500">
+        Connect the tools your team already uses. Records, conversations, and events flow in automatically.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {INTEGRATIONS.map((item, i) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.35, delay: i * 0.05 }}
+            className="rounded-xl border p-4"
+            style={{ borderColor: `${item.accent}28`, background: `${item.accent}07` }}
+          >
+            <div className="mb-3" style={{ color: item.accent }}>{item.icon}</div>
+            <p className="mb-1 text-[13px] font-semibold text-zinc-800">{item.name}</p>
+            <p className="text-[11.5px] leading-snug text-zinc-500">{item.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Developer tools row */}
+      <div className="mt-8 border-t border-black/[.05] pt-8">
+        <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">For developers</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {DEV_TOOLS.map((t, i) => (
+            <motion.div
+              key={t.name}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.35, delay: i * 0.07 }}
+              className="flex items-start gap-3 rounded-xl border p-4"
+              style={{ borderColor: `${t.accent}22`, background: `${t.accent}06` }}
+            >
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: t.accent }} />
+              <div>
+                <p className="text-[13px] font-semibold text-zinc-800">{t.name}</p>
+                <p className="mt-0.5 text-[11.5px] leading-snug text-zinc-500">{t.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function TrustSection() {
   return (
     <section id="company" className="mx-auto max-w-6xl px-6 py-12">
@@ -2971,6 +3133,9 @@ export function LandingPage() {
 
           {/* ── FAQ ── */}
           <FAQSection />
+
+          {/* ── Integrations ── */}
+          <FadeIn><IntegrationsSection /></FadeIn>
 
           {/* ── Trust / data isolation ── */}
           <TrustSection />
