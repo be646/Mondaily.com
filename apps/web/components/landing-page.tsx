@@ -304,15 +304,35 @@ function RotatingWord({ words }: { words: string[] }) {
   );
 }
 
+const FEATURE_TERMINAL_LINES = [
+  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "graph", color: "#8fb3b0" }, { text: " → ", color: "#7c8379" }, { text: "connect messy records", color: "#d7c6a3" }],
+  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "enrich", color: "#a68762" }, { text: " → ", color: "#7c8379" }, { text: "attach web-backed fields", color: "#d7c6a3" }],
+  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "signal", color: "#8fb3b0" }, { text: " → ", color: "#7c8379" }, { text: "explain changed records", color: "#d7c6a3" }],
+  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "draft", color: "#a07164" }, { text: " → ", color: "#7c8379" }, { text: "prepare tasks and messages", color: "#d7c6a3" }],
+  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "monitor", color: "#607078" }, { text: " → ", color: "#7c8379" }, { text: "watch finance and decisions", color: "#d7c6a3" }],
+  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "prospect", color: "#6f8068" }, { text: " → ", color: "#7c8379" }, { text: "discover sourced candidates", color: "#d7c6a3" }],
+];
+
 function FeatureSection() {
   const [active, setActive] = useState<string | null>(null);
   const [operationIdx, setOperationIdx] = useState(0);
+  const [typedChars, setTypedChars] = useState(0);
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
 
+  const activeLineLength = FEATURE_TERMINAL_LINES[operationIdx]!.reduce((s, seg) => s + seg.text.length, 0);
+
   useEffect(() => {
-    const t = setInterval(() => setOperationIdx(i => (i + 1) % 6), 1600);
+    const t = setInterval(() => setOperationIdx(i => (i + 1) % FEATURE_TERMINAL_LINES.length), 1800);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    setTypedChars(0);
+    const t = setInterval(() => {
+      setTypedChars(c => (c < activeLineLength ? c + 1 : c));
+    }, 28);
+    return () => clearInterval(t);
+  }, [operationIdx, activeLineLength]);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
@@ -387,24 +407,12 @@ function FeatureSection() {
           <span className="text-[11px] text-[#7c8379]">operation stream</span>
         </div>
         <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
-          {([
-            ["graph",   "connect messy records"],
-            ["enrich",  "attach web-backed fields"],
-            ["signal",  "explain changed records"],
-            ["draft",   "prepare tasks and messages"],
-            ["monitor", "watch finance and decisions"],
-            ["prospect","discover sourced candidates"],
-          ] as [string, string][]).map(([agent, line], i) => (
+          {FEATURE_TERMINAL_LINES.map((segments, i) => (
             <TerminalLine
-              key={line}
+              key={i}
               active={i === operationIdx}
-              segments={[
-                { text: "agent", color: "#9fb08f" },
-                { text: ".", color: "#7c8379" },
-                { text: agent, color: "#8fb3b0" },
-                { text: " → ", color: "#7c8379" },
-                { text: line, color: "#d7c6a3" },
-              ]}
+              segments={segments}
+              typedChars={i === operationIdx ? typedChars : undefined}
             />
           ))}
         </div>
@@ -466,12 +474,12 @@ const RECORD_SCENARIOS = [
 ];
 
 const STEP_TEMPLATE = [
-  { tag: "Record",       tagCol: "#3f3f46", delay: 400,  title: "Record added" },
-  { tag: "Enrichment",   tagCol: "#4f46e5", delay: 1100, title: "AI enrichment fired" },
-  { tag: "Graph",        tagCol: "#4f46e5", delay: 1800, title: "Relationship health updated — moved to Proposal" },
-  { tag: "Sequence",     tagCol: "#3f3f46", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
-  { tag: "Automation",   tagCol: "#4f46e5", delay: 3200, title: "Automation triggered on graph event" },
-  { tag: "Finance",      tagCol: "#3f3f46", delay: 3900, title: "Quote drafted — queued for approval" },
+  { tag: "Record",       tagCol: "#9fb08f", delay: 400,  title: "Record added" },
+  { tag: "Enrichment",   tagCol: "#a68762", delay: 1100, title: "AI enrichment fired" },
+  { tag: "Graph",        tagCol: "#8fb3b0", delay: 1800, title: "Relationship health updated — moved to Proposal" },
+  { tag: "Sequence",     tagCol: "#6f8068", delay: 2500, title: "Sequence enrolled: Enterprise Nurture" },
+  { tag: "Automation",   tagCol: "#607078", delay: 3200, title: "Automation triggered on graph event" },
+  { tag: "Finance",      tagCol: "#a07164", delay: 3900, title: "Quote drafted — queued for approval" },
 ];
 
 function buildWorkflowSteps(scenario: typeof RECORD_SCENARIOS[number]) {
@@ -780,15 +788,15 @@ function WorkflowDemo() {
                 >
                   {/* Step connector */}
                   <div className="flex flex-col items-center">
-                    <div className="h-2 w-2 rounded-full mt-1 shrink-0 bg-zinc-400" />
+                    <div className="h-2 w-2 rounded-full mt-1 shrink-0" style={{ background: step.tagCol }} />
                     {i < shownSteps - 1 && (
-                      <div className="mt-1 flex-1 w-px bg-black/[.04] min-h-[20px]"/>
+                      <div className="mt-1 flex-1 w-px min-h-[20px]" style={{ background: `${step.tagCol}30` }}/>
                     )}
                   </div>
                   <div className="min-w-0 pb-1">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[14px] text-zinc-500">{step.tag}</span>
-                      <span className="text-[13px] text-zinc-600">{step.title}</span>
+                      <span className="text-[12px] font-medium" style={{ color: step.tagCol }}>{step.tag}</span>
+                      <span className="text-[13px] text-zinc-700">{step.title}</span>
                     </div>
                     <div className="text-[14px] text-zinc-500 leading-relaxed">{step.detail}</div>
                   </div>
@@ -857,8 +865,8 @@ const FLOW_NODES = [
     sub: "Route high-engagement vs nurture",
     delay: 1200,
     branches: [
-      { label: "High engagement", col: "#4f46e5" },
-      { label: "Nurture", col: "#27272a" },
+      { label: "High engagement", col: "#9fb08f" },
+      { label: "Nurture", col: "#8a8071" },
     ],
   },
   {
@@ -890,34 +898,45 @@ const FLOW_NODES = [
   },
 ];
 
+const FLOW_NODE_COLORS: Record<string, string> = {
+  trigger: "#9fb08f",
+  score: "#a68762",
+  condition: "#8fb3b0",
+  sequence: "#6f8068",
+  slack: "#607078",
+  finance: "#a07164",
+};
+
 function FlowNode({ node, active, alwaysShow = false }: { node: typeof FLOW_NODES[number]; active: boolean; alwaysShow?: boolean }) {
   const isVisible = active || alwaysShow;
-  const borderCol = active
-    ? (node.type === "trigger" ? "border-zinc-400/60" : node.type === "condition" ? "border-zinc-300/60" : "border-black/[.1]")
-    : "border-black/[.04]";
+  const accent = FLOW_NODE_COLORS[node.id] ?? "#9fb08f";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: active ? 1 : alwaysShow ? 0.55 : 0.22, y: 0 }}
       transition={{ duration: 0.35 }}
-      className={`rounded-xl border ${borderCol} bg-white px-5 py-3.5 font-mono`}
+      className="rounded-xl px-5 py-3.5"
+      style={{
+        background: active ? `${accent}10` : "rgba(0,0,0,0.02)",
+        border: `1px solid ${active ? `${accent}40` : "rgba(0,0,0,0.04)"}`,
+      }}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className={`text-[14px] ${active ? (node.type === "trigger" || node.type === "action" ? "text-zinc-700" : "text-zinc-500") : "text-zinc-500"}`}>
+        <span className="text-[12px] font-medium" style={{ color: active ? accent : "#a1a1aa" }}>
           {node.tag}
         </span>
         {active && node.type !== "condition" && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[14px] text-zinc-500">
-            ✓ completed
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px]" style={{ color: accent }}>
+            ✓
           </motion.span>
         )}
         {active && node.type === "condition" && (
-          <span className="text-[14px] text-zinc-600">branching →</span>
+          <span className="text-[12px]" style={{ color: accent }}>branching →</span>
         )}
       </div>
-      <div className={`text-[14px] ${isVisible ? "text-zinc-900" : "text-zinc-600"}`}>{node.label}</div>
-      <div className="mt-0.5 text-[14px] text-zinc-600 leading-relaxed">{node.sub}</div>
+      <div className="text-[14px] text-zinc-800">{node.label}</div>
+      <div className="mt-0.5 text-[13px] text-zinc-500 leading-relaxed">{node.sub}</div>
     </motion.div>
   );
 }
@@ -1444,8 +1463,7 @@ function WorkspaceGraphPreview() {
                 transition={{ duration: 2, repeat: Infinity }}
                 className="h-2 w-2 rounded-full bg-[#6f8068]"
               />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-800">Mondaily</p>
-              <p className="text-[11px] text-zinc-500">graph core</p>
+              <p className="text-[11px] text-zinc-500">workspace graph</p>
             </div>
 
             <div className="relative mt-4 w-full">
@@ -2396,46 +2414,31 @@ const APPROVAL_STEPS = [
 ];
 
 function ApprovalSection() {
-  const [active, setActive] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setActive(i => (i + 1) % APPROVAL_STEPS.length), 2000);
-    return () => clearInterval(t);
-  }, []);
-
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16">
-      <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Decision Queue</p>
-      <h2 className="mb-2 font-sans font-semibold tracking-tight text-zinc-900">
-        Agents prepare. You stay in control.
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <div className="h-px w-full bg-black/[.06] mb-12" />
+      <p className="mb-6 text-[11px] font-medium uppercase tracking-[0.22em] text-zinc-400">Decision Queue</p>
+      <h2
+        className="font-sans font-semibold tracking-tight text-zinc-900"
+        style={{ fontSize: "clamp(1.8rem, 3.5vw, 3rem)", lineHeight: 1.06, letterSpacing: "-0.04em" }}
+      >
+        Agents prepare.{" "}
+        <span className="text-zinc-400">You stay in control.</span>
       </h2>
-      <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Sensitive actions wait in a queue with evidence, owner, and approval state.
-      </p>
-
-      <div className="border-y border-black/[.06]">
+      <div className="mt-10 flex flex-col gap-0">
         {APPROVAL_STEPS.map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.4, delay: i * 0.07 }}
-            animate={{ opacity: active === i ? 1 : 0.68 }}
-            className="grid gap-3 border-b border-black/[.06] py-3 text-left last:border-b-0 sm:grid-cols-[90px_1fr_120px]"
-          >
-            <span className="text-[12px] uppercase tracking-[0.16em]" style={{ color: active === i ? s.tone : "#a1a1aa" }}>0{i + 1}</span>
-            <div>
-              <p className="text-[14px] font-semibold text-zinc-800">{s.label}</p>
-              <p className="mt-1 text-[13px] leading-relaxed text-zinc-500">{s.desc}</p>
-            </div>
-            <span className="inline-flex items-center gap-2 text-[13px] font-medium text-zinc-500">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tone }} />
-              {s.status}
+          <div key={s.label} className="flex items-baseline gap-6 border-t border-black/[.05] py-4 last:border-b">
+            <span className="w-6 shrink-0 text-[11px] tabular-nums text-zinc-300">0{i + 1}</span>
+            <span className="w-28 shrink-0 text-[13px] font-medium text-zinc-800">{s.label}</span>
+            <span className="flex-1 text-[13px] leading-relaxed text-zinc-500">{s.desc}</span>
+            <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
+              <span className="h-1 w-1 rounded-full" style={{ background: s.tone }} />
+              <span className="text-[11px] text-zinc-400">{s.status}</span>
             </span>
-          </motion.div>
+          </div>
         ))}
       </div>
+      <div className="h-px w-full bg-black/[.06] mt-12" />
     </section>
   );
 }
@@ -2514,17 +2517,19 @@ function TrustSection() {
   );
 }
 
+const BADGE_ACCENTS = ["#9fb08f", "#a68762", "#8fb3b0"];
+
 function TrustBadges() {
   return (
-    <div className="border-t border-black/[.04] bg-white">
+    <div style={{ borderTop: "1px solid rgba(0,0,0,0.04)" }}>
       <a
         href="/security"
-        className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-4 px-6 py-8 transition-colors hover:bg-black/[.012]"
+        className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-3 px-6 py-8 transition-opacity hover:opacity-75"
       >
-        {TRUST_BADGES.map(b => (
-          <div key={b.label} className="flex items-center gap-2.5 text-zinc-500">
-            <span className="text-zinc-400">{b.icon}</span>
-            <span className="font-mono text-[12.5px]">{b.label}</span>
+        {TRUST_BADGES.map((b, i) => (
+          <div key={b.label} className="flex items-center gap-2.5">
+            <span style={{ color: BADGE_ACCENTS[i % BADGE_ACCENTS.length] }}>{b.icon}</span>
+            <span className="text-[12px] text-zinc-500">{b.label}</span>
           </div>
         ))}
       </a>
