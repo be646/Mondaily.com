@@ -71438,6 +71438,16 @@ router6.get("/credits", requireAuth, async (c2) => {
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
   return c2.json({ used, limit: 1e3, period_end: periodEnd });
 });
+router6.get("/env-check", requireAuth, async (c2) => {
+  return c2.json({
+    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
+    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",
+    AI_GATEWAY_BASE_URL: process.env.AI_GATEWAY_BASE_URL ?? "NOT SET",
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY ? "SET" : "NOT SET",
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? "SET" : "NOT SET",
+    CLAUDE_API_KEY: process.env.CLAUDE_API_KEY ? "SET" : "NOT SET"
+  });
+});
 router6.post("/stream", requireAuth, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().uuid().optional()

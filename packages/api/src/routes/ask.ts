@@ -1205,6 +1205,17 @@ router.get("/credits", requireAuth, async (c) => {
   return c.json({ used, limit: 1000, period_end: periodEnd });
 });
 
+router.get("/env-check", requireAuth, async (c) => {
+  return c.json({
+    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? "NOT SET",
+    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? "NOT SET",
+    AI_GATEWAY_BASE_URL: process.env.AI_GATEWAY_BASE_URL ?? "NOT SET",
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY ? "SET" : "NOT SET",
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? "SET" : "NOT SET",
+    CLAUDE_API_KEY: process.env.CLAUDE_API_KEY ? "SET" : "NOT SET",
+  });
+});
+
 router.post("/stream", requireAuth, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().uuid().optional()
