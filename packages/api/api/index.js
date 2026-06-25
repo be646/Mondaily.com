@@ -70092,6 +70092,11 @@ async function listWorkspaceIds(workspaceId) {
   const { data } = await supabase.from("workspaces").select("id");
   return (data ?? []).map((w2) => w2.id);
 }
+var PERSON_OR_COMPANY_STEMS = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org", "investor", "supplier", "employee", "candidate"];
+function isRelationshipType(objectType2) {
+  const t2 = objectType2.toLowerCase();
+  return PERSON_OR_COMPANY_STEMS.some((s3) => t2.includes(s3));
+}
 async function runDealAlerts(workspaceId) {
   const jobId = await startJob({
     workspace_id: workspaceId ?? "system",
@@ -70160,8 +70165,9 @@ async function runRelationshipHealth(workspaceId) {
       input: { workspace_id: wsId }
     });
     try {
-      const { data: contacts } = await supabase.from("nodes").select("id, data").eq("workspace_id", wsId).in("object_type", ["contact", "person", "lead", "company", "account"]);
-      if (!contacts?.length) {
+      const { data: allNodes } = await supabase.from("nodes").select("id, data, object_type").eq("workspace_id", wsId).limit(5e3);
+      const contacts = (allNodes ?? []).filter((n2) => isRelationshipType(String(n2.object_type)));
+      if (!contacts.length) {
         await completeJob(jobId, { scored: 0 }, []);
         continue;
       }
@@ -70415,7 +70421,7 @@ async function runRecurringInvoices(workspaceId) {
   }
   return { generated: totalGenerated };
 }
-var ENRICHABLE2 = ["contact", "person", "people", "lead", "company", "account", "organization"];
+var ENRICHABLE2 = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org"];
 async function tavilySearch2(query) {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return "";

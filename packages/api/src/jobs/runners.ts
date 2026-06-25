@@ -22,6 +22,17 @@ async function listWorkspaceIds(workspaceId?: string): Promise<string[]> {
   return (data ?? []).map((w) => w.id as string);
 }
 
+/**
+ * Object-type matching by stem, not exact string. Workspaces name their
+ * types freely ("people", "contact-leads", "companies"), so exact-match
+ * filters silently miss everything. Match on substring stems instead.
+ */
+const PERSON_OR_COMPANY_STEMS = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org", "investor", "supplier", "employee", "candidate"];
+function isRelationshipType(objectType: string): boolean {
+  const t = objectType.toLowerCase();
+  return PERSON_OR_COMPANY_STEMS.some((s) => t.includes(s));
+}
+
 // ── Relationship Agent: cold-deal alerts ────────────────────────────────────────
 export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_created: number }> {
   const jobId = await startJob({
@@ -99,10 +110,12 @@ export async function runRelationshipHealth(workspaceId?: string): Promise<{ tot
       trigger_type: workspaceId ? "manual" : "scheduled", input: { workspace_id: wsId },
     });
     try {
-      const { data: contacts } = await supabase
-        .from("nodes").select("id, data").eq("workspace_id", wsId)
-        .in("object_type", ["contact", "person", "lead", "company", "account"]);
-      if (!contacts?.length) { await completeJob(jobId, { scored: 0 }, []); continue; }
+      // Fetch all nodes and filter by stem — workspaces use plural/hyphenated
+      // type names ("people", "contact-leads", "companies") that exact-match misses.
+      const { data: allNodes } = await supabase
+        .from("nodes").select("id, data, object_type").eq("workspace_id", wsId).limit(5000);
+      const contacts = (allNodes ?? []).filter((n) => isRelationshipType(String(n.object_type)));
+      if (!contacts.length) { await completeJob(jobId, { scored: 0 }, []); continue; }
 
       for (const contact of contacts) {
         const signals: Record<string, unknown> = {};
@@ -326,7 +339,8 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
 }
 
 // ── Graph Enrichment Agent: on-demand workspace enrichment ──────────────────────
-const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
+// Stems (not exact) so "companies"/"contact-leads"/"people" all match.
+const ENRICHABLE = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org"];
 
 async function tavilySearch(query: string): Promise<string> {
   const key = process.env.TAVILY_API_KEY;
