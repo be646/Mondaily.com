@@ -711,7 +711,7 @@ function WorkflowDemo() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* ── Left: enriched record card ── */}
-        <div className="rounded-2xl border border-black/[.05] bg-white p-6">
+        <div className="rounded-2xl border border-black/[.05] p-6" style={{ background: "var(--landing-surface)" }}>
           {/* Card header */}
           <div className="mb-5 flex items-center justify-between border-b border-black/[.04] pb-4">
             <div className="flex items-center gap-3">
@@ -765,7 +765,7 @@ function WorkflowDemo() {
         </div>
 
         {/* ── Right: activity timeline ── */}
-        <div className="rounded-2xl border border-black/[.05] bg-white p-6">
+        <div className="rounded-2xl border border-black/[.05] p-6" style={{ background: "var(--landing-surface)" }}>
           <div className="mb-5 flex items-center gap-2 border-b border-black/[.04] pb-4">
             <span className="text-[14px] font-medium text-zinc-700">Activity on this record</span>
             <motion.span
@@ -1181,7 +1181,7 @@ function HeroPipelinePreview() {
   return (
     <div
       className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl"
-      style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
+      style={{ border: "1px solid var(--landing-line-strong)", background: "var(--landing-surface)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
         <span className="text-[13px] font-medium text-zinc-700">Opportunity flow — your workspace graph</span>
@@ -1690,7 +1690,7 @@ function InvoiceBoardPreview() {
   return (
     <div
       className="mx-auto w-full max-w-4xl overflow-hidden rounded-2xl"
-      style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
+      style={{ border: "1px solid var(--landing-line-strong)", background: "var(--landing-surface)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
         <span className="text-[13px] font-medium text-zinc-700">Finance — quotes &amp; invoices</span>
@@ -1934,7 +1934,7 @@ function RecordsSheetPreview() {
   return (
     <div
       className="mx-auto w-full max-w-6xl overflow-hidden rounded-2xl"
-      style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)" }}
+      style={{ border: "1px solid var(--landing-line-strong)", background: "var(--landing-surface)" }}
     >
       <div className="flex items-center gap-2 border-b border-black/[.05] px-4 py-2.5">
         <AnimatePresence mode="wait">
@@ -2631,13 +2631,13 @@ export function PricingSection() {
       <div className="mb-10 inline-flex items-center gap-1 rounded-full border border-black/[.08] bg-zinc-50 p-1 text-[13px]">
         <button
           onClick={() => setAnnual(false)}
-          className={`rounded-full px-4 py-1.5 transition-all ${!annual ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
+          className={`rounded-full px-4 py-1.5 transition-all ${!annual ? "bg-white text-zinc-900 shadow-sm landing-toggle-active" : "text-zinc-500 hover:text-zinc-700"}`}
         >
           Monthly
         </button>
         <button
           onClick={() => setAnnual(true)}
-          className={`rounded-full px-4 py-1.5 transition-all ${annual ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
+          className={`rounded-full px-4 py-1.5 transition-all ${annual ? "bg-white text-zinc-900 shadow-sm landing-toggle-active" : "text-zinc-500 hover:text-zinc-700"}`}
         >
           Annual
           {annual && <span className="ml-2 text-[10px] font-medium" style={{ color: "#9fb08f" }}>–20%</span>}
@@ -2657,7 +2657,7 @@ export function PricingSection() {
               transition={{ duration: 0.4, delay: i * 0.07 }}
               className={`group relative flex flex-col rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-1 ${
                 plan.highlight
-                  ? "bg-zinc-900 text-white"
+                  ? "landing-pro-card bg-zinc-900 text-white"
                   : "border border-black/[.07] bg-white"
               }`}
               style={plan.highlight ? {} : { boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.04)" }}
@@ -2693,7 +2693,7 @@ export function PricingSection() {
                 href={plan.href}
                 className={`block rounded-full py-2.5 text-center text-[12.5px] font-medium transition-opacity hover:opacity-85 ${
                   plan.highlight
-                    ? "bg-white text-zinc-900"
+                    ? "landing-pro-cta bg-white text-zinc-900"
                     : "border border-black/[.1] text-zinc-700 hover:border-black/[.2]"
                 }`}
               >
@@ -2727,7 +2727,7 @@ function CookieBanner() {
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="fixed inset-x-0 bottom-6 z-50 mx-auto w-full max-w-xl px-4"
         >
-          <div className="rounded-2xl border border-black/[.07] bg-white shadow-[0_24px_64px_rgba(0,0,0,0.10)] overflow-hidden">
+          <div className="rounded-2xl border border-black/[.07] overflow-hidden" style={{ background: "var(--landing-surface)" }}>
             <div className="flex items-start gap-4 px-6 py-5">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100">
                 <span className="font-mono text-[11px] font-semibold text-zinc-600">EU</span>
@@ -2784,7 +2784,7 @@ function StickyStartBar() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 16, opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.3 }}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-black/[.12] bg-zinc-900 px-5 py-3 text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:bg-zinc-800 transition-colors"
+          className="landing-sticky-bar fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-black/[.12] bg-zinc-900 px-5 py-3 text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:bg-zinc-800 transition-colors"
         >
           <motion.span
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -2998,7 +2998,7 @@ export function LandingPage() {
         <TrustBadges />
 
         {/* ── Footer ── */}
-        <footer className="relative" style={{ background: "#f7f6f3" }}>
+        <footer className="relative" style={{ background: "var(--landing-surface-raised)" }}>
           <div className="absolute top-0 left-0 h-px w-full bg-current opacity-10"/>
           <FooterTicker />
           <div className="mx-auto max-w-6xl px-6 py-14">

@@ -19,12 +19,14 @@ body {
    This is intentionally scoped so Clerk/auth/legal pages keep their own layout. */
 .landing-shell {
   --landing-canvas: #ffffff;
+  --landing-surface: #ffffff;
+  --landing-surface-raised: #f7f6f3;
   --landing-text: #0a0a0a;
   --landing-muted: #737373;
   --landing-faint: #a3a3a3;
-  --landing-line: #fafafa;
-  --landing-line-strong: #ececec;
-  --landing-hover: #f7f7f7;
+  --landing-line: #f0ede8;
+  --landing-line-strong: #e0dcd6;
+  --landing-hover: #f5f4f1;
   background: var(--landing-canvas);
   color: var(--landing-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -33,13 +35,15 @@ body {
 
 .landing-shell.dark,
 .landing-shell[data-theme="dark"] {
-  --landing-canvas: #000000;
-  --landing-text: #ffffff;
-  --landing-muted: #a3a3a3;
-  --landing-faint: #737373;
-  --landing-line: #0d0d0d;
-  --landing-line-strong: #202020;
-  --landing-hover: #0a0a0a;
+  --landing-canvas: #0f0e0c;
+  --landing-surface: #1a1816;
+  --landing-surface-raised: #232019;
+  --landing-text: #ede8e0;
+  --landing-muted: #8a837a;
+  --landing-faint: #524d49;
+  --landing-line: #2a2520;
+  --landing-line-strong: #38312a;
+  --landing-hover: #1e1c19;
   color-scheme: dark;
 }
 
@@ -366,7 +370,106 @@ body {
 
 .landing-shell[data-theme="dark"] .text-zinc-900,
 .landing-shell[data-theme="dark"] .text-zinc-800,
+.landing-shell[data-theme="dark"] .text-zinc-700,
 .landing-shell[data-theme="dark"] .text-neutral-950,
-.landing-shell[data-theme="dark"] .text-neutral-900 {
+.landing-shell[data-theme="dark"] .text-neutral-900,
+.landing-shell.dark .text-zinc-900,
+.landing-shell.dark .text-zinc-800,
+.landing-shell.dark .text-zinc-700,
+.landing-shell.dark .text-neutral-950,
+.landing-shell.dark .text-neutral-900 {
+  color: var(--landing-text) !important;
+}
+
+/* ── Dark mode: flip white/light backgrounds to warm dark surfaces ── */
+.landing-shell[data-theme="dark"] .bg-white,
+.landing-shell.dark .bg-white {
+  background: var(--landing-surface) !important;
+}
+
+.landing-shell[data-theme="dark"] [class*="bg-zinc-900"],
+.landing-shell.dark [class*="bg-zinc-900"] {
+  background: var(--landing-surface-raised) !important;
+  color: var(--landing-text) !important;
+}
+
+/* Pro pricing card stays dark-on-light in light mode, but inverts to light-on-dark */
+.landing-shell[data-theme="dark"] .landing-pro-card,
+.landing-shell.dark .landing-pro-card {
+  background: var(--landing-surface-raised) !important;
+  color: var(--landing-text) !important;
+  border-color: rgba(159, 176, 143, 0.3) !important;
+}
+
+.landing-shell[data-theme="dark"] .landing-pro-card *,
+.landing-shell.dark .landing-pro-card * {
+  color: var(--landing-text) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+.landing-shell[data-theme="dark"] .landing-pro-card .landing-pro-cta,
+.landing-shell.dark .landing-pro-card .landing-pro-cta {
+  background: var(--landing-text) !important;
+  color: var(--landing-canvas) !important;
+}
+
+/* Dark mode: dim the overly dark rgba(0,0,0,...) inline borders/backgrounds */
+.landing-shell[data-theme="dark"] [style*="rgba(0,0,0,0.0"],
+.landing-shell.dark [style*="rgba(0,0,0,0.0"] {
+  /* handled by specific component overrides below */
+}
+
+/* Muted text needs to lighten in dark mode */
+.landing-shell[data-theme="dark"] .text-zinc-500,
+.landing-shell.dark .text-zinc-500,
+.landing-shell[data-theme="dark"] .text-zinc-600,
+.landing-shell.dark .text-zinc-600 {
+  color: var(--landing-muted) !important;
+}
+
+.landing-shell[data-theme="dark"] .text-zinc-400,
+.landing-shell.dark .text-zinc-400 {
+  color: var(--landing-faint) !important;
+}
+
+/* Terminal stays dark regardless of mode */
+.landing-shell[data-theme="dark"] .landing-terminal,
+.landing-shell.dark .landing-terminal {
+  background:
+    linear-gradient(90deg, rgba(127, 163, 129, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(127, 163, 129, 0.05) 1px, transparent 1px),
+    #050706 !important;
+  background-size: 28px 28px, 28px 28px, auto !important;
+}
+
+/* StickyStartBar: keep dark pill in both modes */
+.landing-shell[data-theme="dark"] .landing-sticky-bar,
+.landing-shell.dark .landing-sticky-bar {
+  background: var(--landing-surface-raised) !important;
+  border-color: var(--landing-line-strong) !important;
+  color: var(--landing-text) !important;
+}
+
+/* Pricing toggle active pill */
+.landing-shell[data-theme="dark"] .landing-toggle-active,
+.landing-shell.dark .landing-toggle-active {
+  background: var(--landing-surface-raised) !important;
+  color: var(--landing-text) !important;
+}
+
+/* Inline border rgba(0,0,0,...) need to lighten in dark mode — handled
+   by using CSS vars in the components where possible; for remaining
+   Tailwind border-black/* classes the global normalizer already maps
+   them to --landing-line which is now a warm dark border in dark mode. */
+
+/* Agent card & trust card inline backgrounds: the alpha-blended accent
+   tints (#xxx0d hex alpha) naturally work on dark bg — no override needed */
+
+/* Ensure dark text on white/warm bg respects theme in inline style components */
+.landing-shell[data-theme="dark"] [style*="color: #0a0a0a"],
+.landing-shell[data-theme="dark"] [style*="color: #18181b"],
+.landing-shell[data-theme="dark"] [style*="color: rgb(10"],
+.landing-shell.dark [style*="color: #0a0a0a"],
+.landing-shell.dark [style*="color: #18181b"] {
   color: var(--landing-text) !important;
 }
