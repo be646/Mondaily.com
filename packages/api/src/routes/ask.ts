@@ -1117,7 +1117,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     const sources: SourceMeta[] = [];
 
-    const { reply: agentReply } = await aiGatewayAgent({
+    const { reply: agentReply, rounds, provider } = await aiGatewayAgent({
       system: systemPrompt,
       tools: TOOLS,
       messages,
@@ -1127,9 +1127,11 @@ router.post("/", requireAuth, zValidator("json", z.object({
         executeTool(name, input as Record<string, any>, workspaceId, userId, sources),
     });
 
+    console.log(`[ask] done provider=${provider} rounds=${rounds} replyLen=${agentReply.length} sources=${sources.length}`);
+
     let reply = agentReply;
 
-    if (!reply) reply = "Done — I took action on your request.";
+    if (!reply) reply = "I looked through your workspace but couldn't find anything relevant to that request. Try asking in a different way or add some data first.";
 
     // Extract follow-up suggestions
     let suggestions: string[] = [];

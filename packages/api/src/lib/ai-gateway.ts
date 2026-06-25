@@ -375,9 +375,17 @@ async function runOpenAICompatAgent(
 
   // Llama models often finish tool rounds without producing a text reply.
   // Make one final no-tools call to get a plain-language summary.
-  if (!reply && rounds > 0) {
+  if (!reply) {
+    const originalUserMsg = [...req.messages].reverse().find(m => m.role === "user")
+      ?? req.messages[req.messages.length - 1];
+    const originalText = typeof originalUserMsg?.content === "string"
+      ? originalUserMsg.content
+      : "";
     console.log(`[gateway:openai-compat] no text reply after ${rounds} round(s) — requesting summary`);
-    messages.push({ role: "user", content: "Please briefly summarize what you just did or found." });
+    messages.push({
+      role: "user",
+      content: `The user asked: "${originalText}". Based on the tool results above, write a clear, concise reply directly answering their request. If nothing was found, say so plainly.`,
+    });
     try {
       const summary = await client.chat.completions.create({
         model: activeModel,
@@ -385,8 +393,9 @@ async function runOpenAICompatAgent(
         messages,
       });
       reply = summary.choices[0]?.message.content ?? "";
-    } catch {
-      // summary call failed — leave reply empty, caller handles fallback text
+      if (reply) console.log(`[gateway:openai-compat] summary reply obtained (${reply.length} chars)`);
+    } catch (e: any) {
+      console.error(`[gateway:openai-compat] summary call failed: ${e?.message}`);
     }
   }
 
