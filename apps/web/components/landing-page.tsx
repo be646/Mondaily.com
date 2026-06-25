@@ -3052,13 +3052,13 @@ export function LandingPage() {
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
         data-theme={theme}
-        className={`landing-shell min-h-screen overflow-x-hidden bg-white text-zinc-900 ${theme === "dark" ? "dark" : ""}`}
+        className={`landing-shell min-h-screen bg-white text-zinc-900 ${theme === "dark" ? "dark" : ""}`}
       >
-        <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur-xl dark:border-neutral-800 dark:bg-neutral-950/90">
+        <header className="landing-nav fixed top-0 left-0 right-0 z-40 border-b">
           <Nav />
         </header>
 
-        <main>
+        <main style={{ paddingTop: "64px", overflowX: "hidden" }}>
           {/* ── Hero ── */}
           <section className="mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
             <div className="mx-auto max-w-3xl">

@@ -20,13 +20,13 @@ body {
 .landing-shell {
   --landing-canvas: #ffffff;
   --landing-surface: #ffffff;
-  --landing-surface-raised: #f7f6f3;
+  --landing-surface-raised: #f8f7f5;
   --landing-text: #0a0a0a;
   --landing-muted: #737373;
   --landing-faint: #a3a3a3;
-  --landing-line: #f0ede8;
-  --landing-line-strong: #e0dcd6;
-  --landing-hover: #f5f4f1;
+  --landing-line: #ebebeb;
+  --landing-line-strong: #d8d8d8;
+  --landing-hover: #f5f5f5;
   background: var(--landing-canvas);
   color: var(--landing-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -35,15 +35,15 @@ body {
 
 .landing-shell.dark,
 .landing-shell[data-theme="dark"] {
-  --landing-canvas: #0f0e0c;
-  --landing-surface: #1a1816;
-  --landing-surface-raised: #232019;
-  --landing-text: #ede8e0;
-  --landing-muted: #8a837a;
-  --landing-faint: #524d49;
-  --landing-line: #2a2520;
-  --landing-line-strong: #38312a;
-  --landing-hover: #1e1c19;
+  --landing-canvas: #0d0d0d;
+  --landing-surface: #141414;
+  --landing-surface-raised: #1a1a1a;
+  --landing-text: #e8e8e6;
+  --landing-muted: #888884;
+  --landing-faint: #4a4a48;
+  --landing-line: #202020;
+  --landing-line-strong: #2c2c2c;
+  --landing-hover: #181818;
   color-scheme: dark;
 }
 
@@ -57,9 +57,18 @@ body {
   color: var(--landing-text);
 }
 
+/* .landing-nav: fixed, always opaque, no blur — prevents bleed-through */
+.landing-shell .landing-nav {
+  background: var(--landing-canvas) !important;
+  border-color: var(--landing-line) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 .landing-shell header {
   border-color: var(--landing-line) !important;
-  backdrop-filter: blur(18px);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .landing-shell footer {
@@ -184,10 +193,16 @@ body {
   transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, opacity 140ms ease;
 }
 
-.landing-shell a:hover,
-.landing-shell button:hover {
+/* Only apply hover bg to nav/button elements, not plain text links */
+.landing-shell button:hover,
+.landing-shell a.landing-btn:hover {
   color: var(--landing-text) !important;
   background: var(--landing-hover) !important;
+}
+
+.landing-shell nav a:hover {
+  color: var(--landing-text) !important;
+  background: transparent !important;
 }
 
 .landing-shell a[href*="sign-up"],
