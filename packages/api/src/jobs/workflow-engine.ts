@@ -1,6 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob } from "../lib/agent-logger";
-import { aiGatewayToolUse } from "../lib/ai-gateway";
+import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 
 /**
  * Workflow Agent execution engine.
@@ -81,15 +81,28 @@ async function evaluateConditions(conditions: WorkflowBlock[], record: { object_
       return actual === expected;
     });
   }
-  // AI path for label-only conditions.
-  const res = await aiGatewayToolUse({
-    prompt: `Record (${record.object_type}):\n${JSON.stringify(record.data).slice(0, 1500)}\n\nConditions (ALL must hold):\n${conditions.map((c, i) => `${i + 1}. ${c.label ?? c.type}`).join("\n")}\n\nDo all conditions hold for this record?`,
-    toolName: "evaluate_conditions",
-    toolDescription: "Decide whether all workflow conditions are satisfied by the record",
-    toolSchema: { type: "object", properties: { pass: { type: "boolean" }, reason: { type: "string" } }, required: ["pass"] },
-    maxTokens: 600,
-  }).catch(() => ({ pass: false }));
-  return Boolean((res as { pass?: boolean }).pass);
+  // Keyword fast-path: if a condition names a value that's literally present
+  // in the record (e.g. "status equals Won" + a "Closed Won" stage), pass
+  // without an AI round-trip. Robust and free for the common equals case.
+  const recordText = JSON.stringify(record.data).toLowerCase();
+  const keywordPass = conditions.every((c) => {
+    const label = (c.label ?? c.type).toLowerCase();
+    // pull the value after equals/is/= , else the last capitalised-ish token
+    const m = label.match(/(?:equals?|is|=|matches)\s+["']?([a-z0-9 _-]{2,})["']?$/i)
+      ?? (c.label ?? "").match(/\b([A-Z][a-zA-Z]{2,})\s*$/);
+    const val = (m?.[1] ?? "").trim().toLowerCase();
+    return val.length >= 2 && recordText.includes(val);
+  });
+  if (keywordPass) return true;
+
+  // AI fallback — plain text YES/NO (reliable on reasoning models, unlike
+  // forced tool-use which gpt-oss often leaves empty).
+  const { text } = await aiGateway({
+    system: "You evaluate workflow conditions. Answer with exactly one word: YES or NO.",
+    prompt: `Record (${record.object_type}):\n${JSON.stringify(record.data).slice(0, 1500)}\n\nConditions (ALL must hold):\n${conditions.map((c, i) => `${i + 1}. ${c.label ?? c.type}`).join("\n")}\n\nDo ALL conditions hold for this record? Answer YES or NO.`,
+    maxTokens: 1500,
+  }).catch(() => ({ text: "" }));
+  return /\byes\b/i.test(text) && !/\bno\b/i.test(text.replace(/\byes\b/i, ""));
 }
 
 interface ActionOutcome { action: string; mode: "executed" | "queued"; detail: string }
@@ -215,10 +228,18 @@ export async function runWorkflowsForWorkspace(
       for (const record of candidates) {
         const triggerKey = triggerKeyFor(parsed.trigger, record);
 
-        // Dedup: skip if this workflow already fired for this record+trigger.
-        const { data: existing } = await supabase.from("workflow_runs").select("id")
-          .eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey).maybeSingle();
-        if (existing) continue;
+        // Dedup: only skip if this workflow already EXECUTED/queued actions for
+        // this record+trigger. A prior condition_failed must NOT block re-eval
+        // (the record may now satisfy the condition, or a past eval was wrong).
+        const { data: priorRuns } = await supabase.from("workflow_runs").select("id,status")
+          .eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey);
+        const alreadyActioned = (priorRuns ?? []).some((r) => r.status === "executed" || r.status === "queued");
+        if (alreadyActioned) continue;
+        // Clear any stale condition_failed rows so the unique index doesn't block a fresh insert.
+        if ((priorRuns ?? []).length > 0) {
+          await supabase.from("workflow_runs").delete()
+            .eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey).then(() => {}, () => {});
+        }
 
         const pass = await evaluateConditions(parsed.conditions, record);
         if (!pass) {

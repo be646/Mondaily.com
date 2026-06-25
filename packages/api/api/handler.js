@@ -69664,20 +69664,26 @@ async function evaluateConditions(conditions, record) {
       return actual === expected;
     });
   }
-  const res = await aiGatewayToolUse({
+  const recordText = JSON.stringify(record.data).toLowerCase();
+  const keywordPass = conditions.every((c2) => {
+    const label = (c2.label ?? c2.type).toLowerCase();
+    const m2 = label.match(/(?:equals?|is|=|matches)\s+["']?([a-z0-9 _-]{2,})["']?$/i) ?? (c2.label ?? "").match(/\b([A-Z][a-zA-Z]{2,})\s*$/);
+    const val = (m2?.[1] ?? "").trim().toLowerCase();
+    return val.length >= 2 && recordText.includes(val);
+  });
+  if (keywordPass) return true;
+  const { text: text2 } = await aiGateway({
+    system: "You evaluate workflow conditions. Answer with exactly one word: YES or NO.",
     prompt: `Record (${record.object_type}):
 ${JSON.stringify(record.data).slice(0, 1500)}
 
 Conditions (ALL must hold):
 ${conditions.map((c2, i2) => `${i2 + 1}. ${c2.label ?? c2.type}`).join("\n")}
 
-Do all conditions hold for this record?`,
-    toolName: "evaluate_conditions",
-    toolDescription: "Decide whether all workflow conditions are satisfied by the record",
-    toolSchema: { type: "object", properties: { pass: { type: "boolean" }, reason: { type: "string" } }, required: ["pass"] },
-    maxTokens: 600
-  }).catch(() => ({ pass: false }));
-  return Boolean(res.pass);
+Do ALL conditions hold for this record? Answer YES or NO.`,
+    maxTokens: 1500
+  }).catch(() => ({ text: "" }));
+  return /\byes\b/i.test(text2) && !/\bno\b/i.test(text2.replace(/\byes\b/i, ""));
 }
 async function runAction(workspaceId, action, record) {
   const type = action.type.toLowerCase();
@@ -69802,8 +69808,14 @@ async function runWorkflowsForWorkspace(workspaceId, opts = {}) {
       const candidates = (await candidateRecords(workspaceId, parsed.trigger)).slice(0, opts.limitRecords ?? 25);
       for (const record of candidates) {
         const triggerKey = triggerKeyFor(parsed.trigger, record);
-        const { data: existing } = await supabase.from("workflow_runs").select("id").eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey).maybeSingle();
-        if (existing) continue;
+        const { data: priorRuns } = await supabase.from("workflow_runs").select("id,status").eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey);
+        const alreadyActioned = (priorRuns ?? []).some((r2) => r2.status === "executed" || r2.status === "queued");
+        if (alreadyActioned) continue;
+        if ((priorRuns ?? []).length > 0) {
+          await supabase.from("workflow_runs").delete().eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey).then(() => {
+          }, () => {
+          });
+        }
         const pass = await evaluateConditions(parsed.conditions, record);
         if (!pass) {
           await supabase.from("workflow_runs").insert({
