@@ -68964,12 +68964,17 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       stream: true
     });
     let content = "";
+    let thinkingSignalled = false;
     const toolAcc = {};
     let finishReason = null;
     for await (const chunk of stream2) {
       const choice = chunk.choices[0];
       if (!choice) continue;
       const delta = choice.delta;
+      if (delta.reasoning && !content && !thinkingSignalled) {
+        thinkingSignalled = true;
+        await onEvent({ type: "status", text: "Thinking\u2026" });
+      }
       if (delta.content) {
         content += delta.content;
         await onEvent({ type: "token", text: delta.content });

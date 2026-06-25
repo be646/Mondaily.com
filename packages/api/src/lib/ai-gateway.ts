@@ -579,13 +579,23 @@ async function runOpenAICompatAgentStream(
     });
 
     let content = "";
+    let thinkingSignalled = false;
     const toolAcc: Record<number, { id: string; name: string; args: string }> = {};
     let finishReason: string | null = null;
 
     for await (const chunk of stream) {
       const choice = chunk.choices[0];
       if (!choice) continue;
-      const delta = choice.delta as { content?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
+      const delta = choice.delta as { content?: string; reasoning?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
+      // REASONING FILTER: gpt-oss-120b emits its chain-of-thought in `delta.reasoning`,
+      // separate from the user-facing answer in `delta.content`. We NEVER stream
+      // reasoning to the client — only `content`. While the model is still
+      // reasoning (reasoning flowing, no content yet), surface a single
+      // "Thinking…" status so the UI shows progress instead of a blank wait.
+      if (delta.reasoning && !content && !thinkingSignalled) {
+        thinkingSignalled = true;
+        await onEvent({ type: "status", text: "Thinking…" });
+      }
       if (delta.content) { content += delta.content; await onEvent({ type: "token", text: delta.content }); }
       if (delta.tool_calls) {
         for (const tc of delta.tool_calls) {
