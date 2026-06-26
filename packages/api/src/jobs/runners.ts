@@ -172,14 +172,25 @@ export async function runRelationshipHealth(workspaceId?: string): Promise<{ tot
 
       // Run updates in parallel chunks so hundreds of records finish well
       // within the serverless time budget.
+      // Count REAL writes — supabase-js update() returns { error } rather than
+      // throwing, so a missing column would otherwise pass silently.
       const CHUNK = 25;
+      let written = 0;
+      let firstError = "";
       for (let i = 0; i < updates.length; i += CHUNK) {
-        await Promise.all(updates.slice(i, i + CHUNK).map((u) =>
+        const results = await Promise.all(updates.slice(i, i + CHUNK).map((u) =>
           supabase.from("nodes").update({ relationship_health: u.finalScore, health_updated_at: nowIso, health_signals: u.signals }).eq("id", u.id)
         ));
+        for (const r of results) {
+          if (r.error) { if (!firstError) firstError = r.error.message; }
+          else written++;
+        }
       }
-      totalScored += updates.length;
-      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} relationship(s)` }, []);
+      if (written === 0 && updates.length > 0) {
+        throw new Error(`relationship_health wrote 0/${updates.length} rows — ${firstError || "unknown write error"}`);
+      }
+      totalScored += written;
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} relationship(s)` }, []);
     } catch (err: unknown) {
       await failJob(jobId, err instanceof Error ? err.message : String(err));
     }
@@ -575,14 +586,27 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
 
+      // Count REAL writes. supabase-js resolves update() with an { error }
+      // object instead of throwing, so a missing column / RLS denial would
+      // otherwise look like a fully successful job. Tally actual successes and
+      // fail loudly if nothing landed.
       const CHUNK = 25;
+      let written = 0;
+      let firstError = "";
       for (let i = 0; i < updates.length; i += CHUNK) {
-        await Promise.all(updates.slice(i, i + CHUNK).map((u) =>
+        const results = await Promise.all(updates.slice(i, i + CHUNK).map((u) =>
           supabase.from("nodes").update({ lead_score: u.finalScore, lead_score_updated_at: nowIso, lead_score_signals: u.signals }).eq("id", u.id)
         ));
+        for (const r of results) {
+          if (r.error) { if (!firstError) firstError = r.error.message; }
+          else written++;
+        }
       }
-      totalScored += updates.length;
-      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} deal(s)` }, []);
+      if (written === 0 && updates.length > 0) {
+        throw new Error(`lead_scoring wrote 0/${updates.length} rows — ${firstError || "unknown write error"}`);
+      }
+      totalScored += written;
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} deal(s)` }, []);
     } catch (err: unknown) {
       await failJob(jobId, err instanceof Error ? err.message : String(err));
     }

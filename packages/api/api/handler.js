@@ -69327,13 +69327,23 @@ async function runRelationshipHealth(workspaceId) {
         return { id: contact.id, finalScore: Math.max(0, Math.min(100, score)), signals };
       });
       const CHUNK = 25;
+      let written = 0;
+      let firstError = "";
       for (let i2 = 0; i2 < updates.length; i2 += CHUNK) {
-        await Promise.all(updates.slice(i2, i2 + CHUNK).map(
+        const results = await Promise.all(updates.slice(i2, i2 + CHUNK).map(
           (u2) => supabase.from("nodes").update({ relationship_health: u2.finalScore, health_updated_at: nowIso, health_signals: u2.signals }).eq("id", u2.id)
         ));
+        for (const r2 of results) {
+          if (r2.error) {
+            if (!firstError) firstError = r2.error.message;
+          } else written++;
+        }
       }
-      totalScored += updates.length;
-      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} relationship(s)` }, []);
+      if (written === 0 && updates.length > 0) {
+        throw new Error(`relationship_health wrote 0/${updates.length} rows \u2014 ${firstError || "unknown write error"}`);
+      }
+      totalScored += written;
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} relationship(s)` }, []);
     } catch (err2) {
       await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
     }
@@ -69724,13 +69734,23 @@ async function runLeadScoring(workspaceId) {
         return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
       const CHUNK = 25;
+      let written = 0;
+      let firstError = "";
       for (let i2 = 0; i2 < updates.length; i2 += CHUNK) {
-        await Promise.all(updates.slice(i2, i2 + CHUNK).map(
+        const results = await Promise.all(updates.slice(i2, i2 + CHUNK).map(
           (u2) => supabase.from("nodes").update({ lead_score: u2.finalScore, lead_score_updated_at: nowIso, lead_score_signals: u2.signals }).eq("id", u2.id)
         ));
+        for (const r2 of results) {
+          if (r2.error) {
+            if (!firstError) firstError = r2.error.message;
+          } else written++;
+        }
       }
-      totalScored += updates.length;
-      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} deal(s)` }, []);
+      if (written === 0 && updates.length > 0) {
+        throw new Error(`lead_scoring wrote 0/${updates.length} rows \u2014 ${firstError || "unknown write error"}`);
+      }
+      totalScored += written;
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} deal(s)` }, []);
     } catch (err2) {
       await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
     }
