@@ -3,14 +3,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Plus, DollarSign, User, ChevronRight, ChevronDown, X, Check } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { LeadScoreBadge } from "../../components/records/lead-score-badge";
 
 interface DealRecord {
   id: string;
   object_type: string;
   data: Record<string, unknown>;
   updated_at: string;
-  lead_score?: number | null;
 }
 
 interface Member { id: string; name: string; email: string; avatar_url?: string | null }
@@ -236,7 +234,6 @@ function DealCard({ deal, members, stages, onMove, onPatch }: {
           placeholder="Untitled deal"
           className="flex-1 font-medium text-stone-100"
         />
-        {deal.lead_score != null && <LeadScoreBadge score={deal.lead_score} size="sm"/>}
         <Link to={`/objects/deals/${deal.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-stone-600 hover:text-stone-400">
           <ChevronRight size={12}/>
         </Link>
