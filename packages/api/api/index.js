@@ -10674,10 +10674,10 @@ function importKey(key, algorithm, keyUsage) {
   return runtime.crypto.subtle.importKey(format, keyData, algorithm, false, [keyUsage]);
 }
 async function hasValidSignature(jwt, key) {
-  const { header, signature, raw: raw2 } = jwt;
+  const { header: header2, signature, raw: raw2 } = jwt;
   const encoder = new TextEncoder();
   const data = encoder.encode([raw2.header, raw2.payload].join("."));
-  const algorithm = getCryptoAlgorithm(header.alg);
+  const algorithm = getCryptoAlgorithm(header2.alg);
   try {
     const cryptoKey = await importKey(key, algorithm, "verify");
     const verified = await runtime.crypto.subtle.verify(algorithm.name, cryptoKey, signature, data);
@@ -10707,11 +10707,11 @@ function decodeJwt(token) {
   }
   const [rawHeader, rawPayload, rawSignature] = tokenParts;
   const decoder = new TextDecoder();
-  const header = JSON.parse(decoder.decode(base64url.parse(rawHeader, { loose: true })));
+  const header2 = JSON.parse(decoder.decode(base64url.parse(rawHeader, { loose: true })));
   const payload = JSON.parse(decoder.decode(base64url.parse(rawPayload, { loose: true })));
   const signature = base64url.parse(rawSignature, { loose: true });
   const data = {
-    header,
+    header: header2,
     payload,
     signature,
     raw: {
@@ -10730,9 +10730,9 @@ async function verifyJwt(token, options) {
   if (errors) {
     return { errors };
   }
-  const { header, payload } = decoded;
+  const { header: header2, payload } = decoded;
   try {
-    const { typ, alg } = header;
+    const { typ, alg } = header2;
     assertHeaderType(typ, headerType);
     assertHeaderAlgorithm(alg);
   } catch (err2) {
@@ -12605,8 +12605,8 @@ async function verifyToken(token, options) {
   if (errors) {
     return { errors };
   }
-  const { header } = decodedResult;
-  const { kid } = header;
+  const { header: header2 } = decodedResult;
+  const { kid } = header2;
   try {
     let key;
     if (options.jwtKey) {
@@ -12751,8 +12751,8 @@ async function verifyHandshakeJwt(token, { key }) {
   if (errors) {
     throw errors[0];
   }
-  const { header, payload } = decoded;
-  const { typ, alg } = header;
+  const { header: header2, payload } = decoded;
+  const { typ, alg } = header2;
   assertHeaderType(typ);
   assertHeaderAlgorithm(alg);
   const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
@@ -18824,8 +18824,8 @@ var flushHeaders = (outgoing) => {
   if ("flushHeaders" in outgoing && outgoing.writable) outgoing.flushHeaders();
 };
 var responseViaCache = async (res, outgoing) => {
-  let [status, body, header] = res[cacheKey];
-  if (!header) {
+  let [status, body, header2] = res[cacheKey];
+  if (!header2) {
     if (body === null) {
       outgoing.writeHead(status);
       outgoing.end();
@@ -18856,23 +18856,23 @@ var responseViaCache = async (res, outgoing) => {
     return;
   }
   let hasContentLength = false;
-  if (header instanceof Headers) {
-    hasContentLength = header.has("content-length");
-    header = buildOutgoingHttpHeaders(header, body === null ? void 0 : defaultContentType);
-  } else if (Array.isArray(header)) {
-    const headerObj = new Headers(header);
+  if (header2 instanceof Headers) {
+    hasContentLength = header2.has("content-length");
+    header2 = buildOutgoingHttpHeaders(header2, body === null ? void 0 : defaultContentType);
+  } else if (Array.isArray(header2)) {
+    const headerObj = new Headers(header2);
     hasContentLength = headerObj.has("content-length");
-    header = buildOutgoingHttpHeaders(headerObj, body === null ? void 0 : defaultContentType);
-  } else for (const key in header) if (key.length === 14 && key.toLowerCase() === "content-length") {
+    header2 = buildOutgoingHttpHeaders(headerObj, body === null ? void 0 : defaultContentType);
+  } else for (const key in header2) if (key.length === 14 && key.toLowerCase() === "content-length") {
     hasContentLength = true;
     break;
   }
   if (!hasContentLength) {
-    if (typeof body === "string") header["Content-Length"] = Buffer.byteLength(body);
-    else if (body instanceof Uint8Array) header["Content-Length"] = body.byteLength;
-    else if (body instanceof Blob) header["Content-Length"] = body.size;
+    if (typeof body === "string") header2["Content-Length"] = Buffer.byteLength(body);
+    else if (body instanceof Uint8Array) header2["Content-Length"] = body.byteLength;
+    else if (body instanceof Blob) header2["Content-Length"] = body.size;
   }
-  outgoing.writeHead(status, header);
+  outgoing.writeHead(status, header2);
   if (body == null) outgoing.end();
   else if (typeof body === "string" || body instanceof Uint8Array) outgoing.end(body);
   else if (body instanceof Blob) outgoing.end(new Uint8Array(await body.arrayBuffer()));
@@ -22919,10 +22919,10 @@ function isValidJWT(jwt, alg) {
   if (!jwtRegex.test(jwt))
     return false;
   try {
-    const [header] = jwt.split(".");
-    if (!header)
+    const [header2] = jwt.split(".");
+    if (!header2)
       return false;
-    const base64 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
+    const base64 = header2.replace(/-/g, "+").replace(/_/g, "/").padEnd(header2.length + (4 - header2.length % 4) % 4, "=");
     const decoded = JSON.parse(atob(base64));
     if (typeof decoded !== "object" || decoded === null)
       return false;
@@ -26106,8 +26106,8 @@ var prettyError = ({ type = "error", whatHappened, otherwise, reassurance, toFix
       colorFn: import_chalk2.default.yellow
     }
   }[type];
-  let header = `${icon}  ${import_chalk2.default.bold.underline(whatHappened.trim())}`;
-  if (stack) header += "\n" + [...(/* @__PURE__ */ new Error()).stack?.split("\n").slice(1).filter(Boolean) || []].join("\n");
+  let header2 = `${icon}  ${import_chalk2.default.bold.underline(whatHappened.trim())}`;
+  if (stack) header2 += "\n" + [...(/* @__PURE__ */ new Error()).stack?.split("\n").slice(1).filter(Boolean) || []].join("\n");
   let toFixNowStr = (Array.isArray(toFixNow) ? toFixNow.map((s3) => s3.trim()).filter(Boolean).map((s3, i2) => `	${i2 + 1}. ${s3}`).join("\n") : toFixNow?.trim()) ?? "";
   if (Array.isArray(toFixNow) && toFixNowStr) toFixNowStr = `To fix this, you can take one of the following courses of action:
 
@@ -26123,7 +26123,7 @@ ${toFixNowStr}` : toFixNowStr;
   const trailer = [otherwise?.trim()].filter(Boolean).join(" ");
   return colorFn([
     prettyErrorSplitter,
-    header,
+    header2,
     body,
     trailer,
     code ? `Code: ${code}` : "",
@@ -30859,15 +30859,15 @@ var InngestCommHandler = class {
       ...getProcessEnv(),
       ...env2
     });
-    const headerPromises = forwardedHeaders.map(async (header) => {
+    const headerPromises = forwardedHeaders.map(async (header2) => {
       return {
-        header,
-        value: await actions.headers(`fetching ${header} for forwarding`, header)
+        header: header2,
+        value: await actions.headers(`fetching ${header2} for forwarding`, header2)
       };
     });
     const headersToForwardP = Promise.all(headerPromises).then((fetchedHeaders) => {
-      return fetchedHeaders.reduce((acc, { header, value }) => {
-        if (value) acc[header] = value;
+      return fetchedHeaders.reduce((acc, { header: header2, value }) => {
+        if (value) acc[header2] = value;
         return acc;
       }, {});
     });
@@ -38927,8 +38927,8 @@ var Serializer = class {
       throw new Error(`metadata length ${metadata.length} exceeds maximum of 255`);
     }
     const metaLength = this.USER_BROADCAST_PUSH_META_LENGTH + joinRef.length + ref.length + topic.length + userEvent.length + metadata.length;
-    const header = new ArrayBuffer(this.HEADER_LENGTH + metaLength);
-    let view = new DataView(header);
+    const header2 = new ArrayBuffer(this.HEADER_LENGTH + metaLength);
+    let view = new DataView(header2);
     let offset = 0;
     view.setUint8(offset++, this.KINDS.userBroadcastPush);
     view.setUint8(offset++, joinRef.length);
@@ -38942,9 +38942,9 @@ var Serializer = class {
     Array.from(topic, (char) => view.setUint8(offset++, char.charCodeAt(0)));
     Array.from(userEvent, (char) => view.setUint8(offset++, char.charCodeAt(0)));
     Array.from(metadata, (char) => view.setUint8(offset++, char.charCodeAt(0)));
-    var combined = new Uint8Array(header.byteLength + encodedPayload.byteLength);
-    combined.set(new Uint8Array(header), 0);
-    combined.set(new Uint8Array(encodedPayload), header.byteLength);
+    var combined = new Uint8Array(header2.byteLength + encodedPayload.byteLength);
+    combined.set(new Uint8Array(header2), 0);
+    combined.set(new Uint8Array(encodedPayload), header2.byteLength);
     return combined.buffer;
   }
   decode(rawPayload, callback) {
@@ -40188,8 +40188,8 @@ var serializer_default = {
   binaryEncode(message) {
     let { join_ref, ref, event, topic, payload } = message;
     let metaLength = this.META_LENGTH + join_ref.length + ref.length + topic.length + event.length;
-    let header = new ArrayBuffer(this.HEADER_LENGTH + metaLength);
-    let view = new DataView(header);
+    let header2 = new ArrayBuffer(this.HEADER_LENGTH + metaLength);
+    let view = new DataView(header2);
     let offset = 0;
     view.setUint8(offset++, this.KINDS.push);
     view.setUint8(offset++, join_ref.length);
@@ -40200,9 +40200,9 @@ var serializer_default = {
     Array.from(ref, (char) => view.setUint8(offset++, char.charCodeAt(0)));
     Array.from(topic, (char) => view.setUint8(offset++, char.charCodeAt(0)));
     Array.from(event, (char) => view.setUint8(offset++, char.charCodeAt(0)));
-    var combined = new Uint8Array(header.byteLength + payload.byteLength);
-    combined.set(new Uint8Array(header), 0);
-    combined.set(new Uint8Array(payload), header.byteLength);
+    var combined = new Uint8Array(header2.byteLength + payload.byteLength);
+    combined.set(new Uint8Array(header2), 0);
+    combined.set(new Uint8Array(payload), header2.byteLength);
     return combined.buffer;
   },
   /**
@@ -53193,7 +53193,7 @@ var GoTrueClient = class _GoTrueClient {
         }
         token = data.session.access_token;
       }
-      const { header, payload, signature, raw: { header: rawHeader, payload: rawPayload } } = decodeJWT(token);
+      const { header: header2, payload, signature, raw: { header: rawHeader, payload: rawPayload } } = decodeJWT(token);
       if (!(options === null || options === void 0 ? void 0 : options.allowExpired)) {
         try {
           validateExp(payload.exp);
@@ -53201,7 +53201,7 @@ var GoTrueClient = class _GoTrueClient {
           throw new AuthInvalidJwtError(e2 instanceof Error ? e2.message : "JWT validation failed");
         }
       }
-      const signingKey = !header.alg || header.alg.startsWith("HS") || !header.kid || !("crypto" in globalThis && "subtle" in globalThis.crypto) ? null : await this.fetchJwk(header.kid, (options === null || options === void 0 ? void 0 : options.keys) ? { keys: options.keys } : options === null || options === void 0 ? void 0 : options.jwks);
+      const signingKey = !header2.alg || header2.alg.startsWith("HS") || !header2.kid || !("crypto" in globalThis && "subtle" in globalThis.crypto) ? null : await this.fetchJwk(header2.kid, (options === null || options === void 0 ? void 0 : options.keys) ? { keys: options.keys } : options === null || options === void 0 ? void 0 : options.jwks);
       if (!signingKey) {
         const { error } = await this.getUser(token);
         if (error) {
@@ -53210,13 +53210,13 @@ var GoTrueClient = class _GoTrueClient {
         return {
           data: {
             claims: payload,
-            header,
+            header: header2,
             signature
           },
           error: null
         };
       }
-      const algorithm = getAlgorithm(header.alg);
+      const algorithm = getAlgorithm(header2.alg);
       const publicKey = await crypto.subtle.importKey("jwk", signingKey, algorithm, true, [
         "verify"
       ]);
@@ -53227,7 +53227,7 @@ var GoTrueClient = class _GoTrueClient {
       return {
         data: {
           claims: payload,
-          header,
+          header: header2,
           signature
         },
         error: null
@@ -58514,9 +58514,9 @@ var InvalidMessageRoleError = class extends AISDKError {
 _a72 = symbol72;
 function splitDataUrl(dataUrl) {
   try {
-    const [header, base64Content] = dataUrl.split(",");
+    const [header2, base64Content] = dataUrl.split(",");
     return {
-      mimeType: header.split(";")[0].split(":")[1],
+      mimeType: header2.split(";")[0].split(":")[1],
       base64Content
     };
   } catch (error) {
@@ -58881,12 +58881,12 @@ function attachmentsToParts(attachments) {
         break;
       }
       case "data:": {
-        let header;
+        let header2;
         let base64Content;
         let mimeType;
         try {
-          [header, base64Content] = attachment.url.split(",");
-          mimeType = header.split(";")[0].split(":")[1];
+          [header2, base64Content] = attachment.url.split(",");
+          mimeType = header2.split(";")[0].split(":")[1];
         } catch (error) {
           throw new Error(`Error processing data URL: ${attachment.url}`);
         }
@@ -63804,17 +63804,17 @@ var FormDataEncoder = class {
     }
   }
   [(_FormDataEncoder_CRLF = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_CRLF_BYTES = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_CRLF_BYTES_LENGTH = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_DASHES = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_encoder = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_footer = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_form = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_options = /* @__PURE__ */ new WeakMap(), _FormDataEncoder_instances = /* @__PURE__ */ new WeakSet(), _FormDataEncoder_getFieldHeader = function _FormDataEncoder_getFieldHeader2(name17, value) {
-    let header = "";
-    header += `${__classPrivateFieldGet4(this, _FormDataEncoder_DASHES, "f")}${this.boundary}${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f")}`;
-    header += `Content-Disposition: form-data; name="${escapeName_default(name17)}"`;
+    let header2 = "";
+    header2 += `${__classPrivateFieldGet4(this, _FormDataEncoder_DASHES, "f")}${this.boundary}${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f")}`;
+    header2 += `Content-Disposition: form-data; name="${escapeName_default(name17)}"`;
     if (isFileLike(value)) {
-      header += `; filename="${escapeName_default(value.name)}"${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f")}`;
-      header += `Content-Type: ${value.type || "application/octet-stream"}`;
+      header2 += `; filename="${escapeName_default(value.name)}"${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f")}`;
+      header2 += `Content-Type: ${value.type || "application/octet-stream"}`;
     }
     if (__classPrivateFieldGet4(this, _FormDataEncoder_options, "f").enableAdditionalHeaders === true) {
-      header += `${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f")}Content-Length: ${isFileLike(value) ? value.size : value.byteLength}`;
+      header2 += `${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f")}Content-Length: ${isFileLike(value) ? value.size : value.byteLength}`;
     }
-    return __classPrivateFieldGet4(this, _FormDataEncoder_encoder, "f").encode(`${header}${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f").repeat(2)}`);
+    return __classPrivateFieldGet4(this, _FormDataEncoder_encoder, "f").encode(`${header2}${__classPrivateFieldGet4(this, _FormDataEncoder_CRLF, "f").repeat(2)}`);
   }, Symbol.iterator)]() {
     return this.values();
   }
@@ -64733,7 +64733,7 @@ var APIClient = class {
   async prepareRequest(request, { url, options }) {
   }
   parseHeaders(headers) {
-    return !headers ? {} : Symbol.iterator in headers ? Object.fromEntries(Array.from(headers).map((header) => [...header])) : { ...headers };
+    return !headers ? {} : Symbol.iterator in headers ? Object.fromEntries(Array.from(headers).map((header2) => [...header2])) : { ...headers };
   }
   makeStatusError(status, error, message, headers) {
     return APIError.generate(status, error, message, headers);
@@ -65166,18 +65166,18 @@ function debug4(action, ...args) {
       }
       if (arg["headers"]) {
         const modifiedArg2 = { ...arg, headers: { ...arg["headers"] } };
-        for (const header in arg["headers"]) {
-          if (SENSITIVE_HEADERS.has(header.toLowerCase())) {
-            modifiedArg2["headers"][header] = "REDACTED";
+        for (const header2 in arg["headers"]) {
+          if (SENSITIVE_HEADERS.has(header2.toLowerCase())) {
+            modifiedArg2["headers"][header2] = "REDACTED";
           }
         }
         return modifiedArg2;
       }
       let modifiedArg = null;
-      for (const header in arg) {
-        if (SENSITIVE_HEADERS.has(header.toLowerCase())) {
+      for (const header2 in arg) {
+        if (SENSITIVE_HEADERS.has(header2.toLowerCase())) {
           modifiedArg ?? (modifiedArg = { ...arg });
-          modifiedArg[header] = "REDACTED";
+          modifiedArg[header2] = "REDACTED";
         }
       }
       return modifiedArg ?? arg;
@@ -65203,11 +65203,11 @@ var isRunningInBrowser = () => {
 var isHeadersProtocol = (headers) => {
   return typeof headers?.get === "function";
 };
-var getHeader = (headers, header) => {
-  const lowerCasedHeader = header.toLowerCase();
+var getHeader = (headers, header2) => {
+  const lowerCasedHeader = header2.toLowerCase();
   if (isHeadersProtocol(headers)) {
-    const intercapsHeader = header[0]?.toUpperCase() + header.substring(1).replace(/([^\w])(\w)/g, (_m, g1, g2) => g1 + g2.toUpperCase());
-    for (const key of [header, lowerCasedHeader, header.toUpperCase(), intercapsHeader]) {
+    const intercapsHeader = header2[0]?.toUpperCase() + header2.substring(1).replace(/([^\w])(\w)/g, (_m, g1, g2) => g1 + g2.toUpperCase());
+    for (const key of [header2, lowerCasedHeader, header2.toUpperCase(), intercapsHeader]) {
       const value = headers.get(key);
       if (value) {
         return value;
@@ -65219,7 +65219,7 @@ var getHeader = (headers, header) => {
       if (Array.isArray(value)) {
         if (value.length <= 1)
           return value[0];
-        console.warn(`Received ${value.length} entries for the ${header} header, using the first entry.`);
+        console.warn(`Received ${value.length} entries for the ${header2} header, using the first entry.`);
         return value[0];
       }
       return value;
@@ -72461,12 +72461,14 @@ async function logDecisionTrainingExample(workspaceId, decision, action, editedO
 // src/lib/google.ts
 var TOKEN_URL = "https://oauth2.googleapis.com/token";
 var AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-var GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
+var GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+var GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
 var GOOGLE_SCOPES = [
   "openid",
   "email",
   "profile",
-  "https://www.googleapis.com/auth/gmail.send"
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.readonly"
 ];
 function googleConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -72559,6 +72561,66 @@ async function gmailSend(accessToken, msg) {
   } catch {
     return false;
   }
+}
+var header = (headers, name17) => headers?.find((h2) => h2.name.toLowerCase() === name17.toLowerCase())?.value ?? "";
+async function gmailThreads(accessToken, opts = {}) {
+  const params = new URLSearchParams({ maxResults: String(opts.max ?? 20) });
+  if (opts.q) params.set("q", opts.q);
+  const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!listRes.ok) return [];
+  const list = await listRes.json();
+  const ids = (list.threads ?? []).map((t2) => t2.id);
+  const summaries = await Promise.all(ids.map(async (id) => {
+    const r2 = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!r2.ok) return null;
+    const t2 = await r2.json();
+    const msgs = t2.messages ?? [];
+    const last = msgs[msgs.length - 1];
+    return {
+      id: t2.id,
+      subject: header(last?.payload?.headers, "Subject"),
+      from: header(last?.payload?.headers, "From"),
+      date: header(last?.payload?.headers, "Date"),
+      snippet: last?.snippet ?? "",
+      unread: msgs.some((m2) => (m2.labelIds ?? []).includes("UNREAD"))
+    };
+  }));
+  return summaries.filter((s3) => s3 !== null);
+}
+function decodeBody(payload) {
+  if (!payload) return "";
+  if (payload.body?.data) {
+    try {
+      return Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    } catch {
+      return "";
+    }
+  }
+  for (const part of payload.parts ?? []) {
+    if (part.mimeType === "text/html" || part.mimeType === "text/plain") {
+      const b2 = decodeBody(part);
+      if (b2) return b2;
+    }
+  }
+  for (const part of payload.parts ?? []) {
+    const b2 = decodeBody(part);
+    if (b2) return b2;
+  }
+  return "";
+}
+async function gmailThread(accessToken, threadId) {
+  const r2 = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r2.ok) return [];
+  const t2 = await r2.json();
+  return (t2.messages ?? []).map((m2) => ({
+    id: m2.id,
+    from: header(m2.payload?.headers, "From"),
+    to: header(m2.payload?.headers, "To"),
+    date: header(m2.payload?.headers, "Date"),
+    subject: header(m2.payload?.headers, "Subject"),
+    snippet: m2.snippet ?? "",
+    body: decodeBody(m2.payload)
+  }));
 }
 
 // src/lib/mail.ts
@@ -75413,6 +75475,25 @@ router15.get("/threads", zValidator("query", external_exports.object({
   const input = c2.req.valid("query");
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
+  const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email, provider").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
+  const gc = gconn;
+  if (gc && (gc.refresh_token || gc.access_token)) {
+    const token = await freshAccessToken(gc);
+    if (token) {
+      const filterQ = input.filter === "unread" ? "is:unread" : input.filter === "sent" ? "in:sent" : input.filter === "inbox" ? "in:inbox" : "";
+      const q2 = [filterQ, input.search.trim()].filter(Boolean).join(" ");
+      const gthreads = await gmailThreads(token, { q: q2, max: 25 });
+      const mapped = gthreads.map((t2) => ({
+        id: t2.id,
+        subject: t2.subject,
+        snippet: t2.snippet,
+        participants: [{ email: t2.from }],
+        unread: t2.unread,
+        last_message_timestamp: t2.date
+      }));
+      return c2.json({ threads: mapped, connected: true, connected_email: gc.email, next_cursor: void 0 });
+    }
+  }
   let threads;
   let nextCursor;
   if (grantId && process.env.NYLAS_API_KEY) {
@@ -75437,6 +75518,19 @@ router15.get("/threads", zValidator("query", external_exports.object({
 router15.get("/threads/:id", async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
+  const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
+  const gc = gconn;
+  if (gc && (gc.refresh_token || gc.access_token)) {
+    const token = await freshAccessToken(gc);
+    if (token) {
+      const msgs = await gmailThread(token, c2.req.param("id"));
+      return c2.json({
+        id: c2.req.param("id"),
+        subject: msgs[msgs.length - 1]?.subject ?? "",
+        messages: msgs.map((m2) => ({ id: m2.id, from: [{ email: m2.from }], to: [{ email: m2.to }], cc: [], date: m2.date, body: m2.body, attachments: [] }))
+      });
+    }
+  }
   if (grantId && process.env.NYLAS_API_KEY) {
     const threadResponse = await nylasRequest(grantId, `/threads/${encodeURIComponent(c2.req.param("id"))}`);
     const thread = threadResponse.data;

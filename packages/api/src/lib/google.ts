@@ -12,14 +12,16 @@ import { supabase } from "@mondaily/db/client";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
+const GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+const GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
 
-// Phase 1 = send. Add gmail.readonly / gmail.modify for inbox sync (Phase 2).
+// Send + read (inbox sync). gmail.readonly covers listing/reading threads.
 export const GOOGLE_SCOPES = [
   "openid",
   "email",
   "profile",
   "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.readonly",
 ];
 
 export function googleConfigured(): boolean {
@@ -137,4 +139,77 @@ export async function gmailSend(accessToken: string, msg: { to: string[]; subjec
   } catch {
     return false;
   }
+}
+
+// ── Read (inbox sync) ─────────────────────────────────────────────────────────
+
+export interface GmailThreadSummary {
+  id: string;
+  subject: string;
+  snippet: string;
+  from: string;
+  date: string;
+  unread: boolean;
+}
+
+const header = (headers: Array<{ name: string; value: string }> | undefined, name: string): string =>
+  headers?.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+
+/** List recent threads with subject/from/date/snippet. `q` is a Gmail search query. */
+export async function gmailThreads(accessToken: string, opts: { q?: string; max?: number } = {}): Promise<GmailThreadSummary[]> {
+  const params = new URLSearchParams({ maxResults: String(opts.max ?? 20) });
+  if (opts.q) params.set("q", opts.q);
+  const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!listRes.ok) return [];
+  const list = (await listRes.json()) as { threads?: Array<{ id: string }> };
+  const ids = (list.threads ?? []).map((t) => t.id);
+  const summaries = await Promise.all(ids.map(async (id) => {
+    const r = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!r.ok) return null;
+    const t = (await r.json()) as { id: string; messages?: Array<{ snippet?: string; labelIds?: string[]; payload?: { headers?: Array<{ name: string; value: string }> } }> };
+    const msgs = t.messages ?? [];
+    const last = msgs[msgs.length - 1];
+    return {
+      id: t.id,
+      subject: header(last?.payload?.headers, "Subject"),
+      from: header(last?.payload?.headers, "From"),
+      date: header(last?.payload?.headers, "Date"),
+      snippet: last?.snippet ?? "",
+      unread: msgs.some((m) => (m.labelIds ?? []).includes("UNREAD")),
+    } as GmailThreadSummary;
+  }));
+  return summaries.filter((s): s is GmailThreadSummary => s !== null);
+}
+
+interface GmailMessageDetail { id: string; from: string; to: string; date: string; subject: string; snippet: string; body: string }
+
+function decodeBody(payload: { mimeType?: string; body?: { data?: string }; parts?: any[] } | undefined): string {
+  if (!payload) return "";
+  if (payload.body?.data) {
+    try { return Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"); } catch { return ""; }
+  }
+  for (const part of payload.parts ?? []) {
+    if (part.mimeType === "text/html" || part.mimeType === "text/plain") {
+      const b = decodeBody(part);
+      if (b) return b;
+    }
+  }
+  for (const part of payload.parts ?? []) { const b = decodeBody(part); if (b) return b; }
+  return "";
+}
+
+/** Full thread with each message's headers + decoded body. */
+export async function gmailThread(accessToken: string, threadId: string): Promise<GmailMessageDetail[]> {
+  const r = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r.ok) return [];
+  const t = (await r.json()) as { messages?: Array<{ id: string; snippet?: string; payload?: { headers?: Array<{ name: string; value: string }>; mimeType?: string; body?: { data?: string }; parts?: any[] } }> };
+  return (t.messages ?? []).map((m) => ({
+    id: m.id,
+    from: header(m.payload?.headers, "From"),
+    to: header(m.payload?.headers, "To"),
+    date: header(m.payload?.headers, "Date"),
+    subject: header(m.payload?.headers, "Subject"),
+    snippet: m.snippet ?? "",
+    body: decodeBody(m.payload),
+  }));
 }

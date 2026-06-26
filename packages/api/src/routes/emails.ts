@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
+import { freshAccessToken, gmailThreads, gmailThread } from "../lib/google";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkspaceSettings = {
@@ -136,6 +137,30 @@ router.get("/threads", zValidator("query", z.object({
   const input = c.req.valid("query");
   const settings = await getSettings(c.get("workspaceId"));
   const grantId = getGrantId(settings);
+
+  // DIRECT GOOGLE (Gmail API) — preferred when a Google inbox is connected.
+  const { data: gconn } = await supabase
+    .from("email_connections")
+    .select("id, refresh_token, access_token, token_expiry, email, provider")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("provider", "google")
+    .limit(1)
+    .maybeSingle();
+  const gc = gconn as { id: string; refresh_token?: string | null; access_token?: string | null; token_expiry?: string | null; email?: string } | null;
+  if (gc && (gc.refresh_token || gc.access_token)) {
+    const token = await freshAccessToken(gc);
+    if (token) {
+      const filterQ = input.filter === "unread" ? "is:unread" : input.filter === "sent" ? "in:sent" : input.filter === "inbox" ? "in:inbox" : "";
+      const q = [filterQ, input.search.trim()].filter(Boolean).join(" ");
+      const gthreads = await gmailThreads(token, { q, max: 25 });
+      const mapped = gthreads.map((t) => ({
+        id: t.id, subject: t.subject, snippet: t.snippet,
+        participants: [{ email: t.from }], unread: t.unread, last_message_timestamp: t.date,
+      }));
+      return c.json({ threads: mapped, connected: true, connected_email: gc.email, next_cursor: undefined });
+    }
+  }
+
   let threads: Record<string, unknown>[];
   let nextCursor: string | undefined;
 
@@ -170,6 +195,25 @@ router.get("/threads", zValidator("query", z.object({
 router.get("/threads/:id", async (c) => {
   const settings = await getSettings(c.get("workspaceId"));
   const grantId = getGrantId(settings);
+
+  // Direct Google
+  const { data: gconn } = await supabase
+    .from("email_connections")
+    .select("id, refresh_token, access_token, token_expiry")
+    .eq("workspace_id", c.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
+  const gc = gconn as { id: string; refresh_token?: string | null; access_token?: string | null; token_expiry?: string | null } | null;
+  if (gc && (gc.refresh_token || gc.access_token)) {
+    const token = await freshAccessToken(gc);
+    if (token) {
+      const msgs = await gmailThread(token, c.req.param("id"));
+      return c.json({
+        id: c.req.param("id"),
+        subject: msgs[msgs.length - 1]?.subject ?? "",
+        messages: msgs.map((m) => ({ id: m.id, from: [{ email: m.from }], to: [{ email: m.to }], cc: [], date: m.date, body: m.body, attachments: [] })),
+      });
+    }
+  }
+
   if (grantId && process.env.NYLAS_API_KEY) {
     const threadResponse = await nylasRequest<{ data: Record<string, unknown> }>(grantId, `/threads/${encodeURIComponent(c.req.param("id"))}`);
     const thread = threadResponse.data;
