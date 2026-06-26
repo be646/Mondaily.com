@@ -80,6 +80,34 @@ function getAnthropicKey(): string | undefined {
   return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || undefined;
 }
 
+// ── Fast-model routing ──────────────────────────────────────────────────────────
+//
+// Two-tier model strategy, decided natively in the gateway chokepoint:
+//   • Deep / data / tool-use turns  → the heavy reasoning model (AI_AGENT_MODEL,
+//     e.g. gpt-oss-120b) with the full tool set.
+//   • Clearly conversational turns  → a small fast model (AI_FAST_MODEL, e.g.
+//     zai-glm-4.7) with NO tools — instant time-to-first-token for "hi",
+//     "thanks", "what can you do", etc.
+//
+// The classifier is deliberately CONSERVATIVE: a turn only takes the fast/no-tool
+// path when it clearly looks conversational AND shows no data intent, so we never
+// strip tools from a real workspace question.
+
+const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+
+const CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
+const DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
+
+function routeAgentModel(req: AgentRequest): { spec: string; useTools: boolean; tier: "fast" | "deep" } {
+  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  const lastUser = [...req.messages].reverse().find(m => m.role === "user");
+  const msg = (typeof lastUser?.content === "string" ? lastUser.content : "").trim();
+  if (msg.length > 0 && msg.length < 80 && CONVERSATIONAL_RE.test(msg) && !DATA_INTENT_RE.test(msg)) {
+    return { spec: FAST_MODEL_SPEC, useTools: false, tier: "fast" };
+  }
+  return { spec: requested, useTools: true, tier: "deep" };
+}
+
 /**
  * Outbound data sanitizer — masks raw secrets and financial identifiers in any
  * text before it leaves our infrastructure for an external model API.
@@ -461,15 +489,15 @@ async function runOpenAICompatAgent(
  *   3. If all fail → returns graceful reply, never throws
  */
 export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> {
-  const spec = req.model
-    ?? process.env.AI_AGENT_MODEL
-    ?? process.env.AI_PROVIDER_MODEL
-    ?? "anthropic/claude-haiku-4-5-20251001";
+  // Fast-model routing applies here too (conversational → fast model, no tools).
+  const route = routeAgentModel(req);
+  req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  const spec = route.spec;
 
   const resolved = resolveModel(spec);
-  const MAX_ROUNDS = req.maxRounds ?? 5;
+  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
 
-  console.log(`[gateway:agent] spec="${spec}" provider=${resolved.type} model=${resolved.modelId}`);
+  console.log(`[gateway:agent] tier=${route.tier} spec="${spec}" provider=${resolved.type} model=${resolved.modelId} tools=${req.tools.length}`);
 
   // ── Primary attempt ───────────────────────────────────────────────────────────
   try {
@@ -520,21 +548,24 @@ export async function aiGatewayAgentStream(
   req: AgentRequest,
   onEvent: (e: AgentStreamEvent) => void | Promise<void>,
 ): Promise<AgentResponse> {
-  const spec = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
-  const resolved = resolveModel(spec);
-  const MAX_ROUNDS = req.maxRounds ?? 5;
+  // Fast-model routing: conversational turns → small model, no tools.
+  const route = routeAgentModel(req);
+  const effectiveReq: AgentRequest = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  const resolved = resolveModel(route.spec);
+  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
+  console.log(`[gateway:agent-stream] tier=${route.tier} spec="${route.spec}" tools=${effectiveReq.tools.length}`);
 
   if (resolved.type !== "openai-compat") {
-    const r = await aiGatewayAgent(req);
+    const r = await aiGatewayAgent(effectiveReq);
     if (r.reply) await onEvent({ type: "token", text: r.reply });
     return r;
   }
 
   try {
-    return await runOpenAICompatAgentStream(resolved.modelId, req, MAX_ROUNDS, onEvent);
+    return await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
   } catch (err: any) {
     console.error(`[gateway:agent-stream] streaming failed: ${err?.message} — falling back to non-streaming`);
-    const r = await aiGatewayAgent(req).catch(() => null);
+    const r = await aiGatewayAgent(effectiveReq).catch(() => null);
     const reply = r?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
     await onEvent({ type: "token", text: reply });
     return r ?? { reply, provider: "none", model: "none", rounds: 0 };

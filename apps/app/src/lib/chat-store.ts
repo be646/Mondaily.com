@@ -1,6 +1,12 @@
 import { getAuthHeaders } from "./api-client";
 
-export interface ChatMessage { role: "user" | "assistant"; content: string; }
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  /** Raw backend source metadata, persisted so reopening a thread still shows
+   *  the records/cards the AI found (not just the text answer). */
+  sources?: unknown[];
+}
 export interface ChatThread { id: string; title: string; messages: ChatMessage[]; updatedAt: number; }
 
 const KEY = "mondaily_chat_threads";

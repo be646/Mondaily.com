@@ -22,6 +22,21 @@ import type { AskPageContext } from "../../lib/ask-context-store";
 
 export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[] }>;
 
+/** Rebuild per-message agent + source cards from a stored thread, so reopening
+ *  a conversation shows the records the AI found, not just the text. */
+function metaFromMessages(msgs: ChatMessage[]): MessageMeta {
+  const meta: MessageMeta = {};
+  msgs.forEach((m, i) => {
+    if (m.role === "assistant") {
+      meta[i] = {
+        agent: inferAgentHandoff(msgs[i - 1]?.content ?? ""),
+        sources: mapBackendSources(m.sources as BackendSourceMeta[] | undefined),
+      };
+    }
+  });
+  return meta;
+}
+
 export interface UseAskEngineOptions {
   /** Page-level context (selected record/task/etc) passed to every request on this surface. */
   context?: AskPageContext;
@@ -40,7 +55,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(initial?.id ?? null);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [messageMeta, setMessageMeta] = useState<MessageMeta>({});
+  const [messageMeta, setMessageMeta] = useState<MessageMeta>(() => metaFromMessages(initial?.messages ?? []));
   /** Live token count of the answer currently streaming (resets each send). */
   const [tokenCount, setTokenCount] = useState(0);
   /** Current tool-activity status during streaming, e.g. "Running search records…". */
@@ -51,7 +66,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     const t = getThreads().find(t => t.id === threadId);
     setMessages(t?.messages ?? []);
     setCurrentThreadId(t?.id ?? null);
-    setMessageMeta({});
+    setMessageMeta(metaFromMessages(t?.messages ?? []));
     setSuggestions([]);
   }, []);
 
@@ -143,9 +158,10 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       }
 
       const reply = finalReply || streamed || "No response.";
+      const savedSources = finalSources ?? liveSources;
       applyText(reply);
-      addMessageToThread(tid, { role: "assistant", content: reply });
-      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(finalSources ?? liveSources) } }));
+      addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources });
+      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources) } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
       opts.onAssistantMessage?.(aiIdx, reply);

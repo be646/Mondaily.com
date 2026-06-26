@@ -68651,6 +68651,18 @@ function resolveModel(spec) {
 function getAnthropicKey() {
   return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || void 0;
 }
+var FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+var CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
+var DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
+function routeAgentModel(req) {
+  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  const lastUser = [...req.messages].reverse().find((m2) => m2.role === "user");
+  const msg = (typeof lastUser?.content === "string" ? lastUser.content : "").trim();
+  if (msg.length > 0 && msg.length < 80 && CONVERSATIONAL_RE.test(msg) && !DATA_INTENT_RE.test(msg)) {
+    return { spec: FAST_MODEL_SPEC, useTools: false, tier: "fast" };
+  }
+  return { spec: requested, useTools: true, tier: "deep" };
+}
 function redactSecrets(text2) {
   if (!text2) return text2;
   return text2.replace(/\b(?:sk|pk|rk)[-_](?:live|test)?_?[A-Za-z0-9]{16,}\b/g, "[REDACTED_KEY]").replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]").replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]").replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "Bearer [REDACTED_TOKEN]").replace(/\b(?:\d[ -]?){13,16}\b/g, (m2) => /^\d{13,16}$/.test(m2.replace(/[ -]/g, "")) ? "[REDACTED_CARD]" : m2).replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
@@ -68887,10 +68899,12 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
   return { reply, provider: "openai-compat", model: activeModel, rounds };
 }
 async function aiGatewayAgent(req) {
-  const spec = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  const route = routeAgentModel(req);
+  req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  const spec = route.spec;
   const resolved = resolveModel(spec);
-  const MAX_ROUNDS = req.maxRounds ?? 5;
-  console.log(`[gateway:agent] spec="${spec}" provider=${resolved.type} model=${resolved.modelId}`);
+  const MAX_ROUNDS = route.useTools ? req.maxRounds ?? 5 : 1;
+  console.log(`[gateway:agent] tier=${route.tier} spec="${spec}" provider=${resolved.type} model=${resolved.modelId} tools=${req.tools.length}`);
   try {
     if (resolved.type === "anthropic") {
       return await runAnthropicAgent(resolved.modelId, req, MAX_ROUNDS);
@@ -68917,19 +68931,21 @@ async function aiGatewayAgent(req) {
   }
 }
 async function aiGatewayAgentStream(req, onEvent) {
-  const spec = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
-  const resolved = resolveModel(spec);
-  const MAX_ROUNDS = req.maxRounds ?? 5;
+  const route = routeAgentModel(req);
+  const effectiveReq = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  const resolved = resolveModel(route.spec);
+  const MAX_ROUNDS = route.useTools ? req.maxRounds ?? 5 : 1;
+  console.log(`[gateway:agent-stream] tier=${route.tier} spec="${route.spec}" tools=${effectiveReq.tools.length}`);
   if (resolved.type !== "openai-compat") {
-    const r2 = await aiGatewayAgent(req);
+    const r2 = await aiGatewayAgent(effectiveReq);
     if (r2.reply) await onEvent({ type: "token", text: r2.reply });
     return r2;
   }
   try {
-    return await runOpenAICompatAgentStream(resolved.modelId, req, MAX_ROUNDS, onEvent);
+    return await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
   } catch (err2) {
     console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 falling back to non-streaming`);
-    const r2 = await aiGatewayAgent(req).catch(() => null);
+    const r2 = await aiGatewayAgent(effectiveReq).catch(() => null);
     const reply = r2?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
     await onEvent({ type: "token", text: reply });
     return r2 ?? { reply, provider: "none", model: "none", rounds: 0 };
@@ -72326,6 +72342,9 @@ router6.post("/stream", requireAuth, zValidator("json", external_exports.object(
   const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
+  c2.header("X-Accel-Buffering", "no");
+  c2.header("Cache-Control", "no-cache, no-transform");
+  c2.header("Content-Encoding", "none");
   return streamSSE(c2, async (stream2) => {
     try {
       let webContext = "";

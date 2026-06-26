@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { Network, ShieldAlert, Workflow, Receipt, Users, Sparkles } from "lucide-react";
 import {
   CheckSquare, FileSignature, UserRound, Box, GitBranch, BarChart2,
@@ -204,17 +203,19 @@ export function SourceCard({ source }: { source: SourceCardData }) {
   // updated) must never crash the render tree. Database is a neutral
   // generic-record icon, used only when the real type isn't mapped yet.
   const Icon = SOURCE_ICON[source.type] ?? Database;
-  const navigate = useNavigate();
   const clickable = Boolean(source.href);
+  // Open the record in a NEW TAB so the chat thread is preserved — the user
+  // just closes the tab to return to the exact same conversation.
+  const open = () => { if (source.href) window.open(source.href, "_blank", "noopener"); };
   return (
     <div
-      onClick={clickable ? () => navigate(source.href!) : undefined}
+      onClick={clickable ? open : undefined}
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
-      onKeyDown={clickable ? (e) => { if (e.key === "Enter") navigate(source.href!); } : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === "Enter") open(); } : undefined}
       className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${clickable ? "cursor-pointer hover:border-cyan-400/50 hover:bg-[var(--surface-hover)]" : ""}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-      title={clickable ? "Open record" : undefined}
+      title={clickable ? "Open record in new tab" : undefined}
     >
       <Icon size={12} className="shrink-0 text-cyan-600 dark:text-cyan-400"/>
       <div className="min-w-0 flex-1">

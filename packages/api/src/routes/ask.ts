@@ -1295,6 +1295,12 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
 
+  // Disable proxy/CDN buffering so SSE frames reach the browser as they're
+  // written (Vercel/nginx otherwise buffer the whole response → no live tokens).
+  c.header("X-Accel-Buffering", "no");
+  c.header("Cache-Control", "no-cache, no-transform");
+  c.header("Content-Encoding", "none");
+
   return streamSSE(c, async (stream) => {
     try {
       let webContext = "";
