@@ -227,23 +227,29 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
 
   /** Builds the real context-rich text for an action chip attached to assistant message index i — never a generic standalone string. */
   const buildChipText = useCallback((kind: "explain" | "task" | "draft" | "related" | "decision" | "workflow" | "report", i: number) => {
-    const prevQuestion = messages[i - 1]?.content ?? "";
-    const prevAnswer = messages[i]?.content ?? "";
+    // Reference the prior answer by a SHORT snippet only. The backend already
+    // receives the full thread history on every send, so the model has the real
+    // previous Q&A in context — embedding the entire question + answer was
+    // unnecessary AND caused each chip click to nest the previous (already-huge)
+    // prompt, doubling the token count every time until the request failed.
+    const raw = (messages[i]?.content ?? "").replace(/\s+/g, " ").trim();
+    const snippet = raw.length > 140 ? `${raw.slice(0, 140)}…` : raw;
+    const ref = snippet ? ` (re: "${snippet}")` : "";
     switch (kind) {
       case "explain":
-        return `Explain your reasoning for your previous answer about: "${prevQuestion}". Previous answer: "${prevAnswer}". Walk through it step by step.`;
+        return `Explain your reasoning for your previous answer, step by step.${ref}`;
       case "task":
-        return `Create a task to follow up on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". If anything is ambiguous, ask me to confirm the task title or due date before creating it.`;
+        return `Create a task to follow up on your previous answer.${ref} If the title or due date is ambiguous, ask me to confirm before creating it.`;
       case "draft":
-        return `Draft a message based on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}".`;
+        return `Draft a message based on your previous answer.${ref}`;
       case "related":
-        return `Show me the related objects in the workspace graph for the subject of this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}".`;
+        return `Show me the related objects in the workspace graph for the subject of your previous answer.${ref}`;
       case "decision":
-        return `Add this to the decision queue for my review. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". Use create_decision with a clear recommended_action.`;
+        return `Add your previous answer to the decision queue for my review. Use create_decision with a clear recommended_action.${ref}`;
       case "workflow":
-        return `Create a draft workflow based on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". Save it as a disabled draft for me to review — don't enable it.`;
+        return `Create a draft workflow based on your previous answer. Save it as a disabled draft for me to review — don't enable it.${ref}`;
       case "report":
-        return `Create a real saved report based on this answer using create_report. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". Pick the best report type and object_type, and confirm the title with me if it's ambiguous.`;
+        return `Create a real saved report based on your previous answer using create_report. Pick the best report type and object_type, and confirm the title with me if it's ambiguous.${ref}`;
     }
   }, [messages]);
 
