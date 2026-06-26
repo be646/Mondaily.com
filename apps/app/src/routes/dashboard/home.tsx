@@ -669,9 +669,15 @@ export function HomePage() {
           continuous control-room zone. The components keep their own data
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
       <section className="home-section home-operating-picture">
-        <div className="space-y-8">
-          <WorkspaceGraphPulse />
+        <div className="mb-4 flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+          <p className="home-section-kicker !mb-0">Live operations</p>
+        </div>
+        {/* Agents lead — the AI command center is the centerpiece, with the
+            workspace pulse as supporting context below it. */}
+        <div className="space-y-6">
           <AgentConstellationPanel />
+          <WorkspaceGraphPulse />
         </div>
       </section>
 
