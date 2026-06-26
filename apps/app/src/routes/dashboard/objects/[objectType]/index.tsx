@@ -744,7 +744,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-[#ddd6fe] bg-[#f5f3ff] px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] transition-all hover:bg-[#ede9fe] dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
+            className="flex items-center gap-1.5 rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] transition-all hover:bg-stone-200 dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
           >
             <LogoMark size={11} className="text-[var(--accent)] dark:text-stone-400"/> Fill with AI
           </button>
@@ -816,7 +816,7 @@ export function ObjectIndexPage() {
           <div className="flex flex-1 flex-col items-center justify-center gap-6">
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f5f3ff] border border-[#ddd6fe] dark:bg-stone-500/10 dark:border-stone-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-stone-100 border border-stone-300 dark:bg-stone-500/10 dark:border-stone-500/20">
                   <LogoMark size={22} className="text-[var(--accent)] dark:text-stone-400"/>
                 </div>
               </div>
@@ -830,7 +830,7 @@ export function ObjectIndexPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-5 py-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[#ede9fe] dark:border-stone-400/40 dark:bg-stone-500 dark:text-white dark:hover:bg-stone-400 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-stone-300 bg-stone-100 px-5 py-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-stone-200 dark:border-stone-400/40 dark:bg-stone-500 dark:text-white dark:hover:bg-stone-400 transition-all"
               >
                 <LogoMark size={13} className="text-[var(--accent)] dark:text-white"/> Fill with AI
               </button>

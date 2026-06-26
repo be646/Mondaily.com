@@ -206,7 +206,7 @@ export function AccountSettings() {
                 onClick={() => setAppearance(mode)}
                 className={`relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all ${
                   appearance === mode
-                    ? "border-[var(--accent)] bg-[#eef2ff] text-[#312e81] dark:border-stone-500/50 dark:bg-stone-500/[.06] dark:text-white"
+                    ? "border-[var(--accent)] bg-stone-200 text-stone-900 dark:border-stone-500/50 dark:bg-stone-500/[.06] dark:text-white"
                     : "border-[#e5e7eb] bg-white text-[#52525b] hover:bg-[#f9fafb] dark:border-white/[.07] dark:bg-transparent dark:text-stone-500 dark:hover:border-white/[.14] dark:hover:text-stone-300"
                 }`}
               >

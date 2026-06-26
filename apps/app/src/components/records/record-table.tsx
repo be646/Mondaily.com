@@ -2009,8 +2009,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // Toolbar button styles — clean clickable pills with real borders in light mode
   const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border";
   const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
-  const TB_ON   = `${TB} border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] dark:border-white/[.08] dark:text-white dark:bg-white/[.06]`;
-  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e0e7ff] px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-white/[.10] dark:text-stone-300";
+  const TB_ON   = `${TB} border-stone-300 bg-stone-200 text-stone-900 dark:border-white/[.08] dark:text-white dark:bg-white/[.06]`;
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-200 px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-white/[.10] dark:text-stone-300";
   const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (

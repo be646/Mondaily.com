@@ -487,13 +487,13 @@ export function TasksPage() {
           <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-stone-50 dark:border-white/[.07] dark:bg-white/[.02] p-0.5">
             {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.08] dark:text-white" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-stone-200 text-stone-900 dark:bg-white/[.08] dark:text-white" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
                 {icon}{label}
               </button>
             ))}
           </div>
           <button onClick={() => setShowAISuggest(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-[#ddd6fe] bg-[#f5f3ff] px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-[#ede9fe] dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+            className="flex items-center gap-1.5 rounded-xl border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
             <LogoMark size={12} className="text-[var(--accent)] dark:text-stone-400"/> Suggest with AI
           </button>
           <button onClick={() => setShowCreate(true)}
@@ -514,7 +514,7 @@ export function TasksPage() {
             { key: "review",  label: "Review" },
           ]).map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.08] dark:text-white" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-stone-200 text-stone-900 dark:bg-white/[.08] dark:text-white" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
               {f.label}
               {f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-[10px] text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
             </button>

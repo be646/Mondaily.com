@@ -32,7 +32,7 @@ export function SettingsLayout() {
             key={to}
             to={to}
             className={({ isActive }) =>
-              `mb-1 flex items-center justify-between rounded-md px-3 py-2.5 text-sm ${isActive ? "bg-[#eef2ff] text-[#3730a3] dark:bg-white/[.06] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-stone-500 dark:hover:text-stone-200 dark:hover:bg-transparent"}`
+              `mb-1 flex items-center justify-between rounded-md px-3 py-2.5 text-sm ${isActive ? "bg-stone-200 text-stone-900 dark:bg-white/[.06] dark:text-white" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-stone-500 dark:hover:text-stone-200 dark:hover:bg-transparent"}`
             }
           >
             <div className="flex items-center gap-2">
