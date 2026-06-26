@@ -503,7 +503,19 @@ router.delete("/settings/security/sessions/:id", (c) => c.json({ ok: true }));
 router.get("/settings/email", async (c) => {
   const settings = await workspaceSettings(c.get("workspaceId"));
   const integrations = (settings.integrations ?? {}) as Record<string, boolean>;
-  return c.json({ providers: [{ id: "gmail", name: "Gmail", connected: Boolean(integrations.gmail) }, { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }] });
+  // Source of truth = email_connections (the direct-Google connection lives here).
+  const { data: conn } = await supabase
+    .from("email_connections")
+    .select("email, provider")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("provider", "google")
+    .limit(1)
+    .maybeSingle();
+  const gmailEmail = (conn as { email?: string } | null)?.email;
+  return c.json({ providers: [
+    { id: "gmail", name: "Gmail", connected: Boolean(gmailEmail) || Boolean(integrations.gmail), email: gmailEmail },
+    { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) },
+  ] });
 });
 router.get("/billing", async (c) => {
   const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c.get("workspaceId")).single();

@@ -75034,7 +75034,12 @@ router12.delete("/settings/security/sessions/:id", (c2) => c2.json({ ok: true })
 router12.get("/settings/email", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const integrations = settings.integrations ?? {};
-  return c2.json({ providers: [{ id: "gmail", name: "Gmail", connected: Boolean(integrations.gmail) }, { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }] });
+  const { data: conn } = await supabase.from("email_connections").select("email, provider").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
+  const gmailEmail = conn?.email;
+  return c2.json({ providers: [
+    { id: "gmail", name: "Gmail", connected: Boolean(gmailEmail) || Boolean(integrations.gmail), email: gmailEmail },
+    { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }
+  ] });
 });
 router12.get("/billing", async (c2) => {
   const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c2.get("workspaceId")).single();
@@ -75425,7 +75430,9 @@ router15.get("/threads", zValidator("query", external_exports.object({
     const haystack = `${thread.subject ?? ""} ${thread.snippet ?? ""} ${participants}`.toLowerCase();
     return matchesFilter(thread, input.filter) && (!search || haystack.includes(search));
   });
-  return c2.json({ threads: filtered, connected: Boolean(grantId), next_cursor: nextCursor });
+  const { data: conn } = await supabase.from("email_connections").select("email, grant_id, refresh_token").eq("workspace_id", c2.get("workspaceId")).limit(1).maybeSingle();
+  const connected = Boolean(grantId) || Boolean(conn?.grant_id || conn?.refresh_token);
+  return c2.json({ threads: filtered, connected, connected_email: conn?.email, next_cursor: nextCursor });
 });
 router15.get("/threads/:id", async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));

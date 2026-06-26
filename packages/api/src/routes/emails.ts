@@ -155,7 +155,16 @@ router.get("/threads", zValidator("query", z.object({
     const haystack = `${thread.subject ?? ""} ${thread.snippet ?? ""} ${participants}`.toLowerCase();
     return matchesFilter(thread, input.filter) && (!search || haystack.includes(search));
   });
-  return c.json({ threads: filtered, connected: Boolean(grantId), next_cursor: nextCursor });
+  // Reflect ANY connected inbox — a direct-Google connection (email_connections
+  // row with a refresh token) OR a legacy Nylas grant — not just the Nylas path.
+  const { data: conn } = await supabase
+    .from("email_connections")
+    .select("email, grant_id, refresh_token")
+    .eq("workspace_id", c.get("workspaceId"))
+    .limit(1)
+    .maybeSingle();
+  const connected = Boolean(grantId) || Boolean((conn as { grant_id?: string; refresh_token?: string } | null)?.grant_id || (conn as { refresh_token?: string } | null)?.refresh_token);
+  return c.json({ threads: filtered, connected, connected_email: (conn as { email?: string } | null)?.email, next_cursor: nextCursor });
 });
 
 router.get("/threads/:id", async (c) => {
