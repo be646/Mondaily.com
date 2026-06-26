@@ -338,7 +338,7 @@ export function AskMondaily() {
                         </span>
                         <EvidenceStrip sources={meta.sources}/>
                         {meta.tokens != null && (
-                          <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>~{meta.tokens} tokens</span>
+                          <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }} title={meta.tokensExact ? "Exact provider token usage" : "Estimated"}>{meta.tokensExact ? "" : "~"}{meta.tokens.toLocaleString()} tokens</span>
                         )}
                       </div>
                     )}

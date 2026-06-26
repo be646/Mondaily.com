@@ -1175,7 +1175,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     const sources: SourceMeta[] = [];
 
-    const { reply: agentReply, rounds, provider } = await aiGatewayAgent({
+    const { reply: agentReply, rounds, provider, usage } = await aiGatewayAgent({
       system: systemPrompt,
       tools: TOOLS,
       messages,
@@ -1237,12 +1237,15 @@ router.post("/", requireAuth, zValidator("json", z.object({
         user_id: userId,
         model,
         message_count: 1,
+        prompt_tokens: usage?.prompt_tokens ?? 0,
+        completion_tokens: usage?.completion_tokens ?? 0,
+        total_tokens: usage?.total_tokens ?? 0,
         period_start: periodStart,
         period_end: periodEnd
       });
     } catch (_) {}
 
-    return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null });
+    return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null, usage });
   } catch (err: any) {
     console.error("[ask] unexpected error:", err?.message ?? err);
     return c.json({ reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [], thread_id: null });
@@ -1319,7 +1322,7 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
         return writeChain;
       };
 
-      const { reply: agentReply } = await aiGatewayAgentStream({
+      const { reply: agentReply, usage } = await aiGatewayAgentStream({
         system: systemPrompt,
         tools: TOOLS,
         messages,
@@ -1359,12 +1362,15 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
         const now = new Date();
         await supabase.from("ai_usage").insert({
           workspace_id: workspaceId, user_id: userId, model, message_count: 1,
+          prompt_tokens: usage?.prompt_tokens ?? 0,
+          completion_tokens: usage?.completion_tokens ?? 0,
+          total_tokens: usage?.total_tokens ?? 0,
           period_start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
           period_end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
         });
       } catch {}
 
-      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources });
+      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources, usage });
       await writeChain;
     } catch (err: any) {
       console.error("[ask:stream] error:", err?.message ?? err);

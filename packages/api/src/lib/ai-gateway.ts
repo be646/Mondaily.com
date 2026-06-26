@@ -283,11 +283,14 @@ export type AgentRequest = {
   onToolCall: (name: string, input: Record<string, unknown>) => Promise<string>;
 };
 
+export type TokenUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 export type AgentResponse = {
   reply: string;
   provider: string;
   model: string;
   rounds: number;
+  /** Real provider token usage, summed across tool rounds when available. */
+  usage?: TokenUsage;
 };
 
 // ── Internal: Anthropic multi-round loop ────────────────────────────────────────
@@ -395,6 +398,13 @@ async function runOpenAICompatAgent(
 
   // Resolve active model — may be swapped to a fallback on 404
   let activeModel = modelId;
+  const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  const addUsage = (u?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null) => {
+    if (!u) return;
+    usage.prompt_tokens += u.prompt_tokens ?? 0;
+    usage.completion_tokens += u.completion_tokens ?? 0;
+    usage.total_tokens += u.total_tokens ?? 0;
+  };
 
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
@@ -428,6 +438,7 @@ async function runOpenAICompatAgent(
       throw new Error(`openai-compat HTTP ${status}: ${msg}`);
     }
 
+    addUsage(completion.usage);
     const choice = completion.choices[0];
     if (!choice) break;
 
@@ -469,6 +480,7 @@ async function runOpenAICompatAgent(
           { role: "user", content: originalText || "Hello" },
         ],
       });
+      addUsage(summary.usage);
       const smsg = summary.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
       reply = (smsg?.content && smsg.content.trim()) ? smsg.content : (smsg?.reasoning ?? "");
       console.log(`[gateway:openai-compat] clean fallback reply: ${reply.length} chars`);
@@ -477,7 +489,7 @@ async function runOpenAICompatAgent(
     }
   }
 
-  return { reply, provider: "openai-compat", model: activeModel, rounds };
+  return { reply, provider: "openai-compat", model: activeModel, rounds, usage: usage.total_tokens > 0 ? usage : undefined };
 }
 
 // ── Public: aiGatewayAgent ──────────────────────────────────────────────────────
@@ -601,6 +613,7 @@ async function runOpenAICompatAgentStream(
 
   let reply = "";
   let rounds = 0;
+  const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
@@ -621,8 +634,16 @@ async function runOpenAICompatAgentStream(
         tools: openaiTools,
         tool_choice: "auto",
         stream: true,
+        stream_options: { include_usage: true },
       });
       for await (const chunk of stream) {
+        // The final chunk (with include_usage) carries real token usage and an
+        // empty choices array — accumulate it across all tool rounds.
+        if (chunk.usage) {
+          usage.prompt_tokens += chunk.usage.prompt_tokens ?? 0;
+          usage.completion_tokens += chunk.usage.completion_tokens ?? 0;
+          usage.total_tokens += chunk.usage.total_tokens ?? 0;
+        }
         const choice = chunk.choices[0];
         if (!choice) continue;
         const delta = choice.delta as { content?: string; reasoning?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
@@ -653,7 +674,7 @@ async function runOpenAICompatAgentStream(
       if (reply.trim()) {
         // A partial answer already reached the user — flag it, don't hang.
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted — this reply may be incomplete. Please ask again.)_" });
-        return { reply, provider: "openai-compat", model: modelId, rounds };
+        return { reply, provider: "openai-compat", model: modelId, rounds, usage: usage.total_tokens > 0 ? usage : undefined };
       }
       // Nothing delivered yet — let aiGatewayAgentStream fall back to non-streaming.
       throw streamErr;
@@ -710,5 +731,5 @@ async function runOpenAICompatAgentStream(
     }
   }
 
-  return { reply, provider: "openai-compat", model: modelId, rounds };
+  return { reply, provider: "openai-compat", model: modelId, rounds, usage: usage.total_tokens > 0 ? usage : undefined };
 }

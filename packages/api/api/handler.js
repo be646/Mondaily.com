@@ -68833,6 +68833,13 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
   let reply = "";
   let rounds = 0;
   let activeModel = modelId;
+  const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+  const addUsage = (u2) => {
+    if (!u2) return;
+    usage.prompt_tokens += u2.prompt_tokens ?? 0;
+    usage.completion_tokens += u2.completion_tokens ?? 0;
+    usage.total_tokens += u2.total_tokens ?? 0;
+  };
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
     console.log(`[gateway:openai-compat] round=${round + 1} model=${activeModel} baseURL=${baseURL}`);
@@ -68860,6 +68867,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       }
       throw new Error(`openai-compat HTTP ${status}: ${msg}`);
     }
+    addUsage(completion.usage);
     const choice = completion.choices[0];
     if (!choice) break;
     const rmsg = choice.message;
@@ -68892,6 +68900,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
           { role: "user", content: originalText || "Hello" }
         ]
       });
+      addUsage(summary.usage);
       const smsg = summary.choices[0]?.message;
       reply = smsg?.content && smsg.content.trim() ? smsg.content : smsg?.reasoning ?? "";
       console.log(`[gateway:openai-compat] clean fallback reply: ${reply.length} chars`);
@@ -68899,7 +68908,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       console.error(`[gateway:openai-compat] clean fallback call failed: ${e2?.message}`);
     }
   }
-  return { reply, provider: "openai-compat", model: activeModel, rounds };
+  return { reply, provider: "openai-compat", model: activeModel, rounds, usage: usage.total_tokens > 0 ? usage : void 0 };
 }
 async function aiGatewayAgent(req) {
   const route = routeAgentModel(req);
@@ -68972,6 +68981,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   ];
   let reply = "";
   let rounds = 0;
+  const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
     let content = "";
@@ -68985,9 +68995,15 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
         messages,
         tools: openaiTools,
         tool_choice: "auto",
-        stream: true
+        stream: true,
+        stream_options: { include_usage: true }
       });
       for await (const chunk of stream2) {
+        if (chunk.usage) {
+          usage.prompt_tokens += chunk.usage.prompt_tokens ?? 0;
+          usage.completion_tokens += chunk.usage.completion_tokens ?? 0;
+          usage.total_tokens += chunk.usage.total_tokens ?? 0;
+        }
         const choice = chunk.choices[0];
         if (!choice) continue;
         const delta = choice.delta;
@@ -69015,7 +69031,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       if (content.trim()) reply = content;
       if (reply.trim()) {
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted \u2014 this reply may be incomplete. Please ask again.)_" });
-        return { reply, provider: "openai-compat", model: modelId, rounds };
+        return { reply, provider: "openai-compat", model: modelId, rounds, usage: usage.total_tokens > 0 ? usage : void 0 };
       }
       throw streamErr;
     }
@@ -69063,7 +69079,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       }
     }
   }
-  return { reply, provider: "openai-compat", model: modelId, rounds };
+  return { reply, provider: "openai-compat", model: modelId, rounds, usage: usage.total_tokens > 0 ? usage : void 0 };
 }
 
 // src/jobs/enrich-record.ts
@@ -72449,7 +72465,7 @@ ${webContext}` : "") + contextNote;
     const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content }));
     const messages = [...priorTurns, { role: "user", content: message }];
     const sources = [];
-    const { reply: agentReply, rounds, provider } = await aiGatewayAgent({
+    const { reply: agentReply, rounds, provider, usage } = await aiGatewayAgent({
       system: systemPrompt,
       tools: TOOLS,
       messages,
@@ -72502,12 +72518,15 @@ ${webContext}` : "") + contextNote;
         user_id: userId,
         model,
         message_count: 1,
+        prompt_tokens: usage?.prompt_tokens ?? 0,
+        completion_tokens: usage?.completion_tokens ?? 0,
+        total_tokens: usage?.total_tokens ?? 0,
         period_start: periodStart,
         period_end: periodEnd
       });
     } catch (_3) {
     }
-    return c2.json({ reply, suggestions, sources: dedupedSources, thread_id: null });
+    return c2.json({ reply, suggestions, sources: dedupedSources, thread_id: null, usage });
   } catch (err2) {
     console.error("[ask] unexpected error:", err2?.message ?? err2);
     return c2.json({ reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [], thread_id: null });
@@ -72556,7 +72575,7 @@ ${webContext}` : "") + buildContextNote(context2);
         writeChain = writeChain.then(() => stream2.writeSSE({ data: JSON.stringify(obj) }));
         return writeChain;
       };
-      const { reply: agentReply } = await aiGatewayAgentStream({
+      const { reply: agentReply, usage } = await aiGatewayAgentStream({
         system: systemPrompt,
         tools: TOOLS,
         messages,
@@ -72602,12 +72621,15 @@ ${webContext}` : "") + buildContextNote(context2);
           user_id: userId,
           model,
           message_count: 1,
+          prompt_tokens: usage?.prompt_tokens ?? 0,
+          completion_tokens: usage?.completion_tokens ?? 0,
+          total_tokens: usage?.total_tokens ?? 0,
           period_start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
           period_end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
         });
       } catch {
       }
-      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources });
+      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources, usage });
       await writeChain;
     } catch (err2) {
       console.error("[ask:stream] error:", err2?.message ?? err2);
