@@ -2,14 +2,24 @@ import React from "react";
 import { LogoMark } from "../logo";
 
 /**
+ * AIMark — Mondaily's AI identity lockup: the orbital mark + the word "AI".
+ * The logo alone isn't legible enough as "this is AI", so we always pair them.
+ * Reuse this anywhere an AI action needs its mark (buttons, chips, headers).
+ */
+export function AIMark({ size = 13, thinking = false }: { size?: number; thinking?: boolean }) {
+  return (
+    <span className="ai-mark" aria-label="AI">
+      <LogoMark size={size} thinking={thinking} />
+      <span className="ai-mark-label">AI</span>
+    </span>
+  );
+}
+
+/**
  * AIButton — the single, consistent button for every AI action across the app.
- *
- * It carries Mondaily's own AI identity (the orbital LogoMark), not the generic
- * sparkle icon, so AI actions read the same everywhere. Two visual weights:
+ * Carries the AIMark (orbital logo + "AI"), not a bare icon. Two weights:
  *   - "solid"  : high-contrast command block (.btn-ai) — primary AI action
  *   - "subtle" : light chip (.btn-suggested) — secondary / inline suggestion
- *
- * Use this for: Ask, "AI improve", agent "Run", "Explain reasoning", draft, etc.
  */
 export function AIButton({
   children,
@@ -22,7 +32,7 @@ export function AIButton({
   className = "",
   type = "button",
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onClick?: () => void;
   variant?: "solid" | "subtle";
   size?: "sm" | "md";
@@ -43,7 +53,7 @@ export function AIButton({
       title={title}
       className={`${base} ${sizeCls} ${className}`}
     >
-      <LogoMark size={markSize} thinking={loading} />
+      <AIMark size={markSize} thinking={loading} />
       {children}
     </button>
   );

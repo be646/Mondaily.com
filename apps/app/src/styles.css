@@ -874,6 +874,18 @@ html[data-theme="dark"] .minimal-sparkline {
     background: var(--text-primary);
     border: 1px solid var(--text-primary);
   }
+  /* AI identity lockup — orbital mark + "AI" wordmark, used in every AI button. */
+  .ai-mark {
+    @apply inline-flex items-center;
+    gap: 0.28em;
+    flex-shrink: 0;
+  }
+  .ai-mark-label {
+    font-size: 0.86em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
   .btn-ai:hover:not(:disabled) {
     opacity: 0.86;
     box-shadow: none;
