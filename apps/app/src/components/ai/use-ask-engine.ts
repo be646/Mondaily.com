@@ -108,10 +108,22 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     const body = JSON.stringify({ message: text, model, web_search, history, thread_id: tid, context: opts.context });
     const aiIdx = withUser.length; // index the assistant message will occupy
+    // Hoisted so the catch can salvage partial output if the stream stalls.
+    let streamed = "";
+    let liveSources: BackendSourceMeta[] = [];
+
+    // Abort the stream if it stalls — the provider SDK timeout does NOT cut an
+    // active-but-frozen stream, which caused "loading forever, then nothing".
+    const controller = new AbortController();
+    let inactivityTimer: ReturnType<typeof setTimeout> | undefined;
+    const bump = (ms: number) => { if (inactivityTimer) clearTimeout(inactivityTimer); inactivityTimer = setTimeout(() => controller.abort(), ms); };
+    const overallTimer = setTimeout(() => controller.abort(), 90_000); // hard ceiling
+    const clearTimers = () => { if (inactivityTimer) clearTimeout(inactivityTimer); clearTimeout(overallTimer); };
 
     try {
       // ── Streaming path (SSE): tokens render live, like Claude.ai ──
-      const res = await fetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body });
+      bump(20_000); // up to 20s to first byte
+      const res = await fetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body, signal: controller.signal });
       if (!res.ok || !res.body) throw new Error(`AI error: ${res.status}`);
 
       // Seed an empty assistant message we fill as tokens arrive.
@@ -119,19 +131,18 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let streamed = "";
       let tokens = 0;
       let finalReply = "";
       let finalSources: BackendSourceMeta[] | undefined;
       let finalSuggestions: string[] = [];
       let finalUsage: TokenUsage | undefined;
-      let liveSources: BackendSourceMeta[] = []; // accumulated from streamed `sources` events
 
       const applyText = (t: string) =>
         setMessages(prev => { const c = [...prev]; c[aiIdx] = { role: "assistant", content: t }; return c; });
 
       while (true) {
         const { done, value } = await reader.read();
+        bump(18_000); // reset the stall window on every frame received
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
@@ -165,7 +176,8 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         }
       }
 
-      const reply = finalReply || streamed || "No response.";
+      clearTimers();
+      const reply = finalReply || streamed || "I couldn't generate a response just now — please try again.";
       const savedSources = finalSources ?? liveSources;
       applyText(reply);
       addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources });
@@ -174,12 +186,29 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       setStreamStatus(null);
       opts.onAssistantMessage?.(aiIdx, reply);
     } catch (err: any) {
-      // ── Fallback: non-streaming endpoint if streaming is unavailable ──
+      clearTimers();
+      // If the stream already produced meaningful text before stalling/aborting,
+      // KEEP it rather than re-running (avoids a blank bubble AND a duplicate charge).
+      const partial = streamed.replace(/<followups>[\s\S]*$/, "").trim();
+      if (partial.length > 1) {
+        setMessages([...withUser, { role: "assistant", content: partial }]);
+        addMessageToThread(tid, { role: "assistant", content: partial, sources: liveSources });
+        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(liveSources), tokens: estimateTokens(partial) } }));
+        opts.onAssistantMessage?.(aiIdx, partial);
+        setLoading(false);
+        setStreamStatus(null);
+        return;
+      }
+      // ── Fallback: non-streaming endpoint, with its OWN hard timeout so it
+      // can't hang either. ──
       try {
-        const res = await fetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body });
+        const ctrl2 = new AbortController();
+        const t2 = setTimeout(() => ctrl2.abort(), 30_000);
+        const res = await fetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body, signal: ctrl2.signal });
+        clearTimeout(t2);
         if (!res.ok) throw new Error(`AI error: ${res.status}`);
         const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[]; usage?: TokenUsage };
-        const reply = data.reply || "No response.";
+        const reply = data.reply || "I couldn't generate a response just now — please try again.";
         setMessages([...withUser, { role: "assistant", content: reply }]);
         addMessageToThread(tid, { role: "assistant", content: reply });
         setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null } }));
