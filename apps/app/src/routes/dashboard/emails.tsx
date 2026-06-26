@@ -1,10 +1,11 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, ChevronDown, ChevronLeft, ChevronUp, Link2, Mail, MousePointerClick, Eye, Paperclip, Search, Send, Sparkles } from "lucide-react";
+import { Bot, ChevronDown, ChevronLeft, ChevronUp, Link2, Mail, MousePointerClick, Eye, Paperclip, Search, Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { apiClient, BASE_URL } from "../../lib/api-client";
 import { PageSkeleton, EmptyState } from "../../components/ui/page-state";
+import { AIButton } from "../../components/ui/ai-button";
 
 type EmailFilter = "all" | "inbox" | "sent" | "unread";
 
@@ -116,7 +117,7 @@ function ReplyComposer({ threadId }: { threadId: string }) {
         <EditorContent editor={editor} />
         <div className="flex flex-wrap items-center gap-2 border-t p-2" style={{ borderColor: "var(--border-soft)" }}>
           <button type="button" title="Attach file" className="btn-icon"><Paperclip size={14} /></button>
-          <button type="button" onClick={improveDraft} disabled={improving || editor.isEmpty} className="flex h-8 items-center gap-2 rounded px-2 text-xs text-stone-500 dark:text-stone-400 hover:bg-stone-500/10 disabled:opacity-40"><Sparkles size={13} /> {improving ? "Improving..." : "AI improve"}</button>
+          <AIButton variant="subtle" size="sm" onClick={improveDraft} disabled={editor.isEmpty} loading={improving}>{improving ? "Improving…" : "AI improve"}</AIButton>
           <button type="button" onClick={() => reply.mutate()} disabled={reply.isPending || editor.isEmpty} className="btn-primary ml-auto h-8 px-3 text-xs"><Send size={13} /> {reply.isPending ? "Sending..." : "Send reply"}</button>
         </div>
       </div>

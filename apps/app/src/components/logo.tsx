@@ -15,7 +15,7 @@ export function Logo({ size = 52, showWordmark = true }: { size?: number; showWo
   const mark = Math.round(size * 0.62);
   return (
     <div className="flex items-center" style={{ gap: showWordmark ? Math.round(size * 0.14) : 0, lineHeight: 1 }}>
-      <span style={{ color: "#6366f1", display: "inline-flex" }}>
+      <span style={{ color: "var(--accent)", display: "inline-flex" }}>
         <LogoMark size={mark} />
       </span>
       {showWordmark && (
@@ -25,7 +25,7 @@ export function Logo({ size = 52, showWordmark = true }: { size?: number; showWo
           fontSize: `${fs}px`,
           letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "#18181b",
+          color: "var(--text-primary)",
           lineHeight: 1,
           whiteSpace: "nowrap",
         }}>
