@@ -37,7 +37,7 @@ function parseWorkflow(blocks: WorkflowBlock[]): ParsedWorkflow {
 }
 
 /** Which records this trigger should evaluate against, scoped to the workspace. */
-async function candidateRecords(workspaceId: string, trigger: WorkflowBlock): Promise<{ id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[]> {
+async function candidateRecords(workspaceId: string, trigger: WorkflowBlock, recordId?: string): Promise<{ id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[]> {
   const t = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
   // Also pull the node-level AI scores (lead_score / relationship_health) — they
   // live as columns, not inside data, so a workflow condition like
@@ -51,8 +51,10 @@ async function candidateRecords(workspaceId: string, trigger: WorkflowBlock): Pr
   else if (t.includes("contact") || t.includes("person") || t.includes("lead") || t.includes("compan")) {
     q = base.or("object_type.ilike.%contact%,object_type.ilike.%people%,object_type.ilike.%lead%,object_type.ilike.%compan%");
   } else if (t.includes("task")) q = base.ilike("object_type", "%task%");
+  // Event-driven path: evaluate ONLY the record that just fired the trigger.
+  if (recordId) q = q.eq("id", recordId);
   // record_created / record_updated / generic → most-recent records
-  const { data } = await q.order("updated_at", { ascending: false }).limit(200);
+  const { data } = await q.order("updated_at", { ascending: false }).limit(recordId ? 1 : 200);
   return (data ?? []).map((row) => {
     const r = row as { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; relationship_health?: number | null };
     return {
@@ -221,7 +223,7 @@ export interface WorkflowRunSummary {
  */
 export async function runWorkflowsForWorkspace(
   workspaceId: string,
-  opts: { workflowId?: string; limitRecords?: number } = {},
+  opts: { workflowId?: string; limitRecords?: number; recordId?: string } = {},
 ): Promise<WorkflowRunSummary> {
   const jobId = await startJob({
     workspace_id: workspaceId, agent_name: "workflow",
@@ -242,7 +244,7 @@ export async function runWorkflowsForWorkspace(
       if (!parsed.trigger || parsed.actions.length === 0) continue;
       summary.workflows_evaluated++;
 
-      const candidates = (await candidateRecords(workspaceId, parsed.trigger)).slice(0, opts.limitRecords ?? 25);
+      const candidates = (await candidateRecords(workspaceId, parsed.trigger, opts.recordId)).slice(0, opts.limitRecords ?? 25);
       for (const record of candidates) {
         const triggerKey = triggerKeyFor(parsed.trigger, record);
 

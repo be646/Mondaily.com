@@ -71052,7 +71052,7 @@ function parseWorkflow(blocks) {
     actions: blocks.filter((b2) => b2.kind === "action")
   };
 }
-async function candidateRecords(workspaceId, trigger) {
+async function candidateRecords(workspaceId, trigger, recordId) {
   const t2 = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
   const base = supabase.from("nodes").select("id, object_type, data, updated_at, lead_score, relationship_health").eq("workspace_id", workspaceId);
   let q2 = base;
@@ -71061,7 +71061,8 @@ async function candidateRecords(workspaceId, trigger) {
   else if (t2.includes("contact") || t2.includes("person") || t2.includes("lead") || t2.includes("compan")) {
     q2 = base.or("object_type.ilike.%contact%,object_type.ilike.%people%,object_type.ilike.%lead%,object_type.ilike.%compan%");
   } else if (t2.includes("task")) q2 = base.ilike("object_type", "%task%");
-  const { data } = await q2.order("updated_at", { ascending: false }).limit(200);
+  if (recordId) q2 = q2.eq("id", recordId);
+  const { data } = await q2.order("updated_at", { ascending: false }).limit(recordId ? 1 : 200);
   return (data ?? []).map((row) => {
     const r2 = row;
     return {
@@ -71244,7 +71245,7 @@ async function runWorkflowsForWorkspace(workspaceId, opts = {}) {
       const parsed = parseWorkflow(blocks);
       if (!parsed.trigger || parsed.actions.length === 0) continue;
       summary.workflows_evaluated++;
-      const candidates = (await candidateRecords(workspaceId, parsed.trigger)).slice(0, opts.limitRecords ?? 25);
+      const candidates = (await candidateRecords(workspaceId, parsed.trigger, opts.recordId)).slice(0, opts.limitRecords ?? 25);
       for (const record of candidates) {
         const triggerKey = triggerKeyFor(parsed.trigger, record);
         const { data: priorRuns } = await supabase.from("workflow_runs").select("id,status").eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey);
@@ -71310,6 +71311,18 @@ async function runAllWorkflows() {
   }
   return { matched: totalMatched, executed: totalExecuted, queued: totalQueued };
 }
+
+// src/jobs/workflow-trigger.ts
+var workflowTrigger = inngest.createFunction(
+  { id: "workflow-realtime-trigger", name: "Automations: real-time trigger", concurrency: { limit: 5 } },
+  [{ event: "crm/record.created" }, { event: "crm/record.updated" }],
+  async ({ event }) => {
+    const { workspaceId, nodeId } = event.data;
+    if (!workspaceId || !nodeId) return { skipped: true };
+    const summary = await runWorkflowsForWorkspace(workspaceId, { recordId: nodeId, limitRecords: 1 });
+    return { workspaceId, recordId: nodeId, ...summary };
+  }
+);
 
 // src/jobs/vertical-agents.ts
 async function loadNodes(workspaceId) {
@@ -71919,6 +71932,11 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external_
   const updates = c2.req.valid("json");
   const node = await updateNode(c2.req.param("id"), c2.get("workspaceId"), updates);
   await logActivity(node.id, c2.get("workspaceId"), "human", c2.get("userId"), "updated", updates);
+  inngest.send({
+    name: "crm/record.updated",
+    data: { workspaceId: c2.get("workspaceId"), nodeId: node.id, objectType: node.object_type, vertical: node.vertical }
+  }).catch(() => {
+  });
   return c2.json(node);
 });
 router.delete("/:id", requireAuth, denyViewerWrites, async (c2) => {
@@ -78705,12 +78723,12 @@ router37.get("/", async (c2) => {
     state: tavilyConfigured ? "operational" : "needs_setup",
     explanation: tavilyConfigured ? "TAVILY_API_KEY is set \u2014 enrichment and the Prospecting Agent can search the live web." : "TAVILY_API_KEY is missing \u2014 enrichment and Prospecting Agent web search will return nothing."
   });
-  const nylasConfigured = Boolean(process.env.NYLAS_API_KEY);
+  const googleConfigured2 = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
     id: "email",
-    label: "Email (Nylas) configured",
-    state: nylasConfigured ? "operational" : "needs_setup",
-    explanation: nylasConfigured ? "NYLAS_API_KEY is set \u2014 email sync and sending are available." : "NYLAS_API_KEY is missing \u2014 connecting an inbox will fail."
+    label: "Email (Gmail OAuth) configured",
+    state: googleConfigured2 ? "operational" : "needs_setup",
+    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 users can connect Gmail (read + reply)." : "GOOGLE_CLIENT_ID/SECRET missing \u2014 Connect Gmail will fail."
   });
   const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
   const stripePrice = Boolean(process.env.STRIPE_PRICE_PRO_MONTH || process.env.STRIPE_PRICE_BUSINESS_MONTH);
@@ -78985,7 +79003,7 @@ app.route("/api/v1/tags", router35);
 app.route("/api/v1/onboarding", router36);
 app.route("/api/v1/integrations", router39);
 app.route("/api/v1", router12);
-var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
+var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
   const secret2 = process.env.CRON_SECRET;

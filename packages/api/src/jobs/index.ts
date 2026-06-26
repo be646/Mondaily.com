@@ -6,3 +6,4 @@ export { dealAlerts } from "./deal-alerts";
 export { creditNoteDisputeHandler } from "./credit-note-dispute";
 export { recurringInvoices } from "./recurring-invoices";
 export { overdueTaskDecisions } from "./overdue-task-decisions";
+export { workflowTrigger } from "./workflow-trigger";

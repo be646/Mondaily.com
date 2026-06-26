@@ -15,6 +15,14 @@ export type Events = {
       recordData: Record<string, unknown>;
     };
   };
+  "crm/record.updated": {
+    data: {
+      workspaceId: string;
+      nodeId: string;
+      objectType: string;
+      vertical: string;
+    };
+  };
   "finance/invoice.overdue.check": {
     data: Record<string, never>;
   };

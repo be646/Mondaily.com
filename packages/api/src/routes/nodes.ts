@@ -73,6 +73,11 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
   const updates = c.req.valid("json");
   const node = await ubc.updateNode(c.req.param("id"), c.get("workspaceId"), updates);
   await ubc.logActivity(node.id!, c.get("workspaceId"), "human", c.get("userId"), "updated", updates);
+  // Real-time automation triggers (record_updated / deal_stage_change).
+  inngest.send({
+    name: "crm/record.updated",
+    data: { workspaceId: c.get("workspaceId"), nodeId: node.id!, objectType: node.object_type, vertical: node.vertical },
+  }).catch(() => {/* best-effort */});
   return c.json(node);
 });
 

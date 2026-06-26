@@ -57,7 +57,7 @@ const FEATURES: FeatureRow[] = [
   { feature: "Tasks", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Full CRUD, reviews, assignment, AI-sorted home widget." },
   { feature: "Finance invoices", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Invoice CRUD + chasing via Decision Queue approval." },
   { feature: "Reports", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "Saved reports run real computed data; Ask can build them via the create_report tool." },
-  { feature: "Automations", status: "partial", inApp: true, backendReady: true, needsSetup: false, notes: "AI-built trigger→condition→action drafts execute via runAllWorkflows on the daily cron; real-time event triggers still pending." },
+  { feature: "Automations", status: "live", inApp: true, backendReady: true, needsSetup: false, notes: "AI-built trigger→condition→action workflows execute in real time on record create/update (Inngest event triggers, idempotent), with the daily cron as a backstop sweep." },
   { feature: "Email (Gmail, direct)", status: "needs_configuration", inApp: true, backendReady: true, needsSetup: true, notes: "Direct Google (Gmail API), Nylas removed: connect + inbox read + reply are live; new-compose send is still pending. Needs GOOGLE_CLIENT_ID/SECRET. Outlook (Graph) planned." },
   { feature: "Calls", status: "partial", inApp: true, backendReady: true, needsSetup: true, notes: "Call log + AI transcript summary exist; needs AI_GATEWAY_API_KEY for summaries." },
   { feature: "Voice commands", status: "not_built", inApp: false, backendReady: false, needsSetup: false, notes: "No voice input anywhere yet — Ask Mondaily shows a disabled mic with \"coming soon\"." },
