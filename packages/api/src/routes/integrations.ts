@@ -139,9 +139,16 @@ router.get("/callback", async (c) => {
         grant_type: "authorization_code",
       }),
     });
-    if (!res.ok) return c.html(popupHtml(`Could not complete sign-in (${res.status}).`, false));
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("[nylas/callback] token exchange failed", res.status, detail);
+      return c.html(popupHtml(`Could not complete sign-in (${res.status}). ${detail.slice(0, 140)}`, false));
+    }
     const tok = (await res.json()) as { grant_id?: string; email?: string };
-    if (!tok.grant_id) return c.html(popupHtml("No mailbox grant was returned.", false));
+    if (!tok.grant_id) {
+      console.error("[nylas/callback] no grant_id in token response");
+      return c.html(popupHtml("No mailbox grant was returned.", false));
+    }
 
     const { error } = await supabase.from("email_connections").upsert(
       {
