@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/react";
 import { LogoMark } from "@/components/logo";
+import { LeadScoreBadge } from "@/components/records/lead-score-badge";
 import {
   Download, Globe, Grid2X2, ListPlus, Loader2,
   MoreHorizontal, Plus, Search, Table2, Trash2, UserCheck, Users, X, Mail, Wand2,
@@ -11,7 +12,7 @@ import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { ProspectingModal } from "../../../components/ai/prospecting-modal";
 
-interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }
+interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null }
 interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
 interface Member { id: string; user_id: string; name: string; email: string; role?: string }
 
@@ -128,10 +129,12 @@ export function ListPage() {
 
   // ── Derived ───────────────────────────────────────────────────────────────────
   const records = entries.data ?? [];
-  const columns = useMemo(
-    () => Array.from(new Set(records.flatMap(r => Object.keys(r.data)))).slice(0, 7),
-    [records],
-  );
+  const columns = useMemo(() => {
+    const base = Array.from(new Set(records.flatMap(r => Object.keys(r.data)))).slice(0, 7);
+    // lead_score is a node column (not in data jsonb) — surface it when present.
+    if (records.some(r => r.lead_score != null) && !base.includes("lead_score")) base.push("lead_score");
+    return base;
+  }, [records]);
   const entryIds = new Set(records.map(r => r.id));
   const available = (candidates.data ?? []).filter(r =>
     !entryIds.has(r.id) &&
@@ -503,7 +506,9 @@ export function ListPage() {
                   <tr key={record.id} className="group transition-colors">
                     {columns.map((c, i) => (
                       <td key={c} className="max-w-[240px] truncate text-stone-700 dark:text-stone-300">
-                        {i === 0
+                        {c === "lead_score"
+                          ? (record.lead_score != null ? <LeadScoreBadge score={record.lead_score} size="sm"/> : null)
+                          : i === 0
                           ? (
                             <Link
                               to={`/objects/${record.object_type}/${record.id}`}

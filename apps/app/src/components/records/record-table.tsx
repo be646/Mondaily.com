@@ -27,6 +27,12 @@ const NODE_LEVEL_COLS = ["lead_score", "relationship_health"];
 function cellValue(record: NodeRecord, col: string): unknown {
   return NODE_LEVEL_COLS.includes(col) ? (record as unknown as Record<string, unknown>)[col] : record.data[col];
 }
+/** Human column label — AI score columns get their landing-page branding. */
+function colLabel(col: string): string {
+  if (col === "lead_score") return "AI Score";
+  if (col === "relationship_health") return "Relationship";
+  return colLabel(col);
+}
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
 type SortDir = "asc" | "desc";
 interface SortRule { col: string; dir: SortDir }
@@ -547,7 +553,7 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }
               <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-stone-500 bg-stone-500" : "border-white/20 bg-transparent"}`}>
                 {visible && <Check size={10} className="text-white"/>}
               </div>
-              <span className="capitalize">{col.replace(/_/g, " ")}</span>
+              <span className="capitalize">{colLabel(col)}</span>
               <GripVertical size={12} className="ml-auto text-stone-700"/>
             </button>
           );
@@ -597,7 +603,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
                   onChange={e => updateRule(i, { col: e.target.value })}
                   className="w-full bg-transparent text-xs text-white/80 outline-none capitalize"
                 >
-                  {columns.map(c => <option key={c} value={c} className="bg-[#13151a]">{c.replace(/_/g, " ")}</option>)}
+                  {columns.map(c => <option key={c} value={c} className="bg-[#13151a]">{colLabel(c)}</option>)}
                 </select>
               </div>
               <button
@@ -2073,7 +2079,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             className={groupByCol || openPanel === "groupby" ? TB_ON : TB_IDLE}>
             <Rows3 size={11}/>
             <span>Group</span>
-            {groupByCol && <span className={TB_DOT}>{groupByCol.replace(/_/g," ")}</span>}
+            {groupByCol && <span className={TB_DOT}>{colLabel(groupByCol)}</span>}
           </button>
 
           <div className="w-px h-3 bg-white/[.07] mx-1"/>
@@ -2105,7 +2111,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <button key={col} onClick={() => toggleCol(col)}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-white/[.10] bg-white/[.05] text-white/70" : "border-white/[.04] bg-transparent text-white/20 hover:text-white/40 hover:border-white/[.08]"}`}>
                 {visible && <Check size={9} className="text-stone-400 shrink-0"/>}
-                <span className="capitalize">{col.replace(/_/g," ")}</span>
+                <span className="capitalize">{colLabel(col)}</span>
               </button>
             );
           })}
@@ -2129,7 +2135,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <div key={i} className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 shrink-0">
               <select value={rule.col} onChange={e => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: e.target.value } : x))}
                 className="bg-transparent text-[11px] text-white/70 outline-none capitalize max-w-[120px]">
-                {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[#13151a]">{c.replace(/_/g," ")}</option>)}
+                {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[#13151a]">{colLabel(c)}</option>)}
               </select>
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400"}`}>
@@ -2164,7 +2170,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <button key={col} onClick={() => setGroupBy(col)}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-stone-400 hover:text-stone-100 hover:border-white/[.08]"}`}>
               {groupByCol === col && <Check size={9} className="text-stone-400"/>}
-              {col.replace(/_/g," ")}
+              {colLabel(col)}
             </button>
           ))}
           <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
@@ -2496,7 +2502,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         {bulkEditCols.map(col => (
                           <button key={col} onClick={() => setBulkEditField(col)}
                             className={`rounded-md px-2 py-1 text-[10px] capitalize whitespace-nowrap transition-colors ${bulkEditField === col ? "bg-white/[.08] text-white" : "text-stone-400 hover:text-stone-100"}`}>
-                            {col.replace(/_/g," ")}
+                            {colLabel(col)}
                           </button>
                         ))}
                       </div>
@@ -2861,7 +2867,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               onClick={() => {
                 const col = colCtxMenu.col;
                 const current = colMeta[col]?.defaultValue ?? "";
-                const val = window.prompt(`Default value for "${col.replace(/_/g," ")}"`, current);
+                const val = window.prompt(`Default value for "${colLabel(col)}"`, current);
                 if (val !== null) saveColMeta({ ...colMeta, [col]: { ...colMeta[col], defaultValue: val } });
                 setColCtxMenu(null);
               }}
