@@ -739,9 +739,10 @@ html[data-theme="dark"] .minimal-sparkline {
   padding: 0.35rem 0 0.1rem;
 }
 .home-telemetry-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: -0.6rem;
 }
 
 @keyframes chatInputScan {
@@ -749,38 +750,36 @@ html[data-theme="dark"] .minimal-sparkline {
   50%       { opacity: 0.62; }
   68%, 100% { transform: translateX(120%); opacity: 0; }
 }
-/* KPI tiles — clickable command-center metrics, not a flat strip. */
+/* KPI tiles — quiet, refined clickable metrics. Inline number + label,
+   subtle surface, no heavy border or oversized type. */
+.home-telemetry-strip {
+  gap: 0.35rem;
+}
 .home-telemetry-strip > * {
   display: flex;
   min-width: 0;
-  flex-direction: column;
+  align-items: baseline;
   gap: 0.4rem;
-  border: 1px solid var(--border-soft);
-  border-radius: 0.85rem;
-  background: var(--surface-card);
-  padding: 0.85rem 1rem;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.6rem;
   color: var(--text-muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  font-size: 0.78rem;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .home-telemetry-strip > a { cursor: pointer; }
 .home-telemetry-strip > *:hover {
   background: var(--surface-hover);
-  border-color: var(--border-strong);
+  color: var(--text-secondary);
 }
 .home-telemetry-strip > * > svg {
   color: var(--text-faint);
-  margin-bottom: 0.1rem;
+  align-self: center;
 }
 .home-telemetry-strip strong {
-  display: block;
   color: var(--text-primary);
-  font-size: 1.5rem;
-  font-weight: 650;
+  font-size: 0.95rem;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.01em;
 }
 @media (max-width: 640px) {
   .home-telemetry-strip {

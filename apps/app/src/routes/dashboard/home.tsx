@@ -431,9 +431,9 @@ export function HomePage() {
         </div>
 
         <div className="home-telemetry-strip mt-3">
-          <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={14}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
-          <Link to="/decisions"><FileText size={14}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
-          <Link to="/notifications"><Inbox size={14}/><strong>{unreadCount}</strong>unread</Link>
+          <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
+          <Link to="/decisions"><FileText size={13}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
+          <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
         </div>
 
         {/* Anything that actually needs attention — kept separate from
