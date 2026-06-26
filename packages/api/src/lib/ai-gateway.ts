@@ -122,9 +122,10 @@ function routeAgentModel(req: AgentRequest): { spec: string; useTools: boolean; 
 export function redactSecrets(text: string): string {
   if (!text) return text;
   return text
-    // Provider API keys / tokens (OpenAI sk-, Fireworks fw_, Cerebras csk-, Groq gsk_, xAI xai-, Stripe sk_live)
-    .replace(/\b(?:sk|pk|rk)[-_](?:live|test)?_?[A-Za-z0-9]{16,}\b/g, "[REDACTED_KEY]")
-    .replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]")
+    // Provider API keys / tokens. Body allows hyphens/underscores so
+    // hyphenated keys (e.g. sk-ant-api03-…, sk_live_…) don't slip through.
+    .replace(/\b(?:sk|pk|rk)[-_][A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]")
+    .replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-|cskk?-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]")
     .replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]")
     // JWTs / bearer tokens
     .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]")
@@ -167,6 +168,9 @@ function openAIClient(): OpenAI {
   return new OpenAI({
     baseURL: baseURL ?? "https://api.openai.com/v1",
     apiKey: apiKey ?? "missing-key",
+    // Never hang forever on a provider stall; retry transient network/5xx/429.
+    timeout: 45000,
+    maxRetries: 2,
   });
 }
 
@@ -236,8 +240,8 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
   }
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
-  if (req.system) messages.push({ role: "system", content: req.system });
-  messages.push({ role: "user", content: req.prompt });
+  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
+  messages.push({ role: "user", content: redactSecrets(req.prompt) });
 
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
@@ -371,7 +375,7 @@ async function runOpenAICompatAgent(
     );
   }
 
-  const client = new OpenAI({ baseURL, apiKey });
+  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 2 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -581,7 +585,7 @@ async function runOpenAICompatAgentStream(
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  const client = new OpenAI({ baseURL, apiKey });
+  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 2 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -600,44 +604,59 @@ async function runOpenAICompatAgentStream(
 
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
-    const stream = await client.chat.completions.create({
-      model: modelId,
-      max_tokens: req.maxTokens ?? 2048,
-      messages,
-      tools: openaiTools,
-      tool_choice: "auto",
-      stream: true,
-    });
-
     let content = "";
     let thinkingSignalled = false;
     const toolAcc: Record<number, { id: string; name: string; args: string }> = {};
     let finishReason: string | null = null;
 
-    for await (const chunk of stream) {
-      const choice = chunk.choices[0];
-      if (!choice) continue;
-      const delta = choice.delta as { content?: string; reasoning?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
-      // REASONING FILTER: gpt-oss-120b emits its chain-of-thought in `delta.reasoning`,
-      // separate from the user-facing answer in `delta.content`. We NEVER stream
-      // reasoning to the client — only `content`. While the model is still
-      // reasoning (reasoning flowing, no content yet), surface a single
-      // "Thinking…" status so the UI shows progress instead of a blank wait.
-      if (delta.reasoning && !content && !thinkingSignalled) {
-        thinkingSignalled = true;
-        await onEvent({ type: "status", text: "Thinking…" });
-      }
-      if (delta.content) { content += delta.content; await onEvent({ type: "token", text: delta.content }); }
-      if (delta.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          const i = tc.index ?? 0;
-          if (!toolAcc[i]) toolAcc[i] = { id: "", name: "", args: "" };
-          if (tc.id) toolAcc[i].id = tc.id;
-          if (tc.function?.name) toolAcc[i].name += tc.function.name;
-          if (tc.function?.arguments) toolAcc[i].args += tc.function.arguments;
+    // Mid-stream resiliency: if Cerebras times out, rate-limits, or the socket
+    // drops part-way through, we must never leave a frozen spinner. Keep any
+    // partial answer + a clear note; if nothing was produced yet, bubble up so
+    // the caller does its non-streaming fallback.
+    try {
+      const stream = await client.chat.completions.create({
+        model: modelId,
+        max_tokens: req.maxTokens ?? 2048,
+        messages,
+        tools: openaiTools,
+        tool_choice: "auto",
+        stream: true,
+      });
+      for await (const chunk of stream) {
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+        const delta = choice.delta as { content?: string; reasoning?: string; tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }> };
+        // REASONING FILTER: gpt-oss-120b emits its chain-of-thought in `delta.reasoning`,
+        // separate from the user-facing answer in `delta.content`. We NEVER stream
+        // reasoning to the client — only `content`. While the model is still
+        // reasoning (reasoning flowing, no content yet), surface a single
+        // "Thinking…" status so the UI shows progress instead of a blank wait.
+        if (delta.reasoning && !content && !thinkingSignalled) {
+          thinkingSignalled = true;
+          await onEvent({ type: "status", text: "Thinking…" });
         }
+        if (delta.content) { content += delta.content; await onEvent({ type: "token", text: delta.content }); }
+        if (delta.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const i = tc.index ?? 0;
+            if (!toolAcc[i]) toolAcc[i] = { id: "", name: "", args: "" };
+            if (tc.id) toolAcc[i].id = tc.id;
+            if (tc.function?.name) toolAcc[i].name += tc.function.name;
+            if (tc.function?.arguments) toolAcc[i].args += tc.function.arguments;
+          }
+        }
+        if (choice.finish_reason) finishReason = choice.finish_reason;
       }
-      if (choice.finish_reason) finishReason = choice.finish_reason;
+    } catch (streamErr: any) {
+      console.error(`[gateway:openai-compat-stream] round ${rounds} interrupted: ${streamErr?.message}`);
+      if (content.trim()) reply = content;
+      if (reply.trim()) {
+        // A partial answer already reached the user — flag it, don't hang.
+        await onEvent({ type: "token", text: "\n\n_(Connection interrupted — this reply may be incomplete. Please ask again.)_" });
+        return { reply, provider: "openai-compat", model: modelId, rounds };
+      }
+      // Nothing delivered yet — let aiGatewayAgentStream fall back to non-streaming.
+      throw streamErr;
     }
 
     if (content.trim()) reply = content;

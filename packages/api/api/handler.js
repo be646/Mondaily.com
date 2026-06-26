@@ -68665,7 +68665,7 @@ function routeAgentModel(req) {
 }
 function redactSecrets(text2) {
   if (!text2) return text2;
-  return text2.replace(/\b(?:sk|pk|rk)[-_](?:live|test)?_?[A-Za-z0-9]{16,}\b/g, "[REDACTED_KEY]").replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]").replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]").replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "Bearer [REDACTED_TOKEN]").replace(/\b(?:\d[ -]?){13,16}\b/g, (m2) => /^\d{13,16}$/.test(m2.replace(/[ -]/g, "")) ? "[REDACTED_CARD]" : m2).replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
+  return text2.replace(/\b(?:sk|pk|rk)[-_][A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-|cskk?-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]").replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]").replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "Bearer [REDACTED_TOKEN]").replace(/\b(?:\d[ -]?){13,16}\b/g, (m2) => /^\d{13,16}$/.test(m2.replace(/[ -]/g, "")) ? "[REDACTED_CARD]" : m2).replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
 }
 var PROVIDER_FALLBACK_MODELS = [
   "accounts/fireworks/models/llama-v3p3-70b-instruct",
@@ -68684,7 +68684,10 @@ function openAIClient() {
   }
   return new openai_default({
     baseURL: baseURL ?? "https://api.openai.com/v1",
-    apiKey: apiKey ?? "missing-key"
+    apiKey: apiKey ?? "missing-key",
+    // Never hang forever on a provider stall; retry transient network/5xx/429.
+    timeout: 45e3,
+    maxRetries: 2
   });
 }
 async function aiGateway(req) {
@@ -68741,8 +68744,8 @@ async function aiGatewayToolUse(req) {
     return data.content?.find((b2) => b2.type === "tool_use")?.input ?? {};
   }
   const messages = [];
-  if (req.system) messages.push({ role: "system", content: req.system });
-  messages.push({ role: "user", content: req.prompt });
+  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
+  messages.push({ role: "user", content: redactSecrets(req.prompt) });
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
     max_tokens: req.maxTokens ?? 1024,
@@ -68815,7 +68818,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
-  const client = new openai_default({ baseURL, apiKey });
+  const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 2 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -68955,7 +68958,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  const client = new openai_default({ baseURL, apiKey });
+  const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 2 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -68971,40 +68974,50 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   let rounds = 0;
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
-    const stream2 = await client.chat.completions.create({
-      model: modelId,
-      max_tokens: req.maxTokens ?? 2048,
-      messages,
-      tools: openaiTools,
-      tool_choice: "auto",
-      stream: true
-    });
     let content = "";
     let thinkingSignalled = false;
     const toolAcc = {};
     let finishReason = null;
-    for await (const chunk of stream2) {
-      const choice = chunk.choices[0];
-      if (!choice) continue;
-      const delta = choice.delta;
-      if (delta.reasoning && !content && !thinkingSignalled) {
-        thinkingSignalled = true;
-        await onEvent({ type: "status", text: "Thinking\u2026" });
-      }
-      if (delta.content) {
-        content += delta.content;
-        await onEvent({ type: "token", text: delta.content });
-      }
-      if (delta.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          const i2 = tc.index ?? 0;
-          if (!toolAcc[i2]) toolAcc[i2] = { id: "", name: "", args: "" };
-          if (tc.id) toolAcc[i2].id = tc.id;
-          if (tc.function?.name) toolAcc[i2].name += tc.function.name;
-          if (tc.function?.arguments) toolAcc[i2].args += tc.function.arguments;
+    try {
+      const stream2 = await client.chat.completions.create({
+        model: modelId,
+        max_tokens: req.maxTokens ?? 2048,
+        messages,
+        tools: openaiTools,
+        tool_choice: "auto",
+        stream: true
+      });
+      for await (const chunk of stream2) {
+        const choice = chunk.choices[0];
+        if (!choice) continue;
+        const delta = choice.delta;
+        if (delta.reasoning && !content && !thinkingSignalled) {
+          thinkingSignalled = true;
+          await onEvent({ type: "status", text: "Thinking\u2026" });
         }
+        if (delta.content) {
+          content += delta.content;
+          await onEvent({ type: "token", text: delta.content });
+        }
+        if (delta.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const i2 = tc.index ?? 0;
+            if (!toolAcc[i2]) toolAcc[i2] = { id: "", name: "", args: "" };
+            if (tc.id) toolAcc[i2].id = tc.id;
+            if (tc.function?.name) toolAcc[i2].name += tc.function.name;
+            if (tc.function?.arguments) toolAcc[i2].args += tc.function.arguments;
+          }
+        }
+        if (choice.finish_reason) finishReason = choice.finish_reason;
       }
-      if (choice.finish_reason) finishReason = choice.finish_reason;
+    } catch (streamErr) {
+      console.error(`[gateway:openai-compat-stream] round ${rounds} interrupted: ${streamErr?.message}`);
+      if (content.trim()) reply = content;
+      if (reply.trim()) {
+        await onEvent({ type: "token", text: "\n\n_(Connection interrupted \u2014 this reply may be incomplete. Please ask again.)_" });
+        return { reply, provider: "openai-compat", model: modelId, rounds };
+      }
+      throw streamErr;
     }
     if (content.trim()) reply = content;
     const calls = Object.values(toolAcc).filter((t2) => t2.name);
