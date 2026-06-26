@@ -21,60 +21,36 @@ import { AgentPulse } from "../ai/agent-constellation";
 // "Finance" only appears here when the module is enabled — otherwise its
 // slot is "Reports" so the main nav never shows a field-specific label for
 // a module that isn't on. ──────────────────────────────────────────────────
-function primaryNav(hasFinance: boolean): { to: string; label: string; icon: React.ElementType }[] {
-  return [
-    { to: "/home", label: "Home", icon: Home },
-    { to: "/ask/new", label: "Ask", icon: MessageCircle },
-    { to: "/search", label: "Graph", icon: GitBranch },
-    { to: "/tasks", label: "Tasks", icon: CheckSquare },
-    { to: "/decisions", label: "Decisions", icon: ShieldCheck },
-    { to: "/automations", label: "Automations", icon: Activity },
-    hasFinance
-      ? { to: "/finance/invoices", label: "Finance", icon: Receipt }
-      : { to: "/reports", label: "Reports", icon: BarChart2 },
-  ];
-}
+const PRIMARY_NAV: { to: string; label: string; icon: React.ElementType }[] = [
+  { to: "/home", label: "Home", icon: Home },
+  { to: "/ask/new", label: "Ask", icon: MessageCircle },
+  { to: "/search", label: "Graph", icon: GitBranch },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/decisions", label: "Decisions", icon: ShieldCheck },
+  { to: "/automations", label: "Automations", icon: Activity },
+  { to: "/reports", label: "Reports", icon: BarChart2 },
+];
 
-// ─── Everything else — collapsed by default, reached via the "More" toggle
-// or command/search (⌘K) instead of permanently occupying sidebar space.
-const MORE_NAV: { label: string; items: { to: string; label: string; icon: React.ElementType }[] }[] = [
-  {
-    label: "Work",
-    items: [
-      { to: "/notifications", label: "Notifications", icon: Bell },
-      { to: "/notes",  label: "Notes",  icon: FileText },
-      { to: "/emails", label: "Emails", icon: Mail },
-      { to: "/calls",  label: "Calls",  icon: Phone },
-    ],
-  },
-  {
-    label: "Finance & Reports",
-    items: [
-      { to: "/reports",         label: "Reports",  icon: BarChart2 },
-      { to: "/finance/invoices",       label: "Invoices",         icon: Receipt        },
-      { to: "/finance/credit-notes",   label: "Credit Notes",     icon: ReceiptText    },
-      { to: "/finance/quotes",         label: "Quotes",           icon: FileSignature  },
-      { to: "/finance/expenses",       label: "Expenses",         icon: Wallet         },
-      { to: "/finance/reports",        label: "Finance Reports",  icon: TrendingUp     },
-      { to: "/approvals",              label: "Approvals",        icon: ShieldCheck    },
-    ],
-  },
-  {
-    // "Workflows"/"Sequences" used to be listed here too, but both pointed
-    // at the same /automations route the primary nav already links to —
-    // removed rather than showing three buttons for one destination.
-    // Canvas is a real, distinct page, so it stays.
-    label: "Automation",
-    items: [
-      { to: "/canvas", label: "Canvas", icon: Layers },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { to: "/status", label: "Status", icon: Activity },
-    ],
-  },
+// ─── Workspace — daily-use surfaces, kept FLAT (no click to reveal). Canvas
+// lives here too, so there's no longer a second "Automation" group that holds
+// only Canvas (which read as a duplicate of the primary "Automations" item).
+const WORKSPACE_NAV: { to: string; label: string; icon: React.ElementType }[] = [
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/notes",  label: "Notes",  icon: FileText },
+  { to: "/emails", label: "Emails", icon: Mail },
+  { to: "/calls",  label: "Calls",  icon: Phone },
+  { to: "/canvas", label: "Canvas", icon: Layers },
+];
+
+// ─── Finance — the one genuinely large set, so it stays a collapsible group.
+// Only rendered when the Finance module is on. (Reports lives in the primary nav.)
+const FINANCE_NAV: { to: string; label: string; icon: React.ElementType }[] = [
+  { to: "/finance/invoices",     label: "Invoices",        icon: Receipt        },
+  { to: "/finance/credit-notes", label: "Credit Notes",    icon: ReceiptText    },
+  { to: "/finance/quotes",       label: "Quotes",          icon: FileSignature  },
+  { to: "/finance/expenses",     label: "Expenses",        icon: Wallet         },
+  { to: "/finance/reports",      label: "Finance Reports", icon: TrendingUp     },
+  { to: "/approvals",            label: "Approvals",       icon: ShieldCheck    },
 ];
 
 // ─── Getting Started checklist ────────────────────────────────────────────────
@@ -513,32 +489,25 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
-          {!collapsed && <GettingStarted />}
+          {/* Primary — always flat, always visible */}
+          {PRIMARY_NAV.map(item => <NavItem key={item.to} {...item} collapsed={collapsed}/>)}
 
-          {(() => {
-            const primary = primaryNav(hasFinance);
-            return collapsed
-              ? primary.map(item => <NavItem key={item.to} {...item} collapsed={true}/>)
-              : primary.map(item => <NavItem key={item.to} {...item} collapsed={false}/>);
-          })()}
+          {/* Workspace — daily surfaces, flat (no click to reveal) */}
+          {collapsed
+            ? WORKSPACE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={true}
+                badge={item.to === "/notifications" ? unreadCount : undefined}/>)
+            : (
+              <>
+                <SectionLabel label="Workspace"/>
+                {WORKSPACE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}
+                  badge={item.to === "/notifications" ? unreadCount : undefined}/>)}
+              </>
+            )}
 
-          {!collapsed && (() => {
-            const FINANCE_ONLY = ["/finance/invoices", "/finance/credit-notes", "/finance/quotes", "/finance/expenses", "/finance/reports", "/approvals"];
-            // Don't repeat whichever of Reports/Finance is already shown in
-            // the primary nav above.
-            const primaryTo = hasFinance ? "/finance/invoices" : "/reports";
-            const filteredMore = MORE_NAV.map(group => ({
-              ...group,
-              items: group.items.filter(item => item.to !== primaryTo && (hasFinance || !FINANCE_ONLY.includes(item.to))),
-            })).filter(group => group.items.length > 0);
-
-            // Collapsible groups — collapsed by default so the sidebar reads as a
-            // short, calm list. Each group auto-opens when you're inside it and
-            // remembers your choice.
-            return filteredMore.map(group => (
-              <NavGroup key={group.label} label={group.label} items={group.items} unreadCount={unreadCount}/>
-            ));
-          })()}
+          {/* Finance — the one large set, collapsible, only when the module is on */}
+          {!collapsed && hasFinance && (
+            <NavGroup label="Finance" items={FINANCE_NAV} unreadCount={unreadCount}/>
+          )}
 
           {!collapsed && (
             <>
@@ -558,6 +527,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </Link>
           ) : (
             <div className="overflow-hidden">
+              {/* Getting started — lives here, just above the trial, instead of
+                  competing with the nav up top */}
+              <GettingStarted />
+
               {/* Trial row */}
               <div className="flex items-center justify-between border-b border-stone-200 px-1 py-2 dark:border-stone-800">
                 <div>
@@ -588,6 +561,18 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   <div className="truncate text-[10px]" style={{ color: "var(--text-faint)" }}>{user?.primaryEmailAddress?.emailAddress}</div>
                 </div>
                 <Settings size={12} style={{ color: "var(--text-faint)" }}/>
+              </Link>
+
+              {/* Invite members — directly under the name/email */}
+              <Link to="/settings/members" className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                <Users size={13} style={{ color: "var(--text-faint)" }}/>
+                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>Invite members</span>
+              </Link>
+
+              {/* Status — quiet footer link */}
+              <Link to="/status" className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                <Activity size={13} style={{ color: "var(--text-faint)" }}/>
+                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>Status</span>
               </Link>
             </div>
           )}

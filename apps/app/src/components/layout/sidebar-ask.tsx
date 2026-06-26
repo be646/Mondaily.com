@@ -9,6 +9,8 @@ export function SidebarAsk() {
   // Quiet by default — chat history opens on demand instead of always
   // listing up to 10 prior threads permanently in the sidebar.
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const CAP = 6;
 
   const refresh = () => setThreads(getThreads());
 
@@ -44,7 +46,7 @@ export function SidebarAsk() {
         Recent chats <span className="font-medium normal-case tracking-normal">({threads.length})</span>
         <ChevronDown size={10} className={`ml-auto transition-transform ${historyOpen ? "rotate-180" : ""}`}/>
       </button>
-      {historyOpen && threads.slice(0, 10).map(t => (
+      {historyOpen && (showAll ? threads : threads.slice(0, CAP)).map(t => (
         <div key={t.id} className="group relative flex items-center">
           <Link
             to={`/ask/${t.id}`}
@@ -62,6 +64,12 @@ export function SidebarAsk() {
           </button>
         </div>
       ))}
+      {historyOpen && threads.length > CAP && (
+        <button onClick={() => setShowAll(v => !v)}
+          className="px-2.5 py-1 text-[11px] font-medium transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
+          {showAll ? "Show less" : `Show ${threads.length - CAP} more`}
+        </button>
+      )}
     </section>
   );
 }

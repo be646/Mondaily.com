@@ -34,6 +34,9 @@ export function SidebarLists() {
   const [tab, setTab] = useState<"manual" | "ai">("manual");
   const [myOpen, setMyOpen] = useState(true);
   const [teamOpen, setTeamOpen] = useState(true);
+  const [showAllMine, setShowAllMine] = useState(false);
+  const [showAllTeam, setShowAllTeam] = useState(false);
+  const CAP = 6;
 
   // Manual form
   const [name, setName] = useState("");
@@ -185,7 +188,13 @@ export function SidebarLists() {
             {myOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <UserCheck size={9} /> Mine
           </button>
-          {myOpen && myLists.map(renderList)}
+          {myOpen && (showAllMine ? myLists : myLists.slice(0, CAP)).map(renderList)}
+          {myOpen && myLists.length > CAP && (
+            <button onClick={() => setShowAllMine(v => !v)}
+              className="px-2.5 py-1 text-[11px] font-medium transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
+              {showAllMine ? "Show less" : `Show ${myLists.length - CAP} more`}
+            </button>
+          )}
         </div>
       )}
 
@@ -197,7 +206,13 @@ export function SidebarLists() {
             {teamOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <Users size={9} /> Shared
           </button>
-          {teamOpen && teamLists.map(renderList)}
+          {teamOpen && (showAllTeam ? teamLists : teamLists.slice(0, CAP)).map(renderList)}
+          {teamOpen && teamLists.length > CAP && (
+            <button onClick={() => setShowAllTeam(v => !v)}
+              className="px-2.5 py-1 text-[11px] font-medium transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
+              {showAllTeam ? "Show less" : `Show ${teamLists.length - CAP} more`}
+            </button>
+          )}
         </div>
       )}
 
