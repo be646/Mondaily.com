@@ -130,7 +130,7 @@ export function NotificationsPage() {
           </p>
           <p className="mt-1 text-xs text-stone-400 dark:text-stone-700">Reviews, approvals, and mentions will appear here</p>
           {filter !== "unread" && (
-            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400">
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-stone-600 dark:text-stone-400">
               <Sparkles size={11} className="shrink-0"/>
               Mondaily will start surfacing signals once more workspace activity is available.
             </p>
@@ -145,14 +145,14 @@ export function NotificationsPage() {
               key={n.id}
               className={`group flex w-full items-start gap-3 px-1 py-4 transition-colors ${
                 !n.is_read
-                  ? isRisk ? "bg-amber-500/[.04]" : "bg-indigo-500/[.04]"
+                  ? isRisk ? "bg-amber-500/[.04]" : "bg-stone-500/[.04]"
                   : "hover:bg-stone-50 dark:hover:bg-stone-900/40"
               }`}
             >
               {/* Unread indicator */}
               {isRisk && !n.is_read
                 ? <ShieldAlert size={14} className="mt-1 shrink-0 text-amber-400"/>
-                : <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-indigo-400" : "bg-transparent"}`}/>
+                : <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!n.is_read ? "bg-stone-400" : "bg-transparent"}`}/>
               }
 
               {/* Content */}
@@ -183,7 +183,7 @@ export function NotificationsPage() {
                 <button
                   onClick={() => deleteOne.mutate(n.id)}
                   title="Delete"
-                  className="rounded-md p-1.5 text-stone-400 transition-colors hover:bg-indigo-500/10 hover:text-indigo-500 dark:text-stone-600 dark:hover:text-indigo-400"
+                  className="rounded-md p-1.5 text-stone-400 transition-colors hover:bg-stone-500/10 hover:text-stone-500 dark:text-stone-600 dark:hover:text-stone-400"
                 >
                   <Trash2 size={12}/>
                 </button>

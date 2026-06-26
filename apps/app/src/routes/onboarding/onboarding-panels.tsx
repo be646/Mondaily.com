@@ -23,7 +23,7 @@ function PanelShell({ tag, title, children }: { tag: string; title: string; chil
   return (
     <div className="flex h-full flex-col border-l border-black/[.06] bg-stone-50 px-10 py-10 overflow-y-auto">
       <div className="mb-8">
-        <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-indigo-500">{tag}</p>
+        <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-stone-500">{tag}</p>
         <h2 className="font-sans text-xl font-semibold tracking-tight text-stone-900">{title}</h2>
       </div>
       <div className="flex flex-col gap-5">{children}</div>
@@ -82,7 +82,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
             { label: "Workspace ready", done: isDone },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
-              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200 bg-white"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200 bg-white"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
               <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
@@ -102,7 +102,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
           </div>
           <div className="flex h-24 items-center justify-center">
             {isDone ? (
-              <div className="flex items-center gap-2 text-indigo-500">
+              <div className="flex items-center gap-2 text-stone-500">
                 <Zap size={14} />
                 <span className="font-mono text-[12px]">Workspace launching…</span>
               </div>
@@ -124,7 +124,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
             {["Workspace graph · contacts, companies, deals", "Finance · invoices & expenses", "AI enrichment · auto-updated records", "Automations · no-code workflows"].map((f, i) => (
               <FadeIn key={f} show={hasEmail} delay={300 + i * 80}>
                 <div className="flex items-center gap-2">
-                  <Check size={10} className="shrink-0 text-indigo-500" />
+                  <Check size={10} className="shrink-0 text-stone-500" />
                   <span className="font-mono text-[12px] text-stone-600">{f}</span>
                 </div>
               </FadeIn>
@@ -182,7 +182,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
           ].map(({ label, value, show }) => (
             <div key={label} className="rounded-lg border border-black/[.05] p-2.5 text-center">
               <p className="font-mono text-[10px] text-stone-400 mb-0.5">{label}</p>
-              <p className={`font-mono text-[12px] font-semibold transition-colors duration-300 ${show ? "text-indigo-600" : "text-stone-200"}`}>{value}</p>
+              <p className={`font-mono text-[12px] font-semibold transition-colors duration-300 ${show ? "text-stone-600" : "text-stone-200"}`}>{value}</p>
             </div>
           ))}
         </div>
@@ -191,10 +191,10 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
       {/* Role badge */}
       <FadeIn show={hasName} delay={100}>
         <div className="rounded-2xl border border-black/[.07] bg-white p-4">
-          <div className="flex items-center gap-2.5 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-4 py-3">
-            <Zap size={13} className="text-indigo-500 shrink-0" />
+          <div className="flex items-center gap-2.5 rounded-xl border border-stone-500/20 bg-stone-500/[.04] px-4 py-3">
+            <Zap size={13} className="text-stone-500 shrink-0" />
             <div>
-              <p className="font-mono text-[12px] font-semibold text-indigo-700">Workspace Admin</p>
+              <p className="font-mono text-[12px] font-semibold text-stone-700">Workspace Admin</p>
               <p className="font-mono text-[10px] text-stone-400">Full access · can invite teammates</p>
             </div>
           </div>
@@ -211,7 +211,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
               { label: "Profile complete", done: hasName && hasTitle },
             ].map(({ label, done }) => (
               <div key={label} className="flex items-center gap-2.5">
-                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200"}`}>
+                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200"}`}>
                   {done && <Check size={9} className="text-white" strokeWidth={3} />}
                 </div>
                 <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
@@ -291,7 +291,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             <div className="mb-3 flex items-center justify-between">
               <span className="font-mono text-[10px] uppercase tracking-widest text-stone-400">Pipeline</span>
               <FadeIn show={hasName}>
-                <span className="font-mono text-[10px] text-indigo-500">
+                <span className="font-mono text-[10px] text-stone-500">
                   <Counter target={recordCount} /> records
                 </span>
               </FadeIn>
@@ -300,7 +300,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
               {PIPELINE_DEALS.map((deal, i) => (
                 <FadeIn key={deal} show={hasName} delay={200 + i * 120}>
                   <div className="flex items-center gap-2 rounded-lg border border-black/[.05] bg-stone-50 px-3 py-2">
-                    <div className="h-3 w-3 rounded bg-indigo-500/20 shrink-0" />
+                    <div className="h-3 w-3 rounded bg-stone-500/20 shrink-0" />
                     <span className="font-mono text-[10px] text-stone-600 truncate">{deal}</span>
                   </div>
                 </FadeIn>
@@ -320,7 +320,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             { label: "Workspace graph activated", done: hasName },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
-              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
               <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
@@ -405,7 +405,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
             {["Email threads → contact links", "Company mentions → deal signals", "Response patterns → relationship score"].map((f, i) => (
               <FadeIn key={f} show={anyConnected} delay={200 + i * 100}>
                 <div className="flex items-center gap-2">
-                  <Check size={9} className="text-indigo-500 shrink-0" />
+                  <Check size={9} className="text-stone-500 shrink-0" />
                   <span className="font-mono text-[11px] text-stone-500">{f}</span>
                 </div>
               </FadeIn>
@@ -429,16 +429,16 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
       <div className="rounded-2xl border border-black/[.07] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <p className="font-mono text-[10px] uppercase tracking-widest text-stone-400">Team</p>
-          <span className="font-mono text-[10px] text-indigo-500">{valid.length + 1} member{valid.length !== 0 ? "s" : ""}</span>
+          <span className="font-mono text-[10px] text-stone-500">{valid.length + 1} member{valid.length !== 0 ? "s" : ""}</span>
         </div>
 
         <div className="space-y-2.5">
           {/* You */}
-          <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 font-semibold text-white text-xs">Y</div>
+          <div className="flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/[.04] px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-500 font-semibold text-white text-xs">Y</div>
             <div>
               <p className="font-mono text-[12px] font-medium text-stone-800">You</p>
-              <p className="font-mono text-[10px] text-indigo-500">Admin · workspace owner</p>
+              <p className="font-mono text-[10px] text-stone-500">Admin · workspace owner</p>
             </div>
           </div>
 
@@ -521,7 +521,7 @@ export function ImportPanel({ file }: { file: string }) {
       {/* File status */}
       <div className="rounded-2xl border border-black/[.07] bg-white p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${file ? "bg-indigo-500" : "bg-stone-100"}`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${file ? "bg-stone-500" : "bg-stone-100"}`}>
             <FileSpreadsheet size={16} className={file ? "text-white" : "text-stone-300"} />
           </div>
           <div className="min-w-0">
@@ -564,7 +564,7 @@ export function ImportPanel({ file }: { file: string }) {
             { label: "Awaiting your confirmation", done: false },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
-              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
               <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
@@ -626,8 +626,8 @@ export function PlanPanel({ selected }: { selected: string }) {
             <p className="font-sans text-lg font-semibold capitalize text-stone-900">{selected}</p>
             <p className="font-mono text-[12px] text-stone-400">{plan.price}</p>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
-            <Zap size={16} className="text-indigo-500" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-stone-500/10">
+            <Zap size={16} className="text-stone-500" />
           </div>
         </div>
 
@@ -651,7 +651,7 @@ export function PlanPanel({ selected }: { selected: string }) {
                 {feature}
               </span>
               {i === unlockedCount - 1 && (
-                <span className="ml-auto font-mono text-[9px] text-indigo-500 animate-pulse">unlocked</span>
+                <span className="ml-auto font-mono text-[9px] text-stone-500 animate-pulse">unlocked</span>
               )}
             </div>
           ))}
@@ -660,12 +660,12 @@ export function PlanPanel({ selected }: { selected: string }) {
 
       {/* Ready state */}
       <FadeIn show={unlockedCount >= plan.features.length} delay={100}>
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500">
+        <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-stone-500">
             <Check size={16} className="text-white" strokeWidth={2.5} />
           </div>
-          <p className="font-mono text-[13px] font-semibold text-indigo-700">Workspace ready</p>
-          <p className="mt-1 font-mono text-[11px] text-indigo-500">
+          <p className="font-mono text-[13px] font-semibold text-stone-700">Workspace ready</p>
+          <p className="mt-1 font-mono text-[11px] text-stone-500">
             {selected === "free" ? "No billing required" : selected === "enterprise" ? "Our team will reach out" : "Billing configured"}
           </p>
         </div>

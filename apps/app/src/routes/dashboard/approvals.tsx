@@ -63,7 +63,7 @@ function ApprovalTrail({ approvals }: { approvals?: ApprovalEntry[] }) {
             <span className={
               entry.action === "verified" ? "text-blue-400" :
               entry.action === "executed" ? "text-emerald-400" :
-              entry.action === "rejected" ? "text-indigo-400" :
+              entry.action === "rejected" ? "text-stone-400" :
               "text-stone-500"
             }>{entry.action}</span>
             {" · "}{relativeTime(entry.at)}
@@ -116,7 +116,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
             </span>
           )}
           {cn.status === "rejected" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-400/10 border border-indigo-400/20 px-2.5 py-0.5 text-[10px] font-medium text-indigo-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-stone-400/10 border border-stone-400/20 px-2.5 py-0.5 text-[10px] font-medium text-stone-400">
               <XCircle size={9}/> Rejected
             </span>
           )}
@@ -137,7 +137,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
       <ApprovalTrail approvals={cn.approvals} />
 
       {error && (
-        <div className="flex items-center gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/[.05] px-3 py-2 text-[11px] text-indigo-400 mb-3">
+        <div className="flex items-center gap-1.5 rounded-lg border border-stone-500/20 bg-stone-500/[.05] px-3 py-2 text-[11px] text-stone-400 mb-3">
           <AlertTriangle size={10} className="shrink-0"/>{error}
         </div>
       )}
@@ -265,7 +265,7 @@ export function ApprovalsPage() {
       <div className="shrink-0 border-b border-stone-200 px-6 py-4 dark:border-stone-800">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-cyan-500/20 dark:bg-cyan-500/[.05]">
-            <ShieldCheck size={14} className="text-indigo-400"/>
+            <ShieldCheck size={14} className="text-stone-400"/>
           </div>
           <div>
             <h1 className="text-[15px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">Approval Dashboard</h1>
@@ -300,7 +300,7 @@ export function ApprovalsPage() {
               <button key={key} onClick={() => setTab(key)}
                 className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-stone-950 dark:text-stone-50" : "text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-stone-200"}`}>
                 {label} ({count})
-                {tab === key && <span className="absolute bottom-0 left-0 right-0 h-px bg-indigo-500"/>}
+                {tab === key && <span className="absolute bottom-0 left-0 right-0 h-px bg-stone-500"/>}
               </button>
             );
           })}
@@ -319,7 +319,7 @@ export function ApprovalsPage() {
           <div className="flex h-56 flex-col items-center justify-center gap-3">
             <Clock size={32} className="text-stone-300 dark:text-stone-700"/>
             <div className="text-[13px] text-stone-500 dark:text-stone-500">Nothing in this queue</div>
-            <Link to="/finance/credit-notes" className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">View all credit notes →</Link>
+            <Link to="/finance/credit-notes" className="text-[12px] text-stone-400 hover:text-stone-300 transition-colors">View all credit notes →</Link>
           </div>
         )}
         <div className="space-y-3 max-w-2xl">

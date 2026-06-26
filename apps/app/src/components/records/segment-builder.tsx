@@ -177,7 +177,7 @@ export function SegmentBuilder({
                       <select
                         value={rule.field}
                         onChange={e => updateRule(rule.id, { field: e.target.value })}
-                        className="flex-1 h-8 rounded-lg border border-white/[.07] bg-[#0d0f13] px-2 text-xs text-white/70 outline-none focus:border-violet-500/40"
+                        className="flex-1 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-violet-500/40"
                       >
                         {columns.map(c => (
                           <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
@@ -187,7 +187,7 @@ export function SegmentBuilder({
                       <select
                         value={rule.operator}
                         onChange={e => updateRule(rule.id, { operator: e.target.value as Operator })}
-                        className="h-8 rounded-lg border border-white/[.07] bg-[#0d0f13] px-2 text-xs text-white/70 outline-none focus:border-violet-500/40"
+                        className="h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-violet-500/40"
                       >
                         {OPERATORS.map(o => (
                           <option key={o.value} value={o.value}>{o.label}</option>
@@ -199,13 +199,13 @@ export function SegmentBuilder({
                           value={rule.value}
                           onChange={e => updateRule(rule.id, { value: e.target.value })}
                           placeholder="value"
-                          className="w-28 h-8 rounded-lg border border-white/[.07] bg-[#0d0f13] px-2 text-xs text-white/70 placeholder-white/20 outline-none focus:border-violet-500/40"
+                          className="w-28 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 placeholder-white/20 outline-none focus:border-violet-500/40"
                         />
                       )}
                       <button
                         onClick={() => removeRule(rule.id)}
                         disabled={rules.length === 1}
-                        className="text-white/20 hover:text-indigo-400 transition-colors disabled:pointer-events-none"
+                        className="text-white/20 hover:text-stone-400 transition-colors disabled:pointer-events-none"
                       >
                         <X size={13} />
                       </button>
@@ -236,7 +236,7 @@ export function SegmentBuilder({
                   value={listName}
                   onChange={e => setListName(e.target.value)}
                   placeholder={`${cleanName} segment — ${new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}`}
-                  className="w-full h-9 rounded-xl border border-white/[.07] bg-[#0d0f13] px-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-violet-500/40 transition-colors"
+                  className="w-full h-9 rounded-xl border border-white/[.07] bg-[#141414] px-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-violet-500/40 transition-colors"
                 />
               </div>
             </>

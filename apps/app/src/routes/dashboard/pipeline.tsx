@@ -22,7 +22,7 @@ const STAGE_DOT: Record<string, string> = {
   "Proposal":    "bg-amber-400",
   "Negotiation": "bg-orange-400",
   "Closed Won":  "bg-emerald-400",
-  "Closed Lost": "bg-indigo-400",
+  "Closed Lost": "bg-stone-400",
 };
 const STAGE_TEXT: Record<string, string> = {
   "Lead":        "text-stone-300",
@@ -31,7 +31,7 @@ const STAGE_TEXT: Record<string, string> = {
   "Proposal":    "text-amber-300",
   "Negotiation": "text-orange-300",
   "Closed Won":  "text-emerald-300",
-  "Closed Lost": "text-indigo-300",
+  "Closed Lost": "text-stone-300",
 };
 
 function dotColor(stage: string) { return STAGE_DOT[stage] ?? "bg-stone-500"; }
@@ -254,7 +254,7 @@ function DealCard({ deal, members, stages, onMove, onPatch }: {
       {/* Owner row */}
       <div className="flex items-center gap-1.5 mb-2.5">
         {ownerMember ? (
-          <div className="h-4 w-4 rounded-full bg-indigo-500/20 flex items-center justify-center text-[8px] font-bold text-indigo-300 shrink-0">
+          <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-stone-300 shrink-0">
             {memberInitials(ownerMember.name)}
           </div>
         ) : (
@@ -344,11 +344,11 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
                 value={values[k] ?? ""}
                 onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
                 placeholder="—"
-                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
+                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-white/[.05] transition-colors"
               />
             </div>
           ))}
-          {error && <p className="pt-2 text-xs text-indigo-400">{error}</p>}
+          {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-white/[.06] px-5 py-3.5">
@@ -361,10 +361,10 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-stone-400 disabled:opacity-50"
           >
             {saving ? "Creating…" : "Create deal"}
-            <kbd className="rounded border border-indigo-400/40 bg-indigo-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
+            <kbd className="rounded border border-stone-400/40 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
           </button>
         </div>
       </div>
@@ -461,7 +461,7 @@ export function PipelinePage() {
         </div>
         <button
           onClick={() => setCreateForStage(stages[0] ?? "Lead")}
-          className="flex items-center gap-1.5 rounded-md border border-indigo-400/40 bg-indigo-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-indigo-400"
+          className="flex items-center gap-1.5 rounded-md border border-stone-400/40 bg-stone-500 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-stone-400"
         >
           <Plus size={11}/> New deal
         </button>

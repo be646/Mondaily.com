@@ -54,12 +54,12 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         : "Hi! I'm Mondaily AI. Ask me anything about your business." }];
 
   return (
-    <div className="flex h-full w-[300px] shrink-0 flex-col border-l border-white/[.06] bg-[#0d0f13]">
+    <div className="flex h-full w-[300px] shrink-0 flex-col border-l border-white/[.06] bg-[#141414]">
       {/* Panel header */}
       <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-500/15">
-            <Sparkles size={10} className="text-indigo-400"/>
+          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-stone-500/15">
+            <Sparkles size={10} className="text-stone-400"/>
           </div>
           <span className="text-[13px] font-semibold text-white">Ask Mondaily</span>
         </div>
@@ -117,7 +117,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           return (
             <div key={i} className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               {m.role === "assistant" && (
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center text-stone-400 mt-0.5">
                   <LogoMark size={16}/>
                 </div>
               )}
@@ -155,7 +155,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                     </button>
                     <button
                       onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
-                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-stone-700 hover:text-indigo-400"}`}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-stone-400" : "text-stone-700 hover:text-stone-400"}`}
                     >
                       <ThumbsDown size={10}/>
                     </button>
@@ -185,7 +185,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         })}
         {loading && (
           <div className="flex gap-2 justify-start">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center text-indigo-400 mt-0.5">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center text-stone-400 mt-0.5">
               <LogoMark size={16} thinking/>
             </div>
             <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
@@ -219,7 +219,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="text-stone-600 hover:text-indigo-400 disabled:opacity-30 transition-colors"
+            className="text-stone-600 hover:text-stone-400 disabled:opacity-30 transition-colors"
           >
             {loading ? <Loader2 size={12} className="animate-spin"/> : <Send size={12}/>}
           </button>
@@ -241,7 +241,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Share2 size={14} className="text-stone-400"/>
@@ -308,7 +308,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   return (
     <>
       {/* Top bar */}
-      <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-white/[.06] dark:bg-[#0d0f13] px-4 py-1.5 shrink-0">
+      <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-white/[.06] dark:bg-[#141414] px-4 py-1.5 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
           {leftSlot ?? <span className="text-xs text-[#9ca3af] dark:text-stone-700">AI status: idle</span>}
@@ -349,11 +349,11 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             onClick={() => setAskOpen(o => !o)}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
               askOpen
-                ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-500/10 dark:text-white"
-                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-indigo-200 hover:bg-indigo-50 dark:border-white/[.07] dark:bg-transparent dark:text-stone-400 dark:hover:border-indigo-400/30 dark:hover:bg-indigo-500/10 dark:hover:text-white"
+                ? "border-stone-200 bg-stone-50 text-stone-700 dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-white"
+                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-stone-200 hover:bg-stone-50 dark:border-white/[.07] dark:bg-transparent dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-white"
             }`}
           >
-            <Sparkles size={12} className={askOpen ? "text-indigo-600 dark:text-indigo-400" : "text-indigo-500 dark:text-indigo-400"}/>
+            <Sparkles size={12} className={askOpen ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}/>
             Ask AI
           </button>
 
@@ -361,7 +361,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <div className="relative ml-0.5">
             <button
               onClick={() => setUserMenuOpen(o => !o)}
-              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:ring-2 hover:ring-indigo-300 dark:hover:ring-indigo-500/25 transition-all"
+              className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-stone-100 dark:bg-stone-500/20 text-[11px] font-semibold text-stone-600 dark:text-stone-400 hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-500/25 transition-all"
             >
               {avatarUrl
                 ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
@@ -374,7 +374,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                 <div className="dropdown-panel absolute right-0 top-full mt-2 w-56 z-50">
                   {/* User info header */}
                   <div className="flex items-center gap-2.5 border-b border-white/[.06] px-3 py-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20 text-[11px] font-semibold text-indigo-400">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-500/20 text-[11px] font-semibold text-stone-400">
                       {avatarUrl
                         ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
                         : initials}
@@ -393,7 +393,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                   <div className="mx-2 my-1 border-t border-white/[.05]"/>
                   <button
                     onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }}
-                    className="dropdown-item text-indigo-400 hover:text-indigo-300"
+                    className="dropdown-item text-stone-400 hover:text-stone-300"
                   >
                     <LogOut size={12}/> Sign out
                   </button>

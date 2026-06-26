@@ -104,7 +104,7 @@ export function CreditNoteDetailPage() {
   }
 
   if (isLoading) return <div className="flex h-full items-center justify-center text-[12px] text-stone-600">Loading…</div>;
-  if (isError || !cn) return <div className="flex h-full items-center justify-center text-[12px] text-indigo-400">Credit note not found.</div>;
+  if (isError || !cn) return <div className="flex h-full items-center justify-center text-[12px] text-stone-400">Credit note not found.</div>;
 
   const cfg = STATUS_CONFIG[cn.status];
   const Icon = cfg.icon;
@@ -207,7 +207,7 @@ export function CreditNoteDetailPage() {
                 </button>
               ))}
               {transitionError && (
-                <div className="flex items-start gap-1.5 rounded-lg border border-indigo-500/20 bg-indigo-500/[.06] px-3 py-2 text-[11px] text-indigo-400">
+                <div className="flex items-start gap-1.5 rounded-lg border border-stone-500/20 bg-stone-500/[.06] px-3 py-2 text-[11px] text-stone-400">
                   <AlertTriangle size={11} className="shrink-0 mt-0.5"/>
                   {transitionError}
                 </div>

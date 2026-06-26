@@ -51,7 +51,7 @@ export function PageSkeletonCards({ count = 4, label }: { count?: number; label?
 export function ErrorState({ error, onRetry }: { error?: Error | null; onRetry?: () => void }) {
   return (
     <div className="flex min-h-64 flex-col items-center justify-center rounded-lg px-6 text-center" style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}>
-      <AlertTriangle className="mb-3 text-indigo-400" size={26} />
+      <AlertTriangle className="mb-3 text-stone-400" size={26} />
       <h2 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Something went wrong</h2>
       <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--text-muted)" }}>
         {error?.message ?? "An unexpected error occurred. Please try again."}
@@ -85,7 +85,7 @@ export function EmptyState({
       <h2 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{title}</h2>
       <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--text-muted)" }}>{description}</p>
       {aiHint && (
-        <p className="mt-2.5 flex items-center gap-1.5 max-w-sm text-xs text-indigo-600 dark:text-indigo-400">
+        <p className="mt-2.5 flex items-center gap-1.5 max-w-sm text-xs text-stone-600 dark:text-stone-400">
           <Sparkles size={11} className="shrink-0"/>
           {aiHint}
         </p>

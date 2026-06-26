@@ -24,7 +24,7 @@ interface LinkedNode { id: string; object_type: string; data: Record<string, unk
 
 const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 border-blue-200 dark:border-blue-400/30",
-  "Blocked":     "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-400/10 border-indigo-200 dark:border-indigo-400/30",
+  "Blocked":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Bug":         "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-400/10 border-rose-200 dark:border-rose-400/30",
   "Feature":     "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-400/10 border-purple-200 dark:border-purple-400/30",
@@ -44,7 +44,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-indigo-500/20 text-indigo-600 dark:text-indigo-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-purple-500/20 text-purple-600 dark:text-purple-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-cyan-500/20 text-cyan-600 dark:text-cyan-400"];
+  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-purple-500/20 text-purple-600 dark:text-purple-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-cyan-500/20 text-cyan-600 dark:text-cyan-400"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -74,7 +74,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
   const renderContent = (text: string) =>
     text.split(/(@\w[\w\s]*)/g).map((part, i) =>
-      part.startsWith("@") ? <span key={i} className="font-medium text-indigo-600 dark:text-indigo-400">{part}</span> : <span key={i}>{part}</span>
+      part.startsWith("@") ? <span key={i} className="font-medium text-stone-600 dark:text-stone-400">{part}</span> : <span key={i}>{part}</span>
     );
 
   return (
@@ -113,7 +113,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
               const iMine = users.some(u => u.user_id === userId);
               return (
                 <button key={emoji} onClick={() => toggleReaction.mutate(emoji)} title={users.map(u => u.user_name).join(", ")}
-                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400" : ""}`}
+                  className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border transition-colors ${iMine ? "bg-stone-500/10 border-stone-500/30 text-stone-600 dark:text-stone-400" : ""}`}
                   style={!iMine ? { background: "var(--surface-hover)", borderColor: "var(--border-soft)", color: "var(--text-muted)" } : undefined}>
                   <span>{emoji}</span><span>{users.length}</span>
                 </button>
@@ -150,7 +150,7 @@ const STATUS_META: Record<string, { label: string; dot: string }> = {
   done:        { label: "Done",         dot: "bg-emerald-400" },
 };
 const PRIORITY_META: Record<string, { label: string; dot: string }> = {
-  urgent: { label: "Urgent", dot: "bg-indigo-500" },
+  urgent: { label: "Urgent", dot: "bg-stone-500" },
   high:   { label: "High",   dot: "bg-orange-400" },
   medium: { label: "Medium", dot: "bg-yellow-400" },
   low:    { label: "Low",    dot: "bg-stone-400" },
@@ -353,7 +353,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <a href={`/objects/${linkedNode.object_type}/${linkedNode.id}`}
                     className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors surface-hover"
                     style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                    <Link2 size={10} className="text-indigo-500 dark:text-indigo-400"/>
+                    <Link2 size={10} className="text-stone-500 dark:text-stone-400"/>
                     {String(linkedNode.data?.name ?? linkedNode.data?.title ?? "Linked object")}
                     <span className="text-[9px] uppercase" style={{ color: "var(--text-faint)" }}>{linkedNode.object_type}</span>
                     <ExternalLink size={9} style={{ color: "var(--text-faint)" }}/>
@@ -416,7 +416,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <button key={val} onClick={() => { setLocalStatus(val); updateTask.mutate({ status: val }); setStatusOpen(false); }}
                           className={`dropdown-item ${localStatus === val ? "dropdown-item-active" : ""}`}>
                           <span className={`h-2 w-2 rounded-full shrink-0 ${meta.dot}`}/>{meta.label}
-                          {localStatus === val && <Check size={11} className="ml-auto text-indigo-600 dark:text-indigo-400"/>}
+                          {localStatus === val && <Check size={11} className="ml-auto text-stone-600 dark:text-stone-400"/>}
                         </button>
                       ))}
                     </div>
@@ -438,7 +438,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <button key={val} onClick={() => { setLocalPriority(val); updateTask.mutate({ priority: val }); setPriorityOpen(false); }}
                           className={`dropdown-item ${localPriority === val ? "dropdown-item-active" : ""}`}>
                           <span className={`h-2 w-2 rounded-full shrink-0 ${meta.dot}`}/>{meta.label}
-                          {localPriority === val && <Check size={11} className="ml-auto text-indigo-600 dark:text-indigo-400"/>}
+                          {localPriority === val && <Check size={11} className="ml-auto text-stone-600 dark:text-stone-400"/>}
                         </button>
                       ))}
                     </div>
@@ -603,7 +603,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>{item.added_by_name} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
                     <button onClick={() => deleteCheckItem.mutate(item.id)}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 transition-all hover:text-indigo-600 dark:hover:text-indigo-400"
+                      className="opacity-0 group-hover:opacity-100 shrink-0 transition-all hover:text-stone-600 dark:hover:text-stone-400"
                       style={{ color: "var(--text-faint)" }}>
                       <Trash2 size={12}/>
                     </button>
@@ -640,7 +640,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         </div>
                         {isOwner && (
                           <button onClick={() => removeAssignee.mutate(a.user_id)}
-                            className="transition-colors hover:text-indigo-600 dark:hover:text-indigo-400" style={{ color: "var(--text-faint)" }}><X size={13}/></button>
+                            className="transition-colors hover:text-stone-600 dark:hover:text-stone-400" style={{ color: "var(--text-faint)" }}><X size={13}/></button>
                         )}
                       </div>
                     ))}
@@ -712,7 +712,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       <p className="text-[11px] mt-0.5" style={{ color: "var(--text-faint)" }}>{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)} KB` : "link"}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
-                      className="opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-indigo-600 dark:hover:text-indigo-400"
+                      className="opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-stone-600 dark:hover:text-stone-400"
                       style={{ color: "var(--text-faint)" }}>
                       <Trash2 size={12}/>
                     </button>

@@ -159,7 +159,7 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
   if (delta == null) return null;
   const up = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-stone-500/10 text-stone-400 border-stone-500/20"}`}>
       {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
       {up ? "+" : ""}{delta}%
     </span>
@@ -202,7 +202,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
         {sub && (
           <div className="flex items-center gap-1 text-[11px] text-white/50 print:text-gray-500">
             {trend === "up"      && <TrendingUp  size={11} className="text-emerald-400"/>}
-            {trend === "down"    && <TrendingDown size={11} className="text-indigo-400"/>}
+            {trend === "down"    && <TrendingDown size={11} className="text-stone-400"/>}
             {trend === "neutral" && <Minus size={11}/>}
             {sub}
           </div>
@@ -237,7 +237,7 @@ function ObjectPicker({ objects, value, onChange }: {
               <button
                 key={o.slug}
                 onClick={() => { onChange(o.slug); setOpen(false); }}
-                className={`dropdown-item w-full text-sm ${o.slug === value ? "text-indigo-400 font-medium" : ""}`}
+                className={`dropdown-item w-full text-sm ${o.slug === value ? "text-stone-400 font-medium" : ""}`}
               >
                 {o.name_plural}
               </button>
@@ -255,7 +255,7 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
       <div className="flex-1 bg-black/40" />
-      <div className="w-full max-w-md overflow-y-auto bg-[#0d0f13] border-l border-white/[.09] p-6" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md overflow-y-auto bg-[#141414] border-l border-white/[.09] p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-semibold text-white truncate">{name}</h2>
           <button onClick={onClose} className="text-stone-500 hover:text-white transition-colors">
@@ -296,7 +296,7 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"/>
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal header */}
@@ -331,7 +331,7 @@ interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"
 const CONFIDENCE_STYLE: Record<string, string> = {
   high:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
   medium: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  low:    "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
+  low:    "border-stone-500/30 bg-stone-500/10 text-stone-400",
 };
 
 function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData }: {
@@ -397,7 +397,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
   return (
     <>
       {/* Compact trigger card — never stretches */}
-      <div className="rounded-2xl border border-violet-500/20 bg-[#0d0f13] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
+      <div className="rounded-2xl border border-violet-500/20 bg-[#141414] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
           <Sparkles size={16} className="text-violet-400"/>
         </div>
@@ -412,7 +412,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
         ) : error ? (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-indigo-400 max-w-[160px] truncate">{error}</span>
+            <span className="text-[11px] text-stone-400 max-w-[160px] truncate">{error}</span>
             <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-stone-500 hover:text-white">Retry</button>
           </div>
         ) : result ? (
@@ -504,7 +504,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   const CATEGORY_META = {
     performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/[.06]", text: "text-emerald-400" },
     opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/25",    bg: "bg-blue-500/[.06]",    text: "text-blue-400"    },
-    risk:        { label: "Risk",        dot: "bg-indigo-400",     border: "border-indigo-500/25",     bg: "bg-indigo-500/[.06]",     text: "text-indigo-400"     },
+    risk:        { label: "Risk",        dot: "bg-stone-400",     border: "border-stone-500/25",     bg: "bg-stone-500/[.06]",     text: "text-stone-400"     },
     summary:     { label: "Summary",     dot: "bg-violet-400",  border: "border-violet-500/25",  bg: "bg-violet-500/[.06]",  text: "text-violet-400"  },
   } as const;
   type Cat = keyof typeof CATEGORY_META;
@@ -562,7 +562,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
   return (
     <>
       {/* Compact trigger card */}
-      <div className="rounded-2xl border border-white/[.08] bg-[#0d0f13] p-5 flex items-center gap-4 print:hidden">
+      <div className="rounded-2xl border border-white/[.08] bg-[#141414] p-5 flex items-center gap-4 print:hidden">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
           <Sparkles size={16} className="text-violet-400"/>
         </div>
@@ -576,7 +576,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
         ) : error ? (
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-indigo-400 max-w-[160px] truncate">{error}</span>
+            <span className="text-[11px] text-stone-400 max-w-[160px] truncate">{error}</span>
             <button onClick={() => { setError(null); run(); }} className="text-[11px] text-stone-500 hover:text-white">Retry</button>
           </div>
         ) : insights ? (
@@ -606,7 +606,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                       <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
                     </div>
                     {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
-                    {ins.trend === "down" && <TrendingDown size={12} className="text-indigo-400 shrink-0"/>}
+                    {ins.trend === "down" && <TrendingDown size={12} className="text-stone-400 shrink-0"/>}
                   </div>
                   <div>
                     <p className="text-[11px] text-stone-500 mb-0.5">{ins.title}</p>
@@ -696,11 +696,11 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-3 py-2 text-xs text-stone-400 hover:text-white transition-colors"
       >
-        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
+        <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-stone-500/20 text-stone-400 border border-stone-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
       </button>
 
       {open && (
-        <div className="mt-3 rounded-2xl border border-white/[.09] bg-[#0d0f13] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+        <div className="mt-3 rounded-2xl border border-white/[.09] bg-[#141414] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
           <div className="px-5 py-4 border-b border-white/[.06]">
             <h3 className="text-sm font-semibold text-white mb-1">Scheduled email digests</h3>
             <p className="text-[11px] text-stone-500">Receive a KPI snapshot for <strong className="text-stone-400">{objName}</strong> on a schedule.</p>
@@ -711,7 +711,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="px-5 py-3 space-y-2 border-b border-white/[.06]">
               {digests.map(d => (
                 <div key={d.id} className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5">
-                  <Mail size={12} className="text-indigo-400 shrink-0"/>
+                  <Mail size={12} className="text-stone-400 shrink-0"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white truncate">{FREQ_LABELS[d.frequency]} · {d.period} view</p>
                     <p className="text-[10px] text-stone-500 truncate">{d.recipients.join(", ")}</p>
@@ -726,7 +726,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   >
                     {sending === d.id ? <Loader2 size={11} className="animate-spin"/> : "Send now"}
                   </button>
-                  <button onClick={() => remove.mutate(d.id)} className="text-stone-600 hover:text-indigo-400 transition-colors">
+                  <button onClick={() => remove.mutate(d.id)} className="text-stone-600 hover:text-stone-400 transition-colors">
                     <Trash2 size={12}/>
                   </button>
                 </div>
@@ -741,7 +741,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] text-stone-500 hover:text-white"}`}>
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/40 bg-stone-500/10 text-stone-400" : "border-white/[.08] text-stone-500 hover:text-white"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -752,7 +752,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                 <div>
                   <label className="block text-[10px] font-medium text-stone-600 mb-1">Day</label>
                   <select value={dayOfWeek} onChange={e => setDayOfWeek(Number(e.target.value))}
-                    className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 focus:outline-none">
+                    className="w-full h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 focus:outline-none">
                     {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
                   </select>
                 </div>
@@ -760,14 +760,14 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
               <div>
                 <label className="block text-[10px] font-medium text-stone-600 mb-1">Hour (24h)</label>
                 <select value={hour} onChange={e => setHour(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 focus:outline-none">
+                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 focus:outline-none">
                   {Array.from({length:24},(_,i) => <option key={i} value={i}>{String(i).padStart(2,"0")}:00</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[10px] font-medium text-stone-600 mb-1">Period view</label>
                 <select value={period} onChange={e => setPeriodD(e.target.value as typeof period)}
-                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 focus:outline-none">
+                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 focus:outline-none">
                   {(["today","week","month","quarter","year"] as const).map(p => (
                     <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>
                   ))}
@@ -783,7 +783,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); } }}
                   placeholder="email@example.com"
-                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 placeholder-stone-700 focus:outline-none focus:border-indigo-500/40"
+                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 placeholder-stone-700 focus:outline-none focus:border-stone-500/40"
                 />
                 <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/[.08] text-stone-500 hover:text-white transition-colors">
                   <Plus size={12}/>
@@ -794,7 +794,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   {emails.map(e => (
                     <span key={e} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2 py-0.5 text-[10px] text-stone-400">
                       {e}
-                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-stone-600 hover:text-indigo-400"><X size={9}/></button>
+                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-stone-600 hover:text-stone-400"><X size={9}/></button>
                     </span>
                   ))}
                 </div>
@@ -804,7 +804,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <button
               onClick={() => create.mutate({ object_type: objectType, period, frequency: freq, day_of_week: freq === "weekly" ? dayOfWeek : undefined, hour, recipients: emails })}
               disabled={emails.length === 0 || create.isPending}
-              className="w-full rounded-lg bg-indigo-600 py-2.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
+              className="w-full rounded-lg bg-stone-600 py-2.5 text-xs font-medium text-white hover:bg-stone-500 disabled:opacity-40 transition-colors"
             >
               {create.isPending ? "Creating…" : "Create digest"}
             </button>
@@ -1160,7 +1160,7 @@ export function SalesReportPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#0d0f13] print:bg-white text-white print:text-black">
+    <div className="min-h-full bg-[#141414] print:bg-white text-white print:text-black">
       {/* Print header */}
       <div className="hidden print:flex items-center justify-between px-8 py-6 border-b border-gray-200">
         <div>
@@ -1213,10 +1213,10 @@ export function SalesReportPage() {
             <span className="text-[11px] font-medium text-stone-500 shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-white/[.06] bg-[#141414] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
               <span className="text-xs text-stone-600">→</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-white/[.06] bg-[#141414] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
             </div>
             {customStart && customEnd && (
               <span className="ml-auto text-[11px] text-stone-600">
@@ -1241,7 +1241,7 @@ export function SalesReportPage() {
                   onClick={() => applyPreset(p)}>
                   {p.name}
                   <button onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
-                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-stone-600 hover:text-indigo-400 transition-all">
+                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-stone-600 hover:text-stone-400 transition-all">
                     <X size={9}/>
                   </button>
                 </span>
@@ -1261,7 +1261,7 @@ export function SalesReportPage() {
                   onChange={e => setPresetName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && presetName.trim()) savePreset(presetName.trim()); if (e.key === "Escape") { setSavingPreset(false); setPresetName(""); } }}
                   placeholder="Preset name…"
-                  className="h-6 rounded-md border border-blue-500/30 bg-[#0d0f13] px-2 text-[11px] text-white placeholder-stone-600 outline-none focus:border-blue-500/50 w-36"
+                  className="h-6 rounded-md border border-blue-500/30 bg-[#141414] px-2 text-[11px] text-white placeholder-stone-600 outline-none focus:border-blue-500/50 w-36"
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
@@ -1285,7 +1285,7 @@ export function SalesReportPage() {
                   <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 ml-0.5">
                     {Object.values(activeFilters).filter(Boolean).length}
                   </span>
-                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-stone-600 hover:text-indigo-400 transition-colors">
+                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-stone-600 hover:text-stone-400 transition-colors">
                     Clear
                   </button>
                 </>
@@ -1303,7 +1303,7 @@ export function SalesReportPage() {
                     <select
                       value={activeFilters[col] ?? ""}
                       onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#0d0f13] text-stone-300 focus:border-blue-500/40"}`}
+                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#141414] text-stone-300 focus:border-blue-500/40"}`}
                     >
                       <option value="">All</option>
                       {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
@@ -1322,12 +1322,12 @@ export function SalesReportPage() {
 
         {recordsQ.isLoading ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500/30 border-t-red-500"/>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
           </div>
         ) : records.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
             <p className="text-stone-400 text-sm">No {objLabel} records found.</p>
-            <Link to={`/objects/${activeSlug}`} className="text-sm text-indigo-400 hover:text-indigo-300">
+            <Link to={`/objects/${activeSlug}`} className="text-sm text-stone-400 hover:text-stone-300">
               Go to {objLabel} →
             </Link>
             {objects.length > 1 && (
@@ -1339,7 +1339,7 @@ export function SalesReportPage() {
             {/* Goal dialog */}
             {editingGoal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="w-72 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+                <div className="w-72 rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
                   <h3 className="mb-3 text-sm font-semibold text-white">Set a goal for {vocab.kpi1Label}</h3>
                   <input
                     autoFocus
@@ -1350,7 +1350,7 @@ export function SalesReportPage() {
                     className="key-input w-full mb-3"
                   />
                   <div className="flex gap-2">
-                    <button onClick={saveGoal} className="flex-1 rounded-md bg-indigo-600 py-2 text-xs font-medium text-white hover:bg-indigo-500">Set goal</button>
+                    <button onClick={saveGoal} className="flex-1 rounded-md bg-stone-600 py-2 text-xs font-medium text-white hover:bg-stone-500">Set goal</button>
                     <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-xs text-stone-400 hover:text-white">Cancel</button>
                     {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-stone-600 hover:text-stone-400">Clear</button>}
                   </div>
@@ -1447,7 +1447,7 @@ export function SalesReportPage() {
                         <span style={{ color: a.color }}>◆</span>
                         <span className="text-stone-400">{a.bucket_label}:</span>
                         {a.text}
-                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-stone-600 hover:text-indigo-400 transition-all">
+                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-stone-600 hover:text-stone-400 transition-all">
                           <X size={9}/>
                         </button>
                       </span>
@@ -1505,7 +1505,7 @@ export function SalesReportPage() {
                 { bar: "from-emerald-500 to-teal-400",  badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20" },
                 { bar: "from-amber-500 to-yellow-400",  badge: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
                 { bar: "from-rose-500 to-pink-400",     badge: "bg-rose-500/15 text-rose-300 border-rose-500/20" },
-                { bar: "from-indigo-500 to-blue-400",   badge: "bg-indigo-500/15 text-indigo-300 border-indigo-500/20" },
+                { bar: "from-stone-500 to-blue-400",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-teal-500 to-emerald-400",  badge: "bg-teal-500/15 text-teal-300 border-teal-500/20" },
                 { bar: "from-orange-500 to-amber-400",  badge: "bg-orange-500/15 text-orange-300 border-orange-500/20" },
                 { bar: "from-cyan-500 to-sky-400",      badge: "bg-cyan-500/15 text-cyan-300 border-cyan-500/20" },
@@ -1573,7 +1573,7 @@ export function SalesReportPage() {
                             </div>
                             {/* Stage badge */}
                             {hasStage && (
-                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : color.badge} print:bg-transparent print:text-gray-600 print:border-gray-300`}>
+                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-gray-600 print:border-gray-300`}>
                                 {stage}
                               </span>
                             )}

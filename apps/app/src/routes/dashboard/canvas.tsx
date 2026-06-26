@@ -91,7 +91,7 @@ function MindNode({ data, selected }: NodeProps) {
         boxShadow: selected
           ? `0 0 0 1px ${accent}60, 0 0 20px ${accent}20`
           : `0 0 12px ${accent}15`,
-        background: `radial-gradient(ellipse at top left, ${accent}12, #0d0f13)`,
+        background: `radial-gradient(ellipse at top left, ${accent}12, #141414)`,
       }}
       className="min-w-[110px] max-w-[200px] rounded-full border-2 px-5 py-2.5 text-center cursor-default select-none transition-all"
     >
@@ -117,7 +117,7 @@ function TextNode({ data, selected }: NodeProps) {
   return (
     <div
       onDoubleClick={() => setEditing(true)}
-      className={`min-w-[120px] cursor-default transition-all ${selected ? "ring-1 ring-white/20 ring-offset-2 ring-offset-[#0d0f13] rounded-lg" : ""}`}
+      className={`min-w-[120px] cursor-default transition-all ${selected ? "ring-1 ring-white/20 ring-offset-2 ring-offset-[#141414] rounded-lg" : ""}`}
     >
       {editing ? (
         <textarea autoFocus defaultValue={data.label as string}
@@ -378,7 +378,7 @@ export default function Canvas() {
                 setEdges(es => es.filter(e => !e.selected));
               }}
               disabled={selectedCount === 0}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-white/25 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all duration-100 disabled:pointer-events-none"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-white/25 hover:bg-stone-500/10 hover:text-stone-400 transition-all duration-100 disabled:pointer-events-none"
             >
               <Trash2 size={13} />
               {selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
@@ -397,7 +397,7 @@ export default function Canvas() {
                   border: "1px solid rgba(99,102,241,0.15)",
                 }}
               >
-                <Sparkles size={22} className="text-indigo-400/60" />
+                <Sparkles size={22} className="text-stone-400/60" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-white/30 mb-1">Start with a template or add a node</p>

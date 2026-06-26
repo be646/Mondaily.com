@@ -26,7 +26,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={
-        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors " +
+        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-stone-500/40 transition-colors " +
         (props.className ?? "")
       }
     />
@@ -38,7 +38,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={
-        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 outline-none focus:border-indigo-500/40 transition-colors " +
+        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 outline-none focus:border-stone-500/40 transition-colors " +
         (props.className ?? "")
       }
     />
@@ -110,7 +110,7 @@ export function OnboardingPage() {
             {[1, 2, 3, 4].map(s => (
               <div
                 key={s}
-                className={`h-1 flex-1 rounded-full transition-all duration-300 ${s <= step ? "bg-indigo-600" : "bg-black/[.06]"}`}
+                className={`h-1 flex-1 rounded-full transition-all duration-300 ${s <= step ? "bg-stone-600" : "bg-black/[.06]"}`}
               />
             ))}
           </div>
@@ -118,7 +118,7 @@ export function OnboardingPage() {
             {stepLabels.map((label, i) => (
               <span
                 key={label}
-                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-indigo-600" : i + 1 < step ? "text-stone-400" : "text-stone-300"}`}
+                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-stone-600" : i + 1 < step ? "text-stone-400" : "text-stone-300"}`}
               >
                 {label}
               </span>
@@ -163,12 +163,12 @@ export function OnboardingPage() {
                   onChange={e => setInviteEmail(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleInvite()}
                   placeholder="colleague@company.com"
-                  className="flex-1 rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors"
+                  className="flex-1 rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-stone-500/40 transition-colors"
                 />
                 <select
                   value={inviteRole}
                   onChange={e => setInviteRole(e.target.value)}
-                  className="w-28 rounded-xl border border-black/[.08] bg-white px-3 py-2.5 font-mono text-[13px] text-stone-900 outline-none focus:border-indigo-500/40 transition-colors"
+                  className="w-28 rounded-xl border border-black/[.08] bg-white px-3 py-2.5 font-mono text-[13px] text-stone-900 outline-none focus:border-stone-500/40 transition-colors"
                 >
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
@@ -206,7 +206,7 @@ export function OnboardingPage() {
                     key={mod.id}
                     className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
                       activeModules.includes(mod.id)
-                        ? "border-indigo-500/30 bg-indigo-500/[.04]"
+                        ? "border-stone-500/30 bg-stone-500/[.04]"
                         : "border-black/[.06] hover:bg-stone-50"
                     }`}
                   >
@@ -218,7 +218,7 @@ export function OnboardingPage() {
                         if (e.target.checked) setActiveModules(m => [...m, mod.id]);
                         else setActiveModules(m => m.filter(x => x !== mod.id));
                       }}
-                      className="mt-0.5 accent-indigo-600"
+                      className="mt-0.5 accent-stone-600"
                     />
                     <div>
                       <p className="font-mono text-[12px] font-medium text-stone-800">{mod.name}</p>
@@ -232,8 +232,8 @@ export function OnboardingPage() {
 
           {step === 4 && (
             <div className="py-4 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
-                <CheckCircle2 size={24} className="text-indigo-500" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-stone-500/10">
+                <CheckCircle2 size={24} className="text-stone-500" />
               </div>
               <h1 className="mb-2 font-sans text-xl font-semibold tracking-tight text-stone-900">You're all set!</h1>
               <p className="font-mono text-[12px] text-stone-500">Your workspace is ready. Let's get started.</p>
@@ -264,7 +264,7 @@ export function OnboardingPage() {
             <button
               onClick={handleNext}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-stone-600 px-5 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50"
             >
               {step === 4 ? "Go to dashboard" : "Continue"} <ArrowRight size={13} />
             </button>

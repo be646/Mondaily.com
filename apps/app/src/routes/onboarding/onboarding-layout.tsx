@@ -53,7 +53,7 @@ function Layout() {
               {STEPS.map((_, i) => (
                 <div
                   key={i}
-                  className={`h-1 w-6 rounded-full transition-all duration-300 ${i <= current ? "bg-indigo-600" : "bg-black/[.07]"}`}
+                  className={`h-1 w-6 rounded-full transition-all duration-300 ${i <= current ? "bg-stone-600" : "bg-black/[.07]"}`}
                 />
               ))}
             </div>

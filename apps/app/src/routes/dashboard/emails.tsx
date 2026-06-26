@@ -116,7 +116,7 @@ function ReplyComposer({ threadId }: { threadId: string }) {
         <EditorContent editor={editor} />
         <div className="flex flex-wrap items-center gap-2 border-t p-2" style={{ borderColor: "var(--border-soft)" }}>
           <button type="button" title="Attach file" className="btn-icon"><Paperclip size={14} /></button>
-          <button type="button" onClick={improveDraft} disabled={improving || editor.isEmpty} className="flex h-8 items-center gap-2 rounded px-2 text-xs text-indigo-500 dark:text-indigo-400 hover:bg-indigo-500/10 disabled:opacity-40"><Sparkles size={13} /> {improving ? "Improving..." : "AI improve"}</button>
+          <button type="button" onClick={improveDraft} disabled={improving || editor.isEmpty} className="flex h-8 items-center gap-2 rounded px-2 text-xs text-stone-500 dark:text-stone-400 hover:bg-stone-500/10 disabled:opacity-40"><Sparkles size={13} /> {improving ? "Improving..." : "AI improve"}</button>
           <button type="button" onClick={() => reply.mutate()} disabled={reply.isPending || editor.isEmpty} className="btn-primary ml-auto h-8 px-3 text-xs"><Send size={13} /> {reply.isPending ? "Sending..." : "Send reply"}</button>
         </div>
       </div>

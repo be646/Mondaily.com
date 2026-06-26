@@ -51,7 +51,7 @@ function LivePanel() {
 
       {/* Header */}
       <div>
-        <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-indigo-500">// live.workspace</p>
+        <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-stone-500">// live.workspace</p>
         <h2 className="font-sans text-xl font-semibold tracking-tight text-stone-900">Your workspace is ready.</h2>
         <p className="mt-1 font-mono text-[12px] text-stone-500">Everything synced. Waiting for you.</p>
       </div>
@@ -62,7 +62,7 @@ function LivePanel() {
           <div key={s.label} className="rounded-xl border border-black/[.07] bg-white p-4">
             <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-stone-400">{s.label}</p>
             <p className="font-sans text-2xl font-semibold tracking-tight text-stone-900">{s.value}</p>
-            <p className="mt-0.5 font-mono text-[10px] text-indigo-500">{s.sub}</p>
+            <p className="mt-0.5 font-mono text-[10px] text-stone-500">{s.sub}</p>
           </div>
         ))}
       </div>
@@ -70,14 +70,14 @@ function LivePanel() {
       {/* Log */}
       <div>
         <div className="mb-3 flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
+          <span className="h-1.5 w-1.5 rounded-full bg-stone-500 animate-pulse" />
           <span className="font-mono text-[10px] uppercase tracking-widest text-stone-400">system log</span>
         </div>
         <div className="space-y-2">
           {lines.map((l, i) => (
             <div key={l.id} className="flex items-start gap-2" style={{ opacity: 0.35 + (i / lines.length) * 0.65 }}>
               <span className="shrink-0 font-mono text-[10px] text-stone-400">{l.stamp}</span>
-              <span className="shrink-0 w-10 font-mono text-[10px] font-semibold text-indigo-500">{l.tag}</span>
+              <span className="shrink-0 w-10 font-mono text-[10px] font-semibold text-stone-500">{l.tag}</span>
               <span className="font-mono text-[11px] text-stone-500 leading-relaxed">{l.msg}</span>
             </div>
           ))}
@@ -187,7 +187,7 @@ export function SignInPage() {
     });
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-stone-500/40 transition-colors";
 
   return (
     <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "440px 1fr" }}>
@@ -204,7 +204,7 @@ export function SignInPage() {
             <>
               <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-stone-900">Check your email</h1>
               <p className="mb-2 font-mono text-[13px] text-stone-500">We sent a 6-digit code to</p>
-              <p className="mb-8 font-mono text-[13px] font-medium text-indigo-600">{email}</p>
+              <p className="mb-8 font-mono text-[13px] font-medium text-stone-600">{email}</p>
               <form onSubmit={handleVerify} className="space-y-3">
                 <div>
                   <p className="mb-1.5 font-mono text-[11px] text-stone-500">Verification code</p>
@@ -220,7 +220,7 @@ export function SignInPage() {
                   />
                 </div>
                 {error && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>}
-                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50">
+                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-stone-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50">
                   {loading ? "Verifying…" : "Verify & sign in →"}
                 </button>
               </form>
@@ -262,7 +262,7 @@ export function SignInPage() {
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <p className="font-mono text-[11px] text-stone-500">Password</p>
-                <a href="https://accounts.mondaily.com/sign-in/forgot-password" className="font-mono text-[11px] text-indigo-600 hover:underline">Forgot?</a>
+                <a href="https://accounts.mondaily.com/sign-in/forgot-password" className="font-mono text-[11px] text-stone-600 hover:underline">Forgot?</a>
               </div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required className={inputCls} />
             </div>
@@ -274,7 +274,7 @@ export function SignInPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50"
+              className="w-full rounded-xl bg-stone-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50"
             >
               {loading ? "Signing in…" : "Sign in →"}
             </button>
@@ -282,7 +282,7 @@ export function SignInPage() {
 
           <p className="mt-6 text-center font-mono text-[12px] text-stone-400">
             No account?{" "}
-            <Link to="/sign-up" className="text-indigo-600 hover:underline">Start free</Link>
+            <Link to="/sign-up" className="text-stone-600 hover:underline">Start free</Link>
           </p>
           </>
           )}

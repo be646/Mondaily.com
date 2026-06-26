@@ -68,13 +68,13 @@ export function NotificationsBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}/>
-          <div className="absolute right-0 top-9 z-50 w-80 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden">
+          <div className="absolute right-0 top-9 z-50 w-80 rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-semibold text-white">Notifications</span>
                 {unread > 0 && (
-                  <span className="rounded-full bg-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400">{unread}</span>
+                  <span className="rounded-full bg-stone-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-stone-400">{unread}</span>
                 )}
               </div>
               {unread > 0 && (
@@ -101,7 +101,7 @@ export function NotificationsBell() {
                     onClick={() => handleClick(n)}
                     className={`flex w-full items-start gap-3 px-4 py-3 border-b border-white/[.04] last:border-0 hover:bg-white/[.03] transition-colors text-left ${!n.is_read ? "bg-white/[.02]" : ""}`}
                   >
-                    <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-indigo-400" : "bg-transparent"}`}/>
+                    <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-stone-400" : "bg-transparent"}`}/>
                     <div className="flex-1 min-w-0">
                       <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-white" : "text-stone-400"}`}>{n.title}</p>
                       {n.body && <p className="text-[11px] text-stone-600 mt-0.5 truncate">{n.body}</p>}

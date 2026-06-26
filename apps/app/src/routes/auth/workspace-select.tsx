@@ -62,7 +62,7 @@ export function WorkspaceSelectPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-[#0b0d10] px-6 text-white">
+    <div className="grid min-h-screen place-items-center bg-[#0d0d0d] px-6 text-white">
       <div className="w-full max-w-md">
         <Building2 className="mx-auto mb-4 text-red-500" />
         <h1 className="text-center text-xl font-semibold">Choose a workspace</h1>

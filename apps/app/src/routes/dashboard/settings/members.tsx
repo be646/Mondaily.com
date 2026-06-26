@@ -11,8 +11,8 @@ interface MembersData { members: Member[]; invitations: Member[]; teams: Team[] 
 function Avatar({ member, small = false }: { member: Member; small?: boolean }) {
   const cls = small ? "h-7 w-7 text-[10px]" : "h-9 w-9 text-sm";
   return member.image_url
-    ? <img src={member.image_url} alt="" className={`${cls} shrink-0 rounded-full border border-[#0d0f13] object-cover`} />
-    : <div className={`${cls} grid shrink-0 place-items-center rounded-full border border-[#0d0f13] bg-indigo-500/10 font-medium text-indigo-300`}>
+    ? <img src={member.image_url} alt="" className={`${cls} shrink-0 rounded-full border border-[#141414] object-cover`} />
+    : <div className={`${cls} grid shrink-0 place-items-center rounded-full border border-[#141414] bg-stone-500/10 font-medium text-stone-300`}>
         {(member.name || member.email).slice(0, 1).toUpperCase()}
       </div>;
 }
@@ -21,7 +21,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={close} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-semibold text-white">{title}</h2>
           <button onClick={close} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={15} /></button>
@@ -34,7 +34,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
 
 const ROLE_COLORS: Record<string, string> = {
   owner: "bg-violet-500/10 text-violet-300 border-violet-500/20",
-  admin: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
+  admin: "bg-stone-500/10 text-stone-300 border-stone-500/20",
   member: "bg-white/[.05] text-stone-400 border-white/[.07]",
   viewer: "bg-white/[.03] text-stone-600 border-white/[.05]",
 };
@@ -128,14 +128,14 @@ export function MembersSettings() {
                 {copied ? "Copied!" : "Copy invite link"}
               </button>
               <button onClick={() => setInviteOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition-all">
+                className="flex items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all">
                 <UserPlus size={14} /> Invite member
               </button>
             </>
           )}
           {tab === "teams" && (
             <button onClick={() => setTeamOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition-all">
+              className="flex items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all">
               <Plus size={14} /> Create team
             </button>
           )}
@@ -186,7 +186,7 @@ export function MembersSettings() {
                         </td>
                         <td className="text-right">
                           {m.role !== "owner"
-                            ? <button onClick={() => remove.mutate(m.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Remove</button>
+                            ? <button onClick={() => remove.mutate(m.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Remove</button>
                             : <MoreHorizontal size={15} className="ml-auto text-stone-700" />}
                         </td>
                       </tr>
@@ -228,7 +228,7 @@ export function MembersSettings() {
                               <div key={m.id} className="flex items-center gap-3 rounded-lg bg-white/[.025] px-3 py-2.5">
                                 <Avatar member={m} small />
                                 <span className="flex-1 text-sm text-stone-300">{m.name || m.email}</span>
-                                <button onClick={() => removeTeamMember(t.id, m.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Remove</button>
+                                <button onClick={() => removeTeamMember(t.id, m.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Remove</button>
                               </div>
                             ))}
                             {tMembers.length === 0 && <p className="text-sm text-stone-600">No members yet.</p>}
@@ -295,7 +295,7 @@ export function MembersSettings() {
                                   : cur);
                                 qc.invalidateQueries({ queryKey: ["members"] });
                               }}
-                              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                              className="text-xs text-stone-400 hover:text-stone-300 transition-colors">
                               Revoke
                             </button>
                           </div>
@@ -333,7 +333,7 @@ export function MembersSettings() {
               </select>
             </label>
             <button type="submit" disabled={!invite.emails.includes("@") || sendInvite.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 transition-all disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 py-2.5 text-sm font-semibold text-white hover:bg-stone-400 transition-all disabled:opacity-40">
               <UserPlus size={14} /> {sendInvite.isPending ? "Sending…" : "Send invitation"}
             </button>
           </form>
@@ -366,7 +366,7 @@ export function MembersSettings() {
               </div>
             )}
             <button type="submit" disabled={!team.name.trim() || createTeam.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 py-2.5 text-sm font-semibold text-white hover:bg-indigo-400 transition-all disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 py-2.5 text-sm font-semibold text-white hover:bg-stone-400 transition-all disabled:opacity-40">
               {createTeam.isPending ? "Creating…" : "Create team"}
             </button>
           </form>

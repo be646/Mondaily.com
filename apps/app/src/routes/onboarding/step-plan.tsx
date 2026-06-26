@@ -88,13 +88,13 @@ export function StepPlan() {
           <button
             key={plan.id}
             onClick={() => setSelected(plan.id)}
-            className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-indigo-500/40 bg-indigo-500/[.04] ring-1 ring-indigo-500/20" : "border-black/[.08] hover:bg-stone-50"}`}
+            className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-stone-500/40 bg-stone-500/[.04] ring-1 ring-stone-500/20" : "border-black/[.08] hover:bg-stone-50"}`}
           >
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[13px] font-semibold text-stone-800">{plan.name}</span>
                 {plan.highlight && (
-                  <span className="rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2 py-0.5 font-mono text-[9px] text-indigo-600 uppercase tracking-wider">Popular</span>
+                  <span className="rounded-full border border-stone-500/20 bg-stone-500/[.07] px-2 py-0.5 font-mono text-[9px] text-stone-600 uppercase tracking-wider">Popular</span>
                 )}
               </div>
               <span className="shrink-0 font-mono text-[12px] text-stone-500">
@@ -105,7 +105,7 @@ export function StepPlan() {
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               {plan.features.slice(0, 3).map(f => (
                 <span key={f} className="flex items-center gap-1 font-mono text-[10px] text-stone-500">
-                  <Check size={9} className="text-indigo-500 shrink-0" /> {f}
+                  <Check size={9} className="text-stone-500 shrink-0" /> {f}
                 </span>
               ))}
             </div>
@@ -115,7 +115,7 @@ export function StepPlan() {
 
       <button
         onClick={start}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all"
       >
         {selected === "starter" ? "Start for free" : selected === "enterprise" ? "Talk to sales" : `Start ${plans.find(p => p.id === selected)?.name} trial`}
         <ArrowRight size={13} />

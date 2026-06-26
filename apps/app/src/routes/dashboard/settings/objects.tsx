@@ -127,13 +127,13 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
   const typeColor: Record<string, string> = {
     currency: "text-emerald-400", number: "text-blue-400", date: "text-amber-400",
     datetime: "text-amber-400", checkbox: "text-violet-400", select: "text-cyan-400",
-    multi_select: "text-cyan-400", email: "text-indigo-400", phone: "text-indigo-400",
+    multi_select: "text-cyan-400", email: "text-stone-400", phone: "text-stone-400",
     url: "text-blue-400", text: "text-stone-400", long_text: "text-stone-400",
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-6">
-      <div className="w-full max-w-xl rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="w-full max-w-xl rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
           <div className="flex items-center gap-2.5">
@@ -142,8 +142,8 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
                 <ArrowLeft size={14}/>
               </button>
             )}
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500/15">
-              <Sparkles size={13} className="text-indigo-400"/>
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-stone-500/15">
+              <Sparkles size={13} className="text-stone-400"/>
             </div>
             <div>
               <div className="text-[13px] font-semibold text-white">
@@ -168,10 +168,10 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generate(); }}
               placeholder={example}
               rows={3}
-              className="w-full resize-none rounded-lg border border-white/[.08] bg-white/[.03] px-3.5 py-3 text-sm text-white placeholder-stone-600 outline-none focus:border-indigo-500/30 focus:bg-white/[.04] transition-colors"
+              className="w-full resize-none rounded-lg border border-white/[.08] bg-white/[.03] px-3.5 py-3 text-sm text-white placeholder-stone-600 outline-none focus:border-stone-500/30 focus:bg-white/[.04] transition-colors"
             />
 
-            {error && <p className="mt-2 text-[11px] text-indigo-400">{error}</p>}
+            {error && <p className="mt-2 text-[11px] text-stone-400">{error}</p>}
 
             {/* Examples */}
             <p className="mt-4 mb-2 text-[10px] font-semibold uppercase tracking-wider text-stone-600">Examples</p>
@@ -194,7 +194,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               <button
                 onClick={generate}
                 disabled={!prompt.trim() || loading}
-                className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-stone-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-colors"
               >
                 {loading ? <><Loader2 size={12} className="animate-spin"/> Generating…</> : <><Sparkles size={12}/> Generate schema</>}
               </button>
@@ -232,7 +232,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               })}
             </div>
 
-            {error && <p className="mt-2 text-[11px] text-indigo-400">{error}</p>}
+            {error && <p className="mt-2 text-[11px] text-stone-400">{error}</p>}
 
             <div className="mt-4 flex justify-between gap-2">
               <button
@@ -243,7 +243,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               </button>
               <button
                 onClick={createFromSchema}
-                className="flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors"
+                className="flex items-center gap-2 rounded-lg bg-stone-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 transition-colors"
               >
                 <Check size={12}/> Create this object
               </button>
@@ -254,7 +254,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
         {/* Creating step */}
         {step === "creating" && (
           <div className="flex flex-col items-center justify-center gap-3 px-5 py-12">
-            <Loader2 size={24} className="animate-spin text-indigo-400"/>
+            <Loader2 size={24} className="animate-spin text-stone-400"/>
             <div className="text-[13px] text-stone-400">Creating <span className="text-white font-medium">{schema?.plural}</span> with {schema?.attributes.length} attributes…</div>
           </div>
         )}
@@ -309,9 +309,9 @@ export function ObjectsSettings() {
       <PageHeader title="Objects & attributes" description="Define the record schemas Mondaily agents can read and update." />
 
       {/* AI Generate CTA */}
-      <div className="mb-4 flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-4 py-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15">
-          <Sparkles size={16} className="text-indigo-400"/>
+      <div className="mb-4 flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/5 px-4 py-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-500/15">
+          <Sparkles size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-semibold text-white">Generate any sheet with AI</div>
@@ -319,7 +319,7 @@ export function ObjectsSettings() {
         </div>
         <button
           onClick={() => setAiOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-stone-500 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-400 transition-colors"
         >
           <Sparkles size={11}/> Generate
         </button>
@@ -329,7 +329,7 @@ export function ObjectsSettings() {
         <EmptyState icon={Database} title="No object definitions" description="Create your first custom object or generate one with AI."
           action={
             <div className="flex gap-2">
-              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm"><Sparkles size={13}/> Generate with AI</button>
+              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-stone-600 px-3 py-2 text-sm"><Sparkles size={13}/> Generate with AI</button>
               <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm text-stone-400">Manual</button>
             </div>
           }
@@ -339,7 +339,7 @@ export function ObjectsSettings() {
           <aside className="border-r border-stone-200 p-3 dark:border-stone-800">
             <div className="mb-3 flex items-center justify-between px-2">
               <span className="text-xs font-medium uppercase text-stone-500">Objects</span>
-              <button onClick={() => setObjectOpen(true)} className="text-indigo-400" aria-label="Create custom object"><Plus size={14}/></button>
+              <button onClick={() => setObjectOpen(true)} className="text-stone-400" aria-label="Create custom object"><Plus size={14}/></button>
             </div>
             <div className="space-y-1">
               {objects.map((object) => (
@@ -354,7 +354,7 @@ export function ObjectsSettings() {
             <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-md border border-dashed border-white/[.06] px-3 py-2 text-sm text-stone-500 hover:text-stone-300 hover:border-white/20 transition-colors">
               <Plus size={13}/> Custom object
             </button>
-            <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-indigo-500/30 px-3 py-2 text-sm text-indigo-400/70 hover:text-indigo-300 hover:border-indigo-500/50 transition-colors">
+            <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-stone-500/30 px-3 py-2 text-sm text-stone-400/70 hover:text-stone-300 hover:border-stone-500/50 transition-colors">
               <Sparkles size={13}/> Generate with AI
             </button>
           </aside>
@@ -363,14 +363,14 @@ export function ObjectsSettings() {
             <section className="p-5">
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="grid h-9 w-9 place-items-center rounded-md bg-indigo-500/10 text-indigo-300"><Database size={16}/></div>
+                  <div className="grid h-9 w-9 place-items-center rounded-md bg-stone-500/10 text-stone-300"><Database size={16}/></div>
                   <div>
                     <h2 className="font-medium">{selected.name_plural}</h2>
                     <p className="text-xs text-stone-500">{selected.slug} · {selected.vertical ?? "shared"}</p>
                   </div>
                   {selected.is_standard && <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-stone-500">Standard</span>}
                 </div>
-                <button onClick={() => setAttributeOpen(true)} className="flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm">
+                <button onClick={() => setAttributeOpen(true)} className="flex items-center gap-2 rounded-md bg-stone-600 px-3 py-2 text-sm">
                   <Plus size={13}/> Add attribute
                 </button>
               </div>
@@ -388,7 +388,7 @@ export function ObjectsSettings() {
                           <td className="capitalize text-stone-500 dark:text-stone-400">{item.type.replace("_", " ")}</td>
                           <td className="text-stone-400 dark:text-stone-600">{item.required ? "Yes" : "No"}</td>
                           <td className="text-stone-400 dark:text-stone-600">{item.unique ? "Yes" : "No"}</td>
-                          <td className="text-right"><button className="text-stone-600 hover:text-indigo-400" aria-label={`Delete ${item.name}`}><Trash2 size={13}/></button></td>
+                          <td className="text-right"><button className="text-stone-600 hover:text-stone-400" aria-label={`Delete ${item.name}`}><Trash2 size={13}/></button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -415,7 +415,7 @@ export function ObjectsSettings() {
       {attributeOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/60">
           <form onSubmit={e => { e.preventDefault(); if (attribute.name.trim()) createAttribute.mutate(); }}
-            className="h-full w-full max-w-lg overflow-y-auto border-l border-white/[.07] bg-[#0d0f13] p-6">
+            className="h-full w-full max-w-lg overflow-y-auto border-l border-white/[.07] bg-[#141414] p-6">
             <div className="mb-6 flex items-center justify-between">
               <div><h2 className="font-medium">Add attribute</h2><p className="text-xs text-stone-500">Add a field to {selected?.name_plural}.</p></div>
               <button type="button" onClick={() => setAttributeOpen(false)}><X size={17}/></button>
@@ -427,7 +427,7 @@ export function ObjectsSettings() {
             <div className="grid grid-cols-2 gap-2">
               {typeOptions.map(({ type, label, icon: Icon }) => (
                 <button type="button" key={type} onClick={() => setAttribute({ ...attribute, type })}
-                  className={`flex items-center gap-2 rounded-md border p-3 text-left text-sm ${attribute.type === type ? "border-indigo-500 bg-indigo-500/5" : "border-white/[.06]"}`}>
+                  className={`flex items-center gap-2 rounded-md border p-3 text-left text-sm ${attribute.type === type ? "border-stone-500 bg-stone-500/5" : "border-white/[.06]"}`}>
                   <Icon size={14}/><span>{label}</span>
                 </button>
               ))}
@@ -441,12 +441,12 @@ export function ObjectsSettings() {
                     <button type="button" onClick={() => setSelectOptions(selectOptions.filter((_, j) => j !== i))}><X size={13}/></button>
                   </div>
                 ))}
-                <button type="button" onClick={() => setSelectOptions([...selectOptions, ""])} className="text-xs text-indigo-400">+ Add option</button>
+                <button type="button" onClick={() => setSelectOptions([...selectOptions, ""])} className="text-xs text-stone-400">+ Add option</button>
               </div>
             )}
             {attribute.type === "relation" && (
               <label className="mt-5 block text-sm">Related object
-                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-white/[.06] bg-[#0d0f13] px-3">
+                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-white/[.06] bg-[#141414] px-3">
                   <option value="">Select object</option>
                   {objects.map(o => <option key={o.id} value={o.slug}>{o.name_plural}</option>)}
                 </select>
@@ -456,7 +456,7 @@ export function ObjectsSettings() {
               <Toggle label="Required" checked={attribute.required ?? false} change={v => setAttribute({ ...attribute, required: v })}/>
               <Toggle label="Unique" checked={attribute.unique ?? false} change={v => setAttribute({ ...attribute, unique: v })}/>
             </div>
-            <button disabled={!attribute.name.trim()} className="mt-6 h-10 w-full rounded-md bg-indigo-600 text-sm disabled:opacity-40">Save attribute</button>
+            <button disabled={!attribute.name.trim()} className="mt-6 h-10 w-full rounded-md bg-stone-600 text-sm disabled:opacity-40">Save attribute</button>
           </form>
         </div>
       )}
@@ -465,7 +465,7 @@ export function ObjectsSettings() {
       {objectOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px] p-6">
           <form onSubmit={e => { e.preventDefault(); if (customObject.singular.trim()) createObject.mutate(); }}
-            className="w-full max-w-lg rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+            className="w-full max-w-lg rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-medium">Create custom object</h2>
               <button type="button" onClick={() => setObjectOpen(false)}><X size={16}/></button>
@@ -475,7 +475,7 @@ export function ObjectsSettings() {
               <Field label="Plural name" value={customObject.plural} onChange={v => setCustomObject({ ...customObject, plural: v })} placeholder="Investors"/>
               <Field label="Icon" value={customObject.icon} onChange={v => setCustomObject({ ...customObject, icon: v })} placeholder="circle"/>
               <label className="text-sm">Vertical
-                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-10 w-full rounded-md border border-white/[.06] bg-[#0d0f13] px-3">
+                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-10 w-full rounded-md border border-white/[.06] bg-[#141414] px-3">
                   {["sales", "realestate", "hr", "finance", "investments", "shared"].map(v => <option key={v}>{v}</option>)}
                 </select>
               </label>
@@ -487,7 +487,7 @@ export function ObjectsSettings() {
                   className={`h-7 w-7 rounded-full bg-${color}-500 ${customObject.color === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#111419]" : ""}`} aria-label={color}/>
               ))}
             </div>
-            <button className="mt-6 h-10 w-full rounded-md bg-indigo-600 text-sm">Create object</button>
+            <button className="mt-6 h-10 w-full rounded-md bg-stone-600 text-sm">Create object</button>
           </form>
         </div>
       )}

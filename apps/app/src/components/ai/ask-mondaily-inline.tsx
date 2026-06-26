@@ -33,10 +33,10 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
 
   return (
     <form
-      className="flex items-center gap-2 rounded-lg border border-white/[.10] bg-white/[.04] px-3 py-2 focus-within:border-indigo-500/40 transition-colors"
+      className="flex items-center gap-2 rounded-lg border border-white/[.10] bg-white/[.04] px-3 py-2 focus-within:border-stone-500/40 transition-colors"
       onSubmit={(e) => { e.preventDefault(); void submit(); }}
     >
-      <span className="shrink-0 text-indigo-400">
+      <span className="shrink-0 text-stone-400">
         <LogoMark size={16} thinking={loading}/>
       </span>
       <input
@@ -46,7 +46,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
         placeholder={placeholder}
       />
       <button
-        className="grid h-8 w-8 place-items-center rounded-lg text-indigo-400 transition-colors hover:bg-indigo-500/10 disabled:opacity-40"
+        className="grid h-8 w-8 place-items-center rounded-lg text-stone-400 transition-colors hover:bg-stone-500/10 disabled:opacity-40"
         type="submit"
         disabled={loading || !value.trim()}
       >

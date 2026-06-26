@@ -23,7 +23,7 @@ async function openBilling(plan: string) {
       }
     }
   } catch (e) {
-    alert(errFrom(e) ?? "Billing isn't available right now. Please try again shortly.");
+    console.warn("Billing action failed:", errFrom(e));
   }
 }
 
@@ -91,7 +91,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { openBilling(billing.plan); }}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition-all"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
             </button>
@@ -107,12 +107,12 @@ export function BillingSettings() {
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[.08]">
               <div
-                className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-indigo-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
+                className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
                 style={{ width: `${seatPct}%` }}
               />
             </div>
             {seatPct >= 90 && (
-              <p className="mt-2 text-xs text-indigo-400">You're nearly at your seat limit. Upgrade to add more members.</p>
+              <p className="mt-2 text-xs text-stone-400">You're nearly at your seat limit. Upgrade to add more members.</p>
             )}
           </div>
         </div>
@@ -134,7 +134,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { openBilling(billing.plan); }}
-              className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              className="ml-auto text-xs text-stone-400 hover:text-stone-300 transition-colors"
             >
               Update
             </button>

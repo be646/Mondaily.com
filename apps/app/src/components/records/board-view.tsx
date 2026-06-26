@@ -22,9 +22,9 @@ const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
   won:         { dot: "bg-emerald-400", text: "text-emerald-300" },
   done:        { dot: "bg-emerald-400", text: "text-emerald-300" },
   completed:   { dot: "bg-emerald-400", text: "text-emerald-300" },
-  "closed lost": { dot: "bg-indigo-400",  text: "text-indigo-300" },
-  lost:        { dot: "bg-indigo-400",     text: "text-indigo-300" },
-  rejected:    { dot: "bg-indigo-400",     text: "text-indigo-300" },
+  "closed lost": { dot: "bg-stone-400",  text: "text-stone-300" },
+  lost:        { dot: "bg-stone-400",     text: "text-stone-300" },
+  rejected:    { dot: "bg-stone-400",     text: "text-stone-300" },
 };
 function stageStyle(s: string) {
   return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-stone-300" };
@@ -259,7 +259,7 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
       {ownerKey && (
         <div className="flex items-center gap-1.5 mb-2.5">
           {ownerMember ? (
-            <div className="h-4 w-4 rounded-full bg-indigo-500/20 flex items-center justify-center text-[8px] font-bold text-indigo-300 shrink-0">
+            <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-stone-300 shrink-0">
               {memberInitials(ownerMember.name)}
             </div>
           ) : (
@@ -319,7 +319,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="text-[13px] font-semibold text-white capitalize">New {objectType.replace(/[-_]/g, " ")}</span>
@@ -333,17 +333,17 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
               <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 truncate">{labelOf(k)}</span>
               <input value={values[k] ?? ""} onChange={e => setValues(p => ({ ...p, [k]: e.target.value }))}
                 placeholder="—"
-                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"/>
+                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-white/[.05] transition-colors"/>
             </div>
           ))}
-          {error && <p className="pt-2 text-xs text-indigo-400">{error}</p>}
+          {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-white/[.06] px-5 py-3.5">
           <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50 transition-all">
+            className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
-            <kbd className="rounded border border-indigo-400/40 bg-indigo-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
+            <kbd className="rounded border border-stone-400/40 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
           </button>
         </div>
       </div>

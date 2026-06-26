@@ -161,7 +161,7 @@ export function AccountSettings() {
               <img src={user?.imageUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/[.07]" />
               <button
                 onClick={() => fileRef.current?.click()}
-                className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-white/[.09] bg-[#0d0f13] text-stone-400 hover:text-white transition-colors"
+                className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-white/[.09] bg-[#141414] text-stone-400 hover:text-white transition-colors"
               >
                 <Camera size={12} />
               </button>
@@ -181,7 +181,7 @@ export function AccountSettings() {
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Email</span>
               <div className="flex h-9 items-center rounded-lg border border-white/[.09] bg-white/[.02] px-3">
                 <span className="min-w-0 flex-1 truncate text-sm text-stone-400">{user?.primaryEmailAddress?.emailAddress}</span>
-                <button onClick={() => openUserProfile()} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Change</button>
+                <button onClick={() => openUserProfile()} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Change</button>
               </div>
             </label>
             <label className="block">
@@ -206,13 +206,13 @@ export function AccountSettings() {
                 onClick={() => setAppearance(mode)}
                 className={`relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all ${
                   appearance === mode
-                    ? "border-[#818cf8] bg-[#eef2ff] text-[#312e81] dark:border-indigo-500/50 dark:bg-indigo-500/[.06] dark:text-white"
+                    ? "border-[#818cf8] bg-[#eef2ff] text-[#312e81] dark:border-stone-500/50 dark:bg-stone-500/[.06] dark:text-white"
                     : "border-[#e5e7eb] bg-white text-[#52525b] hover:bg-[#f9fafb] dark:border-white/[.07] dark:bg-transparent dark:text-stone-500 dark:hover:border-white/[.14] dark:hover:text-stone-300"
                 }`}
               >
                 <Icon size={18} className={appearance === mode ? "text-[#4f46e5] dark:text-white" : ""}/>
                 <span className="text-xs font-medium capitalize">{label}</span>
-                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[#4f46e5] dark:text-indigo-400" />}
+                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[#4f46e5] dark:text-stone-400" />}
               </button>
             ))}
           </div>
@@ -252,7 +252,7 @@ export function AccountSettings() {
                   <p className="mt-0.5 text-xs text-stone-500">{account?.email ?? "Not connected"}</p>
                 </div>
                 {account ? (
-                  <button onClick={() => disconnect.mutate(account.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Disconnect</button>
+                  <button onClick={() => disconnect.mutate(account.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Disconnect</button>
                 ) : (
                   <button onClick={() => connect(provider)} className="rounded-lg border border-white/[.09] px-3 py-1.5 text-xs text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors">Connect</button>
                 )}
@@ -311,9 +311,9 @@ export function AccountSettings() {
       </section>
 
       {/* ── Danger zone ── */}
-      <section className="settings-section border-indigo-500/[.15]">
-        <div className="settings-section-header border-indigo-500/[.08]">
-          <h2 className="text-sm font-semibold text-indigo-400">Danger zone</h2>
+      <section className="settings-section border-stone-500/[.15]">
+        <div className="settings-section-header border-stone-500/[.08]">
+          <h2 className="text-sm font-semibold text-stone-400">Danger zone</h2>
         </div>
         <div className="flex flex-wrap gap-3 p-5">
           <button
@@ -324,7 +324,7 @@ export function AccountSettings() {
           </button>
           <button
             onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-indigo-500/30 px-3 py-2 text-sm text-indigo-400 hover:bg-indigo-500/[.08] transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-sm text-stone-400 hover:bg-stone-500/[.08] transition-colors"
           >
             <Trash2 size={14} /> Delete account
           </button>
@@ -339,7 +339,7 @@ export function AccountSettings() {
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
-              : "border border-indigo-400/40 bg-indigo-500 hover:bg-indigo-400"
+              : "border border-stone-400/40 bg-stone-500 hover:bg-stone-400"
           }`}
         >
           {saved ? <><Check size={14} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
@@ -350,13 +350,13 @@ export function AccountSettings() {
       {deleteOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="font-semibold text-white">Delete account</h2>
             <p className="mt-2 text-sm text-stone-500">This permanently deletes your account and all data. Type <strong className="text-white">DELETE</strong> to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-sm text-stone-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors">Delete account</button>
+              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-lg bg-stone-600 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete account</button>
             </div>
           </div>
         </>

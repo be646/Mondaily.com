@@ -85,7 +85,7 @@ function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, 
         <button
           onClick={onRemove}
           title="Remove widget"
-          className="shrink-0 flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[11px] text-stone-500 hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
+          className="shrink-0 flex items-center gap-1 rounded-md border border-transparent px-2 py-1 text-[11px] text-stone-500 hover:border-stone-500/30 hover:bg-stone-500/10 hover:text-stone-400 transition-all"
         >
           <Trash2 size={11} /> Remove
         </button>
@@ -114,7 +114,7 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <p className="text-xs text-stone-400 text-center px-4">This widget is broken or from an older format.</p>
         <button
           onClick={onRemove}
-          className="flex items-center gap-1.5 rounded-md bg-indigo-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
+          className="flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-500 transition-colors"
         >
           <Trash2 size={11} /> Remove this widget
         </button>
@@ -229,7 +229,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
   const isLoading = !hasLegacyData && runQ.isLoading && !!reportId;
 
   return (
-    <WidgetShell title={title} icon={<FileBarChart size={13} className="text-indigo-400"/>}
+    <WidgetShell title={title} icon={<FileBarChart size={13} className="text-stone-400"/>}
       link={reportId ? `/reports/${reportId}` : undefined} linkLabel="Edit →"
       size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
       onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
@@ -240,7 +240,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
           <AlertTriangle size={22} className="text-amber-500/60"/>
           <p className="text-xs text-stone-400">Report couldn't be loaded.</p>
-          <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-indigo-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 transition-colors">
+          <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-500 transition-colors">
             <Trash2 size={11}/> Remove widget
           </button>
         </div>
@@ -248,7 +248,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
           <BarChart2 size={22} className="text-stone-600"/>
           <p className="text-xs text-stone-400">No data yet for this report.</p>
-          {reportId && <Link to={`/reports/${reportId}`} className="text-xs text-indigo-400 hover:text-indigo-300">Configure report →</Link>}
+          {reportId && <Link to={`/reports/${reportId}`} className="text-xs text-stone-400 hover:text-stone-300">Configure report →</Link>}
         </div>
       ) : (
         <Sparkline values={data.map(item => item.value)} height={200} />
@@ -286,18 +286,18 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       <p className="text-[11px] text-stone-500">Build a chart from any object — re-runs live every dashboard load.</p>
       <label className="block">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Widget name</span>
-        <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"/>
+        <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-stone-500/50"/>
       </label>
       <label className="block">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Object</span>
-        <select value={slug} onChange={e => setSlug(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-[#0b0d10] px-3 py-2 text-sm text-white outline-none">
+        <select value={slug} onChange={e => setSlug(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-[#0d0d0d] px-3 py-2 text-sm text-white outline-none">
           {objects.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)}
         </select>
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Metric</span>
-          <select value={metric} onChange={e => setMetric(e.target.value as "count"|"sum"|"average")} className="w-full rounded-lg border border-white/[.08] bg-[#0b0d10] px-3 py-2 text-sm text-white outline-none">
+          <select value={metric} onChange={e => setMetric(e.target.value as "count"|"sum"|"average")} className="w-full rounded-lg border border-white/[.08] bg-[#0d0d0d] px-3 py-2 text-sm text-white outline-none">
             <option value="count">Count of records</option>
             <option value="sum">Sum of field</option>
             <option value="average">Average of field</option>
@@ -305,7 +305,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
         </label>
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Group by</span>
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value as "day"|"week"|"month"|"quarter")} className="w-full rounded-lg border border-white/[.08] bg-[#0b0d10] px-3 py-2 text-sm text-white outline-none">
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value as "day"|"week"|"month"|"quarter")} className="w-full rounded-lg border border-white/[.08] bg-[#0d0d0d] px-3 py-2 text-sm text-white outline-none">
             <option value="day">Day</option><option value="week">Week</option>
             <option value="month">Month</option><option value="quarter">Quarter</option>
           </select>
@@ -314,7 +314,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       {metric !== "count" && (
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Numeric field name</span>
-          <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. value, amount, revenue" className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"/>
+          <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. value, amount, revenue" className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-stone-500/50"/>
         </label>
       )}
       <label className="block">
@@ -322,15 +322,15 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
         <div className="flex gap-2">
           {(["bar","line"] as const).map(t => (
             <button key={t} onClick={() => setChartType(t)}
-              className={`flex-1 rounded-md border py-2 text-xs capitalize transition-colors ${chartType === t ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-stone-400"}`}>
+              className={`flex-1 rounded-md border py-2 text-xs capitalize transition-colors ${chartType === t ? "border-stone-500 bg-stone-500/10 text-white" : "border-white/10 text-stone-400"}`}>
               {t}
             </button>
           ))}
         </div>
       </label>
-      {error && <p className="text-xs text-indigo-400">{error}</p>}
+      {error && <p className="text-xs text-stone-400">{error}</p>}
       <button onClick={handleAdd} disabled={creating || !slug}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors">
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-white hover:bg-stone-500 disabled:opacity-50 transition-colors">
         {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : "Add chart to dashboard"}
       </button>
     </div>
@@ -344,12 +344,12 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   const [tab, setTab] = useState<"live"|"report"|"custom">("live");
   const TABS = [
     { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/>,         accent: "border-emerald-500" },
-    { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/>, accent: "border-indigo-500"     },
+    { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/>, accent: "border-stone-500"     },
     { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/>,    accent: "border-blue-500"    },
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
           <h2 className="text-sm font-semibold text-white">Add widget</h2>
           <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={15}/></button>
@@ -389,7 +389,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
               {reports.length === 0
                 ? <div className="py-8 text-center">
                     <p className="text-xs text-stone-500 mb-3">No saved reports yet.</p>
-                    <Link to="/reports" onClick={onClose} className="text-xs text-indigo-400 hover:text-indigo-300">Go to Reports →</Link>
+                    <Link to="/reports" onClick={onClose} className="text-xs text-stone-400 hover:text-stone-300">Go to Reports →</Link>
                   </div>
                 : <div className="space-y-2">
                     <p className="mb-3 text-[11px] text-stone-500">Data re-runs fresh each time the dashboard loads.</p>
@@ -397,7 +397,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                       <button key={report.id}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: report.name }); onClose(); }}
                         className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-500/10 text-indigo-400"><LineChartIcon size={14}/></div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-500/10 text-stone-400"><LineChartIcon size={14}/></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-white truncate">{report.name}</p>
                           <p className="text-[11px] text-stone-500 capitalize">{report.type?.replace(/_/g," ") ?? "report"}</p>
@@ -541,12 +541,12 @@ export function DashboardViewPage() {
           <Plus size={14}/> Add widget
         </button>
         <button onClick={() => save.mutate(dashboard)} disabled={save.isPending}
-          className="flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60 transition-colors">
+          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-white hover:bg-stone-500 disabled:opacity-60 transition-colors">
           {save.isPending ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
           {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
         </button>
         <button onClick={() => setConfirmDelete(true)}
-          className="flex h-9 items-center gap-2 rounded-md border border-indigo-500/20 bg-indigo-500/[.06] px-3 text-sm text-indigo-400 hover:bg-indigo-500/20 transition-colors">
+          className="flex h-9 items-center gap-2 rounded-md border border-stone-500/20 bg-stone-500/[.06] px-3 text-sm text-stone-400 hover:bg-stone-500/20 transition-colors">
           <Trash2 size={13}/> Delete
         </button>
       </header>
@@ -554,14 +554,14 @@ export function DashboardViewPage() {
       {/* Delete confirm */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-indigo-500/20 bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="w-full max-w-sm rounded-2xl border border-stone-500/20 bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="mb-2 text-sm font-semibold text-white">Delete dashboard?</h2>
             <p className="mb-5 text-xs text-stone-400">This will permanently delete <strong className="text-white">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => deleteDashboard.mutate()}
                 disabled={deleteDashboard.isPending}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-white hover:bg-stone-500 disabled:opacity-50 transition-colors"
               >
                 {deleteDashboard.isPending ? <Loader2 size={13} className="animate-spin"/> : <Trash2 size={13}/>}
                 Yes, delete
@@ -578,7 +578,7 @@ export function DashboardViewPage() {
       {widgets.length === 0 ? (
         <EmptyState icon={BarChart2} title="No widgets yet"
           description='Click "Add widget" — pick a Live Object for instant KPIs, a Saved Report, or build a Custom Chart.'
-          action={<button onClick={() => setAdding(true)} className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white">Add first widget</button>}
+          action={<button onClick={() => setAdding(true)} className="rounded-md bg-stone-600 px-3 py-2 text-sm text-white">Add first widget</button>}
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

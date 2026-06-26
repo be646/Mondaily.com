@@ -30,7 +30,7 @@ export function InviteAcceptPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-[#0b0d10] px-6 text-center text-white">
+    <div className="grid min-h-screen place-items-center bg-[#0d0d0d] px-6 text-center text-white">
       <div className="w-full max-w-sm">
         {status === "success" ? <CheckCircle className="mx-auto mb-5 text-emerald-500" size={34} /> : <Users className="mx-auto mb-5 text-red-500" size={34} />}
         <h1 className="text-xl font-semibold">{status === "success" ? "Joined!" : "You've been invited"}</h1>

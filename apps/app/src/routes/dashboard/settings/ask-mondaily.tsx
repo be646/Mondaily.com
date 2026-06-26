@@ -30,7 +30,7 @@ function Dropdown({ value, onChange, options }: { value: string; onChange: (v: s
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="rounded-lg border border-white/[.06] bg-[#0d0f13] px-3 py-1.5 text-sm text-white focus:border-red-500/40 outline-none"
+      className="rounded-lg border border-white/[.06] bg-[#141414] px-3 py-1.5 text-sm text-white focus:border-red-500/40 outline-none"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>

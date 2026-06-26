@@ -87,7 +87,7 @@ export function SignUpPage() {
     });
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-stone-500/40 transition-colors";
 
   return (
     <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "440px 1fr" }}>
@@ -147,21 +147,21 @@ export function SignUpPage() {
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
 
-                <button type="submit" disabled={loading} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50">
+                <button type="submit" disabled={loading} className="w-full rounded-xl bg-stone-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50">
                   {loading ? "Creating account…" : "Create account →"}
                 </button>
               </form>
 
               <p className="mt-4 text-center font-mono text-[11px] text-stone-400">
                 By signing up you agree to our{" "}
-                <a href="https://mondaily.com/legal/terms" className="text-indigo-600 hover:underline">Terms</a>{" "}
+                <a href="https://mondaily.com/legal/terms" className="text-stone-600 hover:underline">Terms</a>{" "}
                 and{" "}
-                <a href="https://mondaily.com/legal/privacy" className="text-indigo-600 hover:underline">Privacy Policy</a>.
+                <a href="https://mondaily.com/legal/privacy" className="text-stone-600 hover:underline">Privacy Policy</a>.
               </p>
 
               <p className="mt-4 text-center font-mono text-[12px] text-stone-400">
                 Already have an account?{" "}
-                <Link to="/sign-in" className="text-indigo-600 hover:underline">Sign in</Link>
+                <Link to="/sign-in" className="text-stone-600 hover:underline">Sign in</Link>
               </p>
             </>
           )}
@@ -170,7 +170,7 @@ export function SignUpPage() {
             <>
               <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-stone-900">Check your email</h1>
               <p className="mb-2 font-mono text-[13px] text-stone-500">We sent a 6-digit code to</p>
-              <p className="mb-8 font-mono text-[13px] font-medium text-indigo-600">{email}</p>
+              <p className="mb-8 font-mono text-[13px] font-medium text-stone-600">{email}</p>
 
               <form onSubmit={handleVerify} className="space-y-3">
                 <div>
@@ -191,7 +191,7 @@ export function SignUpPage() {
                   <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-mono text-[12px] text-red-600">{error}</p>
                 )}
 
-                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-indigo-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50">
+                <button type="submit" disabled={loading || code.length < 6} className="w-full rounded-xl bg-stone-600 py-3 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50">
                   {loading ? "Verifying…" : "Verify & continue →"}
                 </button>
               </form>

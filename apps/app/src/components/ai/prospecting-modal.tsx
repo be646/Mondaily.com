@@ -116,10 +116,10 @@ export function ProspectingModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5 max-h-[85vh] overflow-y-auto">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5 max-h-[85vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Globe size={14} className="text-indigo-400" />
+            <Globe size={14} className="text-stone-400" />
             <h2 className="text-sm font-semibold text-white">Find from web</h2>
           </div>
           <button onClick={onClose} className="text-stone-500 hover:text-white transition-colors">
@@ -164,7 +164,7 @@ export function ProspectingModal({
               <p className="text-[11px] text-stone-500">Matches will be added to this list once created.</p>
             )}
             <label className="flex items-center gap-2 text-[12px] text-stone-300 cursor-pointer">
-              <input type="checkbox" checked={requireApproval} onChange={e => setRequireApproval(e.target.checked)} className="accent-indigo-500" />
+              <input type="checkbox" checked={requireApproval} onChange={e => setRequireApproval(e.target.checked)} className="accent-stone-500" />
               Require review before creating records
             </label>
             {run.isError && (
@@ -173,7 +173,7 @@ export function ProspectingModal({
             <button
               onClick={() => run.mutate()}
               disabled={!query.trim() || run.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-indigo-500 transition-colors disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-stone-500 transition-colors disabled:opacity-50"
             >
               {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
               {run.isPending ? "Searching the web…" : "Run search"}
@@ -185,7 +185,7 @@ export function ProspectingModal({
               {result.created > 0 && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-emerald-400">{result.created} created</span>}
               {result.queued_for_review > 0 && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-amber-400">{result.queued_for_review} awaiting approval</span>}
               {result.existing > 0 && <span className="rounded-full border border-white/[.08] bg-white/[.03] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
-              {result.added_to_list > 0 && <span className="rounded-full border border-indigo-400/30 bg-indigo-400/10 px-2 py-0.5 text-indigo-400">{result.added_to_list} added to list</span>}
+              {result.added_to_list > 0 && <span className="rounded-full border border-stone-400/30 bg-stone-400/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
             </div>
 
             {result.candidates.length === 0 ? (
@@ -200,7 +200,7 @@ export function ProspectingModal({
                           type="checkbox"
                           checked={selected.has(i)}
                           onChange={() => toggle(i)}
-                          className="mt-0.5 accent-indigo-500"
+                          className="mt-0.5 accent-stone-500"
                         />
                       ) : (
                         <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-emerald-400" : "text-stone-500"}`} />
@@ -212,7 +212,7 @@ export function ProspectingModal({
                         </div>
                         {c.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-stone-400">{c.description}</p>}
                         <p className="mt-0.5 text-[10.5px] text-stone-500">{c.reason}</p>
-                        <a href={c.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-indigo-400 hover:text-indigo-300 transition-colors">
+                        <a href={c.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-stone-400 hover:text-stone-300 transition-colors">
                           <ExternalLink size={9} /> {c.source_title || c.source_url}
                         </a>
                       </div>

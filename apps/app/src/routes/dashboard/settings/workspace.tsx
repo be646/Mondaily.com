@@ -137,7 +137,7 @@ function GeneralSection({
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
-              : "border border-indigo-400/40 bg-indigo-500 hover:bg-indigo-400"
+              : "border border-stone-400/40 bg-stone-500 hover:bg-stone-400"
           }`}>
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
         </button>
@@ -235,7 +235,7 @@ function MembersSection() {
           <button
             onClick={sendInvite}
             disabled={inviting || !inviteEmail.includes("@")}
-            className="px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-[12px] rounded-lg font-medium flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-2 bg-stone-500 hover:bg-stone-600 text-white text-[12px] rounded-lg font-medium flex items-center gap-1.5 disabled:opacity-50"
           >
             <Plus size={13} /> Send
           </button>
@@ -308,7 +308,7 @@ function MembersSection() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {m.role !== "owner" && (
-                      <button onClick={() => removeMember(m.id)} className="text-stone-600 hover:text-indigo-400 transition-colors">
+                      <button onClick={() => removeMember(m.id)} className="text-stone-600 hover:text-stone-400 transition-colors">
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -334,7 +334,7 @@ function MembersSection() {
                   <span className="text-[12px] text-stone-300">{inv.email}</span>
                   <span className="text-[11px] text-stone-600 capitalize">{inv.role}</span>
                 </div>
-                <button onClick={() => cancelInvite(inv.id)} className="text-stone-600 hover:text-indigo-400 transition-colors">
+                <button onClick={() => cancelInvite(inv.id)} className="text-stone-600 hover:text-stone-400 transition-colors">
                   <X size={13} />
                 </button>
               </div>
@@ -380,7 +380,7 @@ function ModulesSection({
                   : [...current, mod.id];
                 setForm({ ...form, modules: next });
               }}
-              className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${enabled ? "bg-indigo-500" : "bg-white/[.10]"}`}
+              className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${enabled ? "bg-stone-500" : "bg-white/[.10]"}`}
             >
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`} />
             </button>
@@ -393,7 +393,7 @@ function ModulesSection({
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
-              : "border border-indigo-400/40 bg-indigo-500 hover:bg-indigo-400"
+              : "border border-stone-400/40 bg-stone-500 hover:bg-stone-400"
           }`}>
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save modules"}
         </button>
@@ -517,11 +517,11 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-indigo-400 mb-0.5">Danger Zone</h2>
+        <h2 className="text-sm font-semibold text-stone-400 mb-0.5">Danger Zone</h2>
         <p className="text-[11px] text-stone-500">Irreversible actions. Proceed with caution.</p>
       </div>
 
-      <div className="border border-indigo-500/20 rounded-xl p-6 space-y-4">
+      <div className="border border-stone-500/20 rounded-xl p-6 space-y-4">
         <p className="text-[12px] text-stone-500">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
@@ -529,7 +529,7 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
             <Download size={13} /> Export all data
           </button>
           <button onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-indigo-500/30 px-3 py-2 text-[12px] text-indigo-400 hover:bg-indigo-500/[.08] transition-colors">
+            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-[12px] text-stone-400 hover:bg-stone-500/[.08] transition-colors">
             <Trash2 size={13} /> Delete workspace
           </button>
         </div>
@@ -538,7 +538,7 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
       {deleteOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold text-white">Delete {form.name}</h2>
               <button onClick={() => setDeleteOpen(false)} className="text-stone-500 hover:text-white transition-colors"><X size={15} /></button>
@@ -547,7 +547,7 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-[12px] text-stone-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-indigo-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors">Delete workspace</button>
+              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-stone-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete workspace</button>
             </div>
           </div>
         </>
@@ -613,7 +613,7 @@ export function WorkspaceSettings() {
             onClick={() => setSection(item.key)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] mb-0.5 transition-colors ${
               section === item.key ? "bg-white/[.05] text-stone-200" : "text-stone-500 hover:text-stone-300 hover:bg-white/[.03]"
-            } ${item.danger ? (section === item.key ? "text-indigo-400" : "text-red-500 hover:text-indigo-400") : ""}`}
+            } ${item.danger ? (section === item.key ? "text-stone-400" : "text-red-500 hover:text-stone-400") : ""}`}
           >
             <item.icon size={13} />
             {item.label}

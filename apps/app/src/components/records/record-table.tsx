@@ -221,7 +221,7 @@ function CategoryCell({ value, onSave }: {
           </div>
           {cats.length > 0 && (
             <div className="border-t border-white/[.06] px-2 py-1.5">
-              <button onClick={() => { onSave([]); }} className="text-[10px] text-white/20 hover:text-indigo-400 transition-colors">Clear all</button>
+              <button onClick={() => { onSave([]); }} className="text-[10px] text-white/20 hover:text-stone-400 transition-colors">Clear all</button>
             </div>
           )}
         </div>,
@@ -373,7 +373,7 @@ function RecordIdCell({ id }: { id: string }) {
 function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const initials = String(name).split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   const colors = [
-    "bg-indigo-500/20 text-indigo-400",
+    "bg-stone-500/20 text-stone-400",
     "bg-blue-500/20 text-blue-400",
     "bg-emerald-500/20 text-emerald-400",
     "bg-purple-500/20 text-purple-400",
@@ -386,7 +386,7 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
         {initials || "?"}
       </div>
       {enriched && (
-        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-white ring-1 ring-[#0d0f13] flex items-center justify-center">
+        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-white ring-1 ring-[#141414] flex items-center justify-center">
           <Sparkles size={5} className="text-black"/>
         </div>
       )}
@@ -464,7 +464,7 @@ export function StagePill({ value, options, onSelect }: {
                 className={`dropdown-item w-full gap-2 ${opt === value ? "dropdown-item-active" : ""}`}>
                 <span className={`h-2 w-2 rounded-full shrink-0 ${s.dot}`}/>
                 {opt}
-                {opt === value && <Check size={10} className="ml-auto text-indigo-400 shrink-0"/>}
+                {opt === value && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
               </button>
             );
           })}
@@ -507,7 +507,7 @@ function CalcDropdown({ col, current, onSelect, onClose, triggerRef }: {
       {options.map(({ op, label }) => (
         <button key={op} onClick={() => { onSelect(op); onClose(); }}
           className={`dropdown-item w-full ${current === op ? "dropdown-item-active" : ""}`}>
-          {label}{current === op && <Check size={11} className="ml-auto text-indigo-400"/>}
+          {label}{current === op && <Check size={11} className="ml-auto text-stone-400"/>}
         </button>
       ))}
       {current && <>
@@ -537,7 +537,7 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }
           return (
             <button key={col} onClick={() => onToggle(col)}
               className="dropdown-item w-full gap-2.5">
-              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-indigo-500 bg-indigo-500" : "border-white/20 bg-transparent"}`}>
+              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-stone-500 bg-stone-500" : "border-white/20 bg-transparent"}`}>
                 {visible && <Check size={10} className="text-white"/>}
               </div>
               <span className="capitalize">{col.replace(/_/g, " ")}</span>
@@ -599,7 +599,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
               >
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
-              <button onClick={() => onChange(rules.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-indigo-400 transition-colors shrink-0">
+              <button onClick={() => onChange(rules.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-stone-400 transition-colors shrink-0">
                 <X size={12}/>
               </button>
             </div>
@@ -612,7 +612,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
           <Plus size={11}/> Add sort
         </button>
         {rules.length > 0 && (
-          <button onClick={() => onChange([])} className="text-[11px] text-indigo-400/50 hover:text-indigo-400 transition-colors">
+          <button onClick={() => onChange([])} className="text-[11px] text-stone-400/50 hover:text-stone-400 transition-colors">
             Clear
           </button>
         )}
@@ -678,7 +678,7 @@ interface Member { id: string; name: string; email: string; avatar_url?: string;
 
 // Deterministic avatar colour from name string
 function avatarColor(name: string) {
-  const colors = ["bg-indigo-500","bg-orange-500","bg-amber-500","bg-emerald-500","bg-sky-500","bg-violet-500","bg-pink-500","bg-teal-500"];
+  const colors = ["bg-stone-500","bg-orange-500","bg-amber-500","bg-emerald-500","bg-sky-500","bg-violet-500","bg-pink-500","bg-teal-500"];
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
   return colors[Math.abs(h) % colors.length];
 }
@@ -736,7 +736,7 @@ function OwnerCell({ value, members, onSelect }: {
                 <MemberAvatar name={ml} size={5}/>
                 <span className="truncate flex-1">{ml}</span>
                 {m.role && <span className="text-[9px] text-stone-600 capitalize shrink-0">{m.role}</span>}
-                {isActive && <Check size={10} className="text-indigo-400 shrink-0"/>}
+                {isActive && <Check size={10} className="text-stone-400 shrink-0"/>}
               </button>
             );
           })}
@@ -855,7 +855,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") onClose(); }}
           placeholder="Column name…"
-          className="w-full rounded-md border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-indigo-500/30"
+          className="w-full rounded-md border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-stone-500/30"
         />
       </div>
       <div className="py-1">
@@ -869,7 +869,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
               <Icon size={13} className={taken ? "text-white/20" : color}/>
               <span className="font-medium">{label}</span>
               {taken && <span className="ml-auto text-[9px] text-white/20">already added</span>}
-              {!taken && type === t && <Check size={10} className="ml-auto text-indigo-400 shrink-0"/>}
+              {!taken && type === t && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
             </button>
           );
         })}
@@ -897,7 +897,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       )}
       <div className="px-3 pb-3 pt-2 border-t border-white/[.06]">
         <button onClick={submit}
-          className="w-full rounded-lg bg-indigo-500 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors">
+          className="w-full rounded-lg bg-stone-500 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 transition-colors">
           Add {name.trim() || PRESET_DEFAULTS[type] || type}
         </button>
       </div>
@@ -980,7 +980,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
           className="flex-1 bg-transparent text-xs text-white placeholder-stone-700 outline-none"
         />
         <div className="flex items-center gap-1.5 shrink-0">
-          {hasActive && <button onClick={() => { setValue(""); onClear(); setStatus("idle"); }} className="text-[10px] text-stone-600 hover:text-indigo-400 transition-colors">Clear</button>}
+          {hasActive && <button onClick={() => { setValue(""); onClear(); setStatus("idle"); }} className="text-[10px] text-stone-600 hover:text-stone-400 transition-colors">Clear</button>}
           <kbd className="flex items-center gap-0.5 rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-stone-600"><Command size={8}/><span>⇧K</span></kbd>
           <button onClick={apply} disabled={!value.trim() || status === "thinking"}
             className="rounded-md border border-white/[.08] bg-white/[.04] px-2.5 py-1 text-[11px] text-stone-400 hover:bg-white/[.07] hover:text-white transition-colors disabled:opacity-40">
@@ -989,7 +989,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
         </div>
       </div>
       {status === "applied" && lastApplied && <p className="mt-1.5 text-[10px] text-stone-400/80 flex items-center gap-1"><Check size={9}/> Applied: {lastApplied}</p>}
-      {status === "error" && <p className="mt-1.5 text-[10px] text-indigo-400/80">Couldn't parse — try "sort by ARR desc" or "filter by USA"</p>}
+      {status === "error" && <p className="mt-1.5 text-[10px] text-stone-400/80">Couldn't parse — try "sort by ARR desc" or "filter by USA"</p>}
     </div>
   );
 }
@@ -1022,7 +1022,7 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
             {filtered.slice(0, 80).map(c => (
               <button key={c} onClick={() => { onSelect(c); setOpen(false); setSearch(""); }}
                 className={`dropdown-item w-full text-xs ${c === value ? "dropdown-item-active" : ""}`}>
-                {c}{c === value && <Check size={10} className="ml-auto text-indigo-400 shrink-0"/>}
+                {c}{c === value && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
               </button>
             ))}
             {filtered.length > 80 && <p className="px-3 py-1 text-[10px] text-stone-700">Type to narrow…</p>}
@@ -1290,7 +1290,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
           <div className="max-h-48 overflow-y-auto">
             {current && (
               <button onClick={() => { onSave(null); setOpen(false); }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-indigo-400/70 hover:bg-white/[.04] hover:text-indigo-400 transition-colors">
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-400/70 hover:bg-white/[.04] hover:text-stone-400 transition-colors">
                 <X size={10}/> Remove link
               </button>
             )}
@@ -1333,7 +1333,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-300" : "border-white/[.08] bg-white/[.03] text-white/40 hover:text-white/80 hover:border-white/[.15]"}`}
+        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/40 bg-stone-500/10 text-stone-300" : "border-white/[.08] bg-white/[.03] text-white/40 hover:text-white/80 hover:border-white/[.15]"}`}
       >
         {s && <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>}
         <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 mr-0.5">{col.replaceAll("_", " ")}</span>
@@ -1350,7 +1350,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
                 className={`dropdown-item w-full gap-2 ${isActive ? "dropdown-item-active" : ""}`}>
                 {ss && <span className={`h-2 w-2 rounded-full shrink-0 ${ss.dot}`}/>}
                 <span className="flex-1 text-left">{val}</span>
-                {isActive && <Check size={10} className="text-indigo-400 shrink-0"/>}
+                {isActive && <Check size={10} className="text-stone-400 shrink-0"/>}
               </button>
             );
           })}
@@ -1564,7 +1564,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   function SortIcon({ col }: { col: string }) {
     const rule = sortRules.find(r => r.col === col);
     if (rule) return rule.dir === "asc" ? <ChevronUp size={10} className="text-purple-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-purple-400 ml-1 shrink-0"/>;
-    if (quickSortCol === col) return quickSortDir === "asc" ? <ChevronUp size={10} className="text-indigo-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-indigo-400 ml-1 shrink-0"/>;
+    if (quickSortCol === col) return quickSortDir === "asc" ? <ChevronUp size={10} className="text-stone-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-stone-400 ml-1 shrink-0"/>;
     return <ChevronsUpDown size={10} className="text-stone-700 ml-1 shrink-0"/>;
   }
 
@@ -1733,7 +1733,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       console.log(`Added ${succeeded} record(s) to list`);
     }
     if (failed > 0) {
-      alert(`${failed} record(s) could not be added — the list type may not match. Check that your list was created for the same record type.`);
+      console.warn(` record(s) could not be added — list type may not match.`);
     }
   }
 
@@ -1958,25 +1958,25 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     return (
       <tr
         key={record.id}
-        className={`group transition-colors ${selected.has(record.id) ? "bg-indigo-50 dark:bg-indigo-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-white/[.008]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-white/[.03] ${rowAccent(record)}`}
+        className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-stone-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-white/[.008]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-white/[.03] ${rowAccent(record)}`}
       >
-        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0d0d0d] dark:group-hover:bg-[#141414]"}`}>
           <div
             onClick={() => toggleSelectRow(record.id)}
-            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-indigo-500 border-indigo-500" : "border-stone-300 opacity-0 group-hover:opacity-100 hover:border-stone-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
+            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-stone-500 border-stone-500" : "border-stone-300 opacity-0 group-hover:opacity-100 hover:border-stone-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
           >
             {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
           </div>
         </td>
         {hasRecordIdCol && (
-          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]"}`}>
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0d0d0d] dark:group-hover:bg-[#141414]"}`}>
             <RecordIdCell id={record.id}/>
           </td>
         )}
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-2.5 text-stone-900 dark:text-white/70 border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-stone-900 dark:text-white/90 ` + (selected.has(record.id) ? "bg-indigo-50 group-hover:bg-indigo-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0b0d10] dark:group-hover:bg-[#0f1115]") : ""}`}
+            className={`px-4 py-2.5 text-stone-900 dark:text-white/70 border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-stone-900 dark:text-white/90 ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0d0d0d] dark:group-hover:bg-[#141414]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -1996,7 +1996,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <td className="border-b border-b-[#edf0f5] dark:border-b-white/[.04] w-10 px-2">
           <button
             onClick={() => deleteRow(record)}
-            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-stone-400 dark:text-stone-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all"
+            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-stone-400 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-500/10 transition-all"
             title="Delete row"
           >
             <Trash2 size={12}/>
@@ -2011,7 +2011,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
   const TB_ON   = `${TB} border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] dark:border-white/[.08] dark:text-white dark:bg-white/[.06]`;
   const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e0e7ff] px-1 text-[9px] font-semibold text-[#4338ca] dark:bg-white/[.10] dark:text-stone-300";
-  const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500/70 px-1 text-[9px] font-semibold text-white";
+  const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (
     <>
@@ -2090,7 +2090,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             return (
               <button key={col} onClick={() => toggleCol(col)}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-white/[.10] bg-white/[.05] text-white/70" : "border-white/[.04] bg-transparent text-white/20 hover:text-white/40 hover:border-white/[.08]"}`}>
-                {visible && <Check size={9} className="text-indigo-400 shrink-0"/>}
+                {visible && <Check size={9} className="text-stone-400 shrink-0"/>}
                 <span className="capitalize">{col.replace(/_/g," ")}</span>
               </button>
             );
@@ -2121,7 +2121,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
-              <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-indigo-400"><X size={10}/></button>
+              <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-stone-400"><X size={10}/></button>
             </div>
           ))}
           <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) { setSortRules(r => [...r, { col: unused, dir: "asc" }]); setQuickSortCol(null); } }}
@@ -2129,7 +2129,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <Plus size={11}/> Add sort
           </button>
           {sortRules.length > 0 && (
-            <button onClick={() => { setSortRules([]); setQuickSortCol(null); }} className="text-[10px] text-indigo-400/50 hover:text-indigo-400 transition-colors shrink-0 whitespace-nowrap">
+            <button onClick={() => { setSortRules([]); setQuickSortCol(null); }} className="text-[10px] text-stone-400/50 hover:text-stone-400 transition-colors shrink-0 whitespace-nowrap">
               Clear
             </button>
           )}
@@ -2144,12 +2144,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <div className="h-3 w-px bg-white/[.08] shrink-0"/>
           <button onClick={() => { setGroupBy(null); }}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-stone-400 hover:text-stone-100 hover:border-white/[.08]"}`}>
-            {!groupByCol && <Check size={9} className="text-indigo-400"/>}None
+            {!groupByCol && <Check size={9} className="text-stone-400"/>}None
           </button>
           {orderedColumns.map(col => (
             <button key={col} onClick={() => setGroupBy(col)}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-stone-400 hover:text-stone-100 hover:border-white/[.08]"}`}>
-              {groupByCol === col && <Check size={9} className="text-indigo-400"/>}
+              {groupByCol === col && <Check size={9} className="text-stone-400"/>}
               {col.replace(/_/g," ")}
             </button>
           ))}
@@ -2185,7 +2185,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <button onClick={() => { applyView(v); setOpenPanel(null); }} className="text-[11px] text-white/60 hover:text-white transition-colors whitespace-nowrap">
                 {v.name}
               </button>
-              <button onClick={() => deleteView(v.id)} className="p-0.5 text-white/15 hover:text-indigo-400 transition-colors ml-1"><X size={10}/></button>
+              <button onClick={() => deleteView(v.id)} className="p-0.5 text-white/15 hover:text-stone-400 transition-colors ml-1"><X size={10}/></button>
             </div>
           ))}
           <div className="h-3 w-px bg-white/[.08] shrink-0"/>
@@ -2278,15 +2278,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 const hasDate  = dateFrom || dateTo;
                 return (
                   <div key={col} className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-semibold uppercase tracking-widest shrink-0 ${hasDate ? "text-indigo-300" : "text-stone-600"}`}>{col.replaceAll("_"," ")}</span>
+                    <span className={`text-[10px] font-semibold uppercase tracking-widest shrink-0 ${hasDate ? "text-stone-300" : "text-stone-600"}`}>{col.replaceAll("_"," ")}</span>
                     <input type="date" value={dateFrom}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__from"); return e.target.value ? [...o,{col:col+"__from",value:e.target.value}] : o; })}
-                      className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-indigo-500/30"
+                      className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-stone-500/30"
                     />
                     <span className="text-stone-700 text-[10px]">→</span>
                     <input type="date" value={dateTo}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__to"); return e.target.value ? [...o,{col:col+"__to",value:e.target.value}] : o; })}
-                      className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-indigo-500/30"
+                      className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-stone-500/30"
                     />
                     <div className="h-3 w-px bg-white/[.08] shrink-0"/>
                   </div>
@@ -2330,7 +2330,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             })}
 
             {quickFilters.length > 0 && (
-              <button onClick={() => { setQuickFilters([]); setFilterText(""); }} className="text-[10px] text-indigo-400/60 hover:text-indigo-400 transition-colors shrink-0 whitespace-nowrap">
+              <button onClick={() => { setQuickFilters([]); setFilterText(""); }} className="text-[10px] text-stone-400/60 hover:text-stone-400 transition-colors shrink-0 whitespace-nowrap">
                 Clear all
               </button>
             )}
@@ -2345,7 +2345,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       {someSelected && (
         <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
           <span className="flex items-center gap-1.5 text-xs font-semibold text-white/60">
-            <div className="h-4 w-4 rounded-md bg-indigo-500 flex items-center justify-center text-[9px] font-bold text-white">{selected.size}</div>
+            <div className="h-4 w-4 rounded-md bg-stone-500 flex items-center justify-center text-[9px] font-bold text-white">{selected.size}</div>
             selected
           </span>
           <div className="h-3 w-px bg-white/[.08]" />
@@ -2572,7 +2572,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           {/* Bulk delete */}
           <button
             onClick={bulkDelete}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-indigo-400 transition-colors ml-auto"
+            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-stone-400 transition-colors ml-auto"
           >
             <Trash2 size={12} /> Delete {selected.size}
           </button>
@@ -2596,18 +2596,18 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Checkbox column */}
-              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-0 z-30">
+              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
-                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-indigo-500 border-indigo-500" : someSelected ? "border-indigo-300 bg-indigo-50 dark:border-white/30 dark:bg-white/[.06]" : "border-stone-300 hover:border-stone-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
+                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-stone-500 border-stone-500" : someSelected ? "border-stone-300 bg-stone-50 dark:border-white/30 dark:bg-white/[.06]" : "border-stone-300 hover:border-stone-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
                 >
                   {allSelected && <Check size={10} className="text-white" strokeWidth={3}/>}
-                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-indigo-400 dark:bg-white/60" />}
+                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-stone-400 dark:bg-white/60" />}
                 </div>
               </th>
               {/* Record ID locked column — only when added via Add Column */}
               {hasRecordIdCol && (
-                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
+                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
                   <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-500 dark:text-white/20">ID</span>
                 </th>
               )}
@@ -2617,7 +2617,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -2650,7 +2650,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         className={`flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
                         <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
-                        {colMeta[col]?.required && <span className="text-indigo-400/70 text-[10px] leading-none">*</span>}
+                        {colMeta[col]?.required && <span className="text-stone-400/70 text-[10px] leading-none">*</span>}
                         <SortIcon col={col}/>
                       </button>
                     </div>
@@ -2659,12 +2659,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       onMouseDown={e => startResize(col, e, w ?? (e.currentTarget.parentElement?.offsetWidth ?? 160))}
                       className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/resize z-10"
                     >
-                      <div className="w-px h-4 bg-stone-200 dark:bg-white/[.06] group-hover/resize:bg-indigo-400/50 transition-colors"/>
+                      <div className="w-px h-4 bg-stone-200 dark:bg-white/[.06] group-hover/resize:bg-stone-400/50 transition-colors"/>
                     </div>
                   </th>
                 );
               })}
-              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
+              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors">
                   <Calendar size={11}/>
                   <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
@@ -2674,7 +2674,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {/* Add column */}
               <th
                 ref={addColHeaderRef}
-                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0b0d10] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] relative"
+                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] relative"
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
@@ -2735,12 +2735,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </tbody>
           <tfoot className="sticky bottom-0 z-20">
             <tr>
-              <td className="w-8 min-w-[32px] max-w-[32px] bg-stone-50 dark:bg-[#0d0f13] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-30" />
-              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-stone-50 dark:bg-[#0d0f13] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-30"/>}
+              <td className="w-8 min-w-[32px] max-w-[32px] bg-stone-50 dark:bg-[#141414] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-30" />
+              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-stone-50 dark:bg-[#141414] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-30"/>}
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-stone-50 dark:bg-[#0d0f13] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-stone-50 dark:bg-[#141414] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
@@ -2762,15 +2762,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     ) : (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
                         className="flex items-center gap-1 text-[11px] text-stone-700 hover:text-stone-400 transition-colors group">
-                        <Plus size={10} className="group-hover:text-indigo-400 transition-colors"/>
+                        <Plus size={10} className="group-hover:text-stone-400 transition-colors"/>
                         <span>Calculate</span>
                       </button>
                     )}
                   </div>
                 </td>
               ))}
-              <td className="px-3 py-3 text-[12px] text-stone-700 tabular-nums bg-[#0d0f13] border-t border-t-zinc-800/60">{sorted.length} rows</td>
-              <td className="bg-[#0d0f13] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
+              <td className="px-3 py-3 text-[12px] text-stone-700 tabular-nums bg-[#141414] border-t border-t-zinc-800/60">{sorted.length} rows</td>
+              <td className="bg-[#141414] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
             </tr>
           </tfoot>
         </table>
@@ -2815,7 +2815,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               }
               setColCtxMenu(null);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-stone-400 hover:bg-stone-500/10 transition-colors"
           >
             <Trash2 size={12}/> Remove column
           </button>
@@ -2839,7 +2839,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
             >
               {colMeta[colCtxMenu.col]?.required
-                ? <><Check size={12} className="text-indigo-400"/> Required (click to remove)</>
+                ? <><Check size={12} className="text-stone-400"/> Required (click to remove)</>
                 : <><Plus size={12}/> Mark as required</>
               }
             </button>

@@ -21,8 +21,9 @@
   --text-secondary:   #b5b5b1;
   --text-muted:       #888884;
   --text-faint:       #5c5c58;
-  --accent:           #6366f1;
-  --accent-hover:     #818cf8;
+  /* matte accent — warm taupe, no blue/indigo (mono, landing-aligned) */
+  --accent:           #8a857d;
+  --accent-hover:     #a8a29a;
 
   /* legacy aliases — kept so existing var() usages don't break */
   --md-bg:          var(--surface-page);
@@ -48,8 +49,9 @@ html[data-theme="light"] {
   --text-secondary:   #404040;
   --text-muted:       #737373;
   --text-faint:       #a3a3a3;
-  --accent:           #4f46e5;
-  --accent-hover:     #4338ca;
+  /* matte accent — warm taupe, no blue/indigo */
+  --accent:           #57534e;
+  --accent-hover:     #44403c;
 
   --md-bg:          var(--surface-page);
   --md-bg-panel:    var(--surface-card);

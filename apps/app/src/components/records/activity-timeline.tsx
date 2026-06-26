@@ -26,7 +26,7 @@ function actorIcon(type: string) {
 
 function actionColor(action: string) {
   if (action === "created") return "text-emerald-400";
-  if (action === "deleted") return "text-indigo-400";
+  if (action === "deleted") return "text-stone-400";
   if (action === "enriched") return "text-violet-400";
   return "text-stone-400";
 }
@@ -92,7 +92,7 @@ export function ActivityTimeline({ nodeId, onClose }: { nodeId: string; onClose:
               <div className="space-y-4">
                 {activities.map(item => (
                   <div key={item.id} className="flex gap-3 relative">
-                    <div className="h-6 w-6 rounded-full border border-white/[.08] bg-[#0d0f13] flex items-center justify-center flex-shrink-0 z-10">
+                    <div className="h-6 w-6 rounded-full border border-white/[.08] bg-[#141414] flex items-center justify-center flex-shrink-0 z-10">
                       {actorIcon(item.actor_type)}
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">

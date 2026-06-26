@@ -183,7 +183,7 @@ export function ReportsPage() {
                             </span>
                           )}
                           {reportCount > 0 && (
-                            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+                            <span className="rounded-full border border-stone-500/20 bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-400">
                               {reportCount} chart{reportCount !== 1 ? "s" : ""}
                             </span>
                           )}
@@ -198,7 +198,7 @@ export function ReportsPage() {
                           {bars.map((h, i) => (
                             <div
                               key={i}
-                              className="flex-1 rounded-t-sm bg-indigo-500 transition-all"
+                              className="flex-1 rounded-t-sm bg-stone-500 transition-all"
                               style={{ height: h, opacity: 0.18 + i * 0.045 }}
                             />
                           ))}
@@ -208,7 +208,7 @@ export function ReportsPage() {
                   </div>
                   {/* Info row */}
                   <div className="flex items-center gap-2 px-4 py-3 border-t" style={{ borderColor: "var(--border-soft)" }}>
-                    <LayoutDashboard size={13} className="text-indigo-500 dark:text-indigo-400 shrink-0"/>
+                    <LayoutDashboard size={13} className="text-stone-500 dark:text-stone-400 shrink-0"/>
                     <h3 className="flex-1 truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{dashboard.name || "Untitled dashboard"}</h3>
                     <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>
                       {new Date(dashboard.updated_at).toLocaleDateString([], { month: "short", day: "numeric" })}

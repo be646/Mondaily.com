@@ -67,7 +67,7 @@ export function NoteEditor({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[.07] bg-[#0d0f13]">
+    <div className="overflow-hidden rounded-xl border border-white/[.07] bg-[#141414]">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 border-b border-white/[.06] px-3 py-2">
         {btn(editor.isActive("bold"),     () => editor.chain().focus().toggleBold().run(),        <Bold size={13} />,        "Bold")}
@@ -103,7 +103,7 @@ export function NoteEditor({
             type="button"
             disabled={saving || editor.isEmpty}
             onClick={onSave}
-            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-40 transition-all"
+            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg border border-stone-400/40 bg-stone-500 px-3 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-all"
           >
             <Send size={11} />
             {saving ? "Saving…" : "Save"}
@@ -116,7 +116,7 @@ export function NoteEditor({
         editor={editor}
         className="[&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-white [&_.ProseMirror_h2]:mt-3 [&_.ProseMirror_h2]:mb-1
           [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-white/20 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-stone-400
-          [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-white/[.05] [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-[12px] [&_.ProseMirror_code]:text-indigo-300
+          [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-white/[.05] [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-[12px] [&_.ProseMirror_code]:text-stone-300
           [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5
           [&_.ProseMirror_hr]:border-white/[.08] [&_.ProseMirror_hr]:my-3"
       />

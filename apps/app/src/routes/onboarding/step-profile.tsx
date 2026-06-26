@@ -21,7 +21,7 @@ export function StepProfile() {
     navigate("/onboarding/workspace");
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-stone-500/40 transition-colors";
 
   return (
     <div>
@@ -40,7 +40,7 @@ export function StepProfile() {
       <button
         onClick={continueSetup}
         disabled={!name.trim() || loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50"
       >
         {loading ? "Saving…" : "Continue"} {!loading && <ArrowRight size={13} />}
       </button>

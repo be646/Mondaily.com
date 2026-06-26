@@ -440,7 +440,7 @@ export function ListPage() {
               <div className="mx-2 my-1 border-t border-white/[.06]"/>
               <button
                 onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }}
-                className="dropdown-item w-full text-indigo-400 hover:text-indigo-300"
+                className="dropdown-item w-full text-stone-400 hover:text-stone-300"
               >
                 <Trash2 size={12}/> Delete list
               </button>
@@ -607,7 +607,7 @@ export function ListPage() {
           </div>
           <Link
             to={`/objects/${list.data.object_type}`}
-            className="mt-3 block text-[11px] transition-colors hover:text-indigo-400"
+            className="mt-3 block text-[11px] transition-colors hover:text-stone-400"
             style={{ color: "var(--text-muted)" }}
           >
             Go to {list.data.object_type} sheet →
@@ -686,7 +686,7 @@ export function ListPage() {
               <div className="mt-4 flex items-center justify-between gap-2">
                 <button
                   onClick={() => { setAiMatched(null); setAiPrompt(""); }}
-                  className="text-[11px] transition-colors hover:text-indigo-400"
+                  className="text-[11px] transition-colors hover:text-stone-400"
                   style={{ color: "var(--text-muted)" }}
                 >
                   Try again

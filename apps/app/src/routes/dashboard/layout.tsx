@@ -81,7 +81,7 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={onClose}/>
-      <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-white dark:bg-[#0b0d10] md:hidden">
+      <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-white dark:bg-[#0d0d0d] md:hidden">
         <Sidebar onMobileClose={onClose} />
       </div>
     </>

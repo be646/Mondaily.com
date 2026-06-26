@@ -343,13 +343,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
   const [creatingWs, setCreatingWs] = useState(false);
+  const [wsError, setWsError] = useState("");
 
   // Actually create a workspace (was a "coming soon" stub). On success, switch
   // to it and hard-reload so AuthGate re-bootstraps against the new workspace.
+  // Errors render inline in the modal — no blocking browser alert banner.
   async function createWorkspace() {
     const name = newWsName.trim();
     if (!name || creatingWs) return;
-    setCreatingWs(true);
+    setCreatingWs(true); setWsError("");
     try {
       const res = await apiClient.post<{ workspace_id?: string }>("/workspaces", { name });
       if (res?.workspace_id) {
@@ -358,9 +360,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         window.location.href = "/onboarding/profile";
         return;
       }
-      alert("Could not create the workspace. Please try again.");
+      setWsError("Could not create the workspace. Please try again.");
     } catch {
-      alert("Could not create the workspace. Please try again.");
+      setWsError("Could not create the workspace. Please try again.");
     } finally {
       setCreatingWs(false);
     }
@@ -567,7 +569,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       {newWorkspaceOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-[2px]" onClick={() => setNewWorkspaceOpen(false)}/>
-          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-white/[.09] dark:bg-[#0d0f13] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-white/[.09] dark:bg-[#141414] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-semibold text-[#111827] dark:text-white">Create workspace</span>
               <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-white/[.05] dark:hover:text-white transition-colors">
@@ -580,8 +582,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               onChange={e => setNewWsName(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") createWorkspace(); }}
               placeholder="e.g. Acme Corp, Personal…"
-              className="key-input w-full mb-4"
+              className="key-input w-full mb-2"
             />
+            {wsError && <p className="mb-3 text-[11px] text-rose-400">{wsError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
                 className="flex-1 rounded-xl border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-white/[.08] dark:text-stone-400 dark:hover:bg-white/[.04] transition-colors">
