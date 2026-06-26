@@ -18,54 +18,81 @@ import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
 import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard } from "./ask-shared";
 
-// ── Markdown renderer (same as home) ─────────────────────────────────────────
+// ── Markdown renderer — organized: ordered lists keep numbers, tables render as
+// real tables, headings/HR styled, tighter spacing. ─────────────────────────
 function renderMarkdown(text: string): React.ReactNode {
   const lines = text.split("\n");
   const nodes: React.ReactNode[] = [];
-  let listBuffer: string[] = [];
+  let list: { ordered: boolean; items: string[] } | null = null;
+  let table: string[][] | null = null;
 
   const flushList = (key: string) => {
-    if (!listBuffer.length) return;
+    if (!list) return;
+    const { ordered, items } = list;
     nodes.push(
-      <ul key={key} className="my-1.5 space-y-1 pl-1">
-        {listBuffer.map((item, i) => (
-          <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-stone-500"/>
-            <span className="leading-7">{inlineFormat(item)}</span>
-          </li>
-        ))}
-      </ul>
+      ordered ? (
+        <ol key={key} className="my-2 space-y-1.5 pl-1">
+          {items.map((item, i) => (
+            <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
+              <span className="mt-px shrink-0 text-[12px] font-semibold tabular-nums" style={{ color: "var(--text-faint)" }}>{i + 1}.</span>
+              <span className="leading-6">{inlineFormat(item)}</span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <ul key={key} className="my-2 space-y-1.5 pl-1">
+          {items.map((item, i) => (
+            <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
+              <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-stone-500"/>
+              <span className="leading-6">{inlineFormat(item)}</span>
+            </li>
+          ))}
+        </ul>
+      )
     );
-    listBuffer = [];
+    list = null;
+  };
+
+  const flushTable = (key: string) => {
+    if (!table || !table.length) { table = null; return; }
+    const head = table[0]!;
+    const rows = table.slice(1);
+    nodes.push(
+      <div key={key} className="my-2 overflow-x-auto rounded-lg border" style={{ borderColor: "var(--border-soft)" }}>
+        <table className="w-full text-left text-[12px]" style={{ borderCollapse: "collapse" }}>
+          <thead><tr>{head.map((c, j) => <th key={j} className="px-2.5 py-1.5 font-semibold" style={{ borderBottom: "1px solid var(--border-soft)", color: "var(--text-primary)" }}>{inlineFormat(c)}</th>)}</tr></thead>
+          <tbody>{rows.map((r, ri) => <tr key={ri}>{r.map((c, j) => <td key={j} className="px-2.5 py-1.5" style={{ borderBottom: ri < rows.length - 1 ? "1px solid var(--border-soft)" : undefined, color: "var(--text-secondary)" }}>{inlineFormat(c)}</td>)}</tr>)}</tbody>
+        </table>
+      </div>
+    );
+    table = null;
   };
 
   lines.forEach((line, i) => {
     const trimmed = line.trim();
-    if (!trimmed) { flushList(`l${i}`); nodes.push(<div key={i} className="h-2"/>); return; }
-    if (/^\|[-| :]+\|$/.test(trimmed)) return;
-    if (/^\|/.test(trimmed) && /\|$/.test(trimmed)) {
-      const cells = trimmed.split("|").map(c => c.trim()).filter(Boolean);
-      listBuffer.push(cells.join("  ·  "));
+    if (!trimmed) { flushList(`l${i}`); flushTable(`t${i}`); return; }
+    if (/^\|[-| :]+\|$/.test(trimmed)) return; // table separator
+    if (/^\|.*\|$/.test(trimmed)) {            // table row
+      flushList(`l${i}`);
+      (table ??= []).push(trimmed.replace(/^\||\|$/g, "").split("|").map(c => c.trim()));
       return;
     }
+    flushTable(`t${i}`);
     if (/^#{1,3}\s/.test(trimmed)) {
       flushList(`l${i}`);
-      const t = trimmed.replace(/^#{1,3}\s/, "");
-      nodes.push(<p key={i} className="mt-4 mb-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{t}</p>);
+      nodes.push(<p key={i} className="mt-3 mb-1 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{inlineFormat(trimmed.replace(/^#{1,3}\s/, ""))}</p>);
       return;
     }
-    if (/^---+$/.test(trimmed)) {
-      flushList(`l${i}`);
-      nodes.push(<hr key={i} className="my-3" style={{ borderColor: "var(--border-soft)" }}/>);
-      return;
-    }
-    if (/^[-*•]\s/.test(trimmed)) { listBuffer.push(trimmed.replace(/^[-*•]\s/, "")); return; }
-    if (/^\d+\.\s/.test(trimmed)) { listBuffer.push(trimmed.replace(/^\d+\.\s/, "")); return; }
+    if (/^---+$/.test(trimmed)) { flushList(`l${i}`); nodes.push(<hr key={i} className="my-3" style={{ borderColor: "var(--border-soft)" }}/>); return; }
+    const om = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (om) { if (!list || !list.ordered) { flushList(`l${i}`); list = { ordered: true, items: [] }; } list.items.push(om[2]!); return; }
+    const um = trimmed.match(/^[-*•]\s+(.*)$/);
+    if (um) { if (!list || list.ordered) { flushList(`l${i}`); list = { ordered: false, items: [] }; } list.items.push(um[1]!); return; }
     flushList(`l${i}`);
-    nodes.push(<p key={i} className="leading-7" style={{ color: "var(--text-secondary)" }}>{inlineFormat(trimmed)}</p>);
+    nodes.push(<p key={i} className="my-1 leading-6" style={{ color: "var(--text-secondary)" }}>{inlineFormat(trimmed)}</p>);
   });
-  flushList("end");
-  return <>{nodes}</>;
+  flushList("end"); flushTable("end-t");
+  return <div className="space-y-0.5">{nodes}</div>;
 }
 
 function inlineFormat(text: string): React.ReactNode {
@@ -175,6 +202,17 @@ export function AskMondaily() {
     return () => clearInterval(id);
   }, [loading]);
 
+  // Elapsed "time spent thinking" — a clean ticking counter while a reply is
+  // being generated (rolls from seconds into m:ss).
+  const [thinkingSeconds, setThinkingSeconds] = useState(0);
+  useEffect(() => {
+    if (!loading) { setThinkingSeconds(0); return; }
+    setThinkingSeconds(0);
+    const id = setInterval(() => setThinkingSeconds(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [loading]);
+  const fmtElapsed = (s: number) => (s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`);
+
   // Close picker on outside click
   useEffect(() => {
     if (!promptPickerOpen) return;
@@ -259,8 +297,10 @@ export function AskMondaily() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-stone-500"/>
               </span>
               {loading && (
-                <span className="text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-stone-500">
-                  {streamStatus ? streamStatus : tokenCount > 0 ? `${tokenCount} tokens` : `${GRAPH_REASONING_STEPS[thinkingStep]}…`}
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-stone-500">
+                  <span>{streamStatus ? streamStatus : tokenCount > 0 ? `${tokenCount} tokens` : `${GRAPH_REASONING_STEPS[thinkingStep]}…`}</span>
+                  <span className="opacity-50">·</span>
+                  <span className="tabular-nums">{fmtElapsed(thinkingSeconds)}</span>
                 </span>
               )}
             </h1>
