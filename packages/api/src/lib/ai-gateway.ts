@@ -170,9 +170,10 @@ function openAIClient(): OpenAI {
   return new OpenAI({
     baseURL: baseURL ?? "https://api.openai.com/v1",
     apiKey: apiKey ?? "missing-key",
-    // Never hang forever on a provider stall; retry transient network/5xx/429.
-    timeout: 45000,
-    maxRetries: 2,
+    // Fail FAST + clean on a provider stall (was 45s×2 ≈ 135s worst case, which
+    // froze the chat). Short timeout, one quick retry for transient 5xx/429.
+    timeout: 22000,
+    maxRetries: 1,
   });
 }
 
@@ -405,7 +406,9 @@ async function runOpenAICompatAgent(
     );
   }
 
-  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 2 });
+  // Non-streaming agent: short timeout + 1 retry so a stall fails fast and
+  // bubbles up to the graceful reply instead of hanging the request.
+  const client = new OpenAI({ baseURL, apiKey, timeout: 25000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -606,7 +609,19 @@ export async function aiGatewayAgentStream(
   }
 
   try {
-    return await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
+    const r = await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
+    // If the stream finished but produced NO user-facing text (a tool-only or
+    // reasoning-only round), recover with a clean non-streaming call so the user
+    // never sees an empty "No response." — mirrors the non-streaming fallback.
+    if (!r.reply || !r.reply.trim()) {
+      console.warn(`[gateway:agent-stream] empty streamed reply — recovering via non-streaming`);
+      const fb = await aiGatewayAgent(effectiveReq).catch(() => null);
+      if (fb?.reply?.trim()) {
+        await onEvent({ type: "token", text: fb.reply });
+        return { ...fb, usage: r.usage ?? fb.usage };
+      }
+    }
+    return r;
   } catch (err: any) {
     console.error(`[gateway:agent-stream] streaming failed: ${err?.message} — falling back to non-streaming`);
     const r = await aiGatewayAgent(effectiveReq).catch(() => null);
@@ -625,7 +640,10 @@ async function runOpenAICompatAgentStream(
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 2 });
+  // Streaming agent: a streamed answer legitimately runs longer than a single
+  // call, so keep a moderate timeout but trim retries to 1 so a stall fails in
+  // one window instead of stacking. Mid-stream drops are handled below.
+  const client = new OpenAI({ baseURL, apiKey, timeout: 40000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,

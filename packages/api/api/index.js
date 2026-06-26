@@ -69734,9 +69734,10 @@ function openAIClient() {
   return new openai_default({
     baseURL: baseURL ?? "https://api.openai.com/v1",
     apiKey: apiKey ?? "missing-key",
-    // Never hang forever on a provider stall; retry transient network/5xx/429.
-    timeout: 45e3,
-    maxRetries: 2
+    // Fail FAST + clean on a provider stall (was 45s×2 ≈ 135s worst case, which
+    // froze the chat). Short timeout, one quick retry for transient 5xx/429.
+    timeout: 22e3,
+    maxRetries: 1
   });
 }
 async function aiGateway(req) {
@@ -69867,7 +69868,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
-  const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 2 });
+  const client = new openai_default({ baseURL, apiKey, timeout: 25e3, maxRetries: 1 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -70004,7 +70005,16 @@ async function aiGatewayAgentStream(req, onEvent) {
     return r2;
   }
   try {
-    return await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
+    const r2 = await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
+    if (!r2.reply || !r2.reply.trim()) {
+      console.warn(`[gateway:agent-stream] empty streamed reply \u2014 recovering via non-streaming`);
+      const fb = await aiGatewayAgent(effectiveReq).catch(() => null);
+      if (fb?.reply?.trim()) {
+        await onEvent({ type: "token", text: fb.reply });
+        return { ...fb, usage: r2.usage ?? fb.usage };
+      }
+    }
+    return r2;
   } catch (err2) {
     console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 falling back to non-streaming`);
     const r2 = await aiGatewayAgent(effectiveReq).catch(() => null);
@@ -70017,7 +70027,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 2 });
+  const client = new openai_default({ baseURL, apiKey, timeout: 4e4, maxRetries: 1 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -78335,7 +78345,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.5.0-nlsort" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.6.0-harden" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;
