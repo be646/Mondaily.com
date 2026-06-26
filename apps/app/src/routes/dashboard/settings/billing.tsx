@@ -35,10 +35,13 @@ interface Billing {
   next_billing_date?: string;
   card_last4?: string;
   invoices: Invoice[];
+  trial_ends_at?: string | null;
+  trial_days_left?: number | null;
 }
 
 const PLAN_COLORS: Record<string, string> = {
   free: "bg-white/[.05] text-slate-400",
+  trial: "bg-emerald-500/10 text-emerald-300",
   pro: "bg-blue-500/10 text-blue-300",
   business: "bg-violet-500/10 text-violet-300",
   enterprise: "bg-amber-500/10 text-amber-300",
@@ -54,6 +57,19 @@ export function BillingSettings() {
   return (
     <div className="space-y-5">
       <PageHeader title="Billing" description="Manage your plan, payment details, and invoice history." />
+
+      {/* Trial banner — visible while the 14-day trial is running */}
+      {billing.plan === "trial" && typeof billing.trial_days_left === "number" && (
+        <div className="rounded-2xl border px-5 py-3.5 text-sm" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          {billing.trial_days_left > 0 ? (
+            <span style={{ color: "var(--text-primary)" }}>
+              <strong>{billing.trial_days_left} day{billing.trial_days_left === 1 ? "" : "s"} left</strong> in your free trial. Upgrade any time to keep full access.
+            </span>
+          ) : (
+            <span style={{ color: "var(--text-primary)" }}>Your free trial has ended — upgrade to keep full access.</span>
+          )}
+        </div>
+      )}
 
       {/* ── Plan ── */}
       <section className="settings-section">

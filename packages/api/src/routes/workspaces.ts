@@ -55,4 +55,33 @@ router.get("/mine", requireJwt, async (c) => {
   return c.json({ workspaces });
 });
 
+/**
+ * Create a new workspace and make the caller its owner. Starts a 14-day trial
+ * from creation (plan="trial" + settings.trial_ends_at). requireJwt (not
+ * requireAuth) so a user can create a workspace without already belonging to one.
+ */
+router.post("/", requireJwt, async (c) => {
+  const userId = c.get("userId");
+  const body = await c.req.json<{ name?: string }>().catch(() => ({} as { name?: string }));
+  const name = (body.name ?? "").trim();
+  if (!name) return c.json({ error: "Workspace name is required." }, 400);
+
+  const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "workspace"}-${Math.random().toString(36).slice(2, 6)}`;
+  const trialEndsAt = new Date(Date.now() + 14 * 86_400_000).toISOString();
+
+  const { data: ws, error } = await supabase
+    .from("workspaces")
+    .insert({ name, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } })
+    .select("id, name")
+    .single();
+  if (error || !ws) return c.json({ error: error?.message ?? "Could not create workspace." }, 500);
+
+  const { error: memberErr } = await supabase
+    .from("workspace_members")
+    .insert({ workspace_id: ws.id, user_id: userId, role: "owner" });
+  if (memberErr) return c.json({ error: memberErr.message }, 500);
+
+  return c.json({ workspace_id: ws.id, name: ws.name, trial_ends_at: trialEndsAt }, 201);
+});
+
 export { router as workspacesRouter };

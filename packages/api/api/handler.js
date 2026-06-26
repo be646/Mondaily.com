@@ -73408,8 +73408,18 @@ router12.get("/settings/email", async (c2) => {
   return c2.json({ providers: [{ id: "gmail", name: "Gmail", connected: Boolean(integrations.gmail) }, { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }] });
 });
 router12.get("/billing", async (c2) => {
-  const { data } = await supabase.from("workspaces").select("plan").eq("id", c2.get("workspaceId")).single();
-  return c2.json({ plan: data?.plan ?? "free", seats_used: 1, seats_limit: 3, invoices: [] });
+  const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c2.get("workspaceId")).single();
+  const settings = data?.settings ?? {};
+  const trialEndsAt = settings.trial_ends_at;
+  const trialDaysLeft = trialEndsAt ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 864e5)) : null;
+  return c2.json({
+    plan: data?.plan ?? "free",
+    seats_used: 1,
+    seats_limit: 3,
+    invoices: [],
+    trial_ends_at: trialEndsAt ?? null,
+    trial_days_left: trialDaysLeft
+  });
 });
 router12.post("/invites", async (c2) => {
   const { data: membership } = await supabase.from("workspace_members").select("role").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).single();
@@ -76709,7 +76719,8 @@ router36.post("/bootstrap", requireJwt, async (c2) => {
   if (!workspaceId) {
     isNew = true;
     const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 7);
-    const insertPayload = { name: workspaceName, slug };
+    const trialEndsAt = new Date(Date.now() + 14 * 864e5).toISOString();
+    const insertPayload = { name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } };
     if (clerk_org_id) insertPayload.clerk_org_id = clerk_org_id;
     try {
       const { data: created, error: createError2 } = await supabase.from("workspaces").insert(insertPayload).select("id").single();
@@ -76717,7 +76728,7 @@ router36.post("/bootstrap", requireJwt, async (c2) => {
     } catch {
     }
     if (!workspaceId && clerk_org_id) {
-      const { data: created, error: createError2 } = await supabase.from("workspaces").insert({ name: workspaceName, slug }).select("id").single();
+      const { data: created, error: createError2 } = await supabase.from("workspaces").insert({ name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } }).select("id").single();
       if (createError2) return c2.json({ error: createError2.message }, 500);
       workspaceId = created.id;
     } else if (!workspaceId) {
@@ -76946,6 +76957,19 @@ router38.get("/mine", requireJwt, async (c2) => {
   );
   workspaces.sort((a2, b2) => b2.counts.tasks + b2.counts.lists + b2.counts.nodes - (a2.counts.tasks + a2.counts.lists + a2.counts.nodes));
   return c2.json({ workspaces });
+});
+router38.post("/", requireJwt, async (c2) => {
+  const userId = c2.get("userId");
+  const body = await c2.req.json().catch(() => ({}));
+  const name17 = (body.name ?? "").trim();
+  if (!name17) return c2.json({ error: "Workspace name is required." }, 400);
+  const slug = `${name17.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "workspace"}-${Math.random().toString(36).slice(2, 6)}`;
+  const trialEndsAt = new Date(Date.now() + 14 * 864e5).toISOString();
+  const { data: ws, error } = await supabase.from("workspaces").insert({ name: name17, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } }).select("id, name").single();
+  if (error || !ws) return c2.json({ error: error?.message ?? "Could not create workspace." }, 500);
+  const { error: memberErr } = await supabase.from("workspace_members").insert({ workspace_id: ws.id, user_id: userId, role: "owner" });
+  if (memberErr) return c2.json({ error: memberErr.message }, 500);
+  return c2.json({ workspace_id: ws.id, name: ws.name, trial_ends_at: trialEndsAt }, 201);
 });
 
 // src/app.ts

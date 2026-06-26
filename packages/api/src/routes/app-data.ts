@@ -482,8 +482,18 @@ router.get("/settings/email", async (c) => {
   return c.json({ providers: [{ id: "gmail", name: "Gmail", connected: Boolean(integrations.gmail) }, { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }] });
 });
 router.get("/billing", async (c) => {
-  const { data } = await supabase.from("workspaces").select("plan").eq("id", c.get("workspaceId")).single();
-  return c.json({ plan: data?.plan ?? "free", seats_used: 1, seats_limit: 3, invoices: [] });
+  const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c.get("workspaceId")).single();
+  const settings = (data?.settings as Record<string, unknown> | null) ?? {};
+  const trialEndsAt = settings.trial_ends_at as string | undefined;
+  const trialDaysLeft = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
+    : null;
+  return c.json({
+    plan: data?.plan ?? "free",
+    seats_used: 1, seats_limit: 3, invoices: [],
+    trial_ends_at: trialEndsAt ?? null,
+    trial_days_left: trialDaysLeft,
+  });
 });
 
 router.post("/invites", async (c) => {

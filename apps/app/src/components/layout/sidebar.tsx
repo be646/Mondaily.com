@@ -342,6 +342,29 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [newWorkspaceOpen, setNewWorkspaceOpen] = useState(false);
   const [newWsName, setNewWsName] = useState("");
+  const [creatingWs, setCreatingWs] = useState(false);
+
+  // Actually create a workspace (was a "coming soon" stub). On success, switch
+  // to it and hard-reload so AuthGate re-bootstraps against the new workspace.
+  async function createWorkspace() {
+    const name = newWsName.trim();
+    if (!name || creatingWs) return;
+    setCreatingWs(true);
+    try {
+      const res = await apiClient.post<{ workspace_id?: string }>("/workspaces", { name });
+      if (res?.workspace_id) {
+        localStorage.setItem("mondaily_workspace_id", res.workspace_id);
+        localStorage.setItem("mondaily_needs_onboarding", "1");
+        window.location.href = "/onboarding/profile";
+        return;
+      }
+      alert("Could not create the workspace. Please try again.");
+    } catch {
+      alert("Could not create the workspace. Please try again.");
+    } finally {
+      setCreatingWs(false);
+    }
+  }
 
   useEffect(() => {
     const email = user?.primaryEmailAddress?.emailAddress;
@@ -555,13 +578,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             <input
               value={newWsName}
               onChange={e => setNewWsName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter" && newWsName.trim()) {
-                  alert(`Workspace "${newWsName}" — coming soon!`);
-                  setNewWorkspaceOpen(false);
-                  setNewWsName("");
-                }
-              }}
+              onKeyDown={e => { if (e.key === "Enter") createWorkspace(); }}
               placeholder="e.g. Acme Corp, Personal…"
               className="key-input w-full mb-4"
             />
@@ -571,10 +588,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 Cancel
               </button>
               <button
-                onClick={() => { if (newWsName.trim()) { alert(`Workspace "${newWsName}" will be created. Coming soon!`); setNewWorkspaceOpen(false); setNewWsName(""); } }}
-                className="flex-1 rounded-xl bg-neutral-950 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 dark:bg-white dark:text-black transition-opacity"
+                onClick={createWorkspace}
+                disabled={creatingWs || !newWsName.trim()}
+                className="flex-1 rounded-xl bg-neutral-950 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black transition-opacity"
               >
-                Create
+                {creatingWs ? "Creating…" : "Create"}
               </button>
             </div>
           </div>

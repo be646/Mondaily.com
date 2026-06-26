@@ -51,7 +51,9 @@ router.post("/bootstrap", requireJwt, async (c) => {
     isNew = true;
     const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
       + "-" + Math.random().toString(36).slice(2, 7);
-    const insertPayload: Record<string, unknown> = { name: workspaceName, slug };
+    // Every brand-new workspace starts a 14-day trial from registration.
+    const trialEndsAt = new Date(Date.now() + 14 * 86_400_000).toISOString();
+    const insertPayload: Record<string, unknown> = { name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } };
     if (clerk_org_id) insertPayload.clerk_org_id = clerk_org_id;
     try {
       const { data: created, error: createError } = await supabase
@@ -65,7 +67,7 @@ router.post("/bootstrap", requireJwt, async (c) => {
     if (!workspaceId && clerk_org_id) {
       const { data: created, error: createError } = await supabase
         .from("workspaces")
-        .insert({ name: workspaceName, slug })
+        .insert({ name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } })
         .select("id")
         .single();
       if (createError) return c.json({ error: createError.message }, 500);
