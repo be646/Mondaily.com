@@ -56,6 +56,8 @@ export type GatewayToolRequest = {
   };
   maxTokens?: number;
   system?: string;
+  /** Optional model spec override (e.g. the fast model for cheap batch scoring). */
+  model?: string;
 };
 
 // ── Internal routing ────────────────────────────────────────────────────────────
@@ -210,7 +212,7 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
 // ── Structured tool-use extraction ─────────────────────────────────────────────
 
 export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<string, unknown>> {
-  const resolved = resolveModel();
+  const resolved = resolveModel(req.model);
 
   if (resolved.type === "anthropic") {
     const apiKey = getAnthropicKey();

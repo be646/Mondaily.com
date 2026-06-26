@@ -25,6 +25,9 @@ function factorsFrom(signals: Record<string, unknown>): { label: string; value: 
   const out: { label: string; value: string; tone: "up" | "down" | "flat" }[] = [];
   const num = (v: unknown) => (typeof v === "number" ? v : null);
 
+  const aiIntent = num(signals.ai_intent);
+  if (aiIntent != null) out.push({ label: "AI intent read", value: `${aiIntent}/100`, tone: aiIntent >= 60 ? "up" : aiIntent < 40 ? "down" : "flat" });
+
   if (signals.stage != null) {
     const intent = num(signals.stage_intent) ?? 0;
     out.push({ label: "Stage", value: String(signals.stage), tone: intent > 0 ? "up" : intent < 0 ? "down" : "flat" });
@@ -87,6 +90,12 @@ export function LeadScoreBadge({ score, size = "sm", signals }: Props) {
               </span>
             </div>
           ))}
+          {typeof signals?.ai_reason === "string" && signals.ai_reason && (
+            <p className="mt-2 text-[10.5px] italic leading-snug" style={{ color: "var(--text-muted)" }}>
+              <span className="not-italic font-semibold" style={{ color: "var(--text-faint)" }}>AI: </span>
+              {signals.ai_reason as string}
+            </p>
+          )}
         </div>
       )}
     </div>

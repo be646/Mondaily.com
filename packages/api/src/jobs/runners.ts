@@ -548,14 +548,11 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
       }
 
       const nowIso = new Date().toISOString();
-      const updates = deals.map((deal) => {
+
+      // ── 1) Deterministic heuristic base — fast, every deal, transparent. ──
+      const heuristics = deals.map((deal) => {
         const d = (deal.data ?? {}) as Record<string, unknown>;
         const signals: Record<string, unknown> = {};
-        // Lower base + smaller flat bonuses so the score actually SPREADS for
-        // prioritisation: pipeline stage and deal value (the things that vary
-        // most deal-to-deal) drive the number, while recency/activity nudge
-        // rather than dominate (otherwise an all-recent, all-active pipeline
-        // clamps everyone at 100).
         let score = 30;
 
         const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "");
@@ -586,8 +583,43 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         signals.enriched = enriched;
         if (enriched) score += 4;
 
-        return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
+        return { deal, d, heuristicScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
+
+      // ── 2) Real AI intent read — the fast model reads each deal's actual
+      // content (stage, value, recency, activity, notes) and rates buying
+      // intent 0-100 with a one-line reason, blended 50/50 with the heuristic.
+      // Runs in parallel chunks; on any error that deal falls back to heuristic
+      // only. This is what makes the "AI Score" genuinely AI, not just rules. ──
+      const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+      const AICHUNK = 6;
+      const updates: { id: string; finalScore: number; signals: Record<string, unknown> }[] = [];
+      for (let i = 0; i < heuristics.length; i += AICHUNK) {
+        const batch = await Promise.all(heuristics.slice(i, i + AICHUNK).map(async (h) => {
+          const { deal, d, heuristicScore, signals } = h;
+          signals.heuristic_score = heuristicScore;
+          const name = String(d.name ?? d.title ?? "Untitled deal");
+          const notes = String(d.notes ?? d.description ?? d.summary ?? d.next_step ?? "");
+          const ai = await aiGatewayToolUse({
+            model: FAST,
+            maxTokens: 220,
+            prompt: `Rate this sales deal's buying intent from 0 (cold/dead) to 100 (ready to close). Weigh the evidence and be decisive.\nName: ${name}\nStage: ${signals.stage ?? "?"}\nValue: ${signals.deal_value ?? "?"}\nDays since last update: ${signals.days_since_update}\nActivity last 30d: ${signals.recent_activity_30d}\nNotes: ${notes.slice(0, 600) || "(none)"}`,
+            toolName: "score_intent",
+            toolDescription: "Return a buying-intent score (0-100) and a one-line reason.",
+            toolSchema: { type: "object", properties: { intent: { type: "number" }, reason: { type: "string" } }, required: ["intent"] },
+          }).catch(() => null);
+
+          let finalScore = heuristicScore;
+          const aiIntent = ai && typeof ai.intent === "number" ? Math.max(0, Math.min(100, Math.round(ai.intent as number))) : null;
+          if (aiIntent !== null) {
+            signals.ai_intent = aiIntent;
+            if (ai && typeof ai.reason === "string") signals.ai_reason = (ai.reason as string).slice(0, 240);
+            finalScore = Math.round(0.5 * heuristicScore + 0.5 * aiIntent);
+          }
+          return { id: deal.id, finalScore, signals };
+        }));
+        updates.push(...batch);
+      }
 
       // Count REAL writes. supabase-js resolves update() with an { error }
       // object instead of throwing, so a missing column / RLS denial would
