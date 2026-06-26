@@ -129,4 +129,18 @@ router.get("/callback", async (c) => {
   }
 });
 
+// Reveal this workspace's MCP key + endpoint so a user can configure an external
+// AI client (Claude Desktop, an IDE, etc.). Authed — only a workspace member can
+// see their own key. The key grants read-only access to the whole graph.
+router.get("/mcp-token", requireAuth, async (c) => {
+  const { mintMcpToken } = await import("../lib/mcp-token");
+  const base = process.env.API_BASE_URL || "https://api.mondaily.com";
+  return c.json({
+    token: mintMcpToken(c.get("workspaceId")),
+    url: `${base}/api/mcp`,
+    transport: "streamable-http",
+    note: "Use as Authorization: Bearer <token>. Read-only access to this workspace's records.",
+  });
+});
+
 export { router as integrationsRouter };

@@ -1209,7 +1209,7 @@ var require_supports_color = __commonJS({
         return 1;
       }
       if ("CI" in env2) {
-        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign2) => sign2 in env2) || env2.CI_NAME === "codeship") {
+        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign3) => sign3 in env2) || env2.CI_NAME === "codeship") {
           return 1;
         }
         return min;
@@ -4886,7 +4886,7 @@ var require_lib = __commonJS({
     "use strict";
     var conversions = {};
     module2.exports = conversions;
-    function sign2(x2) {
+    function sign3(x2) {
       return x2 < 0 ? -1 : 1;
     }
     function evenRound(x2) {
@@ -4911,7 +4911,7 @@ var require_lib = __commonJS({
           if (!Number.isFinite(x2)) {
             throw new TypeError("Argument is not a finite number");
           }
-          x2 = sign2(x2) * Math.floor(Math.abs(x2));
+          x2 = sign3(x2) * Math.floor(Math.abs(x2));
           if (x2 < lowerBound || x2 > upperBound) {
             throw new TypeError("Argument is not in byte range");
           }
@@ -4926,7 +4926,7 @@ var require_lib = __commonJS({
         if (!Number.isFinite(x2) || x2 === 0) {
           return 0;
         }
-        x2 = sign2(x2) * Math.floor(Math.abs(x2));
+        x2 = sign3(x2) * Math.floor(Math.abs(x2));
         x2 = x2 % moduloVal;
         if (!typeOpts.unsigned && x2 >= moduloBound) {
           return x2 - moduloVal;
@@ -10655,8 +10655,8 @@ function getCryptoAlgorithm(algorithmName) {
     name: jwksAlgToCryptoAlg[algorithmName]
   };
 }
-function pemToBuffer(secret2) {
-  const trimmed = secret2.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
+function pemToBuffer(secret3) {
+  const trimmed = secret3.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
   const decoded = isomorphicAtob(trimmed);
   const buffer = new ArrayBuffer(decoded.length);
   const bufView = new Uint8Array(buffer);
@@ -12688,10 +12688,10 @@ async function verifyOAuthToken(accessToken, options) {
     return handleClerkAPIError(TokenType.OAuthToken, err2, "OAuth token not found");
   }
 }
-async function verifyAPIKey(secret2, options) {
+async function verifyAPIKey(secret3, options) {
   try {
     const client = createBackendApiClient(options);
-    const verifiedToken = await client.apiKeys.verify(secret2);
+    const verifiedToken = await client.apiKeys.verify(secret3);
     return { data: verifiedToken, tokenType: TokenType.ApiKey, errors: void 0 };
   } catch (err2) {
     return handleClerkAPIError(TokenType.ApiKey, err2, "API key not found");
@@ -13604,11 +13604,11 @@ var init_chunk_H3NCOZAT = __esm({
           path: joinPaths(basePath5, apiKeyId, "secret")
         });
       }
-      async verify(secret2) {
+      async verify(secret3) {
         return this.request({
           method: "POST",
           path: joinPaths(basePath5, "verify"),
-          bodyParams: { secret: secret2 }
+          bodyParams: { secret: secret3 }
         });
       }
     };
@@ -15238,7 +15238,7 @@ var init_chunk_H3NCOZAT = __esm({
       }
     };
     APIKey = class _APIKey {
-      constructor(id, type, name17, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret2) {
+      constructor(id, type, name17, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret3) {
         this.id = id;
         this.type = type;
         this.name = name17;
@@ -15254,7 +15254,7 @@ var init_chunk_H3NCOZAT = __esm({
         this.lastUsedAt = lastUsedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.secret = secret2;
+        this.secret = secret3;
       }
       static fromJSON(data) {
         return new _APIKey(
@@ -16062,8 +16062,8 @@ var init_chunk_H3NCOZAT = __esm({
       }
     };
     MachineSecretKey = class _MachineSecretKey {
-      constructor(secret2) {
-        this.secret = secret2;
+      constructor(secret3) {
+        this.secret = secret3;
       }
       static fromJSON(data) {
         return new _MachineSecretKey(data.secret);
@@ -18160,6 +18160,49 @@ var init_dist = __esm({
   }
 });
 
+// src/lib/mcp-token.ts
+var mcp_token_exports = {};
+__export(mcp_token_exports, {
+  mintMcpToken: () => mintMcpToken,
+  verifyMcpToken: () => verifyMcpToken
+});
+function secret2() {
+  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || process.env.CLERK_SECRET_KEY || "mondaily-dev-tracking-secret";
+}
+function sign2(payload) {
+  return b64url2((0, import_node_crypto4.createHmac)("sha256", secret2()).update(payload).digest());
+}
+function mintMcpToken(workspaceId) {
+  const p2 = b64url2(`mcp:${workspaceId}`);
+  return `msk_${p2}.${sign2(p2)}`;
+}
+function verifyMcpToken(token) {
+  if (!token || !token.startsWith("msk_")) return null;
+  const raw2 = token.slice(4);
+  const dot = raw2.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const p2 = raw2.slice(0, dot);
+  const sig = raw2.slice(dot + 1);
+  const expected = sign2(p2);
+  const a2 = Buffer.from(sig);
+  const b2 = Buffer.from(expected);
+  if (a2.length !== b2.length || !(0, import_node_crypto4.timingSafeEqual)(a2, b2)) return null;
+  try {
+    const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
+  } catch {
+    return null;
+  }
+}
+var import_node_crypto4, b64url2;
+var init_mcp_token = __esm({
+  "src/lib/mcp-token.ts"() {
+    "use strict";
+    import_node_crypto4 = require("crypto");
+    b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+});
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/compose.js
 var compose = (middleware, onError, onNotFound) => {
   return (context2, next) => {
@@ -20023,20 +20066,20 @@ var SmartRouter = class {
     let i2 = 0;
     let res;
     for (; i2 < len; i2++) {
-      const router40 = routers[i2];
+      const router41 = routers[i2];
       try {
         for (let i22 = 0, len2 = routes.length; i22 < len2; i22++) {
-          router40.add(...routes[i22]);
+          router41.add(...routes[i22]);
         }
-        res = router40.match(method, path);
+        res = router41.match(method, path);
       } catch (e2) {
         if (e2 instanceof UnsupportedPathError) {
           continue;
         }
         throw e2;
       }
-      this.match = router40.match.bind(router40);
-      this.#routers = [router40];
+      this.match = router41.match.bind(router41);
+      this.#routers = [router41];
       this.#routes = void 0;
       break;
     }
@@ -73511,10 +73554,10 @@ router10.post("/clerk", async (c2) => {
   const svixTimestamp = c2.req.header("svix-timestamp") ?? "";
   const svixSignature = c2.req.header("svix-signature") ?? "";
   const rawBody = await c2.req.text();
-  const secret2 = process.env.CLERK_WEBHOOK_SECRET ?? "";
-  if (secret2) {
+  const secret3 = process.env.CLERK_WEBHOOK_SECRET ?? "";
+  if (secret3) {
     const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
-    const secretBytes = Buffer.from(secret2.replace(/^whsec_/, ""), "base64");
+    const secretBytes = Buffer.from(secret3.replace(/^whsec_/, ""), "base64");
     const expected = (0, import_node_crypto2.createHmac)("sha256", secretBytes).update(signedContent).digest("base64");
     const signatures = svixSignature.split(" ").map((s3) => s3.replace(/^v1,/, ""));
     const valid = signatures.some((sig) => {
@@ -73543,9 +73586,9 @@ router10.post("/nylas", async (c2) => {
   if (challenge) return c2.text(challenge);
   const rawBody = await c2.req.text();
   const sig = c2.req.header("x-nylas-signature") ?? "";
-  const secret2 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
-  if (secret2 && sig) {
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secret2).update(rawBody).digest("hex");
+  const secret3 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
+  if (secret3 && sig) {
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secret3).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -73571,15 +73614,15 @@ router10.post("/nylas", async (c2) => {
 });
 router10.post("/stripe", async (c2) => {
   const sig = c2.req.header("stripe-signature") ?? "";
-  const secret2 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  const secret3 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   const rawBody = await c2.req.text();
-  if (secret2 && sig) {
+  if (secret3 && sig) {
     const parts = Object.fromEntries(sig.split(",").map((p2) => p2.split("=")));
     const timestamp = parts["t"] ?? "0";
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secret2).update(payload).digest("hex");
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secret3).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
     if (!(0, import_node_crypto2.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
@@ -74058,12 +74101,12 @@ router12.patch("/settings/integrations/:id", async (c2) => {
 });
 router12.post("/settings/integrations/api-keys", async (c2) => {
   const body = await c2.req.json();
-  const secret2 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
-  const bytes = new TextEncoder().encode(secret2);
+  const secret3 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
+  const bytes = new TextEncoder().encode(secret3);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hash = Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
-  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret2.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
-  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret2 }, 201);
+  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret3.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
+  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret3 }, 201);
 });
 router12.delete("/settings/integrations/api-keys/:id", async (c2) => {
   await supabase.from("api_keys").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
@@ -75964,8 +76007,8 @@ ${webContext}
     });
     const toolUse = data.content?.find((b2) => b2.type === "tool_use");
     const fields = toolUse?.input ?? {};
-    const clean = Object.fromEntries(Object.entries(fields).filter(([, v2]) => v2 != null));
-    return c2.json({ fields: clean, source: webContext ? "web" : "ai" });
+    const clean2 = Object.fromEntries(Object.entries(fields).filter(([, v2]) => v2 != null));
+    return c2.json({ fields: clean2, source: webContext ? "web" : "ai" });
   } catch (e2) {
     return c2.json({ error: e2.message }, 500);
   }
@@ -76020,8 +76063,8 @@ ${webContext}
     });
     const toolUse = data.content?.find((b2) => b2.type === "tool_use");
     const fields = toolUse?.input ?? {};
-    const clean = Object.fromEntries(Object.entries(fields).filter(([, v2]) => v2 != null));
-    return c2.json({ fields: clean, source: webContext ? "web" : "ai" });
+    const clean2 = Object.fromEntries(Object.entries(fields).filter(([, v2]) => v2 != null));
+    return c2.json({ fields: clean2, source: webContext ? "web" : "ai" });
   } catch (e2) {
     return c2.json({ error: e2.message }, 500);
   }
@@ -77866,13 +77909,13 @@ router38.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto4 = require("crypto");
+var import_node_crypto5 = require("crypto");
 var router39 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
-var b64url2 = (b2) => Buffer.from(b2).toString("base64url");
+var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
-  const body = b64url2(JSON.stringify(payload));
-  const sig = b64url2((0, import_node_crypto4.createHmac)("sha256", stateSecret()).update(body).digest());
+  const body = b64url3(JSON.stringify(payload));
+  const sig = b64url3((0, import_node_crypto5.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -77880,10 +77923,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url2((0, import_node_crypto4.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto5.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto4.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto5.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
@@ -77956,6 +77999,100 @@ router39.get("/callback", async (c2) => {
     return c2.html(popupHtml("Something went wrong connecting your inbox.", false));
   }
 });
+router39.get("/mcp-token", requireAuth, async (c2) => {
+  const { mintMcpToken: mintMcpToken2 } = await Promise.resolve().then(() => (init_mcp_token(), mcp_token_exports));
+  const base = process.env.API_BASE_URL || "https://api.mondaily.com";
+  return c2.json({
+    token: mintMcpToken2(c2.get("workspaceId")),
+    url: `${base}/api/mcp`,
+    transport: "streamable-http",
+    note: "Use as Authorization: Bearer <token>. Read-only access to this workspace's records."
+  });
+});
+
+// src/routes/mcp.ts
+init_mcp_token();
+var router40 = new Hono2();
+var TOOLS2 = [
+  {
+    name: "search_records",
+    description: "Search the workspace graph (contacts, companies, deals, tasks, invoices, notes, etc.) by keyword. Returns matching records with their id, type, and name.",
+    inputSchema: { type: "object", properties: { query: { type: "string", description: "Keyword(s) to search for" }, limit: { type: "number", description: "Max results (default 10, max 50)" } }, required: ["query"] }
+  },
+  {
+    name: "get_record",
+    description: "Fetch a single record from the workspace graph by its id, including its full data.",
+    inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] }
+  },
+  {
+    name: "list_recent",
+    description: "List the most recently updated records, optionally filtered by object_type (e.g. 'contact', 'deal', 'task', 'invoice').",
+    inputSchema: { type: "object", properties: { object_type: { type: "string" }, limit: { type: "number" } }, required: [] }
+  }
+];
+function summarize(n2) {
+  const d2 = n2.data ?? {};
+  return { id: n2.id, type: n2.object_type, name: d2.name ?? d2.title ?? d2.full_name ?? d2.company ?? null, updated_at: n2.updated_at };
+}
+var clean = (s3) => s3.replace(/[%,()]/g, " ").trim().slice(0, 200);
+async function runTool(workspaceId, name17, args) {
+  if (name17 === "search_records") {
+    const q2 = clean(String(args.query ?? ""));
+    const limit2 = Math.min(Number(args.limit) || 10, 50);
+    if (!q2) return [];
+    const { data } = await supabase.from("nodes").select("id,object_type,vertical,data,updated_at").eq("workspace_id", workspaceId).or(`data->>name.ilike.%${q2}%,data->>title.ilike.%${q2}%,data->>company.ilike.%${q2}%,data->>full_name.ilike.%${q2}%`).order("updated_at", { ascending: false }).limit(limit2);
+    return (data ?? []).map((n2) => summarize(n2));
+  }
+  if (name17 === "get_record") {
+    const { data } = await supabase.from("nodes").select("id,object_type,vertical,data,updated_at,lead_score,relationship_health").eq("workspace_id", workspaceId).eq("id", String(args.id ?? "")).maybeSingle();
+    if (!data) return { error: "Record not found in this workspace" };
+    return { ...summarize(data), lead_score: data.lead_score ?? null, data: data.data };
+  }
+  if (name17 === "list_recent") {
+    const limit2 = Math.min(Number(args.limit) || 10, 50);
+    let q2 = supabase.from("nodes").select("id,object_type,vertical,data,updated_at").eq("workspace_id", workspaceId);
+    if (args.object_type) q2 = q2.ilike("object_type", `%${clean(String(args.object_type))}%`);
+    const { data } = await q2.order("updated_at", { ascending: false }).limit(limit2);
+    return (data ?? []).map((n2) => summarize(n2));
+  }
+  throw new Error(`Unknown tool: ${name17}`);
+}
+router40.post("/", async (c2) => {
+  const token = (c2.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const workspaceId = verifyMcpToken(token);
+  const body = await c2.req.json().catch(() => null);
+  const handle = async (msg) => {
+    const id = msg?.id ?? null;
+    const method = msg?.method;
+    const isNotification = msg?.id === void 0 || msg?.id === null;
+    const reply = (result) => ({ jsonrpc: "2.0", id, result });
+    const fail = (code, message) => ({ jsonrpc: "2.0", id, error: { code, message } });
+    try {
+      if (method === "initialize") {
+        return reply({ protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "mondaily", version: "1.0.0" } });
+      }
+      if (method?.startsWith("notifications/")) return null;
+      if (method === "ping") return reply({});
+      if (!workspaceId) return fail(-32001, "Unauthorized: invalid or missing MCP key");
+      if (method === "tools/list") return reply({ tools: TOOLS2 });
+      if (method === "tools/call") {
+        const out = await runTool(workspaceId, String(msg?.params?.name ?? ""), msg?.params?.arguments ?? {});
+        return reply({ content: [{ type: "text", text: JSON.stringify(out, null, 2) }] });
+      }
+      if (isNotification) return null;
+      return fail(-32601, `Method not found: ${method}`);
+    } catch (e2) {
+      return fail(-32603, e2 instanceof Error ? e2.message : String(e2));
+    }
+  };
+  if (Array.isArray(body)) {
+    const out = (await Promise.all(body.map(handle))).filter(Boolean);
+    return out.length ? c2.json(out) : c2.body(null, 202);
+  }
+  const res = await handle(body);
+  return res ? c2.json(res) : c2.body(null, 202);
+});
+router40.get("/", (c2) => c2.json({ name: "mondaily-mcp", transport: "streamable-http", protocolVersion: "2024-11-05" }));
 
 // src/app.ts
 var app = new Hono2();
@@ -78007,16 +78144,17 @@ app.route("/api/v1/expenses", router34);
 app.route("/api/v1/tags", router35);
 app.route("/api/v1/onboarding", router36);
 app.route("/api/v1/integrations", router39);
+app.route("/api/mcp", router40);
 app.route("/api/v1", router12);
 var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
-  const secret2 = process.env.CRON_SECRET;
-  if (!secret2) {
+  const secret3 = process.env.CRON_SECRET;
+  if (!secret3) {
     return c2.json({ error: "Cron disabled \u2014 CRON_SECRET is not configured." }, 503);
   }
   const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
-  if (provided !== `Bearer ${secret2}`) {
+  if (provided !== `Bearer ${secret3}`) {
     return c2.json({ error: "Unauthorized" }, 401);
   }
   const only = c2.req.query("only");

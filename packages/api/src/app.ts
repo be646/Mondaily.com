@@ -47,6 +47,7 @@ import { prospectingRouter } from "./routes/prospecting";
 import { statusRouter } from "./routes/status";
 import { workspacesRouter } from "./routes/workspaces";
 import { integrationsRouter } from "./routes/integrations";
+import { mcpRouter } from "./routes/mcp";
 
 const app = new Hono();
 
@@ -105,6 +106,7 @@ app.route("/api/v1/expenses", expensesRouter);
 app.route("/api/v1/tags", tagsRouter);
 app.route("/api/v1/onboarding", onboardingRouter);
 app.route("/api/v1/integrations", integrationsRouter);
+app.route("/api/mcp", mcpRouter); // external AI clients (MCP), own key-based auth
 app.route("/api/v1", appDataRouter);
 
 const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger] });
