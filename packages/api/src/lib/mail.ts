@@ -1,17 +1,26 @@
 /**
- * Outbound mail — sends from a workspace's connected inbox via Nylas.
+ * Outbound mail with a two-tier delivery strategy.
  *
- * Best-effort: returns false (never throws) when Nylas isn't configured or the
- * workspace has no connected inbox, so callers can fall back gracefully (e.g.
- * still surface the invite link). Centralised here so invites, sequences, and
- * agent emails all send the same way.
+ *   1. PRIMARY  — send from the workspace's own connected inbox via Nylas
+ *                 (personal/corporate deliverability, replies land in their box).
+ *   2. FALLBACK — a transactional provider (Resend-shaped) keyed by
+ *                 TRANSACTIONAL_MAIL_API_KEY, so a brand-new workspace that has
+ *                 NOT connected an inbox yet can still send invites on day one.
+ *
+ * Best-effort: every path returns a boolean and never throws, so callers can
+ * surface the invite link as a manual fallback when neither route is configured.
  */
 import { supabase } from "@mondaily/db/client";
 
-export async function sendWorkspaceEmail(
-  workspaceId: string,
-  msg: { subject: string; body: string; to: { email: string; name?: string }[] },
-): Promise<boolean> {
+export type OutboundMessage = {
+  subject: string;
+  /** HTML body. */
+  body: string;
+  to: { email: string; name?: string }[];
+};
+
+/** PRIMARY: send from the workspace's connected inbox via Nylas. */
+async function sendViaNylas(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
   if (!process.env.NYLAS_API_KEY) return false;
   try {
     const { data: conn } = await supabase
@@ -21,7 +30,7 @@ export async function sendWorkspaceEmail(
       .limit(1)
       .maybeSingle();
     const grantId = (conn as { grant_id?: string } | null)?.grant_id;
-    if (!grantId) return false;
+    if (!grantId) return false; // no inbox connected yet → let the fallback take over
     const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
@@ -31,4 +40,35 @@ export async function sendWorkspaceEmail(
   } catch {
     return false;
   }
+}
+
+/** FALLBACK: transactional provider (Resend) for workspaces with no connected inbox. */
+async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
+  const key = process.env.TRANSACTIONAL_MAIL_API_KEY;
+  if (!key) return false;
+  const from = process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: msg.to.map((t) => t.email),
+        subject: msg.subject,
+        html: msg.body,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Send a workspace email: try the connected inbox first, then the transactional
+ * fallback. Returns true if either route accepted the message.
+ */
+export async function sendWorkspaceEmail(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
+  if (await sendViaNylas(workspaceId, msg)) return true;
+  return sendViaTransactional(msg);
 }

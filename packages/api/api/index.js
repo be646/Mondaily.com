@@ -75021,7 +75021,7 @@ router12.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/lib/mail.ts
-async function sendWorkspaceEmail(workspaceId, msg) {
+async function sendViaNylas2(workspaceId, msg) {
   if (!process.env.NYLAS_API_KEY) return false;
   try {
     const { data: conn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).maybeSingle();
@@ -75036,6 +75036,30 @@ async function sendWorkspaceEmail(workspaceId, msg) {
   } catch {
     return false;
   }
+}
+async function sendViaTransactional(msg) {
+  const key = process.env.TRANSACTIONAL_MAIL_API_KEY;
+  if (!key) return false;
+  const from = process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: msg.to.map((t2) => t2.email),
+        subject: msg.subject,
+        html: msg.body
+      })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+async function sendWorkspaceEmail(workspaceId, msg) {
+  if (await sendViaNylas2(workspaceId, msg)) return true;
+  return sendViaTransactional(msg);
 }
 
 // src/routes/invites.ts
