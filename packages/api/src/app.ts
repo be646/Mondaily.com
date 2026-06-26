@@ -127,7 +127,7 @@ app.get("/api/cron/daily", async (c) => {
   return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
 });
 
-app.get("/api/health", (c) => c.json({ ok: true, version: "1.0.0" }));
+app.get("/api/health", (c) => c.json({ ok: true, version: "1.1.0-leadscore" }));
 
 app.get("/api/debug-auth", async (c) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
