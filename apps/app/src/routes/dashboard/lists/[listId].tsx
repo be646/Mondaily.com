@@ -243,7 +243,7 @@ export function ListPage() {
                 value={list.data.name}
                 onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
                 onBlur={e => update.mutate({ name: e.target.value })}
-                className="min-w-0 flex-1 bg-transparent text-2xl font-semibold tracking-tight outline-none placeholder-stone-400 dark:placeholder-stone-600"
+                className="min-w-0 flex-1 bg-transparent text-xl font-semibold tracking-tight outline-none placeholder-stone-400 dark:placeholder-stone-600"
                 style={{ color: "var(--text-primary)" }}
               />
               <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
