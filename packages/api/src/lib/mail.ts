@@ -1,8 +1,8 @@
 /**
  * Outbound mail with a two-tier delivery strategy.
  *
- *   1. PRIMARY  — send from the workspace's own connected inbox via Nylas
- *                 (personal/corporate deliverability, replies land in their box).
+ *   1. PRIMARY  — send from the workspace's own connected inbox via the Gmail API
+ *                 (direct Google, no middleman — replies land in their box).
  *   2. FALLBACK — Resend (the same RESEND_API_KEY the digest mailer uses), so a
  *                 brand-new workspace that has NOT connected an inbox yet can
  *                 still send invites on day one.
@@ -11,6 +11,7 @@
  * surface the invite link as a manual fallback when neither route is configured.
  */
 import { supabase } from "@mondaily/db/client";
+import { freshAccessToken, gmailSend } from "./google";
 
 export type OutboundMessage = {
   subject: string;
@@ -19,24 +20,25 @@ export type OutboundMessage = {
   to: { email: string; name?: string }[];
 };
 
-/** PRIMARY: send from the workspace's connected inbox via Nylas. */
-async function sendViaNylas(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
-  if (!process.env.NYLAS_API_KEY) return false;
+/** PRIMARY: send from the workspace's connected Gmail inbox (direct Google API). */
+async function sendViaGoogle(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
   try {
     const { data: conn } = await supabase
       .from("email_connections")
-      .select("grant_id")
+      .select("id, refresh_token, access_token, token_expiry, email")
       .eq("workspace_id", workspaceId)
+      .eq("provider", "google")
       .limit(1)
       .maybeSingle();
-    const grantId = (conn as { grant_id?: string } | null)?.grant_id;
-    if (!grantId) return false; // no inbox connected yet → let the fallback take over
-    const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: msg.subject, body: msg.body, to: msg.to }),
+    if (!conn) return false; // no Google inbox connected → fall back
+    const token = await freshAccessToken(conn as { id: string; refresh_token?: string | null; access_token?: string | null; token_expiry?: string | null });
+    if (!token) return false;
+    return gmailSend(token, {
+      to: msg.to.map((t) => t.email),
+      subject: msg.subject,
+      html: msg.body,
+      from: (conn as { email?: string }).email || undefined,
     });
-    return res.ok;
   } catch {
     return false;
   }
@@ -71,6 +73,6 @@ async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
  * fallback. Returns true if either route accepted the message.
  */
 export async function sendWorkspaceEmail(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
-  if (await sendViaNylas(workspaceId, msg)) return true;
+  if (await sendViaGoogle(workspaceId, msg)) return true;
   return sendViaTransactional(msg);
 }

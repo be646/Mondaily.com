@@ -72458,6 +72458,151 @@ async function logDecisionTrainingExample(workspaceId, decision, action, editedO
   }
 }
 
+// src/lib/google.ts
+var TOKEN_URL = "https://oauth2.googleapis.com/token";
+var AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+var GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
+var GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  "https://www.googleapis.com/auth/gmail.send"
+];
+function googleConfigured() {
+  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+}
+function googleAuthUrl(redirectUri, state) {
+  const u2 = new URL(AUTH_URL);
+  u2.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID ?? "");
+  u2.searchParams.set("redirect_uri", redirectUri);
+  u2.searchParams.set("response_type", "code");
+  u2.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
+  u2.searchParams.set("access_type", "offline");
+  u2.searchParams.set("prompt", "consent");
+  u2.searchParams.set("include_granted_scopes", "true");
+  u2.searchParams.set("state", state);
+  return u2.toString();
+}
+function decodeJwtEmail(idToken) {
+  if (!idToken) return void 0;
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return void 0;
+    const json2 = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+    return typeof json2.email === "string" ? json2.email : void 0;
+  } catch {
+    return void 0;
+  }
+}
+async function exchangeCode(code, redirectUri) {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code"
+    })
+  });
+  if (!res.ok) {
+    console.error("[google] code exchange failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail(t2.id_token) };
+}
+async function freshAccessToken(conn) {
+  const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
+  if (stillValid) return conn.access_token;
+  if (!conn.refresh_token) return null;
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: conn.refresh_token,
+      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      grant_type: "refresh_token"
+    })
+  });
+  if (!res.ok) {
+    console.error("[google] token refresh failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  await supabase.from("email_connections").update({
+    access_token: t2.access_token,
+    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
+  }).eq("id", conn.id);
+  return t2.access_token;
+}
+async function gmailSend(accessToken, msg) {
+  const headers = [
+    `To: ${msg.to.join(", ")}`,
+    msg.from ? `From: ${msg.from}` : "",
+    `Subject: ${msg.subject}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "",
+    msg.html
+  ].filter(Boolean).join("\r\n");
+  const raw2 = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  try {
+    const res = await fetch(GMAIL_SEND_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ raw: raw2 })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// src/lib/mail.ts
+async function sendViaGoogle(workspaceId, msg) {
+  try {
+    const { data: conn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", workspaceId).eq("provider", "google").limit(1).maybeSingle();
+    if (!conn) return false;
+    const token = await freshAccessToken(conn);
+    if (!token) return false;
+    return gmailSend(token, {
+      to: msg.to.map((t2) => t2.email),
+      subject: msg.subject,
+      html: msg.body,
+      from: conn.email || void 0
+    });
+  } catch {
+    return false;
+  }
+}
+async function sendViaTransactional(msg) {
+  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
+  if (!key) return false;
+  const from = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: msg.to.map((t2) => t2.email),
+        subject: msg.subject,
+        html: msg.body
+      })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+async function sendWorkspaceEmail(workspaceId, msg) {
+  if (await sendViaGoogle(workspaceId, msg)) return true;
+  return sendViaTransactional(msg);
+}
+
 // src/routes/decisions.ts
 var router5 = new Hono2();
 router5.use("*", requireAuth);
@@ -72530,22 +72675,6 @@ async function resolve2(c2, status, extra = {}, trainingAction) {
   });
   return c2.json(data);
 }
-async function sendViaNylas(workspaceId, msg) {
-  if (!process.env.NYLAS_API_KEY) return false;
-  const { data: emailConn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).maybeSingle();
-  const grantId = emailConn?.grant_id;
-  if (!grantId) return false;
-  try {
-    const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: msg.subject, body: msg.body, to: msg.to })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
 function emailFromRecord(data) {
   if (!data) return void 0;
   const email = data.email ?? data.client_email ?? data.contact_email ?? data.Email ?? data.to_email;
@@ -72611,7 +72740,7 @@ async function executeApprovedAction(workspaceId, decision) {
     const body = decision.summary ?? "";
     const chaseCount = (invoiceData.chase_count ?? 0) + 1;
     if (clientEmail) {
-      const sent = await sendViaNylas(workspaceId, { subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] });
+      const sent = await sendWorkspaceEmail(workspaceId, { subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] });
       if (!sent) {
         await emailFallbackTask(workspaceId, "agent:invoice_chaser", `Chase invoice ${invoiceData.invoice_number ?? invoice.id}`, subject, body);
       }
@@ -72630,7 +72759,7 @@ async function executeApprovedAction(workspaceId, decision) {
       recipient = emailFromRecord(rec?.data);
     }
     if (recipient) {
-      const sent = await sendViaNylas(workspaceId, { subject, body, to: [recipient] });
+      const sent = await sendWorkspaceEmail(workspaceId, { subject, body, to: [recipient] });
       if (!sent) await emailFallbackTask(workspaceId, "agent:workflow", `Send: ${subject}`, subject, body);
     } else {
       await emailFallbackTask(workspaceId, "agent:workflow", `Send: ${subject}`, subject, body);
@@ -75019,48 +75148,6 @@ router12.patch("/settings/general", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-
-// src/lib/mail.ts
-async function sendViaNylas2(workspaceId, msg) {
-  if (!process.env.NYLAS_API_KEY) return false;
-  try {
-    const { data: conn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).maybeSingle();
-    const grantId = conn?.grant_id;
-    if (!grantId) return false;
-    const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: msg.subject, body: msg.body, to: msg.to })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-async function sendViaTransactional(msg) {
-  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
-  if (!key) return false;
-  const from = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to: msg.to.map((t2) => t2.email),
-        subject: msg.subject,
-        html: msg.body
-      })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-async function sendWorkspaceEmail(workspaceId, msg) {
-  if (await sendViaNylas2(workspaceId, msg)) return true;
-  return sendViaTransactional(msg);
-}
 
 // src/routes/invites.ts
 var router13 = new Hono2();
@@ -78588,9 +78675,7 @@ router38.post("/", requireJwt, async (c2) => {
 
 // src/routes/integrations.ts
 var import_node_crypto4 = require("crypto");
-init_dist();
 var router39 = new Hono2();
-var NYLAS_BASE = "https://api.us.nylas.com";
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url2 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
@@ -78632,35 +78717,19 @@ function popupHtml(message, ok2) {
 router39.post("/connect", requireAuth, async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const provider = normalizeProvider(body.provider);
-  const clientId = process.env.NYLAS_CLIENT_ID;
-  if (!clientId) return c2.json({ error: "NYLAS_CLIENT_ID is not configured on the server." }, 503);
-  if (!process.env.API_BASE_URL) return c2.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
-  let loginHint = typeof body.login_hint === "string" ? body.login_hint : void 0;
-  if (!loginHint && process.env.CLERK_SECRET_KEY) {
-    try {
-      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-      const u2 = await clerk.users.getUser(c2.get("userId"));
-      loginHint = u2.primaryEmailAddress?.emailAddress ?? u2.emailAddresses?.[0]?.emailAddress;
-    } catch {
-    }
+  if (provider !== "google") {
+    return c2.json({ error: "Only Google (Gmail) is supported right now \u2014 Outlook is coming soon." }, 400);
   }
+  if (!googleConfigured()) return c2.json({ error: "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not configured on the server." }, 503);
+  if (!process.env.API_BASE_URL) return c2.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
   const state = signState({
     u: c2.get("userId"),
     w: c2.get("workspaceId"),
-    p: provider,
+    p: "google",
     exp: Math.floor(Date.now() / 1e3) + 600
     // 10 min
   });
-  const url = new URL(`${NYLAS_BASE}/v3/connect/auth`);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", callbackUrl());
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("provider", provider);
-  if (loginHint && /.+@.+\..+/.test(loginHint)) {
-    url.searchParams.set("login_hint", loginHint);
-  }
-  url.searchParams.set("state", state);
-  return c2.json({ auth_url: url.toString() });
+  return c2.json({ auth_url: googleAuthUrl(callbackUrl(), state) });
 });
 router39.get("/callback", async (c2) => {
   const code = c2.req.query("code");
@@ -78672,43 +78741,25 @@ router39.get("/callback", async (c2) => {
   if (!st2 || typeof st2.u !== "string" || typeof st2.w !== "string") {
     return c2.html(popupHtml("Invalid or expired connection request.", false));
   }
-  const clientId = process.env.NYLAS_CLIENT_ID;
-  const apiKey = process.env.NYLAS_API_KEY;
-  if (!clientId || !apiKey) return c2.html(popupHtml("Email integration is not configured.", false));
   try {
-    const res = await fetch(`${NYLAS_BASE}/v3/connect/token`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: apiKey,
-        code,
-        redirect_uri: callbackUrl(),
-        grant_type: "authorization_code"
-      })
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error("[nylas/callback] token exchange failed", res.status, detail);
-      return c2.html(popupHtml(`Could not complete sign-in (${res.status}). ${detail.slice(0, 140)}`, false));
+    const tokens = await exchangeCode(code, callbackUrl());
+    if (!tokens) return c2.html(popupHtml("Could not complete Google sign-in. Please try again.", false));
+    const row = {
+      workspace_id: st2.w,
+      user_id: st2.u,
+      provider: "google",
+      grant_id: null,
+      email: tokens.email ?? "",
+      access_token: tokens.access_token,
+      token_expiry: new Date(Date.now() + tokens.expires_in * 1e3).toISOString()
+    };
+    if (tokens.refresh_token) row.refresh_token = tokens.refresh_token;
+    const { error } = await supabase.from("email_connections").upsert(row, { onConflict: "workspace_id,user_id" });
+    if (error) {
+      console.error("[google/callback] saving connection failed", error.message);
+      return c2.html(popupHtml("Connected, but saving the mailbox failed.", false));
     }
-    const tok = await res.json();
-    if (!tok.grant_id) {
-      console.error("[nylas/callback] no grant_id in token response");
-      return c2.html(popupHtml("No mailbox grant was returned.", false));
-    }
-    const { error } = await supabase.from("email_connections").upsert(
-      {
-        workspace_id: st2.w,
-        user_id: st2.u,
-        provider: st2.p ?? "google",
-        grant_id: tok.grant_id,
-        email: tok.email ?? ""
-      },
-      { onConflict: "workspace_id,user_id" }
-    );
-    if (error) return c2.html(popupHtml("Connected, but saving the mailbox failed.", false));
-    return c2.html(popupHtml(`Connected ${tok.email ?? "your inbox"}.`, true));
+    return c2.html(popupHtml(`Connected ${tokens.email ?? "your inbox"}.`, true));
   } catch {
     return c2.html(popupHtml("Something went wrong connecting your inbox.", false));
   }

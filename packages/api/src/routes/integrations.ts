@@ -1,26 +1,25 @@
 /**
- * Email inbox connect flow (Nylas v3 hosted auth).
+ * Email inbox connect flow — DIRECT Google OAuth (Gmail API), no Nylas.
  *
- * The missing piece that makes "Connect Gmail/Outlook" work: it initiates Nylas
- * OAuth, handles the callback, exchanges the code for a grant, and stores it in
- * email_connections — which is what the send/read paths (mail.ts, emails.ts) need.
+ * Makes "Connect Gmail" work without a per-account middleman: runs Google's OAuth
+ * consent, exchanges the code ourselves, and stores the refresh token in
+ * email_connections (what mail.ts uses to send). Outlook (Microsoft Graph) is a
+ * later phase.
  *
  * SECURITY: the popup can't carry the SPA's bearer token, so we never put a token
- * in a URL. Instead /connect is AUTHED and returns the Nylas auth URL with an
- * HMAC-signed `state` encoding (user, workspace, provider, exp). The public
- * /callback verifies that signature before trusting any identity — so the
- * callback can't be forged to attach an inbox to someone else's workspace.
+ * in a URL. /connect is AUTHED and returns the Google auth URL with an HMAC-signed
+ * `state` (user, workspace, exp); the public /callback verifies that signature
+ * before trusting any identity — so it can't be forged to attach an inbox to
+ * someone else's workspace.
  */
 import { Hono } from "hono";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { createClerkClient } from "@clerk/backend";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
+import { googleConfigured, googleAuthUrl, exchangeCode } from "../lib/google";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
-
-const NYLAS_BASE = "https://api.us.nylas.com"; // US region (per workspace config)
 
 const stateSecret = () =>
   process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
@@ -68,50 +67,27 @@ function popupHtml(message: string, ok: boolean): string {
 </body></html>`;
 }
 
-// 1) INITIATE — authed. Returns the Nylas hosted-auth URL (signed state).
+// 1) INITIATE — authed. Returns the Google OAuth consent URL (signed state).
 router.post("/connect", requireAuth, async (c) => {
-  const body = await c.req.json<{ provider?: string; login_hint?: string }>().catch(() => ({} as { provider?: string; login_hint?: string }));
+  const body = await c.req.json<{ provider?: string }>().catch(() => ({} as { provider?: string }));
   const provider = normalizeProvider(body.provider);
-  const clientId = process.env.NYLAS_CLIENT_ID;
-  if (!clientId) return c.json({ error: "NYLAS_CLIENT_ID is not configured on the server." }, 503);
-  if (!process.env.API_BASE_URL) return c.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
-
-  // Resolve the user's email for login_hint so Nylas skips its email-entry screen
-  // and goes straight to the provider. Prefer a client-supplied hint; otherwise
-  // look it up from Clerk. Best-effort — connect still works without it.
-  let loginHint = typeof body.login_hint === "string" ? body.login_hint : undefined;
-  if (!loginHint && process.env.CLERK_SECRET_KEY) {
-    try {
-      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-      const u = await clerk.users.getUser(c.get("userId"));
-      loginHint = u.primaryEmailAddress?.emailAddress ?? u.emailAddresses?.[0]?.emailAddress;
-    } catch { /* best-effort */ }
+  if (provider !== "google") {
+    return c.json({ error: "Only Google (Gmail) is supported right now — Outlook is coming soon." }, 400);
   }
+  if (!googleConfigured()) return c.json({ error: "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not configured on the server." }, 503);
+  if (!process.env.API_BASE_URL) return c.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
 
   const state = signState({
     u: c.get("userId"),
     w: c.get("workspaceId"),
-    p: provider,
+    p: "google",
     exp: Math.floor(Date.now() / 1000) + 600, // 10 min
   });
-  const url = new URL(`${NYLAS_BASE}/v3/connect/auth`);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", callbackUrl());
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("provider", provider);
-  // login_hint = the signed-in user's email → Nylas skips its own email-entry
-  // screen and routes straight to Google's consent (the "just sign in with Gmail"
-  // experience users expect).
-  if (loginHint && /.+@.+\..+/.test(loginHint)) {
-    url.searchParams.set("login_hint", loginHint);
-  }
-  url.searchParams.set("state", state);
-  return c.json({ auth_url: url.toString() });
+  return c.json({ auth_url: googleAuthUrl(callbackUrl(), state) });
 });
 
-// 2) CALLBACK — public (Nylas redirects the browser here). Verify state, exchange
-// the code for a grant, store it. No client identity is trusted except via the
-// signed state.
+// 2) CALLBACK — public (Google redirects the browser here). Verify state, exchange
+// the code for tokens, store them. Identity is trusted ONLY via the signed state.
 router.get("/callback", async (c) => {
   const code = c.req.query("code");
   const state = c.req.query("state");
@@ -123,45 +99,31 @@ router.get("/callback", async (c) => {
   if (!st || typeof st.u !== "string" || typeof st.w !== "string") {
     return c.html(popupHtml("Invalid or expired connection request.", false));
   }
-  const clientId = process.env.NYLAS_CLIENT_ID;
-  const apiKey = process.env.NYLAS_API_KEY;
-  if (!clientId || !apiKey) return c.html(popupHtml("Email integration is not configured.", false));
 
   try {
-    const res = await fetch(`${NYLAS_BASE}/v3/connect/token`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: apiKey,
-        code,
-        redirect_uri: callbackUrl(),
-        grant_type: "authorization_code",
-      }),
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error("[nylas/callback] token exchange failed", res.status, detail);
-      return c.html(popupHtml(`Could not complete sign-in (${res.status}). ${detail.slice(0, 140)}`, false));
-    }
-    const tok = (await res.json()) as { grant_id?: string; email?: string };
-    if (!tok.grant_id) {
-      console.error("[nylas/callback] no grant_id in token response");
-      return c.html(popupHtml("No mailbox grant was returned.", false));
-    }
+    const tokens = await exchangeCode(code, callbackUrl());
+    if (!tokens) return c.html(popupHtml("Could not complete Google sign-in. Please try again.", false));
 
-    const { error } = await supabase.from("email_connections").upsert(
-      {
-        workspace_id: st.w as string,
-        user_id: st.u as string,
-        provider: (st.p as string) ?? "google",
-        grant_id: tok.grant_id,
-        email: tok.email ?? "",
-      },
-      { onConflict: "workspace_id,user_id" },
-    );
-    if (error) return c.html(popupHtml("Connected, but saving the mailbox failed.", false));
-    return c.html(popupHtml(`Connected ${tok.email ?? "your inbox"}.`, true));
+    // Build the row; only set refresh_token when Google returned one (it does on
+    // first consent), so a re-auth never wipes the stored token. grant_id is
+    // cleared — this row is now a direct-Google connection, not a Nylas grant.
+    const row: Record<string, unknown> = {
+      workspace_id: st.w as string,
+      user_id: st.u as string,
+      provider: "google",
+      grant_id: null,
+      email: tokens.email ?? "",
+      access_token: tokens.access_token,
+      token_expiry: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+    };
+    if (tokens.refresh_token) row.refresh_token = tokens.refresh_token;
+
+    const { error } = await supabase.from("email_connections").upsert(row, { onConflict: "workspace_id,user_id" });
+    if (error) {
+      console.error("[google/callback] saving connection failed", error.message);
+      return c.html(popupHtml("Connected, but saving the mailbox failed.", false));
+    }
+    return c.html(popupHtml(`Connected ${tokens.email ?? "your inbox"}.`, true));
   } catch {
     return c.html(popupHtml("Something went wrong connecting your inbox.", false));
   }

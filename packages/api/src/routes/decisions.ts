@@ -7,6 +7,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 import { objectTypeToVertical, type ProspectCandidate } from "./prospecting";
 import { logDecisionTrainingExample, type TrainingAction } from "../lib/training-ledger";
+import { sendWorkspaceEmail } from "../lib/mail";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -131,29 +132,8 @@ async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "co
  * "reach out to a stale relationship") is advisory; approving it just
  * records the human decision, since there's nothing to execute.
  */
-/** Resolve the workspace's active Nylas grant and send a message from the
- *  user's real connected inbox. Returns true if sent. Centralises the Nylas
- *  outbound path so every agent (invoice chaser, workflow, …) sends the same way. */
-async function sendViaNylas(
-  workspaceId: string,
-  msg: { subject: string; body: string; to: { email: string; name?: string }[] },
-): Promise<boolean> {
-  if (!process.env.NYLAS_API_KEY) return false;
-  const { data: emailConn } = await supabase
-    .from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).maybeSingle();
-  const grantId = emailConn?.grant_id as string | undefined;
-  if (!grantId) return false;
-  try {
-    const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subject: msg.subject, body: msg.body, to: msg.to }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
+// Outbound agent email (invoice chaser, workflow, …) goes through the shared
+// sender: the workspace's connected Gmail inbox first, Resend as fallback.
 
 /** Find a usable recipient email on a record (or its common contact fields). */
 function emailFromRecord(data: Record<string, any> | null | undefined): { email: string; name?: string } | undefined {
@@ -226,7 +206,7 @@ export async function executeApprovedAction(workspaceId: string, decision: any):
     const chaseCount = (invoiceData.chase_count ?? 0) + 1;
 
     if (clientEmail) {
-      const sent = await sendViaNylas(workspaceId, { subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] });
+      const sent = await sendWorkspaceEmail(workspaceId, { subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] });
       if (!sent) {
         await emailFallbackTask(workspaceId, "agent:invoice_chaser", `Chase invoice ${invoiceData.invoice_number ?? invoice.id}`, subject, body);
       }
@@ -253,7 +233,7 @@ export async function executeApprovedAction(workspaceId: string, decision: any):
       recipient = emailFromRecord(rec?.data as Record<string, any> | undefined);
     }
     if (recipient) {
-      const sent = await sendViaNylas(workspaceId, { subject, body, to: [recipient] });
+      const sent = await sendWorkspaceEmail(workspaceId, { subject, body, to: [recipient] });
       if (!sent) await emailFallbackTask(workspaceId, "agent:workflow", `Send: ${subject}`, subject, body);
     } else {
       // No clear recipient — hand it to a human rather than guess.
