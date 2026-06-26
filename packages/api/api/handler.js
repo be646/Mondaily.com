@@ -74015,18 +74015,17 @@ async function sendWorkspaceEmail(workspaceId, msg) {
 
 // src/routes/invites.ts
 var router13 = new Hono2();
-router13.use("*", requireAuth);
 var inviteSchema = external_exports.object({
   email: external_exports.string().email(),
   role: external_exports.enum(["admin", "member", "viewer", "guest"]).default("member"),
   finance_role: external_exports.enum(["none", "viewer", "member", "reviewer", "approver"]).default("none")
 });
-router13.get("/", async (c2) => {
+router13.get("/", requireAuth, async (c2) => {
   const { data, error } = await supabase.from("workspace_invites").select("id,email,role,finance_role,invited_by,token,expires_at,created_at").eq("workspace_id", c2.get("workspaceId")).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router13.post("/", zValidator("json", inviteSchema), async (c2) => {
+router13.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = c2.req.valid("json");
@@ -74048,20 +74047,22 @@ router13.post("/", zValidator("json", inviteSchema), async (c2) => {
   });
   return c2.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
 });
-router13.delete("/:id", async (c2) => {
+router13.delete("/:id", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { error } = await supabase.from("workspace_invites").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router13.post("/accept", async (c2) => {
-  const { token, user_id } = await c2.req.json();
+router13.post("/accept", requireJwt, async (c2) => {
+  const { token } = await c2.req.json().catch(() => ({ token: "" }));
+  const userId = c2.get("userId");
+  if (!token) return c2.json({ error: "Missing invite token" }, 400);
   const { data: invite, error: inviteErr } = await supabase.from("workspace_invites").select("*").eq("token", token).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).maybeSingle();
   if (inviteErr || !invite) return c2.json({ error: "Invalid or expired invite" }, 404);
   const { error: memberErr } = await supabase.from("workspace_members").upsert({
     workspace_id: invite.workspace_id,
-    user_id,
+    user_id: userId,
     role: invite.role,
     finance_role: invite.finance_role
   }, { onConflict: "workspace_id,user_id" });

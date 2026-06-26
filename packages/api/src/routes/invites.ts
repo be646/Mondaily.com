@@ -1,13 +1,16 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { sendWorkspaceEmail } from "../lib/mail";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
-router.use("*", requireAuth);
+// Middleware is applied PER-ROUTE: the management routes need full workspace auth,
+// but /accept must use requireJwt (verified token only, no membership check) —
+// the invitee is not a member yet, and their identity comes from the token, not
+// the request body.
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -16,7 +19,7 @@ const inviteSchema = z.object({
 });
 
 // LIST pending invites
-router.get("/", async (c) => {
+router.get("/", requireAuth, async (c) => {
   const { data, error } = await supabase
     .from("workspace_invites")
     .select("id,email,role,finance_role,invited_by,token,expires_at,created_at")
@@ -29,7 +32,7 @@ router.get("/", async (c) => {
 });
 
 // CREATE invite
-router.post("/", zValidator("json", inviteSchema), async (c) => {
+router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   const callerRole = c.get("role");
   if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
   const body = c.req.valid("json");
@@ -65,7 +68,7 @@ router.post("/", zValidator("json", inviteSchema), async (c) => {
 });
 
 // CANCEL invite
-router.delete("/:id", async (c) => {
+router.delete("/:id", requireAuth, async (c) => {
   const callerRole = c.get("role");
   if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
   const { error } = await supabase
@@ -77,10 +80,15 @@ router.delete("/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-// ACCEPT invite (public — no requireAuth since user may not be in workspace yet)
-// This is called after auth, passes token + the authenticated user's id
-router.post("/accept", async (c) => {
-  const { token, user_id } = await c.req.json<{ token: string; user_id: string }>();
+// ACCEPT invite — requireJwt (verified token, no membership check) since the
+// invitee is not a member yet. SECURITY: the user id is taken from the VERIFIED
+// Clerk token, never from the request body — otherwise anyone could redeem a
+// token on behalf of an arbitrary user_id and inject themselves/others into a
+// workspace.
+router.post("/accept", requireJwt, async (c) => {
+  const { token } = await c.req.json<{ token: string }>().catch(() => ({ token: "" }));
+  const userId = c.get("userId"); // from the verified token — NOT the request body
+  if (!token) return c.json({ error: "Missing invite token" }, 400);
   const { data: invite, error: inviteErr } = await supabase
     .from("workspace_invites")
     .select("*")
@@ -93,7 +101,7 @@ router.post("/accept", async (c) => {
   // Add to workspace_members
   const { error: memberErr } = await supabase.from("workspace_members").upsert({
     workspace_id: invite.workspace_id,
-    user_id,
+    user_id: userId,
     role: invite.role,
     finance_role: invite.finance_role,
   }, { onConflict: "workspace_id,user_id" });
