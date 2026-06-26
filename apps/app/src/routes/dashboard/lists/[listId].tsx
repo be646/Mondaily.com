@@ -234,22 +234,19 @@ export function ListPage() {
   return (
     <div className="list-workspace flex h-full flex-col">
       {/* ── Header ── */}
-      <header className="list-header shrink-0 px-6 py-5">
-        <div className="flex flex-col gap-4">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--text-faint)" }}>List sheet</p>
-            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3">
-              <input
-                value={list.data.name}
-                onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
-                onBlur={e => update.mutate({ name: e.target.value })}
-                className="min-w-0 flex-1 bg-transparent text-xl font-semibold tracking-tight outline-none placeholder-stone-400 dark:placeholder-stone-600"
-                style={{ color: "var(--text-primary)" }}
-              />
-              <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                {list.data.object_type}
-              </span>
-            </div>
+      <header className="list-header shrink-0 border-b border-stone-200 dark:border-stone-800/40 px-6 py-3">
+        <div className="flex flex-col gap-3">
+          {/* Title row — matches the records sheet's small uppercase tracked label */}
+          <div className="flex min-w-0 items-center gap-3">
+            <input
+              value={list.data.name}
+              onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
+              onBlur={e => update.mutate({ name: e.target.value })}
+              className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold uppercase tracking-[0.12em] text-stone-500 outline-none placeholder-stone-400 dark:placeholder-stone-600"
+            />
+            <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              {list.data.object_type}
+            </span>
           </div>
           <div className="list-toolbar flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">

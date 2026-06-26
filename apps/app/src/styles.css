@@ -223,8 +223,15 @@ body {
 .list-sheet {
   background: transparent;
 }
+/* Match the records sheet's column-header look: tinted, sticky header row. */
 .list-sheet .minimal-table th {
-  background: transparent;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+html.dark .list-sheet .minimal-table th, html[data-theme="dark"] .list-sheet .minimal-table th {
+  background: #0d0d0d;
 }
 .list-sheet .minimal-table td {
   background: transparent;
