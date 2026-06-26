@@ -140,7 +140,7 @@ app.get("/api/cron/daily", async (c) => {
   return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
 });
 
-app.get("/api/health", (c) => c.json({ ok: true, version: "1.7.1-lazytools" }));
+app.get("/api/health", (c) => c.json({ ok: true, version: "1.8.0-objreg" }));
 
 app.get("/api/debug-auth", async (c) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");

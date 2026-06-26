@@ -597,7 +597,27 @@ async function executeTool(
           .select()
           .single();
         if (error) return `Error creating record: ${error.message}`;
-        return `${input.object_type} record created: "${input.name}" (ID: ${data.id}).`;
+
+        // Auto-register the object type so its /objects/<type> page + sidebar
+        // entry exist. Without this, a type the AI invents (e.g. "assets") has
+        // no definition and the user can't reach its page. Idempotent; attributes
+        // are inferred ONLY from the record's real fields — nothing fabricated.
+        const typeSlug = String(input.object_type).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+        if (typeSlug) {
+          const { data: existingDef } = await supabase
+            .from("object_definitions").select("id").eq("workspace_id", workspaceId).eq("slug", typeSlug).maybeSingle();
+          if (!existingDef) {
+            const TYPE_BY_KEY: Record<string, string> = { email: "email", phone: "phone", amount: "currency", stage: "select", notes: "long_text", company: "text", name: "text" };
+            const attrs = Object.keys(recordData).filter(k => k !== "name").map(k => ({ id: crypto.randomUUID(), name: k, type: TYPE_BY_KEY[k] ?? "text" }));
+            await supabase.from("object_definitions").insert({
+              workspace_id: workspaceId, vertical: "shared", slug: typeSlug,
+              name_singular: typeSlug.replace(/_/g, " ").replace(/s$/, "") || typeSlug,
+              name_plural: typeSlug.replace(/_/g, " "),
+              attributes: attrs,
+            }).then(() => {}, () => {});
+          }
+        }
+        return `${input.object_type} record created: "${input.name}" (ID: ${data.id}). Its page is at /objects/${typeSlug}.`;
       }
 
       case "list_records": {

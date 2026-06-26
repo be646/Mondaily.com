@@ -73121,7 +73121,25 @@ ${list}`;
           data: recordData
         }).select().single();
         if (error) return `Error creating record: ${error.message}`;
-        return `${input.object_type} record created: "${input.name}" (ID: ${data.id}).`;
+        const typeSlug = String(input.object_type).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+        if (typeSlug) {
+          const { data: existingDef } = await supabase.from("object_definitions").select("id").eq("workspace_id", workspaceId).eq("slug", typeSlug).maybeSingle();
+          if (!existingDef) {
+            const TYPE_BY_KEY = { email: "email", phone: "phone", amount: "currency", stage: "select", notes: "long_text", company: "text", name: "text" };
+            const attrs = Object.keys(recordData).filter((k2) => k2 !== "name").map((k2) => ({ id: crypto.randomUUID(), name: k2, type: TYPE_BY_KEY[k2] ?? "text" }));
+            await supabase.from("object_definitions").insert({
+              workspace_id: workspaceId,
+              vertical: "shared",
+              slug: typeSlug,
+              name_singular: typeSlug.replace(/_/g, " ").replace(/s$/, "") || typeSlug,
+              name_plural: typeSlug.replace(/_/g, " "),
+              attributes: attrs
+            }).then(() => {
+            }, () => {
+            });
+          }
+        }
+        return `${input.object_type} record created: "${input.name}" (ID: ${data.id}). Its page is at /objects/${typeSlug}.`;
       }
       case "list_records": {
         const { data, error } = await supabase.from("nodes").select("id, data, updated_at").eq("workspace_id", workspaceId).eq("object_type", input.object_type).order("updated_at", { ascending: false }).limit(input.limit || 10);
@@ -78374,7 +78392,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.7.1-lazytools" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.8.0-objreg" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;
