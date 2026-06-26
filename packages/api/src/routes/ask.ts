@@ -1093,6 +1093,8 @@ async function executeTool(
             recommended_action: input.recommended_action,
             risk_level: input.risk_level ?? "low",
             evidence: [],
+            // LLM-generated → record the prompt/output for the training corpus.
+            generation_context: { system_prompt: SYSTEM_PROMPT, user_prompt: null, model_output: { title: input.title, summary: input.summary ?? null, recommended_action: input.recommended_action } },
           })
           .select("id")
           .single();

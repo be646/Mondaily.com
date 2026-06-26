@@ -80,8 +80,8 @@ async function extractCandidates(
   objectType: string,
   count: number,
   results: { url: string; title: string; content: string }[],
-): Promise<ProspectCandidate[]> {
-  if (results.length === 0) return [];
+): Promise<{ candidates: ProspectCandidate[]; gen: { system: string; prompt: string } }> {
+  if (results.length === 0) return { candidates: [], gen: { system: "", prompt: "" } };
 
   const sourceList = results.map((r, i) => `[${i}] ${r.title}\nURL: ${r.url}\n${r.content}`).join("\n\n");
   const toolSchema = {
@@ -111,8 +111,13 @@ async function extractCandidates(
     required: ["candidates"],
   };
 
+  // Kept as vars so we can record the exact generating prompt on each decision
+  // (training-corpus capture — real prompt→output pairs).
+  const prospectSystem = "You extract distinct, real candidate records strictly from provided web sources. Never fabricate contact fields.";
+  const prospectPrompt = `Query: "${query}"\nObject type: "${objectType}"\nFind up to ${count} distinct ${objectType} candidates that genuinely match the query, using ONLY the sources below. Every candidate must map to exactly one source_index. Never fabricate an email, domain, or LinkedIn URL — leave fields you can't find as omitted. If fewer than ${count} real, distinct candidates exist in these sources, return fewer.\n\nSources:\n${sourceList}`;
   const toolResult = await aiGatewayToolUse({
-    prompt: `Query: "${query}"\nObject type: "${objectType}"\nFind up to ${count} distinct ${objectType} candidates that genuinely match the query, using ONLY the sources below. Every candidate must map to exactly one source_index. Never fabricate an email, domain, or LinkedIn URL — leave fields you can't find as omitted. If fewer than ${count} real, distinct candidates exist in these sources, return fewer.\n\nSources:\n${sourceList}`,
+    system: prospectSystem,
+    prompt: prospectPrompt,
     toolName: "extract_candidates",
     toolDescription: "Extract distinct, real candidates strictly from the provided sources",
     toolSchema,
@@ -141,7 +146,7 @@ async function extractCandidates(
       reason: String(c.reason ?? ""),
     });
   }
-  return candidates.slice(0, count);
+  return { candidates: candidates.slice(0, count), gen: { system: prospectSystem, prompt: prospectPrompt } };
 }
 
 function normalize(v: string | null | undefined): string {
@@ -212,7 +217,7 @@ export async function runProspecting(
 
   try {
     const searchResults = await tavilySearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
-    const candidates = await extractCandidates(input.query, input.object_type, input.count, searchResults);
+    const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
 
     const result: ProspectingRunResult = {
       created: 0, existing: 0, queued_for_review: 0, added_to_list: 0,
@@ -237,6 +242,9 @@ export async function runProspecting(
           summary: candidate.description ?? candidate.reason,
           recommended_action: `Add "${candidate.name}" to the workspace graph`,
           risk_level: "low",
+          // Real prompt→output pair for the training corpus (this candidate is
+          // the model's output for the shared extraction prompt).
+          generation_context: { system_prompt: gen.system, user_prompt: gen.prompt, model_output: candidate },
           evidence: [{
             type: "prospecting_candidate",
             title: candidate.name,

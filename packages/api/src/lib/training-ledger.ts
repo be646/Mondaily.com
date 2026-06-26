@@ -32,13 +32,20 @@ export async function logDecisionTrainingExample(
   try {
     if (!decision) return;
 
-    const userPrompt = redactPII(
-      [decision.title, decision.summary, decision.recommended_action]
-        .filter((v): v is string => typeof v === "string" && v.length > 0)
-        .join("\n\n"),
-    );
+    // Prefer the REAL generating prompt/output: LLM-generated decisions (prospecting,
+    // vertical agents, chat) store {system_prompt, user_prompt, model_output} in
+    // generation_context. Rule-based decisions (e.g. invoice_chaser) have none, so we
+    // fall back to reconstructing from the decision fields (system_prompt stays null).
+    const gen = decision.generation_context as { system_prompt?: string; user_prompt?: string; model_output?: unknown } | null | undefined;
 
-    const modelOutput = {
+    const systemPrompt = gen?.system_prompt ? redactPII(gen.system_prompt) : null;
+    const userPrompt = redactPII(
+      gen?.user_prompt ??
+        [decision.title, decision.summary, decision.recommended_action]
+          .filter((v): v is string => typeof v === "string" && v.length > 0)
+          .join("\n\n"),
+    );
+    const modelOutput = gen?.model_output ?? {
       title: decision.title ?? null,
       summary: decision.summary ?? null,
       recommended_action: decision.recommended_action ?? null,
@@ -50,7 +57,7 @@ export async function logDecisionTrainingExample(
     await supabase.from("ai_training_logs").insert({
       workspace_id: workspaceId,
       agent_name: (decision.agent_name as string | undefined) ?? null,
-      system_prompt: null,
+      system_prompt: systemPrompt,
       user_prompt: userPrompt || null,
       model_output: modelOutput,
       user_action: action,

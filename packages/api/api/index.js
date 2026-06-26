@@ -69716,6 +69716,10 @@ function redactSecrets(text2) {
   if (!text2) return text2;
   return text2.replace(/\b(?:sk|pk|rk)[-_][A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\b(?:fw_|csk-|gsk_|xai-|ghp_|glpat-|cskk?-)[A-Za-z0-9_-]{16,}\b/g, "[REDACTED_KEY]").replace(/\bAKIA[0-9A-Z]{16}\b/g, "[REDACTED_AWS_KEY]").replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]").replace(/\bBearer\s+[A-Za-z0-9._-]{20,}\b/gi, "Bearer [REDACTED_TOKEN]").replace(/\b(?:\d[ -]?){13,16}\b/g, (m2) => /^\d{13,16}$/.test(m2.replace(/[ -]/g, "")) ? "[REDACTED_CARD]" : m2).replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]");
 }
+function redactPII(text2) {
+  if (!text2) return text2;
+  return redactSecrets(text2).replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[REDACTED_EMAIL]").replace(/\b\+?\d[\d ()-]{8,}\d\b/g, "[REDACTED_PHONE]");
+}
 var PROVIDER_FALLBACK_MODELS = [
   "accounts/fireworks/models/llama-v3p3-70b-instruct",
   "accounts/fireworks/models/llama-v3p1-70b-instruct",
@@ -72223,7 +72227,7 @@ async function tavilySearch3(query, maxResults) {
   }
 }
 async function extractCandidates(query, objectType2, count, results) {
-  if (results.length === 0) return [];
+  if (results.length === 0) return { candidates: [], gen: { system: "", prompt: "" } };
   const sourceList = results.map((r2, i2) => `[${i2}] ${r2.title}
 URL: ${r2.url}
 ${r2.content}`).join("\n\n");
@@ -72253,13 +72257,16 @@ ${r2.content}`).join("\n\n");
     },
     required: ["candidates"]
   };
-  const toolResult = await aiGatewayToolUse({
-    prompt: `Query: "${query}"
+  const prospectSystem = "You extract distinct, real candidate records strictly from provided web sources. Never fabricate contact fields.";
+  const prospectPrompt = `Query: "${query}"
 Object type: "${objectType2}"
 Find up to ${count} distinct ${objectType2} candidates that genuinely match the query, using ONLY the sources below. Every candidate must map to exactly one source_index. Never fabricate an email, domain, or LinkedIn URL \u2014 leave fields you can't find as omitted. If fewer than ${count} real, distinct candidates exist in these sources, return fewer.
 
 Sources:
-${sourceList}`,
+${sourceList}`;
+  const toolResult = await aiGatewayToolUse({
+    system: prospectSystem,
+    prompt: prospectPrompt,
     toolName: "extract_candidates",
     toolDescription: "Extract distinct, real candidates strictly from the provided sources",
     toolSchema,
@@ -72286,7 +72293,7 @@ ${sourceList}`,
       reason: String(c2.reason ?? "")
     });
   }
-  return candidates.slice(0, count);
+  return { candidates: candidates.slice(0, count), gen: { system: prospectSystem, prompt: prospectPrompt } };
 }
 function normalize(v2) {
   return (v2 ?? "").toLowerCase().trim().replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
@@ -72335,7 +72342,7 @@ async function runProspecting(workspaceId, userId, input) {
   });
   try {
     const searchResults = await tavilySearch3(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
-    const candidates = await extractCandidates(input.query, input.object_type, input.count, searchResults);
+    const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
     const result = {
       created: 0,
       existing: 0,
@@ -72361,6 +72368,9 @@ async function runProspecting(workspaceId, userId, input) {
           summary: candidate.description ?? candidate.reason,
           recommended_action: `Add "${candidate.name}" to the workspace graph`,
           risk_level: "low",
+          // Real prompt→output pair for the training corpus (this candidate is
+          // the model's output for the shared extraction prompt).
+          generation_context: { system_prompt: gen.system, user_prompt: gen.prompt, model_output: candidate },
           evidence: [{
             type: "prospecting_candidate",
             title: candidate.name,
@@ -72433,10 +72443,12 @@ router4.post("/run", zValidator("json", runSchema), async (c2) => {
 async function logDecisionTrainingExample(workspaceId, decision, action, editedOutput) {
   try {
     if (!decision) return;
-    const userPrompt = redactSecrets(
-      [decision.title, decision.summary, decision.recommended_action].filter((v2) => typeof v2 === "string" && v2.length > 0).join("\n\n")
+    const gen = decision.generation_context;
+    const systemPrompt = gen?.system_prompt ? redactPII(gen.system_prompt) : null;
+    const userPrompt = redactPII(
+      gen?.user_prompt ?? [decision.title, decision.summary, decision.recommended_action].filter((v2) => typeof v2 === "string" && v2.length > 0).join("\n\n")
     );
-    const modelOutput = {
+    const modelOutput = gen?.model_output ?? {
       title: decision.title ?? null,
       summary: decision.summary ?? null,
       recommended_action: decision.recommended_action ?? null,
@@ -72447,7 +72459,7 @@ async function logDecisionTrainingExample(workspaceId, decision, action, editedO
     await supabase.from("ai_training_logs").insert({
       workspace_id: workspaceId,
       agent_name: decision.agent_name ?? null,
-      system_prompt: null,
+      system_prompt: systemPrompt,
       user_prompt: userPrompt || null,
       model_output: modelOutput,
       user_action: action,
@@ -73749,7 +73761,9 @@ ${list}`;
           summary: input.summary ?? null,
           recommended_action: input.recommended_action,
           risk_level: input.risk_level ?? "low",
-          evidence: []
+          evidence: [],
+          // LLM-generated → record the prompt/output for the training corpus.
+          generation_context: { system_prompt: SYSTEM_PROMPT, user_prompt: null, model_output: { title: input.title, summary: input.summary ?? null, recommended_action: input.recommended_action } }
         }).select("id").single();
         if (error) return `Error adding to decision queue: ${error.message}`;
         sources.push({ type: "record", title: input.title, node_id: data.id, object_type: "decision" });
