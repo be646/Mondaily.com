@@ -74319,7 +74319,7 @@ router19.delete("/:id", async (c2) => {
 router19.get("/:id/entries", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
-  const { data: entries, error } = await supabase.from("list_entries").select("position,nodes(id,object_type,data,updated_at,ai_summary)").eq("list_id", list.id).order("position");
+  const { data: entries, error } = await supabase.from("list_entries").select("position,nodes(id,object_type,data,updated_at,ai_summary,lead_score,lead_score_signals,relationship_health)").eq("list_id", list.id).order("position");
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((entries ?? []).flatMap((entry) => entry.nodes ? [entry.nodes] : []));
 });

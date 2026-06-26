@@ -31,7 +31,7 @@ function cellValue(record: NodeRecord, col: string): unknown {
 function colLabel(col: string): string {
   if (col === "lead_score") return "AI Score";
   if (col === "relationship_health") return "Relationship";
-  return colLabel(col);
+  return col.replace(/_/g, " ");
 }
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
 type SortDir = "asc" | "desc";
