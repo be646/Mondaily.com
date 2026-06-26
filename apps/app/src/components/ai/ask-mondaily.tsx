@@ -1,4 +1,4 @@
-import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2 } from "lucide-react";
 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
@@ -380,29 +380,27 @@ export function AskMondaily() {
                         in addition to the full history now sent with every request. */}
                     {!isStreaming && !loading && i === messages.length - 1 && (
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                        <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-ai">
-                          <LogoMark size={11}/> Create task from this
+                        <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-suggested">
+                          <ListChecks size={11}/> Create task
                         </button>
-                        <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-ai">
-                          <LogoMark size={11}/> Draft message
+                        <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-suggested">
+                          <Mail size={11}/> Draft message
                         </button>
                         <button onClick={() => sendSuggestion(buildChipText("related", i))} className="btn-suggested">
-                          Show related objects
+                          <Network size={11}/> Show related
                         </button>
                         <button onClick={() => sendSuggestion(buildChipText("explain", i))} className="btn-suggested">
-                          Explain reasoning
+                          <Brain size={11}/> Explain reasoning
                         </button>
                         <button onClick={() => sendSuggestion(buildChipText("decision", i))} className="btn-suggested">
-                          Add to decision queue
+                          <Inbox size={11}/> Add to decision queue
                         </button>
                         <button onClick={() => sendSuggestion(buildChipText("workflow", i))} className="btn-suggested">
-                          Draft workflow
+                          <GitBranch size={11}/> Draft workflow
                         </button>
-                        <span title="Coming soon — no report-creation tool exists yet"
-                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
-                          style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
-                          Create report
-                        </span>
+                        <button onClick={() => sendSuggestion(buildChipText("report", i))} className="btn-suggested">
+                          <BarChart2 size={11}/> Create report
+                        </button>
                       </div>
                     )}
                   </div>

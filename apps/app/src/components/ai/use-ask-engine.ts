@@ -226,7 +226,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
   }, [messages, currentThreadId, loading, opts.context]);
 
   /** Builds the real context-rich text for an action chip attached to assistant message index i — never a generic standalone string. */
-  const buildChipText = useCallback((kind: "explain" | "task" | "draft" | "related" | "decision" | "workflow", i: number) => {
+  const buildChipText = useCallback((kind: "explain" | "task" | "draft" | "related" | "decision" | "workflow" | "report", i: number) => {
     const prevQuestion = messages[i - 1]?.content ?? "";
     const prevAnswer = messages[i]?.content ?? "";
     switch (kind) {
@@ -242,6 +242,8 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         return `Add this to the decision queue for my review. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". Use create_decision with a clear recommended_action.`;
       case "workflow":
         return `Create a draft workflow based on this answer. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". Save it as a disabled draft for me to review — don't enable it.`;
+      case "report":
+        return `Create a real saved report based on this answer using create_report. The original question was: "${prevQuestion}". The answer was: "${prevAnswer}". Pick the best report type and object_type, and confirm the title with me if it's ambiguous.`;
     }
   }, [messages]);
 

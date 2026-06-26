@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2,
-  ThumbsUp, ThumbsDown, Sun, Moon,
+  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
@@ -174,14 +174,14 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 {/* Same action-chip set as Home and the main Ask page */}
                 {m.role === "assistant" && !loading && i === messages.length - 1 && i > 0 && (
                   <div className="flex flex-wrap gap-1 ml-1 mt-0.5">
-                    <button onClick={() => sendChip(buildChipText("task", i))} className="btn-ai !text-[10px] !px-2 !py-0.5">
-                      <LogoMark size={9}/> Create task
+                    <button onClick={() => sendChip(buildChipText("task", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
+                      <ListChecks size={9}/> Create task
                     </button>
                     <button onClick={() => sendChip(buildChipText("related", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
-                      Related objects
+                      <Network size={9}/> Related objects
                     </button>
                     <button onClick={() => sendChip(buildChipText("explain", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
-                      Explain reasoning
+                      <Brain size={9}/> Explain reasoning
                     </button>
                   </div>
                 )}
