@@ -117,12 +117,12 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     const controller = new AbortController();
     let inactivityTimer: ReturnType<typeof setTimeout> | undefined;
     const bump = (ms: number) => { if (inactivityTimer) clearTimeout(inactivityTimer); inactivityTimer = setTimeout(() => controller.abort(), ms); };
-    const overallTimer = setTimeout(() => controller.abort(), 90_000); // hard ceiling
+    const overallTimer = setTimeout(() => controller.abort(), 120_000); // hard ceiling
     const clearTimers = () => { if (inactivityTimer) clearTimeout(inactivityTimer); clearTimeout(overallTimer); };
 
     try {
       // ── Streaming path (SSE): tokens render live, like Claude.ai ──
-      bump(20_000); // up to 20s to first byte
+      bump(25_000); // up to 20s to first byte
       const res = await fetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body, signal: controller.signal });
       if (!res.ok || !res.body) throw new Error(`AI error: ${res.status}`);
 
@@ -142,7 +142,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
 
       while (true) {
         const { done, value } = await reader.read();
-        bump(18_000); // reset the stall window on every frame received
+        bump(30_000); // reset the stall window on every frame received
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
@@ -203,7 +203,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       // can't hang either. ──
       try {
         const ctrl2 = new AbortController();
-        const t2 = setTimeout(() => ctrl2.abort(), 30_000);
+        const t2 = setTimeout(() => ctrl2.abort(), 45_000);
         const res = await fetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body, signal: ctrl2.signal });
         clearTimeout(t2);
         if (!res.ok) throw new Error(`AI error: ${res.status}`);

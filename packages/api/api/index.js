@@ -69868,7 +69868,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
     );
   }
-  const client = new openai_default({ baseURL, apiKey, timeout: 25e3, maxRetries: 1 });
+  const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -70030,7 +70030,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  const client = new openai_default({ baseURL, apiKey, timeout: 15e3, maxRetries: 1 });
+  const client = new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -70048,7 +70048,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
     let content = "";
-    let thinkingSignalled = false;
+    let reasoningChunks = 0;
     const toolAcc = {};
     let finishReason = null;
     try {
@@ -70072,9 +70072,11 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
         const choice = chunk.choices[0];
         if (!choice) continue;
         const delta = choice.delta;
-        if (delta.reasoning && !content && !thinkingSignalled) {
-          thinkingSignalled = true;
-          await onEvent({ type: "status", text: "Thinking\u2026" });
+        if (delta.reasoning && !content) {
+          reasoningChunks++;
+          if (reasoningChunks === 1 || reasoningChunks % 25 === 0) {
+            await onEvent({ type: "status", text: "Thinking\u2026" });
+          }
         }
         if (delta.content) {
           content += delta.content;

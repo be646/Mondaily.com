@@ -408,7 +408,7 @@ async function runOpenAICompatAgent(
 
   // Non-streaming agent: short timeout + 1 retry so a stall fails fast and
   // bubbles up to the graceful reply instead of hanging the request.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 25000, maxRetries: 1 });
+  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -650,7 +650,7 @@ async function runOpenAICompatAgentStream(
   // surfaces instantly rather than hanging. A cut is safe here — mid-stream
   // drops preserve partial text below, and an empty result drops to the
   // non-streaming recovery + friendly fallback in aiGatewayAgentStream.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 15000, maxRetries: 1 });
+  const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -671,7 +671,7 @@ async function runOpenAICompatAgentStream(
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
     let content = "";
-    let thinkingSignalled = false;
+    let reasoningChunks = 0;
     const toolAcc: Record<number, { id: string; name: string; args: string }> = {};
     let finishReason: string | null = null;
 
@@ -707,9 +707,14 @@ async function runOpenAICompatAgentStream(
         // reasoning to the client — only `content`. While the model is still
         // reasoning (reasoning flowing, no content yet), surface a single
         // "Thinking…" status so the UI shows progress instead of a blank wait.
-        if (delta.reasoning && !content && !thinkingSignalled) {
-          thinkingSignalled = true;
-          await onEvent({ type: "status", text: "Thinking…" });
+        if (delta.reasoning && !content) {
+          reasoningChunks++;
+          // Heartbeat: re-emit "Thinking…" periodically so a long reasoning pass
+          // keeps the client's inactivity timer alive (and shows live progress)
+          // instead of looking stalled and getting aborted mid-think.
+          if (reasoningChunks === 1 || reasoningChunks % 25 === 0) {
+            await onEvent({ type: "status", text: "Thinking…" });
+          }
         }
         if (delta.content) { content += delta.content; await onEvent({ type: "token", text: delta.content }); }
         if (delta.tool_calls) {
