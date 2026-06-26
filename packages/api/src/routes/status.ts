@@ -90,12 +90,12 @@ router.get("/", async (c) => {
     explanation: tavilyConfigured ? "TAVILY_API_KEY is set — enrichment and the Prospecting Agent can search the live web." : "TAVILY_API_KEY is missing — enrichment and Prospecting Agent web search will return nothing.",
   });
 
-  // Nylas (email)
-  const nylasConfigured = Boolean(process.env.NYLAS_API_KEY);
+  // Email (direct Google / Gmail API — Nylas removed)
+  const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
-    id: "email", label: "Email (Nylas) configured",
-    state: nylasConfigured ? "operational" : "needs_setup",
-    explanation: nylasConfigured ? "NYLAS_API_KEY is set — email sync and sending are available." : "NYLAS_API_KEY is missing — connecting an inbox will fail.",
+    id: "email", label: "Email (Gmail OAuth) configured",
+    state: googleConfigured ? "operational" : "needs_setup",
+    explanation: googleConfigured ? "GOOGLE_CLIENT_ID/SECRET are set — users can connect Gmail (read + reply)." : "GOOGLE_CLIENT_ID/SECRET missing — Connect Gmail will fail.",
   });
 
   // Stripe — the checkout + portal routes exist now; reflect real readiness.

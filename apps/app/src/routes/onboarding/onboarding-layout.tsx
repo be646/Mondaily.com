@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Logo } from "../../components/logo";
+import { ErrorBoundary } from "../../components/ui/error-boundary";
 import { PanelProvider, usePanelContext } from "./onboarding-context";
 import {
   ProfilePanel,
@@ -65,7 +66,9 @@ function Layout() {
         {/* Step content */}
         <main className="flex flex-1 items-center justify-center p-8">
           <div className="w-full max-w-sm">
-            <Outlet />
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </main>
       </div>
