@@ -52,6 +52,7 @@ import { InvoiceDetailPage } from "./routes/dashboard/finance/[invoiceId]";
 import { CreditNotesPage } from "./routes/dashboard/finance/credit-notes";
 import { CreditNoteDetailPage } from "./routes/dashboard/finance/[creditNoteId]";
 import { ApprovalsPage } from "./routes/dashboard/approvals";
+import { DecisionsPage } from "./routes/dashboard/decisions";
 import { FinanceReportsPage } from "./routes/dashboard/finance/reports";
 import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
@@ -128,6 +129,7 @@ export function App() {
         <Route path="finance/quotes" element={<QuotesPage />} />
         <Route path="finance/expenses" element={<ExpensesPage />} />
         <Route path="approvals" element={<ApprovalsPage />} />
+        <Route path="decisions" element={<DecisionsPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="account" replace />} />
           <Route path="account" element={<AccountSettings />} />

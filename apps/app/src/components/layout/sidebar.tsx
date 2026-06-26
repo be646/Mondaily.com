@@ -27,6 +27,7 @@ function primaryNav(hasFinance: boolean): { to: string; label: string; icon: Rea
     { to: "/ask/new", label: "Ask", icon: MessageCircle },
     { to: "/search", label: "Graph", icon: GitBranch },
     { to: "/tasks", label: "Tasks", icon: CheckSquare },
+    { to: "/decisions", label: "Decisions", icon: ShieldCheck },
     { to: "/automations", label: "Automations", icon: Activity },
     hasFinance
       ? { to: "/finance/invoices", label: "Finance", icon: Receipt }

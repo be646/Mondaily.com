@@ -182,9 +182,10 @@ function hrefForSource(s: BackendSourceMeta): string | undefined {
   if (type === "report" && s.node_id) return `/reports/${s.node_id}`;
   if ((type === "invoice" || type === "finance") && s.node_id) return `/finance/invoices/${s.node_id}`;
   if (type === "task") return `/tasks`;
-  // Decisions live in the Decision Queue (Approvals), not the node graph —
-  // /objects/decision/<id> is an empty page.
-  if (type === "decision" || s.object_type === "decision") return `/approvals`;
+  // Decisions live in the dedicated Decision Queue page — not the node graph
+  // (/objects/decision/<id> is empty) and not /approvals (that's finance
+  // credit-note approvals).
+  if (type === "decision" || s.object_type === "decision") return `/decisions`;
   // Workflows live in the real Automations builder, not the raw graph view.
   if ((type === "workflow" || s.object_type === "automation") && s.node_id) return `/automations/workflows/${s.node_id}`;
   if (s.object_type && s.node_id) return `/objects/${s.object_type}/${s.node_id}`;
