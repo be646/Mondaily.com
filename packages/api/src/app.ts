@@ -106,11 +106,16 @@ app.all("/api/inngest", inngestHandler);
  */
 app.get("/api/cron/daily", async (c) => {
   const secret = process.env.CRON_SECRET;
+  // FAIL CLOSED: if no secret is configured the endpoint is DISABLED, not open.
+  // Previously an unset CRON_SECRET let anyone trigger the daily batch (and burn
+  // Cerebras compute / fire agent side effects). Now it's 503 until configured.
+  if (!secret) {
+    return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  }
   // Accept the secret via the Authorization header (Vercel Cron) OR a ?secret=
-  // query token (manual/uptime triggers). When CRON_SECRET is set, anything
-  // that doesn't match is dropped with 401 to protect Cerebras compute.
+  // query token (manual/uptime triggers). Anything that doesn't match → 401.
   const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
-  if (secret && provided !== `Bearer ${secret}`) {
+  if (provided !== `Bearer ${secret}`) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   // ?only=<runner> runs a single side-effect-free runner (e.g. lead_scoring,

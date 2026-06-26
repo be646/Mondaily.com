@@ -78269,8 +78269,11 @@ var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoice
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
   const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    return c2.json({ error: "Cron disabled \u2014 CRON_SECRET is not configured." }, 503);
+  }
   const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
-  if (secret && provided !== `Bearer ${secret}`) {
+  if (provided !== `Bearer ${secret}`) {
     return c2.json({ error: "Unauthorized" }, 401);
   }
   const only = c2.req.query("only");
