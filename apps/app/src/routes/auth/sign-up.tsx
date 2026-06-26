@@ -55,9 +55,12 @@ export function SignUpPage() {
       if (result.status === "complete") {
         setStage("done");
         await setActive({ session: result.createdSessionId });
-        // Hard redirect to /home — DashboardRoute will forward new users to onboarding
-        // via the mondaily_needs_onboarding flag set by bootstrap in AuthGate
-        window.location.replace("/home");
+        // Client-side navigate (NOT a hard reload) straight to onboarding. A
+        // fresh sign-up always needs onboarding, and a hard window.location
+        // reload here races with Clerk persisting the just-activated session —
+        // on reload Clerk wasn't signed-in yet, so AuthGate bounced new users
+        // back to /sign-in. Matches the Google path's redirectUrlComplete.
+        navigate("/onboarding/profile", { replace: true });
         return;
       } else {
         setError(`Verification incomplete (status: ${result.status}). Please try again.`);
