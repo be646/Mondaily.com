@@ -592,7 +592,12 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
       // Runs in parallel chunks; on any error that deal falls back to heuristic
       // only. This is what makes the "AI Score" genuinely AI, not just rules. ──
       const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
-      const AICHUNK = 6;
+      // Per-call timeout: a slow/hanging model call must NOT stall the whole
+      // function (serverless has a hard duration cap). On timeout we fall back
+      // to heuristic-only for that deal.
+      const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T | null> =>
+        Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
+      const AICHUNK = 12;
       const updates: { id: string; finalScore: number; signals: Record<string, unknown> }[] = [];
       for (let i = 0; i < heuristics.length; i += AICHUNK) {
         const batch = await Promise.all(heuristics.slice(i, i + AICHUNK).map(async (h) => {
@@ -600,14 +605,14 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
           signals.heuristic_score = heuristicScore;
           const name = String(d.name ?? d.title ?? "Untitled deal");
           const notes = String(d.notes ?? d.description ?? d.summary ?? d.next_step ?? "");
-          const ai = await aiGatewayToolUse({
+          const ai = await withTimeout(aiGatewayToolUse({
             model: FAST,
             maxTokens: 220,
             prompt: `Rate this sales deal's buying intent from 0 (cold/dead) to 100 (ready to close). Weigh the evidence and be decisive.\nName: ${name}\nStage: ${signals.stage ?? "?"}\nValue: ${signals.deal_value ?? "?"}\nDays since last update: ${signals.days_since_update}\nActivity last 30d: ${signals.recent_activity_30d}\nNotes: ${notes.slice(0, 600) || "(none)"}`,
             toolName: "score_intent",
             toolDescription: "Return a buying-intent score (0-100) and a one-line reason.",
             toolSchema: { type: "object", properties: { intent: { type: "number" }, reason: { type: "string" } }, required: ["intent"] },
-          }).catch(() => null);
+          }), 14000);
 
           let finalScore = heuristicScore;
           const aiIntent = ai && typeof ai.intent === "number" ? Math.max(0, Math.min(100, Math.round(ai.intent as number))) : null;

@@ -70803,7 +70803,8 @@ async function runLeadScoring(workspaceId) {
         return { deal, d: d2, heuristicScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
       const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
-      const AICHUNK = 6;
+      const withTimeout = (p2, ms5) => Promise.race([p2.catch(() => null), new Promise((r2) => setTimeout(() => r2(null), ms5))]);
+      const AICHUNK = 12;
       const updates = [];
       for (let i2 = 0; i2 < heuristics.length; i2 += AICHUNK) {
         const batch = await Promise.all(heuristics.slice(i2, i2 + AICHUNK).map(async (h2) => {
@@ -70811,7 +70812,7 @@ async function runLeadScoring(workspaceId) {
           signals.heuristic_score = heuristicScore;
           const name17 = String(d2.name ?? d2.title ?? "Untitled deal");
           const notes = String(d2.notes ?? d2.description ?? d2.summary ?? d2.next_step ?? "");
-          const ai = await aiGatewayToolUse({
+          const ai = await withTimeout(aiGatewayToolUse({
             model: FAST,
             maxTokens: 220,
             prompt: `Rate this sales deal's buying intent from 0 (cold/dead) to 100 (ready to close). Weigh the evidence and be decisive.
@@ -70824,7 +70825,7 @@ Notes: ${notes.slice(0, 600) || "(none)"}`,
             toolName: "score_intent",
             toolDescription: "Return a buying-intent score (0-100) and a one-line reason.",
             toolSchema: { type: "object", properties: { intent: { type: "number" }, reason: { type: "string" } }, required: ["intent"] }
-          }).catch(() => null);
+          }), 14e3);
           let finalScore = heuristicScore;
           const aiIntent = ai && typeof ai.intent === "number" ? Math.max(0, Math.min(100, Math.round(ai.intent))) : null;
           if (aiIntent !== null) {
