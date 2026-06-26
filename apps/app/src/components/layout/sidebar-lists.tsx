@@ -171,7 +171,7 @@ export function SidebarLists() {
   return (
     <section className="mt-5">
       <div className="mb-2 flex items-center justify-between px-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>Lists</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>Lists</p>
         <button onClick={() => setOpen(true)} title="New list" className="transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
           <Plus size={13} />
         </button>

@@ -30,7 +30,7 @@ export function SidebarObjects() {
     <section className="mt-3">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-50"
+        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-50"
         style={{ color: "var(--text-faint)" }}
       >
         <span className="flex-1 text-left">Records{activeObject ? ` · ${activeObject.name_plural}` : ""}</span>

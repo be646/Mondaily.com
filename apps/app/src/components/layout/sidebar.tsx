@@ -312,10 +312,10 @@ function NavItem({
   return (
     <Link
       to={to}
-      className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-400 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
+      className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[14px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-400 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
     >
       {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
-      <Icon size={13} className={active ? "text-stone-950 dark:text-stone-50" : "text-stone-400 dark:text-stone-600"}/>
+      <Icon size={15} className={active ? "text-stone-950 dark:text-stone-50" : "text-stone-400 dark:text-stone-600"}/>
       {label}
       {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-stone-950 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 99 ? "99+" : badge}</span>}
     </Link>
@@ -327,7 +327,42 @@ function SectionLabel({ label }: { label: string }) {
   if (!label) return null;
   return (
     <div className="mb-1.5 mt-4 px-2.5">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-700">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-700">{label}</span>
+    </div>
+  );
+}
+
+// ─── Collapsible nav group ────────────────────────────────────────────────────
+// Secondary nav groups collapse by default so the sidebar isn't one long scroll.
+// Each group remembers its open/closed state, and auto-opens when the current
+// route lives inside it.
+function NavGroup({ label, items, unreadCount }: {
+  label: string;
+  items: { to: string; label: string; icon: React.ElementType }[];
+  unreadCount: number;
+}) {
+  const location = useLocation();
+  const hasActive = items.some(i => location.pathname.startsWith(i.to));
+  const storeKey = `sb_group_${label}`;
+  const [open, setOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem(storeKey);
+    return saved === null ? hasActive : saved === "1";
+  });
+  useEffect(() => { if (hasActive) setOpen(true); }, [hasActive]);
+  const toggle = () => setOpen(o => { localStorage.setItem(storeKey, o ? "0" : "1"); return !o; });
+  return (
+    <div className="mt-2">
+      <button
+        onClick={toggle}
+        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
+      >
+        <span className="flex-1 text-left text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{label}</span>
+        <ChevronDown size={11} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
+      </button>
+      {open && items.map(item => (
+        <NavItem key={item.to} {...item} collapsed={false}
+          badge={item.to === "/notifications" ? unreadCount : undefined}/>
+      ))}
     </div>
   );
 }
@@ -392,7 +427,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     <>
       <aside
         style={{ transition: "width 0.2s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-stone-200 bg-white text-stone-900 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 ${collapsed ? "w-[52px]" : "w-[216px]"}`}
+        className={`relative flex h-full shrink-0 flex-col border-r border-stone-200 bg-white text-stone-900 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 ${collapsed ? "w-[56px]" : "w-[244px]"}`}
       >
         {/* Collapse toggle */}
         <button
@@ -497,17 +532,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               items: group.items.filter(item => item.to !== primaryTo && (hasFinance || !FINANCE_ONLY.includes(item.to))),
             })).filter(group => group.items.length > 0);
 
-            // Flat, always-visible — no "More" toggle to unfold. Each group
-            // keeps its quiet section label so the list still reads as
-            // organized, not just a long undifferentiated stack.
+            // Collapsible groups — collapsed by default so the sidebar reads as a
+            // short, calm list. Each group auto-opens when you're inside it and
+            // remembers your choice.
             return filteredMore.map(group => (
-              <div key={group.label} className="mt-1">
-                <SectionLabel label={group.label}/>
-                {group.items.map(item => (
-                  <NavItem key={item.to} {...item} collapsed={false}
-                    badge={item.to === "/notifications" ? unreadCount : undefined}/>
-                ))}
-              </div>
+              <NavGroup key={group.label} label={group.label} items={group.items} unreadCount={unreadCount}/>
             ));
           })()}
 
