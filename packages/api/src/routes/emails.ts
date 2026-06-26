@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { verifyTrackingToken } from "../lib/tracking";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkspaceSettings = {
@@ -21,48 +22,55 @@ const API_BASE = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com"
 const router = new Hono<{ Variables: Variables }>();
 
 // ── Public tracking routes — NO auth (called by email clients) ────────────────
-router.get("/track/:trackingId/open.gif", async (c) => {
-  const { trackingId } = c.req.param();
-  // Fire-and-forget: log the open event on the email_outbox node
-  supabase.from("nodes")
-    .select("id,data")
-    .eq("object_type", "email_outbox")
-    .eq("id", trackingId)
-    .maybeSingle()
-    .then(({ data: node }) => {
-      if (!node) return;
-      const opens: string[] = Array.isArray((node.data as Record<string,unknown>).opens)
-        ? (node.data as Record<string,unknown>).opens as string[]
-        : [];
-      const ts = new Date().toISOString();
-      opens.push(ts);
-      supabase.from("nodes").update({ data: { ...(node.data as object), opens, last_opened_at: ts } })
-        .eq("id", trackingId).then(() => {});
-    });
+router.get("/track/:token/open.gif", async (c) => {
+  // Verify the signed, opaque token → node id. An unsigned/forged token resolves
+  // to null and we just serve the pixel without touching the DB, so the raw node
+  // UUID is never accepted from the URL (closes the IDOR enumeration leak).
+  const trackingId = verifyTrackingToken(c.req.param("token"));
+  if (trackingId) {
+    // Fire-and-forget: log the open event on the email_outbox node
+    supabase.from("nodes")
+      .select("id,data")
+      .eq("object_type", "email_outbox")
+      .eq("id", trackingId)
+      .maybeSingle()
+      .then(({ data: node }) => {
+        if (!node) return;
+        const opens: string[] = Array.isArray((node.data as Record<string,unknown>).opens)
+          ? (node.data as Record<string,unknown>).opens as string[]
+          : [];
+        const ts = new Date().toISOString();
+        opens.push(ts);
+        supabase.from("nodes").update({ data: { ...(node.data as object), opens, last_opened_at: ts } })
+          .eq("id", trackingId).then(() => {});
+      });
+  }
   return new Response(PIXEL_GIF, {
     status: 200,
     headers: { "Content-Type": "image/gif", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" }
   });
 });
 
-router.get("/track/:trackingId/click", async (c) => {
-  const { trackingId } = c.req.param();
+router.get("/track/:token/click", async (c) => {
+  const trackingId = verifyTrackingToken(c.req.param("token"));
   const url = c.req.query("url") ?? "/";
-  // Fire-and-forget: log click
-  supabase.from("nodes")
-    .select("id,data")
-    .eq("object_type", "email_outbox")
-    .eq("id", trackingId)
-    .maybeSingle()
-    .then(({ data: node }) => {
-      if (!node) return;
-      const clicks: { url: string; at: string }[] = Array.isArray((node.data as Record<string,unknown>).clicks)
-        ? (node.data as Record<string,unknown>).clicks as { url: string; at: string }[]
-        : [];
-      clicks.push({ url, at: new Date().toISOString() });
-      supabase.from("nodes").update({ data: { ...(node.data as object), clicks, last_clicked_at: new Date().toISOString() } })
-        .eq("id", trackingId).then(() => {});
-    });
+  // Fire-and-forget: log click (only on a valid signed token)
+  if (trackingId) {
+    supabase.from("nodes")
+      .select("id,data")
+      .eq("object_type", "email_outbox")
+      .eq("id", trackingId)
+      .maybeSingle()
+      .then(({ data: node }) => {
+        if (!node) return;
+        const clicks: { url: string; at: string }[] = Array.isArray((node.data as Record<string,unknown>).clicks)
+          ? (node.data as Record<string,unknown>).clicks as { url: string; at: string }[]
+          : [];
+        clicks.push({ url, at: new Date().toISOString() });
+        supabase.from("nodes").update({ data: { ...(node.data as object), clicks, last_clicked_at: new Date().toISOString() } })
+          .eq("id", trackingId).then(() => {});
+      });
+  }
   return c.redirect(url, 302);
 });
 

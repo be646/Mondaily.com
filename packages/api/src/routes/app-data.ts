@@ -3,10 +3,33 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { makeTrackingToken } from "../lib/tracking";
+import { isWorkspaceAdmin } from "../middleware/rbac";
 
 type AppVariables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: AppVariables }>();
 router.use("*", requireAuth);
+
+// ── Central RBAC gate for workspace-administration settings ───────────────────
+// Any WRITE under these /settings/* areas requires owner/admin. Reads stay open,
+// and self-service areas (the user's own account / sessions) are exempt. This
+// closes the gaps where member/object/integration/webhook mutations were
+// callable by any workspace member (privilege escalation).
+const ADMIN_SETTINGS_AREAS = [
+  "/settings/workspace", "/settings/members", "/settings/teams",
+  "/settings/objects", "/settings/integrations", "/settings/security", "/settings/general",
+];
+router.use("/settings/*", async (c, next) => {
+  const m = c.req.method;
+  if (m === "GET" || m === "HEAD" || m === "OPTIONS") return next();
+  const path = c.req.path;
+  // Self-service: a user may always manage their OWN account + sessions.
+  if (path.includes("/settings/account") || path.includes("/settings/security/sessions")) return next();
+  if (ADMIN_SETTINGS_AREAS.some((p) => path.includes(p)) && !isWorkspaceAdmin(c.get("role"))) {
+    return c.json({ error: "Forbidden — owner or admin role required." }, 403);
+  }
+  return next();
+});
 
 async function rows(table: string, workspaceId: string, options?: { objectType?: string; limit?: number }) {
   let query = supabase.from(table).select("*").eq("workspace_id", workspaceId);
@@ -223,7 +246,8 @@ router.post("/emails/send", zValidator("json", z.object({
   if (error) return c.json({ error: error.message }, 400);
 
   const apiBase = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
-  const pixel = `<img src="${apiBase}/api/v1/emails/track/${data.id}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
+  const trackToken = makeTrackingToken(data.id);
+  const pixel = `<img src="${apiBase}/api/v1/emails/track/${trackToken}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   const trackedBody = body.body.includes("</body>")
     ? body.body.replace("</body>", `${pixel}</body>`)
     : body.body + pixel;

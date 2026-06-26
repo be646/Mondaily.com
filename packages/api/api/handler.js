@@ -1209,7 +1209,7 @@ var require_supports_color = __commonJS({
         return 1;
       }
       if ("CI" in env2) {
-        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign) => sign in env2) || env2.CI_NAME === "codeship") {
+        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign2) => sign2 in env2) || env2.CI_NAME === "codeship") {
           return 1;
         }
         return min;
@@ -4886,7 +4886,7 @@ var require_lib = __commonJS({
     "use strict";
     var conversions = {};
     module2.exports = conversions;
-    function sign(x2) {
+    function sign2(x2) {
       return x2 < 0 ? -1 : 1;
     }
     function evenRound(x2) {
@@ -4911,7 +4911,7 @@ var require_lib = __commonJS({
           if (!Number.isFinite(x2)) {
             throw new TypeError("Argument is not a finite number");
           }
-          x2 = sign(x2) * Math.floor(Math.abs(x2));
+          x2 = sign2(x2) * Math.floor(Math.abs(x2));
           if (x2 < lowerBound || x2 > upperBound) {
             throw new TypeError("Argument is not in byte range");
           }
@@ -4926,7 +4926,7 @@ var require_lib = __commonJS({
         if (!Number.isFinite(x2) || x2 === 0) {
           return 0;
         }
-        x2 = sign(x2) * Math.floor(Math.abs(x2));
+        x2 = sign2(x2) * Math.floor(Math.abs(x2));
         x2 = x2 % moduloVal;
         if (!typeOpts.unsigned && x2 >= moduloBound) {
           return x2 - moduloVal;
@@ -10655,8 +10655,8 @@ function getCryptoAlgorithm(algorithmName) {
     name: jwksAlgToCryptoAlg[algorithmName]
   };
 }
-function pemToBuffer(secret) {
-  const trimmed = secret.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
+function pemToBuffer(secret2) {
+  const trimmed = secret2.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
   const decoded = isomorphicAtob(trimmed);
   const buffer = new ArrayBuffer(decoded.length);
   const bufView = new Uint8Array(buffer);
@@ -12688,10 +12688,10 @@ async function verifyOAuthToken(accessToken, options) {
     return handleClerkAPIError(TokenType.OAuthToken, err2, "OAuth token not found");
   }
 }
-async function verifyAPIKey(secret, options) {
+async function verifyAPIKey(secret2, options) {
   try {
     const client = createBackendApiClient(options);
-    const verifiedToken = await client.apiKeys.verify(secret);
+    const verifiedToken = await client.apiKeys.verify(secret2);
     return { data: verifiedToken, tokenType: TokenType.ApiKey, errors: void 0 };
   } catch (err2) {
     return handleClerkAPIError(TokenType.ApiKey, err2, "API key not found");
@@ -13604,11 +13604,11 @@ var init_chunk_H3NCOZAT = __esm({
           path: joinPaths(basePath5, apiKeyId, "secret")
         });
       }
-      async verify(secret) {
+      async verify(secret2) {
         return this.request({
           method: "POST",
           path: joinPaths(basePath5, "verify"),
-          bodyParams: { secret }
+          bodyParams: { secret: secret2 }
         });
       }
     };
@@ -15238,7 +15238,7 @@ var init_chunk_H3NCOZAT = __esm({
       }
     };
     APIKey = class _APIKey {
-      constructor(id, type, name17, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret) {
+      constructor(id, type, name17, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret2) {
         this.id = id;
         this.type = type;
         this.name = name17;
@@ -15254,7 +15254,7 @@ var init_chunk_H3NCOZAT = __esm({
         this.lastUsedAt = lastUsedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.secret = secret;
+        this.secret = secret2;
       }
       static fromJSON(data) {
         return new _APIKey(
@@ -16062,8 +16062,8 @@ var init_chunk_H3NCOZAT = __esm({
       }
     };
     MachineSecretKey = class _MachineSecretKey {
-      constructor(secret) {
-        this.secret = secret;
+      constructor(secret2) {
+        this.secret = secret2;
       }
       static fromJSON(data) {
         return new _MachineSecretKey(data.secret);
@@ -70720,6 +70720,27 @@ var requireAdmin = createMiddleware(async (c2, next) => {
   await next();
 });
 
+// src/middleware/rbac.ts
+function isWorkspaceAdmin(role) {
+  return role === "owner" || role === "admin";
+}
+function requireRole(...allowed) {
+  return createMiddleware(async (c2, next) => {
+    if (!allowed.includes(c2.get("role"))) {
+      throw new HTTPException(403, { message: `Forbidden \u2014 requires ${allowed.join(" or ")} role.` });
+    }
+    await next();
+  });
+}
+var requireAdminRole = requireRole("owner", "admin");
+var denyViewerWrites = createMiddleware(async (c2, next) => {
+  const m2 = c2.req.method;
+  if (m2 !== "GET" && m2 !== "HEAD" && m2 !== "OPTIONS" && c2.get("role") === "viewer") {
+    throw new HTTPException(403, { message: "Viewer accounts are read-only." });
+  }
+  await next();
+});
+
 // ../db/src/ubc.ts
 var NodeSchema = external_exports.object({
   id: external_exports.string().uuid().optional(),
@@ -70736,13 +70757,13 @@ async function createNode(input) {
   if (error) throw new Error(`createNode failed: ${error.message}`);
   return data;
 }
-async function updateNode(id, updates) {
-  const { data, error } = await supabase.from("nodes").update({ ...updates, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id).select().single();
+async function updateNode(id, workspaceId, updates) {
+  const { data, error } = await supabase.from("nodes").update({ ...updates, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id).eq("workspace_id", workspaceId).select().single();
   if (error) throw new Error(`updateNode failed: ${error.message}`);
   return data;
 }
-async function getNode(id) {
-  const { data, error } = await supabase.from("nodes").select("*").eq("id", id).maybeSingle();
+async function getNode(id, workspaceId) {
+  const { data, error } = await supabase.from("nodes").select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
   if (error) throw new Error(`getNode failed: ${error.message}`);
   if (!data) return null;
   const activities = await getActivities(id, 50);
@@ -70756,22 +70777,22 @@ async function listNodes(workspaceId, options = {}) {
   if (error) throw new Error(`listNodes failed: ${error.message}`);
   return data || [];
 }
-async function deleteNode(id) {
-  const { error } = await supabase.from("nodes").delete().eq("id", id);
+async function deleteNode(id, workspaceId) {
+  const { error } = await supabase.from("nodes").delete().eq("id", id).eq("workspace_id", workspaceId);
   if (error) throw new Error(`deleteNode failed: ${error.message}`);
 }
 async function createEdge(workspaceId, fromNodeId, toNodeId, relationship, metadata = {}) {
   const { error } = await supabase.from("edges").insert({ workspace_id: workspaceId, from_node_id: fromNodeId, to_node_id: toNodeId, relationship, metadata });
   if (error) throw new Error(`createEdge failed: ${error.message}`);
 }
-async function getRelated(nodeId, relationship) {
-  let query = supabase.from("edges").select("to_node_id").eq("from_node_id", nodeId);
+async function getRelated(nodeId, workspaceId, relationship) {
+  let query = supabase.from("edges").select("to_node_id").eq("workspace_id", workspaceId).eq("from_node_id", nodeId);
   if (relationship) query = query.eq("relationship", relationship);
   const { data, error } = await query;
   if (error) throw new Error(`getRelated failed: ${error.message}`);
   const ids = (data || []).map((edge) => edge.to_node_id);
   if (!ids.length) return [];
-  const { data: nodes, error: nodeError } = await supabase.from("nodes").select("*").in("id", ids);
+  const { data: nodes, error: nodeError } = await supabase.from("nodes").select("*").eq("workspace_id", workspaceId).in("id", ids);
   if (nodeError) throw new Error(`getRelated nodes failed: ${nodeError.message}`);
   return nodes || [];
 }
@@ -70789,10 +70810,10 @@ async function getActivities(nodeId, limit2 = 20) {
 var router = new Hono2();
 router.get("/:id/related", requireAuth, async (c2) => {
   const id = c2.req.param("id");
-  const related = await getRelated(id);
+  const related = await getRelated(id, c2.get("workspaceId"));
   return c2.json(related);
 });
-router.post("/:id/relate", requireAuth, zValidator("json", external_exports.object({
+router.post("/:id/relate", requireAuth, denyViewerWrites, zValidator("json", external_exports.object({
   target_id: external_exports.string(),
   relationship: external_exports.string().default("related")
 })), async (c2) => {
@@ -70803,7 +70824,7 @@ router.post("/:id/relate", requireAuth, zValidator("json", external_exports.obje
   return c2.json({ ok: true }, 201);
 });
 router.get("/:id", requireAuth, async (c2) => {
-  const node = await getNode(c2.req.param("id"));
+  const node = await getNode(c2.req.param("id"), c2.get("workspaceId"));
   if (!node) return c2.json({ error: "Not found" }, 404);
   return c2.json(node);
 });
@@ -70817,7 +70838,7 @@ router.get("/", requireAuth, zValidator("query", external_exports.object({
   const nodes = await listNodes(c2.get("workspaceId"), query);
   return c2.json(nodes);
 });
-router.post("/", requireAuth, zValidator("json", external_exports.object({
+router.post("/", requireAuth, denyViewerWrites, zValidator("json", external_exports.object({
   vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]),
   object_type: external_exports.string().min(1),
   data: external_exports.record(external_exports.unknown())
@@ -70838,17 +70859,17 @@ router.post("/", requireAuth, zValidator("json", external_exports.object({
   });
   return c2.json(node, 201);
 });
-router.patch("/:id", requireAuth, zValidator("json", external_exports.object({
+router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external_exports.object({
   data: external_exports.record(external_exports.unknown()).optional(),
   ai_summary: external_exports.string().optional()
 })), async (c2) => {
   const updates = c2.req.valid("json");
-  const node = await updateNode(c2.req.param("id"), updates);
+  const node = await updateNode(c2.req.param("id"), c2.get("workspaceId"), updates);
   await logActivity(node.id, c2.get("workspaceId"), "human", c2.get("userId"), "updated", updates);
   return c2.json(node);
 });
-router.delete("/:id", requireAuth, async (c2) => {
-  await deleteNode(c2.req.param("id"));
+router.delete("/:id", requireAuth, denyViewerWrites, async (c2) => {
+  await deleteNode(c2.req.param("id"), c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
 
@@ -72281,7 +72302,7 @@ ${results.join("\n")}`;
           sourceLabel = `${matches3[0].data.name ?? input.name} (${matches3[0].object_type})`;
         }
         if (!nodeId) return "No node_id or name provided \u2014 cannot look up related objects.";
-        const related = await getRelated(nodeId);
+        const related = await getRelated(nodeId, workspaceId);
         if (!related.length) return `No related objects found in the workspace graph for ${sourceLabel || nodeId}.`;
         for (const node of related.slice(0, 8)) {
           sources.push({
@@ -73225,10 +73246,10 @@ router10.post("/clerk", async (c2) => {
   const svixTimestamp = c2.req.header("svix-timestamp") ?? "";
   const svixSignature = c2.req.header("svix-signature") ?? "";
   const rawBody = await c2.req.text();
-  const secret = process.env.CLERK_WEBHOOK_SECRET ?? "";
-  if (secret) {
+  const secret2 = process.env.CLERK_WEBHOOK_SECRET ?? "";
+  if (secret2) {
     const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
-    const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+    const secretBytes = Buffer.from(secret2.replace(/^whsec_/, ""), "base64");
     const expected = (0, import_node_crypto2.createHmac)("sha256", secretBytes).update(signedContent).digest("base64");
     const signatures = svixSignature.split(" ").map((s3) => s3.replace(/^v1,/, ""));
     const valid = signatures.some((sig) => {
@@ -73257,9 +73278,9 @@ router10.post("/nylas", async (c2) => {
   if (challenge) return c2.text(challenge);
   const rawBody = await c2.req.text();
   const sig = c2.req.header("x-nylas-signature") ?? "";
-  const secret = process.env.NYLAS_WEBHOOK_SECRET ?? "";
-  if (secret && sig) {
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secret).update(rawBody).digest("hex");
+  const secret2 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
+  if (secret2 && sig) {
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secret2).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -73285,15 +73306,15 @@ router10.post("/nylas", async (c2) => {
 });
 router10.post("/stripe", async (c2) => {
   const sig = c2.req.header("stripe-signature") ?? "";
-  const secret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  const secret2 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   const rawBody = await c2.req.text();
-  if (secret && sig) {
+  if (secret2 && sig) {
     const parts = Object.fromEntries(sig.split(",").map((p2) => p2.split("=")));
     const timestamp = parts["t"] ?? "0";
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secret).update(payload).digest("hex");
+    const expected = (0, import_node_crypto2.createHmac)("sha256", secret2).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
     if (!(0, import_node_crypto2.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
@@ -73410,9 +73431,57 @@ router11.post("/portal", async (c2) => {
   }
 });
 
+// src/lib/tracking.ts
+var import_node_crypto3 = require("crypto");
+function secret() {
+  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || process.env.CLERK_SECRET_KEY || "mondaily-dev-tracking-secret";
+}
+var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function sign(payload) {
+  return b64url((0, import_node_crypto3.createHmac)("sha256", secret()).update(payload).digest());
+}
+function makeTrackingToken(nodeId) {
+  const p2 = b64url(nodeId);
+  return `${p2}.${sign(p2)}`;
+}
+function verifyTrackingToken(token) {
+  const dot = token.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const p2 = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = sign(p2);
+  const a2 = Buffer.from(sig);
+  const b2 = Buffer.from(expected);
+  if (a2.length !== b2.length || !(0, import_node_crypto3.timingSafeEqual)(a2, b2)) return null;
+  try {
+    return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
+  } catch {
+    return null;
+  }
+}
+
 // src/routes/app-data.ts
 var router12 = new Hono2();
 router12.use("*", requireAuth);
+var ADMIN_SETTINGS_AREAS = [
+  "/settings/workspace",
+  "/settings/members",
+  "/settings/teams",
+  "/settings/objects",
+  "/settings/integrations",
+  "/settings/security",
+  "/settings/general"
+];
+router12.use("/settings/*", async (c2, next) => {
+  const m2 = c2.req.method;
+  if (m2 === "GET" || m2 === "HEAD" || m2 === "OPTIONS") return next();
+  const path = c2.req.path;
+  if (path.includes("/settings/account") || path.includes("/settings/security/sessions")) return next();
+  if (ADMIN_SETTINGS_AREAS.some((p2) => path.includes(p2)) && !isWorkspaceAdmin(c2.get("role"))) {
+    return c2.json({ error: "Forbidden \u2014 owner or admin role required." }, 403);
+  }
+  return next();
+});
 async function rows(table, workspaceId, options) {
   let query = supabase.from(table).select("*").eq("workspace_id", workspaceId);
   if (options?.objectType) query = query.eq("object_type", options.objectType);
@@ -73545,7 +73614,8 @@ router12.post("/emails/send", zValidator("json", external_exports.object({
   }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
   const apiBase = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
-  const pixel = `<img src="${apiBase}/api/v1/emails/track/${data.id}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
+  const trackToken = makeTrackingToken(data.id);
+  const pixel = `<img src="${apiBase}/api/v1/emails/track/${trackToken}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   const trackedBody = body.body.includes("</body>") ? body.body.replace("</body>", `${pixel}</body>`) : body.body + pixel;
   await supabase.from("nodes").update({ data: { ...body, status: "queued", requested_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [], tracked_body: trackedBody } }).eq("id", data.id);
   await supabase.from("activities").insert({
@@ -73723,12 +73793,12 @@ router12.patch("/settings/integrations/:id", async (c2) => {
 });
 router12.post("/settings/integrations/api-keys", async (c2) => {
   const body = await c2.req.json();
-  const secret = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
-  const bytes = new TextEncoder().encode(secret);
+  const secret2 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
+  const bytes = new TextEncoder().encode(secret2);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hash = Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
-  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
-  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret }, 201);
+  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret2.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
+  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret2 }, 201);
 });
 router12.delete("/settings/integrations/api-keys/:id", async (c2) => {
   await supabase.from("api_keys").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
@@ -73901,6 +73971,24 @@ router12.patch("/settings/general", requireAuth, async (c2) => {
   return c2.json({ ok: true });
 });
 
+// src/lib/mail.ts
+async function sendWorkspaceEmail(workspaceId, msg) {
+  if (!process.env.NYLAS_API_KEY) return false;
+  try {
+    const { data: conn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).maybeSingle();
+    const grantId = conn?.grant_id;
+    if (!grantId) return false;
+    const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ subject: msg.subject, body: msg.body, to: msg.to })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // src/routes/invites.ts
 var router13 = new Hono2();
 router13.use("*", requireAuth);
@@ -73927,8 +74015,14 @@ router13.post("/", zValidator("json", inviteSchema), async (c2) => {
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString()
   }, { onConflict: "workspace_id,email", ignoreDuplicates: false }).select("id,email,role,finance_role,token,expires_at,created_at").single();
   if (error) return c2.json({ error: error.message }, 500);
-  const inviteLink = `/accept-invite?token=${data.token}`;
-  return c2.json({ ...data, invite_link: inviteLink }, 201);
+  const appBase = process.env.APP_BASE_URL ?? "https://app.mondaily.com";
+  const inviteLink = `${appBase}/accept-invite?token=${data.token}`;
+  const emailSent = await sendWorkspaceEmail(c2.get("workspaceId"), {
+    to: [{ email: data.email }],
+    subject: "You've been invited to a Mondaily workspace",
+    body: `<p>You've been invited to collaborate in a Mondaily workspace.</p><p><a href="${inviteLink}">Accept your invitation</a></p><p>If the button doesn't work, paste this link into your browser:<br/>${inviteLink}</p><p>This invitation expires in 7 days.</p>`
+  });
+  return c2.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
 });
 router13.delete("/:id", async (c2) => {
   const callerRole = c2.get("role");
@@ -74067,31 +74161,35 @@ var PIXEL_GIF = Buffer.from(
 );
 var API_BASE = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
 var router15 = new Hono2();
-router15.get("/track/:trackingId/open.gif", async (c2) => {
-  const { trackingId } = c2.req.param();
-  supabase.from("nodes").select("id,data").eq("object_type", "email_outbox").eq("id", trackingId).maybeSingle().then(({ data: node }) => {
-    if (!node) return;
-    const opens = Array.isArray(node.data.opens) ? node.data.opens : [];
-    const ts = (/* @__PURE__ */ new Date()).toISOString();
-    opens.push(ts);
-    supabase.from("nodes").update({ data: { ...node.data, opens, last_opened_at: ts } }).eq("id", trackingId).then(() => {
+router15.get("/track/:token/open.gif", async (c2) => {
+  const trackingId = verifyTrackingToken(c2.req.param("token"));
+  if (trackingId) {
+    supabase.from("nodes").select("id,data").eq("object_type", "email_outbox").eq("id", trackingId).maybeSingle().then(({ data: node }) => {
+      if (!node) return;
+      const opens = Array.isArray(node.data.opens) ? node.data.opens : [];
+      const ts = (/* @__PURE__ */ new Date()).toISOString();
+      opens.push(ts);
+      supabase.from("nodes").update({ data: { ...node.data, opens, last_opened_at: ts } }).eq("id", trackingId).then(() => {
+      });
     });
-  });
+  }
   return new Response(PIXEL_GIF, {
     status: 200,
     headers: { "Content-Type": "image/gif", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" }
   });
 });
-router15.get("/track/:trackingId/click", async (c2) => {
-  const { trackingId } = c2.req.param();
+router15.get("/track/:token/click", async (c2) => {
+  const trackingId = verifyTrackingToken(c2.req.param("token"));
   const url = c2.req.query("url") ?? "/";
-  supabase.from("nodes").select("id,data").eq("object_type", "email_outbox").eq("id", trackingId).maybeSingle().then(({ data: node }) => {
-    if (!node) return;
-    const clicks = Array.isArray(node.data.clicks) ? node.data.clicks : [];
-    clicks.push({ url, at: (/* @__PURE__ */ new Date()).toISOString() });
-    supabase.from("nodes").update({ data: { ...node.data, clicks, last_clicked_at: (/* @__PURE__ */ new Date()).toISOString() } }).eq("id", trackingId).then(() => {
+  if (trackingId) {
+    supabase.from("nodes").select("id,data").eq("object_type", "email_outbox").eq("id", trackingId).maybeSingle().then(({ data: node }) => {
+      if (!node) return;
+      const clicks = Array.isArray(node.data.clicks) ? node.data.clicks : [];
+      clicks.push({ url, at: (/* @__PURE__ */ new Date()).toISOString() });
+      supabase.from("nodes").update({ data: { ...node.data, clicks, last_clicked_at: (/* @__PURE__ */ new Date()).toISOString() } }).eq("id", trackingId).then(() => {
+      });
     });
-  });
+  }
   return c2.redirect(url, 302);
 });
 router15.use("*", requireAuth);
@@ -74513,6 +74611,7 @@ router18.patch("/:id/enrollments/:eid", zValidator("json", external_exports.obje
 // src/routes/lists.ts
 var router19 = new Hono2();
 router19.use("*", requireAuth);
+router19.use("*", denyViewerWrites);
 router19.get("/", async (c2) => {
   const userId = c2.get("userId");
   const role = c2.get("role");
@@ -74543,10 +74642,20 @@ router19.patch("/:id", async (c2) => {
   const body = {};
   for (const k2 of allowed) if (k2 in raw2) body[k2] = raw2[k2];
   if (!Object.keys(body).length) return c2.json({ error: "No updatable fields provided." }, 400);
+  const { data: existing } = await supabase.from("lists").select("owner_id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
+  if (!existing) return c2.json({ error: "List not found" }, 404);
+  if (!isWorkspaceAdmin(c2.get("role")) && existing.owner_id !== c2.get("userId")) {
+    return c2.json({ error: "Forbidden \u2014 only the list owner or an admin can modify this list." }, 403);
+  }
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data);
 });
 router19.delete("/:id", async (c2) => {
+  const { data: existing } = await supabase.from("lists").select("owner_id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
+  if (!existing) return c2.json({ error: "List not found" }, 404);
+  if (!isWorkspaceAdmin(c2.get("role")) && existing.owner_id !== c2.get("userId")) {
+    return c2.json({ error: "Forbidden \u2014 only the list owner or an admin can delete this list." }, 403);
+  }
   const { error } = await supabase.from("lists").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
@@ -74800,7 +74909,7 @@ router20.patch("/:id", async (c2) => {
   return c2.json(data);
 });
 router20.delete("/:id", async (c2) => {
-  const { error } = await supabase.from("chat_threads").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId"));
+  const { error } = await supabase.from("chat_threads").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId")).eq("workspace_id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
@@ -77096,6 +77205,24 @@ router35.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
   return c2.json({ ok: true });
 });
 
+// src/lib/trial.ts
+var TRIAL_DAYS = 14;
+var TRIAL_PLAN = "trial";
+var DAY_MS = 864e5;
+function trialEndsAtISO(from = Date.now()) {
+  return new Date(from + TRIAL_DAYS * DAY_MS).toISOString();
+}
+async function insertTrialWorkspace(base) {
+  const trialEndsAt = trialEndsAtISO();
+  const settings = { trial_ends_at: trialEndsAt };
+  let res = await supabase.from("workspaces").insert({ ...base, plan: TRIAL_PLAN, settings }).select("id").single();
+  if (res.error && /check constraint/i.test(res.error.message)) {
+    res = await supabase.from("workspaces").insert({ ...base, plan: "free", settings }).select("id").single();
+  }
+  if (res.error || !res.data) throw new Error(res.error?.message ?? "workspace insert failed");
+  return { id: res.data.id, trialEndsAt };
+}
+
 // src/routes/onboarding.ts
 var router36 = new Hono2();
 router36.post("/bootstrap", requireJwt, async (c2) => {
@@ -77119,30 +77246,35 @@ router36.post("/bootstrap", requireJwt, async (c2) => {
   if (!workspaceId) {
     isNew = true;
     const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 7);
-    const trialEndsAt = new Date(Date.now() + 14 * 864e5).toISOString();
-    const insertPayload = { name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } };
-    if (clerk_org_id) insertPayload.clerk_org_id = clerk_org_id;
     try {
-      const { data: created, error: createError2 } = await supabase.from("workspaces").insert(insertPayload).select("id").single();
-      if (!createError2 && created) workspaceId = created.id;
+      workspaceId = (await insertTrialWorkspace(clerk_org_id ? { name: workspaceName, slug, clerk_org_id } : { name: workspaceName, slug })).id;
     } catch {
-    }
-    if (!workspaceId && clerk_org_id) {
-      const { data: created, error: createError2 } = await supabase.from("workspaces").insert({ name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } }).select("id").single();
-      if (createError2) return c2.json({ error: createError2.message }, 500);
-      workspaceId = created.id;
-    } else if (!workspaceId) {
-      return c2.json({ error: "Failed to create workspace" }, 500);
+      if (clerk_org_id) {
+        try {
+          workspaceId = (await insertTrialWorkspace({ name: workspaceName, slug })).id;
+        } catch (e2) {
+          return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to create workspace" }, 500);
+        }
+      } else {
+        return c2.json({ error: "Failed to create workspace" }, 500);
+      }
     }
   }
-  await Promise.all([
-    supabase.from("workspace_members").upsert(
-      { workspace_id: workspaceId, user_id: userId, role: "owner" },
-      { onConflict: "workspace_id,user_id" }
-    ),
-    clerk_org_id ? supabase.from("workspaces").update({ clerk_org_id }).eq("id", workspaceId).is("clerk_org_id", null).then(() => {
-    }) : Promise.resolve()
-  ]);
+  const { error: memberErr } = await supabase.from("workspace_members").upsert(
+    { workspace_id: workspaceId, user_id: userId, role: "owner" },
+    { onConflict: "workspace_id,user_id" }
+  );
+  if (memberErr) {
+    if (isNew) await supabase.from("workspaces").delete().eq("id", workspaceId).then(() => {
+    }, () => {
+    });
+    return c2.json({ error: `Registration failed: ${memberErr.message}` }, 500);
+  }
+  if (clerk_org_id) {
+    await supabase.from("workspaces").update({ clerk_org_id }).eq("id", workspaceId).is("clerk_org_id", null).then(() => {
+    }, () => {
+    });
+  }
   return c2.json({ workspace_id: workspaceId, is_new: isNew });
 });
 router36.get("/status", requireAuth, async (c2) => {
@@ -77364,12 +77496,20 @@ router38.post("/", requireJwt, async (c2) => {
   const name17 = (body.name ?? "").trim();
   if (!name17) return c2.json({ error: "Workspace name is required." }, 400);
   const slug = `${name17.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "workspace"}-${Math.random().toString(36).slice(2, 6)}`;
-  const trialEndsAt = new Date(Date.now() + 14 * 864e5).toISOString();
-  const { data: ws, error } = await supabase.from("workspaces").insert({ name: name17, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } }).select("id, name").single();
-  if (error || !ws) return c2.json({ error: error?.message ?? "Could not create workspace." }, 500);
-  const { error: memberErr } = await supabase.from("workspace_members").insert({ workspace_id: ws.id, user_id: userId, role: "owner" });
-  if (memberErr) return c2.json({ error: memberErr.message }, 500);
-  return c2.json({ workspace_id: ws.id, name: ws.name, trial_ends_at: trialEndsAt }, 201);
+  let workspaceId, trialEndsAt;
+  try {
+    ({ id: workspaceId, trialEndsAt } = await insertTrialWorkspace({ name: name17, slug }));
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Could not create workspace." }, 500);
+  }
+  const { error: memberErr } = await supabase.from("workspace_members").insert({ workspace_id: workspaceId, user_id: userId, role: "owner" });
+  if (memberErr) {
+    await supabase.from("workspaces").delete().eq("id", workspaceId).then(() => {
+    }, () => {
+    });
+    return c2.json({ error: memberErr.message }, 500);
+  }
+  return c2.json({ workspace_id: workspaceId, name: name17, trial_ends_at: trialEndsAt }, 201);
 });
 
 // src/app.ts
@@ -77421,12 +77561,12 @@ app.route("/api/v1", router12);
 var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
+  const secret2 = process.env.CRON_SECRET;
+  if (!secret2) {
     return c2.json({ error: "Cron disabled \u2014 CRON_SECRET is not configured." }, 503);
   }
   const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
-  if (provided !== `Bearer ${secret}`) {
+  if (provided !== `Bearer ${secret2}`) {
     return c2.json({ error: "Unauthorized" }, 401);
   }
   const only = c2.req.query("only");

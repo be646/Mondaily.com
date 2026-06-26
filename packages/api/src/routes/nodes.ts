@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 
@@ -9,11 +10,11 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
 
 router.get("/:id/related", requireAuth, async (c) => {
   const id = c.req.param("id");
-  const related = await ubc.getRelated(id);
+  const related = await ubc.getRelated(id, c.get("workspaceId"));
   return c.json(related);
 });
 
-router.post("/:id/relate", requireAuth, zValidator("json", z.object({
+router.post("/:id/relate", requireAuth, denyViewerWrites, zValidator("json", z.object({
   target_id: z.string(),
   relationship: z.string().default("related"),
 })), async (c) => {
@@ -25,7 +26,7 @@ router.post("/:id/relate", requireAuth, zValidator("json", z.object({
 });
 
 router.get("/:id", requireAuth, async (c) => {
-  const node = await ubc.getNode(c.req.param("id"));
+  const node = await ubc.getNode(c.req.param("id"), c.get("workspaceId"));
   if (!node) return c.json({ error: "Not found" }, 404);
   return c.json(node);
 });
@@ -41,7 +42,7 @@ router.get("/", requireAuth, zValidator("query", z.object({
   return c.json(nodes);
 });
 
-router.post("/", requireAuth, zValidator("json", z.object({
+router.post("/", requireAuth, denyViewerWrites, zValidator("json", z.object({
   vertical: z.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]),
   object_type: z.string().min(1),
   data: z.record(z.unknown())
@@ -65,18 +66,18 @@ router.post("/", requireAuth, zValidator("json", z.object({
   return c.json(node, 201);
 });
 
-router.patch("/:id", requireAuth, zValidator("json", z.object({
+router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object({
   data: z.record(z.unknown()).optional(),
   ai_summary: z.string().optional()
 })), async (c) => {
   const updates = c.req.valid("json");
-  const node = await ubc.updateNode(c.req.param("id"), updates);
+  const node = await ubc.updateNode(c.req.param("id"), c.get("workspaceId"), updates);
   await ubc.logActivity(node.id!, c.get("workspaceId"), "human", c.get("userId"), "updated", updates);
   return c.json(node);
 });
 
-router.delete("/:id", requireAuth, async (c) => {
-  await ubc.deleteNode(c.req.param("id"));
+router.delete("/:id", requireAuth, denyViewerWrites, async (c) => {
+  await ubc.deleteNode(c.req.param("id"), c.get("workspaceId"));
   return c.json({ ok: true });
 });
 

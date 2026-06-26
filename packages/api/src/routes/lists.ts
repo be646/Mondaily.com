@@ -3,11 +3,13 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites, isWorkspaceAdmin } from "../middleware/rbac";
 import { inngest } from "../lib/inngest";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only across the lists canvas
 
 router.get("/", async (c) => {
   const userId = c.get("userId");
@@ -53,11 +55,23 @@ router.patch("/:id", async (c) => {
   const body: Record<string, unknown> = {};
   for (const k of allowed) if (k in raw) body[k] = raw[k];
   if (!Object.keys(body).length) return c.json({ error: "No updatable fields provided." }, 400);
+  // RBAC: only the list's creator/owner OR a workspace admin/owner may mutate it
+  // (rename, change visibility, reassign owner, share, edit filters).
+  const { data: existing } = await supabase.from("lists").select("owner_id").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  if (!existing) return c.json({ error: "List not found" }, 404);
+  if (!isWorkspaceAdmin(c.get("role")) && existing.owner_id !== c.get("userId")) {
+    return c.json({ error: "Forbidden — only the list owner or an admin can modify this list." }, 403);
+  }
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data);
 });
 
 router.delete("/:id", async (c) => {
+  const { data: existing } = await supabase.from("lists").select("owner_id").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
+  if (!existing) return c.json({ error: "List not found" }, 404);
+  if (!isWorkspaceAdmin(c.get("role")) && existing.owner_id !== c.get("userId")) {
+    return c.json({ error: "Forbidden — only the list owner or an admin can delete this list." }, 403);
+  }
   const { error } = await supabase.from("lists").delete().eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id"));
   return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
 });

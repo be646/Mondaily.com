@@ -61,11 +61,15 @@ router.patch("/:id", async (c) => {
 
 // DELETE /chats/:id
 router.delete("/:id", async (c) => {
+  // Partition by BOTH user_id AND workspace_id — a user in multiple workspaces
+  // must not be able to delete a thread that belongs to a different workspace
+  // than the one they presented in X-Workspace-Id.
   const { error } = await supabase
     .from("chat_threads")
     .delete()
     .eq("id", c.req.param("id"))
-    .eq("user_id", c.get("userId"));
+    .eq("user_id", c.get("userId"))
+    .eq("workspace_id", c.get("workspaceId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
 });

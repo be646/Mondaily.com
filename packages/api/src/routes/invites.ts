@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { sendWorkspaceEmail } from "../lib/mail";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -46,9 +47,21 @@ router.post("/", zValidator("json", inviteSchema), async (c) => {
     .select("id,email,role,finance_role,token,expires_at,created_at")
     .single();
   if (error) return c.json({ error: error.message }, 500);
-  // In production you'd send an email here. Return the invite link for now.
-  const inviteLink = `/accept-invite?token=${data.token}`;
-  return c.json({ ...data, invite_link: inviteLink }, 201);
+  // Deliver the invite to the incoming teammate from the workspace's connected
+  // inbox. Best-effort: if no inbox is connected we still return the link so the
+  // inviter can share it manually (email_sent flags which happened).
+  const appBase = process.env.APP_BASE_URL ?? "https://app.mondaily.com";
+  const inviteLink = `${appBase}/accept-invite?token=${data.token}`;
+  const emailSent = await sendWorkspaceEmail(c.get("workspaceId"), {
+    to: [{ email: data.email }],
+    subject: "You've been invited to a Mondaily workspace",
+    body:
+      `<p>You've been invited to collaborate in a Mondaily workspace.</p>` +
+      `<p><a href="${inviteLink}">Accept your invitation</a></p>` +
+      `<p>If the button doesn't work, paste this link into your browser:<br/>${inviteLink}</p>` +
+      `<p>This invitation expires in 7 days.</p>`,
+  });
+  return c.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
 });
 
 // CANCEL invite

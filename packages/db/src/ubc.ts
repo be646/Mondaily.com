@@ -20,14 +20,18 @@ export async function createNode(input: Omit<Node, "id">): Promise<Node> {
   return data as Node;
 }
 
-export async function updateNode(id: string, updates: Partial<Pick<Node, "data" | "ai_summary">>): Promise<Node> {
-  const { data, error } = await supabase.from("nodes").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+// SECURITY (multi-tenant): every node accessor REQUIRES the caller's workspaceId
+// and filters BOTH id AND workspace_id. The service-role key bypasses RLS, so a
+// query by id alone would let one tenant read/write/delete another tenant's row
+// by guessing a UUID. Scoping by workspace_id makes cross-tenant access impossible.
+export async function updateNode(id: string, workspaceId: string, updates: Partial<Pick<Node, "data" | "ai_summary">>): Promise<Node> {
+  const { data, error } = await supabase.from("nodes").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", id).eq("workspace_id", workspaceId).select().single();
   if (error) throw new Error(`updateNode failed: ${error.message}`);
   return data as Node;
 }
 
-export async function getNode(id: string): Promise<(Node & { activities: Awaited<ReturnType<typeof getActivities>>; updated_at: string }) | null> {
-  const { data, error } = await supabase.from("nodes").select("*").eq("id", id).maybeSingle();
+export async function getNode(id: string, workspaceId: string): Promise<(Node & { activities: Awaited<ReturnType<typeof getActivities>>; updated_at: string }) | null> {
+  const { data, error } = await supabase.from("nodes").select("*").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
   if (error) throw new Error(`getNode failed: ${error.message}`);
   if (!data) return null;
   const activities = await getActivities(id, 50);
@@ -43,8 +47,8 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
   return (data || []) as Node[];
 }
 
-export async function deleteNode(id: string): Promise<void> {
-  const { error } = await supabase.from("nodes").delete().eq("id", id);
+export async function deleteNode(id: string, workspaceId: string): Promise<void> {
+  const { error } = await supabase.from("nodes").delete().eq("id", id).eq("workspace_id", workspaceId);
   if (error) throw new Error(`deleteNode failed: ${error.message}`);
 }
 
@@ -65,14 +69,16 @@ export async function createEdge(workspaceId: string, fromNodeId: string, toNode
   if (error) throw new Error(`createEdge failed: ${error.message}`);
 }
 
-export async function getRelated(nodeId: string, relationship?: string): Promise<Node[]> {
-  let query = supabase.from("edges").select("to_node_id").eq("from_node_id", nodeId);
+export async function getRelated(nodeId: string, workspaceId: string, relationship?: string): Promise<Node[]> {
+  // Scope BOTH the edge traversal and the node fetch to the workspace so a tenant
+  // can never walk another tenant's graph by passing a foreign node id.
+  let query = supabase.from("edges").select("to_node_id").eq("workspace_id", workspaceId).eq("from_node_id", nodeId);
   if (relationship) query = query.eq("relationship", relationship);
   const { data, error } = await query;
   if (error) throw new Error(`getRelated failed: ${error.message}`);
   const ids = (data || []).map((edge) => edge.to_node_id);
   if (!ids.length) return [];
-  const { data: nodes, error: nodeError } = await supabase.from("nodes").select("*").in("id", ids);
+  const { data: nodes, error: nodeError } = await supabase.from("nodes").select("*").eq("workspace_id", workspaceId).in("id", ids);
   if (nodeError) throw new Error(`getRelated nodes failed: ${nodeError.message}`);
   return (nodes || []) as Node[];
 }

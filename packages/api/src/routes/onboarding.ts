@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { insertTrialWorkspace } from "../lib/trial";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 
@@ -51,43 +52,38 @@ router.post("/bootstrap", requireJwt, async (c) => {
     isNew = true;
     const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
       + "-" + Math.random().toString(36).slice(2, 7);
-    // Every brand-new workspace starts a 14-day trial from registration.
-    const trialEndsAt = new Date(Date.now() + 14 * 86_400_000).toISOString();
-    const insertPayload: Record<string, unknown> = { name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } };
-    if (clerk_org_id) insertPayload.clerk_org_id = clerk_org_id;
+    // Single shared trial-creation routine (sets plan + settings.trial_ends_at).
     try {
-      const { data: created, error: createError } = await supabase
-        .from("workspaces")
-        .insert(insertPayload)
-        .select("id")
-        .single();
-      if (!createError && created) workspaceId = created.id as string;
-    } catch { /* fall through */ }
-    // Retry without clerk_org_id if column doesn't exist yet
-    if (!workspaceId && clerk_org_id) {
-      const { data: created, error: createError } = await supabase
-        .from("workspaces")
-        .insert({ name: workspaceName, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } })
-        .select("id")
-        .single();
-      if (createError) return c.json({ error: createError.message }, 500);
-      workspaceId = created!.id as string;
-    } else if (!workspaceId) {
-      return c.json({ error: "Failed to create workspace" }, 500);
+      workspaceId = (await insertTrialWorkspace(clerk_org_id ? { name: workspaceName, slug, clerk_org_id } : { name: workspaceName, slug })).id;
+    } catch {
+      // Retry without clerk_org_id if that column doesn't exist on older schemas.
+      if (clerk_org_id) {
+        try { workspaceId = (await insertTrialWorkspace({ name: workspaceName, slug })).id; }
+        catch (e) { return c.json({ error: e instanceof Error ? e.message : "Failed to create workspace" }, 500); }
+      } else {
+        return c.json({ error: "Failed to create workspace" }, 500);
+      }
     }
   }
 
-  // Ensure membership row exists; opportunistically write clerk_org_id back to workspace
-  await Promise.all([
-    supabase.from("workspace_members").upsert(
-      { workspace_id: workspaceId, user_id: userId, role: "owner" },
-      { onConflict: "workspace_id,user_id" }
-    ),
-    clerk_org_id
-      ? supabase.from("workspaces").update({ clerk_org_id } as Record<string, unknown>)
-          .eq("id", workspaceId).is("clerk_org_id", null).then(() => {})
-      : Promise.resolve(),
-  ]);
+  // Membership is the CRITICAL registration step. Make it atomic with workspace
+  // creation: if the membership insert fails for a workspace we JUST created,
+  // roll the workspace back so we never leave an orphaned, member-less workspace
+  // that wedges the user (workspace exists but they can't authenticate into it).
+  const { error: memberErr } = await supabase.from("workspace_members").upsert(
+    { workspace_id: workspaceId, user_id: userId, role: "owner" },
+    { onConflict: "workspace_id,user_id" }
+  );
+  if (memberErr) {
+    if (isNew) await supabase.from("workspaces").delete().eq("id", workspaceId).then(() => {}, () => {});
+    return c.json({ error: `Registration failed: ${memberErr.message}` }, 500);
+  }
+
+  // Non-critical: backfill clerk_org_id (best-effort — never fails registration).
+  if (clerk_org_id) {
+    await supabase.from("workspaces").update({ clerk_org_id } as Record<string, unknown>)
+      .eq("id", workspaceId).is("clerk_org_id", null).then(() => {}, () => {});
+  }
 
   return c.json({ workspace_id: workspaceId, is_new: isNew });
 });

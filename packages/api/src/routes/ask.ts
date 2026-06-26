@@ -837,7 +837,7 @@ async function executeTool(
         }
         if (!nodeId) return "No node_id or name provided — cannot look up related objects.";
 
-        const related = await ubc.getRelated(nodeId);
+        const related = await ubc.getRelated(nodeId, workspaceId);
         if (!related.length) return `No related objects found in the workspace graph for ${sourceLabel || nodeId}.`;
 
         for (const node of related.slice(0, 8)) {

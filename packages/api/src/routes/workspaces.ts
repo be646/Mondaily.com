@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { insertTrialWorkspace } from "../lib/trial";
 
 type Variables = { userId: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -67,21 +68,24 @@ router.post("/", requireJwt, async (c) => {
   if (!name) return c.json({ error: "Workspace name is required." }, 400);
 
   const slug = `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "workspace"}-${Math.random().toString(36).slice(2, 6)}`;
-  const trialEndsAt = new Date(Date.now() + 14 * 86_400_000).toISOString();
 
-  const { data: ws, error } = await supabase
-    .from("workspaces")
-    .insert({ name, slug, plan: "trial", settings: { trial_ends_at: trialEndsAt } })
-    .select("id, name")
-    .single();
-  if (error || !ws) return c.json({ error: error?.message ?? "Could not create workspace." }, 500);
+  let workspaceId: string, trialEndsAt: string;
+  try {
+    ({ id: workspaceId, trialEndsAt } = await insertTrialWorkspace({ name, slug }));
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Could not create workspace." }, 500);
+  }
 
+  // Atomic: roll the workspace back if the owner membership can't be created.
   const { error: memberErr } = await supabase
     .from("workspace_members")
-    .insert({ workspace_id: ws.id, user_id: userId, role: "owner" });
-  if (memberErr) return c.json({ error: memberErr.message }, 500);
+    .insert({ workspace_id: workspaceId, user_id: userId, role: "owner" });
+  if (memberErr) {
+    await supabase.from("workspaces").delete().eq("id", workspaceId).then(() => {}, () => {});
+    return c.json({ error: memberErr.message }, 500);
+  }
 
-  return c.json({ workspace_id: ws.id, name: ws.name, trial_ends_at: trialEndsAt }, 201);
+  return c.json({ workspace_id: workspaceId, name, trial_ends_at: trialEndsAt }, 201);
 });
 
 export { router as workspacesRouter };
