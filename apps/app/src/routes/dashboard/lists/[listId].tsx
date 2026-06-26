@@ -69,6 +69,9 @@ export function ListPage() {
   const { userId } = useAuth();
 
   const [filterText, setFilterText] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [addOpen, setAddOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [prospectOpen, setProspectOpen] = useState(false);
@@ -168,6 +171,26 @@ export function ListPage() {
     !entryIds.has(r.id) &&
     `${r.data.name ?? ""} ${r.data.email ?? ""}`.toLowerCase().includes(search.toLowerCase()),
   );
+  // Click-to-sort (records-sheet style): numeric where possible, else alpha.
+  const sortedRecords = useMemo(() => {
+    if (!sortCol) return shownRecords;
+    const val = (r: NodeRecord): unknown => sortCol === "__id" ? r.id : sortCol === "__updated" ? r.updated_at : sortCol === "lead_score" ? (r.lead_score ?? -1) : r.data[sortCol];
+    return [...shownRecords].sort((a, b) => {
+      const av = val(a), bv = val(b);
+      const an = typeof av === "number" ? av : parseFloat(String(av ?? "").replace(/[^0-9.\-]/g, ""));
+      const bn = typeof bv === "number" ? bv : parseFloat(String(bv ?? "").replace(/[^0-9.\-]/g, ""));
+      const cmp = (!isNaN(an) && !isNaN(bn)) ? an - bn : String(av ?? "").localeCompare(String(bv ?? ""));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [shownRecords, sortCol, sortDir]);
+  function toggleSort(col: string) {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  }
+  function toggleSelect(id: string) { setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+  const allShownSelected = sortedRecords.length > 0 && sortedRecords.every(r => selected.has(r.id));
+  function removeSelected() { selected.forEach(id => removeEntry.mutate(id)); setSelected(new Set()); }
+  const sortArrow = (col: string) => sortCol === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
   function exportCsv() {
@@ -508,25 +531,41 @@ export function ListPage() {
           </div>
         ) : (
           /* ── Table ── */
-          <div className="list-sheet minimal-sheet overflow-auto">
+          <>
+            {selected.size > 0 && (
+              <div className="mb-2 flex items-center gap-3 rounded-lg border px-3 py-2 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>{selected.size} selected</span>
+                <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-rose-500 transition-colors hover:bg-rose-500/[.06] dark:border-white/[.08]">
+                  <X size={11}/> Remove from list
+                </button>
+                <button onClick={() => setSelected(new Set())} className="text-[11px]" style={{ color: "var(--text-faint)" }}>Clear</button>
+              </div>
+            )}
+            <div className="list-sheet minimal-sheet overflow-auto">
             <table className="minimal-table min-w-full text-left text-[12px]">
               <thead>
                 <tr>
-                  <th className="whitespace-nowrap">ID</th>
+                  <th className="w-8 px-2">
+                    <input type="checkbox" checked={allShownSelected} onChange={() => setSelected(allShownSelected ? new Set() : new Set(sortedRecords.map(r => r.id)))} className="cursor-pointer align-middle"/>
+                  </th>
+                  <th className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("__id")}>ID{sortArrow("__id")}</th>
                   {columns.map(c => (
-                    <th key={c} className="whitespace-nowrap">
-                      {c.replaceAll("_", " ")}
+                    <th key={c} className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort(c)}>
+                      {c.replaceAll("_", " ")}{sortArrow(c)}
                     </th>
                   ))}
-                  <th className="whitespace-nowrap">Updated</th>
+                  <th className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("__updated")}>Updated{sortArrow("__updated")}</th>
                   <th className="w-8" />
                 </tr>
               </thead>
               <tbody>
-                {shownRecords.map(record => {
+                {sortedRecords.map(record => {
                   const prov = recordProvenance(record);
                   return (
-                  <tr key={record.id} className="group transition-colors">
+                  <tr key={record.id} className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-white/[.03]" : ""}`}>
+                    <td className="w-8 px-2">
+                      <input type="checkbox" checked={selected.has(record.id)} onChange={() => toggleSelect(record.id)} className="cursor-pointer align-middle"/>
+                    </td>
                     {/* Unique ID — links to the record's profile page */}
                     <td className="whitespace-nowrap">
                       <Link
@@ -579,7 +618,8 @@ export function ListPage() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
 
