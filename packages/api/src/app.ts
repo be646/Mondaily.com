@@ -125,13 +125,17 @@ app.get("/api/cron/daily", async (c) => {
     const r = await runDealAlerts();
     return c.json({ ran: true, only, at: new Date().toISOString(), result: r });
   }
+  if (only === "workflows") {
+    const r = await runAllWorkflows().catch((e) => ({ error: String(e) }));
+    return c.json({ ran: true, only, at: new Date().toISOString(), result: r });
+  }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));
   const vertical = await runAllVertical().catch((e) => ({ error: String(e) }));
   return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
 });
 
-app.get("/api/health", (c) => c.json({ ok: true, version: "1.2.0-dealalerts" }));
+app.get("/api/health", (c) => c.json({ ok: true, version: "1.3.0-workflows" }));
 
 app.get("/api/debug-auth", async (c) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");

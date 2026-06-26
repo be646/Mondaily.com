@@ -78257,12 +78257,16 @@ app.get("/api/cron/daily", async (c2) => {
     const r2 = await runDealAlerts();
     return c2.json({ ran: true, only, at: (/* @__PURE__ */ new Date()).toISOString(), result: r2 });
   }
+  if (only === "workflows") {
+    const r2 = await runAllWorkflows().catch((e2) => ({ error: String(e2) }));
+    return c2.json({ ran: true, only, at: (/* @__PURE__ */ new Date()).toISOString(), result: r2 });
+  }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e2) => ({ error: String(e2) }));
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.2.0-dealalerts" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.3.0-workflows" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;
