@@ -75467,6 +75467,15 @@ function matchesFilter(thread, filter) {
   if (filter === "inbox") return folders.some((folder) => folder.includes("inbox"));
   return true;
 }
+function parseAddr(s3) {
+  const m2 = (s3 ?? "").match(/^\s*"?([^"<]*)"?\s*<([^>]+)>/);
+  if (m2) return { name: (m2[1] ?? "").trim() || void 0, email: (m2[2] ?? "").trim() };
+  return { email: (s3 ?? "").trim() };
+}
+function toUnixSeconds(dateStr) {
+  const t2 = Date.parse(dateStr ?? "");
+  return Number.isNaN(t2) ? Math.floor(Date.now() / 1e3) : Math.floor(t2 / 1e3);
+}
 router15.get("/threads", zValidator("query", external_exports.object({
   search: external_exports.string().default(""),
   filter: external_exports.enum(["all", "inbox", "sent", "unread"]).default("all"),
@@ -75487,9 +75496,10 @@ router15.get("/threads", zValidator("query", external_exports.object({
         id: t2.id,
         subject: t2.subject,
         snippet: t2.snippet,
-        participants: [{ email: t2.from }],
+        participants: [parseAddr(t2.from)],
+        latest_message_received_date: toUnixSeconds(t2.date),
         unread: t2.unread,
-        last_message_timestamp: t2.date
+        folders: []
       }));
       return c2.json({ threads: mapped, connected: true, connected_email: gc.email, next_cursor: void 0 });
     }
@@ -75524,10 +75534,16 @@ router15.get("/threads/:id", async (c2) => {
     const token = await freshAccessToken(gc);
     if (token) {
       const msgs = await gmailThread(token, c2.req.param("id"));
+      const last = msgs[msgs.length - 1];
       return c2.json({
         id: c2.req.param("id"),
-        subject: msgs[msgs.length - 1]?.subject ?? "",
-        messages: msgs.map((m2) => ({ id: m2.id, from: [{ email: m2.from }], to: [{ email: m2.to }], cc: [], date: m2.date, body: m2.body, attachments: [] }))
+        subject: last?.subject ?? "",
+        snippet: last?.snippet ?? "",
+        participants: last ? [parseAddr(last.from)] : [],
+        latest_message_received_date: last ? toUnixSeconds(last.date) : 0,
+        unread: false,
+        folders: [],
+        messages: msgs.map((m2) => ({ id: m2.id, from: [parseAddr(m2.from)], to: m2.to ? [parseAddr(m2.to)] : [], cc: [], date: toUnixSeconds(m2.date), body: m2.body, attachments: [] }))
       });
     }
   }

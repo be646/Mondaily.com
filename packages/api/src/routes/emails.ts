@@ -129,6 +129,18 @@ function matchesFilter(thread: Record<string, unknown>, filter: string) {
   return true;
 }
 
+// Parse an RFC822 "Name <email>" header into the {name, email} shape the UI wants.
+function parseAddr(s: string): { name?: string; email: string } {
+  const m = (s ?? "").match(/^\s*"?([^"<]*)"?\s*<([^>]+)>/);
+  if (m) return { name: (m[1] ?? "").trim() || undefined, email: (m[2] ?? "").trim() };
+  return { email: (s ?? "").trim() };
+}
+// The UI's relativeDate() multiplies by 1000, so it expects UNIX SECONDS.
+function toUnixSeconds(dateStr: string): number {
+  const t = Date.parse(dateStr ?? "");
+  return Number.isNaN(t) ? Math.floor(Date.now() / 1000) : Math.floor(t / 1000);
+}
+
 router.get("/threads", zValidator("query", z.object({
   search: z.string().default(""),
   filter: z.enum(["all", "inbox", "sent", "unread"]).default("all"),
@@ -154,8 +166,13 @@ router.get("/threads", zValidator("query", z.object({
       const q = [filterQ, input.search.trim()].filter(Boolean).join(" ");
       const gthreads = await gmailThreads(token, { q, max: 25 });
       const mapped = gthreads.map((t) => ({
-        id: t.id, subject: t.subject, snippet: t.snippet,
-        participants: [{ email: t.from }], unread: t.unread, last_message_timestamp: t.date,
+        id: t.id,
+        subject: t.subject,
+        snippet: t.snippet,
+        participants: [parseAddr(t.from)],
+        latest_message_received_date: toUnixSeconds(t.date),
+        unread: t.unread,
+        folders: [] as string[],
       }));
       return c.json({ threads: mapped, connected: true, connected_email: gc.email, next_cursor: undefined });
     }
@@ -206,10 +223,16 @@ router.get("/threads/:id", async (c) => {
     const token = await freshAccessToken(gc);
     if (token) {
       const msgs = await gmailThread(token, c.req.param("id"));
+      const last = msgs[msgs.length - 1];
       return c.json({
         id: c.req.param("id"),
-        subject: msgs[msgs.length - 1]?.subject ?? "",
-        messages: msgs.map((m) => ({ id: m.id, from: [{ email: m.from }], to: [{ email: m.to }], cc: [], date: m.date, body: m.body, attachments: [] })),
+        subject: last?.subject ?? "",
+        snippet: last?.snippet ?? "",
+        participants: last ? [parseAddr(last.from)] : [],
+        latest_message_received_date: last ? toUnixSeconds(last.date) : 0,
+        unread: false,
+        folders: [] as string[],
+        messages: msgs.map((m) => ({ id: m.id, from: [parseAddr(m.from)], to: m.to ? [parseAddr(m.to)] : [], cc: [], date: toUnixSeconds(m.date), body: m.body, attachments: [] })),
       });
     }
   }
