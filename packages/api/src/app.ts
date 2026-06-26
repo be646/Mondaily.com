@@ -4,7 +4,7 @@ import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
 import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
-import { runAllDaily } from "./jobs/runners";
+import { runAllDaily, runLeadScoring } from "./jobs/runners";
 import { runAllWorkflows } from "./jobs/workflow-engine";
 import { runAllVertical } from "./jobs/vertical-agents";
 import { nodesRouter } from "./routes/nodes";
@@ -112,6 +112,14 @@ app.get("/api/cron/daily", async (c) => {
   const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
   if (secret && provided !== `Bearer ${secret}`) {
     return c.json({ error: "Unauthorized" }, 401);
+  }
+  // ?only=<runner> runs a single side-effect-free runner (e.g. lead_scoring,
+  // relationship_health) instead of the whole daily batch — used to backfill
+  // or verify one job without firing invoice/deal-alert side effects.
+  const only = c.req.query("only");
+  if (only === "lead_scoring") {
+    const r = await runLeadScoring();
+    return c.json({ ran: true, only, at: new Date().toISOString(), result: r });
   }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));

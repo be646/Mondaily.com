@@ -78212,6 +78212,11 @@ app.get("/api/cron/daily", async (c2) => {
   if (secret && provided !== `Bearer ${secret}`) {
     return c2.json({ error: "Unauthorized" }, 401);
   }
+  const only = c2.req.query("only");
+  if (only === "lead_scoring") {
+    const r2 = await runLeadScoring();
+    return c2.json({ ran: true, only, at: (/* @__PURE__ */ new Date()).toISOString(), result: r2 });
+  }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e2) => ({ error: String(e2) }));
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
