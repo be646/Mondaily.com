@@ -55,6 +55,7 @@ const ACTIONS = [
   { type: "add_to_sequence", label: "Add to sequence",    icon: Zap },
   { type: "send_notification", label: "Send notification", icon: Bell },
   { type: "update_field",    label: "Update field",       icon: Tag },
+  { type: "draft_quote",     label: "Draft quote",        icon: GitBranch },
 ];
 
 const KIND_STYLES: Record<NodeKind, { border: string; bg: string; text: string; icon: string }> = {

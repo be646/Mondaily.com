@@ -69994,7 +69994,7 @@ var overdueTaskDecisions = inngest.createFunction(
 );
 
 // src/jobs/workflow-engine.ts
-var SAFE_ACTIONS = /* @__PURE__ */ new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note"]);
+var SAFE_ACTIONS = /* @__PURE__ */ new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note", "draft_quote", "create_quote"]);
 var RISKY_ACTIONS = /* @__PURE__ */ new Set(["send_email", "send_message", "send_sms", "create_invoice", "charge", "charge_invoice", "delete_record", "archive_record", "send"]);
 function parseWorkflow(blocks) {
   return {
@@ -70143,6 +70143,38 @@ ${JSON.stringify(record.data).slice(0, 800)}`,
       data: { parent_id: record.id, title: nf.title ?? "Workflow note", content: nf.content ?? action.label, created_at: (/* @__PURE__ */ new Date()).toISOString() }
     });
     return { action: action.type, mode: "executed", detail: nf.title ?? "note" };
+  }
+  if (type === "draft_quote" || type === "create_quote") {
+    const p2 = await aiGatewayToolUse({
+      prompt: `Draft a sales quote for the deal "${recName2}". Deal data:
+${JSON.stringify(record.data).slice(0, 1e3)}
+Produce 1\u20135 realistic line items grounded in the deal's value/products. Do not invent a customer name.`,
+      toolName: "quote_draft",
+      toolDescription: "Draft quote line items for a deal",
+      toolSchema: { type: "object", properties: { line_items: { type: "array", items: { type: "object", properties: { description: { type: "string" }, quantity: { type: "number" }, unit_price: { type: "number" } }, required: ["description", "quantity", "unit_price"] } } }, required: ["line_items"] },
+      maxTokens: 600
+    }).catch(() => ({ line_items: [] }));
+    const raw2 = p2.line_items ?? [];
+    const items = raw2.filter((li) => li && typeof li.unit_price === "number");
+    const safeItems = items.length ? items : [{ description: `Proposal for ${recName2}`, quantity: 1, unit_price: Number(record.data.amount ?? record.data.value ?? 0) || 0 }];
+    const subtotal = safeItems.reduce((s3, li) => s3 + (Number(li.quantity) || 1) * (Number(li.unit_price) || 0), 0);
+    await supabase.from("nodes").insert({
+      workspace_id: workspaceId,
+      vertical: "finance",
+      object_type: "quote",
+      created_by: "agent:workflow",
+      data: {
+        title: `Quote for ${recName2}`,
+        line_items: safeItems,
+        subtotal,
+        tax_total: 0,
+        total: subtotal,
+        status: "draft",
+        deal_id: record.id,
+        created_at: (/* @__PURE__ */ new Date()).toISOString()
+      }
+    });
+    return { action: action.type, mode: "executed", detail: `draft quote \xB7 ${safeItems.length} item(s)` };
   }
   if (type === "update_field" || type === "set_field" || type === "add_tag") {
     const p2 = await aiGatewayToolUse({

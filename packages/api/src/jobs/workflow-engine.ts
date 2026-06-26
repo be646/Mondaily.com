@@ -22,7 +22,7 @@ import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
  * enforced by the workflow_runs unique index (migration 0018).
  */
 
-const SAFE_ACTIONS = new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note"]);
+const SAFE_ACTIONS = new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note", "draft_quote", "create_quote"]);
 const RISKY_ACTIONS = new Set(["send_email", "send_message", "send_sms", "create_invoice", "charge", "charge_invoice", "delete_record", "archive_record", "send"]);
 
 interface WorkflowBlock { id: string; kind: string; type: string; label?: string; config?: Record<string, unknown>; }
@@ -182,6 +182,30 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
       data: { parent_id: record.id, title: nf.title ?? "Workflow note", content: nf.content ?? action.label, created_at: new Date().toISOString() },
     });
     return { action: action.type, mode: "executed", detail: nf.title ?? "note" };
+  }
+  if (type === "draft_quote" || type === "create_quote") {
+    // Deal-stage-triggered quote drafting (Finance Agent). Creates a DRAFT quote
+    // node (never sent) with AI-drafted line items derived from the deal — a human
+    // reviews/sends it from Finance → Quotes.
+    const p = await aiGatewayToolUse({
+      prompt: `Draft a sales quote for the deal "${recName}". Deal data:\n${JSON.stringify(record.data).slice(0, 1000)}\nProduce 1–5 realistic line items grounded in the deal's value/products. Do not invent a customer name.`,
+      toolName: "quote_draft", toolDescription: "Draft quote line items for a deal",
+      toolSchema: { type: "object", properties: { line_items: { type: "array", items: { type: "object", properties: { description: { type: "string" }, quantity: { type: "number" }, unit_price: { type: "number" } }, required: ["description", "quantity", "unit_price"] } } }, required: ["line_items"] },
+      maxTokens: 600,
+    }).catch(() => ({ line_items: [] as { description: string; quantity: number; unit_price: number }[] }));
+    const raw = (p as { line_items?: { description: string; quantity: number; unit_price: number }[] }).line_items ?? [];
+    const items = raw.filter((li) => li && typeof li.unit_price === "number");
+    const safeItems = items.length ? items : [{ description: `Proposal for ${recName}`, quantity: 1, unit_price: Number(record.data.amount ?? record.data.value ?? 0) || 0 }];
+    const subtotal = safeItems.reduce((s, li) => s + (Number(li.quantity) || 1) * (Number(li.unit_price) || 0), 0);
+    await supabase.from("nodes").insert({
+      workspace_id: workspaceId, vertical: "finance", object_type: "quote", created_by: "agent:workflow",
+      data: {
+        title: `Quote for ${recName}`, line_items: safeItems,
+        subtotal, tax_total: 0, total: subtotal,
+        status: "draft", deal_id: record.id, created_at: new Date().toISOString(),
+      },
+    });
+    return { action: action.type, mode: "executed", detail: `draft quote · ${safeItems.length} item(s)` };
   }
   if (type === "update_field" || type === "set_field" || type === "add_tag") {
     const p = await aiGatewayToolUse({
