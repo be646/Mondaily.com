@@ -589,7 +589,10 @@ async function executeTool(
           .from("nodes")
           .insert({
             workspace_id: workspaceId,
-            created_by: userId,
+            // Mark AI-created records as agent-made (convention: "agent:<name>",
+            // same as the prospecting agent) so the provenance icon shows. This
+            // is honest — the chat AI created it on the user's request.
+            created_by: "agent:chat",
             vertical: "shared",
             object_type: input.object_type,
             data: recordData
