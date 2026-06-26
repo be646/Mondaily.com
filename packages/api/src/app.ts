@@ -4,7 +4,7 @@ import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
 import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
-import { runAllDaily, runLeadScoring } from "./jobs/runners";
+import { runAllDaily, runLeadScoring, runDealAlerts } from "./jobs/runners";
 import { runAllWorkflows } from "./jobs/workflow-engine";
 import { runAllVertical } from "./jobs/vertical-agents";
 import { nodesRouter } from "./routes/nodes";
@@ -121,13 +121,17 @@ app.get("/api/cron/daily", async (c) => {
     const r = await runLeadScoring();
     return c.json({ ran: true, only, at: new Date().toISOString(), result: r });
   }
+  if (only === "deal_alerts") {
+    const r = await runDealAlerts();
+    return c.json({ ran: true, only, at: new Date().toISOString(), result: r });
+  }
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));
   const vertical = await runAllVertical().catch((e) => ({ error: String(e) }));
   return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
 });
 
-app.get("/api/health", (c) => c.json({ ok: true, version: "1.1.0-leadscore" }));
+app.get("/api/health", (c) => c.json({ ok: true, version: "1.2.0-dealalerts" }));
 
 app.get("/api/debug-auth", async (c) => {
   const token = c.req.header("Authorization")?.replace("Bearer ", "");
