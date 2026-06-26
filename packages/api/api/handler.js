@@ -71359,6 +71359,35 @@ router4.post("/run", zValidator("json", runSchema), async (c2) => {
   }
 });
 
+// src/lib/training-ledger.ts
+async function logDecisionTrainingExample(workspaceId, decision, action, editedOutput) {
+  try {
+    if (!decision) return;
+    const userPrompt = redactSecrets(
+      [decision.title, decision.summary, decision.recommended_action].filter((v2) => typeof v2 === "string" && v2.length > 0).join("\n\n")
+    );
+    const modelOutput = {
+      title: decision.title ?? null,
+      summary: decision.summary ?? null,
+      recommended_action: decision.recommended_action ?? null,
+      risk_level: decision.risk_level ?? null,
+      confidence: decision.confidence ?? null,
+      evidence: decision.evidence ?? []
+    };
+    await supabase.from("ai_training_logs").insert({
+      workspace_id: workspaceId,
+      agent_name: decision.agent_name ?? null,
+      system_prompt: null,
+      user_prompt: userPrompt || null,
+      model_output: modelOutput,
+      user_action: action,
+      edited_output: editedOutput ?? null
+    });
+  } catch (err2) {
+    console.error("[training-ledger] capture failed (non-fatal):", err2);
+  }
+}
+
 // src/routes/decisions.ts
 var router5 = new Hono2();
 router5.use("*", requireAuth);
@@ -71407,9 +71436,10 @@ router5.patch("/:id", zValidator("json", createSchema.partial()), async (c2) => 
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("decision_queue").update(body).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   if (error) return c2.json({ error: error.message }, 400);
+  await logDecisionTrainingExample(c2.get("workspaceId"), data, "EDITED", body);
   return c2.json(data);
 });
-async function resolve2(c2, status, extra = {}) {
+async function resolve2(c2, status, extra = {}, trainingAction) {
   const { data, error } = await supabase.from("decision_queue").update({
     status,
     resolved_at: (/* @__PURE__ */ new Date()).toISOString(),
@@ -71417,6 +71447,7 @@ async function resolve2(c2, status, extra = {}) {
     ...extra
   }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   if (error) return c2.json({ error: error.message }, 400);
+  if (trainingAction) await logDecisionTrainingExample(c2.get("workspaceId"), data, trainingAction);
   await supabase.from("activities").insert({
     node_id: data.source_id ?? null,
     workspace_id: c2.get("workspaceId"),
@@ -71541,9 +71572,9 @@ router5.post("/:id/approve", async (c2) => {
   const { data: decision } = await supabase.from("decision_queue").select("*").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (decision) await executeApprovedAction(c2.get("workspaceId"), decision).catch(() => {
   });
-  return resolve2(c2, "approved");
+  return resolve2(c2, "approved", {}, "APPROVED");
 });
-router5.post("/:id/reject", async (c2) => resolve2(c2, "rejected"));
+router5.post("/:id/reject", async (c2) => resolve2(c2, "rejected", {}, "REJECTED"));
 router5.post("/:id/snooze", zValidator("json", external_exports.object({ until: external_exports.string().optional() }).optional()), async (c2) => {
   const body = c2.req.valid("json") ?? {};
   const until = body.until ?? new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString();

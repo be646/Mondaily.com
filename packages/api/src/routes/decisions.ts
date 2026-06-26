@@ -6,6 +6,7 @@ import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 import { objectTypeToVertical, type ProspectCandidate } from "./prospecting";
+import { logDecisionTrainingExample, type TrainingAction } from "../lib/training-ledger";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -90,10 +91,13 @@ router.patch("/:id", zValidator("json", createSchema.partial()), async (c) => {
     .select()
     .single();
   if (error) return c.json({ error: error.message }, 400);
+  // Training ledger — a human manually edited the agent's recommendation; record
+  // the edit (best-effort, never blocks). `body` holds the human's modifications.
+  await logDecisionTrainingExample(c.get("workspaceId"), data, "EDITED", body);
   return c.json(data);
 });
 
-async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "completed", extra: Record<string, unknown> = {}) {
+async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "completed", extra: Record<string, unknown> = {}, trainingAction?: TrainingAction) {
   const { data, error } = await supabase
     .from("decision_queue")
     .update({
@@ -107,6 +111,9 @@ async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "co
     .select()
     .single();
   if (error) return c.json({ error: error.message }, 400);
+  // Training ledger — capture the human's verdict on this agent recommendation.
+  // Self-contained + error-swallowing, so it can never block the user's action.
+  if (trainingAction) await logDecisionTrainingExample(c.get("workspaceId"), data, trainingAction);
   await supabase.from("activities").insert({
     node_id: data.source_id ?? null,
     workspace_id: c.get("workspaceId"),
@@ -264,9 +271,9 @@ router.post("/:id/approve", async (c) => {
     .eq("id", c.req.param("id"))
     .maybeSingle();
   if (decision) await executeApprovedAction(c.get("workspaceId"), decision).catch(() => {});
-  return resolve(c, "approved");
+  return resolve(c, "approved", {}, "APPROVED");
 });
-router.post("/:id/reject", async (c) => resolve(c, "rejected"));
+router.post("/:id/reject", async (c) => resolve(c, "rejected", {}, "REJECTED"));
 router.post("/:id/snooze", zValidator("json", z.object({ until: z.string().optional() }).optional()), async (c) => {
   const body = c.req.valid("json") ?? {};
   const until = body.until ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
