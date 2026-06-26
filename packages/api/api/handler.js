@@ -69919,7 +69919,7 @@ function parseWorkflow(blocks) {
 }
 async function candidateRecords(workspaceId, trigger) {
   const t2 = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
-  const base = supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId);
+  const base = supabase.from("nodes").select("id, object_type, data, updated_at, lead_score, relationship_health").eq("workspace_id", workspaceId);
   let q2 = base;
   if (t2.includes("deal")) q2 = base.ilike("object_type", "%deal%");
   else if (t2.includes("invoice")) q2 = base.eq("object_type", "invoice");
@@ -69927,7 +69927,19 @@ async function candidateRecords(workspaceId, trigger) {
     q2 = base.or("object_type.ilike.%contact%,object_type.ilike.%people%,object_type.ilike.%lead%,object_type.ilike.%compan%");
   } else if (t2.includes("task")) q2 = base.ilike("object_type", "%task%");
   const { data } = await q2.order("updated_at", { ascending: false }).limit(200);
-  return data ?? [];
+  return (data ?? []).map((row) => {
+    const r2 = row;
+    return {
+      id: r2.id,
+      object_type: r2.object_type,
+      updated_at: r2.updated_at,
+      data: {
+        ...r2.data,
+        ...r2.lead_score != null ? { lead_score: r2.lead_score } : {},
+        ...r2.relationship_health != null ? { relationship_health: r2.relationship_health } : {}
+      }
+    };
+  });
 }
 function triggerKeyFor(trigger, record) {
   const t2 = `${trigger.type}`.toLowerCase();
@@ -69945,7 +69957,8 @@ async function evaluateConditions(conditions, record) {
       const cfg = c2.config;
       const actual = String(record.data[String(cfg.field)] ?? "").toLowerCase();
       const expected = String(cfg.value ?? "").toLowerCase();
-      const op = String(cfg.operator ?? "equals");
+      const typeOp = c2.type === "field_gt" ? "gt" : c2.type === "field_lt" ? "lt" : c2.type === "field_contains" ? "contains" : "equals";
+      const op = String(cfg.operator ?? typeOp);
       if (op === "equals") return actual === expected;
       if (op === "not_equals") return actual !== expected;
       if (op === "contains") return actual.includes(expected);

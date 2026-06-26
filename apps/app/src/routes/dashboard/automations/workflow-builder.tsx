@@ -31,6 +31,8 @@ const TRIGGERS = [
 const CONDITIONS = [
   { type: "field_equals",    label: "Field equals",       icon: Filter },
   { type: "field_contains",  label: "Field contains",     icon: Filter },
+  { type: "field_gt",        label: "Number greater than", icon: Filter },
+  { type: "field_lt",        label: "Number less than",    icon: Filter },
   { type: "field_changed",   label: "Field changed",      icon: Tag },
   { type: "time_elapsed",    label: "Time elapsed",       icon: Clock },
 ];
@@ -71,6 +73,12 @@ function NodeConfigFields({ node, onChange }: { node: WFNode; onChange: (config:
     <div className="space-y-2">
       {inp("field", "Field name (e.g. status, stage)")}
       {inp("value", node.type === "field_equals" ? "Equals…" : "Contains…")}
+    </div>
+  );
+  if (node.type === "field_gt" || node.type === "field_lt") return (
+    <div className="space-y-2">
+      {inp("field", "Field (e.g. lead_score)")}
+      {inp("value", node.type === "field_gt" ? "Greater than…" : "Less than…")}
     </div>
   );
   if (node.type === "field_changed") return inp("field", "Field name (e.g. stage)");

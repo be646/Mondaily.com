@@ -39,7 +39,11 @@ function parseWorkflow(blocks: WorkflowBlock[]): ParsedWorkflow {
 /** Which records this trigger should evaluate against, scoped to the workspace. */
 async function candidateRecords(workspaceId: string, trigger: WorkflowBlock): Promise<{ id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[]> {
   const t = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
-  const base = supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId);
+  // Also pull the node-level AI scores (lead_score / relationship_health) — they
+  // live as columns, not inside data, so a workflow condition like
+  // "lead_score gt 70" (the landing's "Score deal intent → High intent" branch)
+  // can only work if we merge them into the evaluated data below.
+  const base = supabase.from("nodes").select("id, object_type, data, updated_at, lead_score, relationship_health").eq("workspace_id", workspaceId);
 
   let q = base;
   if (t.includes("deal")) q = base.ilike("object_type", "%deal%");
@@ -49,7 +53,17 @@ async function candidateRecords(workspaceId: string, trigger: WorkflowBlock): Pr
   } else if (t.includes("task")) q = base.ilike("object_type", "%task%");
   // record_created / record_updated / generic → most-recent records
   const { data } = await q.order("updated_at", { ascending: false }).limit(200);
-  return (data ?? []) as { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[];
+  return (data ?? []).map((row) => {
+    const r = row as { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; relationship_health?: number | null };
+    return {
+      id: r.id, object_type: r.object_type, updated_at: r.updated_at,
+      data: {
+        ...r.data,
+        ...(r.lead_score != null ? { lead_score: r.lead_score } : {}),
+        ...(r.relationship_health != null ? { relationship_health: r.relationship_health } : {}),
+      },
+    };
+  });
 }
 
 /** Stable per-record trigger key so a record fires a workflow once per relevant state. */
@@ -72,7 +86,10 @@ async function evaluateConditions(conditions: WorkflowBlock[], record: { object_
       const cfg = c.config!;
       const actual = String((record.data as Record<string, unknown>)[String(cfg.field)] ?? "").toLowerCase();
       const expected = String(cfg.value ?? "").toLowerCase();
-      const op = String(cfg.operator ?? "equals");
+      // Operator comes from explicit config, else inferred from the block type
+      // (field_gt/field_lt/field_contains) the builder emits.
+      const typeOp = c.type === "field_gt" ? "gt" : c.type === "field_lt" ? "lt" : c.type === "field_contains" ? "contains" : "equals";
+      const op = String(cfg.operator ?? typeOp);
       if (op === "equals") return actual === expected;
       if (op === "not_equals") return actual !== expected;
       if (op === "contains") return actual.includes(expected);
