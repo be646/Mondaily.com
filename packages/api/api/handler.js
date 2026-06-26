@@ -69689,7 +69689,7 @@ async function runLeadScoring(workspaceId) {
       const updates = deals.map((deal) => {
         const d2 = deal.data ?? {};
         const signals = {};
-        let score = 50;
+        let score = 30;
         const stage = String(d2.stage ?? d2.deal_stage ?? d2.status ?? "");
         const intent = stageIntent(stage);
         signals.stage = stage || null;
@@ -69698,27 +69698,29 @@ async function runLeadScoring(workspaceId) {
         const value = numericValue(d2.deal_value ?? d2.value ?? d2.amount ?? d2.arr);
         signals.deal_value = value;
         if (value !== null) {
-          if (value >= 1e5) score += 15;
+          if (value >= 1e5) score += 20;
+          else if (value >= 5e4) score += 15;
           else if (value >= 25e3) score += 10;
           else if (value >= 5e3) score += 5;
         }
         const days = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 864e5);
         signals.days_since_update = days;
-        if (days <= 7) score += 15;
-        else if (days <= 30) score += 5;
-        else if (days <= 90) score -= 10;
-        else score -= 20;
+        if (days <= 7) score += 10;
+        else if (days <= 30) score += 4;
+        else if (days <= 90) score -= 12;
+        else score -= 25;
         const recent = activityByNode.get(deal.id) ?? 0;
         signals.recent_activity_30d = recent;
-        if (recent >= 5) score += 15;
-        else if (recent >= 2) score += 7;
-        else if (recent === 0) score -= 8;
+        if (recent >= 8) score += 10;
+        else if (recent >= 3) score += 5;
+        else if (recent >= 1) score += 2;
+        else score -= 10;
         const openTasks = openTasksByRecord.get(deal.id) ?? 0;
         signals.open_tasks = openTasks;
-        if (openTasks > 0) score += 5;
+        if (openTasks > 0) score += 4;
         const enriched = numericValue(d2.headcount ?? d2.employees ?? d2.company_size) !== null || numericValue(d2.arr) !== null;
         signals.enriched = enriched;
-        if (enriched) score += 5;
+        if (enriched) score += 4;
         return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
       const CHUNK = 25;

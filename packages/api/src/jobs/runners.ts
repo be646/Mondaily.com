@@ -537,7 +537,12 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
       const updates = deals.map((deal) => {
         const d = (deal.data ?? {}) as Record<string, unknown>;
         const signals: Record<string, unknown> = {};
-        let score = 50;
+        // Lower base + smaller flat bonuses so the score actually SPREADS for
+        // prioritisation: pipeline stage and deal value (the things that vary
+        // most deal-to-deal) drive the number, while recency/activity nudge
+        // rather than dominate (otherwise an all-recent, all-active pipeline
+        // clamps everyone at 100).
+        let score = 30;
 
         const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "");
         const intent = stageIntent(stage);
@@ -548,24 +553,24 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         const value = numericValue(d.deal_value ?? d.value ?? d.amount ?? d.arr);
         signals.deal_value = value;
         if (value !== null) {
-          if (value >= 100000) score += 15; else if (value >= 25000) score += 10; else if (value >= 5000) score += 5;
+          if (value >= 100000) score += 20; else if (value >= 50000) score += 15; else if (value >= 25000) score += 10; else if (value >= 5000) score += 5;
         }
 
         const days = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
         signals.days_since_update = days;
-        if (days <= 7) score += 15; else if (days <= 30) score += 5; else if (days <= 90) score -= 10; else score -= 20;
+        if (days <= 7) score += 10; else if (days <= 30) score += 4; else if (days <= 90) score -= 12; else score -= 25;
 
         const recent = activityByNode.get(deal.id) ?? 0;
         signals.recent_activity_30d = recent;
-        if (recent >= 5) score += 15; else if (recent >= 2) score += 7; else if (recent === 0) score -= 8;
+        if (recent >= 8) score += 10; else if (recent >= 3) score += 5; else if (recent >= 1) score += 2; else score -= 10;
 
         const openTasks = openTasksByRecord.get(deal.id) ?? 0;
         signals.open_tasks = openTasks;
-        if (openTasks > 0) score += 5;
+        if (openTasks > 0) score += 4;
 
         const enriched = numericValue(d.headcount ?? d.employees ?? d.company_size) !== null || numericValue(d.arr) !== null;
         signals.enriched = enriched;
-        if (enriched) score += 5;
+        if (enriched) score += 4;
 
         return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
