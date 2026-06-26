@@ -69222,12 +69222,13 @@ async function runDealAlerts(workspaceId) {
         if (daysInactive < 14) continue;
         const { data: existing } = await supabase.from("deal_alerts").select("id").eq("node_id", deal.id).eq("alert_type", "cold_deal").is("dismissed_at", null).single();
         if (existing) continue;
-        await supabase.from("deal_alerts").insert({
+        const { error: alertErr } = await supabase.from("deal_alerts").insert({
           workspace_id: wsId,
           node_id: deal.id,
           alert_type: "cold_deal",
           days_inactive: daysInactive
         });
+        if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
         await supabase.from("notifications").insert({
           workspace_id: wsId,
           type: "alert",

@@ -71,9 +71,12 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
           .single();
         if (existing) continue;
 
-        await supabase.from("deal_alerts").insert({
+        // Detect insert failure (e.g. missing table / RLS) instead of
+        // swallowing it — otherwise the scan reports alerts it never wrote.
+        const { error: alertErr } = await supabase.from("deal_alerts").insert({
           workspace_id: wsId, node_id: deal.id, alert_type: "cold_deal", days_inactive: daysInactive,
         });
+        if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
         await supabase.from("notifications").insert({
           workspace_id: wsId, type: "alert", title: "🥶 Cold deal detected",
           body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,

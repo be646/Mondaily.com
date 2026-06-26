@@ -1812,7 +1812,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {/* Lead score */}
             {(record as unknown as Record<string,unknown>).lead_score != null && (
-              <LeadScoreBadge score={(record as unknown as Record<string,unknown>).lead_score as number} size="md"/>
+              <LeadScoreBadge score={(record as unknown as Record<string,unknown>).lead_score as number} size="md" signals={(record as unknown as Record<string,unknown>).lead_score_signals as Record<string, unknown> | null}/>
             )}
 
             {/* AI Intelligence layer — real fields written by relationship-health.ts
