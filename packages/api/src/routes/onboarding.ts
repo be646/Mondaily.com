@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createClerkClient } from "@clerk/backend";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { insertTrialWorkspace } from "../lib/trial";
@@ -16,6 +17,18 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
 //   4. Create a new workspace
 router.post("/bootstrap", requireJwt, async (c) => {
   const userId = c.get("userId");
+  // Reject a stale session of a DELETED account: a cached token still verifies
+  // cryptographically, so without this a removed user could re-create their
+  // workspace membership (the "ghost account" loop). Confirm the user still
+  // exists in Clerk before doing anything.
+  if (process.env.CLERK_SECRET_KEY) {
+    try {
+      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      await clerk.users.getUser(userId);
+    } catch {
+      return c.json({ error: "Account not found — please sign in again." }, 401);
+    }
+  }
   const body = await c.req.json<{ clerk_org_id?: string; name?: string }>();
   const clerk_org_id = body.clerk_org_id ?? null;
   const workspaceName = body.name ?? "My Workspace";

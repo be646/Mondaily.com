@@ -78483,6 +78483,9 @@ router35.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
   return c2.json({ ok: true });
 });
 
+// src/routes/onboarding.ts
+init_dist();
+
 // src/lib/trial.ts
 var TRIAL_DAYS = 14;
 var TRIAL_PLAN = "trial";
@@ -78505,6 +78508,14 @@ async function insertTrialWorkspace(base) {
 var router36 = new Hono2();
 router36.post("/bootstrap", requireJwt, async (c2) => {
   const userId = c2.get("userId");
+  if (process.env.CLERK_SECRET_KEY) {
+    try {
+      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      await clerk.users.getUser(userId);
+    } catch {
+      return c2.json({ error: "Account not found \u2014 please sign in again." }, 401);
+    }
+  }
   const body = await c2.req.json();
   const clerk_org_id = body.clerk_org_id ?? null;
   const workspaceName = body.name ?? "My Workspace";
