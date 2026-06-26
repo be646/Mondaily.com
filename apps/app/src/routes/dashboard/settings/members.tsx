@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/react";
 import { Check, ChevronDown, Copy, MoreHorizontal, Plus, RefreshCw, UserPlus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
@@ -77,6 +78,13 @@ export function MembersSettings() {
 
   const data = query.data ?? { members: [], teams: [], invitations: [] };
 
+  // The backend enforces owner/admin on these mutations (403s otherwise); this
+  // just hides the controls so non-admins aren't shown buttons that would fail.
+  const { user } = useUser();
+  const myEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const myRole = data.members.find((m) => m.email?.toLowerCase() === myEmail)?.role ?? "member";
+  const isAdmin = myRole === "owner" || myRole === "admin";
+
   function copyInviteLink() {
     const workspaceId = localStorage.getItem("mondaily_workspace_id") ?? "";
     navigator.clipboard.writeText(`${window.location.origin}/invite/${workspaceId}`);
@@ -127,13 +135,15 @@ export function MembersSettings() {
                 {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                 {copied ? "Copied!" : "Copy invite link"}
               </button>
-              <button onClick={() => setInviteOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
-                <UserPlus size={14} /> Invite member
-              </button>
+              {isAdmin && (
+                <button onClick={() => setInviteOpen(true)}
+                  className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
+                  <UserPlus size={14} /> Invite member
+                </button>
+              )}
             </>
           )}
-          {tab === "teams" && (
+          {tab === "teams" && isAdmin && (
             <button onClick={() => setTeamOpen(true)}
               className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
               <Plus size={14} /> Create team
@@ -169,7 +179,7 @@ export function MembersSettings() {
                           </div>
                         </td>
                         <td>
-                          <select value={m.role} disabled={m.role === "owner"}
+                          <select value={m.role} disabled={m.role === "owner" || !isAdmin}
                             onChange={e => changeRole.mutate({ id: m.id, role: e.target.value })}
                             className={`rounded-full border px-2.5 py-1 text-xs capitalize outline-none disabled:opacity-60 cursor-pointer ${ROLE_COLORS[m.role] ?? ROLE_COLORS.member} bg-transparent`}>
                             <option value="owner">Owner</option>
@@ -185,7 +195,7 @@ export function MembersSettings() {
                           </span>
                         </td>
                         <td className="text-right">
-                          {m.role !== "owner"
+                          {m.role !== "owner" && isAdmin
                             ? <button onClick={() => remove.mutate(m.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Remove</button>
                             : <MoreHorizontal size={15} className="ml-auto text-stone-700" />}
                         </td>
