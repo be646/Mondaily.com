@@ -137,6 +137,9 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                       {meta.agent.name}
                     </span>
                     <EvidenceStrip sources={meta.sources}/>
+                    {meta.tokens != null && (
+                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>~{meta.tokens} tokens</span>
+                    )}
                   </div>
                 )}
                 {m.role === "assistant" && meta && meta.sources.length > 0 && (

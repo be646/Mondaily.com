@@ -20,7 +20,11 @@ import type { AskPageContext } from "../../lib/ask-context-store";
  * — no separate "memory" per surface.
  */
 
-export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[] }>;
+export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[]; tokens?: number }>;
+
+/** Rough token estimate from text length (~4 chars/token). Labelled "~" in the
+ *  UI since the provider doesn't return exact usage over the streaming path. */
+export const estimateTokens = (t: string): number => Math.max(1, Math.round((t ?? "").trim().length / 4));
 
 /** Rebuild per-message agent + source cards from a stored thread, so reopening
  *  a conversation shows the records the AI found, not just the text. */
@@ -31,6 +35,7 @@ function metaFromMessages(msgs: ChatMessage[]): MessageMeta {
       meta[i] = {
         agent: inferAgentHandoff(msgs[i - 1]?.content ?? ""),
         sources: mapBackendSources(m.sources as BackendSourceMeta[] | undefined),
+        tokens: estimateTokens(m.content ?? ""),
       };
     }
   });
@@ -161,7 +166,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       const savedSources = finalSources ?? liveSources;
       applyText(reply);
       addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources });
-      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources) } }));
+      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: estimateTokens(reply) } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
       opts.onAssistantMessage?.(aiIdx, reply);
@@ -174,7 +179,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         const reply = data.reply || "No response.";
         setMessages([...withUser, { role: "assistant", content: reply }]);
         addMessageToThread(tid, { role: "assistant", content: reply });
-        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources) } }));
+        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: estimateTokens(reply) } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
         opts.onAssistantMessage?.(aiIdx, reply);
       } catch (err2: any) {

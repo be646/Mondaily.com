@@ -337,6 +337,9 @@ export function AskMondaily() {
                           {meta.agent.name}
                         </span>
                         <EvidenceStrip sources={meta.sources}/>
+                        {meta.tokens != null && (
+                          <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>~{meta.tokens} tokens</span>
+                        )}
                       </div>
                     )}
 
