@@ -248,8 +248,13 @@ export function EmailsPage() {
   const selectedContact = selected?.contact?.name || selected?.participants[0]?.name || selected?.participants[0]?.email || "Conversation";
   const filters = useMemo(() => ["all", "inbox", "sent", "unread"] as const, []);
 
-  function connectGmail() {
-    window.open(`${BASE_URL}/api/v1/integrations/gmail/connect`, "_blank", "width=520,height=680");
+  async function connectGmail() {
+    try {
+      const { auth_url } = await apiClient.post<{ auth_url: string }>("/integrations/connect", { provider: "google" });
+      window.open(auth_url, "_blank", "width=520,height=680");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not start email connection.");
+    }
   }
 
   return (

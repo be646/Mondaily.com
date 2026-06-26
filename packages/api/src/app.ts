@@ -46,6 +46,7 @@ import { onboardingRouter } from "./routes/onboarding";
 import { prospectingRouter } from "./routes/prospecting";
 import { statusRouter } from "./routes/status";
 import { workspacesRouter } from "./routes/workspaces";
+import { integrationsRouter } from "./routes/integrations";
 
 const app = new Hono();
 
@@ -93,6 +94,7 @@ app.route("/api/v1/quotes", quotesRouter);
 app.route("/api/v1/expenses", expensesRouter);
 app.route("/api/v1/tags", tagsRouter);
 app.route("/api/v1/onboarding", onboardingRouter);
+app.route("/api/v1/integrations", integrationsRouter);
 app.route("/api/v1", appDataRouter);
 
 const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });

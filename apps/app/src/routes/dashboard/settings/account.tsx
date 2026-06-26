@@ -125,8 +125,13 @@ export function AccountSettings() {
     await user.setProfileImage({ file });
   }
 
-  function connect(provider: "gmail" | "outlook") {
-    window.open(`${BASE_URL}/api/v1/integrations/${provider}/connect`, "_blank", "width=520,height=680");
+  async function connect(provider: "gmail" | "outlook") {
+    try {
+      const { auth_url } = await apiClient.post<{ auth_url: string }>("/integrations/connect", { provider });
+      window.open(auth_url, "_blank", "width=520,height=680");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not start email connection.");
+    }
   }
 
   async function deleteAccount() {

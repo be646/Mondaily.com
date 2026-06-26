@@ -20023,20 +20023,20 @@ var SmartRouter = class {
     let i2 = 0;
     let res;
     for (; i2 < len; i2++) {
-      const router39 = routers[i2];
+      const router40 = routers[i2];
       try {
         for (let i22 = 0, len2 = routes.length; i22 < len2; i22++) {
-          router39.add(...routes[i22]);
+          router40.add(...routes[i22]);
         }
-        res = router39.match(method, path);
+        res = router40.match(method, path);
       } catch (e2) {
         if (e2 instanceof UnsupportedPathError) {
           continue;
         }
         throw e2;
       }
-      this.match = router39.match.bind(router39);
-      this.#routers = [router39];
+      this.match = router40.match.bind(router40);
+      this.#routers = [router40];
       this.#routes = void 0;
       break;
     }
@@ -73989,9 +73989,9 @@ async function sendViaNylas2(workspaceId, msg) {
   }
 }
 async function sendViaTransactional(msg) {
-  const key = process.env.TRANSACTIONAL_MAIL_API_KEY;
+  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
   if (!key) return false;
-  const from = process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
+  const from = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -74038,7 +74038,7 @@ router13.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => 
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString()
   }, { onConflict: "workspace_id,email", ignoreDuplicates: false }).select("id,email,role,finance_role,token,expires_at,created_at").single();
   if (error) return c2.json({ error: error.message }, 500);
-  const appBase = process.env.APP_BASE_URL ?? "https://app.mondaily.com";
+  const appBase = process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com";
   const inviteLink = `${appBase}/accept-invite?token=${data.token}`;
   const emailSent = await sendWorkspaceEmail(c2.get("workspaceId"), {
     to: [{ email: data.email }],
@@ -77537,6 +77537,114 @@ router38.post("/", requireJwt, async (c2) => {
   return c2.json({ workspace_id: workspaceId, name: name17, trial_ends_at: trialEndsAt }, 201);
 });
 
+// src/routes/integrations.ts
+var import_node_crypto4 = require("crypto");
+var router39 = new Hono2();
+var NYLAS_BASE = "https://api.us.nylas.com";
+var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
+var b64url2 = (b2) => Buffer.from(b2).toString("base64url");
+function signState(payload) {
+  const body = b64url2(JSON.stringify(payload));
+  const sig = b64url2((0, import_node_crypto4.createHmac)("sha256", stateSecret()).update(body).digest());
+  return `${body}.${sig}`;
+}
+function verifyState(token) {
+  const i2 = token.lastIndexOf(".");
+  if (i2 <= 0) return null;
+  const body = token.slice(0, i2);
+  const sig = token.slice(i2 + 1);
+  const expected = b64url2((0, import_node_crypto4.createHmac)("sha256", stateSecret()).update(body).digest());
+  const a2 = Buffer.from(sig);
+  const b2 = Buffer.from(expected);
+  if (a2.length !== b2.length || !(0, import_node_crypto4.timingSafeEqual)(a2, b2)) return null;
+  try {
+    const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+var callbackUrl = () => `${(process.env.API_BASE_URL ?? "").replace(/\/$/, "")}/api/v1/integrations/callback`;
+function normalizeProvider(p2) {
+  if (p2 === "outlook" || p2 === "microsoft") return "microsoft";
+  if (p2 === "imap") return "imap";
+  return "google";
+}
+function popupHtml(message, ok2) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${ok2 ? "Connected" : "Connection failed"}</title></head>
+<body style="font-family:system-ui,sans-serif;padding:2.5rem;text-align:center;color:#1c1917">
+<p style="font-size:15px">${ok2 ? "\u2705" : "\u26A0\uFE0F"} ${message}</p>
+<p style="font-size:13px;color:#78716c">You can close this window.</p>
+<script>try{window.opener&&window.opener.postMessage({type:"nylas-connect",ok:${ok2}},"*")}catch(e){}setTimeout(function(){window.close()},1500)</script>
+</body></html>`;
+}
+router39.post("/connect", requireAuth, async (c2) => {
+  const body = await c2.req.json().catch(() => ({}));
+  const provider = normalizeProvider(body.provider);
+  const clientId = process.env.NYLAS_CLIENT_ID;
+  if (!clientId) return c2.json({ error: "NYLAS_CLIENT_ID is not configured on the server." }, 503);
+  if (!process.env.API_BASE_URL) return c2.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
+  const state = signState({
+    u: c2.get("userId"),
+    w: c2.get("workspaceId"),
+    p: provider,
+    exp: Math.floor(Date.now() / 1e3) + 600
+    // 10 min
+  });
+  const url = new URL(`${NYLAS_BASE}/v3/connect/auth`);
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", callbackUrl());
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("provider", provider);
+  url.searchParams.set("state", state);
+  return c2.json({ auth_url: url.toString() });
+});
+router39.get("/callback", async (c2) => {
+  const code = c2.req.query("code");
+  const state = c2.req.query("state");
+  const oauthErr = c2.req.query("error");
+  if (oauthErr) return c2.html(popupHtml(`Connection cancelled (${oauthErr}).`, false));
+  if (!code || !state) return c2.html(popupHtml("Missing authorization code.", false));
+  const st2 = verifyState(state);
+  if (!st2 || typeof st2.u !== "string" || typeof st2.w !== "string") {
+    return c2.html(popupHtml("Invalid or expired connection request.", false));
+  }
+  const clientId = process.env.NYLAS_CLIENT_ID;
+  const apiKey = process.env.NYLAS_API_KEY;
+  if (!clientId || !apiKey) return c2.html(popupHtml("Email integration is not configured.", false));
+  try {
+    const res = await fetch(`${NYLAS_BASE}/v3/connect/token`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: apiKey,
+        code,
+        redirect_uri: callbackUrl(),
+        grant_type: "authorization_code"
+      })
+    });
+    if (!res.ok) return c2.html(popupHtml(`Could not complete sign-in (${res.status}).`, false));
+    const tok = await res.json();
+    if (!tok.grant_id) return c2.html(popupHtml("No mailbox grant was returned.", false));
+    const { error } = await supabase.from("email_connections").upsert(
+      {
+        workspace_id: st2.w,
+        user_id: st2.u,
+        provider: st2.p ?? "google",
+        grant_id: tok.grant_id,
+        email: tok.email ?? ""
+      },
+      { onConflict: "workspace_id,user_id" }
+    );
+    if (error) return c2.html(popupHtml("Connected, but saving the mailbox failed.", false));
+    return c2.html(popupHtml(`Connected ${tok.email ?? "your inbox"}.`, true));
+  } catch {
+    return c2.html(popupHtml("Something went wrong connecting your inbox.", false));
+  }
+});
+
 // src/app.ts
 var app = new Hono2();
 app.use("*", cors({
@@ -77582,6 +77690,7 @@ app.route("/api/v1/quotes", router33);
 app.route("/api/v1/expenses", router34);
 app.route("/api/v1/tags", router35);
 app.route("/api/v1/onboarding", router36);
+app.route("/api/v1/integrations", router39);
 app.route("/api/v1", router12);
 var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
 app.all("/api/inngest", inngestHandler);
