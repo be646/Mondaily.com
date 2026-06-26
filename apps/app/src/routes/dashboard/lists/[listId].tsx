@@ -81,6 +81,7 @@ export function ListPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [enrichingAll, setEnrichingAll] = useState(false);
   const [enrichAllDone, setEnrichAllDone] = useState(false);
+  const [enrichMsg, setEnrichMsg] = useState<string | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enrollStep, setEnrollStep] = useState<"pick" | "confirm" | "done">("pick");
   const [enrollSeqId, setEnrollSeqId] = useState("");
@@ -215,14 +216,31 @@ export function ListPage() {
 
   async function enrichAll() {
     setEnrichingAll(true);
+    setEnrichMsg(null);
     try {
-      await apiClient.post(`/lists/${listId}/enrich`, {});
+      const res = await apiClient.post<{ ok: boolean; queued: number }>(`/lists/${listId}/enrich`, {});
       setEnrichAllDone(true);
-      setTimeout(() => setEnrichAllDone(false), 4000);
+      setEnrichMsg(`Queued ${res.queued} record${res.queued === 1 ? "" : "s"} — enriched details land shortly.`);
+      // Enrichment runs async in the background; pull fresh entries after a beat.
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["list-entries", listId] }), 6000);
+      setTimeout(() => { setEnrichAllDone(false); setEnrichMsg(null); }, 8000);
+    } catch (e) {
+      // Surface the real reason (e.g. "This list type is not enrichable") instead
+      // of silently swallowing it — the button used to just flicker and reset.
+      let msg = e instanceof Error ? e.message : "Couldn't start enrichment.";
+      try { const p = JSON.parse(msg); if (p?.error) msg = p.error; } catch { /* plain message */ }
+      setEnrichMsg(msg);
+      setTimeout(() => setEnrichMsg(null), 6000);
     } finally {
       setEnrichingAll(false);
     }
   }
+  // Only contact/person/company-style lists can be enriched (web/AI lookup of a
+  // person or company). Other list types have nothing to enrich.
+  const isEnrichable = useMemo(() => {
+    const t = (list.data?.object_type ?? "").toLowerCase();
+    return ["contact", "person", "people", "lead", "company", "account", "organization"].some(k => t.includes(k));
+  }, [list.data?.object_type]);
 
   async function enrollInSequence() {
     if (!enrollSeqId) return;
@@ -457,8 +475,9 @@ export function ListPage() {
           <>
             <button
               onClick={enrichAll}
-              disabled={enrichingAll}
-              className="btn-ai !px-3 !py-1.5 !text-xs"
+              disabled={enrichingAll || !isEnrichable}
+              title={isEnrichable ? "Enrich every record with web/AI lookup" : "This list type can't be enriched"}
+              className="btn-ai !px-3 !py-1.5 !text-xs disabled:cursor-not-allowed disabled:opacity-50"
             >
               {enrichingAll ? <Loader2 size={13} className="animate-spin"/> : enrichAllDone ? <LogoMark size={13}/> : <Wand2 size={13}/>}
               {enrichAllDone ? "Enriching…" : "Enrich All"}
@@ -505,6 +524,9 @@ export function ListPage() {
           <Trash2 size={11}/>
         </button>
             </div>
+            {enrichMsg && (
+              <div className="mt-2 text-right text-[11px]" style={{ color: "var(--text-secondary)" }}>{enrichMsg}</div>
+            )}
           </div>
         </div>
       </header>
