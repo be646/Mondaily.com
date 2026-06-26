@@ -72947,6 +72947,31 @@ var TOOLS = [
     }
   }
 ];
+var CORE_TOOLS = /* @__PURE__ */ new Set([
+  "search_records",
+  "list_records",
+  "list_tasks",
+  "find_related_objects",
+  "create_note",
+  "list_notifications"
+]);
+var TOOL_GROUPS = [
+  { tools: ["create_task", "update_task"], keywords: /\b(task|to-?do|follow.?up|assign|complete|mark|done|priority|due|review|remind)\b/i },
+  { tools: ["create_record", "create_object_type"], keywords: /\b(contact|compan|deal|record|person|people|lead|client|account|create|add|new|object type|field|custom)\b/i },
+  { tools: ["create_list", "list_lists", "add_to_list"], keywords: /\b(list|group|segment|bucket|add to|enterprise accounts|hot leads)\b/i },
+  { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
+  { tools: ["list_reports", "get_report", "run_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
+  { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
+  { tools: ["create_workflow_draft"], keywords: /\b(workflow|automat|trigger|sequence|when .* then)\b/i },
+  { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i }
+];
+function selectTools(query, history) {
+  if (process.env.LAZY_TOOLS === "off") return TOOLS;
+  const text2 = [query, ...(history ?? []).slice(-2).map((h2) => h2?.content ?? "")].join(" ");
+  const keep = new Set(CORE_TOOLS);
+  for (const g2 of TOOL_GROUPS) if (g2.keywords.test(text2)) g2.tools.forEach((t2) => keep.add(t2));
+  return TOOLS.filter((t2) => keep.has(t2.name));
+}
 async function searchWeb(query) {
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey) return "";
@@ -73580,7 +73605,7 @@ ${webContext}` : "") + contextNote;
     const sources = [];
     const { reply: agentReply, rounds, provider, usage } = await aiGatewayAgent({
       system: systemPrompt,
-      tools: TOOLS,
+      tools: selectTools(message, history),
       messages,
       maxTokens: 2048,
       model: agentModelSpec,
@@ -73691,7 +73716,7 @@ ${webContext}` : "") + buildContextNote(context2);
       const sources = [];
       const { reply: agentReply, usage } = await aiGatewayAgentStream({
         system: systemPrompt,
-        tools: TOOLS,
+        tools: selectTools(message, history),
         messages,
         maxTokens: 2048,
         model: agentModelSpec,
@@ -78349,7 +78374,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.6.1-harden" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.7.0-lazytools" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;

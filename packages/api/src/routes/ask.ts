@@ -361,6 +361,36 @@ const TOOLS = [
   }
 ];
 
+// ── Lazy tool-loading ───────────────────────────────────────────────────────
+// Sending all 24 tool schemas on every request is the bulk of the fixed input
+// overhead (~per-chat). Instead, always send a small CORE set (covers most
+// read/lookup asks) and add a domain group only when the query's keywords
+// match. Unknown/ambiguous queries still get CORE. Kill-switch: LAZY_TOOLS=off
+// reverts to sending everything. Tool EXECUTION is unchanged (by name).
+const CORE_TOOLS = new Set([
+  "search_records", "list_records", "list_tasks", "find_related_objects", "create_note", "list_notifications",
+]);
+const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
+  { tools: ["create_task", "update_task"], keywords: /\b(task|to-?do|follow.?up|assign|complete|mark|done|priority|due|review|remind)\b/i },
+  { tools: ["create_record", "create_object_type"], keywords: /\b(contact|compan|deal|record|person|people|lead|client|account|create|add|new|object type|field|custom)\b/i },
+  { tools: ["create_list", "list_lists", "add_to_list"], keywords: /\b(list|group|segment|bucket|add to|enterprise accounts|hot leads)\b/i },
+  { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
+  { tools: ["list_reports", "get_report", "run_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
+  { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
+  { tools: ["create_workflow_draft"], keywords: /\b(workflow|automat|trigger|sequence|when .* then)\b/i },
+  { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i },
+];
+/** Pick the tools a query plausibly needs: CORE + any keyword-matched group.
+ *  Also scans the last couple turns so a vague follow-up ("chase them") still
+ *  loads the domain tools the earlier turn implied. */
+function selectTools(query: string, history?: { role: string; content: string }[]): typeof TOOLS {
+  if (process.env.LAZY_TOOLS === "off") return TOOLS;
+  const text = [query, ...(history ?? []).slice(-2).map((h) => h?.content ?? "")].join(" ");
+  const keep = new Set(CORE_TOOLS);
+  for (const g of TOOL_GROUPS) if (g.keywords.test(text)) g.tools.forEach((t) => keep.add(t));
+  return TOOLS.filter((t) => keep.has(t.name));
+}
+
 async function searchWeb(query: string): Promise<string> {
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey) return "";
@@ -1177,7 +1207,7 @@ router.post("/", requireAuth, zValidator("json", z.object({
 
     const { reply: agentReply, rounds, provider, usage } = await aiGatewayAgent({
       system: systemPrompt,
-      tools: TOOLS,
+      tools: selectTools(message, history),
       messages,
       maxTokens: 2048,
       model: agentModelSpec,
@@ -1327,7 +1357,7 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
 
       const { reply: agentReply, usage } = await aiGatewayAgentStream({
         system: systemPrompt,
-        tools: TOOLS,
+        tools: selectTools(message, history),
         messages,
         maxTokens: 2048,
         model: agentModelSpec,
