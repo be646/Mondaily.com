@@ -71496,6 +71496,8 @@ async function gmailSend(accessToken, msg) {
     `To: ${msg.to.join(", ")}`,
     msg.from ? `From: ${msg.from}` : "",
     `Subject: ${msg.subject}`,
+    msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : "",
+    msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
     "",
@@ -71506,7 +71508,7 @@ async function gmailSend(accessToken, msg) {
     const res = await fetch(GMAIL_SEND_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ raw: raw2 })
+      body: JSON.stringify(msg.threadId ? { raw: raw2, threadId: msg.threadId } : { raw: raw2 })
     });
     return res.ok;
   } catch {
@@ -71565,6 +71567,7 @@ async function gmailThread(accessToken, threadId) {
   const t2 = await r2.json();
   return (t2.messages ?? []).map((m2) => ({
     id: m2.id,
+    messageId: header(m2.payload?.headers, "Message-ID"),
     from: header(m2.payload?.headers, "From"),
     to: header(m2.payload?.headers, "To"),
     date: header(m2.payload?.headers, "Date"),
@@ -74535,6 +74538,28 @@ function injectTracking(html, trackingId) {
 router15.post("/threads/:id/reply", zValidator("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
+  const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
+  const gc = gconn;
+  if (gc && (gc.refresh_token || gc.access_token)) {
+    const token = await freshAccessToken(gc);
+    if (!token) return c2.json({ error: "Gmail session expired \u2014 reconnect Gmail." }, 400);
+    const msgs = await gmailThread(token, c2.req.param("id"));
+    const last = msgs[msgs.length - 1];
+    if (!last) return c2.json({ error: "Thread has no message to reply to" }, 400);
+    const replyTo2 = parseAddr(last.from).email;
+    const subject = /^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`;
+    const { data: trackNode2 } = await supabase.from("nodes").insert({
+      workspace_id: c2.get("workspaceId"),
+      vertical: "sales",
+      object_type: "email_outbox",
+      data: { thread_id: c2.req.param("id"), subject, status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
+      created_by: c2.get("userId")
+    }).select("id").single();
+    const trackedBody2 = trackNode2 ? injectTracking(c2.req.valid("json").body, trackNode2.id) : c2.req.valid("json").body;
+    const ok2 = await gmailSend(token, { to: [replyTo2], subject, html: trackedBody2, from: gc.email, threadId: c2.req.param("id"), inReplyTo: last.messageId });
+    if (!ok2) return c2.json({ error: "Failed to send the reply via Gmail." }, 502);
+    return c2.json({ ok: true, tracking_id: trackNode2?.id }, 201);
+  }
   if (!grantId) return c2.json({ error: "Connect Gmail or Outlook before replying" }, 400);
   const thread = await nylasRequest(grantId, `/threads/${encodeURIComponent(c2.req.param("id"))}`);
   const messageIds = Array.isArray(thread.data.message_ids) ? thread.data.message_ids.map(String) : [];

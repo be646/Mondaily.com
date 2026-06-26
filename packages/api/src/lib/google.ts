@@ -117,12 +117,19 @@ export async function freshAccessToken(conn: ConnRow): Promise<string | null> {
   return t.access_token;
 }
 
-/** Send an email via the Gmail API as the connected user. */
-export async function gmailSend(accessToken: string, msg: { to: string[]; subject: string; html: string; from?: string }): Promise<boolean> {
+/** Send an email via the Gmail API as the connected user. Supports threading a
+ *  reply (threadId keeps it in the Gmail conversation; In-Reply-To/References
+ *  thread it in other clients). */
+export async function gmailSend(
+  accessToken: string,
+  msg: { to: string[]; subject: string; html: string; from?: string; threadId?: string; inReplyTo?: string },
+): Promise<boolean> {
   const headers = [
     `To: ${msg.to.join(", ")}`,
     msg.from ? `From: ${msg.from}` : "",
     `Subject: ${msg.subject}`,
+    msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : "",
+    msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
     "",
@@ -133,7 +140,7 @@ export async function gmailSend(accessToken: string, msg: { to: string[]; subjec
     const res = await fetch(GMAIL_SEND_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ raw }),
+      body: JSON.stringify(msg.threadId ? { raw, threadId: msg.threadId } : { raw }),
     });
     return res.ok;
   } catch {
@@ -181,7 +188,7 @@ export async function gmailThreads(accessToken: string, opts: { q?: string; max?
   return summaries.filter((s): s is GmailThreadSummary => s !== null);
 }
 
-interface GmailMessageDetail { id: string; from: string; to: string; date: string; subject: string; snippet: string; body: string }
+interface GmailMessageDetail { id: string; messageId: string; from: string; to: string; date: string; subject: string; snippet: string; body: string }
 
 function decodeBody(payload: { mimeType?: string; body?: { data?: string }; parts?: any[] } | undefined): string {
   if (!payload) return "";
@@ -205,6 +212,7 @@ export async function gmailThread(accessToken: string, threadId: string): Promis
   const t = (await r.json()) as { messages?: Array<{ id: string; snippet?: string; payload?: { headers?: Array<{ name: string; value: string }>; mimeType?: string; body?: { data?: string }; parts?: any[] } }> };
   return (t.messages ?? []).map((m) => ({
     id: m.id,
+    messageId: header(m.payload?.headers, "Message-ID"),
     from: header(m.payload?.headers, "From"),
     to: header(m.payload?.headers, "To"),
     date: header(m.payload?.headers, "Date"),
