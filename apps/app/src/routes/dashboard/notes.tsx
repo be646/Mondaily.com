@@ -48,7 +48,7 @@ const OBJECT_COLORS: Record<string, string> = {
 };
 
 const NOTE_COLORS: Record<string, { ring: string; bg: string; dot: string }> = {
-  default: { ring: "ring-white/[.07]",     bg: "bg-white/[.02]",        dot: "bg-slate-600"   },
+  default: { ring: "ring-white/[.07]",     bg: "bg-white/[.02]",        dot: "bg-stone-600"   },
   amber:   { ring: "ring-amber-500/25",    bg: "bg-amber-500/[.04]",    dot: "bg-amber-400"   },
   red:     { ring: "ring-red-500/25",      bg: "bg-indigo-500/[.04]",      dot: "bg-indigo-400"     },
   emerald: { ring: "ring-emerald-500/25",  bg: "bg-emerald-500/[.04]",  dot: "bg-emerald-400" },
@@ -141,7 +141,7 @@ function NoteCard({
   const [colorOpen, setColorOpen] = useState(false);
   const isAI = note.actor_type === "ai_agent";
   const scheme = NOTE_COLORS[colorKey] ?? NOTE_COLORS["default"]!;
-  const objColor = OBJECT_COLORS[note.record.object_type] ?? "text-slate-400 bg-white/[.04] border-white/[.08]";
+  const objColor = OBJECT_COLORS[note.record.object_type] ?? "text-stone-400 bg-white/[.04] border-white/[.08]";
   const preview = plainText(note.content);
 
   return (
@@ -164,7 +164,7 @@ function NoteCard({
               <Bot size={12} />
             </div>
           ) : (
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/[.08] bg-white/[.05] text-[10px] font-bold text-slate-300">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-white/[.08] bg-white/[.05] text-[10px] font-bold text-stone-300">
               {initials(note.author_name)}
             </div>
           )}
@@ -173,7 +173,7 @@ function NoteCard({
               {note.author_name}
               {isAI && <span className="ml-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-px text-[9px] font-semibold text-indigo-400">AI</span>}
             </p>
-            <p className="text-[10px] text-slate-600">{relTime(note.updated_at)}</p>
+            <p className="text-[10px] text-stone-600">{relTime(note.updated_at)}</p>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ function NoteCard({
                     <button
                       key={c}
                       onClick={() => { onColorChange(c); setColorOpen(false); }}
-                      className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 ${colorKey === c ? "border-white/70" : "border-transparent"} ${NOTE_COLORS[c]?.dot ?? "bg-slate-600"}`}
+                      className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 ${colorKey === c ? "border-white/70" : "border-transparent"} ${NOTE_COLORS[c]?.dot ?? "bg-stone-600"}`}
                     />
                   ))}
                 </div>
@@ -203,18 +203,18 @@ function NoteCard({
           {onPin && (
             <button onClick={onPin} title={isPinned ? "Unpin" : "Pin"}
               className="grid h-6 w-6 place-items-center rounded-lg hover:bg-white/[.07] transition-colors">
-              <Pin size={11} className={isPinned ? "fill-orange-400 text-orange-400" : "text-slate-500"} />
+              <Pin size={11} className={isPinned ? "fill-orange-400 text-orange-400" : "text-stone-500"} />
             </button>
           )}
           {isOwner && onEdit && (
             <button onClick={onEdit} title="Edit"
-              className="grid h-6 w-6 place-items-center rounded-lg text-slate-500 hover:bg-white/[.07] hover:text-white transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-lg text-stone-500 hover:bg-white/[.07] hover:text-white transition-colors">
               <Pencil size={11} />
             </button>
           )}
           {isOwner && onDelete && (
             <button onClick={onDelete} title="Delete"
-              className="grid h-6 w-6 place-items-center rounded-lg text-slate-500 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-lg text-stone-500 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors">
               <Trash2 size={11} />
             </button>
           )}
@@ -222,8 +222,8 @@ function NoteCard({
       </div>
 
       {/* Content preview */}
-      <p className={`text-sm leading-relaxed text-slate-300 ${compact ? "line-clamp-3" : "line-clamp-4"} ${isPinned ? "" : ""}`}>
-        {preview || <span className="italic text-slate-600">Empty note</span>}
+      <p className={`text-sm leading-relaxed text-stone-300 ${compact ? "line-clamp-3" : "line-clamp-4"} ${isPinned ? "" : ""}`}>
+        {preview || <span className="italic text-stone-600">Empty note</span>}
       </p>
 
       {/* Footer */}
@@ -298,7 +298,7 @@ function BoardView({ notes, colors, pinned, userId, onColorChange, onEdit, onDel
               <div className="flex items-center gap-2 px-1">
                 <span className="text-base">{col.icon}</span>
                 <span className="text-sm font-semibold text-white">{col.label}</span>
-                <span className="ml-auto rounded-full border border-white/[.06] bg-white/[.03] px-2 py-px text-[10px] text-slate-500">{colNotes.length}</span>
+                <span className="ml-auto rounded-full border border-white/[.06] bg-white/[.03] px-2 py-px text-[10px] text-stone-500">{colNotes.length}</span>
               </div>
               <DroppableCol id={col.key}>
                 {colNotes.map(note => (
@@ -307,7 +307,7 @@ function BoardView({ notes, colors, pinned, userId, onColorChange, onEdit, onDel
                       onColorChange={c => onColorChange(note.id, c)} onEdit={() => onEdit(note)} onDelete={() => onDelete(note.id)} onPin={() => onPin(note.id)} />
                   </DraggableCard>
                 ))}
-                {colNotes.length === 0 && <p className="py-8 text-center text-xs text-slate-700">Drop notes here</p>}
+                {colNotes.length === 0 && <p className="py-8 text-center text-xs text-stone-700">Drop notes here</p>}
               </DroppableCol>
             </div>
           );
@@ -364,11 +364,11 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-500">{sorted.length} notes across timeline</p>
+        <p className="text-xs text-stone-500">{sorted.length} notes across timeline</p>
         <div className="flex gap-0.5 rounded-xl border border-white/[.07] bg-white/[.02] p-0.5">
           {(["week", "month", "quarter"] as const).map(z => (
             <button key={z} onClick={() => setZoom(z)}
-              className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-colors ${zoom === z ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+              className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-colors ${zoom === z ? "bg-white/[.08] text-white" : "text-stone-500 hover:text-stone-300"}`}>
               {z}
             </button>
           ))}
@@ -383,11 +383,11 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
                 <div className="absolute inset-y-0 left-0 z-10 flex w-[170px] flex-col justify-center gap-0.5 bg-[#0d0f13] px-4 shadow-[2px_0_12px_rgba(0,0,0,0.5)]">
                   <p className="text-base">{col.icon}</p>
                   <p className="text-xs font-semibold text-white">{col.label}</p>
-                  <p className="text-[10px] text-slate-600">{laneNotes.length} notes</p>
+                  <p className="text-[10px] text-stone-600">{laneNotes.length} notes</p>
                 </div>
                 {laneIdx === 0 && markers.map(m => (
                   <div key={m.label + m.x} className="absolute top-2 z-[5] -translate-x-1/2" style={{ left: m.x }}>
-                    <span className="text-[9px] text-slate-700 whitespace-nowrap">{m.label}</span>
+                    <span className="text-[9px] text-stone-700 whitespace-nowrap">{m.label}</span>
                     <div className="mx-auto mt-1 w-px bg-white/[.04]" style={{ height: LANE_H - 20 }} />
                   </div>
                 ))}
@@ -401,7 +401,7 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
                   </div>
                 ))}
                 {laneNotes.map(note => (
-                  <div key={`dot-${note.id}`} className="absolute z-[5] h-2 w-2 -translate-x-1/2 rounded-full bg-slate-600 ring-1 ring-[#0d0f13]"
+                  <div key={`dot-${note.id}`} className="absolute z-[5] h-2 w-2 -translate-x-1/2 rounded-full bg-stone-600 ring-1 ring-[#0d0f13]"
                     style={{ left: dayOffset(note.created_at), top: LANE_HEADER - 6 }} />
                 ))}
               </div>
@@ -422,9 +422,9 @@ function ModalShell({ title, subtitle, onClose, children }: { title: string; sub
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
           <div>
             <h2 className="text-sm font-semibold text-white">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[11px] text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-[11px] text-stone-500">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors">
             <X size={14} />
           </button>
         </div>
@@ -516,10 +516,10 @@ export function NotesPage() {
 
       {/* ── Header ── */}
       <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-stone-500">
           Notes linked to your contacts, companies, and deals.
           {(notesQ.data ?? []).length > 0 && (
-            <span className="ml-2 text-slate-700">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
+            <span className="ml-2 text-stone-700">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
           )}
         </p>
         <div className="flex items-center gap-2">
@@ -539,7 +539,7 @@ export function NotesPage() {
             { key: "ai",   label: "AI"   },
           ] as const).map(({ key, label }) => (
             <button key={key} onClick={() => setFilter(key)}
-              className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === key ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+              className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === key ? "bg-white/[.08] text-white" : "text-stone-500 hover:text-stone-300"}`}>
               {label}
             </button>
           ))}
@@ -548,14 +548,14 @@ export function NotesPage() {
         <div className="h-4 w-px bg-white/[.07]" />
 
         <label className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={12} />
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" size={12} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search notes…"
-            className="h-8 w-48 rounded-xl border border-white/[.07] bg-white/[.02] pl-8 pr-3 text-xs text-white placeholder-slate-600 outline-none focus:border-white/[.14] transition-colors" />
+            className="h-8 w-48 rounded-xl border border-white/[.07] bg-white/[.02] pl-8 pr-3 text-xs text-white placeholder-stone-600 outline-none focus:border-white/[.14] transition-colors" />
         </label>
 
         <select value={sort} onChange={e => setSort(e.target.value as typeof sort)}
-          className="h-8 rounded-xl border border-white/[.07] bg-[#0d0f13] px-3 text-xs text-slate-400 outline-none">
+          className="h-8 rounded-xl border border-white/[.07] bg-[#0d0f13] px-3 text-xs text-stone-400 outline-none">
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
           <option value="updated">Updated</option>
@@ -618,7 +618,7 @@ export function NotesPage() {
             <section>
               {pinnedNotes.length > 0 && (
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">All notes</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-600">All notes</span>
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -644,21 +644,21 @@ export function NotesPage() {
           {/* Record picker */}
           {!editing ? (
             <div className="relative mb-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={12} />
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" size={12} />
               <input value={recordSearch}
                 onChange={e => { setRecordSearch(e.target.value); setLinkedRecord(undefined); }}
                 placeholder="Link to a contact, company, deal…"
-                className="h-10 w-full rounded-xl border border-white/[.08] bg-white/[.03] pl-9 pr-3 text-sm text-white placeholder-slate-600 outline-none focus:border-white/[.15] transition-colors" />
+                className="h-10 w-full rounded-xl border border-white/[.08] bg-white/[.03] pl-9 pr-3 text-sm text-white placeholder-stone-600 outline-none focus:border-white/[.15] transition-colors" />
               {recordSearch && !linkedRecord && (
                 <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-white/[.09] bg-[#0d0f13] p-1 shadow-2xl">
                   {recordOptions.length === 0 ? (
-                    <p className="px-3 py-4 text-center text-xs text-slate-600">No records found</p>
+                    <p className="px-3 py-4 text-center text-xs text-stone-600">No records found</p>
                   ) : recordOptions.map(r => (
                     <button key={r.id}
                       onClick={() => { setLinkedRecord(r); setRecordSearch(String(r.data.name ?? r.data.title ?? r.id)); }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-slate-300 hover:bg-white/[.05] hover:text-white transition-colors">
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-stone-300 hover:bg-white/[.05] hover:text-white transition-colors">
                       <span>{String(r.data.name ?? r.data.title ?? "Untitled")}</span>
-                      <span className="text-xs text-slate-600">{r.object_type}</span>
+                      <span className="text-xs text-stone-600">{r.object_type}</span>
                     </button>
                   ))}
                 </div>
@@ -666,8 +666,8 @@ export function NotesPage() {
             </div>
           ) : (
             <div className="mb-4 flex items-center gap-2 rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5">
-              <Link2 size={12} className="text-slate-500" />
-              <span className="text-xs text-slate-400">Linked to</span>
+              <Link2 size={12} className="text-stone-500" />
+              <span className="text-xs text-stone-400">Linked to</span>
               <span className="text-xs font-medium text-white">{linkedRecord?.data.name as string}</span>
             </div>
           )}

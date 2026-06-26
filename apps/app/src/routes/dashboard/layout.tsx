@@ -20,26 +20,26 @@ function getPageMeta(pathname: string): PageMeta {
     const seg = pathname.split("/objects/")[1]?.split("/")[0] ?? "";
     const label = seg.replace(/[-_]/g, " ");
     const icon: Record<string, LucideIcon> = { people: Users, companies: Building2, deals: TrendingUp };
-    return { label, Icon: icon[seg] ?? List, color: "text-neutral-500 dark:text-neutral-400" };
+    return { label, Icon: icon[seg] ?? List, color: "text-stone-500 dark:text-stone-400" };
   }
   const map: [string, PageMeta][] = [
-    ["/home",          { label: "Home",          Icon: Home,        color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/lists",         { label: "Lists",          Icon: List,        color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-neutral-500 dark:text-neutral-400" }],
-    ["/search",        { label: "Search",         Icon: Search,      color: "text-neutral-500 dark:text-neutral-400" }],
+    ["/home",          { label: "Home",          Icon: Home,        color: "text-stone-500 dark:text-stone-400" }],
+    ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-stone-500 dark:text-stone-400" }],
+    ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
+    ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-stone-500 dark:text-stone-400" }],
+    ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-stone-500 dark:text-stone-400" }],
+    ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-stone-500 dark:text-stone-400" }],
+    ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-stone-500 dark:text-stone-400" }],
+    ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-stone-500 dark:text-stone-400" }],
+    ["/lists",         { label: "Lists",          Icon: List,        color: "text-stone-500 dark:text-stone-400" }],
+    ["/settings",      { label: "Settings",       Icon: Settings,    color: "text-stone-500 dark:text-stone-400" }],
+    ["/ask",           { label: "Ask AI",         Icon: MessageCircle, color: "text-stone-500 dark:text-stone-400" }],
+    ["/search",        { label: "Search",         Icon: Search,      color: "text-stone-500 dark:text-stone-400" }],
   ];
   for (const [prefix, meta] of map) {
     if (pathname.startsWith(prefix)) return meta;
   }
-  return { label: "Mondaily", Icon: Home, color: "text-slate-400" };
+  return { label: "Mondaily", Icon: Home, color: "text-stone-400" };
 }
 
 function MobileNav() {
@@ -131,7 +131,7 @@ export function DashboardLayout() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="flex h-7 w-7 items-center justify-center text-slate-400 md:hidden shrink-0"
+              className="flex h-7 w-7 items-center justify-center text-stone-400 md:hidden shrink-0"
             >
               <Menu size={16}/>
             </button>
@@ -142,7 +142,7 @@ export function DashboardLayout() {
             {/* Search trigger */}
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
-              className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-neutral-50 sm:flex"
+              className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-50 sm:flex"
               style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)", background: "transparent" }}
             >
               <Search size={12}/>

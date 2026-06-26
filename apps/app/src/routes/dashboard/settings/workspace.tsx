@@ -77,7 +77,7 @@ function GeneralSection({
     <div className="space-y-6">
       <div>
         <h2 className="text-sm font-semibold text-white mb-0.5">General</h2>
-        <p className="text-[11px] text-zinc-500">Workspace identity and regional settings.</p>
+        <p className="text-[11px] text-stone-500">Workspace identity and regional settings.</p>
       </div>
 
       {/* Logo */}
@@ -85,16 +85,16 @@ function GeneralSection({
         <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/[.08] bg-white/[.03]">
           {logoPreview || organization?.imageUrl
             ? <img src={logoPreview || organization?.imageUrl} alt="" className="h-full w-full object-cover" />
-            : <span className="text-xl font-bold text-zinc-400">{(form.name || "W").slice(0, 1).toUpperCase()}</span>}
+            : <span className="text-xl font-bold text-stone-400">{(form.name || "W").slice(0, 1).toUpperCase()}</span>}
         </div>
         <div>
           <button
             onClick={() => logoRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-white/[.09] px-3 py-2 text-[12px] text-zinc-300 hover:bg-white/[.04] hover:text-white transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-white/[.09] px-3 py-2 text-[12px] text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors"
           >
             <ImagePlus size={13} /> Upload logo
           </button>
-          <p className="mt-1.5 text-[11px] text-zinc-600">Square PNG or JPG, at least 256×256px.</p>
+          <p className="mt-1.5 text-[11px] text-stone-600">Square PNG or JPG, at least 256×256px.</p>
         </div>
         <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => onUploadLogo(e.target.files?.[0])} />
       </div>
@@ -102,29 +102,29 @@ function GeneralSection({
       {/* Fields */}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-zinc-400">Workspace name</span>
+          <span className="mb-1.5 block text-[11px] text-stone-400">Workspace name</span>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="key-input h-9 w-full px-3 text-[12px]" />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-zinc-400">Workspace URL</span>
+          <span className="mb-1.5 block text-[11px] text-stone-400">Workspace URL</span>
           <div className="flex h-9 items-center rounded-lg border border-white/[.09] bg-white/[.03]">
-            <span className="border-r border-white/[.07] px-3 text-[11px] text-zinc-600">app.mondaily.com/</span>
+            <span className="border-r border-white/[.07] px-3 text-[11px] text-stone-600">app.mondaily.com/</span>
             <input
               value={form.slug ?? ""}
               onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-              className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none text-zinc-200"
+              className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none text-stone-200"
             />
           </div>
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-zinc-400">Default currency</span>
+          <span className="mb-1.5 block text-[11px] text-stone-400">Default currency</span>
           <select value={form.currency ?? "USD"} onChange={e => setForm({ ...form, currency: e.target.value })}
             className="key-input h-9 w-full px-3 text-[12px]">
             {currencies.map(c => <option key={c}>{c}</option>)}
           </select>
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-zinc-400">Default timezone</span>
+          <span className="mb-1.5 block text-[11px] text-stone-400">Default timezone</span>
           <select value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}
             className="key-input h-9 w-full px-3 text-[12px]">
             {timezones.map(tz => <option key={tz}>{tz}</option>)}
@@ -212,12 +212,12 @@ function MembersSection() {
     <div className="space-y-6">
       <div>
         <h2 className="text-sm font-semibold text-white mb-0.5">Members & Roles</h2>
-        <p className="text-[11px] text-zinc-500">Manage workspace access and permissions.</p>
+        <p className="text-[11px] text-stone-500">Manage workspace access and permissions.</p>
       </div>
 
       {/* Invite */}
       <div className="premium-panel p-4">
-        <p className="text-[11px] text-zinc-400 mb-3">Invite someone</p>
+        <p className="text-[11px] text-stone-400 mb-3">Invite someone</p>
         <div className="flex gap-2">
           <input
             className="key-input flex-1 text-[12px]"
@@ -244,7 +244,7 @@ function MembersSection() {
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/[.06] border border-emerald-500/20">
             <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
             <span className="text-[11px] text-emerald-400 flex-1 truncate">{inviteLink}</span>
-            <button onClick={copyLink} className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1">
+            <button onClick={copyLink} className="text-[11px] text-stone-400 hover:text-white flex items-center gap-1">
               {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? "Copied" : "Copy"}
             </button>
           </div>
@@ -256,10 +256,10 @@ function MembersSection() {
         <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-left text-[12px]">
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-white/[.015]">
-                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Member</th>
-                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Workspace Role</th>
-                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Finance Role</th>
+              <tr className="border-b border-stone-200 dark:border-stone-800 bg-white/[.015]">
+                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Member</th>
+                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Workspace Role</th>
+                <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Finance Role</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -268,12 +268,12 @@ function MembersSection() {
                 <tr key={m.id} className="border-b border-white/[.04] last:border-0 hover:bg-white/[.015] transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-zinc-700 flex items-center justify-center text-[11px] font-semibold text-zinc-200 shrink-0">
+                      <div className="h-7 w-7 rounded-full bg-stone-700 flex items-center justify-center text-[11px] font-semibold text-stone-200 shrink-0">
                         {(m.name || m.email).slice(0, 1).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-zinc-200">{m.name || m.email}</p>
-                        {m.name && <p className="text-[11px] text-zinc-600">{m.email}</p>}
+                        <p className="text-stone-200">{m.name || m.email}</p>
+                        {m.name && <p className="text-[11px] text-stone-600">{m.email}</p>}
                       </div>
                     </div>
                   </td>
@@ -293,7 +293,7 @@ function MembersSection() {
                   </td>
                   <td className="px-4 py-3">
                     {["admin", "owner"].includes(m.role) ? (
-                      <span className="text-[11px] text-zinc-600 italic">auto (approver)</span>
+                      <span className="text-[11px] text-stone-600 italic">auto (approver)</span>
                     ) : (
                       <select
                         value={m.finance_role ?? "none"}
@@ -308,7 +308,7 @@ function MembersSection() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {m.role !== "owner" && (
-                      <button onClick={() => removeMember(m.id)} className="text-zinc-600 hover:text-indigo-400 transition-colors">
+                      <button onClick={() => removeMember(m.id)} className="text-stone-600 hover:text-indigo-400 transition-colors">
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -323,18 +323,18 @@ function MembersSection() {
       {/* Pending invites */}
       {invitations.length > 0 && (
         <div>
-          <p className="text-[11px] text-zinc-500 mb-2">Pending Invites</p>
+          <p className="text-[11px] text-stone-500 mb-2">Pending Invites</p>
           <div className="rounded-xl border border-white/[.06] overflow-hidden">
             {invitations.map(inv => (
               <div key={inv.id} className="flex items-center justify-between px-4 py-2.5 border-b border-white/[.04] last:border-0">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-6 w-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500">
+                  <div className="h-6 w-6 rounded-full bg-stone-800 flex items-center justify-center text-[10px] text-stone-500">
                     {inv.email.slice(0, 1).toUpperCase()}
                   </div>
-                  <span className="text-[12px] text-zinc-300">{inv.email}</span>
-                  <span className="text-[11px] text-zinc-600 capitalize">{inv.role}</span>
+                  <span className="text-[12px] text-stone-300">{inv.email}</span>
+                  <span className="text-[11px] text-stone-600 capitalize">{inv.role}</span>
                 </div>
-                <button onClick={() => cancelInvite(inv.id)} className="text-zinc-600 hover:text-indigo-400 transition-colors">
+                <button onClick={() => cancelInvite(inv.id)} className="text-stone-600 hover:text-indigo-400 transition-colors">
                   <X size={13} />
                 </button>
               </div>
@@ -360,7 +360,7 @@ function ModulesSection({
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-semibold text-white mb-0.5">Modules</h2>
-        <p className="text-[11px] text-zinc-500">Enable or disable product modules for your workspace.</p>
+        <p className="text-[11px] text-stone-500">Enable or disable product modules for your workspace.</p>
       </div>
 
       {AVAILABLE_MODULES.map(mod => {
@@ -369,7 +369,7 @@ function ModulesSection({
           <div key={mod.id} className="flex items-center justify-between rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3">
             <div>
               <p className="text-[12px] font-medium text-white">{mod.label}</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">{mod.description}</p>
+              <p className="text-[11px] text-stone-500 mt-0.5">{mod.description}</p>
             </div>
             <button
               type="button"
@@ -424,11 +424,11 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
       <div className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold text-white mb-0.5">Finance Access</h2>
-          <p className="text-[11px] text-zinc-500">Enable the Finance module first to manage finance roles.</p>
+          <p className="text-[11px] text-stone-500">Enable the Finance module first to manage finance roles.</p>
         </div>
         <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-8 text-center">
-          <Globe size={20} className="text-zinc-600 mx-auto mb-2" />
-          <p className="text-[12px] text-zinc-500">Finance module is not enabled</p>
+          <Globe size={20} className="text-stone-600 mx-auto mb-2" />
+          <p className="text-[12px] text-stone-500">Finance module is not enabled</p>
         </div>
       </div>
     );
@@ -438,38 +438,38 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-semibold text-white mb-0.5">Finance Access</h2>
-        <p className="text-[11px] text-zinc-500">Control each member's access to Finance &amp; Billing features.</p>
+        <p className="text-[11px] text-stone-500">Control each member's access to Finance &amp; Billing features.</p>
       </div>
 
       {isLoading ? <PageSkeleton rows={3} /> : (
         <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-[12px]">
             <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-white/[.015]">
-                <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Member</th>
-                <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Workspace Role</th>
-                <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-zinc-600">Finance Role</th>
+              <tr className="border-b border-stone-200 dark:border-stone-800 bg-white/[.015]">
+                <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-stone-600">Member</th>
+                <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-stone-600">Workspace Role</th>
+                <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-stone-600">Finance Role</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
               {members.map(m => (
                 <tr key={m.user_id} className="hover:bg-white/[.01]">
                   <td className="py-2.5 px-4">
                     <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-full bg-zinc-700 flex items-center justify-center text-[11px] font-semibold text-zinc-200">
+                      <div className="h-7 w-7 rounded-full bg-stone-700 flex items-center justify-center text-[11px] font-semibold text-stone-200">
                         {m.user_id.slice(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-zinc-300 font-mono text-[11px]">{m.user_id.slice(0, 12)}…</span>
+                      <span className="text-stone-300 font-mono text-[11px]">{m.user_id.slice(0, 12)}…</span>
                     </div>
                   </td>
                   <td className="py-2.5 px-4">
-                    <span className="inline-flex items-center rounded-full bg-white/[.05] border border-white/[.06] px-2 py-0.5 text-[11px] text-zinc-400 capitalize">
+                    <span className="inline-flex items-center rounded-full bg-white/[.05] border border-white/[.06] px-2 py-0.5 text-[11px] text-stone-400 capitalize">
                       {m.role}
                     </span>
                   </td>
                   <td className="py-2.5 px-4">
                     {["admin", "owner"].includes(m.role) ? (
-                      <span className="text-[11px] text-zinc-600 italic">auto (approver)</span>
+                      <span className="text-[11px] text-stone-600 italic">auto (approver)</span>
                     ) : (
                       <select
                         value={m.finance_role ?? "none"}
@@ -518,14 +518,14 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-semibold text-indigo-400 mb-0.5">Danger Zone</h2>
-        <p className="text-[11px] text-zinc-500">Irreversible actions. Proceed with caution.</p>
+        <p className="text-[11px] text-stone-500">Irreversible actions. Proceed with caution.</p>
       </div>
 
       <div className="border border-indigo-500/20 rounded-xl p-6 space-y-4">
-        <p className="text-[12px] text-zinc-500">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
+        <p className="text-[12px] text-stone-500">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
-            className="flex items-center gap-2 rounded-lg border border-white/[.09] px-3 py-2 text-[12px] text-zinc-300 hover:bg-white/[.04] hover:text-white transition-colors">
+            className="flex items-center gap-2 rounded-lg border border-white/[.09] px-3 py-2 text-[12px] text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors">
             <Download size={13} /> Export all data
           </button>
           <button onClick={() => setDeleteOpen(true)}
@@ -541,12 +541,12 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold text-white">Delete {form.name}</h2>
-              <button onClick={() => setDeleteOpen(false)} className="text-zinc-500 hover:text-white transition-colors"><X size={15} /></button>
+              <button onClick={() => setDeleteOpen(false)} className="text-stone-500 hover:text-white transition-colors"><X size={15} /></button>
             </div>
-            <p className="text-[12px] text-zinc-500">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
+            <p className="text-[12px] text-stone-500">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-[12px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-[12px] text-stone-400 hover:text-white transition-colors">Cancel</button>
               <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-indigo-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors">Delete workspace</button>
             </div>
           </div>
@@ -612,7 +612,7 @@ export function WorkspaceSettings() {
             key={item.key}
             onClick={() => setSection(item.key)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] mb-0.5 transition-colors ${
-              section === item.key ? "bg-white/[.05] text-zinc-200" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[.03]"
+              section === item.key ? "bg-white/[.05] text-stone-200" : "text-stone-500 hover:text-stone-300 hover:bg-white/[.03]"
             } ${item.danger ? (section === item.key ? "text-indigo-400" : "text-red-500 hover:text-indigo-400") : ""}`}
           >
             <item.icon size={13} />

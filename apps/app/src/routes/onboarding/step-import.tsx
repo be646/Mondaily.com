@@ -11,22 +11,22 @@ export function StepImport() {
 
   return (
     <div>
-      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Import your data</h1>
-      <p className="mb-6 font-mono text-[12px] text-zinc-500">Bring contacts, companies, and deals. Mondaily prepares a review before anything is imported.</p>
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Import your data</h1>
+      <p className="mb-6 font-mono text-[12px] text-stone-500">Bring contacts, companies, and deals. Mondaily prepares a review before anything is imported.</p>
 
-      <label className={`mb-7 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${file ? "border-indigo-500/40 bg-indigo-500/[.03]" : "border-black/[.08] hover:border-indigo-500/30 hover:bg-zinc-50"}`}>
+      <label className={`mb-7 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${file ? "border-indigo-500/40 bg-indigo-500/[.03]" : "border-black/[.08] hover:border-indigo-500/30 hover:bg-stone-50"}`}>
         <input type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setFile(e.target.files?.[0]?.name ?? "")} />
         {file ? (
           <>
             <FileSpreadsheet size={22} className="mb-2 text-indigo-500" />
             <span className="font-mono text-[12px] text-indigo-600">{file}</span>
-            <span className="mt-1 font-mono text-[11px] text-zinc-400">Click to change</span>
+            <span className="mt-1 font-mono text-[11px] text-stone-400">Click to change</span>
           </>
         ) : (
           <>
-            <Upload size={22} className="mb-2 text-zinc-400" />
-            <span className="font-mono text-[12px] text-zinc-500">Drop CSV or Excel, or browse</span>
-            <span className="mt-1 font-mono text-[11px] text-zinc-400">.csv · .xlsx supported</span>
+            <Upload size={22} className="mb-2 text-stone-400" />
+            <span className="font-mono text-[12px] text-stone-500">Drop CSV or Excel, or browse</span>
+            <span className="mt-1 font-mono text-[11px] text-stone-400">.csv · .xlsx supported</span>
           </>
         )}
       </label>

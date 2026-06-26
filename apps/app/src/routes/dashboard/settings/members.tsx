@@ -24,7 +24,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-semibold text-white">{title}</h2>
-          <button onClick={close} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={15} /></button>
+          <button onClick={close} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={15} /></button>
         </div>
         {children}
       </div>
@@ -35,8 +35,8 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
 const ROLE_COLORS: Record<string, string> = {
   owner: "bg-violet-500/10 text-violet-300 border-violet-500/20",
   admin: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
-  member: "bg-white/[.05] text-slate-400 border-white/[.07]",
-  viewer: "bg-white/[.03] text-slate-600 border-white/[.05]",
+  member: "bg-white/[.05] text-stone-400 border-white/[.07]",
+  viewer: "bg-white/[.03] text-stone-600 border-white/[.05]",
 };
 
 export function MembersSettings() {
@@ -111,7 +111,7 @@ export function MembersSettings() {
         <div className="flex gap-0.5 rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
           {(["members", "teams", "invitations"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${tab === t ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+              className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${tab === t ? "bg-white/[.08] text-white" : "text-stone-500 hover:text-stone-300"}`}>
               {t}
               {t === "invitations" && data.invitations.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">{data.invitations.length}</span>
@@ -123,7 +123,7 @@ export function MembersSettings() {
           {tab === "members" && (
             <>
               <button onClick={copyInviteLink}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] px-3 py-2 text-sm text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                className="flex items-center gap-2 rounded-lg border border-white/[.08] px-3 py-2 text-sm text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors">
                 {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                 {copied ? "Copied!" : "Copy invite link"}
               </button>
@@ -163,8 +163,8 @@ export function MembersSettings() {
                           <div className="flex items-center gap-3">
                             <Avatar member={m} />
                             <div>
-                              <p className="font-medium text-slate-200">{m.name || m.email}</p>
-                              <p className="text-xs text-slate-600">{m.email}</p>
+                              <p className="font-medium text-stone-200">{m.name || m.email}</p>
+                              <p className="text-xs text-stone-600">{m.email}</p>
                             </div>
                           </div>
                         </td>
@@ -178,16 +178,16 @@ export function MembersSettings() {
                             <option value="viewer">Viewer</option>
                           </select>
                         </td>
-                        <td className="text-sm text-neutral-400 dark:text-neutral-600">{m.last_active ?? "Recently"}</td>
+                        <td className="text-sm text-stone-400 dark:text-stone-600">{m.last_active ?? "Recently"}</td>
                         <td>
-                          <span className={`rounded-full px-2 py-1 text-[10px] font-medium capitalize ${m.status === "active" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.03] text-slate-600"}`}>
+                          <span className={`rounded-full px-2 py-1 text-[10px] font-medium capitalize ${m.status === "active" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.03] text-stone-600"}`}>
                             {m.status}
                           </span>
                         </td>
                         <td className="text-right">
                           {m.role !== "owner"
                             ? <button onClick={() => remove.mutate(m.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Remove</button>
-                            : <MoreHorizontal size={15} className="ml-auto text-slate-700" />}
+                            : <MoreHorizontal size={15} className="ml-auto text-stone-700" />}
                         </td>
                       </tr>
                     ))}
@@ -216,10 +216,10 @@ export function MembersSettings() {
                           {tMembers.length === 0 && <div className="grid h-7 w-7 place-items-center rounded-full bg-white/[.05]"><Users size={12} /></div>}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-200">{t.name}</p>
-                          <p className="text-xs text-slate-600">{t.member_count} member{t.member_count !== 1 ? "s" : ""}</p>
+                          <p className="text-sm font-semibold text-stone-200">{t.name}</p>
+                          <p className="text-xs text-stone-600">{t.member_count} member{t.member_count !== 1 ? "s" : ""}</p>
                         </div>
-                        <ChevronDown size={14} className={`text-slate-600 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown size={14} className={`text-stone-600 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isOpen && (
                         <div className="border-t border-white/[.06] px-4 pb-4 pt-3 space-y-4">
@@ -227,19 +227,19 @@ export function MembersSettings() {
                             {tMembers.map(m => (
                               <div key={m.id} className="flex items-center gap-3 rounded-lg bg-white/[.025] px-3 py-2.5">
                                 <Avatar member={m} small />
-                                <span className="flex-1 text-sm text-slate-300">{m.name || m.email}</span>
+                                <span className="flex-1 text-sm text-stone-300">{m.name || m.email}</span>
                                 <button onClick={() => removeTeamMember(t.id, m.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Remove</button>
                               </div>
                             ))}
-                            {tMembers.length === 0 && <p className="text-sm text-slate-600">No members yet.</p>}
+                            {tMembers.length === 0 && <p className="text-sm text-stone-600">No members yet.</p>}
                           </div>
                           {available.length > 0 && (
                             <div>
-                              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-700">Add members</p>
+                              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-stone-700">Add members</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {available.slice(0, 8).map(m => (
                                   <button key={m.id} onClick={() => addToTeam(t.id, m.id)}
-                                    className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-2.5 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                                    className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-2.5 py-1.5 text-xs text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors">
                                     <Plus size={10} /> {m.name?.split(" ")[0] || m.email}
                                   </button>
                                 ))}
@@ -272,17 +272,17 @@ export function MembersSettings() {
                   <tbody>
                     {data.invitations.map(inv => (
                       <tr key={inv.id} className="border-b border-white/[.04] last:border-0">
-                        <td className="px-4 py-3.5 text-slate-300">{inv.email}</td>
-                        <td className="px-4 py-3.5 capitalize text-slate-500">{inv.role}</td>
-                        <td className="px-4 py-3.5 text-slate-600">{inv.invited_by ?? "Workspace admin"}</td>
-                        <td className="px-4 py-3.5 text-slate-600">{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "Recently"}</td>
+                        <td className="px-4 py-3.5 text-stone-300">{inv.email}</td>
+                        <td className="px-4 py-3.5 capitalize text-stone-500">{inv.role}</td>
+                        <td className="px-4 py-3.5 text-stone-600">{inv.invited_by ?? "Workspace admin"}</td>
+                        <td className="px-4 py-3.5 text-stone-600">{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : "Recently"}</td>
                         <td>
                           <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-medium capitalize text-amber-400">{inv.status}</span>
                         </td>
                         <td>
                           <div className="flex justify-end gap-3">
                             <button onClick={() => apiClient.post("/invites", { email: inv.email, role: inv.role })}
-                              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                              className="flex items-center gap-1 text-xs text-stone-500 hover:text-stone-300 transition-colors">
                               <RefreshCw size={11} /> Resend
                             </button>
                             <button
@@ -317,14 +317,14 @@ export function MembersSettings() {
         <ModalShell title="Invite members" close={() => setInviteOpen(false)}>
           <form onSubmit={e => { e.preventDefault(); sendInvite.mutate(); }} className="space-y-4">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Email addresses</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Email addresses</span>
               <textarea autoFocus value={invite.emails} onChange={e => setInvite({ ...invite, emails: e.target.value })}
                 placeholder="alex@company.com, sam@company.com" rows={3}
                 className="key-input w-full resize-none p-3 text-sm" />
-              <p className="mt-1 text-xs text-slate-600">Separate multiple emails with commas or newlines.</p>
+              <p className="mt-1 text-xs text-stone-600">Separate multiple emails with commas or newlines.</p>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Role</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Role</span>
               <select value={invite.role} onChange={e => setInvite({ ...invite, role: e.target.value })}
                 className="key-input h-10 w-full px-3 text-sm">
                 <option value="admin">Admin — full access, manage members</option>
@@ -345,13 +345,13 @@ export function MembersSettings() {
         <ModalShell title="Create team" close={() => setTeamOpen(false)}>
           <form onSubmit={e => { e.preventDefault(); if (team.name.trim()) createTeam.mutate(); }} className="space-y-4">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Team name</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Team name</span>
               <input autoFocus value={team.name} onChange={e => setTeam({ ...team, name: e.target.value })}
                 placeholder="e.g. Sales, Engineering, Support" className="key-input h-10 w-full px-3 text-sm" />
             </label>
             {data.members.length > 0 && (
               <div>
-                <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">Add members</span>
+                <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-stone-500">Add members</span>
                 <div className="max-h-48 space-y-0.5 overflow-auto rounded-lg border border-white/[.07]">
                   {data.members.map(m => (
                     <label key={m.id} className="flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-white/[.03] transition-colors">
@@ -359,7 +359,7 @@ export function MembersSettings() {
                         onChange={e => setTeam({ ...team, member_ids: e.target.checked ? [...team.member_ids, m.id] : team.member_ids.filter(id => id !== m.id) })}
                         className="h-4 w-4 rounded accent-red-500" />
                       <Avatar member={m} small />
-                      <span className="text-sm text-slate-300">{m.name || m.email}</span>
+                      <span className="text-sm text-stone-300">{m.name || m.email}</span>
                     </label>
                   ))}
                 </div>

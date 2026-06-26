@@ -19,7 +19,7 @@ function actorIcon(type: string) {
   switch (type) {
     case "ai_agent": return <Sparkles size={10} className="text-violet-400" />;
     case "integration": return <Zap size={10} className="text-amber-400" />;
-    case "system": return <Settings size={10} className="text-slate-500" />;
+    case "system": return <Settings size={10} className="text-stone-500" />;
     default: return <User size={10} className="text-blue-400" />;
   }
 }
@@ -28,7 +28,7 @@ function actionColor(action: string) {
   if (action === "created") return "text-emerald-400";
   if (action === "deleted") return "text-indigo-400";
   if (action === "enriched") return "text-violet-400";
-  return "text-slate-400";
+  return "text-stone-400";
 }
 
 function fmtTime(iso: string) {
@@ -60,7 +60,7 @@ export function ActivityTimeline({ nodeId, onClose }: { nodeId: string; onClose:
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06] flex-shrink-0">
           <div className="flex items-center gap-2">
-            <Activity size={14} className="text-slate-400" />
+            <Activity size={14} className="text-stone-400" />
             <span className="text-sm font-semibold text-white">Activity</span>
           </div>
           <button onClick={onClose} className="text-white/30 hover:text-white/70"><X size={15} /></button>

@@ -80,31 +80,31 @@ export function StepPlan() {
 
   return (
     <div>
-      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Choose your plan</h1>
-      <p className="mb-6 font-mono text-[12px] text-zinc-500">Start free and upgrade when your team is ready.</p>
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Choose your plan</h1>
+      <p className="mb-6 font-mono text-[12px] text-stone-500">Start free and upgrade when your team is ready.</p>
 
       <div className="mb-7 space-y-2.5">
         {plans.map(plan => (
           <button
             key={plan.id}
             onClick={() => setSelected(plan.id)}
-            className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-indigo-500/40 bg-indigo-500/[.04] ring-1 ring-indigo-500/20" : "border-black/[.08] hover:bg-zinc-50"}`}
+            className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-indigo-500/40 bg-indigo-500/[.04] ring-1 ring-indigo-500/20" : "border-black/[.08] hover:bg-stone-50"}`}
           >
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[13px] font-semibold text-zinc-800">{plan.name}</span>
+                <span className="font-mono text-[13px] font-semibold text-stone-800">{plan.name}</span>
                 {plan.highlight && (
                   <span className="rounded-full border border-indigo-500/20 bg-indigo-500/[.07] px-2 py-0.5 font-mono text-[9px] text-indigo-600 uppercase tracking-wider">Popular</span>
                 )}
               </div>
-              <span className="shrink-0 font-mono text-[12px] text-zinc-500">
-                {plan.price}{plan.price !== "Custom" && <span className="text-zinc-400"> / {plan.period}</span>}
+              <span className="shrink-0 font-mono text-[12px] text-stone-500">
+                {plan.price}{plan.price !== "Custom" && <span className="text-stone-400"> / {plan.period}</span>}
               </span>
             </div>
-            <p className="mb-2 font-mono text-[11px] text-zinc-400">{plan.desc}</p>
+            <p className="mb-2 font-mono text-[11px] text-stone-400">{plan.desc}</p>
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               {plan.features.slice(0, 3).map(f => (
-                <span key={f} className="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
+                <span key={f} className="flex items-center gap-1 font-mono text-[10px] text-stone-500">
                   <Check size={9} className="text-indigo-500 shrink-0" /> {f}
                 </span>
               ))}
@@ -120,7 +120,7 @@ export function StepPlan() {
         {selected === "starter" ? "Start for free" : selected === "enterprise" ? "Talk to sales" : `Start ${plans.find(p => p.id === selected)?.name} trial`}
         <ArrowRight size={13} />
       </button>
-      <p className="mt-3 text-center font-mono text-[11px] text-zinc-400">No credit card required for free plan</p>
+      <p className="mt-3 text-center font-mono text-[11px] text-stone-400">No credit card required for free plan</p>
     </div>
   );
 }

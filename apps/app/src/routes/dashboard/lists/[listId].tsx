@@ -223,7 +223,7 @@ export function ListPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   if (list.isLoading) return <div className="p-8"><PageSkeleton rows={7} /></div>;
-  if (!list.data) return <div className="grid h-full place-items-center text-sm text-slate-500">List not found.</div>;
+  if (!list.data) return <div className="grid h-full place-items-center text-sm text-stone-500">List not found.</div>;
 
   const isEmpty = entries.isSuccess && records.length === 0;
 
@@ -239,7 +239,7 @@ export function ListPage() {
                 value={list.data.name}
                 onChange={e => qc.setQueryData(["list", listId], { ...list.data, name: e.target.value })}
                 onBlur={e => update.mutate({ name: e.target.value })}
-                className="min-w-0 flex-1 bg-transparent text-2xl font-semibold tracking-tight outline-none placeholder-neutral-400 dark:placeholder-neutral-600"
+                className="min-w-0 flex-1 bg-transparent text-2xl font-semibold tracking-tight outline-none placeholder-stone-400 dark:placeholder-stone-600"
                 style={{ color: "var(--text-primary)" }}
               />
               <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
@@ -501,12 +501,12 @@ export function ListPage() {
                 {records.map(record => (
                   <tr key={record.id} className="group transition-colors">
                     {columns.map((c, i) => (
-                      <td key={c} className="max-w-[240px] truncate text-neutral-700 dark:text-neutral-300">
+                      <td key={c} className="max-w-[240px] truncate text-stone-700 dark:text-stone-300">
                         {i === 0
                           ? (
                             <Link
                               to={`/objects/${record.object_type}/${record.id}`}
-                              className="font-medium text-neutral-950 transition-colors hover:text-neutral-600 dark:text-neutral-50 dark:hover:text-neutral-300"
+                              className="font-medium text-stone-950 transition-colors hover:text-stone-600 dark:text-stone-50 dark:hover:text-stone-300"
                             >
                               {display(record.data[c])}
                             </Link>
@@ -514,14 +514,14 @@ export function ListPage() {
                           : display(record.data[c])}
                       </td>
                     ))}
-                    <td className="text-[11px] tabular-nums text-neutral-400 dark:text-neutral-600">
+                    <td className="text-[11px] tabular-nums text-stone-400 dark:text-stone-600">
                       {fmtDate(record.updated_at)}
                     </td>
                     <td className="w-8 px-2">
                       <button
                         onClick={() => removeEntry.mutate(record.id)}
                         title="Remove from list"
-                        className="grid h-6 w-6 place-items-center rounded opacity-0 transition-all group-hover:opacity-100 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                        className="grid h-6 w-6 place-items-center rounded opacity-0 transition-all group-hover:opacity-100 hover:bg-stone-100 dark:hover:bg-stone-900"
                         style={{ color: "var(--text-faint)" }}
                       >
                         <X size={12} />
@@ -547,7 +547,7 @@ export function ListPage() {
                       <Link
                         key={r.id}
                         to={`/objects/${r.object_type}/${r.id}`}
-                        className="block border-b p-3 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
+                        className="block border-b p-3 transition-colors hover:bg-stone-50 dark:hover:bg-stone-900/60"
                         style={{ borderColor: "var(--border-soft)" }}
                       >
                         <p className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
@@ -593,7 +593,7 @@ export function ListPage() {
                 <button
                   key={r.id}
                   onClick={() => addEntry.mutate(r.id)}
-                  className="flex w-full items-center justify-between border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-900/60"
+                  className="flex w-full items-center justify-between border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-stone-50 dark:hover:bg-stone-900/60"
                   style={{ borderColor: "var(--border-soft)" }}
                 >
                   <div>
@@ -640,7 +640,7 @@ export function ListPage() {
             onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAiMatch(); }}
             rows={3}
             placeholder={`e.g. "Companies in the US with ARR above $1M"`}
-            className="surface-input w-full resize-none rounded-xl p-3 text-[12px] outline-none transition-colors placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+            className="surface-input w-full resize-none rounded-xl p-3 text-[12px] outline-none transition-colors placeholder:text-stone-400 dark:placeholder:text-stone-600"
             style={{ color: "var(--text-primary)" }}
           />
           {aiMatched === null ? (
@@ -668,7 +668,7 @@ export function ListPage() {
                       <button
                         key={r.id}
                         onClick={() => setAiSelected(prev => { const n = new Set(prev); sel ? n.delete(r.id) : n.add(r.id); return n; })}
-                        className={`flex w-full items-center gap-3 border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-neutral-50 dark:hover:bg-neutral-900/60 ${sel ? "surface-selected" : ""}`}
+                        className={`flex w-full items-center gap-3 border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-stone-50 dark:hover:bg-stone-900/60 ${sel ? "surface-selected" : ""}`}
                         style={{ borderColor: "var(--border-soft)" }}
                       >
                         <div className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${sel ? "bg-violet-600 border-violet-600" : ""}`} style={sel ? undefined : { borderColor: "var(--border-strong)" }}>

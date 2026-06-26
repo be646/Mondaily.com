@@ -31,10 +31,10 @@ function EnrichBanner({ name, done }: { name: string; done: boolean }) {
   return (
     <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all duration-500 ${
       done
-        ? "border-zinc-600/50 bg-zinc-800/40 text-zinc-300"
-        : "border-zinc-700/40 bg-zinc-900/30 text-zinc-500"
+        ? "border-stone-600/50 bg-stone-800/40 text-stone-300"
+        : "border-stone-700/40 bg-stone-900/30 text-stone-500"
     }`}>
-      <Sparkles size={12} className={done ? "text-zinc-300" : "animate-pulse text-zinc-600"}/>
+      <Sparkles size={12} className={done ? "text-stone-300" : "animate-pulse text-stone-600"}/>
       {done
         ? `AI enriched "${name}" — fields auto-populated`
         : `Enriching "${name}" in background…`}
@@ -206,17 +206,17 @@ function CreateRecordModal({
             <div className="flex items-center rounded-md border border-white/[.07] bg-white/[.03] p-0.5 gap-0.5">
               <button
                 onClick={() => setTab("manual")}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "manual" ? "bg-white/[.08] text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "manual" ? "bg-white/[.08] text-white" : "text-stone-500 hover:text-stone-300"}`}
               >Manual</button>
               <button
                 onClick={() => { setTab("ai"); setTimeout(() => promptRef.current?.focus(), 50); }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-indigo-500/20 text-indigo-300" : "text-zinc-500 hover:text-zinc-300"}`}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-indigo-500/20 text-indigo-300" : "text-stone-500 hover:text-stone-300"}`}
               >
                 <Sparkles size={10}/> Generate with AI
               </button>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -231,7 +231,7 @@ function CreateRecordModal({
                 const isEmpty = !(values[k] ?? "").trim();
                 return (
                   <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-white/[.04] last:border-0">
-                    <span className={`text-[11px] font-medium uppercase tracking-wide select-none truncate flex items-center gap-1 ${isRequired ? "text-slate-400" : "text-slate-600"}`}>
+                    <span className={`text-[11px] font-medium uppercase tracking-wide select-none truncate flex items-center gap-1 ${isRequired ? "text-stone-400" : "text-stone-600"}`}>
                       {label(k)}
                       {isRequired && <span className="text-indigo-400 text-[10px]">*</span>}
                     </span>
@@ -239,26 +239,26 @@ function CreateRecordModal({
                       value={values[k] ?? ""}
                       onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
                       placeholder={hasDefault && isEmpty ? `Default: ${colMeta[k]!.defaultValue}` : "—"}
-                      className={`w-full rounded-md border bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-slate-700 outline-none transition-colors focus:bg-white/[.05] ${isRequired && isEmpty ? "border-indigo-500/20 focus:border-indigo-500/40" : "border-white/[.07] focus:border-indigo-500/30"}`}
+                      className={`w-full rounded-md border bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none transition-colors focus:bg-white/[.05] ${isRequired && isEmpty ? "border-indigo-500/20 focus:border-indigo-500/40" : "border-white/[.07] focus:border-indigo-500/30"}`}
                     />
                   </div>
                 );
               })}
               <div className="py-2 border-b border-white/[.04]">
                 <div className="grid grid-cols-[130px_1fr] items-start gap-3">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-600 select-none pt-1">Categories</span>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 select-none pt-1">Categories</span>
                   <CategoryPills categories={selectedCats} onUpdate={setCats}/>
                 </div>
               </div>
               {error && <p className="pt-2 text-xs text-indigo-400">{error}</p>}
             </div>
             <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3.5">
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500 select-none">
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-stone-500 select-none">
                 <Toggle checked={createMore} onChange={setCreateMore}/>
                 Create more
               </label>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
+                <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-white/[.05] hover:text-white">
                   Cancel
                 </button>
                 <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-indigo-400 disabled:opacity-50">
@@ -276,8 +276,8 @@ function CreateRecordModal({
             {/* Left: prompt panel */}
             <div className="flex flex-col w-[440px] shrink-0">
               <div className="px-5 py-4 space-y-3">
-                <p className="text-[11px] text-zinc-500 leading-relaxed">
-                  Describe the records you want. AI will generate realistic data matching your <strong className="text-zinc-400">{objectType.replace(/[-_]/g, " ")}</strong> columns.
+                <p className="text-[11px] text-stone-500 leading-relaxed">
+                  Describe the records you want. AI will generate realistic data matching your <strong className="text-stone-400">{objectType.replace(/[-_]/g, " ")}</strong> columns.
                 </p>
                 <textarea
                   ref={promptRef}
@@ -286,34 +286,34 @@ function CreateRecordModal({
                   onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generateWithAI(); } }}
                   placeholder={`e.g. "10 tax expense categories for a SaaS startup including software subscriptions, travel, and office costs"`}
                   rows={4}
-                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
+                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-stone-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
                 />
                 {/* Example chips */}
                 <div className="flex flex-wrap gap-1.5">
                   {examples.map(ex => (
-                    <button key={ex} onClick={() => setAiPrompt(ex)} className="rounded-full border border-white/[.06] bg-white/[.03] px-2.5 py-1 text-[10px] text-zinc-500 hover:border-white/[.12] hover:text-zinc-300 transition-colors text-left">
+                    <button key={ex} onClick={() => setAiPrompt(ex)} className="rounded-full border border-white/[.06] bg-white/[.03] px-2.5 py-1 text-[10px] text-stone-500 hover:border-white/[.12] hover:text-stone-300 transition-colors text-left">
                       {ex}
                     </button>
                   ))}
                 </div>
                 {/* Count selector */}
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-zinc-500">Generate</span>
+                  <span className="text-[11px] text-stone-500">Generate</span>
                   <div className="flex items-center gap-1">
                     {[5,10,20,50].map(n => (
                       <button
                         key={n}
                         onClick={() => setAiCount(n)}
-                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}
+                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] bg-white/[.02] text-stone-500 hover:text-stone-300"}`}
                       >{n}</button>
                     ))}
                   </div>
-                  <span className="text-[11px] text-zinc-500">records</span>
+                  <span className="text-[11px] text-stone-500">records</span>
                 </div>
                 {aiError && <p className="text-xs text-indigo-400">{aiError}</p>}
               </div>
               <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3.5">
-                <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 transition-all hover:bg-white/[.05] hover:text-white">
+                <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-white/[.05] hover:text-white">
                   Cancel
                 </button>
                 <button
@@ -330,8 +330,8 @@ function CreateRecordModal({
             {aiRecords.length > 0 && (
               <div className="flex flex-col border-l border-white/[.06] w-[240px] shrink-0">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
-                  <span className="text-[11px] font-semibold text-zinc-300">{aiRecords.length} records generated</span>
-                  <button onClick={toggleAll} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                  <span className="text-[11px] font-semibold text-stone-300">{aiRecords.length} records generated</span>
+                  <button onClick={toggleAll} className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors">
                     {aiSelected.size === aiRecords.length ? "Deselect all" : "Select all"}
                   </button>
                 </div>
@@ -342,13 +342,13 @@ function CreateRecordModal({
                       onClick={() => toggleSelect(i)}
                       className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${aiSelected.has(i) ? "bg-indigo-500/5" : "opacity-40"}`}
                     >
-                      <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors ${aiSelected.has(i) ? "border-indigo-500 bg-indigo-500" : "border-zinc-600"}`}>
+                      <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors ${aiSelected.has(i) ? "border-indigo-500 bg-indigo-500" : "border-stone-600"}`}>
                         {aiSelected.has(i) && <Check size={10} className="text-white m-auto mt-[1px]"/>}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-zinc-200 truncate">{rec.name || "—"}</p>
+                        <p className="text-[12px] font-medium text-stone-200 truncate">{rec.name || "—"}</p>
                         {fieldKeys.slice(1, 3).map(k => rec[k] && (
-                          <p key={k} className="text-[10px] text-zinc-600 truncate">{rec[k]}</p>
+                          <p key={k} className="text-[10px] text-stone-600 truncate">{rec[k]}</p>
                         ))}
                       </div>
                     </div>
@@ -360,7 +360,7 @@ function CreateRecordModal({
                       <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
                         <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${aiSaveProgress}%` }}/>
                       </div>
-                      <p className="text-center text-[10px] text-zinc-500">Saving… {aiSaveProgress}%</p>
+                      <p className="text-center text-[10px] text-stone-500">Saving… {aiSaveProgress}%</p>
                     </div>
                   ) : (
                     <button
@@ -482,12 +482,12 @@ function AIFillModal({
             </div>
             <div>
               <p className="text-[13px] font-semibold text-white capitalize">Fill "{cleanName}" with AI</p>
-              <p className="text-[10px] text-zinc-600">
+              <p className="text-[10px] text-stone-600">
                 {fieldKeys.length} column{fieldKeys.length !== 1 ? "s" : ""}: {fieldKeys.slice(0, 4).map(label).join(", ")}{fieldKeys.length > 4 ? ` +${fieldKeys.length - 4} more` : ""}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -497,25 +497,25 @@ function AIFillModal({
           <div className="flex flex-col flex-1 min-w-0">
             <div className="px-6 py-5 space-y-4">
               <div>
-                <label className="block text-[11px] font-medium text-zinc-500 mb-1.5 uppercase tracking-wide">Describe what you want</label>
+                <label className="block text-[11px] font-medium text-stone-500 mb-1.5 uppercase tracking-wide">Describe what you want</label>
                 <textarea
                   ref={promptRef}
                   value={prompt}
                   onChange={e => setPrompt(e.target.value)}
                   onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); void generate(); } }}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-zinc-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
+                  className="w-full resize-none rounded-lg border border-white/[.07] bg-white/[.03] px-3 py-2.5 text-sm text-white placeholder-stone-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"
                 />
-                <p className="mt-1 text-[10px] text-zinc-700">e.g. "20 tax expense categories for a SaaS company" or "realistic employee records for a 50-person startup"</p>
+                <p className="mt-1 text-[10px] text-stone-700">e.g. "20 tax expense categories for a SaaS company" or "realistic employee records for a 50-person startup"</p>
               </div>
 
               {/* Count */}
               <div className="flex items-center gap-3">
-                <span className="text-[11px] text-zinc-500 shrink-0">Number of records</span>
+                <span className="text-[11px] text-stone-500 shrink-0">Number of records</span>
                 <div className="flex items-center gap-1">
                   {[10, 20, 30, 50].map(n => (
                     <button key={n} onClick={() => setCount(n)}
-                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] bg-white/[.02] text-zinc-500 hover:text-zinc-300"}`}>
+                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-indigo-500/50 bg-indigo-500/10 text-indigo-300" : "border-white/[.07] bg-white/[.02] text-stone-500 hover:text-stone-300"}`}>
                       {n}
                     </button>
                   ))}
@@ -526,7 +526,7 @@ function AIFillModal({
             </div>
 
             <div className="flex items-center justify-between border-t border-white/[.06] px-6 py-4">
-              <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-slate-400 hover:text-white transition-all">
+              <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-stone-400 hover:text-white transition-all">
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
@@ -542,8 +542,8 @@ function AIFillModal({
           {records.length > 0 && (
             <div className="flex flex-col w-[260px] shrink-0 border-l border-white/[.06]">
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[.06]">
-                <span className="text-[11px] font-semibold text-zinc-300">{records.length} records ready</span>
-                <button onClick={toggleAll} className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors">
+                <span className="text-[11px] font-semibold text-stone-300">{records.length} records ready</span>
+                <button onClick={toggleAll} className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors">
                   {selected.size === records.length ? "Deselect all" : "Select all"}
                 </button>
               </div>
@@ -551,13 +551,13 @@ function AIFillModal({
                 {records.map((rec, i) => (
                   <div key={i} onClick={() => toggleSelect(i)}
                     className={`flex items-start gap-2.5 px-4 py-2.5 cursor-pointer border-b border-white/[.03] transition-colors ${selected.has(i) ? "bg-indigo-500/5" : "opacity-35"}`}>
-                    <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors flex items-center justify-center ${selected.has(i) ? "border-indigo-500 bg-indigo-500" : "border-zinc-600"}`}>
+                    <div className={`mt-0.5 h-3.5 w-3.5 shrink-0 rounded border transition-colors flex items-center justify-center ${selected.has(i) ? "border-indigo-500 bg-indigo-500" : "border-stone-600"}`}>
                       {selected.has(i) && <Check size={9} className="text-white"/>}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[12px] font-medium text-zinc-200 truncate">{rec.name || "—"}</p>
+                      <p className="text-[12px] font-medium text-stone-200 truncate">{rec.name || "—"}</p>
                       {fieldKeys.slice(1, 3).map(k => rec[k] && (
-                        <p key={k} className="text-[10px] text-zinc-600 truncate">{label(k)}: {rec[k]}</p>
+                        <p key={k} className="text-[10px] text-stone-600 truncate">{label(k)}: {rec[k]}</p>
                       ))}
                     </div>
                   </div>
@@ -569,7 +569,7 @@ function AIFillModal({
                     <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
                       <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progress}%` }}/>
                     </div>
-                    <p className="text-center text-[10px] text-zinc-500">Importing {progress}%</p>
+                    <p className="text-center text-[10px] text-stone-500">Importing {progress}%</p>
                   </div>
                 ) : (
                   <button onClick={importSelected} disabled={selected.size === 0}
@@ -626,7 +626,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
             </div>
             <div>
               <p className="text-[13px] font-semibold text-white capitalize">Delete "{cleanName}"?</p>
-              <p className="text-[11px] text-zinc-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
+              <p className="text-[11px] text-stone-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
             </div>
           </div>
           <div className="rounded-lg border border-indigo-500/15 bg-indigo-500/5 px-4 py-3 mb-4">
@@ -636,7 +636,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
           </div>
           {error && <p className="mb-3 text-xs text-indigo-400">{error}</p>}
           <div className="flex items-center gap-2 justify-end">
-            <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-zinc-400 hover:text-white transition-all">
+            <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-4 py-2 text-xs text-stone-400 hover:text-white transition-all">
               Cancel
             </button>
             <button onClick={confirm} disabled={deleting}
@@ -710,24 +710,24 @@ export function ObjectIndexPage() {
       <div className="flex h-full flex-col overflow-hidden">
 
       {/* Page header — title + view toggle + actions */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/40 px-6 py-2.5 shrink-0">
+      <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800/40 px-6 py-2.5 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-zinc-500 select-none">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-stone-500 select-none">
             {objectType.replace(/[-_]/g, " ")}
           </span>
           {/* View toggle */}
-          <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50 dark:border-white/[.06] dark:bg-white/[.02] p-0.5 gap-0.5">
+          <div className="flex items-center rounded-md border border-stone-200 bg-stone-50 dark:border-white/[.06] dark:bg-white/[.02] p-0.5 gap-0.5">
             <button
               onClick={() => setView("table")}
               title="Table view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-400 dark:hover:text-slate-200"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white text-stone-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"}`}
             >
               <LayoutList size={11}/> Table
             </button>
             <button
               onClick={() => setView("board")}
               title="Board view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white text-zinc-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-zinc-500 hover:text-zinc-800 dark:text-slate-400 dark:hover:text-slate-200"}`}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white text-stone-900 shadow-sm dark:bg-white/[.08] dark:text-white" : "text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"}`}
             >
               <Kanban size={11}/> Board
             </button>
@@ -736,7 +736,7 @@ export function ObjectIndexPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setShowDeleteSheet(true)}
-            className="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:border-indigo-300 hover:text-indigo-600 dark:border-white/[.08] dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-white/[.05] dark:hover:border-white/[.10]"
+            className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-indigo-300 hover:text-indigo-600 dark:border-white/[.08] dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-white/[.05] dark:hover:border-white/[.10]"
             title="Delete this sheet"
           >
             <Trash2 size={11}/>
@@ -749,19 +749,19 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setDedupOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-900/20 dark:text-zinc-400 dark:hover:border-indigo-500/40 dark:hover:text-indigo-400 dark:hover:bg-zinc-900/20"
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-stone-300 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-indigo-500/40 dark:hover:text-indigo-400 dark:hover:bg-stone-900/20"
           >
             <ScanSearch size={11}/> Clean & Lists
           </button>
           <button
             onClick={() => setSegmentOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-500 transition-all hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-900/20 dark:text-zinc-400 dark:hover:border-violet-500/40 dark:hover:text-violet-400 dark:hover:bg-zinc-900/20"
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-stone-300 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-violet-500/40 dark:hover:text-violet-400 dark:hover:bg-stone-900/20"
           >
             <Filter size={11}/> Segment
           </button>
           <button
             onClick={() => setImportOpen(p => !p)}
-            className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-zinc-400 bg-zinc-100 text-zinc-700 dark:border-zinc-600/60 dark:bg-zinc-800/50 dark:text-zinc-200" : "border-zinc-300 bg-zinc-50 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-800/80 dark:bg-zinc-900/20 dark:text-zinc-400 dark:hover:border-zinc-700/60 dark:hover:text-zinc-200 dark:hover:bg-zinc-900/20"}`}
+            className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-stone-400 bg-stone-100 text-stone-700 dark:border-stone-600/60 dark:bg-stone-800/50 dark:text-stone-200" : "border-stone-300 bg-stone-50 text-stone-500 hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-stone-700/60 dark:hover:text-stone-200 dark:hover:bg-stone-900/20"}`}
           >
             <Plus size={11}/> Import CSV
           </button>
@@ -776,7 +776,7 @@ export function ObjectIndexPage() {
 
       {/* Enrichment banners */}
       {Object.entries(enriching).length > 0 && (
-        <div className="flex flex-col gap-1.5 border-b border-zinc-800/40 px-6 py-2 shrink-0">
+        <div className="flex flex-col gap-1.5 border-b border-stone-800/40 px-6 py-2 shrink-0">
           {Object.entries(enriching).map(([id, { name, done }]) => (
             <EnrichBanner key={id} name={name} done={done}/>
           ))}
@@ -804,7 +804,7 @@ export function ObjectIndexPage() {
 
       {/* Collapsible CSV importer */}
       {importOpen && (
-        <div className="border-b border-[#e5e7eb] dark:border-zinc-800/40 px-6 py-3 shrink-0">
+        <div className="border-b border-[#e5e7eb] dark:border-stone-800/40 px-6 py-3 shrink-0">
           <CsvImporter objectType={objectType} onImported={() => { queryClient.invalidateQueries({ queryKey: ["records", objectType] }); setImportOpen(false); }}/>
         </div>
       )}
@@ -822,7 +822,7 @@ export function ObjectIndexPage() {
               <h3 className="text-[15px] font-semibold text-[#111827] dark:text-white capitalize">
                 {objectType.replace(/[-_]/g, " ")} is empty
               </h3>
-              <p className="text-[12px] text-[#6b7280] dark:text-zinc-500 leading-relaxed">
+              <p className="text-[12px] text-[#6b7280] dark:text-stone-500 leading-relaxed">
                 Let AI build this sheet for you. It already knows your columns — just describe what records you want and it will generate them instantly.
               </p>
             </div>
@@ -835,13 +835,13 @@ export function ObjectIndexPage() {
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-5 py-2.5 text-[12px] text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-white/[.08] dark:bg-white/[.03] dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[.06] transition-all"
+                className="flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-5 py-2.5 text-[12px] text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-white/[.08] dark:bg-white/[.03] dark:text-stone-400 dark:hover:text-white dark:hover:bg-white/[.06] transition-all"
               >
                 <Plus size={13}/> Add manually
               </button>
               <button
                 onClick={() => setImportOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-dashed border-[#d1d5db] bg-[#f9fafb] px-5 py-2.5 text-[12px] text-[#6b7280] hover:bg-[#f3f4f6] hover:border-[#9ca3af] dark:border-zinc-700/60 dark:bg-transparent dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:border-zinc-600/60 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-dashed border-[#d1d5db] bg-[#f9fafb] px-5 py-2.5 text-[12px] text-[#6b7280] hover:bg-[#f3f4f6] hover:border-[#9ca3af] dark:border-stone-700/60 dark:bg-transparent dark:text-stone-500 dark:hover:text-stone-300 dark:hover:border-stone-600/60 transition-all"
               >
                 <Plus size={13}/> Import CSV
               </button>

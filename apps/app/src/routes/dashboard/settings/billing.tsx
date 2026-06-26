@@ -40,7 +40,7 @@ interface Billing {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  free: "bg-white/[.05] text-slate-400",
+  free: "bg-white/[.05] text-stone-400",
   trial: "bg-emerald-500/10 text-emerald-300",
   pro: "bg-blue-500/10 text-blue-300",
   business: "bg-violet-500/10 text-violet-300",
@@ -83,7 +83,7 @@ export function BillingSettings() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold capitalize text-white">{billing.plan} plan</p>
-              <p className="mt-0.5 text-sm text-slate-500">
+              <p className="mt-0.5 text-sm text-stone-500">
                 {billing.next_billing_date
                   ? `Next billing on ${new Date(billing.next_billing_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
                   : "No upcoming charge"}
@@ -100,8 +100,8 @@ export function BillingSettings() {
           {/* Seats */}
           <div className="telemetry-strip mt-5">
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-slate-300">
-                <Users size={14} className="text-slate-500" /> Seats used
+              <div className="flex items-center gap-2 text-sm text-stone-300">
+                <Users size={14} className="text-stone-500" /> Seats used
               </div>
               <span className="text-sm font-medium text-white">{billing.seats_used} / {billing.seats_limit}</span>
             </div>
@@ -126,11 +126,11 @@ export function BillingSettings() {
           </div>
           <div className="flex items-center gap-3 p-5">
             <div className="grid h-9 w-14 place-items-center rounded-md border border-white/[.08] bg-white/[.03]">
-              <CreditCard size={16} className="text-slate-500" />
+              <CreditCard size={16} className="text-stone-500" />
             </div>
             <div>
-              <p className="text-sm text-slate-200">Card ending in {billing.card_last4}</p>
-              <p className="text-xs text-slate-500">Billing currency: USD</p>
+              <p className="text-sm text-stone-200">Card ending in {billing.card_last4}</p>
+              <p className="text-xs text-stone-500">Billing currency: USD</p>
             </div>
             <button
               onClick={() => { openBilling(billing.plan); }}
@@ -148,7 +148,7 @@ export function BillingSettings() {
           <h2 className="text-sm font-semibold text-white">Invoice history</h2>
         </div>
         {billing.invoices.length ? (
-          <div className="minimal-sheet divide-y divide-neutral-200 px-5 dark:divide-neutral-800">
+          <div className="minimal-sheet divide-y divide-stone-200 px-5 dark:divide-stone-800">
             {billing.invoices.map(inv => (
               <a
                 key={inv.id}
@@ -156,15 +156,15 @@ export function BillingSettings() {
                 className="flex items-center justify-between py-3.5 hover:text-white transition-colors"
               >
                 <div>
-                  <p className="text-sm text-slate-200">{new Date(inv.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
-                  <p className="text-xs text-slate-500">${(inv.amount / 100).toFixed(2)}</p>
+                  <p className="text-sm text-stone-200">{new Date(inv.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                  <p className="text-xs text-stone-500">${(inv.amount / 100).toFixed(2)}</p>
                 </div>
-                <Download size={14} className="text-slate-600 hover:text-slate-300 transition-colors" />
+                <Download size={14} className="text-stone-600 hover:text-stone-300 transition-colors" />
               </a>
             ))}
           </div>
         ) : (
-          <p className="px-5 py-6 text-sm text-slate-600">No invoices yet. They'll appear here once you upgrade.</p>
+          <p className="px-5 py-6 text-sm text-stone-600">No invoices yet. They'll appear here once you upgrade.</p>
         )}
       </section>
     </div>

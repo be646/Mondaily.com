@@ -85,7 +85,7 @@ function ReplyComposer({ threadId }: { threadId: string }) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: "<p></p>",
-    editorProps: { attributes: { class: "min-h-28 px-3 py-3 text-sm leading-6 outline-none text-zinc-900 dark:text-slate-200" } }
+    editorProps: { attributes: { class: "min-h-28 px-3 py-3 text-sm leading-6 outline-none text-stone-900 dark:text-stone-200" } }
   });
   const reply = useMutation({
     mutationFn: () => apiClient.post(`/emails/threads/${threadId}/reply`, { body: editor?.getHTML() ?? "" }),

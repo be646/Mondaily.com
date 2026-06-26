@@ -60,7 +60,7 @@ function Sparkline({ values, height = 220 }: { values: number[]; height?: number
     }).join(" ");
 
   return (
-    <div className="rounded-xl bg-white p-5 print:bg-white dark:bg-neutral-950/40" style={{ height }}>
+    <div className="rounded-xl bg-white p-5 print:bg-white dark:bg-stone-950/40" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <polyline
           points={points}
@@ -227,7 +227,7 @@ function ObjectPicker({ objects, value, onChange }: {
         className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-sm text-white hover:bg-white/[.06] transition-colors"
       >
         {selected?.name_plural ?? value}
-        <ChevronDown size={13} className="text-slate-500"/>
+        <ChevronDown size={13} className="text-stone-500"/>
       </button>
       {open && (
         <>
@@ -258,25 +258,25 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
       <div className="w-full max-w-md overflow-y-auto bg-[#0d0f13] border-l border-white/[.09] p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-semibold text-white truncate">{name}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-stone-500 hover:text-white transition-colors">
             <X size={16}/>
           </button>
         </div>
         <div className="space-y-3">
           {fields.map(([key, val]) => (
             <div key={key} className="flex items-start gap-3">
-              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-slate-600 pt-0.5">{key}</span>
-              <span className="text-sm text-slate-300 break-all">{String(val)}</span>
+              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-stone-600 pt-0.5">{key}</span>
+              <span className="text-sm text-stone-300 break-all">{String(val)}</span>
             </div>
           ))}
           <div className="pt-3 border-t border-white/[.06]">
             <div className="flex items-start gap-3">
-              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-slate-600 pt-0.5">Created</span>
-              <span className="text-sm text-slate-300">{record.created_at ? new Date(record.created_at).toLocaleString() : "—"}</span>
+              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-stone-600 pt-0.5">Created</span>
+              <span className="text-sm text-stone-300">{record.created_at ? new Date(record.created_at).toLocaleString() : "—"}</span>
             </div>
             <div className="flex items-start gap-3 mt-2">
-              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-slate-600 pt-0.5">Updated</span>
-              <span className="text-sm text-slate-300">{record.updated_at ? new Date(record.updated_at).toLocaleString() : "—"}</span>
+              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-stone-600 pt-0.5">Updated</span>
+              <span className="text-sm text-stone-300">{record.updated_at ? new Date(record.updated_at).toLocaleString() : "—"}</span>
             </div>
           </div>
         </div>
@@ -307,11 +307,11 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
           <span className="flex-1 text-sm font-semibold text-white">{title}</span>
           {onPrint && (
             <button onClick={onPrint}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-[11px] text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-[11px] text-stone-400 hover:text-white transition-colors">
               <Printer size={11}/> Export
             </button>
           )}
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-600 hover:text-white transition-colors">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-stone-600 hover:text-white transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -403,7 +403,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Forecast</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[11px] text-stone-500 mt-0.5">
             {result ? <span className="text-violet-300 italic">{result.headline}</span>
                     : `Project ${hasValue?"revenue":"completions"} with Mondaily AI`}
           </p>
@@ -413,16 +413,16 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
         ) : error ? (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-indigo-400 max-w-[160px] truncate">{error}</span>
-            <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-slate-500 hover:text-white">Retry</button>
+            <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-stone-500 hover:text-white">Retry</button>
           </div>
         ) : result ? (
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-right mr-1">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Projected</p>
+              <p className="text-[10px] text-stone-500 uppercase tracking-wider">Projected</p>
               <p className="text-base font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             </div>
             <button onClick={() => setModalOpen(true)} className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 transition-colors">View</button>
-            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-slate-500 hover:text-white transition-colors">↺</button>
+            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
           </div>
         ) : (
           <button onClick={runForecast} className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
@@ -436,7 +436,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
         <AIModal title="AI Forecast" onClose={() => setModalOpen(false)} onPrint={printForecast}>
           {/* Projected value hero */}
           <div className="px-6 py-6 border-b border-white/[.06]" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(59,130,246,0.04) 100%)"}}>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
             <p className="text-4xl font-bold text-white mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>
               {result.confidence} confidence
@@ -444,13 +444,13 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           </div>
           {/* Headline */}
           <div className="px-6 py-4 border-b border-white/[.05]">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">Headline</p>
-            <p className="text-sm text-slate-300 italic leading-relaxed">{result.headline}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">Headline</p>
+            <p className="text-sm text-stone-300 italic leading-relaxed">{result.headline}</p>
           </div>
           {/* Narrative */}
           <div className="px-6 py-4 border-b border-white/[.05]">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-1.5">Analysis</p>
-            <p className="text-sm text-slate-300 leading-relaxed">{result.narrative}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">Analysis</p>
+            <p className="text-sm text-stone-300 leading-relaxed">{result.narrative}</p>
           </div>
           {/* Risk */}
           {result.risks && result.risks !== "None identified" && (
@@ -465,18 +465,18 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           {/* Actions */}
           {result.actions && result.actions.length > 0 && (
             <div className="px-6 py-4 border-t border-white/[.05]">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mb-3">What to do now</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-3">What to do now</p>
               <div className="space-y-2">
                 {result.actions.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3">
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                       a.impact === "high"   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
                       a.impact === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-400" :
-                                              "border-slate-500/30 bg-slate-500/10 text-slate-400"
+                                              "border-stone-500/30 bg-stone-500/10 text-stone-400"
                     }`}>{a.impact}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white font-medium">{a.action}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{a.why}</p>
+                      <p className="text-[11px] text-stone-500 mt-0.5">{a.why}</p>
                     </div>
                   </div>
                 ))}
@@ -484,8 +484,8 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             </div>
           )}
           <div className="px-6 py-3 flex items-center justify-between border-t border-white/[.05]">
-            <span className="text-[10px] text-slate-700">Powered by Mondaily AI</span>
-            <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
+            <span className="text-[10px] text-stone-700">Powered by Mondaily AI</span>
+            <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-stone-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
           </div>
         </AIModal>
       )}
@@ -568,7 +568,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Insights</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">
+          <p className="text-[11px] text-stone-500 mt-0.5">
             {insights ? `${insights.length} insights ready` : "Surface patterns in your data with Mondaily AI"}
           </p>
         </div>
@@ -577,12 +577,12 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
         ) : error ? (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-indigo-400 max-w-[160px] truncate">{error}</span>
-            <button onClick={() => { setError(null); run(); }} className="text-[11px] text-slate-500 hover:text-white">Retry</button>
+            <button onClick={() => { setError(null); run(); }} className="text-[11px] text-stone-500 hover:text-white">Retry</button>
           </div>
         ) : insights ? (
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setModalOpen(true)} className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 transition-colors">View</button>
-            <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-slate-500 hover:text-white transition-colors">↺</button>
+            <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
           </div>
         ) : (
           <button onClick={run} className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
@@ -609,14 +609,14 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                     {ins.trend === "down" && <TrendingDown size={12} className="text-indigo-400 shrink-0"/>}
                   </div>
                   <div>
-                    <p className="text-[11px] text-slate-500 mb-0.5">{ins.title}</p>
+                    <p className="text-[11px] text-stone-500 mb-0.5">{ins.title}</p>
                     <p className="text-2xl font-bold text-white leading-tight">{ins.value}</p>
                   </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">{ins.description}</p>
+                  <p className="text-[11px] text-stone-400 leading-relaxed">{ins.description}</p>
                   {ins.action && (
                     <div className="flex items-start gap-1.5 mt-1 pt-2 border-t border-white/[.06]">
-                      <span className="text-[10px] shrink-0 text-slate-600 mt-0.5">→</span>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">{ins.action}</p>
+                      <span className="text-[10px] shrink-0 text-stone-600 mt-0.5">→</span>
+                      <p className="text-[11px] text-stone-400 leading-relaxed">{ins.action}</p>
                     </div>
                   )}
                 </div>
@@ -624,8 +624,8 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
             })}
           </div>
           <div className="px-5 py-3 flex items-center justify-between border-t border-white/[.05]">
-            <span className="text-[10px] text-slate-700">Powered by Mondaily AI · {records.length} records</span>
-            <button onClick={() => { setInsights(null); setModalOpen(false); run(); }} className="text-[11px] text-slate-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
+            <span className="text-[10px] text-stone-700">Powered by Mondaily AI · {records.length} records</span>
+            <button onClick={() => { setInsights(null); setModalOpen(false); run(); }} className="text-[11px] text-stone-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
           </div>
         </AIModal>
       )}
@@ -694,7 +694,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
     <div className="mb-6 print:hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-3 py-2 text-xs text-stone-400 hover:text-white transition-colors"
       >
         <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
       </button>
@@ -703,7 +703,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
         <div className="mt-3 rounded-2xl border border-white/[.09] bg-[#0d0f13] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
           <div className="px-5 py-4 border-b border-white/[.06]">
             <h3 className="text-sm font-semibold text-white mb-1">Scheduled email digests</h3>
-            <p className="text-[11px] text-slate-500">Receive a KPI snapshot for <strong className="text-slate-400">{objName}</strong> on a schedule.</p>
+            <p className="text-[11px] text-stone-500">Receive a KPI snapshot for <strong className="text-stone-400">{objName}</strong> on a schedule.</p>
           </div>
 
           {/* Existing digests */}
@@ -714,7 +714,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   <Mail size={12} className="text-indigo-400 shrink-0"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white truncate">{FREQ_LABELS[d.frequency]} · {d.period} view</p>
-                    <p className="text-[10px] text-slate-500 truncate">{d.recipients.join(", ")}</p>
+                    <p className="text-[10px] text-stone-500 truncate">{d.recipients.join(", ")}</p>
                   </div>
                   {sentMsg && sending === null && d.id === digests[0]?.id && (
                     <span className="text-[10px] text-emerald-400">{sentMsg}</span>
@@ -722,11 +722,11 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   <button
                     onClick={() => sendNow(d.id)}
                     disabled={sending === d.id}
-                    className="text-[11px] text-slate-500 hover:text-white transition-colors disabled:opacity-50"
+                    className="text-[11px] text-stone-500 hover:text-white transition-colors disabled:opacity-50"
                   >
                     {sending === d.id ? <Loader2 size={11} className="animate-spin"/> : "Send now"}
                   </button>
-                  <button onClick={() => remove.mutate(d.id)} className="text-slate-600 hover:text-indigo-400 transition-colors">
+                  <button onClick={() => remove.mutate(d.id)} className="text-stone-600 hover:text-indigo-400 transition-colors">
                     <Trash2 size={12}/>
                   </button>
                 </div>
@@ -736,12 +736,12 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
 
           {/* Create form */}
           <div className="px-5 py-4 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-600">New schedule</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-600">New schedule</p>
 
             <div className="grid grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] text-slate-500 hover:text-white"}`}>
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] text-stone-500 hover:text-white"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -750,24 +750,24 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-2 gap-2">
               {freq === "weekly" && (
                 <div>
-                  <label className="block text-[10px] font-medium text-slate-600 mb-1">Day</label>
+                  <label className="block text-[10px] font-medium text-stone-600 mb-1">Day</label>
                   <select value={dayOfWeek} onChange={e => setDayOfWeek(Number(e.target.value))}
-                    className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 focus:outline-none">
+                    className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 focus:outline-none">
                     {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
                   </select>
                 </div>
               )}
               <div>
-                <label className="block text-[10px] font-medium text-slate-600 mb-1">Hour (24h)</label>
+                <label className="block text-[10px] font-medium text-stone-600 mb-1">Hour (24h)</label>
                 <select value={hour} onChange={e => setHour(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 focus:outline-none">
+                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 focus:outline-none">
                   {Array.from({length:24},(_,i) => <option key={i} value={i}>{String(i).padStart(2,"0")}:00</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-medium text-slate-600 mb-1">Period view</label>
+                <label className="block text-[10px] font-medium text-stone-600 mb-1">Period view</label>
                 <select value={period} onChange={e => setPeriodD(e.target.value as typeof period)}
-                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 focus:outline-none">
+                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 focus:outline-none">
                   {(["today","week","month","quarter","year"] as const).map(p => (
                     <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>
                   ))}
@@ -776,25 +776,25 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             </div>
 
             <div>
-              <label className="block text-[10px] font-medium text-slate-600 mb-1">Recipients</label>
+              <label className="block text-[10px] font-medium text-stone-600 mb-1">Recipients</label>
               <div className="flex gap-1.5">
                 <input
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); } }}
                   placeholder="email@example.com"
-                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-slate-300 placeholder-slate-700 focus:outline-none focus:border-indigo-500/40"
+                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#0d0f13] px-2 text-xs text-stone-300 placeholder-stone-700 focus:outline-none focus:border-indigo-500/40"
                 />
-                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/[.08] text-slate-500 hover:text-white transition-colors">
+                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/[.08] text-stone-500 hover:text-white transition-colors">
                   <Plus size={12}/>
                 </button>
               </div>
               {emails.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {emails.map(e => (
-                    <span key={e} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2 py-0.5 text-[10px] text-slate-400">
+                    <span key={e} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2 py-0.5 text-[10px] text-stone-400">
                       {e}
-                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-slate-600 hover:text-indigo-400"><X size={9}/></button>
+                      <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-stone-600 hover:text-indigo-400"><X size={9}/></button>
                     </span>
                   ))}
                 </div>
@@ -1177,13 +1177,13 @@ export function SalesReportPage() {
         {/* Screen header */}
         {/* Header row */}
         <div className="mb-4 flex items-center gap-3 print:hidden">
-          <Link to="/reports" className="flex items-center gap-1 text-xs text-slate-600 hover:text-white transition-colors shrink-0">
+          <Link to="/reports" className="flex items-center gap-1 text-xs text-stone-600 hover:text-white transition-colors shrink-0">
             <ArrowLeft size={12}/> Reports
           </Link>
-          <span className="text-slate-700 text-xs shrink-0">/</span>
+          <span className="text-stone-700 text-xs shrink-0">/</span>
           <h1 className="text-sm font-semibold text-white shrink-0">Live Report</h1>
           {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
-          <span className="text-xs text-slate-700 hidden sm:inline">
+          <span className="text-xs text-stone-700 hidden sm:inline">
             {records.length} records{filteredRecords.length !== records.length && ` · ${filteredRecords.length} filtered`}
           </span>
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
@@ -1191,17 +1191,17 @@ export function SalesReportPage() {
             <div className="flex gap-0.5 rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
               {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
                 <button key={p} onClick={() => setPeriod(p)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-stone-500 hover:text-stone-300"}`}>
                   {PERIOD_LABELS[p]}
                 </button>
               ))}
             </div>
             <button onClick={exportCSV}
-              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-stone-400 hover:text-white transition-colors">
               <Download size={12}/> CSV
             </button>
             <button onClick={generateReport}
-              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-slate-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-stone-400 hover:text-white transition-colors">
               <Printer size={12}/> Export
             </button>
           </div>
@@ -1210,16 +1210,16 @@ export function SalesReportPage() {
         {/* Custom date range row — only shown when Custom period is active */}
         {period === "custom" && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-2.5 print:hidden">
-            <span className="text-[11px] font-medium text-slate-500 shrink-0">Date range</span>
+            <span className="text-[11px] font-medium text-stone-500 shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
-              <span className="text-xs text-slate-600">→</span>
+                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+              <span className="text-xs text-stone-600">→</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-slate-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-white/[.06] bg-[#0d0f13] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
             </div>
             {customStart && customEnd && (
-              <span className="ml-auto text-[11px] text-slate-600">
+              <span className="ml-auto text-[11px] text-stone-600">
                 {new Date(customStart).toLocaleDateString(undefined,{month:"short",day:"numeric"})} – {new Date(customEnd).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
               </span>
             )}
@@ -1232,16 +1232,16 @@ export function SalesReportPage() {
         {/* Filter presets row */}
         {(hasFilters && (presets.length > 0 || filtersActive)) && (
           <div className="mb-2 flex flex-wrap items-center gap-1.5 print:hidden">
-            <Bookmark size={11} className="text-slate-600 shrink-0"/>
-            <span className="text-[10px] font-medium text-slate-600 mr-0.5">Presets</span>
+            <Bookmark size={11} className="text-stone-600 shrink-0"/>
+            <span className="text-[10px] font-medium text-stone-600 mr-0.5">Presets</span>
             {presets.map(p => {
               const active = JSON.stringify(activeFilters) === JSON.stringify(p.filters);
               return (
-                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:text-white hover:border-white/20"}`}
+                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:text-white hover:border-white/20"}`}
                   onClick={() => applyPreset(p)}>
                   {p.name}
                   <button onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
-                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-slate-600 hover:text-indigo-400 transition-all">
+                    className="opacity-0 group-hover:opacity-100 ml-0.5 text-stone-600 hover:text-indigo-400 transition-all">
                     <X size={9}/>
                   </button>
                 </span>
@@ -1249,7 +1249,7 @@ export function SalesReportPage() {
             })}
             {filtersActive && !savingPreset && (
               <button onClick={() => setSavingPreset(true)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-white/[.12] px-2 py-0.5 text-[11px] text-slate-600 hover:text-white hover:border-white/30 transition-colors">
+                className="flex items-center gap-1 rounded-full border border-dashed border-white/[.12] px-2 py-0.5 text-[11px] text-stone-600 hover:text-white hover:border-white/30 transition-colors">
                 <Plus size={9}/> Save current
               </button>
             )}
@@ -1261,14 +1261,14 @@ export function SalesReportPage() {
                   onChange={e => setPresetName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && presetName.trim()) savePreset(presetName.trim()); if (e.key === "Escape") { setSavingPreset(false); setPresetName(""); } }}
                   placeholder="Preset name…"
-                  className="h-6 rounded-md border border-blue-500/30 bg-[#0d0f13] px-2 text-[11px] text-white placeholder-slate-600 outline-none focus:border-blue-500/50 w-36"
+                  className="h-6 rounded-md border border-blue-500/30 bg-[#0d0f13] px-2 text-[11px] text-white placeholder-stone-600 outline-none focus:border-blue-500/50 w-36"
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
                   className="h-6 rounded-md bg-blue-600 px-2 text-[10px] text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
                   Save
                 </button>
-                <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-slate-600 hover:text-white transition-colors"><X size={11}/></button>
+                <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-stone-600 hover:text-white transition-colors"><X size={11}/></button>
               </div>
             )}
           </div>
@@ -1278,19 +1278,19 @@ export function SalesReportPage() {
         {hasFilters && (
           <div className={`mb-4 print:hidden rounded-xl border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-white/[.06] bg-white/[.02]"}`}>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.05]">
-              <Filter size={11} className="text-slate-500 shrink-0"/>
-              <span className="text-[11px] font-medium text-slate-500">Filters</span>
+              <Filter size={11} className="text-stone-500 shrink-0"/>
+              <span className="text-[11px] font-medium text-stone-500">Filters</span>
               {filtersActive ? (
                 <>
                   <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 ml-0.5">
                     {Object.values(activeFilters).filter(Boolean).length}
                   </span>
-                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-slate-600 hover:text-indigo-400 transition-colors">
+                  <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-stone-600 hover:text-indigo-400 transition-colors">
                     Clear
                   </button>
                 </>
               ) : (
-                <span className="text-[11px] text-slate-700 ml-1">— select to narrow results</span>
+                <span className="text-[11px] text-stone-700 ml-1">— select to narrow results</span>
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-2.5 p-3">
@@ -1299,11 +1299,11 @@ export function SalesReportPage() {
                 const active = !!activeFilters[col];
                 return (
                   <div key={col} className="flex flex-col gap-1 min-w-0">
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-slate-600 truncate">{col.replace(/_/g," ")}</label>
+                    <label className="text-[10px] font-medium uppercase tracking-widest text-stone-600 truncate">{col.replace(/_/g," ")}</label>
                     <select
                       value={activeFilters[col] ?? ""}
                       onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#0d0f13] text-slate-300 focus:border-blue-500/40"}`}
+                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#0d0f13] text-stone-300 focus:border-blue-500/40"}`}
                     >
                       <option value="">All</option>
                       {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
@@ -1326,12 +1326,12 @@ export function SalesReportPage() {
           </div>
         ) : records.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-            <p className="text-slate-400 text-sm">No {objLabel} records found.</p>
+            <p className="text-stone-400 text-sm">No {objLabel} records found.</p>
             <Link to={`/objects/${activeSlug}`} className="text-sm text-indigo-400 hover:text-indigo-300">
               Go to {objLabel} →
             </Link>
             {objects.length > 1 && (
-              <p className="text-xs text-slate-600">Or pick a different object type above</p>
+              <p className="text-xs text-stone-600">Or pick a different object type above</p>
             )}
           </div>
         ) : (
@@ -1351,8 +1351,8 @@ export function SalesReportPage() {
                   />
                   <div className="flex gap-2">
                     <button onClick={saveGoal} className="flex-1 rounded-md bg-indigo-600 py-2 text-xs font-medium text-white hover:bg-indigo-500">Set goal</button>
-                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-xs text-slate-400 hover:text-white">Cancel</button>
-                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-slate-600 hover:text-slate-400">Clear</button>}
+                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-xs text-stone-400 hover:text-white">Cancel</button>
+                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-stone-600 hover:text-stone-400">Clear</button>}
                   </div>
                 </div>
               </div>
@@ -1428,10 +1428,10 @@ export function SalesReportPage() {
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-semibold print:text-black">{vocab.trendLabel}</h3>
-                  <span className="text-[10px] text-slate-600 print:hidden">Clean trend</span>
+                  <span className="text-[10px] text-stone-600 print:hidden">Clean trend</span>
                 </div>
                 {trendData.length === 0 ? (
-                  <div className="flex h-48 items-center justify-center text-xs text-slate-600">No data for this period</div>
+                  <div className="flex h-48 items-center justify-center text-xs text-stone-600">No data for this period</div>
                 ) : (
                   <div className="relative">
                     <Sparkline values={trendData.map(item => hasValue ? item.revenue : item.count)} />
@@ -1445,9 +1445,9 @@ export function SalesReportPage() {
                       <span key={a.id} className="group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]"
                         style={{ borderColor: a.color + "40", color: a.color, background: a.color + "10" }}>
                         <span style={{ color: a.color }}>◆</span>
-                        <span className="text-slate-400">{a.bucket_label}:</span>
+                        <span className="text-stone-400">{a.bucket_label}:</span>
                         {a.text}
-                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-indigo-400 transition-all">
+                        <button onClick={() => deleteAnnotation.mutate(a.id)} className="ml-0.5 opacity-0 group-hover:opacity-100 text-stone-600 hover:text-indigo-400 transition-all">
                           <X size={9}/>
                         </button>
                       </span>
@@ -1459,7 +1459,7 @@ export function SalesReportPage() {
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.stageLabel}</h3>
                 {stageData.length === 0 ? (
-                  <div className="flex h-48 items-center justify-center text-xs text-slate-600">
+                  <div className="flex h-48 items-center justify-center text-xs text-stone-600">
                     {hasStage ? "No stage data" : `No "${stageCol ?? "status"}" column detected`}
                   </div>
                 ) : (
@@ -1470,7 +1470,7 @@ export function SalesReportPage() {
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">Activity Over Time</h3>
                 {trendData.length === 0 ? (
-                  <div className="flex h-48 items-center justify-center text-xs text-slate-600">No data for this period</div>
+                  <div className="flex h-48 items-center justify-center text-xs text-stone-600">No data for this period</div>
                 ) : (
                   <Sparkline values={trendData.map(item => item.count)} />
                 )}
@@ -1517,17 +1517,17 @@ export function SalesReportPage() {
                   <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[.06]">
                     <h3 className="text-sm font-semibold text-white print:text-black">{vocab.tableLabel}</h3>
                     {hasValue && (
-                      <span className="text-xs text-slate-500">
-                        Total <span className="font-semibold text-slate-300 ml-1">{fmtMoney(total)}</span>
+                      <span className="text-xs text-stone-500">
+                        Total <span className="font-semibold text-stone-300 ml-1">{fmtMoney(total)}</span>
                       </span>
                     )}
                   </div>
                   {/* Column labels */}
                   <div className="grid px-5 py-2 border-b border-white/[.04]" style={{ gridTemplateColumns: hasValue ? "2rem 1fr auto auto" : "2rem 1fr auto" }}>
                     <span/>
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Name</span>
-                    {hasStage && <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 mr-4">{stageCol?.replace(/_/g," ")}</span>}
-                    {hasValue && <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600 text-right">{valueCol?.replace(/_/g," ")}</span>}
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Name</span>
+                    {hasStage && <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mr-4">{stageCol?.replace(/_/g," ")}</span>}
+                    {hasValue && <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 text-right">{valueCol?.replace(/_/g," ")}</span>}
                   </div>
                   {/* Rows */}
                   <div className="divide-y divide-white/[.03]">
@@ -1538,7 +1538,7 @@ export function SalesReportPage() {
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
                       const color   = ROW_COLORS[i % ROW_COLORS.length]!;
-                      const rankColors = ["text-amber-400","text-slate-400","text-orange-600"];
+                      const rankColors = ["text-amber-400","text-stone-400","text-orange-600"];
                       return (
                         <div
                           key={r.id}
@@ -1547,7 +1547,7 @@ export function SalesReportPage() {
                         >
                           <div className="flex items-center gap-3">
                             {/* Rank */}
-                            <span className={`w-7 shrink-0 text-center text-xs font-bold tabular-nums ${i < 3 ? rankColors[i] : "text-slate-600"}`}>
+                            <span className={`w-7 shrink-0 text-center text-xs font-bold tabular-nums ${i < 3 ? rankColors[i] : "text-stone-600"}`}>
                               {i + 1}
                             </span>
                             {/* Name + bar */}
@@ -1577,7 +1577,7 @@ export function SalesReportPage() {
                                 {stage}
                               </span>
                             )}
-                            <ChevronRight size={12} className="shrink-0 text-slate-700 group-hover:text-slate-400 transition-colors print:hidden"/>
+                            <ChevronRight size={12} className="shrink-0 text-stone-700 group-hover:text-stone-400 transition-colors print:hidden"/>
                           </div>
                         </div>
                       );
@@ -1586,7 +1586,7 @@ export function SalesReportPage() {
                   {/* Footer total */}
                   {hasValue && (
                     <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3 print:border-gray-200">
-                      <span className="text-xs text-slate-500">Top {topRecords.length} records</span>
+                      <span className="text-xs text-stone-500">Top {topRecords.length} records</span>
                       <span className="font-mono text-sm font-bold text-white print:text-black">{fmtMoney(total)}</span>
                     </div>
                   )}

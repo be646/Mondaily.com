@@ -89,8 +89,8 @@ const STATE_RING: Record<ConstellationState, string> = {
   monitoring: "border-cyan-500",
   needs_approval: "border-amber-500",
   issue: "border-rose-500",
-  disabled: "border-dashed border-zinc-300/40",
-  not_configured: "border-dashed border-zinc-300/40",
+  disabled: "border-dashed border-stone-300/40",
+  not_configured: "border-dashed border-stone-300/40",
 };
 
 
@@ -267,7 +267,7 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
     <div className="shrink-0">
       <Link
         to="/home"
-        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900"
+        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
       >
         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md">
           <Network size={13} style={{ color: "var(--text-muted)" }}/>

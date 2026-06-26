@@ -102,7 +102,7 @@ function StepCard({
           className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-white/[.02] transition-colors"
           onClick={() => setOpen(o => !o)}
         >
-          <GripVertical size={14} className="shrink-0 text-slate-700"/>
+          <GripVertical size={14} className="shrink-0 text-stone-700"/>
           <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-purple-500/20 bg-purple-500/[.08] text-purple-400" : "border-blue-500/20 bg-blue-500/[.08] text-blue-400"}`}>
             {step.type === "email" ? <Mail size={12}/> : <CheckSquare size={12}/>}
           </div>
@@ -110,7 +110,7 @@ function StepCard({
             <p className="text-xs font-medium text-white truncate">
               {step.type === "email" ? (step.subject || "Email — no subject") : (step.task_title || "Task — no title")}
             </p>
-            <p className="mt-0.5 text-[10px] text-slate-600 flex items-center gap-1">
+            <p className="mt-0.5 text-[10px] text-stone-600 flex items-center gap-1">
               <Clock size={9}/>
               {step.position === 1 ? "Immediately" : `+${step.delay_value} ${step.delay_unit}`}
             </p>
@@ -118,11 +118,11 @@ function StepCard({
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(step.id); }}
-              className="rounded-md p-1 text-slate-700 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors"
+              className="rounded-md p-1 text-stone-700 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors"
             >
               <Trash2 size={12}/>
             </button>
-            {open ? <ChevronUp size={13} className="text-slate-600"/> : <ChevronDown size={13} className="text-slate-600"/>}
+            {open ? <ChevronUp size={13} className="text-stone-600"/> : <ChevronDown size={13} className="text-stone-600"/>}
           </div>
         </div>
 
@@ -132,8 +132,8 @@ function StepCard({
             {/* Delay */}
             {step.position > 1 && (
               <div className="flex items-center gap-2">
-                <Clock size={12} className="shrink-0 text-slate-600"/>
-                <span className="text-[11px] text-slate-600 w-16">Wait</span>
+                <Clock size={12} className="shrink-0 text-stone-600"/>
+                <span className="text-[11px] text-stone-600 w-16">Wait</span>
                 <input
                   type="number" min={0}
                   value={step.delay_value}
@@ -155,17 +155,17 @@ function StepCard({
             {step.type === "email" ? (
               <>
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-wide text-slate-600">Subject</label>
+                  <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Subject</label>
                   <input
                     value={step.subject ?? ""}
                     onChange={e => onUpdate(step.id, { subject: e.target.value })}
                     placeholder="Email subject…"
-                    className="rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-indigo-500/30"
+                    className="rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-indigo-500/30"
                   />
                 </div>
                 {seq.accounts.length > 0 && (
                   <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                    <label className="text-[10px] font-medium uppercase tracking-wide text-slate-600">From</label>
+                    <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">From</label>
                     <select
                       value={step.from_account ?? ""}
                       onChange={e => onUpdate(step.id, { from_account: e.target.value })}
@@ -177,7 +177,7 @@ function StepCard({
                   </div>
                 )}
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-wide text-slate-600">Send as</label>
+                  <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Send as</label>
                   <select
                     value={step.send_as ?? "new"}
                     onChange={e => onUpdate(step.id, { send_as: e.target.value as "new" | "reply" })}
@@ -188,30 +188,30 @@ function StepCard({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-600">Body</label>
+                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Body</label>
                   <textarea
                     value={step.body ?? ""}
                     onChange={e => onUpdate(step.id, { body: e.target.value })}
                     rows={5}
                     placeholder="Write your email…"
-                    className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-2 text-xs text-white placeholder-slate-700 outline-none focus:border-indigo-500/30 resize-none"
+                    className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-2 text-xs text-white placeholder-stone-700 outline-none focus:border-indigo-500/30 resize-none"
                   />
                 </div>
               </>
             ) : (
               <>
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-wide text-slate-600">Task</label>
+                  <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Task</label>
                   <input
                     value={step.task_title ?? ""}
                     onChange={e => onUpdate(step.id, { task_title: e.target.value })}
                     placeholder="Task title…"
-                    className="rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-indigo-500/30"
+                    className="rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-indigo-500/30"
                   />
                 </div>
                 {seq.members.length > 0 && (
                   <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                    <label className="text-[10px] font-medium uppercase tracking-wide text-slate-600">Assign to</label>
+                    <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Assign to</label>
                     <select
                       value={step.assignee_id ?? ""}
                       onChange={e => onUpdate(step.id, { assignee_id: e.target.value })}
@@ -321,7 +321,7 @@ export function SequenceBuilderPage() {
     </div>
   );
 
-  if (!seq) return <div className="p-8 text-sm text-slate-500">Sequence not found.</div>;
+  if (!seq) return <div className="p-8 text-sm text-stone-500">Sequence not found.</div>;
 
   const enrollments = seq.enrollments;
   const totalEnrolled = enrollments.length;
@@ -343,8 +343,8 @@ export function SequenceBuilderPage() {
   return (
     <div className="flex min-h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 border-b border-neutral-200 dark:border-neutral-800 px-6 py-3">
-        <Link to="/automations" className="text-slate-600 hover:text-slate-300 transition-colors">
+      <div className="flex items-center gap-3 border-b border-stone-200 dark:border-stone-800 px-6 py-3">
+        <Link to="/automations" className="text-stone-600 hover:text-stone-300 transition-colors">
           <ArrowLeft size={15}/>
         </Link>
 
@@ -366,7 +366,7 @@ export function SequenceBuilderPage() {
           </h1>
         )}
 
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-slate-600/30 bg-slate-700/50 text-slate-400"}`}>
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
           {seq.status}
         </span>
 
@@ -390,15 +390,15 @@ export function SequenceBuilderPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-neutral-200 dark:border-neutral-800 px-6">
+      <div className="flex border-b border-stone-200 dark:border-stone-800 px-6">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${tab === t.key ? "border-indigo-500 text-white" : "border-transparent text-slate-500 hover:text-slate-300"}`}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${tab === t.key ? "border-indigo-500 text-white" : "border-transparent text-stone-500 hover:text-stone-300"}`}
           >
             {t.label}
-            {t.count != null && <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${tab === t.key ? "bg-indigo-500/20 text-indigo-300" : "bg-white/[.06] text-slate-600"}`}>{t.count}</span>}
+            {t.count != null && <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${tab === t.key ? "bg-indigo-500/20 text-indigo-300" : "bg-white/[.06] text-stone-600"}`}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -411,9 +411,9 @@ export function SequenceBuilderPage() {
           <div className="max-w-xl mx-auto">
             {seq.steps.length === 0 ? (
               <div className="mb-6 rounded-xl border border-dashed border-white/[.08] py-10 text-center">
-                <Mail size={20} className="mx-auto mb-2 text-slate-700"/>
-                <p className="text-sm font-medium text-slate-400">No steps yet</p>
-                <p className="mt-1 text-xs text-slate-600">Add an email or task step to build your sequence</p>
+                <Mail size={20} className="mx-auto mb-2 text-stone-700"/>
+                <p className="text-sm font-medium text-stone-400">No steps yet</p>
+                <p className="mt-1 text-xs text-stone-600">Add an email or task step to build your sequence</p>
               </div>
             ) : (
               <div className="space-y-6 mb-6">
@@ -434,14 +434,14 @@ export function SequenceBuilderPage() {
               <button
                 onClick={() => addStep.mutate("email")}
                 disabled={addStep.isPending}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-slate-400 hover:bg-white/[.05] hover:text-white transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-stone-400 hover:bg-white/[.05] hover:text-white transition-colors"
               >
                 <Mail size={12} className="text-purple-400"/> Add email step
               </button>
               <button
                 onClick={() => addStep.mutate("task")}
                 disabled={addStep.isPending}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-slate-400 hover:bg-white/[.05] hover:text-white transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-stone-400 hover:bg-white/[.05] hover:text-white transition-colors"
               >
                 <CheckSquare size={12} className="text-blue-400"/> Add task step
               </button>
@@ -454,34 +454,34 @@ export function SequenceBuilderPage() {
           <div className="max-w-2xl mx-auto">
             {seq.enrollments.length === 0 ? (
               <div className="rounded-xl border border-dashed border-white/[.08] py-10 text-center">
-                <Users size={20} className="mx-auto mb-2 text-slate-700"/>
-                <p className="text-sm font-medium text-slate-400">No contacts enrolled</p>
-                <p className="mt-1 text-xs text-slate-600">Go to a People or Company record and enroll them in this sequence</p>
+                <Users size={20} className="mx-auto mb-2 text-stone-700"/>
+                <p className="text-sm font-medium text-stone-400">No contacts enrolled</p>
+                <p className="mt-1 text-xs text-stone-600">Go to a People or Company record and enroll them in this sequence</p>
               </div>
             ) : (
               <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-xs">
-                  <thead className="border-b border-neutral-200 dark:border-neutral-800 bg-white/[.02]">
+                  <thead className="border-b border-stone-200 dark:border-stone-800 bg-white/[.02]">
                     <tr>
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-500">Contact</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-500">Company</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-500">Step</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-500">Status</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-slate-500">Enrolled</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Contact</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Company</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Step</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Status</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Enrolled</th>
                     </tr>
                   </thead>
                   <tbody>
                     {seq.enrollments.map((e, i) => (
                       <tr key={e.id} className={`border-b border-white/[.04] hover:bg-white/[.02] ${i === seq.enrollments.length - 1 ? "border-0" : ""}`}>
                         <td className="px-4 py-2.5 font-medium text-white">{e.contact_name}</td>
-                        <td className="px-4 py-2.5 text-slate-500">{e.company || "—"}</td>
-                        <td className="px-4 py-2.5 text-slate-400">{e.current_step} / {seq.steps.length}</td>
+                        <td className="px-4 py-2.5 text-stone-500">{e.company || "—"}</td>
+                        <td className="px-4 py-2.5 text-stone-400">{e.current_step} / {seq.steps.length}</td>
                         <td className="px-4 py-2.5">
                           <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold capitalize ${STATUS_STYLES[e.status] ?? STATUS_STYLES.active}`}>
                             {e.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-slate-600">
+                        <td className="px-4 py-2.5 text-stone-600">
                           {new Date(e.enrolled_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </td>
                       </tr>
@@ -500,12 +500,12 @@ export function SequenceBuilderPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { label: "Enrolled", value: totalEnrolled, color: "text-white" },
-                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-slate-400" },
-                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-slate-400" },
-                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-slate-400" },
+                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-stone-400" },
+                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-stone-400" },
+                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-stone-400" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="premium-panel px-4 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">{label}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">{label}</p>
                   <p className={`mt-1.5 text-2xl font-bold ${color}`}>{value}</p>
                 </div>
               ))}
@@ -514,10 +514,10 @@ export function SequenceBuilderPage() {
             {/* Step-by-step funnel */}
             {seq.steps.length > 0 && (
               <div className="minimal-sheet overflow-hidden">
-                <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
+                <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
                   <p className="text-xs font-semibold text-white">Step performance</p>
                 </div>
-                <div className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                <div className="divide-y divide-stone-200 dark:divide-stone-800">
                   {seq.steps.map((step, i) => {
                     const sent = Number(step.sent_count ?? 0);
                     const opened = Number(step.opened_count ?? 0);
@@ -525,13 +525,13 @@ export function SequenceBuilderPage() {
                     const pct = sent > 0 ? Math.round((opened / sent) * 100) : 0;
                     return (
                       <div key={i} className="flex items-center gap-4 px-4 py-3">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[.06] text-[10px] font-bold text-slate-400">{i + 1}</div>
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[.06] text-[10px] font-bold text-stone-400">{i + 1}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-white truncate">{String(step.label ?? step.subject ?? `Step ${i + 1}`)}</p>
-                          <p className="text-[10px] text-slate-600 capitalize">{String(step.type ?? "email")}</p>
+                          <p className="text-[10px] text-stone-600 capitalize">{String(step.type ?? "email")}</p>
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
-                          <p className="text-xs text-slate-400">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>
+                          <p className="text-xs text-stone-400">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>
                           {sent > 0 && <p className="text-[10px] text-white/30">{opened} opened · {clicked} clicked · {pct}%</p>}
                         </div>
                       </div>
@@ -545,11 +545,11 @@ export function SequenceBuilderPage() {
             <div className="premium-panel px-4 py-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-white">Unsubscribes</p>
-                <p className="text-[11px] text-slate-600 mt-0.5">Contacts who opted out</p>
+                <p className="text-[11px] text-stone-600 mt-0.5">Contacts who opted out</p>
               </div>
               <div className="text-right">
                 <p className="text-xl font-bold text-indigo-400">{totalUnsubscribed}</p>
-                <p className="text-[10px] text-slate-600">{totalEnrolled > 0 ? Math.round((totalUnsubscribed / totalEnrolled) * 100) : 0}% rate</p>
+                <p className="text-[10px] text-stone-600">{totalEnrolled > 0 ? Math.round((totalUnsubscribed / totalEnrolled) * 100) : 0}% rate</p>
               </div>
             </div>
 
@@ -564,12 +564,12 @@ export function SequenceBuilderPage() {
           <div className="max-w-lg mx-auto space-y-4">
             {/* Sending window */}
             <div className="rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
-              <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
+              <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
                 <p className="text-xs font-semibold text-white">Sending window</p>
               </div>
               <div className="space-y-4 px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-slate-400">Sending days</label>
+                  <label className="text-xs text-stone-400">Sending days</label>
                   <div className="flex gap-1">
                     {DAYS.map(d => {
                       const active = seq.settings.sending_days.includes(d);
@@ -582,7 +582,7 @@ export function SequenceBuilderPage() {
                               : [...seq.settings.sending_days, d];
                             patchSeq.mutate({ settings: { ...seq.settings, sending_days: days } } as any);
                           }}
-                          className={`rounded-md px-2 py-1 text-[9px] font-semibold transition-colors ${active ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/20" : "bg-white/[.03] text-slate-600 border border-white/[.06] hover:text-slate-400"}`}
+                          className={`rounded-md px-2 py-1 text-[9px] font-semibold transition-colors ${active ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/20" : "bg-white/[.03] text-stone-600 border border-white/[.06] hover:text-stone-400"}`}
                         >
                           {d}
                         </button>
@@ -591,7 +591,7 @@ export function SequenceBuilderPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-slate-400">Send window</label>
+                  <label className="text-xs text-stone-400">Send window</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="time"
@@ -599,7 +599,7 @@ export function SequenceBuilderPage() {
                       onChange={e => patchSeq.mutate({ settings: { ...seq.settings, send_start: e.target.value } } as any)}
                       className="rounded-md border border-white/[.07] bg-white/[.03] px-2 py-1 text-xs text-white outline-none focus:border-indigo-500/30"
                     />
-                    <span className="text-xs text-slate-600">to</span>
+                    <span className="text-xs text-stone-600">to</span>
                     <input
                       type="time"
                       value={seq.settings.send_end}
@@ -609,7 +609,7 @@ export function SequenceBuilderPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-slate-400">Daily email limit</label>
+                  <label className="text-xs text-stone-400">Daily email limit</label>
                   <input
                     type="number" min={1} max={500}
                     value={seq.settings.daily_limit}
@@ -622,7 +622,7 @@ export function SequenceBuilderPage() {
 
             {/* Behavior */}
             <div className="rounded-xl border border-white/[.07] bg-[#0d0f13] overflow-hidden">
-              <div className="border-b border-neutral-200 dark:border-neutral-800 px-4 py-3">
+              <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
                 <p className="text-xs font-semibold text-white">Behavior</p>
               </div>
               <div className="divide-y divide-white/[.04] px-4">
@@ -633,7 +633,7 @@ export function SequenceBuilderPage() {
                   <div key={key} className="flex items-center justify-between py-3.5">
                     <div>
                       <p className="text-xs font-medium text-white">{label}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-600">{sub}</p>
+                      <p className="mt-0.5 text-[10px] text-stone-600">{sub}</p>
                     </div>
                     <Toggle
                       checked={!!(seq.settings as any)[key]}

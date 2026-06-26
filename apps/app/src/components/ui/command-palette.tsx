@@ -12,7 +12,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 };
 const TYPE_COLOR: Record<string, string> = {
   companies: "text-blue-400", people: "text-emerald-400", deals: "text-amber-400",
-  task: "text-purple-400", note: "text-slate-400",
+  task: "text-purple-400", note: "text-stone-400",
 };
 
 const QUICK_LINKS = [
@@ -90,28 +90,28 @@ export function CommandPalette() {
       >
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[.07]">
-          <Search size={15} className="text-slate-500 shrink-0"/>
+          <Search size={15} className="text-stone-500 shrink-0"/>
           <input
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={onKey}
             placeholder="Search records, pages, actions…"
-            className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"
+            className="flex-1 bg-transparent text-sm text-white placeholder-stone-600 outline-none"
           />
-          <kbd className="hidden sm:inline-block rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-slate-600">ESC</kbd>
+          <kbd className="hidden sm:inline-block rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-stone-600">ESC</kbd>
         </div>
 
         {/* Results */}
         <div className="max-h-80 overflow-y-auto py-1.5">
           {items.length === 0 && input.trim().length > 1 && (
-            <p className="px-4 py-6 text-center text-xs text-slate-600">No results for "{input}"</p>
+            <p className="px-4 py-6 text-center text-xs text-stone-600">No results for "{input}"</p>
           )}
           {items.map((item, i) => {
             const d = item.data as Record<string, unknown>;
             const name = String(d.name ?? d.title ?? item.id);
             const Icon = item.object_type === "nav" ? ArrowRight : (TYPE_ICON[item.object_type] ?? FileText);
-            const color = item.object_type === "nav" ? "text-slate-500" : (TYPE_COLOR[item.object_type] ?? "text-slate-500");
+            const color = item.object_type === "nav" ? "text-stone-500" : (TYPE_COLOR[item.object_type] ?? "text-stone-500");
             const sub = item.object_type === "nav" ? "" : item.object_type;
             return (
               <button
@@ -121,8 +121,8 @@ export function CommandPalette() {
                 className={`flex w-full items-center gap-3 px-4 py-2.5 transition-colors ${i === idx ? "bg-white/[.05]" : "hover:bg-white/[.03]"}`}
               >
                 <Icon size={14} className={`${color} shrink-0`}/>
-                <span className="flex-1 text-left text-sm text-slate-200 truncate">{name}</span>
-                {sub && <span className="text-[10px] text-slate-600 capitalize shrink-0">{sub}</span>}
+                <span className="flex-1 text-left text-sm text-stone-200 truncate">{name}</span>
+                {sub && <span className="text-[10px] text-stone-600 capitalize shrink-0">{sub}</span>}
               </button>
             );
           })}
@@ -130,9 +130,9 @@ export function CommandPalette() {
 
         {/* Footer hint */}
         <div className="flex items-center gap-3 border-t border-white/[.05] px-4 py-2">
-          <span className="text-[10px] text-slate-700">↑↓ navigate</span>
-          <span className="text-[10px] text-slate-700">↵ open</span>
-          <span className="text-[10px] text-slate-700 ml-auto">⌘K to close</span>
+          <span className="text-[10px] text-stone-700">↑↓ navigate</span>
+          <span className="text-[10px] text-stone-700">↵ open</span>
+          <span className="text-[10px] text-stone-700 ml-auto">⌘K to close</span>
         </div>
       </div>
     </div>

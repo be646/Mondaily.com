@@ -34,7 +34,7 @@ export function InviteAcceptPage() {
       <div className="w-full max-w-sm">
         {status === "success" ? <CheckCircle className="mx-auto mb-5 text-emerald-500" size={34} /> : <Users className="mx-auto mb-5 text-red-500" size={34} />}
         <h1 className="text-xl font-semibold">{status === "success" ? "Joined!" : "You've been invited"}</h1>
-        <p className="mb-7 mt-2 text-sm text-slate-500">{status === "success" ? "Taking you to the workspace..." : "Accept to join the Mondaily workspace."}</p>
+        <p className="mb-7 mt-2 text-sm text-stone-500">{status === "success" ? "Taking you to the workspace..." : "Accept to join the Mondaily workspace."}</p>
         {status !== "success" ? (
           <div className="flex justify-center gap-3">
             <button onClick={acceptInvite} disabled={status === "loading"} className="rounded-md bg-red-600 px-5 py-2 text-sm font-medium disabled:opacity-50">{status === "loading" ? "Joining..." : "Accept invitation"}</button>

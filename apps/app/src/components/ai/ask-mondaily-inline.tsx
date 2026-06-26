@@ -40,7 +40,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
         <LogoMark size={16} thinking={loading}/>
       </span>
       <input
-        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600"
+        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-600"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}

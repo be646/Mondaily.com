@@ -26,11 +26,11 @@ interface CreditNote {
 }
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
-  draft:            { label: "Draft",            color: "text-zinc-400",   dot: "bg-zinc-400",   icon: ReceiptText   },
+  draft:            { label: "Draft",            color: "text-stone-400",   dot: "bg-stone-400",   icon: ReceiptText   },
   pending_review:   { label: "Pending Review",   color: "text-amber-400",  dot: "bg-amber-400",  icon: Clock         },
   manager_approved: { label: "Approved",         color: "text-blue-400",   dot: "bg-blue-400",   icon: CheckCircle2  },
   executed:         { label: "Executed",         color: "text-emerald-400",dot: "bg-emerald-400",icon: CheckCircle2  },
-  void:             { label: "Void",             color: "text-zinc-600",   dot: "bg-zinc-600",   icon: XCircle       },
+  void:             { label: "Void",             color: "text-stone-600",   dot: "bg-stone-600",   icon: XCircle       },
 };
 
 const REASON_LABELS: Record<CreditReason, string> = {
@@ -42,9 +42,9 @@ const REASON_LABELS: Record<CreditReason, string> = {
 
 // State machine — which transitions are available from a given status
 const TRANSITIONS: Record<CreditStatus, { to: CreditStatus; label: string; style: string }[]> = {
-  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-amber-300 bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20" }, { to: "void", label: "Void", style: "text-zinc-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
-  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-blue-300 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/20" },   { to: "void", label: "Void", style: "text-zinc-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
-  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20" }, { to: "void", label: "Void", style: "text-zinc-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
+  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-amber-300 bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20" }, { to: "void", label: "Void", style: "text-stone-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
+  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-blue-300 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/20" },   { to: "void", label: "Void", style: "text-stone-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
+  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20" }, { to: "void", label: "Void", style: "text-stone-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
   executed:         [],
   void:             [],
 };
@@ -103,7 +103,7 @@ export function CreditNoteDetailPage() {
     } finally { setLinkingInvoice(false); }
   }
 
-  if (isLoading) return <div className="flex h-full items-center justify-center text-[12px] text-zinc-600">Loading…</div>;
+  if (isLoading) return <div className="flex h-full items-center justify-center text-[12px] text-stone-600">Loading…</div>;
   if (isError || !cn) return <div className="flex h-full items-center justify-center text-[12px] text-indigo-400">Credit note not found.</div>;
 
   const cfg = STATUS_CONFIG[cn.status];
@@ -115,13 +115,13 @@ export function CreditNoteDetailPage() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3 shrink-0">
-        <Link to="/finance/credit-notes" className="flex items-center gap-1 text-[12px] text-zinc-500 hover:text-white transition-colors">
+        <Link to="/finance/credit-notes" className="flex items-center gap-1 text-[12px] text-stone-500 hover:text-white transition-colors">
           <ChevronLeft size={13}/> Credit Notes
         </Link>
-        <span className="text-zinc-700">/</span>
-        <span className="text-[12px] text-zinc-400">{cn.client_name ?? cn.id.slice(0, 8)}</span>
+        <span className="text-stone-700">/</span>
+        <span className="text-[12px] text-stone-400">{cn.client_name ?? cn.id.slice(0, 8)}</span>
         <div className="ml-auto flex items-center gap-2">
-          {patchMutation.isPending && <span className="text-[11px] text-zinc-600 animate-pulse">Saving…</span>}
+          {patchMutation.isPending && <span className="text-[11px] text-stone-600 animate-pulse">Saving…</span>}
         </div>
       </div>
 
@@ -136,13 +136,13 @@ export function CreditNoteDetailPage() {
               </div>
               <div>
                 <div className="text-[18px] font-bold text-white">{fmt(cn.amount_cents, cn.currency)}</div>
-                <div className="text-[11px] text-zinc-500">{cn.client_name ?? "No client"}</div>
+                <div className="text-[11px] text-stone-500">{cn.client_name ?? "No client"}</div>
               </div>
             </div>
 
             {/* Status pill */}
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-1.5">Status</p>
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">Status</p>
               <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium ${cfg.color} border-current/20 bg-current/5`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`}/>
                 <Icon size={11}/>{cfg.label}
@@ -151,19 +151,19 @@ export function CreditNoteDetailPage() {
 
             {/* Reason */}
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-1">Reason</p>
-              <span className="text-[12px] text-zinc-300">{REASON_LABELS[cn.credit_reason]}</span>
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-1">Reason</p>
+              <span className="text-[12px] text-stone-300">{REASON_LABELS[cn.credit_reason]}</span>
             </div>
 
             {/* Dates */}
             <div className="space-y-2">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-0.5">Created</p>
-                <span className="text-[11px] text-zinc-500">{relativeTime(cn.created_at)}</span>
+                <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-0.5">Created</p>
+                <span className="text-[11px] text-stone-500">{relativeTime(cn.created_at)}</span>
               </div>
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-0.5">Last updated</p>
-                <span className="text-[11px] text-zinc-500">{relativeTime(cn.updated_at)}</span>
+                <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-0.5">Last updated</p>
+                <span className="text-[11px] text-stone-500">{relativeTime(cn.updated_at)}</span>
               </div>
             </div>
           </div>
@@ -171,11 +171,11 @@ export function CreditNoteDetailPage() {
           {/* Links */}
           <div className="p-4 space-y-4 border-b border-white/[.06]">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-2">Linked invoice</p>
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-2">Linked invoice</p>
               {linkedInvoice ? (
                 <Link to={`/finance/invoices/${linkedInvoice.id}`}
-                  className="flex items-center gap-2 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-2 text-[12px] text-zinc-300 hover:text-white hover:border-white/[.10] transition-colors">
-                  <FileText size={11} className="text-zinc-600 shrink-0"/>
+                  className="flex items-center gap-2 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-2 text-[12px] text-stone-300 hover:text-white hover:border-white/[.10] transition-colors">
+                  <FileText size={11} className="text-stone-600 shrink-0"/>
                   <span className="truncate">{linkedInvoice.number} · {linkedInvoice.client_name}</span>
                 </Link>
               ) : (
@@ -186,7 +186,7 @@ export function CreditNoteDetailPage() {
                     {invoices.map(i => <option key={i.id} value={i.id}>{i.number} · {i.client_name}</option>)}
                   </select>
                   <button onClick={applyToInvoice} disabled={!linkInvoiceId || linkingInvoice}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[.07] bg-white/[.02] px-2 py-1.5 text-[11px] text-zinc-400 hover:text-white hover:bg-white/[.05] transition-colors disabled:opacity-40">
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[.07] bg-white/[.02] px-2 py-1.5 text-[11px] text-stone-400 hover:text-white hover:bg-white/[.05] transition-colors disabled:opacity-40">
                     <Link2 size={10}/>{linkingInvoice ? "Linking…" : "Apply to invoice"}
                   </button>
                 </div>
@@ -197,7 +197,7 @@ export function CreditNoteDetailPage() {
           {/* State machine actions */}
           {transitions.length > 0 && (
             <div className="p-4 space-y-2">
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-zinc-600 mb-2">Actions</p>
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-2">Actions</p>
               {transitions.map(t => (
                 <button key={t.to}
                   onClick={() => { setTransitioning(t.to); patchMutation.mutate({ status: t.to }); }}
@@ -232,13 +232,13 @@ export function CreditNoteDetailPage() {
                 <Sparkles size={12} className="text-violet-400"/>
                 <span className="text-[11px] font-semibold text-violet-400 uppercase tracking-wider">AI Summary</span>
               </div>
-              <p className="text-[13px] text-zinc-300 leading-relaxed">{cn.ai_summary}</p>
+              <p className="text-[13px] text-stone-300 leading-relaxed">{cn.ai_summary}</p>
             </div>
           )}
 
           {/* Notes */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">Notes</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Notes</p>
             <NoteEditor
               initialValue={cn.notes ?? ""}
               onSave={v => patchMutation.mutate({ notes: v })}
@@ -248,7 +248,7 @@ export function CreditNoteDetailPage() {
           {/* Edit amount/reason for draft */}
           {cn.status === "draft" && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">Edit details</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Edit details</p>
               <DraftEditor creditNote={cn} onSave={body => patchMutation.mutate(body)}/>
             </div>
           )}
@@ -267,7 +267,7 @@ function NoteEditor({ initialValue, onSave }: { initialValue: string; onSave: (v
       onBlur={() => { if (val !== initialValue) onSave(val); }}
       placeholder="Add internal notes here…"
       rows={5}
-      className="w-full resize-none rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 text-[13px] text-zinc-300 placeholder-zinc-700 outline-none focus:border-white/[.12] leading-relaxed transition-colors"
+      className="w-full resize-none rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 text-[13px] text-stone-300 placeholder-stone-700 outline-none focus:border-white/[.12] leading-relaxed transition-colors"
     />
   );
 }
@@ -287,15 +287,15 @@ function DraftEditor({ creditNote: cn, onSave }: { creditNote: CreditNote; onSav
     <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Client name</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Client name</label>
           <input value={clientName} onChange={e => setClientName(e.target.value)} onBlur={save} className="key-input w-full text-sm"/>
         </div>
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Amount ({cn.currency})</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Amount ({cn.currency})</label>
           <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={save} type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
         </div>
         <div className="col-span-2">
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Credit reason</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Credit reason</label>
           <select value={reason} onChange={e => { setReason(e.target.value as CreditReason); }} onBlur={save} className="key-input w-full text-sm">
             <option value="refund">Refund</option>
             <option value="billing_error">Billing Error</option>

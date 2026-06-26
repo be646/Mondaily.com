@@ -128,7 +128,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
     currency: "text-emerald-400", number: "text-blue-400", date: "text-amber-400",
     datetime: "text-amber-400", checkbox: "text-violet-400", select: "text-cyan-400",
     multi_select: "text-cyan-400", email: "text-indigo-400", phone: "text-indigo-400",
-    url: "text-blue-400", text: "text-zinc-400", long_text: "text-zinc-400",
+    url: "text-blue-400", text: "text-stone-400", long_text: "text-stone-400",
   };
 
   return (
@@ -138,7 +138,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
           <div className="flex items-center gap-2.5">
             {step === "preview" && (
-              <button onClick={() => setStep("prompt")} className="mr-1 text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button onClick={() => setStep("prompt")} className="mr-1 text-stone-500 hover:text-stone-300 transition-colors">
                 <ArrowLeft size={14}/>
               </button>
             )}
@@ -149,12 +149,12 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               <div className="text-[13px] font-semibold text-white">
                 {step === "prompt" ? "AI Schema Generator" : step === "preview" ? "Review generated schema" : "Creating object…"}
               </div>
-              <div className="text-[11px] text-zinc-600">
+              <div className="text-[11px] text-stone-600">
                 {step === "prompt" ? "Describe your sheet and AI builds the fields" : step === "preview" ? `${schema?.attributes.length} attributes generated` : "Setting up your object and attributes"}
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-zinc-500 hover:text-zinc-300 hover:bg-white/[.05] transition-colors">
+          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:text-stone-300 hover:bg-white/[.05] transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -168,19 +168,19 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generate(); }}
               placeholder={example}
               rows={3}
-              className="w-full resize-none rounded-lg border border-white/[.08] bg-white/[.03] px-3.5 py-3 text-sm text-white placeholder-zinc-600 outline-none focus:border-indigo-500/30 focus:bg-white/[.04] transition-colors"
+              className="w-full resize-none rounded-lg border border-white/[.08] bg-white/[.03] px-3.5 py-3 text-sm text-white placeholder-stone-600 outline-none focus:border-indigo-500/30 focus:bg-white/[.04] transition-colors"
             />
 
             {error && <p className="mt-2 text-[11px] text-indigo-400">{error}</p>}
 
             {/* Examples */}
-            <p className="mt-4 mb-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">Examples</p>
+            <p className="mt-4 mb-2 text-[10px] font-semibold uppercase tracking-wider text-stone-600">Examples</p>
             <div className="flex flex-wrap gap-1.5">
               {EXAMPLES.slice(0, 6).map(ex => (
                 <button
                   key={ex}
                   onClick={() => setPrompt(ex)}
-                  className="rounded-md border border-zinc-800/60 bg-zinc-900/30 px-2.5 py-1 text-[11px] text-zinc-500 hover:text-zinc-200 hover:border-zinc-700/60 transition-all"
+                  className="rounded-md border border-stone-800/60 bg-stone-900/30 px-2.5 py-1 text-[11px] text-stone-500 hover:text-stone-200 hover:border-stone-700/60 transition-all"
                 >
                   {ex}
                 </button>
@@ -188,7 +188,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={onClose} className="rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button onClick={onClose} className="rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">
                 Cancel
               </button>
               <button
@@ -212,21 +212,21 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               </div>
               <div className="min-w-0">
                 <div className="text-[13px] font-semibold text-white">{schema.plural}</div>
-                <div className="text-[11px] text-zinc-500">{schema.singular} · {schema.vertical}{schema.description ? ` · ${schema.description}` : ""}</div>
+                <div className="text-[11px] text-stone-500">{schema.singular} · {schema.vertical}{schema.description ? ` · ${schema.description}` : ""}</div>
               </div>
             </div>
 
             {/* Attributes list */}
-            <div className="max-h-[280px] overflow-y-auto rounded-lg border border-zinc-800/50 divide-y divide-zinc-800/40">
+            <div className="max-h-[280px] overflow-y-auto rounded-lg border border-stone-800/50 divide-y divide-stone-800/40">
               {schema.attributes.map((attr, i) => {
                 const Icon = TYPE_ICON[attr.type] ?? Text;
                 return (
                   <div key={i} className="flex items-center justify-between px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <Icon size={11} className={typeColor[attr.type] ?? "text-zinc-500"}/>
-                      <span className="text-[12px] text-zinc-200">{attr.name}</span>
+                      <Icon size={11} className={typeColor[attr.type] ?? "text-stone-500"}/>
+                      <span className="text-[12px] text-stone-200">{attr.name}</span>
                     </div>
-                    <span className="text-[10px] text-zinc-600 capitalize">{attr.type.replace("_", " ")}</span>
+                    <span className="text-[10px] text-stone-600 capitalize">{attr.type.replace("_", " ")}</span>
                   </div>
                 );
               })}
@@ -237,7 +237,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             <div className="mt-4 flex justify-between gap-2">
               <button
                 onClick={() => { setStep("prompt"); setSchema(null); }}
-                className="rounded-lg border border-zinc-800/60 px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="rounded-lg border border-stone-800/60 px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors"
               >
                 Regenerate
               </button>
@@ -255,7 +255,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
         {step === "creating" && (
           <div className="flex flex-col items-center justify-center gap-3 px-5 py-12">
             <Loader2 size={24} className="animate-spin text-indigo-400"/>
-            <div className="text-[13px] text-zinc-400">Creating <span className="text-white font-medium">{schema?.plural}</span> with {schema?.attributes.length} attributes…</div>
+            <div className="text-[13px] text-stone-400">Creating <span className="text-white font-medium">{schema?.plural}</span> with {schema?.attributes.length} attributes…</div>
           </div>
         )}
       </div>
@@ -315,7 +315,7 @@ export function ObjectsSettings() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-semibold text-white">Generate any sheet with AI</div>
-          <div className="text-[11px] text-zinc-500">Describe your list (e.g. "accounting sheet for taxes") and AI creates the full schema with all fields</div>
+          <div className="text-[11px] text-stone-500">Describe your list (e.g. "accounting sheet for taxes") and AI creates the full schema with all fields</div>
         </div>
         <button
           onClick={() => setAiOpen(true)}
@@ -330,28 +330,28 @@ export function ObjectsSettings() {
           action={
             <div className="flex gap-2">
               <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm"><Sparkles size={13}/> Generate with AI</button>
-              <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm text-slate-400">Manual</button>
+              <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm text-stone-400">Manual</button>
             </div>
           }
         />
       ) : (
-        <div className="grid min-h-[560px] grid-cols-[220px_1fr] overflow-hidden border-y border-neutral-200 dark:border-neutral-800">
-          <aside className="border-r border-neutral-200 p-3 dark:border-neutral-800">
+        <div className="grid min-h-[560px] grid-cols-[220px_1fr] overflow-hidden border-y border-stone-200 dark:border-stone-800">
+          <aside className="border-r border-stone-200 p-3 dark:border-stone-800">
             <div className="mb-3 flex items-center justify-between px-2">
-              <span className="text-xs font-medium uppercase text-slate-500">Objects</span>
+              <span className="text-xs font-medium uppercase text-stone-500">Objects</span>
               <button onClick={() => setObjectOpen(true)} className="text-indigo-400" aria-label="Create custom object"><Plus size={14}/></button>
             </div>
             <div className="space-y-1">
               {objects.map((object) => (
                 <button key={object.id} onClick={() => setSelectedId(object.id)}
-                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${selected?.id === object.id ? "bg-white/10" : "text-slate-400 hover:bg-white/[.04]"}`}>
+                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${selected?.id === object.id ? "bg-white/10" : "text-stone-400 hover:bg-white/[.04]"}`}>
                   <span className={`h-2.5 w-2.5 rounded-full bg-${object.color ?? "slate"}-500`}/>
                   <span className="min-w-0 flex-1 truncate">{object.name_plural}</span>
-                  {object.is_standard ? <Lock size={11} className="text-slate-600"/> : <ChevronRight size={12}/>}
+                  {object.is_standard ? <Lock size={11} className="text-stone-600"/> : <ChevronRight size={12}/>}
                 </button>
               ))}
             </div>
-            <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-md border border-dashed border-white/[.06] px-3 py-2 text-sm text-slate-500 hover:text-slate-300 hover:border-white/20 transition-colors">
+            <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-md border border-dashed border-white/[.06] px-3 py-2 text-sm text-stone-500 hover:text-stone-300 hover:border-white/20 transition-colors">
               <Plus size={13}/> Custom object
             </button>
             <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-indigo-500/30 px-3 py-2 text-sm text-indigo-400/70 hover:text-indigo-300 hover:border-indigo-500/50 transition-colors">
@@ -366,9 +366,9 @@ export function ObjectsSettings() {
                   <div className="grid h-9 w-9 place-items-center rounded-md bg-indigo-500/10 text-indigo-300"><Database size={16}/></div>
                   <div>
                     <h2 className="font-medium">{selected.name_plural}</h2>
-                    <p className="text-xs text-slate-500">{selected.slug} · {selected.vertical ?? "shared"}</p>
+                    <p className="text-xs text-stone-500">{selected.slug} · {selected.vertical ?? "shared"}</p>
                   </div>
-                  {selected.is_standard && <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-slate-500">Standard</span>}
+                  {selected.is_standard && <span className="rounded-full bg-white/5 px-2 py-1 text-[10px] text-stone-500">Standard</span>}
                 </div>
                 <button onClick={() => setAttributeOpen(true)} className="flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm">
                   <Plus size={13}/> Add attribute
@@ -385,10 +385,10 @@ export function ObjectsSettings() {
                       {selected.attributes.map((item) => (
                         <tr key={item.id || item.name}>
                           <td className="font-medium">{item.name}</td>
-                          <td className="capitalize text-neutral-500 dark:text-neutral-400">{item.type.replace("_", " ")}</td>
-                          <td className="text-neutral-400 dark:text-neutral-600">{item.required ? "Yes" : "No"}</td>
-                          <td className="text-neutral-400 dark:text-neutral-600">{item.unique ? "Yes" : "No"}</td>
-                          <td className="text-right"><button className="text-slate-600 hover:text-indigo-400" aria-label={`Delete ${item.name}`}><Trash2 size={13}/></button></td>
+                          <td className="capitalize text-stone-500 dark:text-stone-400">{item.type.replace("_", " ")}</td>
+                          <td className="text-stone-400 dark:text-stone-600">{item.required ? "Yes" : "No"}</td>
+                          <td className="text-stone-400 dark:text-stone-600">{item.unique ? "Yes" : "No"}</td>
+                          <td className="text-right"><button className="text-stone-600 hover:text-indigo-400" aria-label={`Delete ${item.name}`}><Trash2 size={13}/></button></td>
                         </tr>
                       ))}
                     </tbody>
@@ -417,7 +417,7 @@ export function ObjectsSettings() {
           <form onSubmit={e => { e.preventDefault(); if (attribute.name.trim()) createAttribute.mutate(); }}
             className="h-full w-full max-w-lg overflow-y-auto border-l border-white/[.07] bg-[#0d0f13] p-6">
             <div className="mb-6 flex items-center justify-between">
-              <div><h2 className="font-medium">Add attribute</h2><p className="text-xs text-slate-500">Add a field to {selected?.name_plural}.</p></div>
+              <div><h2 className="font-medium">Add attribute</h2><p className="text-xs text-stone-500">Add a field to {selected?.name_plural}.</p></div>
               <button type="button" onClick={() => setAttributeOpen(false)}><X size={17}/></button>
             </div>
             <label className="text-sm">Attribute name

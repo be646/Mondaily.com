@@ -55,19 +55,19 @@ function ApprovalTrail({ approvals }: { approvals?: ApprovalEntry[] }) {
   return (
     <div className="mb-3 space-y-1.5">
       {approvals.map((entry, i) => (
-        <div key={i} className="flex items-start gap-2 text-[11px] text-zinc-500">
-          <UserCircle2 size={12} className="mt-0.5 shrink-0 text-zinc-600" />
+        <div key={i} className="flex items-start gap-2 text-[11px] text-stone-500">
+          <UserCircle2 size={12} className="mt-0.5 shrink-0 text-stone-600" />
           <span>
-            <span className="text-zinc-400">{entry.user_id.slice(0, 8)}</span>
+            <span className="text-stone-400">{entry.user_id.slice(0, 8)}</span>
             {" "}
             <span className={
               entry.action === "verified" ? "text-blue-400" :
               entry.action === "executed" ? "text-emerald-400" :
               entry.action === "rejected" ? "text-indigo-400" :
-              "text-zinc-500"
+              "text-stone-500"
             }>{entry.action}</span>
             {" · "}{relativeTime(entry.at)}
-            {entry.note && <span className="block pl-3.5 text-zinc-600 italic">"{entry.note}"</span>}
+            {entry.note && <span className="block pl-3.5 text-stone-600 italic">"{entry.note}"</span>}
           </span>
         </div>
       ))}
@@ -93,15 +93,15 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 text-neutral-900 transition-colors hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:hover:border-neutral-700">
+    <div className="rounded-2xl border border-stone-200 bg-white p-4 text-stone-900 transition-colors hover:border-stone-300 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:hover:border-stone-700">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900">
             <ReceiptText size={15} className="text-violet-400"/>
           </div>
           <div>
-            <div className="text-[13px] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">{fmt(cn.amount_cents, cn.currency)}</div>
-            <div className="text-[11px] text-neutral-500 dark:text-neutral-500">{cn.client_name ?? "Unknown client"} · {REASON_LABELS[cn.credit_reason]}</div>
+            <div className="text-[13px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">{fmt(cn.amount_cents, cn.currency)}</div>
+            <div className="text-[11px] text-stone-500 dark:text-stone-500">{cn.client_name ?? "Unknown client"} · {REASON_LABELS[cn.credit_reason]}</div>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -120,18 +120,18 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
               <XCircle size={9}/> Rejected
             </span>
           )}
-          <span className="text-[10px] text-neutral-400 dark:text-neutral-600">{relativeTime(cn.created_at)}</span>
+          <span className="text-[10px] text-stone-400 dark:text-stone-600">{relativeTime(cn.created_at)}</span>
         </div>
       </div>
 
       {cn.ai_summary && (
-        <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/[.04]">
+        <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/[.04]">
           <Sparkles size={10} className="text-violet-400 mt-0.5 shrink-0"/>
-          <p className="text-[11px] leading-relaxed text-neutral-600 dark:text-neutral-300">{cn.ai_summary}</p>
+          <p className="text-[11px] leading-relaxed text-stone-600 dark:text-stone-300">{cn.ai_summary}</p>
         </div>
       )}
       {cn.notes && !cn.ai_summary && (
-        <p className="mb-3 line-clamp-2 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-500">{cn.notes}</p>
+        <p className="mb-3 line-clamp-2 text-[11px] leading-relaxed text-stone-500 dark:text-stone-500">{cn.notes}</p>
       )}
 
       <ApprovalTrail approvals={cn.approvals} />
@@ -211,7 +211,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
           </button>
         )}
         <Link to={`/finance/credit-notes/${cn.id}`}
-          className="ml-auto flex items-center gap-1 text-[11px] text-neutral-500 transition-colors hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100">
+          className="ml-auto flex items-center gap-1 text-[11px] text-stone-500 transition-colors hover:text-stone-900 dark:text-stone-500 dark:hover:text-stone-100">
           Details <ChevronRight size={11}/>
         </Link>
       </div>
@@ -260,45 +260,45 @@ export function ApprovalsPage() {
   const totalExecuted = executed.reduce((s, n) => s + n.amount_cents, 0);
 
   return (
-    <div className="flex h-full flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50">
+    <div className="flex h-full flex-col bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-50">
       {/* Header */}
-      <div className="shrink-0 border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
+      <div className="shrink-0 border-b border-stone-200 px-6 py-4 dark:border-stone-800">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 dark:border-cyan-500/20 dark:bg-cyan-500/[.05]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-cyan-500/20 dark:bg-cyan-500/[.05]">
             <ShieldCheck size={14} className="text-indigo-400"/>
           </div>
           <div>
-            <h1 className="text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">Approval Dashboard</h1>
-            <p className="text-[12px] text-neutral-500 dark:text-neutral-500">Review and authorise credit notes across the workspace</p>
+            <h1 className="text-[15px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">Approval Dashboard</h1>
+            <p className="text-[12px] text-stone-500 dark:text-stone-500">Review and authorise credit notes across the workspace</p>
           </div>
         </div>
 
         {/* Summary row */}
         <div className="telemetry-strip mb-4">
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-neutral-500 dark:text-neutral-500">Needs review</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-stone-500 dark:text-stone-500">Needs review</span></div>
             <div className="text-[17px] font-semibold text-amber-400">{fmt(totalPending, currency)}</div>
-            <div className="mt-0.5 text-[10px] text-neutral-400 dark:text-neutral-600">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
+            <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-neutral-500 dark:text-neutral-500">Verified, not executed</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-stone-500 dark:text-stone-500">Verified, not executed</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalVerified, currency)}</div>
-            <div className="mt-0.5 text-[10px] text-neutral-400 dark:text-neutral-600">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
+            <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-neutral-500 dark:text-neutral-500">Executed this period</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-stone-500 dark:text-stone-500">Executed this period</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalExecuted, currency)}</div>
-            <div className="mt-0.5 text-[10px] text-neutral-400 dark:text-neutral-600">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
+            <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
         </div>
 
         {/* Tab strip */}
-        <div className="-mb-4 flex items-center gap-1 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="-mb-4 flex items-center gap-1 border-b border-stone-200 dark:border-stone-800">
           {TABS.map(({ key, label }) => {
             const count = key === "pending_review" ? pending.length : key === "verified" ? verified.length : rejected.length;
             return (
               <button key={key} onClick={() => setTab(key)}
-                className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-200"}`}>
+                className={`relative px-3.5 py-2.5 text-[12px] font-medium transition-colors ${tab === key ? "text-stone-950 dark:text-stone-50" : "text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-stone-200"}`}>
                 {label} ({count})
                 {tab === key && <span className="absolute bottom-0 left-0 right-0 h-px bg-indigo-500"/>}
               </button>
@@ -309,16 +309,16 @@ export function ApprovalsPage() {
 
       {/* Tab description */}
       <div className="shrink-0 px-6 pb-1 pt-3">
-        <p className="text-[11px] text-neutral-500 dark:text-neutral-500">{TABS.find(t => t.key === tab)?.desc}</p>
+        <p className="text-[11px] text-stone-500 dark:text-stone-500">{TABS.find(t => t.key === tab)?.desc}</p>
       </div>
 
       {/* Cards */}
       <div className="flex-1 overflow-auto p-6 pt-3">
-        {isLoading && <div className="flex h-40 items-center justify-center text-[12px] text-neutral-500 dark:text-neutral-500">Loading…</div>}
+        {isLoading && <div className="flex h-40 items-center justify-center text-[12px] text-stone-500 dark:text-stone-500">Loading…</div>}
         {!isLoading && shown.length === 0 && (
           <div className="flex h-56 flex-col items-center justify-center gap-3">
-            <Clock size={32} className="text-neutral-300 dark:text-neutral-700"/>
-            <div className="text-[13px] text-neutral-500 dark:text-neutral-500">Nothing in this queue</div>
+            <Clock size={32} className="text-stone-300 dark:text-stone-700"/>
+            <div className="text-[13px] text-stone-500 dark:text-stone-500">Nothing in this queue</div>
             <Link to="/finance/credit-notes" className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">View all credit notes →</Link>
           </div>
         )}

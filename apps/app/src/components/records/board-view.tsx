@@ -9,8 +9,8 @@ interface Member { id: string; name: string; email: string; avatar_url?: string 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
-  lead:        { dot: "bg-zinc-400",    text: "text-zinc-300" },
-  new:         { dot: "bg-zinc-400",    text: "text-zinc-300" },
+  lead:        { dot: "bg-stone-400",    text: "text-stone-300" },
+  new:         { dot: "bg-stone-400",    text: "text-stone-300" },
   open:        { dot: "bg-blue-400",    text: "text-blue-300" },
   qualified:   { dot: "bg-blue-400",    text: "text-blue-300" },
   "in progress": { dot: "bg-violet-400", text: "text-violet-300" },
@@ -27,7 +27,7 @@ const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
   rejected:    { dot: "bg-indigo-400",     text: "text-indigo-300" },
 };
 function stageStyle(s: string) {
-  return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-zinc-500", text: "text-zinc-300" };
+  return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-stone-300" };
 }
 
 function fmtVal(v: unknown): number | null {
@@ -118,11 +118,11 @@ function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30 border-t border-zinc-800/50 transition-colors"
+        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-300 hover:bg-stone-800/30 border-t border-stone-800/50 transition-colors"
       >
-        <span className="text-zinc-600">{CALC_LABELS[type]}</span>
+        <span className="text-stone-600">{CALC_LABELS[type]}</span>
         <div className="flex items-center gap-1">
-          <span className="font-medium text-zinc-400">{result()}</span>
+          <span className="font-medium text-stone-400">{result()}</span>
           <ChevronDown size={10} className={`transition-transform ${open ? "rotate-180" : ""}`}/>
         </div>
       </button>
@@ -132,7 +132,7 @@ function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string
             <button key={t} onClick={() => { setType(t); setOpen(false); }}
               className={`dropdown-item justify-between ${t === type ? "dropdown-item-active" : ""}`}>
               <span>{CALC_LABELS[t]}</span>
-              {t === type && <Check size={10} className="text-zinc-300"/>}
+              {t === type && <Check size={10} className="text-stone-300"/>}
             </button>
           ))}
         </div>
@@ -158,7 +158,7 @@ function StagePill({ value, stages, onMove }: { value: string; stages: string[];
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold border border-white/[.05] bg-zinc-900/60 transition-colors ${text}`}
+        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold border border-white/[.05] bg-stone-900/60 transition-colors ${text}`}
       >
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`}/>
         {value}
@@ -204,13 +204,13 @@ function CardField({ value, onSave, placeholder = "—", numeric = false, classN
       onChange={e => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") { setDraft(value); setEditing(false); } e.stopPropagation(); }}
-      className={`w-full bg-zinc-800 text-[11px] text-white outline-none rounded px-1.5 py-0.5 border border-zinc-600/60 ${numeric ? "text-right font-mono" : ""} ${className}`}
+      className={`w-full bg-stone-800 text-[11px] text-white outline-none rounded px-1.5 py-0.5 border border-stone-600/60 ${numeric ? "text-right font-mono" : ""} ${className}`}
     />
   );
 
   return (
     <span onClick={() => { setDraft(value); setEditing(true); }}
-      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-zinc-700 hover:text-zinc-500"} ${className}`}>
+      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-stone-700 hover:text-stone-500"} ${className}`}>
       {value || placeholder}
     </span>
   );
@@ -232,11 +232,11 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
   const ownerMember = owner ? members.find(m => m.id === owner || m.name === owner || m.email === owner) : null;
 
   return (
-    <div className="group rounded-md border border-zinc-800/60 bg-zinc-900/40 hover:border-zinc-700/60 hover:bg-zinc-900/70 transition-all p-3 cursor-default">
+    <div className="group rounded-md border border-stone-800/60 bg-stone-900/40 hover:border-stone-700/60 hover:bg-stone-900/70 transition-all p-3 cursor-default">
       {/* Name */}
       <div className="flex items-center gap-1.5 mb-2 min-w-0">
-        <CardField value={name} onSave={v => onPatch({ name: v })} placeholder="Untitled" className="flex-1 font-medium text-zinc-100"/>
-        <Link to={`/objects/${objectType}/${record.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-zinc-400">
+        <CardField value={name} onSave={v => onPatch({ name: v })} placeholder="Untitled" className="flex-1 font-medium text-stone-100"/>
+        <Link to={`/objects/${objectType}/${record.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-stone-600 hover:text-stone-400">
           <ChevronRight size={12}/>
         </Link>
       </div>
@@ -244,7 +244,7 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
       {/* Value (if detected) */}
       {valueCol && (
         <div className="flex items-center gap-1 mb-2">
-          <span className="text-[10px] text-zinc-600 shrink-0">{labelOf(valueCol)}</span>
+          <span className="text-[10px] text-stone-600 shrink-0">{labelOf(valueCol)}</span>
           <CardField
             value={rawVal != null ? String(rawVal) : ""}
             onSave={v => onPatch({ [valueCol]: v === "" ? null : v })}
@@ -263,9 +263,9 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
               {memberInitials(ownerMember.name)}
             </div>
           ) : (
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-700 shrink-0"/>
+            <span className="h-1.5 w-1.5 rounded-full bg-stone-700 shrink-0"/>
           )}
-          <CardField value={owner} onSave={v => onPatch({ [ownerKey]: v })} placeholder="Owner…" className="flex-1 text-zinc-500"/>
+          <CardField value={owner} onSave={v => onPatch({ [ownerKey]: v })} placeholder="Owner…" className="flex-1 text-stone-500"/>
         </div>
       )}
 
@@ -323,23 +323,23 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
         <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="text-[13px] font-semibold text-white capitalize">New {objectType.replace(/[-_]/g, " ")}</span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border border-white/[.05] bg-zinc-900/60 ${text}`}>{defaultStage}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border border-white/[.05] bg-stone-900/60 ${text}`}>{defaultStage}</span>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={14}/></button>
+          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={14}/></button>
         </div>
         <div className="max-h-[360px] overflow-auto px-5 py-4 space-y-0.5">
           {fieldKeys.map(k => (
             <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-white/[.04] last:border-0">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-slate-600 truncate">{labelOf(k)}</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 truncate">{labelOf(k)}</span>
               <input value={values[k] ?? ""} onChange={e => setValues(p => ({ ...p, [k]: e.target.value }))}
                 placeholder="—"
-                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-slate-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"/>
+                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none focus:border-indigo-500/30 focus:bg-white/[.05] transition-colors"/>
             </div>
           ))}
           {error && <p className="pt-2 text-xs text-indigo-400">{error}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-white/[.06] px-5 py-3.5">
-          <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-all">Cancel</button>
+          <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
             className="flex items-center gap-2 rounded-lg border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
@@ -423,8 +423,8 @@ export function BoardView({ objectType }: { objectType: string }) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center space-y-2">
-          <p className="text-sm text-zinc-400">Board view requires a stage or status column</p>
-          <p className="text-xs text-zinc-600">Add a column named "stage", "status", or "phase" to use board view</p>
+          <p className="text-sm text-stone-400">Board view requires a stage or status column</p>
+          <p className="text-xs text-stone-600">Add a column named "stage", "status", or "phase" to use board view</p>
         </div>
       </div>
     );
@@ -441,16 +441,16 @@ export function BoardView({ objectType }: { objectType: string }) {
         const cards = byStage[stage] ?? [];
         const { dot, text } = stageStyle(stage);
         return (
-          <div key={stage} className="flex flex-col shrink-0 w-[220px] border border-zinc-800/50 rounded-lg overflow-hidden bg-transparent">
+          <div key={stage} className="flex flex-col shrink-0 w-[220px] border border-stone-800/50 rounded-lg overflow-hidden bg-transparent">
             {/* Column header */}
-            <div className="flex items-center justify-between px-3 py-2.5 border-b border-zinc-800/50 shrink-0">
+            <div className="flex items-center justify-between px-3 py-2.5 border-b border-stone-800/50 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`}/>
                 <span className={`text-[11px] font-semibold truncate ${text}`}>{stage}</span>
-                <span className="text-[10px] text-zinc-600 font-medium shrink-0">{cards.length}</span>
+                <span className="text-[10px] text-stone-600 font-medium shrink-0">{cards.length}</span>
               </div>
               <button onClick={() => setCreateForStage(stage)}
-                className="flex items-center justify-center h-5 w-5 rounded text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all shrink-0"
+                className="flex items-center justify-center h-5 w-5 rounded text-stone-600 hover:text-stone-300 hover:bg-stone-800/50 transition-all shrink-0"
                 title={`Add to ${stage}`}>
                 <Plus size={11}/>
               </button>
@@ -460,12 +460,12 @@ export function BoardView({ objectType }: { objectType: string }) {
             <div className="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-[80px]">
               {recordsQuery.isLoading ? (
                 <div className="space-y-1.5">
-                  {[1, 2].map(i => <div key={i} className="h-16 rounded-md bg-zinc-800/20 animate-pulse"/>)}
+                  {[1, 2].map(i => <div key={i} className="h-16 rounded-md bg-stone-800/20 animate-pulse"/>)}
                 </div>
               ) : cards.length === 0 ? (
                 <button onClick={() => setCreateForStage(stage)}
-                  className="flex w-full h-12 items-center justify-center rounded-md border border-dashed border-zinc-800/60 hover:border-zinc-700/60 hover:bg-zinc-800/20 transition-all group/empty">
-                  <Plus size={11} className="text-zinc-700 group-hover/empty:text-zinc-500 transition-colors"/>
+                  className="flex w-full h-12 items-center justify-center rounded-md border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-800/20 transition-all group/empty">
+                  <Plus size={11} className="text-stone-700 group-hover/empty:text-stone-500 transition-colors"/>
                 </button>
               ) : (
                 cards.map(rec => (
@@ -491,22 +491,22 @@ export function BoardView({ objectType }: { objectType: string }) {
 
       {/* Add new stage */}
       {addingStage ? (
-        <div className="flex flex-col shrink-0 w-[220px] border border-zinc-700/60 rounded-lg overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800/50">
+        <div className="flex flex-col shrink-0 w-[220px] border border-stone-700/60 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-stone-800/50">
             <input ref={newStageRef} value={newStageName} onChange={e => setNewStageName(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
               placeholder="Stage name…"
-              className="flex-1 bg-transparent text-[11px] text-white placeholder-zinc-600 outline-none"/>
-            <button onClick={commitNewStage} className="text-zinc-500 hover:text-emerald-400 transition-colors"><Check size={12}/></button>
-            <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-zinc-600 hover:text-zinc-300 transition-colors"><X size={12}/></button>
+              className="flex-1 bg-transparent text-[11px] text-white placeholder-stone-600 outline-none"/>
+            <button onClick={commitNewStage} className="text-stone-500 hover:text-emerald-400 transition-colors"><Check size={12}/></button>
+            <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={12}/></button>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[80px]">
-            <span className="text-[10px] text-zinc-700">New stage</span>
+            <span className="text-[10px] text-stone-700">New stage</span>
           </div>
         </div>
       ) : (
         <button onClick={() => setAddingStage(true)}
-          className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-zinc-800/60 hover:border-zinc-700/60 hover:bg-zinc-900/20 transition-all text-zinc-600 hover:text-zinc-400 self-start min-h-[80px]">
+          className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-stone-600 hover:text-stone-400 self-start min-h-[80px]">
           <Plus size={13}/>
           <span className="text-[10px]">Add stage</span>
         </button>

@@ -60,26 +60,26 @@ export function StepWorkspace() {
     }
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
 
   return (
     <div>
-      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Set up your workspace</h1>
-      <p className="mb-7 font-mono text-[12px] text-zinc-500">This is your company home in Mondaily.</p>
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Set up your workspace</h1>
+      <p className="mb-7 font-mono text-[12px] text-stone-500">This is your company home in Mondaily.</p>
 
       <div className="mb-4">
-        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Workspace name</p>
+        <p className="mb-1.5 font-mono text-[11px] text-stone-500">Workspace name</p>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Acme Corp" className={inputCls} />
       </div>
       <div className="mb-4">
-        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Company size</p>
+        <p className="mb-1.5 font-mono text-[11px] text-stone-500">Company size</p>
         <select value={size} onChange={e => setSize(e.target.value)} className={inputCls}>
           <option value="">Select size</option>
           {SIZES.map(s => <option key={s}>{s}</option>)}
         </select>
       </div>
       <div className="mb-8">
-        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Industry</p>
+        <p className="mb-1.5 font-mono text-[11px] text-stone-500">Industry</p>
         <select value={industry} onChange={e => setIndustry(e.target.value)} className={inputCls}>
           <option value="">Select industry</option>
           {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
@@ -98,7 +98,7 @@ export function StepWorkspace() {
         >
           {loading ? "Saving…" : "Continue"} {!loading && <ArrowRight size={13} />}
         </button>
-        <button onClick={() => navigate("/onboarding/connect-email")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+        <button onClick={() => navigate("/onboarding/connect-email")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-stone-500 hover:bg-stone-50 transition-colors">
           Skip
         </button>
       </div>

@@ -27,7 +27,7 @@ export function NoteEditor({
     content: value,
     editorProps: {
       attributes: {
-        class: "min-h-[140px] px-4 py-3.5 text-sm leading-7 text-slate-200 outline-none",
+        class: "min-h-[140px] px-4 py-3.5 text-sm leading-7 text-stone-200 outline-none",
       },
       handleKeyDown: (_, event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && onSave) {
@@ -58,7 +58,7 @@ export function NoteEditor({
         className={`grid h-7 w-7 place-items-center rounded-md transition-colors ${
           active
             ? "bg-white/[.10] text-white"
-            : "text-slate-500 hover:bg-white/[.05] hover:text-slate-300"
+            : "text-stone-500 hover:bg-white/[.05] hover:text-stone-300"
         }`}
       >
         {icon}
@@ -82,7 +82,7 @@ export function NoteEditor({
           type="button"
           title="Divider"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className="grid h-7 w-7 place-items-center rounded-md text-slate-500 hover:bg-white/[.05] hover:text-slate-300 transition-colors"
+          className="grid h-7 w-7 place-items-center rounded-md text-stone-500 hover:bg-white/[.05] hover:text-stone-300 transition-colors"
         >
           <Minus size={13} />
         </button>
@@ -93,7 +93,7 @@ export function NoteEditor({
             key={name}
             type="button"
             onClick={() => editor.chain().focus().insertContent(`@${name.split(" ")[0]} `).run()}
-            className="rounded-md px-2 py-1 text-[11px] text-slate-600 hover:bg-white/[.05] hover:text-slate-300 transition-colors"
+            className="rounded-md px-2 py-1 text-[11px] text-stone-600 hover:bg-white/[.05] hover:text-stone-300 transition-colors"
           >
             @{name.split(" ")[0]}
           </button>
@@ -115,7 +115,7 @@ export function NoteEditor({
       <EditorContent
         editor={editor}
         className="[&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-white [&_.ProseMirror_h2]:mt-3 [&_.ProseMirror_h2]:mb-1
-          [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-white/20 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-slate-400
+          [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-white/20 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-stone-400
           [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-white/[.05] [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-[12px] [&_.ProseMirror_code]:text-indigo-300
           [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5
           [&_.ProseMirror_hr]:border-white/[.08] [&_.ProseMirror_hr]:my-3"
@@ -123,10 +123,10 @@ export function NoteEditor({
 
       {/* Footer */}
       <div className="flex items-center justify-between border-t border-white/[.06] px-4 py-2">
-        <span className="text-[11px] text-slate-700">
+        <span className="text-[11px] text-stone-700">
           {charCount > 0 ? `${charCount} characters` : "Start typing…"}
         </span>
-        <span className="text-[11px] text-slate-700">⌘ + Enter to save</span>
+        <span className="text-[11px] text-stone-700">⌘ + Enter to save</span>
       </div>
     </div>
   );

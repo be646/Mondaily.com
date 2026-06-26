@@ -141,9 +141,9 @@ interface WorkspaceSummary {
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
   urgent: "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  high:   "border border-neutral-300 bg-neutral-100 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
-  medium: "border border-neutral-300 bg-neutral-100 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300",
-  low:    "border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-500",
+  high:   "border border-stone-300 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
+  medium: "border border-stone-300 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
+  low:    "border border-stone-200 bg-stone-50 text-stone-500 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-500",
 };
 
 export function HomePage() {
@@ -608,9 +608,9 @@ export function HomePage() {
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => firePrompt(prompt)}
-                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 transition-colors group-hover:bg-neutral-200 dark:bg-neutral-900 dark:group-hover:bg-neutral-800">
-                      <Icon size={13} className="text-neutral-500 dark:text-neutral-400"/>
+                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100 transition-colors group-hover:bg-stone-200 dark:bg-stone-900 dark:group-hover:bg-stone-800">
+                      <Icon size={13} className="text-stone-500 dark:text-stone-400"/>
                     </span>
                     <span>
                       <span className="block text-sm transition-colors" style={{ color: "var(--text-primary)" }}>{label}</span>
@@ -624,7 +624,7 @@ export function HomePage() {
 
           <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all sm:px-5">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-neutral-100 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200" : ""}`}
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : ""}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>
               <Zap size={14}/>
             </button>
@@ -639,7 +639,7 @@ export function HomePage() {
               <Mic size={13}/>
             </button>
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200" : ""}`}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-stone-900 text-white hover:bg-stone-800 dark:bg-white dark:text-stone-950 dark:hover:bg-stone-200" : ""}`}
               style={input.trim() && !loading ? undefined : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
@@ -651,15 +651,15 @@ export function HomePage() {
           <div className="mx-auto mt-2.5 flex max-w-3xl flex-wrap items-center gap-2">
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
             {recentThreads.map(t => (
-              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
+              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
             ))}
             <span className="text-xs" style={{ color: "var(--text-faint)" }}>·</span>
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
           </div>
         )}
         {!isChatting && recentThreads.length === 0 && (
           <div className="mx-auto mt-2 flex max-w-3xl justify-end">
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
           </div>
         )}
         </div>
@@ -707,13 +707,13 @@ export function HomePage() {
         <section className="flow-panel-clean flex flex-col overflow-hidden">
           <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckSquare size={13} className="text-neutral-500 dark:text-neutral-400"/>
+              <CheckSquare size={13} className="text-stone-500 dark:text-stone-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tasks</span>
               <span className="flow-micro-badge">
                 <Sparkles size={8}/> AI sorted
               </span>
             </div>
-            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-neutral-900 dark:hover:text-neutral-100" style={{ color: "var(--text-muted)" }}>
+            <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>
               View all <ArrowUpRight size={11}/>
             </Link>
           </div>
@@ -740,7 +740,7 @@ export function HomePage() {
                 {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "bg-neutral-900 dark:bg-neutral-100" : item.status === "in_progress" ? "bg-neutral-500 dark:bg-neutral-400" : "bg-neutral-300 dark:bg-neutral-700";
+                  const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "bg-stone-900 dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
                       className="flow-list-row group flex cursor-pointer items-center gap-3 transition-colors">
@@ -787,7 +787,7 @@ export function HomePage() {
                     {scanLoading ? <Loader2 size={9} className="animate-spin"/> : "Scan"}
                   </button>
                   <button onClick={() => submitTaskWidgetInput(taskWidgetInput)} disabled={!taskWidgetInput.trim()}
-                    className="shrink-0 text-neutral-500 transition-colors hover:text-neutral-900 disabled:opacity-30 dark:text-neutral-400 dark:hover:text-neutral-100">
+                    className="shrink-0 text-stone-500 transition-colors hover:text-stone-900 disabled:opacity-30 dark:text-stone-400 dark:hover:text-stone-100">
                     <Send size={11}/>
                   </button>
                 </>
@@ -800,7 +800,7 @@ export function HomePage() {
         <section className="flow-panel-clean flex flex-col overflow-hidden">
           <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Calendar size={13} className="text-neutral-500 dark:text-neutral-400"/>
+              <Calendar size={13} className="text-stone-500 dark:text-stone-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
             </div>
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Today</span>
@@ -875,7 +875,7 @@ export function HomePage() {
               </div>
               <div className="flex items-center gap-2">
                 {!scanLoading && scanReport && (
-                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                     <Printer size={11}/> Print
                   </button>
                 )}
@@ -894,7 +894,7 @@ export function HomePage() {
             </div>
             {!scanLoading && scanReport && (
               <div className="shrink-0 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
-                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border py-2 text-xs transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border py-2 text-xs transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                   Close
                 </button>
               </div>

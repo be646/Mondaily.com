@@ -6,7 +6,7 @@ export function PageSkeleton({ rows = 6, label }: { rows?: number; label?: strin
   return (
     <div aria-label={label ?? "Loading"} role="status">
       {label && (
-        <p className="mb-3 text-xs font-medium text-[#9ca3af] dark:text-slate-500">{label}</p>
+        <p className="mb-3 text-xs font-medium text-[#9ca3af] dark:text-stone-500">{label}</p>
       )}
       <div className="space-y-2">
         {Array.from({ length: rows }).map((_, index) => (
@@ -33,7 +33,7 @@ export function PageSkeletonCards({ count = 4, label }: { count?: number; label?
   return (
     <div aria-label={label ?? "Loading"} role="status">
       {label && (
-        <p className="mb-3 text-xs font-medium text-[#9ca3af] dark:text-slate-500">{label}</p>
+        <p className="mb-3 text-xs font-medium text-[#9ca3af] dark:text-stone-500">{label}</p>
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: count }).map((_, index) => (

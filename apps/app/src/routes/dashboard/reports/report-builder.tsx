@@ -28,7 +28,7 @@ function Sparkline({ values, height = 320 }: { values: number[]; height?: number
     }).join(" ");
 
   return (
-    <div className="rounded-2xl bg-white p-6 dark:bg-neutral-950/40" style={{ height }}>
+    <div className="rounded-2xl bg-white p-6 dark:bg-stone-950/40" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <polyline
           points={points}
@@ -178,13 +178,13 @@ function ConfigPanel({ report, update, objects }: {
           <div className="grid grid-cols-3 gap-1">
             {(["line","bar","number"] as const).map(t => (
               <button key={t} onClick={() => update({ chart_type: t })}
-                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-slate-400"}`}>
+                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-stone-400"}`}>
                 {t}
               </button>
             ))}
           </div>
         </Field>
-        <label className="flex items-center justify-between text-sm text-slate-400">
+        <label className="flex items-center justify-between text-sm text-stone-400">
           Compare previous period
           <input type="checkbox" checked={config.compare} onChange={e => update({ compare: e.target.checked })} className="accent-red-500" />
         </label>
@@ -209,9 +209,9 @@ function ConfigPanel({ report, update, objects }: {
                 }}
                 className="flex items-center gap-2"
               >
-                <GripVertical size={13} className="cursor-grab text-slate-600" />
+                <GripVertical size={13} className="cursor-grab text-stone-600" />
                 <input value={stage} onChange={e => update({ stages: config.stages.map((v, j) => j === i ? e.target.value : v) })} className="input flex-1" />
-                <button onClick={() => update({ stages: config.stages.filter((_,j) => j !== i) })} className="text-slate-600 hover:text-indigo-400">
+                <button onClick={() => update({ stages: config.stages.filter((_,j) => j !== i) })} className="text-stone-600 hover:text-indigo-400">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -251,8 +251,8 @@ function ConfigPanel({ report, update, objects }: {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block text-sm text-slate-400">
-      <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-600">{label}</span>
+    <label className="block text-sm text-stone-400">
+      <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-stone-600">{label}</span>
       {children}
     </label>
   );
@@ -264,8 +264,8 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
   if (!data.length && !result?.total) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2 text-center">
-        <p className="text-sm text-slate-500">No data yet for this configuration.</p>
-        <p className="text-xs text-slate-600">Try changing the object type, metric, or date range.</p>
+        <p className="text-sm text-stone-500">No data yet for this configuration.</p>
+        <p className="text-xs text-stone-600">Try changing the object type, metric, or date range.</p>
       </div>
     );
   }

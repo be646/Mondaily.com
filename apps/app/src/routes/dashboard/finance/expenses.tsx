@@ -25,12 +25,12 @@ const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; 
   meals:                { color: "text-amber-400",   icon: Coffee,        label: "Meals"                },
   marketing:            { color: "text-pink-400",    icon: Zap,           label: "Marketing"            },
   professional_services:{ color: "text-emerald-400", icon: Briefcase,     label: "Professional Services"},
-  office:               { color: "text-slate-400",   icon: Building2,     label: "Office"              },
-  other:                { color: "text-zinc-500",    icon: MoreHorizontal,label: "Other"                },
+  office:               { color: "text-stone-400",   icon: Building2,     label: "Office"              },
+  other:                { color: "text-stone-500",    icon: MoreHorizontal,label: "Other"                },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  draft:     { label: "Draft",     color: "text-zinc-400 bg-zinc-400/10",     icon: Receipt      },
+  draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: Receipt      },
   submitted: { label: "Submitted", color: "text-blue-400 bg-blue-400/10",     icon: Clock        },
   approved:  { label: "Approved",  color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle2 },
   rejected:  { label: "Rejected",  color: "text-indigo-400 bg-indigo-400/10",       icon: XCircle      },
@@ -81,53 +81,53 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-amber-500/20 flex items-center justify-center"><Receipt size={12} className="text-amber-400"/></div>
             <span className="text-sm font-semibold text-white">Log Expense</span>
           </div>
-          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors text-lg leading-none">×</button>
+          <button onClick={onClose} className="text-stone-600 hover:text-stone-300 transition-colors text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Description</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Description</label>
               <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="e.g. Flight to London" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Amount</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Amount</label>
               <input value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00" type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Currency</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Currency</label>
               <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                 className="key-input w-full text-sm">
                 {["GBP", "USD", "EUR", "CAD", "AUD"].map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Category</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Category</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                 className="key-input w-full text-sm">
                 {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Date</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Date</label>
               <input value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 type="date" className="key-input w-full text-sm"/>
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Vendor (optional)</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Vendor (optional)</label>
               <input value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))}
                 placeholder="e.g. British Airways" className="key-input w-full text-sm"/>
             </div>
           </div>
           {error && <p className="text-[11px] text-indigo-400 bg-indigo-400/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
-            <button onClick={onClose} className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+            <button onClick={onClose} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
               className="flex items-center gap-1.5 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50">
               {loading ? "Saving…" : "Log Expense"}
@@ -169,11 +169,11 @@ export function ExpensesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
+      <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-white">Expenses</h1>
-            <p className="text-[12px] text-zinc-500 mt-0.5">Track and manage business expenses</p>
+            <p className="text-[12px] text-stone-500 mt-0.5">Track and manage business expenses</p>
           </div>
           <button onClick={() => setShowNew(true)}
             className="flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-colors">
@@ -183,37 +183,37 @@ export function ExpensesPage() {
 
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Submitted</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-blue-400"/><span className="text-[11px] text-stone-500">Submitted</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalSubmitted, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
+            <div className="text-[10px] text-stone-700 mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Approved</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-stone-500">Approved</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalApproved, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
+            <div className="text-[10px] text-stone-700 mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-zinc-500"/><span className="text-[11px] text-zinc-500">This Month</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-stone-500"/><span className="text-[11px] text-stone-500">This Month</span></div>
             <div className="text-[17px] font-semibold text-white">{fmt(totalThisMonth, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">all statuses</div>
+            <div className="text-[10px] text-stone-700 mt-0.5">all statuses</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] p-1 flex-wrap">
             <button onClick={() => setCategoryFilter("")}
-              className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === "" ? "bg-white/[.07] text-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+              className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === "" ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}>
               All
             </button>
             {CATEGORIES.map(c => (
               <button key={c.key} onClick={() => setCategoryFilter(c.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === c.key ? "bg-white/[.07] text-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === c.key ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}>
                 {c.label}
               </button>
             ))}
           </div>
           <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-600"/>
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-600"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses…" className="key-input w-full pl-7 text-[12px]"/>
           </div>
         </div>
@@ -221,11 +221,11 @@ export function ExpensesPage() {
 
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-zinc-600">Loading…</div>
+          <div className="flex h-40 items-center justify-center text-[12px] text-stone-600">Loading…</div>
         ) : expenses.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
-            <Receipt size={32} className="text-zinc-700"/>
-            <div className="text-[13px] text-zinc-500">No expenses {categoryFilter ? `in category "${categoryFilter}"` : "yet"}</div>
+            <Receipt size={32} className="text-stone-700"/>
+            <div className="text-[13px] text-stone-500">No expenses {categoryFilter ? `in category "${categoryFilter}"` : "yet"}</div>
             <button onClick={() => setShowNew(true)} className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">Log your first expense</button>
           </div>
         ) : (
@@ -233,7 +233,7 @@ export function ExpensesPage() {
             <thead>
               <tr className="border-b border-white/[.04]">
                 {["Date", "Description", "Vendor", "Category", "Amount", "Status"].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-zinc-600">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-stone-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -245,11 +245,11 @@ export function ExpensesPage() {
                 const StsIcon = stsCfg.icon;
                 return (
                   <tr key={e.id} className="border-b border-white/[.03] hover:bg-white/[.015] transition-colors">
-                    <td className="px-4 py-3 text-[11px] text-zinc-600">
+                    <td className="px-4 py-3 text-[11px] text-stone-600">
                       {new Date(e.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3 text-[12px] font-medium text-white">{e.description}</td>
-                    <td className="px-4 py-3 text-[11px] text-zinc-500">{e.vendor ?? "—"}</td>
+                    <td className="px-4 py-3 text-[11px] text-stone-500">{e.vendor ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 text-[10px] font-medium ${catCfg.color}`}>
                         <CatIcon size={10}/>{catCfg.label}

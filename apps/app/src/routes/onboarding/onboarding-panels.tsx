@@ -21,10 +21,10 @@ function FadeIn({ show, delay = 0, children }: { show: boolean; delay?: number; 
 
 function PanelShell({ tag, title, children }: { tag: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="flex h-full flex-col border-l border-black/[.06] bg-zinc-50 px-10 py-10 overflow-y-auto">
+    <div className="flex h-full flex-col border-l border-black/[.06] bg-stone-50 px-10 py-10 overflow-y-auto">
       <div className="mb-8">
         <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-indigo-500">{tag}</p>
-        <h2 className="font-sans text-xl font-semibold tracking-tight text-zinc-900">{title}</h2>
+        <h2 className="font-sans text-xl font-semibold tracking-tight text-stone-900">{title}</h2>
       </div>
       <div className="flex flex-col gap-5">{children}</div>
     </div>
@@ -64,12 +64,12 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
             {hasEmail ? email.charAt(0).toUpperCase() : "?"}
           </div>
           <div className="min-w-0">
-            <p className="font-mono text-[13px] font-medium text-zinc-800 truncate transition-all duration-300">
+            <p className="font-mono text-[13px] font-medium text-stone-800 truncate transition-all duration-300">
               {email || "your@email.com"}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-500 ${hasEmail ? "bg-emerald-500" : "bg-zinc-300"}`} />
-              <span className="font-mono text-[10px] text-zinc-400">{hasEmail ? "identity registered" : "waiting for email"}</span>
+              <span className={`h-1.5 w-1.5 rounded-full transition-colors duration-500 ${hasEmail ? "bg-emerald-500" : "bg-stone-300"}`} />
+              <span className="font-mono text-[10px] text-stone-400">{hasEmail ? "identity registered" : "waiting for email"}</span>
             </div>
           </div>
         </div>
@@ -82,10 +82,10 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
             { label: "Workspace ready", done: isDone },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
-              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200 bg-white"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200 bg-white"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -94,11 +94,11 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
       {/* Mini dashboard preview */}
       <FadeIn show={hasEmail} delay={100}>
         <div className="rounded-2xl border border-black/[.07] bg-white overflow-hidden">
-          <div className="flex items-center gap-1.5 border-b border-black/[.05] bg-zinc-50 px-4 py-2.5">
-            <div className="h-2 w-2 rounded-full bg-zinc-200" />
-            <div className="h-2 w-2 rounded-full bg-zinc-200" />
-            <div className="h-2 w-2 rounded-full bg-zinc-200" />
-            <span className="ml-2 font-mono text-[10px] text-zinc-400">app.mondaily.com</span>
+          <div className="flex items-center gap-1.5 border-b border-black/[.05] bg-stone-50 px-4 py-2.5">
+            <div className="h-2 w-2 rounded-full bg-stone-200" />
+            <div className="h-2 w-2 rounded-full bg-stone-200" />
+            <div className="h-2 w-2 rounded-full bg-stone-200" />
+            <span className="ml-2 font-mono text-[10px] text-stone-400">app.mondaily.com</span>
           </div>
           <div className="flex h-24 items-center justify-center">
             {isDone ? (
@@ -107,7 +107,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
                 <span className="font-mono text-[12px]">Workspace launching…</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-zinc-300">
+              <div className="flex items-center gap-2 text-stone-300">
                 <LayoutDashboard size={14} />
                 <span className="font-mono text-[11px]">Workspace slot reserved</span>
               </div>
@@ -119,13 +119,13 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
       {/* Features */}
       <FadeIn show={hasEmail} delay={200}>
         <div className="rounded-2xl border border-black/[.07] bg-white p-5">
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-zinc-400">What you unlock</p>
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-stone-400">What you unlock</p>
           <div className="space-y-2">
             {["Workspace graph · contacts, companies, deals", "Finance · invoices & expenses", "AI enrichment · auto-updated records", "Automations · no-code workflows"].map((f, i) => (
               <FadeIn key={f} show={hasEmail} delay={300 + i * 80}>
                 <div className="flex items-center gap-2">
                   <Check size={10} className="shrink-0 text-indigo-500" />
-                  <span className="font-mono text-[12px] text-zinc-600">{f}</span>
+                  <span className="font-mono text-[12px] text-stone-600">{f}</span>
                 </div>
               </FadeIn>
             ))}
@@ -181,8 +181,8 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
             { label: "Status", value: "Active", show: hasTitle },
           ].map(({ label, value, show }) => (
             <div key={label} className="rounded-lg border border-black/[.05] p-2.5 text-center">
-              <p className="font-mono text-[10px] text-zinc-400 mb-0.5">{label}</p>
-              <p className={`font-mono text-[12px] font-semibold transition-colors duration-300 ${show ? "text-indigo-600" : "text-zinc-200"}`}>{value}</p>
+              <p className="font-mono text-[10px] text-stone-400 mb-0.5">{label}</p>
+              <p className={`font-mono text-[12px] font-semibold transition-colors duration-300 ${show ? "text-indigo-600" : "text-stone-200"}`}>{value}</p>
             </div>
           ))}
         </div>
@@ -195,7 +195,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
             <Zap size={13} className="text-indigo-500 shrink-0" />
             <div>
               <p className="font-mono text-[12px] font-semibold text-indigo-700">Workspace Admin</p>
-              <p className="font-mono text-[10px] text-zinc-400">Full access · can invite teammates</p>
+              <p className="font-mono text-[10px] text-stone-400">Full access · can invite teammates</p>
             </div>
           </div>
         </div>
@@ -211,10 +211,10 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
               { label: "Profile complete", done: hasName && hasTitle },
             ].map(({ label, done }) => (
               <div key={label} className="flex items-center gap-2.5">
-                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
+                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200"}`}>
                   {done && <Check size={9} className="text-white" strokeWidth={3} />}
                 </div>
-                <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+                <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
               </div>
             ))}
           </div>
@@ -251,15 +251,15 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
       {/* Browser frame with live sidebar */}
       <div className="rounded-2xl border border-black/[.07] bg-white overflow-hidden">
         {/* Browser chrome */}
-        <div className="flex items-center gap-2 border-b border-black/[.05] bg-zinc-50 px-4 py-2.5">
+        <div className="flex items-center gap-2 border-b border-black/[.05] bg-stone-50 px-4 py-2.5">
           <div className="flex gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-200" />
+            <div className="h-2.5 w-2.5 rounded-full bg-stone-200" />
+            <div className="h-2.5 w-2.5 rounded-full bg-stone-200" />
+            <div className="h-2.5 w-2.5 rounded-full bg-stone-200" />
           </div>
           <div className="mx-auto flex items-center gap-1.5 rounded border border-black/[.06] bg-white px-3 py-1">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span className="font-mono text-[10px] text-zinc-400">app.mondaily.com</span>
+            <span className="font-mono text-[10px] text-stone-400">app.mondaily.com</span>
           </div>
         </div>
 
@@ -277,9 +277,9 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             <div className="flex-1 py-2">
               {NAV_ITEMS.map(({ icon: Icon, label }, i) => (
                 <FadeIn key={label} show={hasName} delay={i * 80}>
-                  <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-50 cursor-default">
-                    <Icon size={11} className="text-zinc-400 shrink-0" />
-                    <span className="font-mono text-[10px] text-zinc-500">{label}</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-stone-50 cursor-default">
+                    <Icon size={11} className="text-stone-400 shrink-0" />
+                    <span className="font-mono text-[10px] text-stone-500">{label}</span>
                   </div>
                 </FadeIn>
               ))}
@@ -289,7 +289,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
           {/* Main content */}
           <div className="flex-1 p-4 overflow-hidden">
             <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">Pipeline</span>
+              <span className="font-mono text-[10px] uppercase tracking-widest text-stone-400">Pipeline</span>
               <FadeIn show={hasName}>
                 <span className="font-mono text-[10px] text-indigo-500">
                   <Counter target={recordCount} /> records
@@ -299,9 +299,9 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             <div className="space-y-2">
               {PIPELINE_DEALS.map((deal, i) => (
                 <FadeIn key={deal} show={hasName} delay={200 + i * 120}>
-                  <div className="flex items-center gap-2 rounded-lg border border-black/[.05] bg-zinc-50 px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-lg border border-black/[.05] bg-stone-50 px-3 py-2">
                     <div className="h-3 w-3 rounded bg-indigo-500/20 shrink-0" />
-                    <span className="font-mono text-[10px] text-zinc-600 truncate">{deal}</span>
+                    <span className="font-mono text-[10px] text-stone-600 truncate">{deal}</span>
                   </div>
                 </FadeIn>
               ))}
@@ -320,10 +320,10 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             { label: "Workspace graph activated", done: hasName },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
-              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -346,7 +346,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
 
       {/* Provider cards */}
       <div className="rounded-2xl border border-black/[.07] bg-white p-5 space-y-3">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 mb-4">Connect your inbox</p>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-stone-400 mb-4">Connect your inbox</p>
         {PROVIDERS.map(({ id, label, color }) => {
           const isConnected = connected.includes(id);
           return (
@@ -359,7 +359,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
               }}
             >
               <Mail size={14} style={{ color: isConnected ? color : "#d4d4d8" }} className="transition-colors duration-300 shrink-0" />
-              <span className="flex-1 font-mono text-[12px] text-zinc-700">{label}</span>
+              <span className="flex-1 font-mono text-[12px] text-stone-700">{label}</span>
               {isConnected && (
                 <div className="flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -374,7 +374,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
       {/* Graph preview */}
       <FadeIn show={anyConnected} delay={100}>
         <div className="rounded-2xl border border-black/[.07] bg-white p-5">
-          <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-zinc-400">Relationship graph building</p>
+          <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-stone-400">Relationship graph building</p>
           <div className="flex items-center justify-center py-4">
             <svg width="200" height="100" viewBox="0 0 200 100">
               {/* Animated connections */}
@@ -406,7 +406,7 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
               <FadeIn key={f} show={anyConnected} delay={200 + i * 100}>
                 <div className="flex items-center gap-2">
                   <Check size={9} className="text-indigo-500 shrink-0" />
-                  <span className="font-mono text-[11px] text-zinc-500">{f}</span>
+                  <span className="font-mono text-[11px] text-stone-500">{f}</span>
                 </div>
               </FadeIn>
             ))}
@@ -428,7 +428,7 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
       {/* Team cards */}
       <div className="rounded-2xl border border-black/[.07] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">Team</p>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-stone-400">Team</p>
           <span className="font-mono text-[10px] text-indigo-500">{valid.length + 1} member{valid.length !== 0 ? "s" : ""}</span>
         </div>
 
@@ -437,7 +437,7 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
           <div className="flex items-center gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-3 py-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 font-semibold text-white text-xs">Y</div>
             <div>
-              <p className="font-mono text-[12px] font-medium text-zinc-800">You</p>
+              <p className="font-mono text-[12px] font-medium text-stone-800">You</p>
               <p className="font-mono text-[10px] text-indigo-500">Admin · workspace owner</p>
             </div>
           </div>
@@ -446,12 +446,12 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
           {valid.map((email, i) => (
             <FadeIn key={email} show delay={i * 80}>
               <div className="flex items-center gap-3 rounded-xl border border-black/[.06] bg-white px-3 py-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-semibold text-zinc-600 text-xs">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 font-semibold text-stone-600 text-xs">
                   {email.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-mono text-[12px] font-medium text-zinc-700 truncate">{email.split("@")[0]}</p>
-                  <p className="font-mono text-[10px] text-zinc-400 truncate">{email}</p>
+                  <p className="font-mono text-[12px] font-medium text-stone-700 truncate">{email.split("@")[0]}</p>
+                  <p className="font-mono text-[10px] text-stone-400 truncate">{email}</p>
                 </div>
                 <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[9px] text-amber-600">
                   {sent ? "Sent" : "Pending"}
@@ -463,10 +463,10 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
           {/* Empty slot */}
           {valid.length === 0 && (
             <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-black/[.06] px-3 py-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-zinc-200">
-                <Users size={11} className="text-zinc-300" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-stone-200">
+                <Users size={11} className="text-stone-300" />
               </div>
-              <span className="font-mono text-[11px] text-zinc-300">Type an email to add a teammate</span>
+              <span className="font-mono text-[11px] text-stone-300">Type an email to add a teammate</span>
             </div>
           )}
         </div>
@@ -521,20 +521,20 @@ export function ImportPanel({ file }: { file: string }) {
       {/* File status */}
       <div className="rounded-2xl border border-black/[.07] bg-white p-5">
         <div className="flex items-center gap-3 mb-4">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${file ? "bg-indigo-500" : "bg-zinc-100"}`}>
-            <FileSpreadsheet size={16} className={file ? "text-white" : "text-zinc-300"} />
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${file ? "bg-indigo-500" : "bg-stone-100"}`}>
+            <FileSpreadsheet size={16} className={file ? "text-white" : "text-stone-300"} />
           </div>
           <div className="min-w-0">
-            <p className={`font-mono text-[12px] font-medium truncate transition-colors duration-300 ${file ? "text-zinc-800" : "text-zinc-300"}`}>
+            <p className={`font-mono text-[12px] font-medium truncate transition-colors duration-300 ${file ? "text-stone-800" : "text-stone-300"}`}>
               {file || "No file selected"}
             </p>
-            <p className="font-mono text-[10px] text-zinc-400">{file ? "Ready for review" : "Drop a CSV or Excel file"}</p>
+            <p className="font-mono text-[10px] text-stone-400">{file ? "Ready for review" : "Drop a CSV or Excel file"}</p>
           </div>
         </div>
 
         {/* Data table */}
         <div className="rounded-xl border border-black/[.05] overflow-hidden">
-          <div className="grid grid-cols-3 border-b border-black/[.05] bg-zinc-50 px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-zinc-400">
+          <div className="grid grid-cols-3 border-b border-black/[.05] bg-stone-50 px-3 py-2 font-mono text-[9px] uppercase tracking-widest text-stone-400">
             <span>Name</span><span>Type</span><span>ARR</span>
           </div>
           {ALL_ROWS.map((row, i) => (
@@ -546,9 +546,9 @@ export function ImportPanel({ file }: { file: string }) {
                 transform: i < visibleRows ? "translateX(0)" : "translateX(-8px)",
               }}
             >
-              <span className="truncate text-zinc-700">{row.name}</span>
-              <span className="text-zinc-400">{row.type}</span>
-              <span className="text-zinc-600">{row.arr}</span>
+              <span className="truncate text-stone-700">{row.name}</span>
+              <span className="text-stone-400">{row.type}</span>
+              <span className="text-stone-600">{row.arr}</span>
             </div>
           ))}
         </div>
@@ -564,10 +564,10 @@ export function ImportPanel({ file }: { file: string }) {
             { label: "Awaiting your confirmation", done: false },
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
-              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-zinc-200"}`}>
+              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-indigo-500 bg-indigo-500" : "border-stone-200"}`}>
                 {done && <Check size={9} className="text-white" strokeWidth={3} />}
               </div>
-              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-zinc-700" : "text-zinc-300"}`}>{label}</span>
+              <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
             </div>
           ))}
         </div>
@@ -623,8 +623,8 @@ export function PlanPanel({ selected }: { selected: string }) {
       <div className="rounded-2xl border border-black/[.07] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="font-sans text-lg font-semibold capitalize text-zinc-900">{selected}</p>
-            <p className="font-mono text-[12px] text-zinc-400">{plan.price}</p>
+            <p className="font-sans text-lg font-semibold capitalize text-stone-900">{selected}</p>
+            <p className="font-mono text-[12px] text-stone-400">{plan.price}</p>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
             <Zap size={16} className="text-indigo-500" />
@@ -645,9 +645,9 @@ export function PlanPanel({ selected }: { selected: string }) {
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all duration-400"
                 style={{ background: i < unlockedCount ? "#6366f1" : "#f4f4f5" }}
               >
-                <Check size={10} className={i < unlockedCount ? "text-white" : "text-zinc-300"} strokeWidth={3} />
+                <Check size={10} className={i < unlockedCount ? "text-white" : "text-stone-300"} strokeWidth={3} />
               </div>
-              <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-zinc-700" : "text-zinc-300"}`}>
+              <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-stone-700" : "text-stone-300"}`}>
                 {feature}
               </span>
               {i === unlockedCount - 1 && (

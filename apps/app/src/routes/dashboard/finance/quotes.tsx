@@ -21,11 +21,11 @@ interface Quote {
 }
 
 const STATUS_CONFIG: Record<QuoteStatus, { label: string; color: string; icon: React.ElementType }> = {
-  draft:    { label: "Draft",    color: "text-zinc-400 bg-zinc-400/10",     icon: ReceiptText   },
+  draft:    { label: "Draft",    color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
   sent:     { label: "Sent",     color: "text-blue-400 bg-blue-400/10",     icon: Send          },
   accepted: { label: "Accepted", color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle2 },
   declined: { label: "Declined", color: "text-indigo-400 bg-indigo-400/10",       icon: XCircle       },
-  expired:  { label: "Expired",  color: "text-zinc-600 bg-zinc-600/10",     icon: Clock         },
+  expired:  { label: "Expired",  color: "text-stone-600 bg-stone-600/10",     icon: Clock         },
 };
 
 const FILTERS = [
@@ -80,46 +80,46 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-blue-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-blue-400"/></div>
             <span className="text-sm font-semibold text-white">New Quote</span>
           </div>
-          <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 transition-colors text-lg leading-none">×</button>
+          <button onClick={onClose} className="text-stone-600 hover:text-stone-300 transition-colors text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Client name</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Client name</label>
               <input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
                 placeholder="Acme Corp" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Amount</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Amount</label>
               <input value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00" type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Currency</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Currency</label>
               <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
                 className="key-input w-full text-sm">
                 {["GBP", "USD", "EUR", "CAD", "AUD"].map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Expires</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Expires</label>
               <input value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
                 type="date" className="key-input w-full text-sm"/>
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-600 mb-1">Notes</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Notes</label>
               <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2} placeholder="Additional details…" className="key-input w-full text-sm resize-none"/>
             </div>
           </div>
           {error && <p className="text-[11px] text-indigo-400 bg-indigo-400/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
-            <button onClick={onClose} className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+            <button onClick={onClose} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
               className="flex items-center gap-1.5 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50">
               {loading ? "Creating…" : "Create Quote"}
@@ -153,11 +153,11 @@ export function QuotesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-neutral-200 dark:border-neutral-800 px-6 py-4">
+      <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-white">Quotes</h1>
-            <p className="text-[12px] text-zinc-500 mt-0.5">Manage proposals and client quotes</p>
+            <p className="text-[12px] text-stone-500 mt-0.5">Manage proposals and client quotes</p>
           </div>
           <button onClick={() => setShowNew(true)}
             className="flex items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-indigo-400 transition-colors">
@@ -167,19 +167,19 @@ export function QuotesPage() {
 
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-blue-400"/><span className="text-[11px] text-zinc-500">Sent</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-blue-400"/><span className="text-[11px] text-stone-500">Sent</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalPending, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
+            <div className="text-[10px] text-stone-700 mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-zinc-500">Accepted</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-stone-500">Accepted</span></div>
             <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalAccepted, currency)}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
+            <div className="text-[10px] text-stone-700 mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-zinc-500"/><span className="text-[11px] text-zinc-500">Total quotes</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-stone-500"/><span className="text-[11px] text-stone-500">Total quotes</span></div>
             <div className="text-[17px] font-semibold text-white">{quotes.length}</div>
-            <div className="text-[10px] text-zinc-700 mt-0.5">all statuses</div>
+            <div className="text-[10px] text-stone-700 mt-0.5">all statuses</div>
           </div>
         </div>
 
@@ -187,13 +187,13 @@ export function QuotesPage() {
           <div className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] p-1">
             {FILTERS.map(f => (
               <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-white/[.07] text-white" : "text-zinc-500 hover:text-zinc-300"}`}>
+                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}>
                 {f.label}
               </button>
             ))}
           </div>
           <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-600"/>
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-600"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by client…" className="key-input w-full pl-7 text-[12px]"/>
           </div>
         </div>
@@ -201,11 +201,11 @@ export function QuotesPage() {
 
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-zinc-600">Loading…</div>
+          <div className="flex h-40 items-center justify-center text-[12px] text-stone-600">Loading…</div>
         ) : quotes.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
-            <ReceiptText size={32} className="text-zinc-700"/>
-            <div className="text-[13px] text-zinc-500">No quotes {statusFilter ? `with status "${statusFilter}"` : "yet"}</div>
+            <ReceiptText size={32} className="text-stone-700"/>
+            <div className="text-[13px] text-stone-500">No quotes {statusFilter ? `with status "${statusFilter}"` : "yet"}</div>
             <button onClick={() => setShowNew(true)} className="text-[12px] text-indigo-400 hover:text-indigo-300 transition-colors">Create your first quote</button>
           </div>
         ) : (
@@ -213,7 +213,7 @@ export function QuotesPage() {
             <thead>
               <tr className="border-b border-white/[.04]">
                 {["Number", "Client", "Amount", "Status", "Expires", "Created", ""].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-zinc-600">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-stone-600">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -224,7 +224,7 @@ export function QuotesPage() {
                 return (
                   <tr key={q.id}
                     className="border-b border-white/[.03] hover:bg-white/[.015] transition-colors">
-                    <td className="px-4 py-3 text-[12px] font-mono text-zinc-400">{q.number}</td>
+                    <td className="px-4 py-3 text-[12px] font-mono text-stone-400">{q.number}</td>
                     <td className="px-4 py-3 text-[12px] font-medium text-white">{q.client_name}</td>
                     <td className="px-4 py-3 text-[13px] font-semibold text-white">{fmt(q.amount_cents, q.currency)}</td>
                     <td className="px-4 py-3">
@@ -232,14 +232,14 @@ export function QuotesPage() {
                         <Icon size={10}/>{cfg.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-zinc-600">
+                    <td className="px-4 py-3 text-[11px] text-stone-600">
                       {q.expires_at ? new Date(q.expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-zinc-600">
+                    <td className="px-4 py-3 text-[11px] text-stone-600">
                       {new Date(q.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3">
-                      <ChevronRight size={13} className="text-zinc-700 hover:text-zinc-400 transition-colors"/>
+                      <ChevronRight size={13} className="text-stone-700 hover:text-stone-400 transition-colors"/>
                     </td>
                   </tr>
                 );

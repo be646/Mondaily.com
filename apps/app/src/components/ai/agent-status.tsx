@@ -67,7 +67,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <div className="relative">
             <button
               onClick={() => setMenuOpen(o => !o)}
-              className="rounded-md p-1.5 text-zinc-500 hover:bg-white/[.05] hover:text-white transition-colors"
+              className="rounded-md p-1.5 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"
             >
               <MoreHorizontal size={13}/>
             </button>
@@ -95,7 +95,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1.5 text-zinc-500 hover:bg-white/[.05] hover:text-white transition-colors"
+            className="rounded-md p-1.5 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"
           >
             <X size={13}/>
           </button>
@@ -105,7 +105,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       {/* Context strip — what this drawer is scoped to right now */}
       {pageContext?.scope_label && (
         <div className="shrink-0 border-b border-white/[.06] px-3 py-1.5">
-          <span className="text-[10px] text-zinc-500">Scoped to: <span className="text-zinc-300">{pageContext.scope_label}</span></span>
+          <span className="text-[10px] text-stone-500">Scoped to: <span className="text-stone-300">{pageContext.scope_label}</span></span>
         </div>
       )}
 
@@ -125,7 +125,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
                     ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm whitespace-pre-wrap"
-                    : "text-slate-300"
+                    : "text-stone-300"
                 }`}>
                   {m.role === "assistant" ? <Markdown text={m.content}/> : m.content}
                 </div>
@@ -149,18 +149,18 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                   <div className="flex items-center gap-1 ml-1">
                     <button
                       onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, 1, i)}
-                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-zinc-700 hover:text-emerald-400"}`}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-stone-700 hover:text-emerald-400"}`}
                     >
                       <ThumbsUp size={10}/>
                     </button>
                     <button
                       onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, -1, i)}
-                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-zinc-700 hover:text-indigo-400"}`}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-stone-700 hover:text-indigo-400"}`}
                     >
                       <ThumbsDown size={10}/>
                     </button>
                     {feedbackGiven[i] && (
-                      <span className="text-[10px] text-zinc-700">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
+                      <span className="text-[10px] text-stone-700">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>
                     )}
                   </div>
                 )}
@@ -190,14 +190,14 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             </div>
             <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
               {streamStatus ? (
-                <span className="text-[10.5px] text-zinc-400">{streamStatus}</span>
+                <span className="text-[10.5px] text-stone-400">{streamStatus}</span>
               ) : tokenCount > 0 ? (
-                <span className="text-[10.5px] text-zinc-500">{tokenCount} tokens</span>
+                <span className="text-[10.5px] text-stone-500">{tokenCount} tokens</span>
               ) : (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:0ms]"/>
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:150ms]"/>
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:300ms]"/>
+                  <span className="h-1.5 w-1.5 rounded-full bg-stone-600 animate-bounce [animation-delay:0ms]"/>
+                  <span className="h-1.5 w-1.5 rounded-full bg-stone-600 animate-bounce [animation-delay:150ms]"/>
+                  <span className="h-1.5 w-1.5 rounded-full bg-stone-600 animate-bounce [animation-delay:300ms]"/>
                 </>
               )}
             </div>
@@ -214,12 +214,12 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
             placeholder="Ask anything…"
-            className="flex-1 bg-transparent text-[12px] text-white placeholder-zinc-600 outline-none"
+            className="flex-1 bg-transparent text-[12px] text-white placeholder-stone-600 outline-none"
           />
           <button
             onClick={send}
             disabled={loading || !input.trim()}
-            className="text-zinc-600 hover:text-indigo-400 disabled:opacity-30 transition-colors"
+            className="text-stone-600 hover:text-indigo-400 disabled:opacity-30 transition-colors"
           >
             {loading ? <Loader2 size={12} className="animate-spin"/> : <Send size={12}/>}
           </button>
@@ -244,22 +244,22 @@ function ShareModal({ onClose }: { onClose: () => void }) {
       <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Share2 size={14} className="text-zinc-400"/>
+            <Share2 size={14} className="text-stone-400"/>
             <span className="text-[13px] font-semibold text-white">Share this view</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-zinc-500 hover:bg-white/[.05] hover:text-white transition-colors"
+            className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"
           >
             <X size={13}/>
           </button>
         </div>
-        <p className="mb-3 text-[11px] text-zinc-600 leading-relaxed">
+        <p className="mb-3 text-[11px] text-stone-600 leading-relaxed">
           Anyone with this link can view this page if they have access to this workspace.
         </p>
         <div className="flex items-center gap-2 rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2.5">
-          <span className="flex-1 truncate text-[11px] text-zinc-500">{url}</span>
-          <button onClick={copy} className="shrink-0 text-zinc-500 hover:text-white transition-colors">
+          <span className="flex-1 truncate text-[11px] text-stone-500">{url}</span>
+          <button onClick={copy} className="shrink-0 text-stone-500 hover:text-white transition-colors">
             {copied ? <Check size={13} className="text-emerald-400"/> : <Copy size={13}/>}
           </button>
         </div>
@@ -311,7 +311,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
       <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-white/[.06] dark:bg-[#0d0f13] px-4 py-1.5 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
-          {leftSlot ?? <span className="text-xs text-[#9ca3af] dark:text-zinc-700">AI status: idle</span>}
+          {leftSlot ?? <span className="text-xs text-[#9ca3af] dark:text-stone-700">AI status: idle</span>}
         </div>
 
         {/* Right actions */}
@@ -319,14 +319,14 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {showShare && (
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-[11px] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-white/[.07] dark:text-zinc-500 dark:hover:bg-white/[.04] dark:hover:text-white"
+              className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-[11px] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-white/[.07] dark:text-stone-500 dark:hover:bg-white/[.04] dark:hover:text-white"
             >
               <Share2 size={12}/> Share
             </button>
           )}
 
           <button
-            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:text-zinc-600 dark:hover:bg-white/[.04] dark:hover:text-zinc-300"
+            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:text-stone-600 dark:hover:bg-white/[.04] dark:hover:text-stone-300"
             title="Help"
           >
             <HelpCircle size={14}/>
@@ -335,7 +335,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
@@ -350,7 +350,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
               askOpen
                 ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-400/30 dark:bg-indigo-500/10 dark:text-white"
-                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-indigo-200 hover:bg-indigo-50 dark:border-white/[.07] dark:bg-transparent dark:text-zinc-400 dark:hover:border-indigo-400/30 dark:hover:bg-indigo-500/10 dark:hover:text-white"
+                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-indigo-200 hover:bg-indigo-50 dark:border-white/[.07] dark:bg-transparent dark:text-stone-400 dark:hover:border-indigo-400/30 dark:hover:bg-indigo-500/10 dark:hover:text-white"
             }`}
           >
             <Sparkles size={12} className={askOpen ? "text-indigo-600 dark:text-indigo-400" : "text-indigo-500 dark:text-indigo-400"}/>
@@ -381,7 +381,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                     </div>
                     <div className="min-w-0">
                       <div className="truncate text-[12px] font-medium text-white">{fullName}</div>
-                      <div className="truncate text-[10px] text-zinc-600">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                      <div className="truncate text-[10px] text-stone-600">{user?.emailAddresses?.[0]?.emailAddress}</div>
                     </div>
                   </div>
                   <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="dropdown-item">

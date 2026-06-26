@@ -18,7 +18,7 @@ const AVAILABLE_MODULES = [
 ];
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <p className="mb-1.5 font-mono text-[11px] text-zinc-500">{children}</p>;
+  return <p className="mb-1.5 font-mono text-[11px] text-stone-500">{children}</p>;
 }
 
 function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -26,7 +26,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={
-        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors " +
+        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors " +
         (props.className ?? "")
       }
     />
@@ -38,7 +38,7 @@ function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={
-        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 outline-none focus:border-indigo-500/40 transition-colors " +
+        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 outline-none focus:border-indigo-500/40 transition-colors " +
         (props.className ?? "")
       }
     />
@@ -96,7 +96,7 @@ export function OnboardingPage() {
   const stepLabels = ["Workspace", "Team", "Modules", "Ready"];
 
   return (
-    <div className="grid min-h-screen place-items-center bg-zinc-50 px-6 py-12">
+    <div className="grid min-h-screen place-items-center bg-stone-50 px-6 py-12">
       <div className="w-full max-w-lg">
 
         {/* Logo */}
@@ -118,7 +118,7 @@ export function OnboardingPage() {
             {stepLabels.map((label, i) => (
               <span
                 key={label}
-                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-indigo-600" : i + 1 < step ? "text-zinc-400" : "text-zinc-300"}`}
+                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-indigo-600" : i + 1 < step ? "text-stone-400" : "text-stone-300"}`}
               >
                 {label}
               </span>
@@ -131,15 +131,15 @@ export function OnboardingPage() {
 
           {step === 1 && (
             <div>
-              <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Set up your workspace</h1>
-              <p className="mb-6 font-mono text-[12px] text-zinc-500">This is how your team will see your workspace.</p>
+              <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Set up your workspace</h1>
+              <p className="mb-6 font-mono text-[12px] text-stone-500">This is how your team will see your workspace.</p>
 
               <div className="mb-4">
                 <Label>Workspace name</Label>
                 <Input value={workspaceName} onChange={e => setWorkspaceName(e.target.value)} placeholder="Acme Corp" />
               </div>
               <div className="mb-4">
-                <Label>Logo URL <span className="text-zinc-400">(optional)</span></Label>
+                <Label>Logo URL <span className="text-stone-400">(optional)</span></Label>
                 <Input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://..." />
               </div>
               <div>
@@ -153,8 +153,8 @@ export function OnboardingPage() {
 
           {step === 2 && (
             <div>
-              <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Invite your team</h1>
-              <p className="mb-6 font-mono text-[12px] text-zinc-500">Add teammates to collaborate. You can always do this later.</p>
+              <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Invite your team</h1>
+              <p className="mb-6 font-mono text-[12px] text-stone-500">Add teammates to collaborate. You can always do this later.</p>
 
               <div className="mb-4 flex gap-2">
                 <input
@@ -163,12 +163,12 @@ export function OnboardingPage() {
                   onChange={e => setInviteEmail(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleInvite()}
                   placeholder="colleague@company.com"
-                  className="flex-1 rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
+                  className="flex-1 rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors"
                 />
                 <select
                   value={inviteRole}
                   onChange={e => setInviteRole(e.target.value)}
-                  className="w-28 rounded-xl border border-black/[.08] bg-white px-3 py-2.5 font-mono text-[13px] text-zinc-900 outline-none focus:border-indigo-500/40 transition-colors"
+                  className="w-28 rounded-xl border border-black/[.08] bg-white px-3 py-2.5 font-mono text-[13px] text-stone-900 outline-none focus:border-indigo-500/40 transition-colors"
                 >
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
@@ -176,7 +176,7 @@ export function OnboardingPage() {
                 </select>
                 <button
                   onClick={handleInvite}
-                  className="rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  className="rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-stone-600 hover:bg-stone-50 transition-colors"
                 >
                   Add
                 </button>
@@ -185,9 +185,9 @@ export function OnboardingPage() {
               {sentInvites.length > 0 && (
                 <div className="space-y-1.5">
                   {sentInvites.map(inv => (
-                    <div key={inv.email} className="flex items-center justify-between rounded-xl border border-black/[.05] bg-zinc-50 px-4 py-2.5">
-                      <span className="font-mono text-[12px] text-zinc-700">{inv.email}</span>
-                      <span className="font-mono text-[11px] capitalize text-zinc-400">{inv.role}</span>
+                    <div key={inv.email} className="flex items-center justify-between rounded-xl border border-black/[.05] bg-stone-50 px-4 py-2.5">
+                      <span className="font-mono text-[12px] text-stone-700">{inv.email}</span>
+                      <span className="font-mono text-[11px] capitalize text-stone-400">{inv.role}</span>
                     </div>
                   ))}
                 </div>
@@ -197,8 +197,8 @@ export function OnboardingPage() {
 
           {step === 3 && (
             <div>
-              <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Choose your modules</h1>
-              <p className="mb-6 font-mono text-[12px] text-zinc-500">Enable the tools your team needs. Change this anytime in settings.</p>
+              <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Choose your modules</h1>
+              <p className="mb-6 font-mono text-[12px] text-stone-500">Enable the tools your team needs. Change this anytime in settings.</p>
 
               <div className="space-y-2">
                 {AVAILABLE_MODULES.map(mod => (
@@ -207,7 +207,7 @@ export function OnboardingPage() {
                     className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
                       activeModules.includes(mod.id)
                         ? "border-indigo-500/30 bg-indigo-500/[.04]"
-                        : "border-black/[.06] hover:bg-zinc-50"
+                        : "border-black/[.06] hover:bg-stone-50"
                     }`}
                   >
                     <input
@@ -221,8 +221,8 @@ export function OnboardingPage() {
                       className="mt-0.5 accent-indigo-600"
                     />
                     <div>
-                      <p className="font-mono text-[12px] font-medium text-zinc-800">{mod.name}</p>
-                      <p className="font-mono text-[11px] text-zinc-500">{mod.description}</p>
+                      <p className="font-mono text-[12px] font-medium text-stone-800">{mod.name}</p>
+                      <p className="font-mono text-[11px] text-stone-500">{mod.description}</p>
                     </div>
                   </label>
                 ))}
@@ -235,8 +235,8 @@ export function OnboardingPage() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
                 <CheckCircle2 size={24} className="text-indigo-500" />
               </div>
-              <h1 className="mb-2 font-sans text-xl font-semibold tracking-tight text-zinc-900">You're all set!</h1>
-              <p className="font-mono text-[12px] text-zinc-500">Your workspace is ready. Let's get started.</p>
+              <h1 className="mb-2 font-sans text-xl font-semibold tracking-tight text-stone-900">You're all set!</h1>
+              <p className="font-mono text-[12px] text-stone-500">Your workspace is ready. Let's get started.</p>
             </div>
           )}
         </div>
@@ -246,7 +246,7 @@ export function OnboardingPage() {
           {step > 1 ? (
             <button
               onClick={() => setStep(s => s - 1)}
-              className="font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors"
+              className="font-mono text-[12px] text-stone-400 hover:text-stone-700 transition-colors"
             >
               ← Back
             </button>
@@ -256,7 +256,7 @@ export function OnboardingPage() {
             {step === 2 && (
               <button
                 onClick={() => setStep(3)}
-                className="font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors"
+                className="font-mono text-[12px] text-stone-400 hover:text-stone-700 transition-colors"
               >
                 Skip
               </button>

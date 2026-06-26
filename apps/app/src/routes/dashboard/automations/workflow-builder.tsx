@@ -62,7 +62,7 @@ function NodeConfigFields({ node, onChange }: { node: WFNode; onChange: (config:
       value={node.config[key] ?? ""}
       onChange={e => set(key, e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none focus:border-current/30"
+      className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-current/30"
     />
   );
 
@@ -91,7 +91,7 @@ function NodeConfigFields({ node, onChange }: { node: WFNode; onChange: (config:
       <textarea value={node.config.body ?? ""} onChange={e => set("body", e.target.value)}
         placeholder="Email body… use {first_name}, {company} tokens"
         rows={3}
-        className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white placeholder-slate-700 outline-none resize-none focus:border-current/30"
+        className="w-full rounded-md border border-white/[.07] bg-[#0d0f13] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none resize-none focus:border-current/30"
       />
     </div>
   );
@@ -141,12 +141,12 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
             <p className="text-[9px] font-semibold uppercase tracking-widest opacity-50">{kindLabel(node.kind)}</p>
             <p className="text-xs font-medium text-white">{node.label}</p>
           </div>
-          <ChevronDown size={12} className={`shrink-0 text-slate-600 transition-transform ${expanded ? "rotate-180" : ""}`}/>
+          <ChevronDown size={12} className={`shrink-0 text-stone-600 transition-transform ${expanded ? "rotate-180" : ""}`}/>
           {node.kind !== "trigger" && (
             <span
               role="button"
               onClick={e => { e.stopPropagation(); onDelete(node.id); }}
-              className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-slate-700 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
+              className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-stone-700 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
             >
               <X size={12}/>
             </span>
@@ -165,7 +165,7 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
         <div className="h-5 w-px bg-white/[.08]"/>
         <button
           onClick={() => onAddAfter(node.id)}
-          className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-slate-600 hover:border-indigo-500/30 hover:bg-indigo-500/[.08] hover:text-indigo-400 transition-all"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-stone-600 hover:border-indigo-500/30 hover:bg-indigo-500/[.08] hover:text-indigo-400 transition-all"
         >
           <Plus size={11}/>
         </button>
@@ -194,14 +194,14 @@ function NodePicker({ onPick, onClose }: {
       <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
         <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3">
           <p className="text-xs font-semibold text-white">Add step</p>
-          <button onClick={onClose} className="text-slate-600 hover:text-slate-300"><X size={14}/></button>
+          <button onClick={onClose} className="text-stone-600 hover:text-stone-300"><X size={14}/></button>
         </div>
         <div className="flex border-b border-white/[.06]">
           {(["condition","action"] as NodeKind[]).map(k => (
             <button
               key={k}
               onClick={() => setSection(k)}
-              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${section === k ? "border-b-2 border-indigo-500 text-white" : "text-slate-500 hover:text-slate-300"}`}
+              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${section === k ? "border-b-2 border-indigo-500 text-white" : "text-stone-500 hover:text-stone-300"}`}
             >
               {kindLabel(k)}
             </button>
@@ -220,7 +220,7 @@ function NodePicker({ onPick, onClose }: {
                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${s.icon}`}>
                   <Icon size={11}/>
                 </div>
-                <span className="text-xs text-slate-300">{item.label}</span>
+                <span className="text-xs text-stone-300">{item.label}</span>
               </button>
             );
           })}
@@ -278,7 +278,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             <Sparkles size={15} className="text-violet-400"/>
             <h2 className="font-semibold text-white">Generate workflow with AI</h2>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16}/></button>
+          <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={16}/></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -288,21 +288,21 @@ function AIWorkflowModal({ onClose, onApply }: {
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
-            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-slate-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
+            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-stone-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
           />
           {error && <p className="text-xs text-indigo-400">{error}</p>}
         </div>
 
         {preview && (
           <div className="border-t border-white/[.06] px-5 pb-4">
-            <p className="py-3 text-xs font-semibold text-slate-400">"{preview.name}"</p>
+            <p className="py-3 text-xs font-semibold text-stone-400">"{preview.name}"</p>
             <div className="space-y-1.5">
               {preview.nodes.map((n, i) => {
                 const s = KIND_STYLES[n.kind];
                 return (
                   <div key={i} className={`flex items-center gap-3 rounded-lg border ${s.border} ${s.bg} px-3 py-2`}>
                     <span className={`text-[9px] font-bold uppercase tracking-widest w-16 shrink-0 ${s.text}`}>{n.kind}</span>
-                    <span className="text-xs text-slate-300">{n.label}</span>
+                    <span className="text-xs text-stone-300">{n.label}</span>
                   </div>
                 );
               })}
@@ -311,7 +311,7 @@ function AIWorkflowModal({ onClose, onApply }: {
         )}
 
         <div className="flex items-center justify-between p-5 border-t border-white/[.06]">
-          <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-300">Cancel</button>
+          <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
               className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
@@ -319,7 +319,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <button onClick={generate} disabled={loading} className="text-sm text-slate-500 hover:text-slate-300">Regenerate</button>
+              <button onClick={generate} disabled={loading} className="text-sm text-stone-500 hover:text-stone-300">Regenerate</button>
               <button onClick={apply}
                 className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
                 <Sparkles size={13}/> Apply to builder
@@ -421,7 +421,7 @@ export function WorkflowBuilderPage() {
     <div className="flex min-h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
-        <Link to="/automations" className="text-slate-600 hover:text-slate-300 transition-colors">
+        <Link to="/automations" className="text-stone-600 hover:text-stone-300 transition-colors">
           <ArrowLeft size={15}/>
         </Link>
 
@@ -443,7 +443,7 @@ export function WorkflowBuilderPage() {
           </h1>
         )}
 
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-slate-600/30 bg-slate-700/50 text-slate-400"}`}>
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
           {status}
         </span>
 
@@ -453,7 +453,7 @@ export function WorkflowBuilderPage() {
         </button>
 
         <button onClick={saveWorkflow} disabled={saving}
-          className="flex items-center gap-1.5 rounded-lg border border-white/[.06] bg-white/[.04] px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white disabled:opacity-50 transition-colors">
+          className="flex items-center gap-1.5 rounded-lg border border-white/[.06] bg-white/[.04] px-3 py-1.5 text-xs font-medium text-stone-300 hover:text-white disabled:opacity-50 transition-colors">
           {saving ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>}
           {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>
@@ -481,7 +481,7 @@ export function WorkflowBuilderPage() {
                   <p className="text-[9px] font-semibold uppercase tracking-widest text-indigo-400/60">Trigger</p>
                   <p className="text-xs font-medium text-white">When this happens…</p>
                 </div>
-                <ChevronDown size={13} className="text-slate-600"/>
+                <ChevronDown size={13} className="text-stone-600"/>
               </div>
               <div className="border-t border-white/[.06] px-4 py-2.5">
                 <select
@@ -502,7 +502,7 @@ export function WorkflowBuilderPage() {
             <div className="h-5 w-px bg-white/[.08]"/>
             <button
               onClick={() => setPicking("trigger-1")}
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-slate-600 hover:border-indigo-500/30 hover:bg-indigo-500/[.08] hover:text-indigo-400 transition-all"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#0d0f13] text-stone-600 hover:border-indigo-500/30 hover:bg-indigo-500/[.08] hover:text-indigo-400 transition-all"
             >
               <Plus size={11}/>
             </button>
@@ -520,7 +520,7 @@ export function WorkflowBuilderPage() {
             ))}
 
             {/* End cap */}
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[.06] bg-[#0d0f13] text-slate-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[.06] bg-[#0d0f13] text-stone-700">
               <Zap size={14}/>
             </div>
           </div>

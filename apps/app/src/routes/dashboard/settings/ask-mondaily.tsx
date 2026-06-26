@@ -42,7 +42,7 @@ function Row({ label, description, children }: { label: string; description: str
     <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/[.06] last:border-0">
       <div className="min-w-0">
         <div className="text-sm text-white">{label}</div>
-        <div className="text-xs text-slate-500 mt-0.5">{description}</div>
+        <div className="text-xs text-stone-500 mt-0.5">{description}</div>
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -114,7 +114,7 @@ export function AskMondailySettings() {
           <Sparkles size={18} className="text-red-400"/>
         </div>
         <div>
-          <p className="text-xs text-slate-500">Manage your Ask Mondaily settings, prompts and tool access.</p>
+          <p className="text-xs text-stone-500">Manage your Ask Mondaily settings, prompts and tool access.</p>
         </div>
       </div>
 
@@ -148,17 +148,17 @@ export function AskMondailySettings() {
       <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
         <div className="border-b border-white/[.06] px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-white">Credits</h2>
-          <span className="text-xs text-slate-500">Resets on {resetStr}</span>
+          <span className="text-xs text-stone-500">Resets on {resetStr}</span>
         </div>
         <div className="px-5 py-4">
           <div className="mb-2 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Personal credits used</span>
+            <span className="text-stone-500">Personal credits used</span>
             <span className="text-white font-medium">{usedCredits} / {creditLimit}</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-white/10">
             <div className="h-1.5 rounded-full bg-red-500 transition-all" style={{ width: `${creditPct}%` }}/>
           </div>
-          <p className="mt-3 text-xs text-slate-600">Each message you send uses 1 credit. Workspace credits and higher limits available with Pro plan.</p>
+          <p className="mt-3 text-xs text-stone-600">Each message you send uses 1 credit. Workspace credits and higher limits available with Pro plan.</p>
         </div>
       </section>
 
@@ -171,19 +171,19 @@ export function AskMondailySettings() {
           )}
         </div>
         {threads.length === 0 ? (
-          <div className="px-5 py-6 text-center text-sm text-slate-600">No conversations yet</div>
+          <div className="px-5 py-6 text-center text-sm text-stone-600">No conversations yet</div>
         ) : (
           <div className="divide-y divide-white/10">
             {threads.map(t => (
               <div key={t.id} className="flex items-center justify-between px-5 py-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <MessageCircle size={13} className="text-slate-600 shrink-0"/>
+                  <MessageCircle size={13} className="text-stone-600 shrink-0"/>
                   <div className="min-w-0">
-                    <div className="text-sm text-slate-300 truncate">{t.title}</div>
-                    <div className="text-xs text-slate-600">{t.messages.length} messages · {new Date(t.updatedAt).toLocaleDateString()}</div>
+                    <div className="text-sm text-stone-300 truncate">{t.title}</div>
+                    <div className="text-xs text-stone-600">{t.messages.length} messages · {new Date(t.updatedAt).toLocaleDateString()}</div>
                   </div>
                 </div>
-                <button onClick={() => deleteThread(t.id)} className="ml-4 shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                <button onClick={() => deleteThread(t.id)} className="ml-4 shrink-0 rounded-lg p-1.5 text-stone-600 hover:bg-red-500/10 hover:text-red-400 transition-colors">
                   <Trash2 size={13}/>
                 </button>
               </div>

@@ -17,7 +17,7 @@ const OBJECT_ACCENTS: Record<string, { border: string; bg: string; icon: string;
   invoices:   { border: "border-cyan-500/20",    bg: "from-cyan-500/[.07] to-blue-500/[.04]",       icon: "bg-cyan-500/10 border-cyan-500/20 text-cyan-400",          arrow: "text-cyan-400"    },
   projects:   { border: "border-rose-500/20",    bg: "from-rose-500/[.07] to-pink-500/[.04]",       icon: "bg-rose-500/10 border-rose-500/20 text-rose-400",          arrow: "text-rose-400"    },
 };
-const DEFAULT_ACCENT = { border: "border-slate-500/20", bg: "from-slate-500/[.07] to-slate-700/[.04]", icon: "bg-slate-700/50 border-slate-600/30 text-slate-400", arrow: "text-slate-400" };
+const DEFAULT_ACCENT = { border: "border-stone-500/20", bg: "from-stone-500/[.07] to-stone-700/[.04]", icon: "bg-stone-700/50 border-stone-600/30 text-stone-400", arrow: "text-stone-400" };
 
 function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) => void; onClose: () => void }) {
   const [name, setName] = useState("");

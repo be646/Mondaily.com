@@ -87,7 +87,7 @@ export function SignUpPage() {
     });
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
 
   return (
     <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "440px 1fr" }}>
@@ -102,17 +102,17 @@ export function SignUpPage() {
 
           {stage === "form" && (
             <>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/[.06] bg-zinc-50 px-3 py-1 font-mono text-xs text-zinc-500">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/[.06] bg-stone-50 px-3 py-1 font-mono text-xs text-stone-500">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 Free to start · no credit card
               </div>
-              <h1 className="mb-1 mt-3 font-sans text-2xl font-semibold tracking-tight text-zinc-900">Create your account</h1>
-              <p className="mb-8 font-mono text-[13px] text-zinc-500">Your fully AI business OS</p>
+              <h1 className="mb-1 mt-3 font-sans text-2xl font-semibold tracking-tight text-stone-900">Create your account</h1>
+              <p className="mb-8 font-mono text-[13px] text-stone-500">Your fully AI business OS</p>
 
               <button
                 onClick={handleGoogle}
                 disabled={loading}
-                className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-zinc-700 hover:bg-zinc-50 transition-all disabled:opacity-50"
+                className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-stone-700 hover:bg-stone-50 transition-all disabled:opacity-50"
               >
                 <svg width="15" height="15" viewBox="0 0 48 48" fill="none">
                   <path d="M47.532 24.552c0-1.636-.132-3.2-.38-4.704H24.48v8.897h12.987c-.56 3.018-2.254 5.573-4.8 7.29v6.057h7.773c4.547-4.19 7.092-10.36 7.092-17.54z" fill="#4285F4"/>
@@ -125,19 +125,19 @@ export function SignUpPage() {
 
               <div className="relative mb-4 flex items-center gap-3">
                 <div className="h-px flex-1 bg-black/[.06]" />
-                <span className="font-mono text-[11px] text-zinc-400">or</span>
+                <span className="font-mono text-[11px] text-stone-400">or</span>
                 <div className="h-px flex-1 bg-black/[.06]" />
               </div>
 
               <form onSubmit={handleSignUp} className="space-y-3">
                 <div>
-                  <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Email</p>
+                  <p className="mb-1.5 font-mono text-[11px] text-stone-500">Email</p>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required className={inputCls} />
                 </div>
                 <div>
-                  <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Password</p>
+                  <p className="mb-1.5 font-mono text-[11px] text-stone-500">Password</p>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8} className={inputCls} />
-                  <p className="mt-1.5 font-mono text-[10px] text-zinc-400">Minimum 8 characters</p>
+                  <p className="mt-1.5 font-mono text-[10px] text-stone-400">Minimum 8 characters</p>
                 </div>
 
                 {/* Required by Clerk bot-protection for custom sign-up flows */}
@@ -152,14 +152,14 @@ export function SignUpPage() {
                 </button>
               </form>
 
-              <p className="mt-4 text-center font-mono text-[11px] text-zinc-400">
+              <p className="mt-4 text-center font-mono text-[11px] text-stone-400">
                 By signing up you agree to our{" "}
                 <a href="https://mondaily.com/legal/terms" className="text-indigo-600 hover:underline">Terms</a>{" "}
                 and{" "}
                 <a href="https://mondaily.com/legal/privacy" className="text-indigo-600 hover:underline">Privacy Policy</a>.
               </p>
 
-              <p className="mt-4 text-center font-mono text-[12px] text-zinc-400">
+              <p className="mt-4 text-center font-mono text-[12px] text-stone-400">
                 Already have an account?{" "}
                 <Link to="/sign-in" className="text-indigo-600 hover:underline">Sign in</Link>
               </p>
@@ -168,13 +168,13 @@ export function SignUpPage() {
 
           {stage === "verify" && (
             <>
-              <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-zinc-900">Check your email</h1>
-              <p className="mb-2 font-mono text-[13px] text-zinc-500">We sent a 6-digit code to</p>
+              <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-stone-900">Check your email</h1>
+              <p className="mb-2 font-mono text-[13px] text-stone-500">We sent a 6-digit code to</p>
               <p className="mb-8 font-mono text-[13px] font-medium text-indigo-600">{email}</p>
 
               <form onSubmit={handleVerify} className="space-y-3">
                 <div>
-                  <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Verification code</p>
+                  <p className="mb-1.5 font-mono text-[11px] text-stone-500">Verification code</p>
                   <input
                     type="text"
                     value={code}
@@ -196,7 +196,7 @@ export function SignUpPage() {
                 </button>
               </form>
 
-              <button onClick={() => { setStage("form"); setError(""); }} className="mt-4 w-full text-center font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
+              <button onClick={() => { setStage("form"); setError(""); }} className="mt-4 w-full text-center font-mono text-[12px] text-stone-400 hover:text-stone-700 transition-colors">
                 ← Use a different email
               </button>
             </>

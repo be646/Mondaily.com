@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 type ColType = "Text" | "Number" | "Email" | "URL" | "Date" | "Status" | "Currency" | "Phone" | "Boolean";
 
 const TYPE_COLORS: Record<ColType, string> = {
-  Text:     "bg-slate-700/50 text-slate-300 border-slate-600/40",
+  Text:     "bg-stone-700/50 text-stone-300 border-stone-600/40",
   Number:   "bg-blue-900/40 text-blue-300 border-blue-500/30",
   Email:    "bg-purple-900/40 text-purple-300 border-purple-500/30",
   URL:      "bg-cyan-900/40 text-cyan-300 border-cyan-500/30",
@@ -146,12 +146,12 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       }`}
     >
       <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFileChange}/>
-      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-indigo-400/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] bg-white/[.03] text-slate-500 group-hover:text-slate-300"}`}>
+      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-indigo-400/40 bg-indigo-500/10 text-indigo-400" : "border-white/[.08] bg-white/[.03] text-stone-500 group-hover:text-stone-300"}`}>
         <Upload size={16}/>
       </div>
       <div className="text-center">
-        <p className="text-xs font-medium text-slate-300">Drop a CSV file or click to browse</p>
-        <p className="mt-0.5 text-[10px] text-slate-600">Claude will auto-detect column types</p>
+        <p className="text-xs font-medium text-stone-300">Drop a CSV file or click to browse</p>
+        <p className="mt-0.5 text-[10px] text-stone-600">Claude will auto-detect column types</p>
       </div>
       {phase === "error" && <p className="text-xs text-indigo-400">{error}</p>}
     </div>
@@ -163,9 +163,9 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       <Sparkles size={16} className="shrink-0 animate-pulse text-purple-400"/>
       <div>
         <p className="text-xs font-medium text-purple-300">Inferring schema with Claude…</p>
-        <p className="text-[10px] text-slate-600">{fileName} · {rows.length} rows · {headers.length} columns</p>
+        <p className="text-[10px] text-stone-600">{fileName} · {rows.length} rows · {headers.length} columns</p>
       </div>
-      <button onClick={reset} className="ml-auto text-slate-600 hover:text-slate-300"><X size={14}/></button>
+      <button onClick={reset} className="ml-auto text-stone-600 hover:text-stone-300"><X size={14}/></button>
     </div>
   );
 
@@ -174,16 +174,16 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
     <div className="rounded-xl border border-white/[.08] bg-[#0d0f13] overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[.06] px-4 py-3">
-        <FileText size={14} className="shrink-0 text-slate-500"/>
+        <FileText size={14} className="shrink-0 text-stone-500"/>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-white truncate">{fileName}</p>
-          <p className="text-[10px] text-slate-600">{rows.length} rows · {headers.length} columns · schema inferred</p>
+          <p className="text-[10px] text-stone-600">{rows.length} rows · {headers.length} columns · schema inferred</p>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-1.5 py-0.5 text-[9px] text-purple-400">
             <Sparkles size={8}/> AI schema
           </span>
-          <button onClick={reset} className="text-slate-600 hover:text-slate-300 transition-colors"><X size={14}/></button>
+          <button onClick={reset} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={14}/></button>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       {/* Data preview toggle */}
       <button
         onClick={() => setShowPreview(p => !p)}
-        className="flex w-full items-center gap-2 border-b border-white/[.06] px-4 py-2 text-left text-[10px] text-slate-600 hover:text-slate-400 transition-colors"
+        className="flex w-full items-center gap-2 border-b border-white/[.06] px-4 py-2 text-left text-[10px] text-stone-600 hover:text-stone-400 transition-colors"
       >
         {showPreview ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
         {showPreview ? "Hide" : "Show"} data preview (first 3 rows)
@@ -223,7 +223,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
             <thead className="sticky top-0 bg-[#0d0f13] border-b border-white/[.06]">
               <tr>
                 {headers.map(h => (
-                  <th key={h} className="px-3 py-1.5 text-left font-medium text-slate-600 whitespace-nowrap">{h}</th>
+                  <th key={h} className="px-3 py-1.5 text-left font-medium text-stone-600 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -231,7 +231,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
               {rows.slice(0, 3).map((row, i) => (
                 <tr key={i} className="border-b border-white/[.03]">
                   {headers.map((_, j) => (
-                    <td key={j} className="px-3 py-1.5 text-slate-400 max-w-[120px] truncate">{row[j] ?? ""}</td>
+                    <td key={j} className="px-3 py-1.5 text-stone-400 max-w-[120px] truncate">{row[j] ?? ""}</td>
                   ))}
                 </tr>
               ))}
@@ -242,9 +242,9 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
       {/* Actions */}
       <div className="flex items-center justify-between px-4 py-3">
-        <p className="text-[10px] text-slate-600">Ready to import <span className="text-white font-medium">{rows.length}</span> records</p>
+        <p className="text-[10px] text-stone-600">Ready to import <span className="text-white font-medium">{rows.length}</span> records</p>
         <div className="flex items-center gap-2">
-          <button onClick={reset} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors">
+          <button onClick={reset} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white transition-colors">
             Cancel
           </button>
           <button
@@ -264,7 +264,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-indigo-500/30 border-t-red-500"/>
       <div>
         <p className="text-xs font-medium text-white">Importing {rows.length} rows…</p>
-        <p className="text-[10px] text-slate-600">Creating records in {objectType}</p>
+        <p className="text-[10px] text-stone-600">Creating records in {objectType}</p>
       </div>
     </div>
   );
@@ -283,7 +283,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           </p>
         )}
       </div>
-      <button onClick={reset} className="text-slate-600 hover:text-slate-300 transition-colors shrink-0"><X size={14}/></button>
+      <button onClick={reset} className="text-stone-600 hover:text-stone-300 transition-colors shrink-0"><X size={14}/></button>
     </div>
   );
 

@@ -47,21 +47,21 @@ function LivePanel() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col justify-between bg-zinc-50 border-l border-black/[.06] px-10 py-12">
+    <div className="flex h-full flex-col justify-between bg-stone-50 border-l border-black/[.06] px-10 py-12">
 
       {/* Header */}
       <div>
         <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-indigo-500">// live.workspace</p>
-        <h2 className="font-sans text-xl font-semibold tracking-tight text-zinc-900">Your workspace is ready.</h2>
-        <p className="mt-1 font-mono text-[12px] text-zinc-500">Everything synced. Waiting for you.</p>
+        <h2 className="font-sans text-xl font-semibold tracking-tight text-stone-900">Your workspace is ready.</h2>
+        <p className="mt-1 font-mono text-[12px] text-stone-500">Everything synced. Waiting for you.</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         {STATS.map(s => (
           <div key={s.label} className="rounded-xl border border-black/[.07] bg-white p-4">
-            <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-zinc-400">{s.label}</p>
-            <p className="font-sans text-2xl font-semibold tracking-tight text-zinc-900">{s.value}</p>
+            <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-stone-400">{s.label}</p>
+            <p className="font-sans text-2xl font-semibold tracking-tight text-stone-900">{s.value}</p>
             <p className="mt-0.5 font-mono text-[10px] text-indigo-500">{s.sub}</p>
           </div>
         ))}
@@ -71,14 +71,14 @@ function LivePanel() {
       <div>
         <div className="mb-3 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse" />
-          <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400">system log</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-stone-400">system log</span>
         </div>
         <div className="space-y-2">
           {lines.map((l, i) => (
             <div key={l.id} className="flex items-start gap-2" style={{ opacity: 0.35 + (i / lines.length) * 0.65 }}>
-              <span className="shrink-0 font-mono text-[10px] text-zinc-400">{l.stamp}</span>
+              <span className="shrink-0 font-mono text-[10px] text-stone-400">{l.stamp}</span>
               <span className="shrink-0 w-10 font-mono text-[10px] font-semibold text-indigo-500">{l.tag}</span>
-              <span className="font-mono text-[11px] text-zinc-500 leading-relaxed">{l.msg}</span>
+              <span className="font-mono text-[11px] text-stone-500 leading-relaxed">{l.msg}</span>
             </div>
           ))}
         </div>
@@ -187,7 +187,7 @@ export function SignInPage() {
     });
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-3 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
 
   return (
     <div className="grid min-h-screen" data-theme="light" style={{ gridTemplateColumns: "440px 1fr" }}>
@@ -202,12 +202,12 @@ export function SignInPage() {
 
           {stage === "verify" ? (
             <>
-              <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-zinc-900">Check your email</h1>
-              <p className="mb-2 font-mono text-[13px] text-zinc-500">We sent a 6-digit code to</p>
+              <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-stone-900">Check your email</h1>
+              <p className="mb-2 font-mono text-[13px] text-stone-500">We sent a 6-digit code to</p>
               <p className="mb-8 font-mono text-[13px] font-medium text-indigo-600">{email}</p>
               <form onSubmit={handleVerify} className="space-y-3">
                 <div>
-                  <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Verification code</p>
+                  <p className="mb-1.5 font-mono text-[11px] text-stone-500">Verification code</p>
                   <input
                     type="text"
                     value={code}
@@ -224,20 +224,20 @@ export function SignInPage() {
                   {loading ? "Verifying…" : "Verify & sign in →"}
                 </button>
               </form>
-              <button onClick={() => { setStage("form"); setError(""); setCode(""); }} className="mt-4 w-full text-center font-mono text-[12px] text-zinc-400 hover:text-zinc-700 transition-colors">
+              <button onClick={() => { setStage("form"); setError(""); setCode(""); }} className="mt-4 w-full text-center font-mono text-[12px] text-stone-400 hover:text-stone-700 transition-colors">
                 ← Back to sign in
               </button>
             </>
           ) : (
           <>
-          <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-zinc-900">Welcome back</h1>
-          <p className="mb-8 font-mono text-[13px] text-zinc-500">Sign in to your workspace</p>
+          <h1 className="mb-1 font-sans text-2xl font-semibold tracking-tight text-stone-900">Welcome back</h1>
+          <p className="mb-8 font-mono text-[13px] text-stone-500">Sign in to your workspace</p>
 
           {/* Google */}
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-zinc-700 hover:bg-zinc-50 transition-all disabled:opacity-50"
+            className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-black/[.08] bg-white py-3 font-mono text-[13px] text-stone-700 hover:bg-stone-50 transition-all disabled:opacity-50"
           >
             <svg width="15" height="15" viewBox="0 0 48 48" fill="none">
               <path d="M47.532 24.552c0-1.636-.132-3.2-.38-4.704H24.48v8.897h12.987c-.56 3.018-2.254 5.573-4.8 7.29v6.057h7.773c4.547-4.19 7.092-10.36 7.092-17.54z" fill="#4285F4"/>
@@ -250,18 +250,18 @@ export function SignInPage() {
 
           <div className="relative mb-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-black/[.06]" />
-            <span className="font-mono text-[11px] text-zinc-400">or</span>
+            <span className="font-mono text-[11px] text-stone-400">or</span>
             <div className="h-px flex-1 bg-black/[.06]" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Email</p>
+              <p className="mb-1.5 font-mono text-[11px] text-stone-500">Email</p>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required className={inputCls} />
             </div>
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <p className="font-mono text-[11px] text-zinc-500">Password</p>
+                <p className="font-mono text-[11px] text-stone-500">Password</p>
                 <a href="https://accounts.mondaily.com/sign-in/forgot-password" className="font-mono text-[11px] text-indigo-600 hover:underline">Forgot?</a>
               </div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required className={inputCls} />
@@ -280,7 +280,7 @@ export function SignInPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center font-mono text-[12px] text-zinc-400">
+          <p className="mt-6 text-center font-mono text-[12px] text-stone-400">
             No account?{" "}
             <Link to="/sign-up" className="text-indigo-600 hover:underline">Start free</Link>
           </p>

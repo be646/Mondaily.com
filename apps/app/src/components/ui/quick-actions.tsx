@@ -25,10 +25,10 @@ const ACTIONS: Action[] = [
 ];
 
 // Shared input style matching CommandPalette
-const inputCls = "h-9 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:placeholder-neutral-600 dark:focus:border-neutral-600";
-const selectCls = "h-9 flex-1 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-700 outline-none transition-colors focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300 dark:focus:border-neutral-600";
-const btnPrimary = "flex-1 h-9 rounded-md border border-neutral-950 bg-neutral-950 text-xs font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-40 dark:border-neutral-50 dark:bg-neutral-50 dark:text-neutral-950 dark:hover:bg-neutral-200";
-const btnSecondary = "flex-1 h-9 rounded-md border border-neutral-200 text-xs text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-950 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-700 dark:hover:text-neutral-50";
+const inputCls = "h-9 w-full rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:placeholder-stone-600 dark:focus:border-stone-600";
+const selectCls = "h-9 flex-1 rounded-md border border-stone-200 bg-white px-2 text-xs text-stone-700 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-300 dark:focus:border-stone-600";
+const btnPrimary = "flex-1 h-9 rounded-md border border-stone-950 bg-stone-950 text-xs font-medium text-white transition-colors hover:bg-stone-800 disabled:opacity-40 dark:border-stone-50 dark:bg-stone-50 dark:text-stone-950 dark:hover:bg-stone-200";
+const btnSecondary = "flex-1 h-9 rounded-md border border-stone-200 text-xs text-stone-600 transition-colors hover:border-stone-300 hover:text-stone-950 dark:border-stone-800 dark:text-stone-400 dark:hover:border-stone-700 dark:hover:text-stone-50";
 
 function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const [title, setTitle] = useState("");
@@ -41,11 +41,11 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
   });
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3.5 dark:border-neutral-800">
-        <button onClick={onBack} className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:text-neutral-600 dark:hover:text-neutral-50">
+      <div className="flex items-center gap-3 border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
+        <button onClick={onBack} className="shrink-0 text-stone-400 transition-colors hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50">
           <ArrowLeft size={14}/>
         </button>
-        <span className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">New Task</span>
+        <span className="text-sm font-semibold text-stone-950 dark:text-stone-50">New Task</span>
       </div>
       <div className="p-4 space-y-2.5">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
@@ -99,11 +99,11 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3.5 dark:border-neutral-800">
-        <button onClick={onBack} className="shrink-0 text-neutral-400 transition-colors hover:text-neutral-950 dark:text-neutral-600 dark:hover:text-neutral-50">
+      <div className="flex items-center gap-3 border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
+        <button onClick={onBack} className="shrink-0 text-stone-400 transition-colors hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50">
           <ArrowLeft size={14}/>
         </button>
-        <span className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">{titleLabel}</span>
+        <span className="text-sm font-semibold text-stone-950 dark:text-stone-50">{titleLabel}</span>
       </div>
       <div className="p-4 space-y-2.5">
         <input autoFocus value={name} onChange={e => setName(e.target.value)}
@@ -112,7 +112,7 @@ function QuickCreateRecord({ type, onBack, onClose }: { type: "contact" | "compa
         {type === "note" ? (
           <textarea value={extra} onChange={e => setExtra(e.target.value)}
             placeholder={extraPlaceholder} rows={3}
-            className="w-full resize-none rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none transition-colors focus:border-neutral-400 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-50 dark:placeholder-neutral-600 dark:focus:border-neutral-600"/>
+            className="w-full resize-none rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:placeholder-stone-600 dark:focus:border-stone-600"/>
         ) : (
           <input value={extra} onChange={e => setExtra(e.target.value)}
             placeholder={extraPlaceholder} className={inputCls}/>
@@ -152,15 +152,15 @@ export function QuickActions() {
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4" onClick={close}>
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl dark:border-neutral-800 dark:bg-neutral-950"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl dark:border-stone-800 dark:bg-stone-950"
         onClick={e => e.stopPropagation()}
       >
         {!activeCreate ? (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3.5 dark:border-neutral-800">
-              <span className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">Quick Create</span>
-              <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-600">ESC</kbd>
+            <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3.5 dark:border-stone-800">
+              <span className="text-sm font-semibold text-stone-950 dark:text-stone-50">Quick Create</span>
+              <kbd className="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] text-stone-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-600">ESC</kbd>
             </div>
 
             {/* Action list */}
@@ -169,26 +169,26 @@ export function QuickActions() {
                 <button
                   key={action.label}
                   onClick={() => setActiveCreate(action.type)}
-                  className="group flex w-full items-center gap-3 px-4 py-2.5 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                  className="group flex w-full items-center gap-3 px-4 py-2.5 transition-colors hover:bg-stone-50 dark:hover:bg-stone-900"
                 >
                   <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${action.iconBg}`}>
                     <action.icon size={14} className={action.color}/>
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-sm text-neutral-700 transition-colors group-hover:text-neutral-950 dark:text-neutral-300 dark:group-hover:text-neutral-50">{action.label}</div>
-                    <div className="text-[11px] text-neutral-400 dark:text-neutral-600">{action.description}</div>
+                    <div className="text-sm text-stone-700 transition-colors group-hover:text-stone-950 dark:text-stone-300 dark:group-hover:text-stone-50">{action.label}</div>
+                    <div className="text-[11px] text-stone-400 dark:text-stone-600">{action.description}</div>
                   </div>
                   {action.shortcut && (
-                    <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10px] text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-600">{action.shortcut}</kbd>
+                    <kbd className="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] text-stone-400 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-600">{action.shortcut}</kbd>
                   )}
                 </button>
               ))}
             </div>
 
             {/* Footer */}
-            <div className="flex items-center gap-3 border-t border-neutral-200 px-4 py-2 dark:border-neutral-800">
-              <span className="text-[10px] text-neutral-400 dark:text-neutral-600">↵ select</span>
-              <span className="ml-auto text-[10px] text-neutral-400 dark:text-neutral-600">⌘K to search</span>
+            <div className="flex items-center gap-3 border-t border-stone-200 px-4 py-2 dark:border-stone-800">
+              <span className="text-[10px] text-stone-400 dark:text-stone-600">↵ select</span>
+              <span className="ml-auto text-[10px] text-stone-400 dark:text-stone-600">⌘K to search</span>
             </div>
           </>
         ) : (

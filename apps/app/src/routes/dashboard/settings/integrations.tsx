@@ -32,7 +32,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-2.5 py-1.5 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors"
+      className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-2.5 py-1.5 text-xs text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors"
     >
       {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
       {label ?? (copied ? "Copied!" : "Copy")}
@@ -47,7 +47,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#0d0f13] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-semibold text-white">{title}</h2>
-          <button onClick={close} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={15} /></button>
+          <button onClick={close} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={15} /></button>
         </div>
         {children}
       </div>
@@ -112,17 +112,17 @@ export function IntegrationsSettings() {
           {integrations.map(item => (
             <article key={item.id} className="flex flex-col bg-[#0d0f13] p-4">
               <div className="mb-3 flex items-start gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[.05] text-sm font-bold text-slate-300">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[.05] text-sm font-bold text-stone-300">
                   {item.icon}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-200">{item.name}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${item.connected ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.04] text-slate-600"}`}>
+                    <p className="text-sm font-medium text-stone-200">{item.name}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${item.connected ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.04] text-stone-600"}`}>
                       {item.connected ? "Connected" : "Not connected"}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-600">{item.description}</p>
+                  <p className="mt-0.5 text-xs text-stone-600">{item.description}</p>
                 </div>
               </div>
               <button
@@ -141,7 +141,7 @@ export function IntegrationsSettings() {
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><KeyRound size={14} /> API keys</h2>
           <button onClick={() => { setKeyOpen(true); setCreatedKey(""); }}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-slate-300 hover:bg-white/[.04] hover:text-white transition-colors">
+            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors">
             <Plus size={12} /> Create key
           </button>
         </div>
@@ -151,17 +151,17 @@ export function IntegrationsSettings() {
               <thead>
                 <tr className="border-b border-white/[.05] bg-white/[.015]">
                   {["Name", "Key", "Created", "Last used", ""].map(h => (
-                    <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">{h}</th>
+                    <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {data.api_keys.map(key => (
                   <tr key={key.id} className="border-b border-white/[.04] last:border-0 hover:bg-white/[.015] transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-200">{key.name}</td>
-                    <td className="px-4 py-3"><code className="text-xs text-slate-600">{key.prefix}••••••••</code></td>
-                    <td className="px-4 py-3 text-slate-600">{key.created_at ? new Date(key.created_at).toLocaleDateString() : "Recently"}</td>
-                    <td className="px-4 py-3 text-slate-600">{key.last_used_at ? new Date(key.last_used_at).toLocaleDateString() : "Never"}</td>
+                    <td className="px-4 py-3 font-medium text-stone-200">{key.name}</td>
+                    <td className="px-4 py-3"><code className="text-xs text-stone-600">{key.prefix}••••••••</code></td>
+                    <td className="px-4 py-3 text-stone-600">{key.created_at ? new Date(key.created_at).toLocaleDateString() : "Recently"}</td>
+                    <td className="px-4 py-3 text-stone-600">{key.last_used_at ? new Date(key.last_used_at).toLocaleDateString() : "Never"}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => revokeKey.mutate(key.id)} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">Revoke</button>
                     </td>
@@ -182,7 +182,7 @@ export function IntegrationsSettings() {
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><Radio size={14} /> Webhooks</h2>
           <button onClick={() => setWebhookOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-slate-300 hover:bg-white/[.04] hover:text-white transition-colors">
+            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-xs text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors">
             <Plus size={12} /> Add webhook
           </button>
         </div>
@@ -191,8 +191,8 @@ export function IntegrationsSettings() {
             {data.webhooks.map(hook => (
               <div key={hook.id} className="flex items-start justify-between gap-4 py-4">
                 <div className="min-w-0">
-                  <p className="truncate font-mono text-xs text-slate-300">{hook.url}</p>
-                  <p className="mt-1 text-xs text-slate-600">{hook.events.slice(0, 3).join(", ")}{hook.events.length > 3 ? ` +${hook.events.length - 3}` : ""}</p>
+                  <p className="truncate font-mono text-xs text-stone-300">{hook.url}</p>
+                  <p className="mt-1 text-xs text-stone-600">{hook.events.slice(0, 3).join(", ")}{hook.events.length > 3 ? ` +${hook.events.length - 3}` : ""}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-400">{hook.status ?? "Active"}</span>
@@ -214,26 +214,26 @@ export function IntegrationsSettings() {
           <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><Link2 size={14} /> MCP server</h2>
         </div>
         <div className="p-5 space-y-4">
-          <p className="text-sm text-slate-500">Connect Mondaily to Claude, ChatGPT, and other AI tools via the Model Context Protocol.</p>
+          <p className="text-sm text-stone-500">Connect Mondaily to Claude, ChatGPT, and other AI tools via the Model Context Protocol.</p>
           <div>
-            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Server URL</span>
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Server URL</span>
             <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-xs text-slate-400">wss://mcp.mondaily.com/workspace</code>
+              <code className="min-w-0 flex-1 truncate rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-xs text-stone-400">wss://mcp.mondaily.com/workspace</code>
               <CopyButton value="wss://mcp.mondaily.com/workspace" />
             </div>
           </div>
           {data.mcp_token ? (
             <>
               <div>
-                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Token</span>
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Token</span>
                 <div className="flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-xs text-slate-400">{data.mcp_token}</code>
+                  <code className="min-w-0 flex-1 truncate rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-xs text-stone-400">{data.mcp_token}</code>
                   <CopyButton value={data.mcp_token} />
                 </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => generateMcp.mutate()}
-                  className="flex items-center gap-2 rounded-lg border border-white/[.08] px-3 py-2 text-xs text-slate-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                  className="flex items-center gap-2 rounded-lg border border-white/[.08] px-3 py-2 text-xs text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors">
                   <RotateCw size={12} /> Rotate token
                 </button>
                 <button onClick={() => toggleIntegration.mutate({ id: "mcp", connected: false })}
@@ -260,21 +260,21 @@ export function IntegrationsSettings() {
                 This key is shown once. Store it securely — you won't be able to see it again.
               </div>
               <div>
-                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Your new key</span>
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Your new key</span>
                 <div className="flex items-start gap-2">
-                  <code className="min-w-0 flex-1 break-all rounded-lg border border-white/[.07] bg-white/[.02] p-3 text-xs text-slate-300">{createdKey}</code>
+                  <code className="min-w-0 flex-1 break-all rounded-lg border border-white/[.07] bg-white/[.02] p-3 text-xs text-stone-300">{createdKey}</code>
                   <CopyButton value={createdKey} />
                 </div>
               </div>
               <button onClick={() => setKeyOpen(false)}
-                className="w-full rounded-xl bg-white/[.06] py-2.5 text-sm font-medium text-slate-300 hover:bg-white/[.09] transition-colors">
+                className="w-full rounded-xl bg-white/[.06] py-2.5 text-sm font-medium text-stone-300 hover:bg-white/[.09] transition-colors">
                 Done
               </button>
             </div>
           ) : (
             <form onSubmit={e => { e.preventDefault(); if (keyName.trim()) createKey.mutate(); }} className="space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Key name</span>
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Key name</span>
                 <input autoFocus value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="e.g. Production, CI/CD" className="key-input h-10 w-full px-3 text-sm" />
               </label>
               <button type="submit" disabled={!keyName.trim() || createKey.isPending}
@@ -291,27 +291,27 @@ export function IntegrationsSettings() {
         <ModalShell title="Add webhook" close={() => setWebhookOpen(false)}>
           <form onSubmit={e => { e.preventDefault(); if (webhook.url.startsWith("https://")) createWebhook.mutate(); }} className="space-y-4">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Endpoint URL</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Endpoint URL</span>
               <input autoFocus value={webhook.url} onChange={e => setWebhook({ ...webhook, url: e.target.value })}
                 placeholder="https://example.com/webhook" className="key-input h-10 w-full px-3 text-sm" />
             </label>
             <div>
-              <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">Events to send</span>
+              <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-stone-500">Events to send</span>
               <div className="grid grid-cols-2 gap-1.5">
                 {webhookEvents.map(ev => (
                   <label key={ev} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-white/[.03] transition-colors">
                     <input type="checkbox" checked={webhook.events.includes(ev)}
                       onChange={e => setWebhook({ ...webhook, events: e.target.checked ? [...webhook.events, ev] : webhook.events.filter(x => x !== ev) })}
                       className="accent-red-500" />
-                    <span className="text-slate-400">{ev}</span>
+                    <span className="text-stone-400">{ev}</span>
                   </label>
                 ))}
               </div>
             </div>
             <div>
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">Signing secret</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Signing secret</span>
               <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-xs text-slate-400">{webhook.secret}</code>
+                <code className="min-w-0 flex-1 truncate rounded-lg border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-xs text-stone-400">{webhook.secret}</code>
                 <CopyButton value={webhook.secret} />
               </div>
             </div>

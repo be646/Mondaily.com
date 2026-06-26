@@ -25,7 +25,7 @@ interface LinkedNode { id: string; object_type: string; data: Record<string, unk
 const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 border-blue-200 dark:border-blue-400/30",
   "Blocked":     "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-400/10 border-indigo-200 dark:border-indigo-400/30",
-  "Waiting":     "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-400/10 border-slate-200 dark:border-slate-400/30",
+  "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Bug":         "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-400/10 border-rose-200 dark:border-rose-400/30",
   "Feature":     "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-400/10 border-purple-200 dark:border-purple-400/30",
   "Research":    "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-400/10 border-cyan-200 dark:border-cyan-400/30",
@@ -144,7 +144,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
 // ── Status/Priority pill ───────────────────────────────────────────────────────
 const STATUS_META: Record<string, { label: string; dot: string }> = {
-  todo:        { label: "To Do",        dot: "bg-slate-500" },
+  todo:        { label: "To Do",        dot: "bg-stone-500" },
   in_progress: { label: "In Progress",  dot: "bg-blue-400" },
   review:      { label: "Review",       dot: "bg-yellow-400" },
   done:        { label: "Done",         dot: "bg-emerald-400" },
@@ -153,7 +153,7 @@ const PRIORITY_META: Record<string, { label: string; dot: string }> = {
   urgent: { label: "Urgent", dot: "bg-indigo-500" },
   high:   { label: "High",   dot: "bg-orange-400" },
   medium: { label: "Medium", dot: "bg-yellow-400" },
-  low:    { label: "Low",    dot: "bg-slate-400" },
+  low:    { label: "Low",    dot: "bg-stone-400" },
 };
 
 // ── Main panel ─────────────────────────────────────────────────────────────────

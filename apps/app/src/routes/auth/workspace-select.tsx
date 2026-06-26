@@ -66,7 +66,7 @@ export function WorkspaceSelectPage() {
       <div className="w-full max-w-md">
         <Building2 className="mx-auto mb-4 text-red-500" />
         <h1 className="text-center text-xl font-semibold">Choose a workspace</h1>
-        <p className="mb-7 mt-1 text-center text-sm text-slate-500">
+        <p className="mb-7 mt-1 text-center text-sm text-stone-500">
           {myWorkspacesQuery.isLoading ? "Loading your workspaces…" : `${myWorkspaces.length} workspace${myWorkspaces.length === 1 ? "" : "s"} with your data`}
         </p>
 
@@ -80,36 +80,36 @@ export function WorkspaceSelectPage() {
               <div className="grid h-9 w-9 place-items-center rounded-md bg-red-500/10 text-sm font-semibold text-red-400">{ws.name.charAt(0)}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{ws.name}</p>
-                <p className="flex items-center gap-3 text-[11px] text-slate-500">
+                <p className="flex items-center gap-3 text-[11px] text-stone-500">
                   <span className="flex items-center gap-1"><CheckSquare size={10}/>{ws.counts.tasks} tasks</span>
                   <span className="flex items-center gap-1"><ListChecks size={10}/>{ws.counts.lists} lists</span>
                   <span className="flex items-center gap-1"><Database size={10}/>{ws.counts.nodes} records</span>
                 </p>
               </div>
-              <ArrowRight size={15} className="text-slate-600" />
+              <ArrowRight size={15} className="text-stone-600" />
             </button>
           ))}
         </div>
 
         {orgMemberships.length > 0 && (
           <>
-            <p className="mb-2 mt-5 text-[11px] uppercase tracking-widest text-slate-600">Organizations</p>
+            <p className="mb-2 mt-5 text-[11px] uppercase tracking-widest text-stone-600">Organizations</p>
             <div className="space-y-2">
               {orgMemberships.map(({ organization, role }) => (
                 <button key={organization.id} onClick={() => selectOrg(organization.id, organization.name)} className="flex w-full items-center gap-3 rounded-lg border border-white/10 p-3 text-left hover:bg-white/[.04]">
                   <div className="grid h-9 w-9 place-items-center rounded-md bg-red-500/10 text-sm font-semibold text-red-400">{organization.name.charAt(0)}</div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{organization.name}</p>
-                    <p className="text-xs capitalize text-slate-500">{role.replace("org:", "")}</p>
+                    <p className="text-xs capitalize text-stone-500">{role.replace("org:", "")}</p>
                   </div>
-                  <ArrowRight size={15} className="text-slate-600" />
+                  <ArrowRight size={15} className="text-stone-600" />
                 </button>
               ))}
             </div>
           </>
         )}
 
-        <button onClick={() => navigate("/onboarding/workspace")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 p-3 text-sm text-slate-400 hover:text-white">
+        <button onClick={() => navigate("/onboarding/workspace")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 p-3 text-sm text-stone-400 hover:text-white">
           <Plus size={15} /> Create new workspace
         </button>
       </div>

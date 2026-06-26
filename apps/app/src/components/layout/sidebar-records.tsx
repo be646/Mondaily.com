@@ -30,7 +30,7 @@ export function SidebarObjects() {
     <section className="mt-3">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-50"
         style={{ color: "var(--text-faint)" }}
       >
         <span className="flex-1 text-left">Records{activeObject ? ` · ${activeObject.name_plural}` : ""}</span>
@@ -47,12 +47,12 @@ export function SidebarObjects() {
                 to={`/objects/${obj.slug}`}
                 className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
                   active
-                    ? "font-medium text-neutral-950 dark:text-neutral-50"
-                    : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
+                    ? "font-medium text-stone-950 dark:text-stone-50"
+                    : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"
                 }`}
               >
-                {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50" />}
-                <span className={active ? "text-neutral-950 dark:text-neutral-50" : "text-neutral-400 dark:text-neutral-600"}>
+                {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50" />}
+                <span className={active ? "text-stone-950 dark:text-stone-50" : "text-stone-400 dark:text-stone-600"}>
                   {objectIcon(obj.slug)}
                 </span>
                 {obj.name_plural}

@@ -140,26 +140,26 @@ export function SidebarLists() {
           to={`/lists/${list.id}`}
           className={`relative flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
             active
-              ? "font-medium text-neutral-950 dark:text-neutral-50"
-              : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-200"
+              ? "font-medium text-stone-950 dark:text-stone-50"
+              : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"
           }`}
         >
-          {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-neutral-950 dark:bg-neutral-50" />}
+          {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50" />}
           <span className="min-w-0 flex-1 truncate">{list.name}</span>
           <span className="flex shrink-0 items-center gap-1">
             {assignee && (
               <span title={`Assigned to ${memberLabel(assignee)}`}
-                className="grid h-4 w-4 place-items-center rounded-full border border-neutral-200 bg-neutral-50 text-[8px] font-bold text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+                className="grid h-4 w-4 place-items-center rounded-full border border-stone-200 bg-stone-50 text-[8px] font-bold text-stone-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-400">
                 {memberInitials(assignee)}
               </span>
             )}
             {sharedCount > 0 && (
-              <span className="text-[9px] text-neutral-400 dark:text-neutral-600">{sharedCount > 1 ? `+${sharedCount}` : ""}</span>
+              <span className="text-[9px] text-stone-400 dark:text-stone-600">{sharedCount > 1 ? `+${sharedCount}` : ""}</span>
             )}
-            <span className="text-[10px] text-neutral-400 dark:text-neutral-600">{list.entry_count}</span>
+            <span className="text-[10px] text-stone-400 dark:text-stone-600">{list.entry_count}</span>
           </span>
         </Link>
-        <button title="List menu" className="mr-1 shrink-0 text-neutral-400 opacity-0 transition-opacity hover:text-neutral-950 group-hover:opacity-100 dark:text-neutral-600 dark:hover:text-neutral-200">
+        <button title="List menu" className="mr-1 shrink-0 text-stone-400 opacity-0 transition-opacity hover:text-stone-950 group-hover:opacity-100 dark:text-stone-600 dark:hover:text-stone-200">
           <MoreHorizontal size={12} />
         </button>
       </div>
@@ -170,7 +170,7 @@ export function SidebarLists() {
     <section className="mt-5">
       <div className="mb-2 flex items-center justify-between px-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>Lists</p>
-        <button onClick={() => setOpen(true)} title="New list" className="transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" style={{ color: "var(--text-faint)" }}>
+        <button onClick={() => setOpen(true)} title="New list" className="transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
           <Plus size={13} />
         </button>
       </div>
@@ -179,7 +179,7 @@ export function SidebarLists() {
       {myLists.length > 0 && (
         <div className="mb-1">
           <button onClick={() => setMyOpen(v => !v)}
-            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400 transition-colors hover:text-neutral-700 dark:text-neutral-600 dark:hover:text-neutral-300">
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300">
             {myOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <UserCheck size={9} /> Mine
           </button>
@@ -191,7 +191,7 @@ export function SidebarLists() {
       {teamLists.length > 0 && (
         <div className="mb-1">
           <button onClick={() => setTeamOpen(v => !v)}
-            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400 transition-colors hover:text-neutral-700 dark:text-neutral-600 dark:hover:text-neutral-300">
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300">
             {teamOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <Users size={9} /> Shared
           </button>
@@ -207,7 +207,7 @@ export function SidebarLists() {
       )}
 
       {!myLists.length && !teamLists.length && lists.length === 0 && !query.isLoading && !query.isError && (
-        <button onClick={() => setOpen(true)} className="w-full px-2.5 py-2 text-left text-xs transition-colors hover:text-neutral-950 dark:hover:text-neutral-50" style={{ color: "var(--text-faint)" }}>
+        <button onClick={() => setOpen(true)} className="w-full px-2.5 py-2 text-left text-xs transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
           Create your first list
         </button>
       )}
@@ -221,15 +221,15 @@ export function SidebarLists() {
             <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
               <div className="flex items-center gap-0.5 rounded-lg border border-white/[.07] bg-white/[.02] p-0.5">
                 <button onClick={() => setTab("manual")}
-                  className={`rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "manual" ? "bg-white/[.08] text-white" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "manual" ? "bg-white/[.08] text-white" : "text-stone-500 hover:text-stone-300"}`}>
                   Manual
                 </button>
                 <button onClick={() => setTab("ai")}
-                  className={`flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-violet-500/20 text-violet-300" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-violet-500/20 text-violet-300" : "text-stone-500 hover:text-stone-300"}`}>
                   <Sparkles size={10} /> AI
                 </button>
               </div>
-              <button onClick={resetModal} className="rounded-md p-1 text-slate-500 hover:bg-white/[.05] hover:text-white transition-colors">
+              <button onClick={resetModal} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors">
                 <X size={13} />
               </button>
             </div>
@@ -238,13 +238,13 @@ export function SidebarLists() {
               <form onSubmit={e => { e.preventDefault(); if (name.trim()) create.mutate(); }} className="space-y-4 p-5">
                 {/* Name */}
                 <div>
-                  <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600">Name</label>
+                  <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-stone-600">Name</label>
                   <input autoFocus value={name} onChange={e => setName(e.target.value)} className="key-input w-full" placeholder="e.g. Hot Leads Q3" />
                 </div>
 
                 {/* Object type */}
                 <div>
-                  <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600">Object type</label>
+                  <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-stone-600">Object type</label>
                   <select value={objectType || defaultObjectType} onChange={e => setObjectType(e.target.value)} className="key-input w-full">
                     {objectTypes.length > 0
                       ? objectTypes.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)
@@ -258,18 +258,18 @@ export function SidebarLists() {
 
                 {/* Assign to member */}
                 <div>
-                  <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600">Assign to</label>
+                  <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-stone-600">Assign to</label>
                   {membersQuery.isLoading ? (
                     <div className="flex items-center gap-2 rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2">
-                      <Loader2 size={12} className="animate-spin text-slate-600" />
-                      <span className="text-xs text-slate-600">Loading members…</span>
+                      <Loader2 size={12} className="animate-spin text-stone-600" />
+                      <span className="text-xs text-stone-600">Loading members…</span>
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
                       {/* "Me" option */}
                       <button type="button"
                         onClick={() => setAssigneeId(prev => prev === (userId ?? "") ? "" : (userId ?? ""))}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === userId ? "border-indigo-500/40 bg-indigo-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === userId ? "border-indigo-500/40 bg-indigo-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
                         <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                           {(members.find(m => m.user_id === userId)?.name ?? "Me").slice(0, 2).toUpperCase()}
                         </span>
@@ -278,7 +278,7 @@ export function SidebarLists() {
                       {members.filter(m => m.user_id !== userId).map(m => (
                         <button key={m.user_id} type="button"
                           onClick={() => setAssigneeId(prev => prev === m.user_id ? "" : m.user_id)}
-                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === m.user_id ? "border-indigo-500/40 bg-indigo-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
+                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === m.user_id ? "border-indigo-500/40 bg-indigo-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
                           <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                             {memberInitials(m)}
                           </span>
@@ -292,12 +292,12 @@ export function SidebarLists() {
                 {/* Share with */}
                 {members.filter(m => m.user_id !== assigneeId).length > 0 && (
                   <div>
-                    <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-slate-600">Share with</label>
+                    <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-stone-600">Share with</label>
                     <div className="flex flex-wrap gap-1.5">
                       {members.filter(m => m.user_id !== assigneeId).map(m => (
                         <button key={m.user_id} type="button"
                           onClick={() => toggleShared(m.user_id)}
-                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${sharedWith.includes(m.user_id) ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[.08] bg-white/[.02] text-slate-400 hover:border-white/[.15] hover:text-white"}`}>
+                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${sharedWith.includes(m.user_id) ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
                           <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                             {memberInitials(m)}
                           </span>
@@ -315,10 +315,10 @@ export function SidebarLists() {
               </form>
             ) : (
               <div className="space-y-3.5 p-5">
-                <p className="text-[11px] text-slate-600">Describe the list you want. AI will name it, pick the right object type, and populate it with matching records.</p>
+                <p className="text-[11px] text-stone-600">Describe the list you want. AI will name it, pick the right object type, and populate it with matching records.</p>
                 <textarea autoFocus value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4}
                   placeholder={`e.g. "High-value fintech companies" or "Leads from referrals not yet contacted"`}
-                  className="w-full resize-none rounded-xl border border-white/[.08] bg-white/[.02] px-3 py-2.5 text-[12px] text-white placeholder-slate-700 outline-none focus:border-violet-500/40 transition-colors" />
+                  className="w-full resize-none rounded-xl border border-white/[.08] bg-white/[.02] px-3 py-2.5 text-[12px] text-white placeholder-stone-700 outline-none focus:border-violet-500/40 transition-colors" />
                 {aiError && <p className="text-[11px] text-indigo-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-violet-500 transition-colors">

@@ -8,7 +8,7 @@ interface Props {
 function scoreColor(score: number) {
   if (score >= 70) return { text: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", bar: "bg-emerald-500" };
   if (score >= 40) return { text: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", bar: "bg-amber-500" };
-  return { text: "text-slate-500", bg: "bg-white/[.04] border-white/[.08]", bar: "bg-slate-600" };
+  return { text: "text-stone-500", bg: "bg-white/[.04] border-white/[.08]", bar: "bg-stone-600" };
 }
 
 function scoreLabel(score: number) {

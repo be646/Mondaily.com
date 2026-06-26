@@ -24,8 +24,8 @@ export function StepConnectEmail() {
 
   return (
     <div>
-      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Connect your email</h1>
-      <p className="mb-3 font-mono text-[12px] text-zinc-500">Mondaily builds your relationship graph from email and calendar activity.</p>
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Connect your email</h1>
+      <p className="mb-3 font-mono text-[12px] text-stone-500">Mondaily builds your relationship graph from email and calendar activity.</p>
 
       <div className="mb-6 rounded-xl border border-indigo-500/20 bg-indigo-500/[.04] px-4 py-3 font-mono text-[12px] text-indigo-700">
         AI import is always reviewable before any records are changed.
@@ -36,12 +36,12 @@ export function StepConnectEmail() {
           <button
             key={provider}
             onClick={() => connect(provider)}
-            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${connected.includes(provider) ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-black/[.08] hover:bg-zinc-50"}`}
+            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${connected.includes(provider) ? "border-indigo-500/30 bg-indigo-500/[.04]" : "border-black/[.08] hover:bg-stone-50"}`}
           >
-            <Mail size={15} className={connected.includes(provider) ? "text-indigo-500" : "text-zinc-400"} />
+            <Mail size={15} className={connected.includes(provider) ? "text-indigo-500" : "text-stone-400"} />
             <div className="flex-1">
-              <p className="font-mono text-[12px] font-medium text-zinc-800">Connect {provider === "gmail" ? "Gmail" : "Outlook"}</p>
-              <p className="font-mono text-[11px] text-zinc-500">Email and calendar</p>
+              <p className="font-mono text-[12px] font-medium text-stone-800">Connect {provider === "gmail" ? "Gmail" : "Outlook"}</p>
+              <p className="font-mono text-[11px] text-stone-500">Email and calendar</p>
             </div>
             {connected.includes(provider) && <CheckCircle size={14} className="text-indigo-500" />}
           </button>
@@ -55,7 +55,7 @@ export function StepConnectEmail() {
         >
           Continue <ArrowRight size={13} />
         </button>
-        <button onClick={() => navigate("/onboarding/invite")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+        <button onClick={() => navigate("/onboarding/invite")} className="rounded-xl border border-black/[.08] px-4 font-mono text-[12px] text-stone-500 hover:bg-stone-50 transition-colors">
           Skip
         </button>
       </div>

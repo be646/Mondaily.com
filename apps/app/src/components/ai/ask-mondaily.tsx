@@ -30,7 +30,7 @@ function renderMarkdown(text: string): React.ReactNode {
       <ul key={key} className="my-1.5 space-y-1 pl-1">
         {listBuffer.map((item, i) => (
           <li key={i} className="flex gap-2.5" style={{ color: "var(--text-secondary)" }}>
-            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-slate-500"/>
+            <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-stone-500"/>
             <span className="leading-7">{inlineFormat(item)}</span>
           </li>
         ))}
@@ -259,7 +259,7 @@ export function AskMondaily() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-indigo-500"/>
               </span>
               {loading && (
-                <span className="text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-slate-500">
+                <span className="text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-stone-500">
                   {streamStatus ? streamStatus : tokenCount > 0 ? `${tokenCount} tokens` : `${GRAPH_REASONING_STEPS[thinkingStep]}…`}
                 </span>
               )}
@@ -267,11 +267,11 @@ export function AskMondaily() {
           </div>
           {isChatting && (
             <div className="flex items-center gap-3">
-              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
+              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-white transition-colors">
                 <Download size={12}/> Export
               </button>
               <button onClick={clear}
-                className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-slate-500 dark:hover:text-white transition-colors">
+                className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-white transition-colors">
                 New chat
               </button>
             </div>
@@ -290,7 +290,7 @@ export function AskMondaily() {
                 <LogoSymbol size={52} />
               </div>
               <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">What do you want to know about the workspace graph?</p>
-              <p className="text-xs text-[#9ca3af] dark:text-slate-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
+              <p className="text-xs text-[#9ca3af] dark:text-stone-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
               <div className="mx-auto flex max-w-md flex-col gap-0">
                 {EMPTY_SUGGESTION_GROUPS.map(s => (
                   <button key={s} onClick={() => sendSuggestion(s)} className="ask-suggestion-row text-xs">{s}</button>
@@ -351,19 +351,19 @@ export function AskMondaily() {
                     {!isStreaming && i > 0 && (
                       <div className="flex items-center gap-0.5 mt-2 pl-4">
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)}
-                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-slate-700 hover:text-emerald-400"}`}
+                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-stone-700 hover:text-emerald-400"}`}
                           title="Good response"><ThumbsUp size={12}/></button>
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)}
-                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-zinc-300 hover:text-indigo-400 dark:text-slate-700 dark:hover:text-indigo-400"}`}
+                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-indigo-400" : "text-stone-300 hover:text-indigo-400 dark:text-stone-700 dark:hover:text-indigo-400"}`}
                           title="Bad response"><ThumbsDown size={12}/></button>
-                        {feedbackGiven[i] && <span className="text-[11px] text-[#9ca3af] dark:text-slate-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
+                        {feedbackGiven[i] && <span className="text-[11px] text-[#9ca3af] dark:text-stone-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
                         <button onClick={() => copyMessage(m.content, i)}
-                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-emerald-400" : "text-zinc-300 hover:text-zinc-500 dark:text-slate-700 dark:hover:text-slate-400"}`}
+                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-emerald-400" : "text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400"}`}
                           title="Copy">
                           {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
                         </button>
                         {i === messages.length - 1 && !loading && (
-                          <button onClick={regenerate} className="rounded-md p-1.5 text-zinc-300 hover:text-zinc-500 dark:text-slate-700 dark:hover:text-slate-400 transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
+                          <button onClick={regenerate} className="rounded-md p-1.5 text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400 transition-colors" title="Regenerate"><RefreshCw size={12}/></button>
                         )}
                       </div>
                     )}
@@ -408,7 +408,7 @@ export function AskMondaily() {
 
         {/* Thinking */}
         {loading && (
-          <div className="flex items-center gap-3 pl-1 text-[#6b7280] dark:text-slate-400">
+          <div className="flex items-center gap-3 pl-1 text-[#6b7280] dark:text-stone-400">
             <LogoSymbol size={36} thinking />
             <span className="text-sm italic tracking-wide">{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
           </div>
@@ -421,7 +421,7 @@ export function AskMondaily() {
               <button key={i} onClick={() => sendSuggestion(s)}
                 className="ask-suggestion-row group text-sm">
                 <span>{s}</span>
-                <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-slate-600 dark:group-hover:text-slate-400 transition-colors"/>
+                <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-stone-600 dark:group-hover:text-stone-400 transition-colors"/>
               </button>
             ))}
           </div>
@@ -438,7 +438,7 @@ export function AskMondaily() {
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-white/[.08] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
               <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-white/[.06]">
-                <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-slate-600 uppercase tracking-widest">Quick prompts</p>
+                <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-stone-600 uppercase tracking-widest">Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
@@ -448,8 +448,8 @@ export function AskMondaily() {
                       <Icon size={13} className="text-indigo-600 dark:text-indigo-400"/>
                     </span>
                     <span>
-                      <span className="block text-sm text-[#111827] group-hover:text-indigo-700 dark:text-slate-200 dark:group-hover:text-white transition-colors">{label}</span>
-                      <span className="block text-[11px] text-[#9ca3af] dark:text-slate-600">{description}</span>
+                      <span className="block text-sm text-[#111827] group-hover:text-indigo-700 dark:text-stone-200 dark:group-hover:text-white transition-colors">{label}</span>
+                      <span className="block text-[11px] text-[#9ca3af] dark:text-stone-600">{description}</span>
                     </span>
                   </button>
                 ))}
@@ -460,25 +460,25 @@ export function AskMondaily() {
           {/* Input */}
           <div className="ask-input flex items-center gap-2 rounded-2xl px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-slate-600 dark:hover:text-slate-300 dark:hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-white/[.05]"}`}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-neutral-400" style={{ color: "var(--text-primary)" }}/>
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400" style={{ color: "var(--text-primary)" }}/>
             {isChatting && (
               <button onClick={clear}
-                className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-slate-600 dark:hover:text-slate-400 transition-colors mr-1">
+                className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-stone-600 dark:hover:text-stone-400 transition-colors mr-1">
                 Clear
               </button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-white/[.04] dark:text-slate-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/10 dark:shadow-indigo-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-white/[.04] dark:text-stone-600"}`}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>
-          <p className="mt-1.5 text-center text-[11px] text-slate-700">Enter to send · Shift+Enter for new line</p>
+          <p className="mt-1.5 text-center text-[11px] text-stone-700">Enter to send · Shift+Enter for new line</p>
         </div>
       </div>
     </div>

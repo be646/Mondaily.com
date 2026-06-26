@@ -54,12 +54,12 @@ export function NotificationsBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900 dark:hover:text-neutral-50"
+        className="relative flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
         title="Notifications"
       >
         <Bell size={15}/>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-neutral-950 text-[9px] font-semibold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">
+          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-stone-950 text-[9px] font-semibold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -80,7 +80,7 @@ export function NotificationsBell() {
               {unread > 0 && (
                 <button
                   onClick={() => markAllRead.mutate()}
-                  className="text-[11px] text-zinc-500 hover:text-white transition-colors"
+                  className="text-[11px] text-stone-500 hover:text-white transition-colors"
                 >
                   Mark all read
                 </button>
@@ -91,8 +91,8 @@ export function NotificationsBell() {
             <div className="max-h-72 overflow-auto">
               {notifications.length === 0 ? (
                 <div className="px-4 py-10 text-center">
-                  <Bell size={20} className="mx-auto mb-2 text-zinc-700"/>
-                  <p className="text-[12px] text-zinc-600">No notifications yet</p>
+                  <Bell size={20} className="mx-auto mb-2 text-stone-700"/>
+                  <p className="text-[12px] text-stone-600">No notifications yet</p>
                 </div>
               ) : (
                 notifications.map(n => (
@@ -103,9 +103,9 @@ export function NotificationsBell() {
                   >
                     <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-indigo-400" : "bg-transparent"}`}/>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-white" : "text-zinc-400"}`}>{n.title}</p>
-                      {n.body && <p className="text-[11px] text-zinc-600 mt-0.5 truncate">{n.body}</p>}
-                      <p className="text-[10px] text-zinc-700 mt-1">{fmtTime(n.created_at)}</p>
+                      <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-white" : "text-stone-400"}`}>{n.title}</p>
+                      {n.body && <p className="text-[11px] text-stone-600 mt-0.5 truncate">{n.body}</p>}
+                      <p className="text-[10px] text-stone-700 mt-1">{fmtTime(n.created_at)}</p>
                     </div>
                   </button>
                 ))
@@ -116,7 +116,7 @@ export function NotificationsBell() {
             <div className="border-t border-white/[.06] px-4 py-2.5">
               <button
                 onClick={() => { setOpen(false); navigate("/notifications"); }}
-                className="w-full text-center text-[11px] text-zinc-600 hover:text-white transition-colors"
+                className="w-full text-center text-[11px] text-stone-600 hover:text-white transition-colors"
               >
                 View all notifications →
               </button>

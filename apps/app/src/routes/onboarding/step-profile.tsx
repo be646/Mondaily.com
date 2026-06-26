@@ -21,19 +21,19 @@ export function StepProfile() {
     navigate("/onboarding/workspace");
   }
 
-  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors";
+  const inputCls = "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-indigo-500/40 transition-colors";
 
   return (
     <div>
-      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-zinc-900">Your profile</h1>
-      <p className="mb-7 font-mono text-[12px] text-zinc-500">How should your teammates know you?</p>
+      <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Your profile</h1>
+      <p className="mb-7 font-mono text-[12px] text-stone-500">How should your teammates know you?</p>
 
       <div className="mb-4">
-        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Full name</p>
+        <p className="mb-1.5 font-mono text-[11px] text-stone-500">Full name</p>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" className={inputCls} />
       </div>
       <div className="mb-8">
-        <p className="mb-1.5 font-mono text-[11px] text-zinc-500">Job title</p>
+        <p className="mb-1.5 font-mono text-[11px] text-stone-500">Job title</p>
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Founder, Head of Sales…" className={inputCls} />
       </div>
 
