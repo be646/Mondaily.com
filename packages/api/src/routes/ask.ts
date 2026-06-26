@@ -1304,6 +1304,15 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];
 
+      // Serialize ALL SSE writes through one chain. Tools now run concurrently
+      // (Promise.all in the gateway), so multiple onToolCall callbacks may try
+      // to write at once — chaining prevents interleaved/corrupted SSE frames.
+      let writeChain: Promise<void> = Promise.resolve();
+      const safeWrite = (obj: unknown): Promise<void> => {
+        writeChain = writeChain.then(() => stream.writeSSE({ data: JSON.stringify(obj) }));
+        return writeChain;
+      };
+
       const { reply: agentReply } = await aiGatewayAgentStream({
         system: systemPrompt,
         tools: TOOLS,
@@ -1313,13 +1322,23 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
         onToolCall: async (name, input) => {
           const guardError = validateToolCall(name, input as Record<string, any>);
           if (guardError) return guardError;
-          return executeTool(name, input as Record<string, any>, workspaceId, userId, sources);
+          // Each tool collects its own sources (race-free under Promise.all),
+          // which we both aggregate for the final 'done' event AND stream
+          // immediately so cards render while the model is still writing text.
+          const local: SourceMeta[] = [];
+          const result = await executeTool(name, input as Record<string, any>, workspaceId, userId, local);
+          if (local.length) {
+            sources.push(...local);
+            await safeWrite({ type: "sources", sources: local });
+          }
+          return result;
         },
       }, async (e) => {
         // Don't stream the <followups> control block to the user's view.
         if (e.type === "token" && e.text.includes("<followups>")) return;
-        await stream.writeSSE({ data: JSON.stringify(e) });
+        await safeWrite(e);
       });
+      await writeChain; // ensure all queued frames are flushed before 'done'
 
       // Clean the final reply: strip the followups block, parse suggestions.
       let reply = agentReply || "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";
@@ -1339,7 +1358,8 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
         });
       } catch {}
 
-      await stream.writeSSE({ data: JSON.stringify({ type: "done", reply, suggestions, sources: dedupedSources }) });
+      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources });
+      await writeChain;
     } catch (err: any) {
       console.error("[ask:stream] error:", err?.message ?? err);
       await stream.writeSSE({ data: JSON.stringify({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] }) });

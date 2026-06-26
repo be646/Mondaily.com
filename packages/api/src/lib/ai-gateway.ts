@@ -619,12 +619,26 @@ async function runOpenAICompatAgentStream(
       content: content || null,
       tool_calls: calls.map(t => ({ id: t.id, type: "function" as const, function: { name: t.name, arguments: t.args || "{}" } })),
     });
+
+    // Surface what's running, then execute ALL tools in this round CONCURRENTLY
+    // (Promise.all) instead of one-at-a-time — the biggest latency win when the
+    // model requests several lookups at once. onToolCall streams each tool's
+    // sources to the client the instant it finishes (see ask.ts), so cards
+    // appear while the model is still generating text.
     for (const t of calls) {
       await onEvent({ type: "status", text: `Running ${t.name.replace(/_/g, " ")}…` });
+    }
+    const settled = await Promise.all(calls.map(async (t) => {
       let args: Record<string, unknown> = {};
       try { args = JSON.parse(t.args || "{}") as Record<string, unknown>; } catch {}
       const result = await req.onToolCall(t.name, args);
-      messages.push({ role: "tool", tool_call_id: t.id, content: redactSecrets(result) });
+      return { id: t.id, result };
+    }));
+    // Map results back into the message array in the SAME order the model
+    // requested them, so the next reasoning turn stays coherent. Promise.all
+    // preserves input order, so settled[i] aligns with calls[i].
+    for (const r of settled) {
+      messages.push({ role: "tool", tool_call_id: r.id, content: redactSecrets(r.result) });
     }
   }
 

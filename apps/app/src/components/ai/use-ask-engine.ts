@@ -103,6 +103,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       let finalReply = "";
       let finalSources: BackendSourceMeta[] | undefined;
       let finalSuggestions: string[] = [];
+      let liveSources: BackendSourceMeta[] = []; // accumulated from streamed `sources` events
 
       const applyText = (t: string) =>
         setMessages(prev => { const c = [...prev]; c[aiIdx] = { role: "assistant", content: t }; return c; });
@@ -128,6 +129,11 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
             applyText(streamed.replace(/<followups>[\s\S]*$/, "")); // never show the control block
           } else if (ev.type === "status") {
             setStreamStatus(ev.text);
+          } else if (ev.type === "sources") {
+            // Cards stream in the instant each tool finishes — render them now,
+            // while the model is still generating the text answer.
+            liveSources = [...liveSources, ...((ev.sources ?? []) as BackendSourceMeta[])];
+            setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(liveSources) } }));
           } else if (ev.type === "done") {
             finalReply = ev.reply ?? streamed;
             finalSources = ev.sources;
@@ -139,7 +145,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       const reply = finalReply || streamed || "No response.";
       applyText(reply);
       addMessageToThread(tid, { role: "assistant", content: reply });
-      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(finalSources) } }));
+      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(finalSources ?? liveSources) } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
       opts.onAssistantMessage?.(aiIdx, reply);

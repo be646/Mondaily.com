@@ -70049,13 +70049,18 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
     });
     for (const t2 of calls) {
       await onEvent({ type: "status", text: `Running ${t2.name.replace(/_/g, " ")}\u2026` });
+    }
+    const settled = await Promise.all(calls.map(async (t2) => {
       let args = {};
       try {
         args = JSON.parse(t2.args || "{}");
       } catch {
       }
       const result = await req.onToolCall(t2.name, args);
-      messages.push({ role: "tool", tool_call_id: t2.id, content: redactSecrets(result) });
+      return { id: t2.id, result };
+    }));
+    for (const r2 of settled) {
+      messages.push({ role: "tool", tool_call_id: r2.id, content: redactSecrets(r2.result) });
     }
   }
   if (!reply.trim()) {
@@ -73381,6 +73386,11 @@ ${webContext}` : "") + buildContextNote(context2);
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content }));
       const messages = [...priorTurns, { role: "user", content: message }];
       const sources = [];
+      let writeChain = Promise.resolve();
+      const safeWrite = (obj) => {
+        writeChain = writeChain.then(() => stream2.writeSSE({ data: JSON.stringify(obj) }));
+        return writeChain;
+      };
       const { reply: agentReply } = await aiGatewayAgentStream({
         system: systemPrompt,
         tools: TOOLS,
@@ -73390,12 +73400,19 @@ ${webContext}` : "") + buildContextNote(context2);
         onToolCall: async (name17, input) => {
           const guardError = validateToolCall(name17, input);
           if (guardError) return guardError;
-          return executeTool(name17, input, workspaceId, userId, sources);
+          const local = [];
+          const result = await executeTool(name17, input, workspaceId, userId, local);
+          if (local.length) {
+            sources.push(...local);
+            await safeWrite({ type: "sources", sources: local });
+          }
+          return result;
         }
       }, async (e2) => {
         if (e2.type === "token" && e2.text.includes("<followups>")) return;
-        await stream2.writeSSE({ data: JSON.stringify(e2) });
+        await safeWrite(e2);
       });
+      await writeChain;
       let reply = agentReply || "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";
       let suggestions = [];
       const fm = reply.match(/<followups>([\s\S]*?)<\/followups>/);
@@ -73425,7 +73442,8 @@ ${webContext}` : "") + buildContextNote(context2);
         });
       } catch {
       }
-      await stream2.writeSSE({ data: JSON.stringify({ type: "done", reply, suggestions, sources: dedupedSources }) });
+      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources });
+      await writeChain;
     } catch (err2) {
       console.error("[ask:stream] error:", err2?.message ?? err2);
       await stream2.writeSSE({ data: JSON.stringify({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] }) });
