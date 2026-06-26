@@ -3,8 +3,8 @@ import { useAuth } from "@clerk/react";
 import { LogoMark } from "@/components/logo";
 import { LeadScoreBadge } from "@/components/records/lead-score-badge";
 import {
-  Download, Globe, Grid2X2, ListPlus, Loader2,
-  MoreHorizontal, Plus, Search, Table2, Trash2, UserCheck, Users, X, Mail, Wand2,
+  Download, Globe, Loader2,
+  Plus, Search, Trash2, UserCheck, Users, X, Mail, Wand2,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -49,12 +49,12 @@ export function ListPage() {
   const qc = useQueryClient();
   const { userId } = useAuth();
 
-  const [view, setView] = useState<"table" | "board">("table");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [filterText, setFilterText] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [prospectOpen, setProspectOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [enrichingAll, setEnrichingAll] = useState(false);
@@ -81,7 +81,7 @@ export function ListPage() {
   const membersQuery = useQuery({
     queryKey: ["members"],
     queryFn: () => apiClient.get<Member[]>("/members"),
-    enabled: assignOpen,
+    enabled: assignOpen || shareOpen,
   });
   const members = membersQuery.data ?? [];
   const entries = useQuery({
@@ -129,6 +129,10 @@ export function ListPage() {
 
   // ── Derived ───────────────────────────────────────────────────────────────────
   const records = entries.data ?? [];
+  // Inline filter — substring match across each record's data (records-sheet style).
+  const shownRecords = filterText.trim()
+    ? records.filter(r => JSON.stringify(r.data ?? {}).toLowerCase().includes(filterText.trim().toLowerCase()))
+    : records;
   const columns = useMemo(() => {
     const base = Array.from(new Set(records.flatMap(r => Object.keys(r.data)))).slice(0, 7);
     // lead_score is a node column (not in data jsonb) — surface it when present.
@@ -247,6 +251,9 @@ export function ListPage() {
             <span className="rounded-full border px-2.5 py-1 text-[11px] capitalize" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
               {list.data.object_type}
             </span>
+            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>
+              {records.length} record{records.length === 1 ? "" : "s"}
+            </span>
           </div>
           <div className="list-toolbar flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -262,11 +269,6 @@ export function ListPage() {
               ? (members.find(m => m.user_id === list.data!.assignee_id)?.name?.split(" ")[0]
                   ?? (list.data.assignee_id === userId ? "Me" : "Assigned"))
               : "Assign"}
-            {(list.data.shared_with ?? []).length > 0 && (
-              <span className="ml-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] text-blue-400">
-                +{(list.data.shared_with ?? []).length}
-              </span>
-            )}
           </button>
 
           {assignOpen && (
@@ -319,8 +321,29 @@ export function ListPage() {
                   </div>
                 )}
 
-                {/* Visibility */}
-                <div className="my-2 border-t" style={{ borderColor: "var(--border-soft)" }} />
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ── Share + visibility (split out from Assign for clarity) ── */}
+        <div className="relative">
+          <button
+            onClick={() => setShareOpen(o => !o)}
+            className="btn-secondary !px-2.5 !py-1.5 !text-[11px]"
+          >
+            <Globe size={11} />
+            {(list.data.visibility ?? "workspace") === "private" ? "Private" : (list.data.visibility ?? "workspace") === "shared" ? "Shared" : "Workspace"}
+            {(list.data.shared_with ?? []).length > 0 && (
+              <span className="ml-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] text-blue-400">
+                +{(list.data.shared_with ?? []).length}
+              </span>
+            )}
+          </button>
+          {shareOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setShareOpen(false)} />
+              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Visibility</p>
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (
@@ -330,7 +353,6 @@ export function ListPage() {
                     </button>
                   ))}
                 </div>
-
                 {members.length > 0 && (
                   <>
                     <div className="my-2 border-t" style={{ borderColor: "var(--border-soft)" }} />
@@ -360,22 +382,16 @@ export function ListPage() {
           )}
         </div>
 
-        {/* View toggle */}
-        <div className="flex items-center rounded-lg border p-0.5 gap-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-          <button
-            title="Table"
-            onClick={() => setView("table")}
-            className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${view === "table" ? "surface-card text-token-primary" : "text-token-muted"}`}
-          >
-            <Table2 size={12} />
-          </button>
-          <button
-            title="Board"
-            onClick={() => setView("board")}
-            className={`grid h-6 w-6 place-items-center rounded-md transition-colors ${view === "board" ? "surface-card text-token-primary" : "text-token-muted"}`}
-          >
-            <Grid2X2 size={12} />
-          </button>
+        {/* Filter / search — records-sheet style */}
+        <div className="relative">
+          <Search size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "var(--text-faint)" }}/>
+          <input
+            value={filterText}
+            onChange={e => setFilterText(e.target.value)}
+            placeholder="Filter…"
+            className="w-44 rounded-md border border-stone-200 bg-stone-50 pl-7 pr-2.5 py-1.5 text-[11px] outline-none placeholder-stone-400 dark:border-white/[.07] dark:bg-white/[.02] dark:placeholder-stone-600"
+            style={{ color: "var(--text-primary)" }}
+          />
         </div>
             </div>
         {/* Actions */}
@@ -416,38 +432,21 @@ export function ListPage() {
         >
           <Globe size={13}/> Find from web
         </button>
-        {/* Menu */}
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen(o => !o)}
-            className="btn-ghost grid !h-7 !w-7 !px-0 !py-0"
-          >
-            <MoreHorizontal size={14} />
-          </button>
-          {menuOpen && (
-            <div className="dropdown-panel absolute right-0 mt-1 w-44 z-30">
-              <button
-                onClick={() => { setMenuOpen(false); const n = window.prompt("Rename list", list.data?.name); if (n) update.mutate({ name: n }); }}
-                className="dropdown-item w-full"
-              >
-                <ListPlus size={12}/> Rename
-              </button>
-              <button
-                onClick={() => { setMenuOpen(false); exportCsv(); }}
-                className="dropdown-item w-full"
-              >
-                <Download size={12}/> Export CSV
-              </button>
-              <div className="mx-2 my-1 border-t border-white/[.06]"/>
-              <button
-                onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }}
-                className="dropdown-item w-full text-stone-400 hover:text-stone-300"
-              >
-                <Trash2 size={12}/> Delete list
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Export + Delete — individual records-sheet-style header buttons */}
+        <button
+          onClick={exportCsv}
+          title="Export CSV"
+          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-stone-300 hover:text-stone-600 dark:border-white/[.08] dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-white/[.05] dark:hover:border-white/[.10]"
+        >
+          <Download size={11}/> Export
+        </button>
+        <button
+          onClick={() => setDeleteConfirm(true)}
+          title="Delete list"
+          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-rose-300 hover:text-rose-500 dark:border-white/[.08] dark:text-stone-400 dark:hover:text-rose-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/[.06]"
+        >
+          <Trash2 size={11}/>
+        </button>
             </div>
           </div>
         </div>
@@ -483,7 +482,7 @@ export function ListPage() {
               </button>
             </div>
           </div>
-        ) : view === "table" ? (
+        ) : (
           /* ── Table ── */
           <div className="list-sheet minimal-sheet overflow-auto">
             <table className="minimal-table min-w-full text-left text-[12px]">
@@ -499,7 +498,7 @@ export function ListPage() {
                 </tr>
               </thead>
               <tbody>
-                {records.map(record => (
+                {shownRecords.map(record => (
                   <tr key={record.id} className="group transition-colors">
                     {columns.map((c, i) => (
                       <td key={c} className="max-w-[240px] truncate text-stone-700 dark:text-stone-300">
@@ -534,32 +533,6 @@ export function ListPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        ) : (
-          /* ── Board ── */
-          <div className="grid gap-3 md:grid-cols-3">
-            {["Unassigned", "Active", "Complete"].map(stage => (
-              <section key={stage} className="border-y p-3" style={{ borderColor: "var(--border-soft)" }}>
-                <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{stage}</h2>
-                <div className="space-y-2">
-                  {records
-                    .filter(r => stage === "Unassigned"
-                      ? !r.data.stage
-                      : String(r.data.stage ?? "").toLowerCase().includes(stage.toLowerCase()))
-                    .map(r => (
-                      <Link
-                        key={r.id}
-                        to={`/objects/${r.object_type}/${r.id}`}
-                        className="block border-b p-3 transition-colors hover:bg-stone-50 dark:hover:bg-stone-900/60"
-                        style={{ borderColor: "var(--border-soft)" }}
-                      >
-                        <p className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{String(r.data.name ?? r.data.title ?? "Untitled")}</p>
-                        <p className="mt-1.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{String(r.data.company ?? r.data.email ?? "")}</p>
-                      </Link>
-                    ))}
-                </div>
-              </section>
-            ))}
           </div>
         )}
       </div>
