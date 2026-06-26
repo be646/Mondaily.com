@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, MoreHorizontal, Plus, UserCheck, Users, X } from "lucide-react";
+import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -323,7 +324,7 @@ export function SidebarLists() {
                 {aiError && <p className="text-[11px] text-stone-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-stone-500 transition-colors">
-                  {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><LogoMark size={13} /> Create with AI</>}
+                  {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><AIMark size={13}/> Create</>}
                 </button>
               </div>
             )}

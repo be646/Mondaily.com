@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import {
   ArrowLeft, Plus, Play, GitBranch, Mail, Bell, Tag, UserPlus,
@@ -458,7 +459,7 @@ export function WorkflowBuilderPage() {
 
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
-          <LogoMark size={12}/> Generate with AI
+          <AIMark size={12}/> Generate
         </button>
 
         <button onClick={saveWorkflow} disabled={saving}

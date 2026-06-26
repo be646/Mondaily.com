@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet, Loader2 } from "lucide-react";
+import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
@@ -494,7 +495,7 @@ export function TasksPage() {
           </div>
           <button onClick={() => setShowAISuggest(true)}
             className="flex items-center gap-1.5 rounded-xl border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
-            <LogoMark size={12} className="text-[var(--accent)] dark:text-stone-400"/> Suggest with AI
+            <AIMark size={12}/> Suggest
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">

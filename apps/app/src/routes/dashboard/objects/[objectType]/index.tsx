@@ -1,5 +1,6 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
@@ -213,7 +214,7 @@ function CreateRecordModal({
                 onClick={() => { setTab("ai"); setTimeout(() => promptRef.current?.focus(), 50); }}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-stone-500/20 text-stone-300" : "text-stone-500 hover:text-stone-300"}`}
               >
-                <LogoMark size={10}/> Generate with AI
+                <AIMark size={10}/> Generate
               </button>
             </div>
           </div>
@@ -746,7 +747,7 @@ export function ObjectIndexPage() {
             onClick={() => setShowAIFill(true)}
             className="flex items-center gap-1.5 rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] transition-all hover:bg-stone-200 dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
           >
-            <LogoMark size={11} className="text-[var(--accent)] dark:text-stone-400"/> Fill with AI
+            <AIMark size={11}/> Fill
           </button>
           <button
             onClick={() => setDedupOpen(true)}
@@ -832,7 +833,7 @@ export function ObjectIndexPage() {
                 onClick={() => setShowAIFill(true)}
                 className="flex items-center gap-2 rounded-lg border border-stone-300 bg-stone-100 px-5 py-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-stone-200 dark:border-stone-400/40 dark:bg-stone-500 dark:text-white dark:hover:bg-stone-400 transition-all"
               >
-                <LogoMark size={13} className="text-[var(--accent)] dark:text-white"/> Fill with AI
+                <AIMark size={13}/> Fill
               </button>
               <button
                 onClick={() => setShowCreate(true)}

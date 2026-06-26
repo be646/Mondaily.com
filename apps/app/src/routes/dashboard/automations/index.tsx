@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Zap, Mail, GitBranch, Play, Pause, MoreHorizontal, Trash2, Copy, Loader2, X, Check } from "lucide-react";
+import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -332,7 +333,7 @@ export function AutomationsPage() {
         <h1 className="flex-1 text-[15px] font-semibold text-white tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
-          <LogoMark size={12}/> Generate with AI
+          <AIMark size={12}/> Generate
         </button>
         <button
           onClick={() => createSequence.mutate()}

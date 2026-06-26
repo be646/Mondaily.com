@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/react";
+import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { LeadScoreBadge } from "@/components/records/lead-score-badge";
 import {
@@ -424,7 +425,7 @@ export function ListPage() {
           onClick={openAi}
           className="btn-ai !px-3 !py-1.5 !text-xs"
         >
-          <LogoMark size={13}/> Add with AI
+          <AIMark size={13}/> Add
         </button>
         <button
           onClick={() => setProspectOpen(true)}
@@ -472,7 +473,7 @@ export function ListPage() {
                 onClick={openAi}
                 className="btn-ai !px-4 !py-2 !text-xs"
               >
-                <LogoMark size={13} /> Add with AI
+                <AIMark size={13}/> Add
               </button>
               <button
                 onClick={() => setAddOpen(true)}

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LogoMark } from "@/components/logo";
+import { AIMark } from "@/components/ui/ai-button";
 import {
   AtSign, Calendar, CheckSquare, ChevronRight, Database, File,
   FunctionSquare, Hash, Link, List, Lock, Mail, Percent, Phone,
@@ -330,7 +331,7 @@ export function ObjectsSettings() {
         <EmptyState icon={Database} title="No object definitions" description="Create your first custom object or generate one with AI."
           action={
             <div className="flex gap-2">
-              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-stone-600 px-3 py-2 text-sm"><LogoMark size={13}/> Generate with AI</button>
+              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-stone-600 px-3 py-2 text-sm"><AIMark size={13}/> Generate</button>
               <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm text-stone-400">Manual</button>
             </div>
           }
@@ -356,7 +357,7 @@ export function ObjectsSettings() {
               <Plus size={13}/> Custom object
             </button>
             <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-stone-500/30 px-3 py-2 text-sm text-stone-400/70 hover:text-stone-300 hover:border-stone-500/50 transition-colors">
-              <LogoMark size={13}/> Generate with AI
+              <AIMark size={13}/> Generate
             </button>
           </aside>
 
