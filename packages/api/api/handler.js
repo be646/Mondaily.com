@@ -71197,6 +71197,43 @@ async function resolve2(c2, status, extra = {}) {
   });
   return c2.json(data);
 }
+async function sendViaNylas(workspaceId, msg) {
+  if (!process.env.NYLAS_API_KEY) return false;
+  const { data: emailConn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).maybeSingle();
+  const grantId = emailConn?.grant_id;
+  if (!grantId) return false;
+  try {
+    const res = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}/messages/send`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ subject: msg.subject, body: msg.body, to: msg.to })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+function emailFromRecord(data) {
+  if (!data) return void 0;
+  const email = data.email ?? data.client_email ?? data.contact_email ?? data.Email ?? data.to_email;
+  if (typeof email === "string" && /.+@.+\..+/.test(email)) {
+    return { email, name: data.name ?? data.client_name ?? data.contact_name ?? void 0 };
+  }
+  return void 0;
+}
+async function emailFallbackTask(workspaceId, createdBy, title, subject, body) {
+  await supabase.from("nodes").insert({
+    workspace_id: workspaceId,
+    vertical: "shared",
+    object_type: "task",
+    created_by: createdBy,
+    data: { title, notes: `Approved \u2014 send manually:
+
+Subject: ${subject}
+
+${body}`, status: "todo", priority: "medium" }
+  });
+}
 async function executeApprovedAction(workspaceId, decision) {
   if (decision.agent_name === "prospecting" && decision.source_type === "prospecting_candidate") {
     const evidenceItem2 = (decision.evidence ?? [])[0];
@@ -71241,36 +71278,31 @@ async function executeApprovedAction(workspaceId, decision) {
     const body = decision.summary ?? "";
     const chaseCount = (invoiceData.chase_count ?? 0) + 1;
     if (clientEmail) {
-      const { data: emailConn } = await supabase.from("email_connections").select("grant_id").eq("workspace_id", workspaceId).limit(1).single();
-      if (emailConn?.grant_id) {
-        await fetch(`https://api.us.nylas.com/v3/grants/${emailConn.grant_id}/messages/send`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${process.env.NYLAS_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] })
-        }).catch(() => {
-        });
-      } else {
-        await supabase.from("nodes").insert({
-          workspace_id: workspaceId,
-          vertical: "finance",
-          object_type: "task",
-          created_by: "agent:invoice_chaser",
-          data: {
-            title: `Chase invoice ${invoiceData.invoice_number ?? invoice.id}`,
-            notes: `Approved reminder \u2014 send manually:
-
-Subject: ${subject}
-
-${body}`,
-            status: "todo",
-            priority: "medium"
-          }
-        });
+      const sent = await sendViaNylas(workspaceId, { subject, body, to: [{ email: clientEmail, name: invoiceData.client_name ?? clientEmail }] });
+      if (!sent) {
+        await emailFallbackTask(workspaceId, "agent:invoice_chaser", `Chase invoice ${invoiceData.invoice_number ?? invoice.id}`, subject, body);
       }
     }
     await supabase.from("nodes").update({
       data: { ...invoiceData, status: "overdue", last_chased_at: (/* @__PURE__ */ new Date()).toISOString(), chase_count: chaseCount }
     }).eq("id", invoice.id);
+    return;
+  }
+  if (decision.agent_name === "workflow") {
+    const subject = String(decision.title ?? "Workflow email").replace(/^Workflow:\s*/i, "") || "Workflow email";
+    const body = String(decision.summary ?? decision.recommended_action ?? "");
+    let recipient;
+    if (decision.source_id) {
+      const { data: rec } = await supabase.from("nodes").select("data").eq("id", decision.source_id).eq("workspace_id", workspaceId).maybeSingle();
+      recipient = emailFromRecord(rec?.data);
+    }
+    if (recipient) {
+      const sent = await sendViaNylas(workspaceId, { subject, body, to: [recipient] });
+      if (!sent) await emailFallbackTask(workspaceId, "agent:workflow", `Send: ${subject}`, subject, body);
+    } else {
+      await emailFallbackTask(workspaceId, "agent:workflow", `Send: ${subject}`, subject, body);
+    }
+    return;
   }
 }
 router5.post("/:id/approve", async (c2) => {
@@ -72894,6 +72926,19 @@ router10.post("/stripe", async (c2) => {
     const plan = s3.metadata?.plan || "pro";
     if (workspaceId) {
       await supabase.from("workspaces").update({ ...customerId ? { stripe_customer_id: customerId } : {}, plan }).eq("id", workspaceId);
+    }
+  }
+  if (event.type === "invoice.payment_succeeded") {
+    const inv = event.data.object;
+    const customerId = inv.customer;
+    if (customerId) {
+      const { data: ws } = await supabase.from("workspaces").select("settings").eq("stripe_customer_id", customerId).maybeSingle();
+      if (ws) {
+        const settings = { ...ws.settings ?? {}, billing_status: "active", last_payment_at: (/* @__PURE__ */ new Date()).toISOString() };
+        await supabase.from("workspaces").update({ settings }).eq("stripe_customer_id", customerId).then(() => {
+        }, () => {
+        });
+      }
     }
   }
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
@@ -76794,12 +76839,22 @@ router37.get("/", async (c2) => {
     state: nylasConfigured ? "operational" : "needs_setup",
     explanation: nylasConfigured ? "NYLAS_API_KEY is set \u2014 email sync and sending are available." : "NYLAS_API_KEY is missing \u2014 connecting an inbox will fail."
   });
-  const stripeConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
+  const stripePrice = Boolean(process.env.STRIPE_PRICE_PRO_MONTH || process.env.STRIPE_PRICE_BUSINESS_MONTH);
+  const stripeWebhook = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  const stripeReady = stripeKey && stripePrice && stripeWebhook;
   checks.push({
     id: "stripe",
     label: "Stripe (billing) configured",
-    state: stripeConfigured ? "operational" : "needs_setup",
-    explanation: stripeConfigured ? "STRIPE_WEBHOOK_SECRET is set, so billing webhook events can be verified. Note: there is no checkout/portal-session route in this codebase yet \u2014 the billing UI's links will 404 until that's built." : "STRIPE_WEBHOOK_SECRET is missing, and there is no checkout/portal-session route in this codebase yet. Billing is not wired up end-to-end."
+    state: stripeReady ? "operational" : stripeKey ? "needs_setup" : "needs_setup",
+    explanation: stripeReady ? "Checkout + Customer Portal routes are live and Stripe is fully configured (secret key, a price id, and webhook secret) \u2014 clients can subscribe and self-serve billing." : `Billing routes (/api/v1/billing/checkout + /portal) are built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePrice && "a STRIPE_PRICE_* id", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`
+  });
+  const cronSecret = Boolean(process.env.CRON_SECRET);
+  checks.push({
+    id: "cron_secret",
+    label: "Cron endpoint protected (CRON_SECRET)",
+    state: cronSecret ? "operational" : "needs_setup",
+    explanation: cronSecret ? "CRON_SECRET is set \u2014 /api/cron/daily rejects any request without the matching bearer token." : "CRON_SECRET is not set \u2014 the daily cron endpoint is publicly triggerable. Add CRON_SECRET to lock it."
   });
   const migrations = await Promise.all([
     probeTable("tasks").then((ok2) => ({ id: "0014", label: "0014 \u2014 tasks & detail tables", applied: ok2, required: true, breaks_if_missing: "Tasks, task reviews, and task details would not work at all." })),
@@ -76943,8 +76998,8 @@ var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceC
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
   const secret = process.env.CRON_SECRET;
-  const auth = c2.req.header("Authorization");
-  if (secret && auth !== `Bearer ${secret}`) {
+  const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
+  if (secret && provided !== `Bearer ${secret}`) {
     return c2.json({ error: "Unauthorized" }, 401);
   }
   const results = await runAllDaily();

@@ -106,8 +106,11 @@ app.all("/api/inngest", inngestHandler);
  */
 app.get("/api/cron/daily", async (c) => {
   const secret = process.env.CRON_SECRET;
-  const auth = c.req.header("Authorization");
-  if (secret && auth !== `Bearer ${secret}`) {
+  // Accept the secret via the Authorization header (Vercel Cron) OR a ?secret=
+  // query token (manual/uptime triggers). When CRON_SECRET is set, anything
+  // that doesn't match is dropped with 401 to protect Cerebras compute.
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (secret && provided !== `Bearer ${secret}`) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   const results = await runAllDaily();

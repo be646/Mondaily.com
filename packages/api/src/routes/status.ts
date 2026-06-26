@@ -98,14 +98,30 @@ router.get("/", async (c) => {
     explanation: nylasConfigured ? "NYLAS_API_KEY is set — email sync and sending are available." : "NYLAS_API_KEY is missing — connecting an inbox will fail.",
   });
 
-  // Stripe
-  const stripeConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  // Stripe — the checkout + portal routes exist now; reflect real readiness.
+  // Fully operational needs the secret key (to create sessions), at least one
+  // price id (to sell a plan), and the webhook secret (to verify events).
+  const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
+  const stripePrice = Boolean(process.env.STRIPE_PRICE_PRO_MONTH || process.env.STRIPE_PRICE_BUSINESS_MONTH);
+  const stripeWebhook = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  const stripeReady = stripeKey && stripePrice && stripeWebhook;
   checks.push({
     id: "stripe", label: "Stripe (billing) configured",
-    state: stripeConfigured ? "operational" : "needs_setup",
-    explanation: stripeConfigured
-      ? "STRIPE_WEBHOOK_SECRET is set, so billing webhook events can be verified. Note: there is no checkout/portal-session route in this codebase yet — the billing UI's links will 404 until that's built."
-      : "STRIPE_WEBHOOK_SECRET is missing, and there is no checkout/portal-session route in this codebase yet. Billing is not wired up end-to-end.",
+    state: stripeReady ? "operational" : stripeKey ? "needs_setup" : "needs_setup",
+    explanation: stripeReady
+      ? "Checkout + Customer Portal routes are live and Stripe is fully configured (secret key, a price id, and webhook secret) — clients can subscribe and self-serve billing."
+      : `Billing routes (/api/v1/billing/checkout + /portal) are built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePrice && "a STRIPE_PRICE_* id", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`,
+  });
+
+  // Background cron protection — CRON_SECRET locks the public /api/cron/daily
+  // endpoint so it can't be triggered by the public and burn Cerebras compute.
+  const cronSecret = Boolean(process.env.CRON_SECRET);
+  checks.push({
+    id: "cron_secret", label: "Cron endpoint protected (CRON_SECRET)",
+    state: cronSecret ? "operational" : "needs_setup",
+    explanation: cronSecret
+      ? "CRON_SECRET is set — /api/cron/daily rejects any request without the matching bearer token."
+      : "CRON_SECRET is not set — the daily cron endpoint is publicly triggerable. Add CRON_SECRET to lock it.",
   });
 
   // Migrations

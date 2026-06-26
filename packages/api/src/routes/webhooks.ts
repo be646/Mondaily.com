@@ -129,6 +129,20 @@ router.post("/stripe", async (c) => {
     }
   }
 
+  // A successful recurring payment confirms the workspace is in good standing —
+  // record it in settings (covers renewals where no subscription.updated fires).
+  if (event.type === "invoice.payment_succeeded") {
+    const inv = event.data.object;
+    const customerId = inv.customer as string | undefined;
+    if (customerId) {
+      const { data: ws } = await supabase.from("workspaces").select("settings").eq("stripe_customer_id", customerId).maybeSingle();
+      if (ws) {
+        const settings = { ...((ws.settings as Record<string, unknown> | null) ?? {}), billing_status: "active", last_payment_at: new Date().toISOString() };
+        await supabase.from("workspaces").update({ settings }).eq("stripe_customer_id", customerId).then(() => {}, () => {});
+      }
+    }
+  }
+
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
     const sub      = event.data.object;
     const customerId = sub.customer as string;
