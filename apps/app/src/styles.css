@@ -741,8 +741,7 @@ html[data-theme="dark"] .minimal-sparkline {
 .home-telemetry-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid color-mix(in srgb, var(--border-soft) 38%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 38%, transparent);
+  gap: 0.5rem;
 }
 
 @keyframes chatInputScan {
@@ -750,35 +749,42 @@ html[data-theme="dark"] .minimal-sparkline {
   50%       { opacity: 0.62; }
   68%, 100% { transform: translateX(120%); opacity: 0; }
 }
-.home-telemetry-strip span {
+/* KPI tiles — clickable command-center metrics, not a flat strip. */
+.home-telemetry-strip > * {
   display: flex;
   min-width: 0;
-  align-items: center;
-  gap: 0.55rem;
-  border-right: 1px solid color-mix(in srgb, var(--border-soft) 34%, transparent);
-  padding: 0.85rem 0.95rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.85rem;
+  background: var(--surface-card);
+  padding: 0.85rem 1rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
-.home-telemetry-strip span:last-child {
-  border-right: 0;
+.home-telemetry-strip > a { cursor: pointer; }
+.home-telemetry-strip > *:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.home-telemetry-strip > * > svg {
+  color: var(--text-faint);
+  margin-bottom: 0.1rem;
 }
 .home-telemetry-strip strong {
+  display: block;
   color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.5rem;
+  font-weight: 650;
   line-height: 1;
+  letter-spacing: -0.01em;
 }
 @media (max-width: 640px) {
   .home-telemetry-strip {
     grid-template-columns: 1fr;
-  }
-  .home-telemetry-strip span {
-    border-right: 0;
-    border-bottom: 1px solid var(--border-soft);
-  }
-  .home-telemetry-strip span:last-child {
-    border-bottom: 0;
   }
 }
 .surface-hover:hover { background: var(--surface-hover); }
