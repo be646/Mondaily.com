@@ -76337,39 +76337,32 @@ router27.post("/nlp", requireAuth, zValidator("json", external_exports.object({
 })), async (c2) => {
   const { query, columns } = c2.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      tools: [{
-        name: "parse_table_command",
-        description: "Parse a natural language command into table filter/sort/calc operations",
-        input_schema: {
-          type: "object",
-          properties: {
-            filterText: { type: "string", description: "Text to filter rows by (substring match)" },
-            sortCol: { type: "string", description: `Column to sort by. Must be one of: ${columns.join(", ")}` },
-            sortDir: { type: "string", enum: ["asc", "desc"] },
-            calcOps: {
-              type: "object",
-              description: "Aggregation operations per column",
-              additionalProperties: { type: "string", enum: ["sum", "avg", "min", "max", "count"] }
-            }
-          }
-        }
-      }],
-      tool_choice: { type: "tool", name: "parse_table_command" },
-      messages: [{
-        role: "user",
-        content: `Available columns: ${columns.join(", ")}
+    const input = await aiGatewayToolUse({
+      maxTokens: 512,
+      system: "You parse natural-language table commands into structured filter/sort/calc operations.",
+      prompt: `Available columns: ${columns.join(", ")}
 
 Parse this command: "${query}"
 
-Only include fields that are clearly requested. sortCol must exactly match one of the available columns. filterText should be the value to search for, not the column name.`
-      }]
+Only include fields that are clearly requested. sortCol MUST exactly match one of the available columns \u2014 map synonyms (e.g. "AI score" or "lead score" \u2192 "lead_score"; "value"/"amount" \u2192 the closest column). filterText should be the value to search for, not the column name.`,
+      toolName: "parse_table_command",
+      toolDescription: "Parse a natural language command into table filter/sort/calc operations",
+      toolSchema: {
+        type: "object",
+        properties: {
+          filterText: { type: "string", description: "Text to filter rows by (substring match)" },
+          sortCol: { type: "string", description: `Column to sort by. Must be one of: ${columns.join(", ")}` },
+          sortDir: { type: "string", enum: ["asc", "desc"] },
+          calcOps: {
+            type: "object",
+            description: "Aggregation operations per column",
+            additionalProperties: { type: "string", enum: ["sum", "avg", "min", "max", "count"] }
+          }
+        }
+      }
     });
-    const toolUse = data.content?.find((b2) => b2.type === "tool_use");
-    if (!toolUse?.input) return c2.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
-    return c2.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {}, ...toolUse.input });
+    if (!input || Object.keys(input).length === 0) return c2.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
+    return c2.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {}, ...input });
   } catch (e2) {
     return c2.json({ error: e2.message }, 500);
   }
@@ -78342,7 +78335,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.4.2-aiscore" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.5.0-nlsort" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;

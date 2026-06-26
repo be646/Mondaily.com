@@ -88,36 +88,32 @@ router.post("/nlp", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const { query, columns } = c.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      tools: [{
-        name: "parse_table_command",
-        description: "Parse a natural language command into table filter/sort/calc operations",
-        input_schema: {
-          type: "object",
-          properties: {
-            filterText: { type: "string", description: "Text to filter rows by (substring match)" },
-            sortCol:    { type: "string", description: `Column to sort by. Must be one of: ${columns.join(", ")}` },
-            sortDir:    { type: "string", enum: ["asc","desc"] },
-            calcOps: {
-              type: "object",
-              description: "Aggregation operations per column",
-              additionalProperties: { type: "string", enum: ["sum","avg","min","max","count"] }
-            }
-          }
-        }
-      }],
-      tool_choice: { type: "tool", name: "parse_table_command" },
-      messages: [{
-        role: "user",
-        content: `Available columns: ${columns.join(", ")}\n\nParse this command: "${query}"\n\nOnly include fields that are clearly requested. sortCol must exactly match one of the available columns. filterText should be the value to search for, not the column name.`
-      }]
+    // Use the configured gateway (gpt-oss via Cerebras), NOT Anthropic — this
+    // app runs on Cerebras and has no Anthropic key, so callAnthropic here was
+    // failing and silently degrading NL sort to the regex fallback.
+    const input = await aiGatewayToolUse({
+      maxTokens: 512,
+      system: "You parse natural-language table commands into structured filter/sort/calc operations.",
+      prompt: `Available columns: ${columns.join(", ")}\n\nParse this command: "${query}"\n\nOnly include fields that are clearly requested. sortCol MUST exactly match one of the available columns — map synonyms (e.g. "AI score" or "lead score" → "lead_score"; "value"/"amount" → the closest column). filterText should be the value to search for, not the column name.`,
+      toolName: "parse_table_command",
+      toolDescription: "Parse a natural language command into table filter/sort/calc operations",
+      toolSchema: {
+        type: "object",
+        properties: {
+          filterText: { type: "string", description: "Text to filter rows by (substring match)" },
+          sortCol:    { type: "string", description: `Column to sort by. Must be one of: ${columns.join(", ")}` },
+          sortDir:    { type: "string", enum: ["asc", "desc"] },
+          calcOps: {
+            type: "object",
+            description: "Aggregation operations per column",
+            additionalProperties: { type: "string", enum: ["sum", "avg", "min", "max", "count"] },
+          },
+        },
+      },
     });
 
-    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
-    if (!toolUse?.input) return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
-    return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {}, ...toolUse.input });
+    if (!input || Object.keys(input).length === 0) return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {} });
+    return c.json({ filterText: "", sortCol: null, sortDir: "asc", calcOps: {}, ...input });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
