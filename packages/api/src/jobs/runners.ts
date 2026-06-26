@@ -1,6 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
-import { aiGatewayToolUse, aiGatewayComplete, type GatewayToolRequest } from "../lib/ai-gateway";
+import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 
 /**
  * Provider-agnostic agent runners.
@@ -586,49 +586,60 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         return { deal, d, heuristicScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
 
-      // ── 2) Real AI intent read — the fast model reads each deal's actual
-      // content (stage, value, recency, activity, notes) and rates buying
-      // intent 0-100 with a one-line reason, blended 50/50 with the heuristic.
-      // Runs in parallel chunks; on any error that deal falls back to heuristic
-      // only. This is what makes the "AI Score" genuinely AI, not just rules. ──
-      // Fast model + PLAIN completion returning JSON (the fast model can't do
-      // forced tool-calls, but answers plain prompts in ~1-2s). We parse the
-      // JSON out of the reply. Per-call timeout so one slow call can't stall the
-      // serverless function; on failure that deal stays heuristic-only.
-      const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+      // ── 2) Real AI intent read — BATCHED. One gpt-oss (tool-capable) call
+      // scores up to ~30 deals at once and returns a JSON array we map back by
+      // index. This is far more reliable + budget-friendly than N per-deal calls
+      // (the fast model can't do tool-calls and timed out; 25 separate reasoning
+      // calls blow the serverless limit). Blended 50/50 with the heuristic; any
+      // deal the model skips stays heuristic-only. ──
       const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T | null> =>
         Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
-      const AICHUNK = 12;
-      const updates: { id: string; finalScore: number; signals: Record<string, unknown> }[] = [];
-      for (let i = 0; i < heuristics.length; i += AICHUNK) {
-        const batch = await Promise.all(heuristics.slice(i, i + AICHUNK).map(async (h) => {
-          const { deal, d, heuristicScore, signals } = h;
-          signals.heuristic_score = heuristicScore;
-          const name = String(d.name ?? d.title ?? "Untitled deal");
-          const notes = String(d.notes ?? d.description ?? d.summary ?? d.next_step ?? "");
-          const raw = await withTimeout(aiGatewayComplete({
-            model: FAST,
-            maxTokens: 400,
-            system: "You score sales deals. Reply with ONLY compact JSON, no prose, no markdown.",
-            prompt: `Rate this deal's buying intent 0-100 (0=cold/dead, 100=ready to close). Reply ONLY as JSON: {"intent": <number 0-100>, "reason": "<one short sentence>"}.\nName: ${name}\nStage: ${signals.stage ?? "?"}\nValue: ${signals.deal_value ?? "?"}\nDays since last update: ${signals.days_since_update}\nActivity last 30d: ${signals.recent_activity_30d}\nNotes: ${notes.slice(0, 600) || "(none)"}`,
-          }), 18000);
 
-          let parsed: { intent?: unknown; reason?: unknown } | null = null;
-          if (raw) { const m = raw.match(/\{[\s\S]*\}/); if (m) { try { parsed = JSON.parse(m[0]); } catch {} } }
-          const aiIntent = parsed && typeof parsed.intent === "number" ? Math.max(0, Math.min(100, Math.round(parsed.intent as number))) : null;
-          // Diagnostic so any silent failure is visible in the data:
-          signals.ai_status = raw === null ? "timeout_or_error" : !raw ? "empty" : aiIntent === null ? "unparseable" : "ok";
+      const scoreByIndex = new Map<number, { intent: number; reason?: string }>();
+      let aiBatchOk = true;
+      const BATCH = 30;
+      for (let i = 0; i < heuristics.length; i += BATCH) {
+        const slice = heuristics.slice(i, i + BATCH);
+        const list = slice.map((h, j) => {
+          const s = h.signals;
+          const name = String(h.d.name ?? h.d.title ?? "Untitled");
+          const notes = String(h.d.notes ?? h.d.description ?? h.d.summary ?? "").slice(0, 240);
+          return `${i + j}. ${name} | stage:${s.stage ?? "?"} | value:${s.deal_value ?? "?"} | days_since_update:${s.days_since_update} | activity30d:${s.recent_activity_30d}${notes ? ` | notes:${notes}` : ""}`;
+        }).join("\n");
 
-          let finalScore = heuristicScore;
-          if (aiIntent !== null) {
-            signals.ai_intent = aiIntent;
-            if (parsed && typeof parsed.reason === "string") signals.ai_reason = (parsed.reason as string).slice(0, 240);
-            finalScore = Math.round(0.5 * heuristicScore + 0.5 * aiIntent);
+        const res = await withTimeout(aiGatewayToolUse({
+          maxTokens: 8000,
+          system: "You are a sales deal-scoring engine. Score every deal you are given. Be decisive.",
+          prompt: `Rate EACH deal's buying intent 0-100 (0=cold/dead, 100=ready to close) with a one-line reason. Use the exact index numbers given.\n\n${list}`,
+          toolName: "score_deals",
+          toolDescription: "Return an intent score (0-100) and a one-line reason for every deal, keyed by its index.",
+          toolSchema: { type: "object", properties: { scores: { type: "array", items: { type: "object", properties: { index: { type: "number" }, intent: { type: "number" }, reason: { type: "string" } }, required: ["index", "intent"] } } }, required: ["scores"] },
+        }), 45000);
+
+        if (res === null) { aiBatchOk = false; continue; }
+        const arr = (res as { scores?: unknown }).scores;
+        if (Array.isArray(arr)) {
+          for (const s of arr as Array<{ index?: unknown; intent?: unknown; reason?: unknown }>) {
+            if (typeof s.index === "number" && typeof s.intent === "number") {
+              scoreByIndex.set(s.index, { intent: Math.max(0, Math.min(100, Math.round(s.intent))), reason: typeof s.reason === "string" ? s.reason : undefined });
+            }
           }
-          return { id: deal.id, finalScore, signals };
-        }));
-        updates.push(...batch);
+        }
       }
+
+      const updates = heuristics.map((h, idx) => {
+        const { deal, heuristicScore, signals } = h;
+        signals.heuristic_score = heuristicScore;
+        const ai = scoreByIndex.get(idx);
+        signals.ai_status = ai ? "ok" : aiBatchOk ? "no_score" : "timeout_or_error";
+        let finalScore = heuristicScore;
+        if (ai) {
+          signals.ai_intent = ai.intent;
+          if (ai.reason) signals.ai_reason = ai.reason.slice(0, 240);
+          finalScore = Math.round(0.5 * heuristicScore + 0.5 * ai.intent);
+        }
+        return { id: deal.id, finalScore, signals };
+      });
 
       // Count REAL writes. supabase-js resolves update() with an { error }
       // object instead of throwing, so a missing column / RLS denial would

@@ -69813,24 +69813,6 @@ async function aiGatewayToolUse(req) {
     return {};
   }
 }
-async function aiGatewayComplete(req) {
-  const resolved = resolveModel(req.model);
-  if (resolved.type !== "openai-compat") return "";
-  const messages = [];
-  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
-  messages.push({ role: "user", content: redactSecrets(req.prompt) });
-  try {
-    const completion = await openAIClient().chat.completions.create({
-      model: resolved.modelId,
-      max_tokens: req.maxTokens ?? 512,
-      messages
-    });
-    const m2 = completion.choices[0]?.message;
-    return m2?.content && m2.content.trim() ? m2.content : m2?.reasoning ?? "";
-  } catch {
-    return "";
-  }
-}
 async function runAnthropicAgent(modelId, req, maxRounds) {
   const apiKey = getAnthropicKey();
   if (!apiKey) throw new Error("No Anthropic key found (checked ANTHROPIC_API_KEY and CLAUDE_API_KEY)");
@@ -70820,50 +70802,54 @@ async function runLeadScoring(workspaceId) {
         if (enriched) score += 4;
         return { deal, d: d2, heuristicScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
-      const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
       const withTimeout = (p2, ms5) => Promise.race([p2.catch(() => null), new Promise((r2) => setTimeout(() => r2(null), ms5))]);
-      const AICHUNK = 12;
-      const updates = [];
-      for (let i2 = 0; i2 < heuristics.length; i2 += AICHUNK) {
-        const batch = await Promise.all(heuristics.slice(i2, i2 + AICHUNK).map(async (h2) => {
-          const { deal, d: d2, heuristicScore, signals } = h2;
-          signals.heuristic_score = heuristicScore;
-          const name17 = String(d2.name ?? d2.title ?? "Untitled deal");
-          const notes = String(d2.notes ?? d2.description ?? d2.summary ?? d2.next_step ?? "");
-          const raw2 = await withTimeout(aiGatewayComplete({
-            model: FAST,
-            maxTokens: 400,
-            system: "You score sales deals. Reply with ONLY compact JSON, no prose, no markdown.",
-            prompt: `Rate this deal's buying intent 0-100 (0=cold/dead, 100=ready to close). Reply ONLY as JSON: {"intent": <number 0-100>, "reason": "<one short sentence>"}.
-Name: ${name17}
-Stage: ${signals.stage ?? "?"}
-Value: ${signals.deal_value ?? "?"}
-Days since last update: ${signals.days_since_update}
-Activity last 30d: ${signals.recent_activity_30d}
-Notes: ${notes.slice(0, 600) || "(none)"}`
-          }), 18e3);
-          let parsed = null;
-          if (raw2) {
-            const m2 = raw2.match(/\{[\s\S]*\}/);
-            if (m2) {
-              try {
-                parsed = JSON.parse(m2[0]);
-              } catch {
-              }
+      const scoreByIndex = /* @__PURE__ */ new Map();
+      let aiBatchOk = true;
+      const BATCH = 30;
+      for (let i2 = 0; i2 < heuristics.length; i2 += BATCH) {
+        const slice = heuristics.slice(i2, i2 + BATCH);
+        const list = slice.map((h2, j2) => {
+          const s3 = h2.signals;
+          const name17 = String(h2.d.name ?? h2.d.title ?? "Untitled");
+          const notes = String(h2.d.notes ?? h2.d.description ?? h2.d.summary ?? "").slice(0, 240);
+          return `${i2 + j2}. ${name17} | stage:${s3.stage ?? "?"} | value:${s3.deal_value ?? "?"} | days_since_update:${s3.days_since_update} | activity30d:${s3.recent_activity_30d}${notes ? ` | notes:${notes}` : ""}`;
+        }).join("\n");
+        const res = await withTimeout(aiGatewayToolUse({
+          maxTokens: 8e3,
+          system: "You are a sales deal-scoring engine. Score every deal you are given. Be decisive.",
+          prompt: `Rate EACH deal's buying intent 0-100 (0=cold/dead, 100=ready to close) with a one-line reason. Use the exact index numbers given.
+
+${list}`,
+          toolName: "score_deals",
+          toolDescription: "Return an intent score (0-100) and a one-line reason for every deal, keyed by its index.",
+          toolSchema: { type: "object", properties: { scores: { type: "array", items: { type: "object", properties: { index: { type: "number" }, intent: { type: "number" }, reason: { type: "string" } }, required: ["index", "intent"] } } }, required: ["scores"] }
+        }), 45e3);
+        if (res === null) {
+          aiBatchOk = false;
+          continue;
+        }
+        const arr = res.scores;
+        if (Array.isArray(arr)) {
+          for (const s3 of arr) {
+            if (typeof s3.index === "number" && typeof s3.intent === "number") {
+              scoreByIndex.set(s3.index, { intent: Math.max(0, Math.min(100, Math.round(s3.intent))), reason: typeof s3.reason === "string" ? s3.reason : void 0 });
             }
           }
-          const aiIntent = parsed && typeof parsed.intent === "number" ? Math.max(0, Math.min(100, Math.round(parsed.intent))) : null;
-          signals.ai_status = raw2 === null ? "timeout_or_error" : !raw2 ? "empty" : aiIntent === null ? "unparseable" : "ok";
-          let finalScore = heuristicScore;
-          if (aiIntent !== null) {
-            signals.ai_intent = aiIntent;
-            if (parsed && typeof parsed.reason === "string") signals.ai_reason = parsed.reason.slice(0, 240);
-            finalScore = Math.round(0.5 * heuristicScore + 0.5 * aiIntent);
-          }
-          return { id: deal.id, finalScore, signals };
-        }));
-        updates.push(...batch);
+        }
       }
+      const updates = heuristics.map((h2, idx) => {
+        const { deal, heuristicScore, signals } = h2;
+        signals.heuristic_score = heuristicScore;
+        const ai = scoreByIndex.get(idx);
+        signals.ai_status = ai ? "ok" : aiBatchOk ? "no_score" : "timeout_or_error";
+        let finalScore = heuristicScore;
+        if (ai) {
+          signals.ai_intent = ai.intent;
+          if (ai.reason) signals.ai_reason = ai.reason.slice(0, 240);
+          finalScore = Math.round(0.5 * heuristicScore + 0.5 * ai.intent);
+        }
+        return { id: deal.id, finalScore, signals };
+      });
       const CHUNK = 25;
       let written = 0;
       let firstError = "";
@@ -78356,7 +78342,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.4.1-aiscore" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.4.2-aiscore" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;
