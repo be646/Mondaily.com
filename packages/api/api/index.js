@@ -78374,7 +78374,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.7.0-lazytools" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.7.1-lazytools" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;
