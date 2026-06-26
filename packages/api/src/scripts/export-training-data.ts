@@ -20,6 +20,7 @@
 import { writeFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 import { supabase } from "@mondaily/db/client";
+import { sanitizeForTraining, looksLikeInjection } from "../lib/sanitize";
 
 interface TrainingRow {
   agent_name: string | null;
@@ -39,29 +40,9 @@ interface ChatMessage {
 // malformed string can't corrupt the JSONL, and (b) EXCLUDE rows whose prompt
 // carries a known prompt-injection pattern so they never become a fine-tuning
 // target. Exclusions are counted + logged — never silently dropped.
-function sanitizeForTraining(text: string): string {
-  return (text ?? "")
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "") // control chars (keep \t, \n)
-    .replace(/[\u2028\u2029]/g, "\n")                 // unicode line/paragraph separators
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
-}
-
-const INJECTION_PATTERNS: RegExp[] = [
-  /ignore\s+(all\s+)?(previous|prior|above)\s+instructions/i,
-  /disregard\s+(the\s+)?(previous|above|system|prior)/i,
-  /\byou\s+are\s+now\b/i,
-  /^\s*system\s*:/im,
-  /override\s+(the\s+)?(score|instructions?|system|rules?)/i,
-  /output\s+an?\b.*\bscore\s+of\s+\d+/i,
-];
 function rawText(row: TrainingRow): string {
   const out = typeof row.model_output === "string" ? row.model_output : JSON.stringify(row.model_output ?? "");
   return `${row.user_prompt ?? ""}\n${out}`;
-}
-function looksLikeInjection(row: TrainingRow): boolean {
-  const t = rawText(row);
-  return INJECTION_PATTERNS.some((re) => re.test(t));
 }
 
 function asContent(value: unknown): string {
@@ -101,7 +82,7 @@ async function main(): Promise<void> {
 
   // Exclude rows carrying prompt-injection patterns so they can't poison the
   // fine-tuning corpus. Count + log — never a silent drop.
-  const clean = rows.filter((r) => !looksLikeInjection(r));
+  const clean = rows.filter((r) => !looksLikeInjection(rawText(r)));
   const excluded = rows.length - clean.length;
   const lines = clean.map(toJsonlLine);
   // Always write the file (empty placeholder when there's nothing yet).

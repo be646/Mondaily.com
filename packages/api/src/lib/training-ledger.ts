@@ -9,13 +9,12 @@
  * that swallows its own errors — a glitch in the ledger must never block or
  * delay a real user's workspace action.
  *
- * Privacy: prompts are run through `redactSecrets()` (the same sanitizer used
- * for outbound model calls) so API keys / tokens / cards / SSNs never enter the
- * training corpus. NOTE: ordinary business PII (names, emails) is intentionally
- * preserved — swap in `redactPII` here if a stricter policy is required.
+ * Privacy: prompts are run through `redactPII()` so API keys / tokens / cards /
+ * SSNs AND ordinary PII (emails, phone numbers) never enter the training corpus —
+ * a fine-tuning dataset is the wrong place for customer contact data.
  */
 import { supabase } from "@mondaily/db/client";
-import { redactSecrets } from "./ai-gateway";
+import { redactPII } from "./ai-gateway";
 
 export type TrainingAction = "APPROVED" | "REJECTED" | "EDITED";
 
@@ -33,7 +32,7 @@ export async function logDecisionTrainingExample(
   try {
     if (!decision) return;
 
-    const userPrompt = redactSecrets(
+    const userPrompt = redactPII(
       [decision.title, decision.summary, decision.recommended_action]
         .filter((v): v is string => typeof v === "string" && v.length > 0)
         .join("\n\n"),
