@@ -3,9 +3,9 @@
  *
  *   1. PRIMARY  — send from the workspace's own connected inbox via Nylas
  *                 (personal/corporate deliverability, replies land in their box).
- *   2. FALLBACK — a transactional provider (Resend-shaped) keyed by
- *                 TRANSACTIONAL_MAIL_API_KEY, so a brand-new workspace that has
- *                 NOT connected an inbox yet can still send invites on day one.
+ *   2. FALLBACK — Resend (the same RESEND_API_KEY the digest mailer uses), so a
+ *                 brand-new workspace that has NOT connected an inbox yet can
+ *                 still send invites on day one.
  *
  * Best-effort: every path returns a boolean and never throws, so callers can
  * surface the invite link as a manual fallback when neither route is configured.
@@ -42,11 +42,13 @@ async function sendViaNylas(workspaceId: string, msg: OutboundMessage): Promise<
   }
 }
 
-/** FALLBACK: transactional provider (Resend) for workspaces with no connected inbox. */
+/** FALLBACK: transactional provider (Resend) for workspaces with no connected inbox.
+ *  Reuses the same RESEND_API_KEY the digest mailer uses (digests.ts), so no new
+ *  env var is needed; TRANSACTIONAL_MAIL_API_KEY is accepted as an alias. */
 async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
-  const key = process.env.TRANSACTIONAL_MAIL_API_KEY;
+  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
   if (!key) return false;
-  const from = process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
+  const from = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

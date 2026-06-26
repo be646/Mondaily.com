@@ -53,7 +53,7 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   // Deliver the invite to the incoming teammate from the workspace's connected
   // inbox. Best-effort: if no inbox is connected we still return the link so the
   // inviter can share it manually (email_sent flags which happened).
-  const appBase = process.env.APP_BASE_URL ?? "https://app.mondaily.com";
+  const appBase = process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com";
   const inviteLink = `${appBase}/accept-invite?token=${data.token}`;
   const emailSent = await sendWorkspaceEmail(c.get("workspaceId"), {
     to: [{ email: data.email }],
