@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [react()],
+  // Match the tsconfig "@/*" -> "src/*" alias so Vite/Rollup resolves it.
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   preview: {
     allowedHosts: ['app.mondaily.com', 'mondaily-app.onrender.com'],
     port: 10000,
