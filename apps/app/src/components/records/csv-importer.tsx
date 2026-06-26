@@ -142,12 +142,12 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       onClick={() => inputRef.current?.click()}
       className={`group relative flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-5 transition-all ${
         dragging
-          ? "border-stone-400/60 bg-stone-500/[.06]"
+          ? "border-stone-500/30 bg-stone-600/[.06]"
           : "border-white/[.08] hover:border-white/[.16] hover:bg-white/[.02]"
       }`}
     >
       <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFileChange}/>
-      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-stone-400/40 bg-stone-500/10 text-stone-400" : "border-white/[.08] bg-white/[.03] text-stone-500 group-hover:text-stone-300"}`}>
+      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-white/[.08] bg-white/[.03] text-stone-500 group-hover:text-stone-300"}`}>
         <Upload size={16}/>
       </div>
       <div className="text-center">
@@ -160,7 +160,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Inferring ────────────────────────────────────────────────────────────────
   if (phase === "inferring") return (
-    <div className="flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/[.04] px-4 py-4">
+    <div className="flex items-center gap-3 rounded-xl border border-stone-500/30 bg-stone-600/[.04] px-4 py-4">
       <LogoMark size={16} className="shrink-0 animate-pulse text-stone-400"/>
       <div>
         <p className="text-xs font-medium text-stone-300">Inferring schema with Claude…</p>
@@ -181,7 +181,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           <p className="text-[10px] text-stone-600">{rows.length} rows · {headers.length} columns · schema inferred</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 rounded-md border border-stone-500/20 bg-stone-500/[.06] px-1.5 py-0.5 text-[9px] text-stone-400">
+          <span className="flex items-center gap-1 rounded-md border border-stone-500/30 bg-stone-600/[.06] px-1.5 py-0.5 text-[9px] text-stone-400">
             <LogoMark size={8}/> AI schema
           </span>
           <button onClick={reset} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={14}/></button>
@@ -250,7 +250,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           </button>
           <button
             onClick={runImport}
-            className="flex items-center gap-1.5 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-all"
           >
             <Upload size={11}/> Import {rows.length} rows
           </button>

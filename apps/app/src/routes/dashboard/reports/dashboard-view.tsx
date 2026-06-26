@@ -546,7 +546,7 @@ export function DashboardViewPage() {
           {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
         </button>
         <button onClick={() => setConfirmDelete(true)}
-          className="flex h-9 items-center gap-2 rounded-md border border-stone-500/20 bg-stone-500/[.06] px-3 text-sm text-stone-400 hover:bg-stone-500/20 transition-colors">
+          className="flex h-9 items-center gap-2 rounded-md border border-stone-500/30 bg-stone-600/[.06] px-3 text-sm text-stone-400 hover:bg-stone-500/20 transition-colors">
           <Trash2 size={13}/> Delete
         </button>
       </header>

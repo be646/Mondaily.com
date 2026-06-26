@@ -208,7 +208,7 @@ export function CreditNoteDetailPage() {
                 </button>
               ))}
               {transitionError && (
-                <div className="flex items-start gap-1.5 rounded-lg border border-stone-500/20 bg-stone-500/[.06] px-3 py-2 text-[11px] text-stone-400">
+                <div className="flex items-start gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600/[.06] px-3 py-2 text-[11px] text-stone-400">
                   <AlertTriangle size={11} className="shrink-0 mt-0.5"/>
                   {transitionError}
                 </div>
@@ -228,7 +228,7 @@ export function CreditNoteDetailPage() {
         <main className="flex-1 overflow-auto p-6 space-y-6 max-w-2xl">
           {/* AI summary */}
           {cn.ai_summary && (
-            <div className="rounded-xl border border-stone-500/20 bg-stone-500/[.04] p-4">
+            <div className="rounded-xl border border-stone-500/30 bg-stone-600/[.04] p-4">
               <div className="flex items-center gap-2 mb-2">
                 <LogoMark size={12} className="text-stone-400"/>
                 <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">AI Summary</span>

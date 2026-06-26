@@ -91,7 +91,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { openBilling(billing.plan); }}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
             </button>

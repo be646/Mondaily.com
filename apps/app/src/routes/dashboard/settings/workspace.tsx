@@ -137,7 +137,7 @@ function GeneralSection({
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
-              : "border border-stone-400/40 bg-stone-500 hover:bg-stone-400"
+              : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
           }`}>
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
         </button>
@@ -393,7 +393,7 @@ function ModulesSection({
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
-              : "border border-stone-400/40 bg-stone-500 hover:bg-stone-400"
+              : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
           }`}>
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save modules"}
         </button>

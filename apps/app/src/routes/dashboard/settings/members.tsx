@@ -128,14 +128,14 @@ export function MembersSettings() {
                 {copied ? "Copied!" : "Copy invite link"}
               </button>
               <button onClick={() => setInviteOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all">
+                className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
                 <UserPlus size={14} /> Invite member
               </button>
             </>
           )}
           {tab === "teams" && (
             <button onClick={() => setTeamOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all">
+              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
               <Plus size={14} /> Create team
             </button>
           )}
@@ -333,7 +333,7 @@ export function MembersSettings() {
               </select>
             </label>
             <button type="submit" disabled={!invite.emails.includes("@") || sendInvite.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 py-2.5 text-sm font-semibold text-white hover:bg-stone-400 transition-all disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-white hover:bg-stone-500 transition-all disabled:opacity-40">
               <UserPlus size={14} /> {sendInvite.isPending ? "Sending…" : "Send invitation"}
             </button>
           </form>
@@ -366,7 +366,7 @@ export function MembersSettings() {
               </div>
             )}
             <button type="submit" disabled={!team.name.trim() || createTeam.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 py-2.5 text-sm font-semibold text-white hover:bg-stone-400 transition-all disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-white hover:bg-stone-500 transition-all disabled:opacity-40">
               {createTeam.isPending ? "Creating…" : "Create team"}
             </button>
           </form>

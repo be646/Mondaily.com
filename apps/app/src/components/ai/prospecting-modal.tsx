@@ -185,7 +185,7 @@ export function ProspectingModal({
               {result.created > 0 && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-emerald-400">{result.created} created</span>}
               {result.queued_for_review > 0 && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-amber-400">{result.queued_for_review} awaiting approval</span>}
               {result.existing > 0 && <span className="rounded-full border border-white/[.08] bg-white/[.03] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
-              {result.added_to_list > 0 && <span className="rounded-full border border-stone-400/30 bg-stone-400/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
+              {result.added_to_list > 0 && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
             </div>
 
             {result.candidates.length === 0 ? (

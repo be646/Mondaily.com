@@ -183,7 +183,7 @@ export function ReportsPage() {
                             </span>
                           )}
                           {reportCount > 0 && (
-                            <span className="rounded-full border border-stone-500/20 bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-400">
+                            <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-[10px] font-medium text-stone-600 dark:text-stone-400">
                               {reportCount} chart{reportCount !== 1 ? "s" : ""}
                             </span>
                           )}

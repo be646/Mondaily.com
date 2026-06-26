@@ -310,7 +310,7 @@ export function ObjectsSettings() {
       <PageHeader title="Objects & attributes" description="Define the record schemas Mondaily agents can read and update." />
 
       {/* AI Generate CTA */}
-      <div className="mb-4 flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/5 px-4 py-3">
+      <div className="mb-4 flex items-center gap-3 rounded-xl border border-stone-500/30 bg-stone-600/5 px-4 py-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-500/15">
           <LogoMark size={16} className="text-stone-400"/>
         </div>

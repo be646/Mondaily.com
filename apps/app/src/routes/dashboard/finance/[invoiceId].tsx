@@ -426,7 +426,7 @@ export function InvoiceDetailPage() {
           <FinanceAgentStrip invoiceId={invoiceId}/>
 
           {invoice.status === "overdue" && (
-            <div className="flex items-center gap-2 rounded-xl border border-stone-500/20 bg-stone-500/5 px-4 py-3 text-[12px] text-stone-400">
+            <div className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-[12px] text-stone-400">
               <AlertTriangle size={13}/>
               This invoice is overdue. Consider sending a payment reminder.
             </div>

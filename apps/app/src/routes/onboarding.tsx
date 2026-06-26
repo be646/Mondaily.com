@@ -206,7 +206,7 @@ export function OnboardingPage() {
                     key={mod.id}
                     className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
                       activeModules.includes(mod.id)
-                        ? "border-stone-500/30 bg-stone-500/[.04]"
+                        ? "border-stone-500/30 bg-stone-600/[.04]"
                         : "border-black/[.06] hover:bg-stone-50"
                     }`}
                   >

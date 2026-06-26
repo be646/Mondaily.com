@@ -27,7 +27,7 @@ export function StepConnectEmail() {
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Connect your email</h1>
       <p className="mb-3 font-mono text-[12px] text-stone-500">Mondaily builds your relationship graph from email and calendar activity.</p>
 
-      <div className="mb-6 rounded-xl border border-stone-500/20 bg-stone-500/[.04] px-4 py-3 font-mono text-[12px] text-stone-700">
+      <div className="mb-6 rounded-xl border border-stone-500/30 bg-stone-600/[.04] px-4 py-3 font-mono text-[12px] text-stone-700">
         AI import is always reviewable before any records are changed.
       </div>
 
@@ -36,7 +36,7 @@ export function StepConnectEmail() {
           <button
             key={provider}
             onClick={() => connect(provider)}
-            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${connected.includes(provider) ? "border-stone-500/30 bg-stone-500/[.04]" : "border-black/[.08] hover:bg-stone-50"}`}
+            className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors ${connected.includes(provider) ? "border-stone-500/30 bg-stone-600/[.04]" : "border-black/[.08] hover:bg-stone-50"}`}
           >
             <Mail size={15} className={connected.includes(provider) ? "text-stone-500" : "text-stone-400"} />
             <div className="flex-1">

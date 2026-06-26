@@ -332,7 +332,7 @@ interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"
 const CONFIDENCE_STYLE: Record<string, string> = {
   high:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
   medium: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  low:    "border-stone-500/30 bg-stone-500/10 text-stone-400",
+  low:    "border-stone-500/30 bg-stone-600/10 text-stone-400",
 };
 
 function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData }: {
@@ -422,7 +422,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
               <p className="text-[10px] text-stone-500 uppercase tracking-wider">Projected</p>
               <p className="text-base font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             </div>
-            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-500/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
+            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
             <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
           </div>
         ) : (
@@ -473,7 +473,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                       a.impact === "high"   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
                       a.impact === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-400" :
-                                              "border-stone-500/30 bg-stone-500/10 text-stone-400"
+                                              "border-stone-500/30 bg-stone-600/10 text-stone-400"
                     }`}>{a.impact}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-white font-medium">{a.action}</p>
@@ -582,7 +582,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           </div>
         ) : insights ? (
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-500/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
+            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
             <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
           </div>
         ) : (
@@ -742,7 +742,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/40 bg-stone-500/10 text-stone-400" : "border-white/[.08] text-stone-500 hover:text-white"}`}>
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-white/[.08] text-stone-500 hover:text-white"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -1384,7 +1384,7 @@ export function SalesReportPage() {
                 label={hasStage ? "Completion Rate" : "Total This Period"}
                 value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
                 sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
-                color="border-stone-500/20 bg-stone-500/[.06] text-stone-400"
+                color="border-stone-500/30 bg-stone-600/[.06] text-stone-400"
                 trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
                 delta={pctDelta(stats.completionRate, prevStats.completionRate)}
               />

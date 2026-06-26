@@ -121,7 +121,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-stone-400/40 bg-stone-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-50">
               {loading ? "Creating…" : "Create Quote"}
             </button>
           </div>
@@ -160,7 +160,7 @@ export function QuotesPage() {
             <p className="text-[12px] text-stone-500 mt-0.5">Manage proposals and client quotes</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-stone-400 transition-colors">
+            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-stone-500 transition-colors">
             <Plus size={13}/> New Quote
           </button>
         </div>

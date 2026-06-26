@@ -81,7 +81,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <div className="flex gap-1">
               {[3,4,5,6].map(n => (
                 <button key={n} onClick={() => setStepCount(n)}
-                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-stone-500/50 bg-stone-500/10 text-stone-300" : "border-white/[.06] text-stone-500 hover:text-stone-300"}`}>
+                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-white/[.06] text-stone-500 hover:text-stone-300"}`}>
                   {n}
                 </button>
               ))}
@@ -271,7 +271,7 @@ export function AutomationsPage() {
                 key={item.id}
                 className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-white/[.02] transition-colors ${i < items.length - 1 ? "border-b border-stone-200 dark:border-stone-800" : ""}`}
               >
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-stone-500/20 bg-stone-500/[.08] text-stone-400" : "border-stone-500/20 bg-stone-500/[.08] text-stone-400"}`}>
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-stone-500/30 bg-stone-600/[.08] text-stone-400"}`}>
                   <Icon size={14}/>
                 </div>
 
@@ -337,7 +337,7 @@ export function AutomationsPage() {
         <button
           onClick={() => createSequence.mutate()}
           disabled={createSequence.isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-all disabled:opacity-50"
         >
           <Plus size={13}/> New sequence
         </button>

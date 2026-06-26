@@ -103,7 +103,7 @@ export function NoteEditor({
             type="button"
             disabled={saving || editor.isEmpty}
             onClick={onSave}
-            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg border border-stone-400/40 bg-stone-500 px-3 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-all"
+            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 text-xs font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-all"
           >
             <Send size={11} />
             {saving ? "Saving…" : "Save"}

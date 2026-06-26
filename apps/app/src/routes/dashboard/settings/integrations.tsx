@@ -244,7 +244,7 @@ export function IntegrationsSettings() {
             </>
           ) : (
             <button onClick={() => generateMcp.mutate()}
-              className="flex items-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-400 transition-all">
+              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
               <ExternalLink size={13} /> Generate token
             </button>
           )}
@@ -278,7 +278,7 @@ export function IntegrationsSettings() {
                 <input autoFocus value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="e.g. Production, CI/CD" className="key-input h-10 w-full px-3 text-sm" />
               </label>
               <button type="submit" disabled={!keyName.trim() || createKey.isPending}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 py-2.5 text-sm font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-all">
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-all">
                 {createKey.isPending ? "Generating…" : "Generate key"}
               </button>
             </form>
@@ -316,7 +316,7 @@ export function IntegrationsSettings() {
               </div>
             </div>
             <button type="submit" disabled={!webhook.url.startsWith("https://") || createWebhook.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-400/40 bg-stone-500 py-2.5 text-sm font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-all">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-all">
               {createWebhook.isPending ? "Creating…" : "Create webhook"}
             </button>
           </form>

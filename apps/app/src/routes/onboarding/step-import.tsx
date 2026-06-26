@@ -14,7 +14,7 @@ export function StepImport() {
       <h1 className="mb-1 font-sans text-xl font-semibold tracking-tight text-stone-900">Import your data</h1>
       <p className="mb-6 font-mono text-[12px] text-stone-500">Bring contacts, companies, and deals. Mondaily prepares a review before anything is imported.</p>
 
-      <label className={`mb-7 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${file ? "border-stone-500/40 bg-stone-500/[.03]" : "border-black/[.08] hover:border-stone-500/30 hover:bg-stone-50"}`}>
+      <label className={`mb-7 flex h-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${file ? "border-stone-500/30 bg-stone-600/[.03]" : "border-black/[.08] hover:border-stone-500/30 hover:bg-stone-50"}`}>
         <input type="file" accept=".csv,.xlsx" className="hidden" onChange={e => setFile(e.target.files?.[0]?.name ?? "")} />
         {file ? (
           <>

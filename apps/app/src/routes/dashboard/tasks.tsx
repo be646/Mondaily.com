@@ -208,9 +208,9 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
             {task.priority && task.priority !== "low" && (
               <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
             )}
-            {isOverdue && <span className="rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] text-stone-400">Overdue</span>}
+            {isOverdue && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[10px] text-stone-400">Overdue</span>}
             {flagged && (
-              <span className="flex items-center gap-1 rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
+              <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
                 <LogoMark size={9}/>AI flagged
               </span>
             )}
@@ -253,7 +253,7 @@ function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, current
         <span className="ml-auto rounded-full bg-white/[.06] px-2 py-px text-[10px] text-stone-500">{tasks.length}</span>
       </div>
       <div ref={setNodeRef}
-        className={`flex-1 min-h-[120px] rounded-xl border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-500/[.03]" : "border-white/[.04] bg-white/[.01]"}`}>
+        className={`flex-1 min-h-[120px] rounded-xl border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-white/[.04] bg-white/[.01]"}`}>
         {tasks.length === 0 && <div className="flex h-16 items-center justify-center text-xs text-stone-700">Drop here</div>}
         {tasks.map(task => (
           <div key={task.id} className="relative">
@@ -527,7 +527,7 @@ export function TasksPage() {
         <div className="relative">
           {labelOpen && <div className="fixed inset-0 z-40" onClick={() => setLabelOpen(false)}/>}
           <button onClick={() => { setLabelOpen(o => !o); setPriorityOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-500/[.06] text-stone-400" : "border-white/[.07] text-stone-500 hover:text-stone-300 hover:border-white/[.12]"}`}>
+            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-white/[.07] text-stone-500 hover:text-stone-300 hover:border-white/[.12]"}`}>
             <Tag size={11}/>{labelFilter || "Label"}<ChevronDown size={10} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
           </button>
           {labelOpen && (
@@ -555,7 +555,7 @@ export function TasksPage() {
         <div className="relative">
           {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
           <button onClick={() => { setPriorityOpen(o => !o); setLabelOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-500/[.06] text-stone-400" : "border-white/[.07] text-stone-500 hover:text-stone-300 hover:border-white/[.12]"}`}>
+            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-white/[.07] text-stone-500 hover:text-stone-300 hover:border-white/[.12]"}`}>
             <Flag size={11}/>{priorityFilter ? priorityFilter.charAt(0).toUpperCase()+priorityFilter.slice(1) : "Priority"}<ChevronDown size={10} className={`transition-transform ${priorityOpen ? "rotate-180" : ""}`}/>
           </button>
           {priorityOpen && (
@@ -581,7 +581,7 @@ export function TasksPage() {
         <div className="relative">
           {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
           <button onClick={() => { setSortOpen(o => !o); setLabelOpen(false); setPriorityOpen(false); }}
-            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-500/[.06] text-stone-400" : "border-white/[.07] text-stone-500 hover:text-stone-300 hover:border-white/[.12]"}`}>
+            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-white/[.07] text-stone-500 hover:text-stone-300 hover:border-white/[.12]"}`}>
             <ArrowUpDown size={11}/>
             {sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Sort"}
             <ChevronDown size={10} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
@@ -644,7 +644,7 @@ export function TasksPage() {
                         <span className={`h-1 w-1 rounded-full ${sm.dot}`}/>{sm.label}
                       </span>
                       {flaggedTaskIds.has(task.id) && (
-                        <span className="flex items-center gap-1 rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
+                        <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
                           <LogoMark size={9}/>AI flagged
                         </span>
                       )}

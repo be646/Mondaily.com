@@ -262,9 +262,9 @@ function CreateRecordModal({
                 <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-white/[.05] hover:text-white">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-stone-400 disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-stone-500 disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
-                  <kbd className="rounded border border-stone-400/40 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
+                  <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
                 </button>
               </div>
             </div>
@@ -305,7 +305,7 @@ function CreateRecordModal({
                       <button
                         key={n}
                         onClick={() => setAiCount(n)}
-                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-stone-500/50 bg-stone-500/10 text-stone-300" : "border-white/[.07] bg-white/[.02] text-stone-500 hover:text-stone-300"}`}
+                        className={`w-9 rounded-md border py-1 text-[11px] font-medium transition-colors ${aiCount === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-white/[.07] bg-white/[.02] text-stone-500 hover:text-stone-300"}`}
                       >{n}</button>
                     ))}
                   </div>
@@ -320,7 +320,7 @@ function CreateRecordModal({
                 <button
                   onClick={generateWithAI}
                   disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-stone-400 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-stone-500 disabled:opacity-50"
                 >
                   {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><LogoMark size={11}/> Generate {aiCount} records</>}
                 </button>
@@ -367,7 +367,7 @@ function CreateRecordModal({
                     <button
                       onClick={importSelected}
                       disabled={aiSelected.size === 0}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-stone-400/40 bg-stone-500 py-2 text-[11px] font-semibold text-white transition-all hover:bg-stone-400 disabled:opacity-40"
+                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 py-2 text-[11px] font-semibold text-white transition-all hover:bg-stone-500 disabled:opacity-40"
                     >
                       <Check size={11}/> Import {aiSelected.size} record{aiSelected.size !== 1 ? "s" : ""}
                     </button>
@@ -516,7 +516,7 @@ function AIFillModal({
                 <div className="flex items-center gap-1">
                   {[10, 20, 30, 50].map(n => (
                     <button key={n} onClick={() => setCount(n)}
-                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-stone-500/50 bg-stone-500/10 text-stone-300" : "border-white/[.07] bg-white/[.02] text-stone-500 hover:text-stone-300"}`}>
+                      className={`w-10 rounded-md border py-1 text-[11px] font-medium transition-colors ${count === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-white/[.07] bg-white/[.02] text-stone-500 hover:text-stone-300"}`}>
                       {n}
                     </button>
                   ))}
@@ -531,7 +531,7 @@ function AIFillModal({
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
-                className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-50 transition-all">
+                className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-500 disabled:opacity-50 transition-all">
                 {loading
                   ? <><Loader2 size={12} className="animate-spin"/> Generating {count} records…</>
                   : <><LogoMark size={12}/> Generate {count} records</>}
@@ -574,7 +574,7 @@ function AIFillModal({
                   </div>
                 ) : (
                   <button onClick={importSelected} disabled={selected.size === 0}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-stone-400/40 bg-stone-500 py-2.5 text-[11px] font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-all">
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 py-2.5 text-[11px] font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-all">
                     <Check size={11}/> Import {selected.size} record{selected.size !== 1 ? "s" : ""}
                   </button>
                 )}
@@ -630,7 +630,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
               <p className="text-[11px] text-stone-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
             </div>
           </div>
-          <div className="rounded-lg border border-stone-500/15 bg-stone-500/5 px-4 py-3 mb-4">
+          <div className="rounded-lg border border-stone-500/30 bg-stone-600/5 px-4 py-3 mb-4">
             <p className="text-[11px] text-stone-300 leading-relaxed">
               ⚠️ This action cannot be undone. All records in <strong className="capitalize">{cleanName}</strong> will be permanently deleted along with the object definition.
             </p>
@@ -768,7 +768,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-md border border-transparent bg-stone-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-stone-700 dark:border-stone-400/40 dark:bg-stone-500 dark:hover:bg-stone-400"
+            className="flex items-center gap-1.5 rounded-md border border-transparent bg-stone-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-stone-700 dark:border-stone-400/40 dark:bg-stone-500 dark:hover:bg-stone-500"
           >
             <Plus size={11}/> New record
           </button>

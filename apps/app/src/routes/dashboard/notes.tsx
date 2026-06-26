@@ -160,7 +160,7 @@ function NoteCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {isAI ? (
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-stone-500/25 bg-stone-500/10 text-stone-400">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-stone-500/30 bg-stone-600/10 text-stone-400">
               <Bot size={12} />
             </div>
           ) : (
@@ -171,7 +171,7 @@ function NoteCard({
           <div className="min-w-0">
             <p className="truncate text-xs font-medium text-white leading-tight">
               {note.author_name}
-              {isAI && <span className="ml-1.5 rounded-full border border-stone-500/20 bg-stone-500/10 px-1.5 py-px text-[9px] font-semibold text-stone-400">AI</span>}
+              {isAI && <span className="ml-1.5 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[9px] font-semibold text-stone-400">AI</span>}
             </p>
             <p className="text-[10px] text-stone-600">{relTime(note.updated_at)}</p>
           </div>
@@ -251,7 +251,7 @@ function NoteCard({
 function DroppableCol({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={`min-h-[100px] space-y-3 rounded-2xl border-2 border-dashed p-2 transition-colors ${isOver ? "border-stone-500/40 bg-stone-500/[.03]" : "border-transparent"}`}>
+    <div ref={setNodeRef} className={`min-h-[100px] space-y-3 rounded-2xl border-2 border-dashed p-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-transparent"}`}>
       {children}
     </div>
   );

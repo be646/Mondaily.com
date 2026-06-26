@@ -270,7 +270,7 @@ export function SidebarLists() {
                       {/* "Me" option */}
                       <button type="button"
                         onClick={() => setAssigneeId(prev => prev === (userId ?? "") ? "" : (userId ?? ""))}
-                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === userId ? "border-stone-500/40 bg-stone-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
+                        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === userId ? "border-stone-500/30 bg-stone-600/10 text-white" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
                         <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                           {(members.find(m => m.user_id === userId)?.name ?? "Me").slice(0, 2).toUpperCase()}
                         </span>
@@ -279,7 +279,7 @@ export function SidebarLists() {
                       {members.filter(m => m.user_id !== userId).map(m => (
                         <button key={m.user_id} type="button"
                           onClick={() => setAssigneeId(prev => prev === m.user_id ? "" : m.user_id)}
-                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === m.user_id ? "border-stone-500/40 bg-stone-500/10 text-white" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
+                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${assigneeId === m.user_id ? "border-stone-500/30 bg-stone-600/10 text-white" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:border-white/[.15] hover:text-white"}`}>
                           <span className="grid h-4 w-4 place-items-center rounded-full bg-white/[.10] text-[8px] font-bold">
                             {memberInitials(m)}
                           </span>

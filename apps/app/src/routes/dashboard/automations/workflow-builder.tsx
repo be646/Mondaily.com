@@ -45,7 +45,7 @@ const ACTIONS = [
 ];
 
 const KIND_STYLES: Record<NodeKind, { border: string; bg: string; text: string; icon: string }> = {
-  trigger:   { border: "border-stone-500/30",    bg: "bg-stone-500/[.06]",    text: "text-stone-400",    icon: "border-stone-500/20 bg-stone-500/[.08] text-stone-400" },
+  trigger:   { border: "border-stone-500/30",    bg: "bg-stone-500/[.06]",    text: "text-stone-400",    icon: "border-stone-500/30 bg-stone-600/[.08] text-stone-400" },
   condition: { border: "border-yellow-500/30", bg: "bg-yellow-500/[.05]", text: "text-yellow-400", icon: "border-yellow-500/20 bg-yellow-500/[.08] text-yellow-400" },
   action:    { border: "border-blue-500/30",   bg: "bg-blue-500/[.05]",   text: "text-blue-400",   icon: "border-blue-500/20 bg-blue-500/[.08] text-blue-400" },
 };
@@ -461,7 +461,7 @@ export function WorkflowBuilderPage() {
 
         <button
           onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-white" : "border-stone-400/40 bg-stone-500 text-white hover:bg-stone-400"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-white" : "border-stone-500/30 bg-stone-600 text-white hover:bg-stone-500"}`}
         >
           {status === "active" ? "Pause" : <><Play size={11}/> Activate</>}
         </button>
@@ -473,9 +473,9 @@ export function WorkflowBuilderPage() {
           <div className="flex flex-col items-center">
 
             {/* Trigger config */}
-            <div className="mb-2 w-72 rounded-xl border border-stone-500/30 bg-stone-500/[.06] overflow-hidden">
+            <div className="mb-2 w-72 rounded-xl border border-stone-500/30 bg-stone-600/[.06] overflow-hidden">
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/20 bg-stone-500/[.08] text-stone-400">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/30 bg-stone-600/[.08] text-stone-400">
                   <TriggerIcon size={13}/>
                 </div>
                 <div className="flex-1 min-w-0">

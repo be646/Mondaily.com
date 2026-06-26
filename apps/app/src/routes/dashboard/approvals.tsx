@@ -138,7 +138,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
       <ApprovalTrail approvals={cn.approvals} />
 
       {error && (
-        <div className="flex items-center gap-1.5 rounded-lg border border-stone-500/20 bg-stone-500/[.05] px-3 py-2 text-[11px] text-stone-400 mb-3">
+        <div className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600/[.05] px-3 py-2 text-[11px] text-stone-400 mb-3">
           <AlertTriangle size={10} className="shrink-0"/>{error}
         </div>
       )}

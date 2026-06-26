@@ -88,13 +88,13 @@ export function StepPlan() {
           <button
             key={plan.id}
             onClick={() => setSelected(plan.id)}
-            className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-stone-500/40 bg-stone-500/[.04] ring-1 ring-stone-500/20" : "border-black/[.08] hover:bg-stone-50"}`}
+            className={`w-full rounded-xl border p-4 text-left transition-all ${selected === plan.id ? "border-stone-500/30 bg-stone-600/[.04] ring-1 ring-stone-500/20" : "border-black/[.08] hover:bg-stone-50"}`}
           >
             <div className="flex items-start justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[13px] font-semibold text-stone-800">{plan.name}</span>
                 {plan.highlight && (
-                  <span className="rounded-full border border-stone-500/20 bg-stone-500/[.07] px-2 py-0.5 font-mono text-[9px] text-stone-600 uppercase tracking-wider">Popular</span>
+                  <span className="rounded-full border border-stone-500/30 bg-stone-600/[.07] px-2 py-0.5 font-mono text-[9px] text-stone-600 uppercase tracking-wider">Popular</span>
                 )}
               </div>
               <span className="shrink-0 font-mono text-[12px] text-stone-500">
