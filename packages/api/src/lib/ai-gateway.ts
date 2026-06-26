@@ -283,7 +283,7 @@ export type AgentRequest = {
   onToolCall: (name: string, input: Record<string, unknown>) => Promise<string>;
 };
 
-export type TokenUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+export type TokenUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens?: number };
 export type AgentResponse = {
   reply: string;
   provider: string;
@@ -399,11 +399,12 @@ async function runOpenAICompatAgent(
   // Resolve active model — may be swapped to a fallback on 404
   let activeModel = modelId;
   const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
-  const addUsage = (u?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null) => {
+  const addUsage = (u?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } } | null) => {
     if (!u) return;
     usage.prompt_tokens += u.prompt_tokens ?? 0;
     usage.completion_tokens += u.completion_tokens ?? 0;
     usage.total_tokens += u.total_tokens ?? 0;
+    if (u.completion_tokens_details?.reasoning_tokens) usage.reasoning_tokens = (usage.reasoning_tokens ?? 0) + u.completion_tokens_details.reasoning_tokens;
   };
 
   for (let round = 0; round < maxRounds; round++) {
@@ -643,6 +644,8 @@ async function runOpenAICompatAgentStream(
           usage.prompt_tokens += chunk.usage.prompt_tokens ?? 0;
           usage.completion_tokens += chunk.usage.completion_tokens ?? 0;
           usage.total_tokens += chunk.usage.total_tokens ?? 0;
+          const reasoning = (chunk.usage as { completion_tokens_details?: { reasoning_tokens?: number } }).completion_tokens_details?.reasoning_tokens;
+          if (reasoning) usage.reasoning_tokens = (usage.reasoning_tokens ?? 0) + reasoning;
         }
         const choice = chunk.choices[0];
         if (!choice) continue;

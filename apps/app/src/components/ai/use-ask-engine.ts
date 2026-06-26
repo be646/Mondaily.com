@@ -20,8 +20,8 @@ import type { AskPageContext } from "../../lib/ask-context-store";
  * — no separate "memory" per surface.
  */
 
-export type TokenUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number };
-export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[]; tokens?: number; tokensExact?: boolean }>;
+export type TokenUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens?: number };
+export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[]; tokens?: number; usage?: TokenUsage; tokensExact?: boolean }>;
 
 /** Fallback token estimate (~4 chars/token) when the provider returns no usage
  *  (e.g. the Anthropic fallback path). Shown with a "~" prefix in the UI. */
@@ -169,7 +169,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       const savedSources = finalSources ?? liveSources;
       applyText(reply);
       addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources });
-      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: finalUsage?.total_tokens ?? estimateTokens(reply), tokensExact: finalUsage != null } }));
+      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: finalUsage?.total_tokens ?? estimateTokens(reply), usage: finalUsage, tokensExact: finalUsage != null } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
       opts.onAssistantMessage?.(aiIdx, reply);
@@ -182,7 +182,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         const reply = data.reply || "No response.";
         setMessages([...withUser, { role: "assistant", content: reply }]);
         addMessageToThread(tid, { role: "assistant", content: reply });
-        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), tokensExact: data.usage != null } }));
+        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
         opts.onAssistantMessage?.(aiIdx, reply);
       } catch (err2: any) {

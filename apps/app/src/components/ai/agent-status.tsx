@@ -138,7 +138,10 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                     </span>
                     <EvidenceStrip sources={meta.sources}/>
                     {meta.tokens != null && (
-                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }} title={meta.tokensExact ? "Exact provider token usage" : "Estimated"}>{meta.tokensExact ? "" : "~"}{meta.tokens.toLocaleString()} tokens</span>
+                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }} title={meta.usage ? `${meta.usage.prompt_tokens.toLocaleString()} input (system + tools + context) + ${meta.usage.completion_tokens.toLocaleString()} output${meta.usage.reasoning_tokens ? ` incl. ${meta.usage.reasoning_tokens.toLocaleString()} thinking` : ""}` : "Estimated"}>
+                        {meta.tokensExact ? "" : "~"}{meta.tokens.toLocaleString()} tok
+                        {meta.usage && <span style={{ opacity: 0.7 }}> ↑{meta.usage.prompt_tokens.toLocaleString()} ↓{meta.usage.completion_tokens.toLocaleString()}{meta.usage.reasoning_tokens ? ` ·${meta.usage.reasoning_tokens.toLocaleString()} think` : ""}</span>}
+                      </span>
                     )}
                   </div>
                 )}

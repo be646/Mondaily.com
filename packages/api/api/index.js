@@ -69888,6 +69888,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     usage.prompt_tokens += u2.prompt_tokens ?? 0;
     usage.completion_tokens += u2.completion_tokens ?? 0;
     usage.total_tokens += u2.total_tokens ?? 0;
+    if (u2.completion_tokens_details?.reasoning_tokens) usage.reasoning_tokens = (usage.reasoning_tokens ?? 0) + u2.completion_tokens_details.reasoning_tokens;
   };
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1;
@@ -70052,6 +70053,8 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
           usage.prompt_tokens += chunk.usage.prompt_tokens ?? 0;
           usage.completion_tokens += chunk.usage.completion_tokens ?? 0;
           usage.total_tokens += chunk.usage.total_tokens ?? 0;
+          const reasoning = chunk.usage.completion_tokens_details?.reasoning_tokens;
+          if (reasoning) usage.reasoning_tokens = (usage.reasoning_tokens ?? 0) + reasoning;
         }
         const choice = chunk.choices[0];
         if (!choice) continue;
