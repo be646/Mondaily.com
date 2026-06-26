@@ -126,7 +126,7 @@ function ReplyComposer({ threadId }: { threadId: string }) {
 }
 
 function MessageCard({ message, expanded, onToggle }: { message: EmailMessage; expanded: boolean; onToggle: () => void }) {
-  const sender = message.from[0];
+  const sender = message.from?.[0]; // sender array can be empty — guard against crash
   return (
     <article className="surface-card overflow-hidden rounded-lg">
       <button onClick={onToggle} className="flex w-full items-start gap-3 p-4 text-left">

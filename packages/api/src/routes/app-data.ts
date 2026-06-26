@@ -521,6 +521,32 @@ router.get("/workspace/members", async (c) => {
   );
 });
 
+// Full members + pending invitations for the Workspace settings page.
+// (The frontend expected /workspace/members-full but it didn't exist, so the
+// members section showed nothing.)
+router.get("/workspace/members-full", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const [membersRes, invitesRes] = await Promise.all([
+    supabase.from("workspace_members").select("user_id, email, name, role, finance_role").eq("workspace_id", workspaceId),
+    supabase.from("workspace_invites").select("id, email, role, finance_role, created_at, expires_at")
+      .eq("workspace_id", workspaceId).is("accepted_at", null).gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
+  ]);
+  const members = (membersRes.data ?? []).map((m) => ({
+    id: m.user_id,
+    email: (m as Record<string, unknown>).email ?? "",
+    name: (m as Record<string, unknown>).name ?? undefined,
+    role: m.role,
+    finance_role: (m as Record<string, unknown>).finance_role ?? "none",
+  }));
+  const invitations = (invitesRes.data ?? []).map((i) => ({
+    id: i.id, email: i.email, role: i.role,
+    finance_role: (i as Record<string, unknown>).finance_role ?? "none",
+    created_at: i.created_at,
+  }));
+  return c.json({ members, invitations });
+});
+
 // ─── Workspace role: change a member's role (admin/owner only) ───────────────
 router.patch("/workspace/members/:userId/role", requireAuth, async (c) => {
   const callerRole = c.get("role");

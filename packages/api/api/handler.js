@@ -73441,6 +73441,28 @@ router12.get("/workspace/members", async (c2) => {
     }))
   );
 });
+router12.get("/workspace/members-full", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const [membersRes, invitesRes] = await Promise.all([
+    supabase.from("workspace_members").select("user_id, email, name, role, finance_role").eq("workspace_id", workspaceId),
+    supabase.from("workspace_invites").select("id, email, role, finance_role, created_at, expires_at").eq("workspace_id", workspaceId).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false })
+  ]);
+  const members = (membersRes.data ?? []).map((m2) => ({
+    id: m2.user_id,
+    email: m2.email ?? "",
+    name: m2.name ?? void 0,
+    role: m2.role,
+    finance_role: m2.finance_role ?? "none"
+  }));
+  const invitations = (invitesRes.data ?? []).map((i2) => ({
+    id: i2.id,
+    email: i2.email,
+    role: i2.role,
+    finance_role: i2.finance_role ?? "none",
+    created_at: i2.created_at
+  }));
+  return c2.json({ members, invitations });
+});
 router12.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);

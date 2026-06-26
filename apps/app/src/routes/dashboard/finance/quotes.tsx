@@ -60,9 +60,11 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
     }
     setLoading(true); setError(null);
     try {
+      // Backend requires line_items (not amount_cents) — build a single line
+      // item from the simple amount field so the quote validates and totals.
       await apiClient.post("/quotes", {
         client_name: form.client_name,
-        amount_cents: cents,
+        line_items: [{ description: form.notes?.trim() || `Quote for ${form.client_name}`, quantity: 1, unit_price: parseFloat(form.amount), tax_rate: 0 }],
         currency: form.currency,
         expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : undefined,
         notes: form.notes || undefined,
@@ -130,7 +132,6 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
 }
 
 export function QuotesPage() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -222,8 +223,7 @@ export function QuotesPage() {
                 const Icon = cfg.icon;
                 return (
                   <tr key={q.id}
-                    className="border-b border-white/[.03] hover:bg-white/[.015] transition-colors cursor-pointer"
-                    onClick={() => navigate(`/finance/quotes/${q.id}`)}>
+                    className="border-b border-white/[.03] hover:bg-white/[.015] transition-colors">
                     <td className="px-4 py-3 text-[12px] font-mono text-zinc-400">{q.number}</td>
                     <td className="px-4 py-3 text-[12px] font-medium text-white">{q.client_name}</td>
                     <td className="px-4 py-3 text-[13px] font-semibold text-white">{fmt(q.amount_cents, q.currency)}</td>

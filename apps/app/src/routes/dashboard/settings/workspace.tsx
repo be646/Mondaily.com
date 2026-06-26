@@ -185,7 +185,7 @@ function MembersSection() {
   }
 
   async function changeRole(id: string, role: string) {
-    await apiClient.patch(`/workspace/members/${id}`, { role });
+    await apiClient.patch(`/workspace/members/${id}/role`, { role });
     qc.invalidateQueries({ queryKey: ["ws-members-full"] });
   }
 

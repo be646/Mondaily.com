@@ -286,9 +286,15 @@ export function MembersSettings() {
                               <RefreshCw size={11} /> Resend
                             </button>
                             <button
-                              onClick={() => qc.setQueryData<MembersData>(["members"], cur => cur
-                                ? { ...cur, invitations: cur.invitations.filter(i => i.id !== inv.id) }
-                                : cur)}
+                              onClick={async () => {
+                                // Actually revoke on the server (was cache-only,
+                                // so the invite reappeared on refresh).
+                                await apiClient.delete(`/invites/${inv.id}`).catch(() => {});
+                                qc.setQueryData<MembersData>(["members"], cur => cur
+                                  ? { ...cur, invitations: cur.invitations.filter(i => i.id !== inv.id) }
+                                  : cur);
+                                qc.invalidateQueries({ queryKey: ["members"] });
+                              }}
                               className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
                               Revoke
                             </button>
