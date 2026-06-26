@@ -1,6 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
-import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
+import { aiGatewayToolUse, aiGatewayComplete, type GatewayToolRequest } from "../lib/ai-gateway";
 
 /**
  * Provider-agnostic agent runners.
@@ -591,10 +591,11 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
       // intent 0-100 with a one-line reason, blended 50/50 with the heuristic.
       // Runs in parallel chunks; on any error that deal falls back to heuristic
       // only. This is what makes the "AI Score" genuinely AI, not just rules. ──
+      // Fast model + PLAIN completion returning JSON (the fast model can't do
+      // forced tool-calls, but answers plain prompts in ~1-2s). We parse the
+      // JSON out of the reply. Per-call timeout so one slow call can't stall the
+      // serverless function; on failure that deal stays heuristic-only.
       const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
-      // Per-call timeout: a slow/hanging model call must NOT stall the whole
-      // function (serverless has a hard duration cap). On timeout we fall back
-      // to heuristic-only for that deal.
       const withTimeout = <T>(p: Promise<T>, ms: number): Promise<T | null> =>
         Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
       const AICHUNK = 12;
@@ -605,20 +606,23 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
           signals.heuristic_score = heuristicScore;
           const name = String(d.name ?? d.title ?? "Untitled deal");
           const notes = String(d.notes ?? d.description ?? d.summary ?? d.next_step ?? "");
-          const ai = await withTimeout(aiGatewayToolUse({
+          const raw = await withTimeout(aiGatewayComplete({
             model: FAST,
-            maxTokens: 220,
-            prompt: `Rate this sales deal's buying intent from 0 (cold/dead) to 100 (ready to close). Weigh the evidence and be decisive.\nName: ${name}\nStage: ${signals.stage ?? "?"}\nValue: ${signals.deal_value ?? "?"}\nDays since last update: ${signals.days_since_update}\nActivity last 30d: ${signals.recent_activity_30d}\nNotes: ${notes.slice(0, 600) || "(none)"}`,
-            toolName: "score_intent",
-            toolDescription: "Return a buying-intent score (0-100) and a one-line reason.",
-            toolSchema: { type: "object", properties: { intent: { type: "number" }, reason: { type: "string" } }, required: ["intent"] },
-          }), 14000);
+            maxTokens: 400,
+            system: "You score sales deals. Reply with ONLY compact JSON, no prose, no markdown.",
+            prompt: `Rate this deal's buying intent 0-100 (0=cold/dead, 100=ready to close). Reply ONLY as JSON: {"intent": <number 0-100>, "reason": "<one short sentence>"}.\nName: ${name}\nStage: ${signals.stage ?? "?"}\nValue: ${signals.deal_value ?? "?"}\nDays since last update: ${signals.days_since_update}\nActivity last 30d: ${signals.recent_activity_30d}\nNotes: ${notes.slice(0, 600) || "(none)"}`,
+          }), 18000);
+
+          let parsed: { intent?: unknown; reason?: unknown } | null = null;
+          if (raw) { const m = raw.match(/\{[\s\S]*\}/); if (m) { try { parsed = JSON.parse(m[0]); } catch {} } }
+          const aiIntent = parsed && typeof parsed.intent === "number" ? Math.max(0, Math.min(100, Math.round(parsed.intent as number))) : null;
+          // Diagnostic so any silent failure is visible in the data:
+          signals.ai_status = raw === null ? "timeout_or_error" : !raw ? "empty" : aiIntent === null ? "unparseable" : "ok";
 
           let finalScore = heuristicScore;
-          const aiIntent = ai && typeof ai.intent === "number" ? Math.max(0, Math.min(100, Math.round(ai.intent as number))) : null;
           if (aiIntent !== null) {
             signals.ai_intent = aiIntent;
-            if (ai && typeof ai.reason === "string") signals.ai_reason = (ai.reason as string).slice(0, 240);
+            if (parsed && typeof parsed.reason === "string") signals.ai_reason = (parsed.reason as string).slice(0, 240);
             finalScore = Math.round(0.5 * heuristicScore + 0.5 * aiIntent);
           }
           return { id: deal.id, finalScore, signals };

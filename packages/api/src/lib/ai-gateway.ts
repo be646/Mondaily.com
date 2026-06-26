@@ -265,6 +265,31 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
   }
 }
 
+/**
+ * Plain completion (NO tools) on the openai-compat provider — for cheap, fast
+ * batch tasks (e.g. per-deal lead scoring) where the fast model can answer but
+ * does NOT support forced function-calling. Returns raw text (content, or
+ * `reasoning` for reasoning models). Empty string on non-openai / error.
+ */
+export async function aiGatewayComplete(req: { prompt: string; system?: string; model?: string; maxTokens?: number }): Promise<string> {
+  const resolved = resolveModel(req.model);
+  if (resolved.type !== "openai-compat") return "";
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
+  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
+  messages.push({ role: "user", content: redactSecrets(req.prompt) });
+  try {
+    const completion = await openAIClient().chat.completions.create({
+      model: resolved.modelId,
+      max_tokens: req.maxTokens ?? 512,
+      messages,
+    });
+    const m = completion.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
+    return (m?.content && m.content.trim()) ? m.content : (m?.reasoning ?? "");
+  } catch {
+    return "";
+  }
+}
+
 // ── Multi-round agentic loop ────────────────────────────────────────────────────
 
 export type AgentTool = {

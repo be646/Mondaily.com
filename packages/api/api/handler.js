@@ -68764,6 +68764,24 @@ async function aiGatewayToolUse(req) {
     return {};
   }
 }
+async function aiGatewayComplete(req) {
+  const resolved = resolveModel(req.model);
+  if (resolved.type !== "openai-compat") return "";
+  const messages = [];
+  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
+  messages.push({ role: "user", content: redactSecrets(req.prompt) });
+  try {
+    const completion = await openAIClient().chat.completions.create({
+      model: resolved.modelId,
+      max_tokens: req.maxTokens ?? 512,
+      messages
+    });
+    const m2 = completion.choices[0]?.message;
+    return m2?.content && m2.content.trim() ? m2.content : m2?.reasoning ?? "";
+  } catch {
+    return "";
+  }
+}
 async function runAnthropicAgent(modelId, req, maxRounds) {
   const apiKey = getAnthropicKey();
   if (!apiKey) throw new Error("No Anthropic key found (checked ANTHROPIC_API_KEY and CLAUDE_API_KEY)");
@@ -69763,25 +69781,34 @@ async function runLeadScoring(workspaceId) {
           signals.heuristic_score = heuristicScore;
           const name17 = String(d2.name ?? d2.title ?? "Untitled deal");
           const notes = String(d2.notes ?? d2.description ?? d2.summary ?? d2.next_step ?? "");
-          const ai = await withTimeout(aiGatewayToolUse({
+          const raw2 = await withTimeout(aiGatewayComplete({
             model: FAST,
-            maxTokens: 220,
-            prompt: `Rate this sales deal's buying intent from 0 (cold/dead) to 100 (ready to close). Weigh the evidence and be decisive.
+            maxTokens: 400,
+            system: "You score sales deals. Reply with ONLY compact JSON, no prose, no markdown.",
+            prompt: `Rate this deal's buying intent 0-100 (0=cold/dead, 100=ready to close). Reply ONLY as JSON: {"intent": <number 0-100>, "reason": "<one short sentence>"}.
 Name: ${name17}
 Stage: ${signals.stage ?? "?"}
 Value: ${signals.deal_value ?? "?"}
 Days since last update: ${signals.days_since_update}
 Activity last 30d: ${signals.recent_activity_30d}
-Notes: ${notes.slice(0, 600) || "(none)"}`,
-            toolName: "score_intent",
-            toolDescription: "Return a buying-intent score (0-100) and a one-line reason.",
-            toolSchema: { type: "object", properties: { intent: { type: "number" }, reason: { type: "string" } }, required: ["intent"] }
-          }), 14e3);
+Notes: ${notes.slice(0, 600) || "(none)"}`
+          }), 18e3);
+          let parsed = null;
+          if (raw2) {
+            const m2 = raw2.match(/\{[\s\S]*\}/);
+            if (m2) {
+              try {
+                parsed = JSON.parse(m2[0]);
+              } catch {
+              }
+            }
+          }
+          const aiIntent = parsed && typeof parsed.intent === "number" ? Math.max(0, Math.min(100, Math.round(parsed.intent))) : null;
+          signals.ai_status = raw2 === null ? "timeout_or_error" : !raw2 ? "empty" : aiIntent === null ? "unparseable" : "ok";
           let finalScore = heuristicScore;
-          const aiIntent = ai && typeof ai.intent === "number" ? Math.max(0, Math.min(100, Math.round(ai.intent))) : null;
           if (aiIntent !== null) {
             signals.ai_intent = aiIntent;
-            if (ai && typeof ai.reason === "string") signals.ai_reason = ai.reason.slice(0, 240);
+            if (parsed && typeof parsed.reason === "string") signals.ai_reason = parsed.reason.slice(0, 240);
             finalScore = Math.round(0.5 * heuristicScore + 0.5 * aiIntent);
           }
           return { id: deal.id, finalScore, signals };
@@ -77280,7 +77307,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.4.0-aiscore" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.4.1-aiscore" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;
