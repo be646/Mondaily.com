@@ -100,10 +100,12 @@ export function ListPage() {
     queryKey: ["list", listId],
     queryFn: () => apiClient.get<ListData>(`/lists/${listId}`),
   });
+  // Load members eagerly + cache them — the assign/share dropdowns were only
+  // fetching on open, so the menu sat empty for a round-trip. Now it's instant.
   const membersQuery = useQuery({
     queryKey: ["members"],
     queryFn: () => apiClient.get<Member[]>("/members"),
-    enabled: assignOpen || shareOpen,
+    staleTime: 5 * 60_000,
   });
   const members = membersQuery.data ?? [];
   const entries = useQuery({
@@ -125,7 +127,15 @@ export function ListPage() {
   // ── Mutations ─────────────────────────────────────────────────────────────────
   const update = useMutation({
     mutationFn: (body: Record<string, unknown>) => apiClient.patch(`/lists/${listId}`, body),
-    onSuccess: () => {
+    // Optimistic: reflect assign/visibility/share immediately, roll back on error.
+    onMutate: async (body) => {
+      await qc.cancelQueries({ queryKey: ["list", listId] });
+      const prev = qc.getQueryData<ListData>(["list", listId]);
+      if (prev) qc.setQueryData<ListData>(["list", listId], { ...prev, ...body });
+      return { prev };
+    },
+    onError: (_e, _body, ctx) => { if (ctx?.prev) qc.setQueryData(["list", listId], ctx.prev); },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["list", listId] });
       qc.invalidateQueries({ queryKey: ["lists"] });
     },
