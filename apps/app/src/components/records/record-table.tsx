@@ -19,7 +19,14 @@ import { LeadScoreBadge } from "./lead-score-badge";
 import { AIHealthScoreCompact } from "../ai/ai-intelligence";
 import { ProspectingModal } from "../ai/prospecting-modal";
 
-interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string }
+interface NodeRecord { id: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; lead_score_signals?: Record<string, unknown> | null; relationship_health?: number | null }
+/** Columns that live as real node columns (not inside the data jsonb) — the AI
+ *  scores. They must be surfaced + read from the record top level, not data[col]. */
+const NODE_LEVEL_COLS = ["lead_score", "relationship_health"];
+/** Read a cell value, transparently handling node-level columns. */
+function cellValue(record: NodeRecord, col: string): unknown {
+  return NODE_LEVEL_COLS.includes(col) ? (record as unknown as Record<string, unknown>)[col] : record.data[col];
+}
 type CalcOp = "sum" | "avg" | "min" | "max" | "count" | "filled" | null;
 type SortDir = "asc" | "desc";
 interface SortRule { col: string; dir: SortDir }
@@ -1379,7 +1386,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       .filter(k => !HIDDEN_DATA_COLS.has(k));
     const nameKey = allKeys.find(k => k.toLowerCase() === "name");
     const rest = allKeys.filter(k => k.toLowerCase() !== "name");
-    return (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
+    const base = (nameKey ? [nameKey, ...rest] : allKeys).slice(0, 8);
+    // Surface node-level AI columns (lead_score / relationship_health) when any
+    // record actually carries one — they aren't in the data jsonb, so the key
+    // scan above never finds them.
+    const nodeCols = NODE_LEVEL_COLS.filter(c => records.some(r => (r as NodeRecord)[c as "lead_score"] != null));
+    return [...base, ...nodeCols.filter(c => !base.includes(c))];
   }, [records]);
 
   // ── Column visibility (allColumnsWithCustom declared after customCols below) ──
@@ -1550,10 +1562,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
     return [...filtered].sort((a, b) => {
       for (const { col, dir } of rules) {
-        const av = col === "__updated_at" ? a.updated_at : display(a.data[col]);
-        const bv = col === "__updated_at" ? b.updated_at : display(b.data[col]);
-        const an = typeof a.data[col] === "number" ? (a.data[col] as number) : parseFloat(av.replace(/[^0-9.-]/g, ""));
-        const bn = typeof b.data[col] === "number" ? (b.data[col] as number) : parseFloat(bv.replace(/[^0-9.-]/g, ""));
+        const ar = col === "__updated_at" ? a.updated_at : cellValue(a, col);
+        const br = col === "__updated_at" ? b.updated_at : cellValue(b, col);
+        const av = col === "__updated_at" ? a.updated_at : display(ar);
+        const bv = col === "__updated_at" ? b.updated_at : display(br);
+        const an = typeof ar === "number" ? ar : parseFloat(av.replace(/[^0-9.-]/g, ""));
+        const bn = typeof br === "number" ? br : parseFloat(bv.replace(/[^0-9.-]/g, ""));
         const cmp = !isNaN(an) && !isNaN(bn) ? an - bn : av.localeCompare(bv);
         if (cmp !== 0) return dir === "asc" ? cmp : -cmp;
       }
@@ -1787,7 +1801,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   function renderCell(col: string, record: NodeRecord) {
-    const val = record.data[col];
+    const val = cellValue(record, col);
     const isEnriched = enrichedIds.includes(record.id);
     const customDef = customCols.find(c => c.key === col);
 
