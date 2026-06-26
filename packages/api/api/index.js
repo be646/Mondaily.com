@@ -78927,6 +78927,10 @@ app.use("*", cors({
   credentials: true
 }));
 app.use("*", logger());
+app.use("*", async (c2, next) => {
+  c2.header("Cache-Control", "private, no-store");
+  await next();
+});
 app.route("/api/v1/import", router26);
 app.route("/api/v1/generate", router27);
 app.route("/api/v1/nodes", router);

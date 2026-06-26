@@ -56,6 +56,16 @@ app.use("*", cors({
 }));
 app.use("*", logger());
 
+// SECURITY (multi-tenant): every API response carries per-workspace data, so it
+// must NEVER be cached by a shared CDN/proxy — a public cache keyed on URL would
+// serve one tenant's response to another. Default all responses to private,
+// no-store. A genuinely public, cacheable route (e.g. public templates) can
+// override this header in its own handler with `public, max-age=…, stale-while-revalidate=…`.
+app.use("*", async (c, next) => {
+  c.header("Cache-Control", "private, no-store");
+  await next();
+});
+
 app.route("/api/v1/import", importRouter);
 app.route("/api/v1/generate", generateRouter);
 app.route("/api/v1/nodes", nodesRouter);
