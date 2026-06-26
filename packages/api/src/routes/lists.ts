@@ -45,7 +45,14 @@ router.get("/:id", async (c) => {
 });
 
 router.patch("/:id", async (c) => {
-  const body = await c.req.json<{ name?: string; visibility?: "private" | "workspace" | "shared"; access_level?: string; filters?: unknown[]; views?: unknown[]; shared_with?: string[] }>();
+  const raw = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  // Whitelist real columns only — prevents updating a non-existent column (the
+  // frontend used to send `assignee_id`, which the table lacks, breaking assign).
+  // owner_id is the list's assignee/owner.
+  const allowed = ["name", "visibility", "access_level", "filters", "views", "shared_with", "owner_id"];
+  const body: Record<string, unknown> = {};
+  for (const k of allowed) if (k in raw) body[k] = raw[k];
+  if (!Object.keys(body).length) return c.json({ error: "No updatable fields provided." }, 400);
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data);
 });

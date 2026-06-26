@@ -75554,7 +75554,11 @@ router19.get("/:id", async (c2) => {
   return data ? c2.json({ ...data, entry_count: Array.isArray(data.list_entries) ? Number(data.list_entries[0]?.count ?? 0) : 0 }) : c2.json({ error: "List not found" }, 404);
 });
 router19.patch("/:id", async (c2) => {
-  const body = await c2.req.json();
+  const raw2 = await c2.req.json().catch(() => ({}));
+  const allowed = ["name", "visibility", "access_level", "filters", "views", "shared_with", "owner_id"];
+  const body = {};
+  for (const k2 of allowed) if (k2 in raw2) body[k2] = raw2[k2];
+  if (!Object.keys(body).length) return c2.json({ error: "No updatable fields provided." }, 400);
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data);
 });

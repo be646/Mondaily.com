@@ -32,7 +32,7 @@ function recordProvenance(r: NodeRecord): { kind: "web" | "ai" | "manual" | "sys
   if (cb.startsWith("user_")) return { kind: "manual" };
   return null;
 }
-interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
+interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; owner_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
 interface Member { id: string; user_id: string; name: string; email: string; role?: string }
 
 function display(value: unknown) {
@@ -238,7 +238,7 @@ export function ListPage() {
   }
 
   function setAssignee(uid: string | null) {
-    update.mutate({ assignee_id: uid });
+    update.mutate({ owner_id: uid });
   }
   function toggleShared(uid: string) {
     const current = list.data?.shared_with ?? [];
@@ -288,10 +288,10 @@ export function ListPage() {
             onClick={() => setAssignOpen(o => !o)}
             className="btn-secondary !px-2.5 !py-1.5 !text-[11px]"
           >
-            {list.data.assignee_id ? <UserCheck size={11} /> : <Users size={11} />}
-            {list.data.assignee_id
-              ? (members.find(m => m.user_id === list.data!.assignee_id)?.name?.split(" ")[0]
-                  ?? (list.data.assignee_id === userId ? "Me" : "Assigned"))
+            {list.data.owner_id ? <UserCheck size={11} /> : <Users size={11} />}
+            {list.data.owner_id
+              ? (members.find(m => m.user_id === list.data!.owner_id)?.name?.split(" ")[0]
+                  ?? (list.data.owner_id === userId ? "Me" : "Assigned"))
               : "Assign"}
           </button>
 
@@ -307,7 +307,7 @@ export function ListPage() {
                     {/* "Unassigned" option */}
                     <button
                       onClick={() => setAssignee(null)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${!list.data!.assignee_id ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${!list.data!.owner_id ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}
                     >
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border text-[9px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>—</span>
                       Unassigned
@@ -315,7 +315,7 @@ export function ListPage() {
                     {/* Me first */}
                     {userId && (() => {
                       const me = members.find(m => m.user_id === userId);
-                      const isAssigned = list.data!.assignee_id === userId;
+                      const isAssigned = list.data!.owner_id === userId;
                       return (
                         <button
                           onClick={() => setAssignee(isAssigned ? null : userId)}
@@ -329,7 +329,7 @@ export function ListPage() {
                       );
                     })()}
                     {members.filter(m => m.user_id !== userId).map(m => {
-                      const isAssigned = list.data!.assignee_id === m.user_id;
+                      const isAssigned = list.data!.owner_id === m.user_id;
                       return (
                         <button key={m.user_id}
                           onClick={() => setAssignee(isAssigned ? null : m.user_id)}
@@ -382,7 +382,7 @@ export function ListPage() {
                     <div className="my-2 border-t" style={{ borderColor: "var(--border-soft)" }} />
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Share with</p>
                     <div className="space-y-1">
-                      {members.filter(m => m.user_id !== list.data!.assignee_id).map(m => {
+                      {members.filter(m => m.user_id !== list.data!.owner_id).map(m => {
                         const isShared = (list.data!.shared_with ?? []).includes(m.user_id);
                         return (
                           <button key={m.user_id}
