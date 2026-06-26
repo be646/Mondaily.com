@@ -34,17 +34,48 @@ interface ChatMessage {
   content: string;
 }
 
+// SECURITY (LLM03 training-data poisoning): an APPROVED row could carry broken
+// formatting or an injection vector. We (a) strip control chars / normalize so a
+// malformed string can't corrupt the JSONL, and (b) EXCLUDE rows whose prompt
+// carries a known prompt-injection pattern so they never become a fine-tuning
+// target. Exclusions are counted + logged — never silently dropped.
+function sanitizeForTraining(text: string): string {
+  return (text ?? "")
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "") // control chars (keep \t, \n)
+    .replace(/[\u2028\u2029]/g, "\n")                 // unicode line/paragraph separators
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+const INJECTION_PATTERNS: RegExp[] = [
+  /ignore\s+(all\s+)?(previous|prior|above)\s+instructions/i,
+  /disregard\s+(the\s+)?(previous|above|system|prior)/i,
+  /\byou\s+are\s+now\b/i,
+  /^\s*system\s*:/im,
+  /override\s+(the\s+)?(score|instructions?|system|rules?)/i,
+  /output\s+an?\b.*\bscore\s+of\s+\d+/i,
+];
+function rawText(row: TrainingRow): string {
+  const out = typeof row.model_output === "string" ? row.model_output : JSON.stringify(row.model_output ?? "");
+  return `${row.user_prompt ?? ""}\n${out}`;
+}
+function looksLikeInjection(row: TrainingRow): boolean {
+  const t = rawText(row);
+  return INJECTION_PATTERNS.some((re) => re.test(t));
+}
+
 function asContent(value: unknown): string {
   if (value == null) return "";
-  return typeof value === "string" ? value : JSON.stringify(value);
+  return sanitizeForTraining(typeof value === "string" ? value : JSON.stringify(value));
 }
 
 function toJsonlLine(row: TrainingRow): string {
   // Human-edited output wins as the gold completion when present.
   const completion = row.edited_output ?? row.model_output;
   const messages: ChatMessage[] = [];
-  if (row.system_prompt) messages.push({ role: "system", content: row.system_prompt });
-  messages.push({ role: "user", content: row.user_prompt ?? "" });
+  const sys = sanitizeForTraining(row.system_prompt ?? "");
+  if (sys) messages.push({ role: "system", content: sys });
+  messages.push({ role: "user", content: sanitizeForTraining(row.user_prompt ?? "") });
   messages.push({ role: "assistant", content: asContent(completion) });
   return JSON.stringify({ agent: row.agent_name ?? "unknown", messages });
 }
@@ -68,10 +99,18 @@ async function main(): Promise<void> {
     if (data.length < pageSize) break;
   }
 
-  const lines = rows.map(toJsonlLine);
+  // Exclude rows carrying prompt-injection patterns so they can't poison the
+  // fine-tuning corpus. Count + log — never a silent drop.
+  const clean = rows.filter((r) => !looksLikeInjection(r));
+  const excluded = rows.length - clean.length;
+  const lines = clean.map(toJsonlLine);
   // Always write the file (empty placeholder when there's nothing yet).
   writeFileSync(outPath, lines.length ? lines.join("\n") + "\n" : "", "utf8");
-  console.log(`[export-training-data] wrote ${lines.length} approved example(s) → ${outPath}`);
+  console.log(
+    `[export-training-data] wrote ${lines.length} approved example(s)` +
+    (excluded ? `, EXCLUDED ${excluded} with injection patterns` : "") +
+    ` → ${outPath}`,
+  );
 }
 
 main().catch((err) => {
