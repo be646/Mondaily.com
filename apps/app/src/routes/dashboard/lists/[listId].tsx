@@ -13,7 +13,25 @@ import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { ProspectingModal } from "../../../components/ai/prospecting-modal";
 
-interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null }
+interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; created_by?: string | null }
+
+// Long-text fields belong at the END of a list row (read on the profile, not the list).
+const LONG_FIELD_KEYS = new Set(["bio", "notes", "description", "summary", "about", "content", "details", "body", "background"]);
+function isLongField(key: string, recs: NodeRecord[]): boolean {
+  if (LONG_FIELD_KEYS.has(key.toLowerCase())) return true;
+  return recs.some(r => typeof r.data[key] === "string" && (r.data[key] as string).length > 120);
+}
+
+/** Real provenance from created_by / source_url — never fabricated. */
+function recordProvenance(r: NodeRecord): { kind: "web" | "ai" | "manual" | "system"; url?: string } | null {
+  const cb = String(r.created_by ?? "");
+  const url = typeof r.data.source_url === "string" ? r.data.source_url : undefined;
+  if (url || cb.startsWith("agent:prospect")) return { kind: "web", url };
+  if (cb.startsWith("agent:")) return { kind: "ai" };
+  if (cb === "system") return { kind: "system" };
+  if (cb.startsWith("user_")) return { kind: "manual" };
+  return null;
+}
 interface ListData { id: string; name: string; object_type: string; access_level: string; entry_count: number; assignee_id: string | null; shared_with: string[] | null | undefined; visibility?: string }
 interface Member { id: string; user_id: string; name: string; email: string; role?: string }
 
@@ -135,10 +153,15 @@ export function ListPage() {
     ? records.filter(r => JSON.stringify(r.data ?? {}).toLowerCase().includes(filterText.trim().toLowerCase()))
     : records;
   const columns = useMemo(() => {
-    const base = Array.from(new Set(records.flatMap(r => Object.keys(r.data)))).slice(0, 7);
-    // lead_score is a node column (not in data jsonb) — surface it when present.
-    if (records.some(r => r.lead_score != null) && !base.includes("lead_score")) base.push("lead_score");
-    return base;
+    const allKeys = Array.from(new Set(records.flatMap(r => Object.keys(r.data))));
+    const nameKey = allKeys.find(k => k.toLowerCase() === "name");
+    const longKeys = allKeys.filter(k => k !== nameKey && isLongField(k, records));
+    const restKeys = allKeys.filter(k => k !== nameKey && !longKeys.includes(k));
+    // Order: Name → normal fields → long-text fields last (the ID is its own
+    // leading column, rendered separately).
+    const ordered = [...(nameKey ? [nameKey] : []), ...restKeys, ...longKeys].slice(0, 8);
+    if (records.some(r => r.lead_score != null) && !ordered.includes("lead_score")) ordered.push("lead_score");
+    return ordered;
   }, [records]);
   const entryIds = new Set(records.map(r => r.id));
   const available = (candidates.data ?? []).filter(r =>
@@ -489,6 +512,7 @@ export function ListPage() {
             <table className="minimal-table min-w-full text-left text-[12px]">
               <thead>
                 <tr>
+                  <th className="whitespace-nowrap">ID</th>
                   {columns.map(c => (
                     <th key={c} className="whitespace-nowrap">
                       {c.replaceAll("_", " ")}
@@ -499,20 +523,40 @@ export function ListPage() {
                 </tr>
               </thead>
               <tbody>
-                {shownRecords.map(record => (
+                {shownRecords.map(record => {
+                  const prov = recordProvenance(record);
+                  return (
                   <tr key={record.id} className="group transition-colors">
+                    {/* Unique ID — links to the record's profile page */}
+                    <td className="whitespace-nowrap">
+                      <Link
+                        to={`/objects/${record.object_type}/${record.id}`}
+                        title={record.id}
+                        className="font-mono text-[11px] text-stone-400 transition-colors hover:text-stone-600 dark:hover:text-stone-300"
+                      >
+                        {record.id.slice(0, 8)}
+                      </Link>
+                    </td>
                     {columns.map((c, i) => (
                       <td key={c} className="max-w-[240px] truncate text-stone-700 dark:text-stone-300">
                         {c === "lead_score"
                           ? (record.lead_score != null ? <LeadScoreBadge score={record.lead_score} size="sm"/> : null)
                           : i === 0
                           ? (
-                            <Link
-                              to={`/objects/${record.object_type}/${record.id}`}
-                              className="font-medium text-stone-950 transition-colors hover:text-stone-600 dark:text-stone-50 dark:hover:text-stone-300"
-                            >
-                              {display(record.data[c])}
-                            </Link>
+                            <span className="inline-flex min-w-0 items-center gap-1.5">
+                              <Link
+                                to={`/objects/${record.object_type}/${record.id}`}
+                                className="truncate font-medium text-stone-950 transition-colors hover:text-stone-600 dark:text-stone-50 dark:hover:text-stone-300"
+                              >
+                                {display(record.data[c])}
+                              </Link>
+                              {prov && prov.kind === "web" && (
+                                <span title={prov.url ? `Found on the web — ${prov.url}` : "Discovered from the web"} className="shrink-0" style={{ color: "var(--text-faint)" }}><Globe size={11}/></span>
+                              )}
+                              {prov && prov.kind === "ai" && (
+                                <span title="Added by an AI agent" className="shrink-0" style={{ color: "var(--text-faint)" }}><LogoMark size={10}/></span>
+                              )}
+                            </span>
                           )
                           : display(record.data[c])}
                       </td>
@@ -531,7 +575,8 @@ export function ListPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

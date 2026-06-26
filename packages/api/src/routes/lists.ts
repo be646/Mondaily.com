@@ -58,7 +58,7 @@ router.delete("/:id", async (c) => {
 router.get("/:id/entries", async (c) => {
   const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).maybeSingle();
   if (!list) return c.json({ error: "List not found" }, 404);
-  const { data: entries, error } = await supabase.from("list_entries").select("position,nodes(id,object_type,data,updated_at,ai_summary,lead_score,lead_score_signals,relationship_health)").eq("list_id", list.id).order("position");
+  const { data: entries, error } = await supabase.from("list_entries").select("position,nodes(id,object_type,data,updated_at,ai_summary,lead_score,lead_score_signals,relationship_health,created_by)").eq("list_id", list.id).order("position");
   if (error) return c.json({ error: error.message }, 400);
   return c.json((entries ?? []).flatMap((entry) => entry.nodes ? [entry.nodes] : []));
 });
