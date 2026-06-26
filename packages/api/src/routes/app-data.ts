@@ -245,7 +245,7 @@ router.post("/emails/send", zValidator("json", z.object({
   }).select().single();
   if (error) return c.json({ error: error.message }, 400);
 
-  const apiBase = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
+  const apiBase = process.env.API_BASE_URL ?? "https://api.mondaily.com";
   const trackToken = makeTrackingToken(data.id);
   const pixel = `<img src="${apiBase}/api/v1/emails/track/${trackToken}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   const trackedBody = body.body.includes("</body>")

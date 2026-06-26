@@ -18,7 +18,7 @@ const PIXEL_GIF = Buffer.from(
   "base64"
 );
 
-const API_BASE = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
+const API_BASE = process.env.API_BASE_URL ?? "https://api.mondaily.com";
 
 const router = new Hono<{ Variables: Variables }>();
 

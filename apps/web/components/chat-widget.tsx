@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://mondaily-api.onrender.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "https://api.mondaily.com";
 const DEMO_TOKEN = "demo";
 const WORKSPACE_ID = "8ccef088-6493-4cd9-a0cf-3214098f59a1";
 

@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   preview: {
-    allowedHosts: ['app.mondaily.com', 'mondaily-app.onrender.com'],
+    allowedHosts: ['app.mondaily.com'],
     port: 10000,
     host: true
   },

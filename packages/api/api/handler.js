@@ -73804,7 +73804,7 @@ router12.post("/emails/send", zValidator("json", external_exports.object({
     created_by: c2.get("userId")
   }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
-  const apiBase = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
+  const apiBase = process.env.API_BASE_URL ?? "https://api.mondaily.com";
   const trackToken = makeTrackingToken(data.id);
   const pixel = `<img src="${apiBase}/api/v1/emails/track/${trackToken}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   const trackedBody = body.body.includes("</body>") ? body.body.replace("</body>", `${pixel}</body>`) : body.body + pixel;
@@ -74338,7 +74338,7 @@ var PIXEL_GIF = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   "base64"
 );
-var API_BASE = process.env.API_BASE_URL ?? "https://mondaily-api.onrender.com";
+var API_BASE = process.env.API_BASE_URL ?? "https://api.mondaily.com";
 var router15 = new Hono2();
 router15.get("/track/:token/open.gif", async (c2) => {
   const trackingId = verifyTrackingToken(c2.req.param("token"));
@@ -77836,7 +77836,7 @@ router39.get("/callback", async (c2) => {
 // src/app.ts
 var app = new Hono2();
 app.use("*", cors({
-  origin: ["https://mondaily.com", "https://app.mondaily.com", "https://mondaily-app.onrender.com", "http://localhost:3000", "http://localhost:5173"],
+  origin: ["https://mondaily.com", "https://app.mondaily.com", "http://localhost:3000", "http://localhost:5173"],
   credentials: true
 }));
 app.use("*", logger());
