@@ -1100,26 +1100,52 @@ async function executeTool(
       }
 
       case "create_workflow_draft": {
+        // Generate a REAL trigger -> condition(s) -> action(s) structure so the
+        // draft is an actual, reviewable, activatable workflow — not an empty
+        // shell. Falls back to a bare draft if generation fails.
+        let wfNodes: Array<{ id: string; kind: string; type: string; label: string; config: Record<string, unknown>; children: string[] }> = [];
+        try {
+          const gen = await aiGatewayToolUse({
+            maxTokens: 1200,
+            system: "You design business automations. Return ONE trigger, optional conditions, and at least one action. Use exact field names where known (e.g. lead_score, deal_stage).",
+            prompt: `Design an automation for: "${input.description}" (name: "${input.name}").`,
+            toolName: "design_workflow",
+            toolDescription: "Define a trigger → condition(s) → action(s) automation",
+            toolSchema: {
+              type: "object",
+              properties: {
+                trigger: { type: "object", properties: { type: { type: "string", enum: ["record_created", "record_updated", "deal_stage_change", "email_received", "form_submitted"] }, label: { type: "string" } }, required: ["type", "label"] },
+                conditions: { type: "array", items: { type: "object", properties: { type: { type: "string", enum: ["field_equals", "field_contains", "field_gt", "field_lt", "field_changed"] }, label: { type: "string" }, field: { type: "string" }, value: { type: "string" } }, required: ["type", "label", "field"] } },
+                actions: { type: "array", minItems: 1, items: { type: "object", properties: { type: { type: "string", enum: ["create_task", "send_notification", "update_field", "add_to_sequence", "assign_owner", "send_email"] }, label: { type: "string" } }, required: ["type", "label"] } },
+              },
+              required: ["trigger", "actions"],
+            },
+          });
+          const g = gen as { trigger?: { type: string; label: string }; conditions?: Array<{ type: string; label: string; field?: string; value?: string }>; actions?: Array<{ type: string; label: string }> };
+          if (g.trigger?.type && Array.isArray(g.actions) && g.actions.length) {
+            wfNodes.push({ id: crypto.randomUUID(), kind: "trigger", type: g.trigger.type, label: g.trigger.label, config: {}, children: [] });
+            for (const c of g.conditions ?? []) wfNodes.push({ id: crypto.randomUUID(), kind: "condition", type: c.type, label: c.label, config: { field: c.field ?? "", value: c.value ?? "" }, children: [] });
+            for (const a of g.actions) wfNodes.push({ id: crypto.randomUUID(), kind: "action", type: a.type, label: a.label, config: {}, children: [] });
+          }
+        } catch { /* fall back to a bare draft */ }
+
         const { data, error } = await supabase
           .from("nodes")
           .insert({
             workspace_id: workspaceId,
             vertical: "shared",
             object_type: "automation",
-            created_by: userId,
-            data: {
-              name: input.name,
-              type: "workflow",
-              status: "draft",
-              description: input.description,
-              enabled: false,
-            },
+            created_by: "agent:chat",
+            data: { name: input.name, type: "workflow", status: "draft", description: input.description, enabled: false, nodes: wfNodes },
           })
           .select("id")
           .single();
         if (error) return `Error creating workflow draft: ${error.message}`;
         sources.push({ type: "workflow", title: input.name, node_id: data.id, object_type: "automation" });
-        return `Created a draft workflow "${input.name}" (ID: ${data.id}) based on: ${input.description}. It is saved disabled — open the workflow builder to review and enable it. I cannot enable it for you.`;
+        const summary = wfNodes.length
+          ? `with ${wfNodes.filter(n => n.kind === "trigger").length} trigger, ${wfNodes.filter(n => n.kind === "condition").length} condition(s), ${wfNodes.filter(n => n.kind === "action").length} action(s)`
+          : "(empty — add steps in the builder)";
+        return `Created a draft workflow "${input.name}" ${summary}. It's under Automations, saved as a draft. Open /automations/workflows/${data.id} to review and turn it on.`;
       }
 
       case "discover_web_prospects": {

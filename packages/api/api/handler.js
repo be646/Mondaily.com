@@ -72457,22 +72457,43 @@ ${list}`;
         return `Added to the decision queue: "${input.title}" (ID: ${data.id}). It's pending \u2014 a human needs to approve, reject, or snooze it before anything happens.`;
       }
       case "create_workflow_draft": {
+        let wfNodes = [];
+        try {
+          const gen = await aiGatewayToolUse({
+            maxTokens: 1200,
+            system: "You design business automations. Return ONE trigger, optional conditions, and at least one action. Use exact field names where known (e.g. lead_score, deal_stage).",
+            prompt: `Design an automation for: "${input.description}" (name: "${input.name}").`,
+            toolName: "design_workflow",
+            toolDescription: "Define a trigger \u2192 condition(s) \u2192 action(s) automation",
+            toolSchema: {
+              type: "object",
+              properties: {
+                trigger: { type: "object", properties: { type: { type: "string", enum: ["record_created", "record_updated", "deal_stage_change", "email_received", "form_submitted"] }, label: { type: "string" } }, required: ["type", "label"] },
+                conditions: { type: "array", items: { type: "object", properties: { type: { type: "string", enum: ["field_equals", "field_contains", "field_gt", "field_lt", "field_changed"] }, label: { type: "string" }, field: { type: "string" }, value: { type: "string" } }, required: ["type", "label", "field"] } },
+                actions: { type: "array", minItems: 1, items: { type: "object", properties: { type: { type: "string", enum: ["create_task", "send_notification", "update_field", "add_to_sequence", "assign_owner", "send_email"] }, label: { type: "string" } }, required: ["type", "label"] } }
+              },
+              required: ["trigger", "actions"]
+            }
+          });
+          const g2 = gen;
+          if (g2.trigger?.type && Array.isArray(g2.actions) && g2.actions.length) {
+            wfNodes.push({ id: crypto.randomUUID(), kind: "trigger", type: g2.trigger.type, label: g2.trigger.label, config: {}, children: [] });
+            for (const c2 of g2.conditions ?? []) wfNodes.push({ id: crypto.randomUUID(), kind: "condition", type: c2.type, label: c2.label, config: { field: c2.field ?? "", value: c2.value ?? "" }, children: [] });
+            for (const a2 of g2.actions) wfNodes.push({ id: crypto.randomUUID(), kind: "action", type: a2.type, label: a2.label, config: {}, children: [] });
+          }
+        } catch {
+        }
         const { data, error } = await supabase.from("nodes").insert({
           workspace_id: workspaceId,
           vertical: "shared",
           object_type: "automation",
-          created_by: userId,
-          data: {
-            name: input.name,
-            type: "workflow",
-            status: "draft",
-            description: input.description,
-            enabled: false
-          }
+          created_by: "agent:chat",
+          data: { name: input.name, type: "workflow", status: "draft", description: input.description, enabled: false, nodes: wfNodes }
         }).select("id").single();
         if (error) return `Error creating workflow draft: ${error.message}`;
         sources.push({ type: "workflow", title: input.name, node_id: data.id, object_type: "automation" });
-        return `Created a draft workflow "${input.name}" (ID: ${data.id}) based on: ${input.description}. It is saved disabled \u2014 open the workflow builder to review and enable it. I cannot enable it for you.`;
+        const summary = wfNodes.length ? `with ${wfNodes.filter((n2) => n2.kind === "trigger").length} trigger, ${wfNodes.filter((n2) => n2.kind === "condition").length} condition(s), ${wfNodes.filter((n2) => n2.kind === "action").length} action(s)` : "(empty \u2014 add steps in the builder)";
+        return `Created a draft workflow "${input.name}" ${summary}. It's under Automations, saved as a draft. Open /automations/workflows/${data.id} to review and turn it on.`;
       }
       case "discover_web_prospects": {
         const result = await runProspecting(workspaceId, userId, {
