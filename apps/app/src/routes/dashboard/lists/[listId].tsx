@@ -422,7 +422,7 @@ export function ListPage() {
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Visibility</p>
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (
-                    <button key={v} onClick={() => apiClient.patch(`/lists/${list.data!.id}`, { visibility: v }).then(() => list.refetch())}
+                    <button key={v} onClick={() => update.mutate({ visibility: v })}
                       className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium capitalize transition-colors ${(list.data!.visibility ?? "workspace") === v ? "surface-selected text-token-primary" : "text-token-muted surface-hover"}`}>
                       {v}
                     </button>
