@@ -68718,7 +68718,7 @@ async function aiGateway(req) {
   return { text: text2, provider: "openai-compat", model: resolved.modelId };
 }
 async function aiGatewayToolUse(req) {
-  const resolved = resolveModel();
+  const resolved = resolveModel(req.model);
   if (resolved.type === "anthropic") {
     const apiKey = getAnthropicKey();
     if (!apiKey) return {};
@@ -69716,7 +69716,7 @@ async function runLeadScoring(workspaceId) {
         }
       }
       const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-      const updates = deals.map((deal) => {
+      const heuristics = deals.map((deal) => {
         const d2 = deal.data ?? {};
         const signals = {};
         let score = 30;
@@ -69751,8 +69751,42 @@ async function runLeadScoring(workspaceId) {
         const enriched = numericValue(d2.headcount ?? d2.employees ?? d2.company_size) !== null || numericValue(d2.arr) !== null;
         signals.enriched = enriched;
         if (enriched) score += 4;
-        return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
+        return { deal, d: d2, heuristicScore: Math.max(0, Math.min(100, Math.round(score))), signals };
       });
+      const FAST = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+      const AICHUNK = 6;
+      const updates = [];
+      for (let i2 = 0; i2 < heuristics.length; i2 += AICHUNK) {
+        const batch = await Promise.all(heuristics.slice(i2, i2 + AICHUNK).map(async (h2) => {
+          const { deal, d: d2, heuristicScore, signals } = h2;
+          signals.heuristic_score = heuristicScore;
+          const name17 = String(d2.name ?? d2.title ?? "Untitled deal");
+          const notes = String(d2.notes ?? d2.description ?? d2.summary ?? d2.next_step ?? "");
+          const ai = await aiGatewayToolUse({
+            model: FAST,
+            maxTokens: 220,
+            prompt: `Rate this sales deal's buying intent from 0 (cold/dead) to 100 (ready to close). Weigh the evidence and be decisive.
+Name: ${name17}
+Stage: ${signals.stage ?? "?"}
+Value: ${signals.deal_value ?? "?"}
+Days since last update: ${signals.days_since_update}
+Activity last 30d: ${signals.recent_activity_30d}
+Notes: ${notes.slice(0, 600) || "(none)"}`,
+            toolName: "score_intent",
+            toolDescription: "Return a buying-intent score (0-100) and a one-line reason.",
+            toolSchema: { type: "object", properties: { intent: { type: "number" }, reason: { type: "string" } }, required: ["intent"] }
+          }).catch(() => null);
+          let finalScore = heuristicScore;
+          const aiIntent = ai && typeof ai.intent === "number" ? Math.max(0, Math.min(100, Math.round(ai.intent))) : null;
+          if (aiIntent !== null) {
+            signals.ai_intent = aiIntent;
+            if (ai && typeof ai.reason === "string") signals.ai_reason = ai.reason.slice(0, 240);
+            finalScore = Math.round(0.5 * heuristicScore + 0.5 * aiIntent);
+          }
+          return { id: deal.id, finalScore, signals };
+        }));
+        updates.push(...batch);
+      }
       const CHUNK = 25;
       let written = 0;
       let firstError = "";
