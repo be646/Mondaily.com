@@ -1,7 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard, Download, Zap, Users } from "lucide-react";
-import { apiClient, BASE_URL } from "../../../lib/api-client";
+import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+
+/** Open Stripe checkout (free plan → upgrade) or the customer portal (paying
+ *  plan → manage). Both are authed POSTs that return a Stripe URL we redirect
+ *  to; errors (e.g. billing not yet configured) surface a clear message. */
+async function openBilling(plan: string) {
+  const errFrom = (e: unknown) => {
+    try { return JSON.parse((e as Error).message)?.error as string; } catch { return undefined; }
+  };
+  try {
+    if (plan === "free") {
+      const r = await apiClient.post<{ url?: string }>("/billing/checkout", { plan: "pro", interval: "month" });
+      if (r.url) { window.location.href = r.url; return; }
+    } else {
+      const r = await apiClient.post<{ url?: string; needs_checkout?: boolean }>("/billing/portal", {});
+      if (r.url) { window.location.href = r.url; return; }
+      if (r.needs_checkout) {
+        const cr = await apiClient.post<{ url?: string }>("/billing/checkout", { plan: "pro", interval: "month" });
+        if (cr.url) { window.location.href = cr.url; return; }
+      }
+    }
+  } catch (e) {
+    alert(errFrom(e) ?? "Billing isn't available right now. Please try again shortly.");
+  }
+}
 
 interface Invoice { id: string; date: string; amount: number; pdf_url: string }
 interface Billing {
@@ -50,7 +74,7 @@ export function BillingSettings() {
               </p>
             </div>
             <button
-              onClick={() => { window.location.href = `${BASE_URL}/api/v1/billing/portal`; }}
+              onClick={() => { openBilling(billing.plan); }}
               className="flex shrink-0 items-center gap-2 rounded-xl border border-indigo-400/40 bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
@@ -93,7 +117,7 @@ export function BillingSettings() {
               <p className="text-xs text-slate-500">Billing currency: USD</p>
             </div>
             <button
-              onClick={() => { window.location.href = `${BASE_URL}/api/v1/billing/portal`; }}
+              onClick={() => { openBilling(billing.plan); }}
               className="ml-auto text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               Update

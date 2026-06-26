@@ -61,8 +61,18 @@ export function StepPlan() {
     if (selected === "enterprise") {
       window.location.href = "mailto:sales@mondaily.com";
     } else if (selected === "pro" || selected === "business") {
-      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-      window.location.href = `${apiBase}/api/v1/billing/checkout?plan=${selected}&interval=month`;
+      // Authed POST → Stripe checkout URL, then redirect. If billing isn't
+      // configured yet, don't dead-end onboarding — just go to the app.
+      try {
+        const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+        const headers = await getAuthHeaders();
+        const res = await fetch(`${apiBase}/api/v1/billing/checkout`, {
+          method: "POST", headers, body: JSON.stringify({ plan: selected, interval: "month" }),
+        });
+        const data = await res.json().catch(() => ({})) as { url?: string };
+        if (data.url) { window.location.href = data.url; return; }
+      } catch { /* fall through to app */ }
+      navigate("/home");
     } else {
       navigate("/home");
     }

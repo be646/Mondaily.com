@@ -113,13 +113,35 @@ router.post("/stripe", async (c) => {
 
   const event = JSON.parse(rawBody) as { type: string; data: { object: Record<string, unknown> } };
 
+  // When checkout finishes, link the Stripe customer to the workspace and
+  // activate the chosen plan. WITHOUT this, the customer id is never stored,
+  // so the portal and subsequent subscription webhooks can't find the workspace.
+  if (event.type === "checkout.session.completed") {
+    const s = event.data.object;
+    const workspaceId = (s.client_reference_id as string) || ((s.metadata as Record<string, unknown> | undefined)?.workspace_id as string | undefined);
+    const customerId  = s.customer as string | undefined;
+    const plan        = ((s.metadata as Record<string, unknown> | undefined)?.plan as string | undefined) || "pro";
+    if (workspaceId) {
+      await supabase
+        .from("workspaces")
+        .update({ ...(customerId ? { stripe_customer_id: customerId } : {}), plan })
+        .eq("id", workspaceId);
+    }
+  }
+
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
     const sub      = event.data.object;
     const customerId = sub.customer as string;
     const status   = sub.status as string;
+    // Keep the plan label if active; reading the plan from subscription metadata
+    // when present, else leaving the existing one; downgrade to free when gone.
+    const planMeta = ((sub.metadata as Record<string, unknown> | undefined)?.plan as string | undefined);
+    const nextPlan = event.type === "customer.subscription.deleted" || status !== "active"
+      ? "free"
+      : (planMeta ?? "pro");
     await supabase
       .from("workspaces")
-      .update({ plan: status === "active" ? "pro" : "free" })
+      .update({ plan: nextPlan })
       .eq("stripe_customer_id", customerId);
   }
 
