@@ -72869,6 +72869,24 @@ var TOOLS = [
     }
   },
   {
+    name: "create_report",
+    description: "Create a REAL saved report the user can open and chart. Use for 'create a report of X', 'build a pipeline funnel', 'report revenue by month'. Pick the right type: 'insight' (count/sum/average grouped by time \u2014 the default), 'funnel' (stage-by-stage drop-off; needs stages + stage_field), 'time_in_stage' (avg days per stage), 'historical' (a numeric field over time).",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Report title, e.g. 'Pipeline Funnel' or 'Revenue by Month'" },
+        type: { type: "string", enum: ["insight", "funnel", "time_in_stage", "historical"] },
+        object_type: { type: "string", description: "Record type to report on, e.g. 'deals', 'invoices', 'contacts'." },
+        metric: { type: "string", enum: ["count", "sum", "average"], description: "insight only: what to aggregate (default count)." },
+        field: { type: "string", description: "Numeric field for sum/average (insight) or the tracked field (historical), e.g. 'deal_value', 'amount'." },
+        group_by: { type: "string", enum: ["day", "week", "month", "quarter"], description: "insight only: time bucket (default month)." },
+        stage_field: { type: "string", description: "funnel/time_in_stage: the field holding the stage, e.g. 'deal_stage'." },
+        stages: { type: "array", items: { type: "string" }, description: "funnel only: ordered stage names, e.g. ['Lead','Qualified','Proposal','Won']." }
+      },
+      required: ["name", "type", "object_type"]
+    }
+  },
+  {
     name: "create_note",
     description: "Create a note, optionally attached to a record. Use for 'add a note', 'jot this down', 'write a note about X'.",
     input_schema: {
@@ -72960,7 +72978,7 @@ var TOOL_GROUPS = [
   { tools: ["create_record", "create_object_type"], keywords: /\b(contact|compan|deal|record|person|people|lead|client|account|create|add|new|object type|field|custom)\b/i },
   { tools: ["create_list", "list_lists", "add_to_list"], keywords: /\b(list|group|segment|bucket|add to|enterprise accounts|hot leads)\b/i },
   { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
-  { tools: ["list_reports", "get_report", "run_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
+  { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
   { tools: ["create_workflow_draft"], keywords: /\b(workflow|automat|trigger|sequence|when .* then)\b/i },
   { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i }
@@ -73402,6 +73420,31 @@ Config: ${JSON.stringify(d2.config ?? {})}`;
           points || "(no data points)",
           result.total !== void 0 ? `Total: ${result.total}` : ""
         ].filter(Boolean).join("\n");
+      }
+      case "create_report": {
+        const cfg = { object_type: input.object_type };
+        if (input.metric) cfg.metric = input.metric;
+        if (input.field) cfg.field = input.field;
+        if (input.group_by) cfg.group_by = input.group_by;
+        if (input.stage_field) cfg.stage_field = input.stage_field;
+        if (Array.isArray(input.stages)) cfg.stages = input.stages;
+        const { data: rpt, error } = await supabase.from("nodes").insert({
+          workspace_id: workspaceId,
+          vertical: "shared",
+          object_type: "report",
+          created_by: "agent:chat",
+          data: { name: input.name, type: input.type, config: cfg }
+        }).select("id").single();
+        if (error) return `Error creating report: ${error.message}`;
+        await supabase.from("activities").insert({ node_id: rpt.id, workspace_id: workspaceId, actor_type: "agent", actor_id: "agent:chat", action: "created", diff: { object_type: "report" } }).then(() => {
+        }, () => {
+        });
+        sources.push({ type: "report", title: input.name, node_id: rpt.id, object_type: "report", match_reason: `${input.type} report` });
+        const run2 = await runReportData(workspaceId, rpt.id).catch(() => null);
+        const preview = run2 && !("error" in run2) ? run2.data.slice(0, 8).map((p2) => `- ${p2.label}: ${p2.value}`).join("\n") : "";
+        return `Created report "${input.name}" (${input.type} on ${input.object_type}, ID: ${rpt.id}). It's saved under Reports.${preview ? `
+Live preview:
+${preview}` : ""}`;
       }
       case "create_note": {
         const { data, error } = await supabase.from("nodes").insert({
