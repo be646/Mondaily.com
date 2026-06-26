@@ -69998,7 +69998,8 @@ var SAFE_ACTIONS = /* @__PURE__ */ new Set(["create_task", "create_note", "updat
 var RISKY_ACTIONS = /* @__PURE__ */ new Set(["send_email", "send_message", "send_sms", "create_invoice", "charge", "charge_invoice", "delete_record", "archive_record", "send"]);
 function parseWorkflow(blocks) {
   return {
-    trigger: blocks.find((b2) => b2.kind === "trigger") ?? null,
+    // Multi-trigger (OR logic): a workflow fires if ANY of its triggers matches.
+    triggers: blocks.filter((b2) => b2.kind === "trigger"),
     conditions: blocks.filter((b2) => b2.kind === "condition"),
     actions: blocks.filter((b2) => b2.kind === "action")
   };
@@ -70194,11 +70195,15 @@ async function runWorkflowsForWorkspace(workspaceId, opts = {}) {
     for (const wf of workflows ?? []) {
       const blocks = wf.data.nodes ?? [];
       const parsed = parseWorkflow(blocks);
-      if (!parsed.trigger || parsed.actions.length === 0) continue;
+      if (parsed.triggers.length === 0 || parsed.actions.length === 0) continue;
       summary.workflows_evaluated++;
-      const candidates = (await candidateRecords(workspaceId, parsed.trigger, opts.recordId)).slice(0, opts.limitRecords ?? 25);
-      for (const record of candidates) {
-        const triggerKey = triggerKeyFor(parsed.trigger, record);
+      const matched = /* @__PURE__ */ new Map();
+      for (const trigger of parsed.triggers) {
+        const recs = (await candidateRecords(workspaceId, trigger, opts.recordId)).slice(0, opts.limitRecords ?? 25);
+        for (const r2 of recs) if (!matched.has(r2.id)) matched.set(r2.id, { record: r2, trigger });
+      }
+      for (const { record, trigger } of matched.values()) {
+        const triggerKey = triggerKeyFor(trigger, record);
         const { data: priorRuns } = await supabase.from("workflow_runs").select("id,status").eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey);
         const alreadyActioned = (priorRuns ?? []).some((r2) => r2.status === "executed" || r2.status === "queued");
         if (alreadyActioned) continue;
@@ -76803,6 +76808,23 @@ router30.post("/:id/run", async (c2) => {
   } catch (err2) {
     return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
   }
+});
+router30.get("/:id/runs", async (c2) => {
+  const id = c2.req.param("id");
+  if (id === "new") return c2.json({ runs: [] });
+  const { data: runs } = await supabase.from("workflow_runs").select("id,record_id,trigger_key,status,actions,detail,created_at").eq("workspace_id", c2.get("workspaceId")).eq("workflow_id", id).order("created_at", { ascending: false }).limit(50);
+  const ids = [...new Set((runs ?? []).map((r2) => r2.record_id).filter(Boolean))];
+  const titles = /* @__PURE__ */ new Map();
+  if (ids.length) {
+    const { data: recs } = await supabase.from("nodes").select("id,data,object_type").eq("workspace_id", c2.get("workspaceId")).in("id", ids);
+    for (const r2 of recs ?? []) {
+      const d2 = r2.data ?? {};
+      titles.set(r2.id, String(d2.name ?? d2.title ?? d2.company ?? r2.object_type ?? r2.id));
+    }
+  }
+  return c2.json({
+    runs: (runs ?? []).map((r2) => ({ ...r2, record_title: titles.get(r2.record_id) ?? r2.record_id }))
+  });
 });
 router30.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));

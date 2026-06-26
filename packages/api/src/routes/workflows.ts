@@ -93,6 +93,34 @@ router.post("/:id/run", async (c) => {
   }
 });
 
+// Run history (evidence trail): what fired, when, on which record, what it did.
+router.get("/:id/runs", async (c) => {
+  const id = c.req.param("id");
+  if (id === "new") return c.json({ runs: [] });
+  const { data: runs } = await supabase
+    .from("workflow_runs")
+    .select("id,record_id,trigger_key,status,actions,detail,created_at")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("workflow_id", id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  // Resolve record titles so the trail is human-readable, scoped to the workspace.
+  const ids = [...new Set((runs ?? []).map((r) => r.record_id).filter(Boolean))];
+  const titles = new Map<string, string>();
+  if (ids.length) {
+    const { data: recs } = await supabase
+      .from("nodes").select("id,data,object_type")
+      .eq("workspace_id", c.get("workspaceId")).in("id", ids as string[]);
+    for (const r of recs ?? []) {
+      const d = (r.data ?? {}) as Record<string, unknown>;
+      titles.set(r.id, String(d.name ?? d.title ?? d.company ?? r.object_type ?? r.id));
+    }
+  }
+  return c.json({
+    runs: (runs ?? []).map((r) => ({ ...r, record_title: titles.get(r.record_id) ?? r.record_id })),
+  });
+});
+
 router.delete("/:id", async (c) => {
   const { error } = await supabase
     .from("nodes")

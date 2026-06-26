@@ -10,6 +10,16 @@ import { apiClient } from "../../../lib/api-client";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type NodeKind = "trigger" | "condition" | "action";
+interface WFRun {
+  id: string;
+  record_id: string;
+  record_title?: string;
+  trigger_key: string;
+  status: "executed" | "queued" | "condition_failed";
+  actions: { action: string; mode: string; detail?: string }[];
+  detail?: string;
+  created_at: string;
+}
 
 interface WFNode {
   id: string;
@@ -367,6 +377,18 @@ export function WorkflowBuilderPage() {
   const [saved, setSaved] = useState(false);
   const [currentId, setCurrentId] = useState<string | undefined>(id === "new" ? undefined : id);
   const [triggerType, setTriggerType] = useState("record_created");
+  const [showRuns, setShowRuns] = useState(false);
+  const [runs, setRuns] = useState<WFRun[]>([]);
+  const [runsLoading, setRunsLoading] = useState(false);
+
+  function loadRuns() {
+    if (!currentId) return;
+    setRunsLoading(true);
+    apiClient.get<{ runs: WFRun[] }>(`/workflows/${currentId}/runs`)
+      .then(r => setRuns(r.runs ?? []))
+      .catch(() => setRuns([]))
+      .finally(() => setRunsLoading(false));
+  }
 
   // Load existing workflow
   useEffect(() => {
@@ -428,7 +450,7 @@ export function WorkflowBuilderPage() {
   const TriggerIcon = TRIGGERS.find(t => t.type === triggerNode?.type)?.icon ?? Zap;
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="relative flex min-h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3">
         <Link to="/automations" className="text-stone-600 hover:text-stone-300 transition-colors">
@@ -457,6 +479,13 @@ export function WorkflowBuilderPage() {
           {status}
         </span>
 
+        {currentId && (
+          <button onClick={() => { const next = !showRuns; setShowRuns(next); if (next) loadRuns(); }}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${showRuns ? "border-stone-500/30 bg-stone-600/30 text-white" : "border-white/[.06] bg-white/[.04] text-stone-300 hover:text-white"}`}>
+            <Clock size={12}/> History
+          </button>
+        )}
+
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
           <AIMark size={12}/> Generate
@@ -481,37 +510,62 @@ export function WorkflowBuilderPage() {
         <div className="min-h-full bg-[radial-gradient(#1a1d24_1px,transparent_1px)] [background-size:18px_18px] flex justify-center py-12 px-6">
           <div className="flex flex-col items-center">
 
-            {/* Trigger config */}
-            <div className="mb-2 w-72 rounded-xl border border-stone-500/30 bg-stone-600/[.06] overflow-hidden">
-              <div className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/30 bg-stone-600/[.08] text-stone-400">
-                  <TriggerIcon size={13}/>
+            {/* Triggers — OR logic: the workflow fires if ANY trigger matches */}
+            {nodes.filter(n => n.kind === "trigger").map((tn, i, arr) => {
+              const TIcon = TRIGGERS.find(t => t.type === tn.type)?.icon ?? Zap;
+              return (
+                <div key={tn.id} className="flex flex-col items-center">
+                  {i > 0 && <div className="my-1 text-[9px] font-semibold uppercase tracking-widest text-stone-500/70">or</div>}
+                  <div className="mb-2 w-72 rounded-xl border border-stone-500/30 bg-stone-600/[.06] overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/30 bg-stone-600/[.08] text-stone-400">
+                        <TIcon size={13}/>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-400/60">Trigger</p>
+                        <p className="text-xs font-medium text-white">When this happens…</p>
+                      </div>
+                      {arr.length > 1 && (
+                        <button onClick={() => deleteNode(tn.id)} className="text-stone-600 hover:text-red-400 transition-colors" title="Remove trigger">
+                          <X size={12}/>
+                        </button>
+                      )}
+                    </div>
+                    <div className="border-t border-white/[.06] px-4 py-2.5">
+                      <select
+                        className="w-full rounded-md border border-white/[.07] bg-[#141414] px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/30"
+                        value={tn.type}
+                        onChange={e => {
+                          const type = e.target.value;
+                          const def = TRIGGERS.find(t => t.type === type) ?? TRIGGERS[0]!;
+                          setNodes(prev => prev.map(n => n.id === tn.id ? { ...n, type, label: def.label } : n));
+                        }}
+                      >
+                        {TRIGGERS.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-400/60">Trigger</p>
-                  <p className="text-xs font-medium text-white">When this happens…</p>
-                </div>
-                <ChevronDown size={13} className="text-stone-600"/>
-              </div>
-              <div className="border-t border-white/[.06] px-4 py-2.5">
-                <select
-                  className="w-full rounded-md border border-white/[.07] bg-[#141414] px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/30"
-                  value={triggerType}
-                  onChange={e => {
-                    const type = e.target.value;
-                    const def = TRIGGERS.find(t => t.type === type) ?? TRIGGERS[0]!;
-                    setTriggerType(type);
-                    setNodes(prev => prev.map(n => n.kind === "trigger" ? { ...n, type, label: def.label } : n));
-                  }}
-                >
-                  {TRIGGERS.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
-                </select>
-              </div>
-            </div>
+              );
+            })}
+
+            {/* Add another trigger (OR) */}
+            <button
+              onClick={() => setNodes(prev => {
+                const at = prev.findIndex(n => n.kind !== "trigger");
+                const insertAt = at === -1 ? prev.length : at;
+                const next = [...prev];
+                next.splice(insertAt, 0, { id: crypto.randomUUID(), kind: "trigger", type: "record_created", label: "Record created", config: {}, children: [] });
+                return next;
+              })}
+              className="mb-2 text-[10px] font-medium text-stone-500 hover:text-stone-300 transition-colors"
+            >
+              + Add trigger (OR)
+            </button>
 
             <div className="h-5 w-px bg-white/[.08]"/>
             <button
-              onClick={() => setPicking("trigger-1")}
+              onClick={() => setPicking(nodes.filter(n => n.kind === "trigger").slice(-1)[0]?.id ?? "trigger-1")}
               className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[.10] bg-[#141414] text-stone-600 hover:border-stone-500/30 hover:bg-stone-500/[.08] hover:text-stone-400 transition-all"
             >
               <Plus size={11}/>
@@ -536,6 +590,57 @@ export function WorkflowBuilderPage() {
           </div>
         </div>
       </div>
+
+      {/* Run history drawer — the evidence trail (what fired, when, on what, result) */}
+      {showRuns && (
+        <div className="absolute right-0 top-0 bottom-0 z-20 flex w-80 flex-col border-l border-white/[.08] bg-[#0e0f12]">
+          <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Clock size={13} className="text-stone-400"/>
+              <p className="text-xs font-semibold text-white">Run history</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={loadRuns} className="text-[10px] text-stone-500 hover:text-stone-300">Refresh</button>
+              <button onClick={() => setShowRuns(false)} className="text-stone-600 hover:text-stone-300"><X size={13}/></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto px-3 py-3">
+            {runsLoading ? (
+              <div className="flex justify-center py-8"><Loader2 size={16} className="animate-spin text-stone-600"/></div>
+            ) : runs.length === 0 ? (
+              <p className="px-1 py-6 text-center text-[11px] text-stone-600">No runs yet. This workflow hasn't fired on any record.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {runs.map(run => {
+                  const tone = run.status === "executed" ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/[.06]"
+                    : run.status === "queued" ? "text-amber-400 border-amber-500/20 bg-amber-500/[.06]"
+                    : "text-stone-500 border-white/[.06] bg-white/[.02]";
+                  return (
+                    <div key={run.id} className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs font-medium text-white" title={run.record_title}>{run.record_title}</span>
+                        <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold capitalize ${tone}`}>
+                          {run.status === "condition_failed" ? "skipped" : run.status}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-stone-500">{new Date(run.created_at).toLocaleString()} · {run.trigger_key}</p>
+                      {run.actions?.length > 0 && (
+                        <ul className="mt-1.5 flex flex-col gap-0.5">
+                          {run.actions.map((a, idx) => (
+                            <li key={idx} className="text-[10px] text-stone-400">
+                              <span className="text-stone-500">{a.mode === "executed" ? "✓ ran" : "→ queued"}:</span> {a.action}{a.detail ? ` — ${a.detail}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Node picker modal */}
       {picking && (

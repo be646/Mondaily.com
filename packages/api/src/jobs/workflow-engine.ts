@@ -26,11 +26,12 @@ const SAFE_ACTIONS = new Set(["create_task", "create_note", "update_field", "set
 const RISKY_ACTIONS = new Set(["send_email", "send_message", "send_sms", "create_invoice", "charge", "charge_invoice", "delete_record", "archive_record", "send"]);
 
 interface WorkflowBlock { id: string; kind: string; type: string; label?: string; config?: Record<string, unknown>; }
-interface ParsedWorkflow { trigger: WorkflowBlock | null; conditions: WorkflowBlock[]; actions: WorkflowBlock[]; }
+interface ParsedWorkflow { triggers: WorkflowBlock[]; conditions: WorkflowBlock[]; actions: WorkflowBlock[]; }
 
 function parseWorkflow(blocks: WorkflowBlock[]): ParsedWorkflow {
   return {
-    trigger: blocks.find((b) => b.kind === "trigger") ?? null,
+    // Multi-trigger (OR logic): a workflow fires if ANY of its triggers matches.
+    triggers: blocks.filter((b) => b.kind === "trigger"),
     conditions: blocks.filter((b) => b.kind === "condition"),
     actions: blocks.filter((b) => b.kind === "action"),
   };
@@ -241,12 +242,19 @@ export async function runWorkflowsForWorkspace(
     for (const wf of workflows ?? []) {
       const blocks = (((wf.data as Record<string, unknown>).nodes as WorkflowBlock[]) ?? []);
       const parsed = parseWorkflow(blocks);
-      if (!parsed.trigger || parsed.actions.length === 0) continue;
+      if (parsed.triggers.length === 0 || parsed.actions.length === 0) continue;
       summary.workflows_evaluated++;
 
-      const candidates = (await candidateRecords(workspaceId, parsed.trigger, opts.recordId)).slice(0, opts.limitRecords ?? 25);
-      for (const record of candidates) {
-        const triggerKey = triggerKeyFor(parsed.trigger, record);
+      // Union candidate records across ALL triggers (OR logic), deduped by record
+      // id so a record that matches two triggers still fires the workflow once.
+      // The first matching trigger sets the trigger_key for that record.
+      const matched = new Map<string, { record: { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }; trigger: WorkflowBlock }>();
+      for (const trigger of parsed.triggers) {
+        const recs = (await candidateRecords(workspaceId, trigger, opts.recordId)).slice(0, opts.limitRecords ?? 25);
+        for (const r of recs) if (!matched.has(r.id)) matched.set(r.id, { record: r, trigger });
+      }
+      for (const { record, trigger } of matched.values()) {
+        const triggerKey = triggerKeyFor(trigger, record);
 
         // Dedup: only skip if this workflow already EXECUTED/queued actions for
         // this record+trigger. A prior condition_failed must NOT block re-eval
