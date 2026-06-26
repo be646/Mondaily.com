@@ -27,7 +27,7 @@ const LABEL_COLORS: Record<string, string> = {
   "Blocked":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Bug":         "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-400/10 border-rose-200 dark:border-rose-400/30",
-  "Feature":     "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-400/10 border-purple-200 dark:border-purple-400/30",
+  "Feature":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Research":    "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-400/10 border-cyan-200 dark:border-cyan-400/30",
 };
 const LABELS = Object.keys(LABEL_COLORS);
@@ -44,7 +44,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-purple-500/20 text-purple-600 dark:text-purple-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-cyan-500/20 text-cyan-600 dark:text-cyan-400"];
+  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-cyan-500/20 text-cyan-600 dark:text-cyan-400"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -382,7 +382,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               {/* AI summary — real LLM call against this task's actual content */}
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "rgba(124,58,237,0.20)", background: "rgba(124,58,237,0.04)" }}>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-violet-600 dark:text-violet-400">
+                  <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 dark:text-stone-400">
                     <Sparkles size={10}/> AI summary
                   </span>
                   <button onClick={runAiSummary} disabled={aiSummaryLoading} className="btn-ai px-2 py-0.5 text-[11px]">

@@ -20,7 +20,7 @@ interface Expense {
 
 const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; label: string }> = {
   travel:               { color: "text-blue-400",    icon: Car,           label: "Travel"               },
-  software:             { color: "text-violet-400",  icon: Monitor,       label: "Software"             },
+  software:             { color: "text-stone-400",  icon: Monitor,       label: "Software"             },
   hardware:             { color: "text-cyan-400",    icon: Monitor,       label: "Hardware"             },
   meals:                { color: "text-amber-400",   icon: Coffee,        label: "Meals"                },
   marketing:            { color: "text-pink-400",    icon: Zap,           label: "Marketing"            },

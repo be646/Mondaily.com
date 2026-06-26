@@ -25,7 +25,7 @@ const LABEL_COLORS: Record<string, string> = {
   "Blocked":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
   "Waiting":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
   "Bug":         "text-red-500 bg-stone-500/10 border-stone-500/30",
-  "Feature":     "text-purple-400 bg-purple-400/10 border-purple-400/30",
+  "Feature":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
   "Research":    "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
 };
 
@@ -209,7 +209,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
             )}
             {isOverdue && <span className="rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] text-stone-400">Overdue</span>}
             {flagged && (
-              <span className="flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-400/10 px-1.5 py-px text-[10px] font-medium text-violet-500 dark:text-violet-400" title="Operations Agent queued a recommendation for this task">
+              <span className="flex items-center gap-1 rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
                 <Sparkles size={9}/>AI flagged
               </span>
             )}
@@ -303,7 +303,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
       <div className={`w-full rounded-2xl border border-stone-200 bg-white shadow-2xl overflow-hidden transition-all dark:border-white/[.09] dark:bg-[#141414] ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-white/[.06]">
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-violet-600 dark:text-violet-400"/>
+            <Sparkles size={14} className="text-stone-600 dark:text-stone-400"/>
             <span className="text-sm font-semibold text-[#111827] dark:text-white">Suggest tasks with AI</span>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors"><X size={15}/></button>
@@ -311,13 +311,13 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 
         <div className="p-5 space-y-4">
           <textarea autoFocus value={prompt} onChange={e => setPrompt(e.target.value)} rows={3}
-            className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20 dark:border-white/[.08] dark:bg-white/[.02] dark:text-white dark:placeholder-stone-600 dark:focus:border-violet-500/40 dark:focus:ring-0 transition-colors"/>
+            className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-500/20 dark:border-white/[.08] dark:bg-white/[.02] dark:text-white dark:placeholder-stone-600 dark:focus:border-stone-500/40 dark:focus:ring-0 transition-colors"/>
           <div className="flex items-center gap-3">
             <span className="text-xs text-stone-500 dark:text-stone-500">Suggest</span>
             <div className="flex gap-1">
               {[3,5,10].map(n => (
                 <button key={n} onClick={() => setCount(n)}
-                  className={`w-9 rounded-lg border py-1 text-xs font-medium transition-colors ${count === n ? "border-violet-300 bg-violet-50 text-violet-700 dark:border-violet-500/50 dark:bg-violet-500/10 dark:text-violet-300" : "border-stone-200 text-stone-500 hover:text-stone-800 dark:border-white/[.08] dark:text-stone-500 dark:hover:text-stone-300"}`}>{n}</button>
+                  className={`w-9 rounded-lg border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-stone-300" : "border-stone-200 text-stone-500 hover:text-stone-800 dark:border-white/[.08] dark:text-stone-500 dark:hover:text-stone-300"}`}>{n}</button>
               ))}
             </div>
             <span className="text-xs text-stone-500 dark:text-stone-500">tasks</span>
@@ -338,7 +338,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
               {suggestions.map((t, i) => (
                 <button key={i} onClick={() => setSelected(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; })}
                   className={`flex w-full items-start gap-3 px-5 py-3 text-left border-b border-stone-100 hover:bg-stone-50 dark:border-white/[.04] dark:hover:bg-white/[.02] transition-colors ${selected.has(i) ? "" : "opacity-40"}`}>
-                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center ${selected.has(i) ? "bg-violet-600 border-violet-600" : "border-stone-300 dark:border-white/20"}`}>
+                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center ${selected.has(i) ? "bg-stone-600 border-stone-600" : "border-stone-300 dark:border-white/20"}`}>
                     {selected.has(i) && <Check size={10} className="text-white"/>}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -359,7 +359,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
           <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300 transition-colors">Cancel</button>
           {suggestions.length === 0 ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-700 dark:hover:bg-violet-500 transition-colors">
+              className="flex items-center gap-2 rounded-xl bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
             </button>
           ) : (
@@ -368,7 +368,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
                 {loading ? "Regenerating…" : "Regenerate"}
               </button>
               <button onClick={importSelected} disabled={selected.size === 0 || saving}
-                className="flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-700 dark:hover:bg-violet-500 transition-colors">
+                className="flex items-center gap-2 rounded-xl bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
                 {saving ? <Loader2 size={13} className="animate-spin"/> : <Check size={13}/>}
                 Add {selected.size} task{selected.size !== 1 ? "s" : ""}
               </button>
@@ -492,8 +492,8 @@ export function TasksPage() {
             ))}
           </div>
           <button onClick={() => setShowAISuggest(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-[#ddd6fe] bg-[#f5f3ff] px-3 py-1.5 text-xs text-[#6d28d9] hover:bg-[#ede9fe] dark:border-violet-500/25 dark:bg-violet-500/[.07] dark:text-violet-400 dark:hover:bg-violet-500/[.13] transition-colors">
-            <Sparkles size={12} className="text-[#7c3aed] dark:text-violet-400"/> Suggest with AI
+            className="flex items-center gap-1.5 rounded-xl border border-[#ddd6fe] bg-[#f5f3ff] px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-[#ede9fe] dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+            <Sparkles size={12} className="text-[var(--accent)] dark:text-stone-400"/> Suggest with AI
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
@@ -537,7 +537,7 @@ export function TasksPage() {
                 { value: "Blocked",     label: "Blocked",     dot: "bg-stone-400" },
                 { value: "Waiting",     label: "Waiting",     dot: "bg-stone-400" },
                 { value: "Bug",         label: "Bug",         dot: "bg-stone-500" },
-                { value: "Feature",     label: "Feature",     dot: "bg-purple-400" },
+                { value: "Feature",     label: "Feature",     dot: "bg-stone-400" },
                 { value: "Research",    label: "Research",    dot: "bg-cyan-400" },
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setLabelFilter(opt.value); setLabelOpen(false); }}
@@ -643,7 +643,7 @@ export function TasksPage() {
                         <span className={`h-1 w-1 rounded-full ${sm.dot}`}/>{sm.label}
                       </span>
                       {flaggedTaskIds.has(task.id) && (
-                        <span className="flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-400/10 px-1.5 py-px text-[10px] font-medium text-violet-500 dark:text-violet-400" title="Operations Agent queued a recommendation for this task">
+                        <span className="flex items-center gap-1 rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
                           <Sparkles size={9}/>AI flagged
                         </span>
                       )}

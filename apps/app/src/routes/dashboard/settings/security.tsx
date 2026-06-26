@@ -105,7 +105,7 @@ export function SecuritySettings() {
           <div className="flex items-center gap-2">
             <Shield size={14} className="text-stone-500" />
             <h2 className="text-sm font-semibold text-white">Single Sign-On (SAML 2.0)</h2>
-            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-300">Enterprise</span>
+            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-300">Enterprise</span>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.04] text-stone-600"}`}>
             {data.saml_enabled ? "Configured" : "Not configured"}
@@ -271,7 +271,7 @@ export function SecuritySettings() {
         <div className="settings-section-header">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-white">Audit log</h2>
-            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-300">Enterprise</span>
+            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-300">Enterprise</span>
           </div>
           <button className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-300 transition-colors">
             <Download size={12} /> Export CSV

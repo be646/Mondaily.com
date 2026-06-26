@@ -8,7 +8,7 @@ type ColType = "Text" | "Number" | "Email" | "URL" | "Date" | "Status" | "Curren
 const TYPE_COLORS: Record<ColType, string> = {
   Text:     "bg-stone-700/50 text-stone-300 border-stone-600/40",
   Number:   "bg-blue-900/40 text-blue-300 border-blue-500/30",
-  Email:    "bg-purple-900/40 text-purple-300 border-purple-500/30",
+  Email:    "bg-stone-900/40 text-stone-300 border-stone-500/30",
   URL:      "bg-cyan-900/40 text-cyan-300 border-cyan-500/30",
   Date:     "bg-orange-900/40 text-orange-300 border-orange-500/30",
   Status:   "bg-yellow-900/40 text-yellow-300 border-yellow-500/30",
@@ -159,10 +159,10 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Inferring ────────────────────────────────────────────────────────────────
   if (phase === "inferring") return (
-    <div className="flex items-center gap-3 rounded-xl border border-purple-500/20 bg-purple-500/[.04] px-4 py-4">
-      <Sparkles size={16} className="shrink-0 animate-pulse text-purple-400"/>
+    <div className="flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/[.04] px-4 py-4">
+      <Sparkles size={16} className="shrink-0 animate-pulse text-stone-400"/>
       <div>
-        <p className="text-xs font-medium text-purple-300">Inferring schema with Claude…</p>
+        <p className="text-xs font-medium text-stone-300">Inferring schema with Claude…</p>
         <p className="text-[10px] text-stone-600">{fileName} · {rows.length} rows · {headers.length} columns</p>
       </div>
       <button onClick={reset} className="ml-auto text-stone-600 hover:text-stone-300"><X size={14}/></button>
@@ -180,7 +180,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           <p className="text-[10px] text-stone-600">{rows.length} rows · {headers.length} columns · schema inferred</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1 rounded-md border border-purple-500/20 bg-purple-500/[.06] px-1.5 py-0.5 text-[9px] text-purple-400">
+          <span className="flex items-center gap-1 rounded-md border border-stone-500/20 bg-stone-500/[.06] px-1.5 py-0.5 text-[9px] text-stone-400">
             <Sparkles size={8}/> AI schema
           </span>
           <button onClick={reset} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={14}/></button>

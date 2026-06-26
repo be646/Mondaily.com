@@ -194,7 +194,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
 const STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft:     "text-stone-400 bg-stone-400/10",
   sent:      "text-blue-400 bg-blue-400/10",
-  viewed:    "text-purple-400 bg-purple-400/10",
+  viewed:    "text-stone-400 bg-stone-400/10",
   paid:      "text-emerald-400 bg-emerald-400/10",
   overdue:   "text-stone-400 bg-stone-400/10",
   cancelled: "text-stone-600 bg-stone-600/10",
@@ -618,7 +618,7 @@ export function InvoiceDetailPage() {
                   return (
                     <>
                       {creditsAmt > 0 && (
-                        <div className="flex justify-between text-[12px] text-violet-400">
+                        <div className="flex justify-between text-[12px] text-stone-400">
                           <span>Credits applied</span>
                           <span>−{formatCurrency(creditsAmt, currency)}</span>
                         </div>

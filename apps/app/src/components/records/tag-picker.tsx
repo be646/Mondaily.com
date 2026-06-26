@@ -6,8 +6,8 @@ import { apiClient } from "../../lib/api-client";
 interface TagData { id: string; name: string; color: string }
 
 const PRESET_COLORS = [
-  "#6366f1", "#ec4899", "#f59e0b", "#10b981", "#3b82f6",
-  "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#84cc16",
+  "var(--accent)", "#ec4899", "#f59e0b", "#10b981", "#3b82f6",
+  "#ef4444", "var(--accent)", "#06b6d4", "#f97316", "#84cc16",
 ];
 
 export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
@@ -71,12 +71,12 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-violet-500/20 flex items-center justify-center">
-              <Tag size={12} className="text-violet-400"/>
+            <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center">
+              <Tag size={12} className="text-stone-400"/>
             </div>
             <span className="text-sm font-semibold text-white">Tags</span>
             {nodeTags.data && nodeTags.data.length > 0 && (
-              <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] font-semibold text-violet-300">{nodeTags.data.length}</span>
+              <span className="rounded-full bg-stone-500/20 px-2 py-0.5 text-[10px] font-semibold text-stone-300">{nodeTags.data.length}</span>
             )}
           </div>
           <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors"><X size={14}/></button>
@@ -87,7 +87,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") onClose(); }}
             placeholder="Search or create tag…"
-            className="w-full bg-white/[.04] border border-white/[.07] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-violet-500/40 placeholder:text-white/20 transition-colors"/>
+            className="w-full bg-white/[.04] border border-white/[.07] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-stone-500/40 placeholder:text-white/20 transition-colors"/>
         </div>
 
         {/* Active tags */}
@@ -119,7 +119,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
                 <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
                 <span className="flex-1 text-left text-xs text-white/70">{tag.name}</span>
                 {active
-                  ? <Check size={11} className="text-violet-400 shrink-0"/>
+                  ? <Check size={11} className="text-stone-400 shrink-0"/>
                   : <Plus size={11} className="text-white/20 shrink-0"/>
                 }
               </button>

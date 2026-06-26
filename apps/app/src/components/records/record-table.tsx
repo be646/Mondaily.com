@@ -376,7 +376,7 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
     "bg-stone-500/20 text-stone-400",
     "bg-blue-500/20 text-blue-400",
     "bg-emerald-500/20 text-emerald-400",
-    "bg-purple-500/20 text-purple-400",
+    "bg-stone-500/20 text-stone-400",
     "bg-amber-500/20 text-amber-400",
   ];
   const color = colors[(initials.charCodeAt(0) || 0) % colors.length];
@@ -403,7 +403,7 @@ const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
   "Not Started":  { pill: "bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-900/60 dark:text-stone-500 dark:border-stone-700/50",       dot: "bg-stone-600" },
   "Completed":    { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
   "Complete":     { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
-  "Proposal":     { pill: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-400 dark:border-violet-900/40", dot: "bg-violet-400" },
+  "Proposal":     { pill: "bg-stone-50 text-stone-700 border-stone-200 dark:bg-stone-950/40 dark:text-stone-400 dark:border-stone-900/40", dot: "bg-stone-400" },
   "Negotiation":  { pill: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/40", dot: "bg-orange-400" },
   "Closed Won":   { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
   "Closed Lost":  { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50",       dot: "bg-rose-400" },
@@ -678,7 +678,7 @@ interface Member { id: string; name: string; email: string; avatar_url?: string;
 
 // Deterministic avatar colour from name string
 function avatarColor(name: string) {
-  const colors = ["bg-stone-500","bg-orange-500","bg-amber-500","bg-emerald-500","bg-sky-500","bg-violet-500","bg-pink-500","bg-teal-500"];
+  const colors = ["bg-stone-500","bg-orange-500","bg-amber-500","bg-emerald-500","bg-sky-500","bg-stone-500","bg-pink-500","bg-teal-500"];
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
   return colors[Math.abs(h) % colors.length];
 }
@@ -759,7 +759,7 @@ const WORLD_COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","A
 // Column type presets — each maps to a clear semantic meaning
 const COLUMN_TYPE_PRESETS = [
   { type: "status",    label: "Status",     hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft,   color: "text-sky-400"     },
-  { type: "stage",     label: "Stage",      hint: "Pipeline stage (Lead, Proposal, Closed…)",  icon: ChevronRight, color: "text-violet-400"  },
+  { type: "stage",     label: "Stage",      hint: "Pipeline stage (Lead, Proposal, Closed…)",  icon: ChevronRight, color: "text-stone-400"  },
   { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-emerald-400" },
   { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-amber-400"   },
   { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-pink-400"    },
@@ -1037,15 +1037,15 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
 interface WorkspaceTag { id: string; name: string; color: string }
 
 const PRESET_TAG_COLORS = [
-  "#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6",
-  "#ef4444","#8b5cf6","#06b6d4","#f97316","#84cc16",
+  "var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6",
+  "#ef4444","var(--accent)","#06b6d4","#f97316","#84cc16",
 ];
 
 // tagColor kept for backwards compat with filter badges
 function tagColor(val: string) {
   const TAG_COLORS = [
     { bg: "bg-sky-500/15 border-sky-500/30 text-sky-300", dot: "bg-sky-400" },
-    { bg: "bg-violet-500/15 border-violet-500/30 text-violet-300", dot: "bg-violet-400" },
+    { bg: "bg-stone-500/15 border-stone-500/30 text-stone-300", dot: "bg-stone-400" },
     { bg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300", dot: "bg-emerald-400" },
     { bg: "bg-amber-500/15 border-amber-500/30 text-amber-300", dot: "bg-amber-400" },
     { bg: "bg-rose-500/15 border-rose-500/30 text-rose-300", dot: "bg-rose-400" },
@@ -1122,7 +1122,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") setOpen(false); }}
               placeholder="Search or create tag…"
-              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-violet-500/40 placeholder:text-white/20"/>
+              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/40 placeholder:text-white/20"/>
           </div>
           <div className="max-h-40 overflow-y-auto p-1">
             {filtered.map(tag => {
@@ -1132,7 +1132,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[.04] transition-colors">
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
                   <span className="flex-1 text-left text-xs text-white/70">{tag.name}</span>
-                  {active && <Check size={10} className="text-violet-400 shrink-0"/>}
+                  {active && <Check size={10} className="text-stone-400 shrink-0"/>}
                 </button>
               );
             })}
@@ -1148,7 +1148,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
                 ))}
               </div>
               <button onClick={createAndAdd} disabled={creating}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-violet-500/10 hover:text-violet-300 transition-colors disabled:opacity-40">
+                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-stone-500/10 hover:text-stone-300 transition-colors disabled:opacity-40">
                 <Plus size={11}/> Create "{search.trim()}"
               </button>
             </div>
@@ -1563,7 +1563,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   function SortIcon({ col }: { col: string }) {
     const rule = sortRules.find(r => r.col === col);
-    if (rule) return rule.dir === "asc" ? <ChevronUp size={10} className="text-purple-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-purple-400 ml-1 shrink-0"/>;
+    if (rule) return rule.dir === "asc" ? <ChevronUp size={10} className="text-stone-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-stone-400 ml-1 shrink-0"/>;
     if (quickSortCol === col) return quickSortDir === "asc" ? <ChevronUp size={10} className="text-stone-400 ml-1 shrink-0"/> : <ChevronDown size={10} className="text-stone-400 ml-1 shrink-0"/>;
     return <ChevronsUpDown size={10} className="text-stone-700 ml-1 shrink-0"/>;
   }
@@ -2010,7 +2010,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border";
   const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
   const TB_ON   = `${TB} border-[#c7d2fe] bg-[#eef2ff] text-[#3730a3] dark:border-white/[.08] dark:text-white dark:bg-white/[.06]`;
-  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e0e7ff] px-1 text-[9px] font-semibold text-[#4338ca] dark:bg-white/[.10] dark:text-stone-300";
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#e0e7ff] px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-white/[.10] dark:text-stone-300";
   const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-500/70 px-1 text-[9px] font-semibold text-white";
 
   return (

@@ -18,7 +18,7 @@ const DEFAULT_STAGES = ["Lead", "Qualified", "In Progress", "Proposal", "Negotia
 const STAGE_DOT: Record<string, string> = {
   "Lead":        "bg-stone-400",
   "Qualified":   "bg-blue-400",
-  "In Progress": "bg-violet-400",
+  "In Progress": "bg-stone-400",
   "Proposal":    "bg-amber-400",
   "Negotiation": "bg-orange-400",
   "Closed Won":  "bg-emerald-400",
@@ -27,7 +27,7 @@ const STAGE_DOT: Record<string, string> = {
 const STAGE_TEXT: Record<string, string> = {
   "Lead":        "text-stone-300",
   "Qualified":   "text-blue-300",
-  "In Progress": "text-violet-300",
+  "In Progress": "text-stone-300",
   "Proposal":    "text-amber-300",
   "Negotiation": "text-orange-300",
   "Closed Won":  "text-emerald-300",

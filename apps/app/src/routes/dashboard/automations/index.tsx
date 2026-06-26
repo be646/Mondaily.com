@@ -60,7 +60,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <div className={`w-full rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between p-5 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
-            <Sparkles size={15} className="text-violet-400"/>
+            <Sparkles size={15} className="text-stone-400"/>
             <h2 className="font-semibold text-white">Generate sequence with AI</h2>
           </div>
           <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={16}/></button>
@@ -73,14 +73,14 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "Cold outreach to SaaS founders about our analytics tool" or "Follow-up sequence for leads who downloaded our whitepaper"`}
-            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-stone-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
+            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
           />
           <div className="flex items-center gap-3">
             <span className="text-xs text-stone-500">Steps</span>
             <div className="flex gap-1">
               {[3,4,5,6].map(n => (
                 <button key={n} onClick={() => setStepCount(n)}
-                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-violet-500/50 bg-violet-500/10 text-violet-300" : "border-white/[.06] text-stone-500 hover:text-stone-300"}`}>
+                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-stone-500/50 bg-stone-500/10 text-stone-300" : "border-white/[.06] text-stone-500 hover:text-stone-300"}`}>
                   {n}
                 </button>
               ))}
@@ -111,14 +111,14 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
+              className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-500">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={generate} disabled={loading} className="text-sm text-stone-500 hover:text-stone-300">Regenerate</button>
               <button onClick={createSequence} disabled={creating}
-                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
+                className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-500">
                 {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : <><Check size={13}/> Create sequence</>}
               </button>
             </div>
@@ -270,7 +270,7 @@ export function AutomationsPage() {
                 key={item.id}
                 className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-white/[.02] transition-colors ${i < items.length - 1 ? "border-b border-stone-200 dark:border-stone-800" : ""}`}
               >
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-purple-500/20 bg-purple-500/[.08] text-purple-400" : "border-stone-500/20 bg-stone-500/[.08] text-stone-400"}`}>
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-stone-500/20 bg-stone-500/[.08] text-stone-400" : "border-stone-500/20 bg-stone-500/[.08] text-stone-400"}`}>
                   <Icon size={14}/>
                 </div>
 
@@ -330,7 +330,7 @@ export function AutomationsPage() {
         <Zap size={16} className="text-stone-400"/>
         <h1 className="flex-1 text-[15px] font-semibold text-white tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/30 transition-colors">
+          className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
           <Sparkles size={12}/> Generate with AI
         </button>
         <button

@@ -103,7 +103,7 @@ function StepCard({
           onClick={() => setOpen(o => !o)}
         >
           <GripVertical size={14} className="shrink-0 text-stone-700"/>
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-purple-500/20 bg-purple-500/[.08] text-purple-400" : "border-blue-500/20 bg-blue-500/[.08] text-blue-400"}`}>
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-stone-500/20 bg-stone-500/[.08] text-stone-400" : "border-blue-500/20 bg-blue-500/[.08] text-blue-400"}`}>
             {step.type === "email" ? <Mail size={12}/> : <CheckSquare size={12}/>}
           </div>
           <div className="flex-1 min-w-0">
@@ -436,7 +436,7 @@ export function SequenceBuilderPage() {
                 disabled={addStep.isPending}
                 className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-stone-400 hover:bg-white/[.05] hover:text-white transition-colors"
               >
-                <Mail size={12} className="text-purple-400"/> Add email step
+                <Mail size={12} className="text-stone-400"/> Add email step
               </button>
               <button
                 onClick={() => addStep.mutate("task")}

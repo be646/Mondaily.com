@@ -33,12 +33,12 @@ interface RelatedNode { id: string; object_type: string; data: Record<string, un
 export const INDUSTRY_TAXONOMY: { name: string; bg: string; text: string; border: string }[] = [
   { name: "B2B",                    bg: "#1e3a5f", text: "#93c5fd", border: "#3b82f6" },
   { name: "B2C",                    bg: "#4a1942", text: "#f0abfc", border: "#d946ef" },
-  { name: "SaaS",                   bg: "#2d1b69", text: "#c4b5fd", border: "#7c3aed" },
+  { name: "SaaS",                   bg: "#2d1b69", text: "#c4b5fd", border: "var(--accent)" },
   { name: "Web Services & Apps",    bg: "#0c3341", text: "#67e8f9", border: "#06b6d4" },
   { name: "Consulting",             bg: "#3d2700", text: "#fcd34d", border: "#f59e0b" },
   { name: "FinTech",                bg: "#052e16", text: "#6ee7b7", border: "#10b981" },
   { name: "HealthTech",             bg: "#042f2e", text: "#5eead4", border: "#14b8a6" },
-  { name: "EdTech",                 bg: "#1e1b4b", text: "#a5b4fc", border: "#6366f1" },
+  { name: "EdTech",                 bg: "#1e1b4b", text: "#a5b4fc", border: "var(--accent)" },
   { name: "E-commerce",             bg: "#3b1206", text: "#fda4af", border: "#f43f5e" },
   { name: "AI / ML",               bg: "#1a0a2e", text: "#e879f9", border: "#a855f7" },
   { name: "Cybersecurity",          bg: "#2d0a0a", text: "#fca5a5", border: "#ef4444" },
@@ -58,12 +58,12 @@ const AVATAR_COLORS = [
   "from-red-500/30 to-red-600/10 text-stone-300 border-stone-500/20",
   "from-blue-500/30 to-blue-600/10 text-blue-300 border-blue-500/20",
   "from-emerald-500/30 to-emerald-600/10 text-emerald-300 border-emerald-500/20",
-  "from-purple-500/30 to-purple-600/10 text-purple-300 border-purple-500/20",
+  "from-stone-500/30 to-stone-600/10 text-stone-300 border-stone-500/20",
   "from-amber-500/30 to-amber-600/10 text-amber-300 border-amber-500/20",
 ];
 const PIPE_STAGES = ["Lead","Qualified","In Progress","Proposal","Negotiation"] as const;
 const STAGE_DOT: Record<string, string> = {
-  "Lead": "bg-stone-400", "Qualified": "bg-blue-400", "In Progress": "bg-violet-400",
+  "Lead": "bg-stone-400", "Qualified": "bg-blue-400", "In Progress": "bg-stone-400",
   "Proposal": "bg-amber-400", "Negotiation": "bg-orange-400",
 };
 function getTabsForType(type: string): string[] {
@@ -214,7 +214,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
   const overflow = categories.length - MAX;
   const selected = new Set(categories.map(c => c.name));
 
-  const CUSTOM_COLORS = ["#6366f1","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#8b5cf6","#06b6d4"];
+  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","var(--accent)","#06b6d4"];
   const filtered = INDUSTRY_TAXONOMY.filter(t =>
     !query || t.name.toLowerCase().includes(query.toLowerCase())
   );
@@ -372,7 +372,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
 type Accent = "slate"|"red"|"blue"|"emerald"|"amber"|"purple";
 const ACCENT_MAP: Record<Accent, string> = {
   slate: "text-stone-400", red: "text-stone-400", blue: "text-blue-400",
-  emerald: "text-emerald-400", amber: "text-amber-400", purple: "text-purple-400",
+  emerald: "text-emerald-400", amber: "text-amber-400", purple: "text-stone-400",
 };
 
 function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, numeric }: {
@@ -428,7 +428,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
     <div className="rounded-lg border border-stone-800/60 bg-stone-900/30 p-4 col-span-2">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
-          <Tag size={12} className="text-purple-400"/>
+          <Tag size={12} className="text-stone-400"/>
           <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
@@ -1163,7 +1163,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
 const CONTACT_LOG_TYPES = [
   { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-emerald-400", bg: "bg-emerald-400/10" },
   { value: "email",   label: "Email",   icon: Mail,          color: "text-blue-400",    bg: "bg-blue-400/10" },
-  { value: "meeting", label: "Meeting", icon: Video,         color: "text-violet-400",  bg: "bg-violet-400/10" },
+  { value: "meeting", label: "Meeting", icon: Video,         color: "text-stone-400",  bg: "bg-stone-400/10" },
   { value: "message", label: "Message", icon: MessageSquare, color: "text-amber-400",   bg: "bg-amber-400/10" },
 ] as const;
 
@@ -1311,7 +1311,7 @@ interface CreditNoteRecord { id: string; amount_cents: number; currency: string;
 const INVOICE_STATUS_COLORS: Record<string, string> = {
   draft:     "text-stone-400 bg-stone-400/10",
   sent:      "text-blue-400 bg-blue-400/10",
-  viewed:    "text-purple-400 bg-purple-400/10",
+  viewed:    "text-stone-400 bg-stone-400/10",
   paid:      "text-emerald-400 bg-emerald-400/10",
   overdue:   "text-stone-400 bg-stone-400/10",
   cancelled: "text-stone-600 bg-stone-600/10",
@@ -1375,7 +1375,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-white" },
-          { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-violet-400" },
+          { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
           { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-emerald-400" },
         ].map(card => (
           <div key={card.label} className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
@@ -1499,7 +1499,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
             {creditNotes.map(cn => (
               <Link key={cn.id} to={`/finance/credit-notes/${cn.id}`}
                 className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-4 py-2.5 hover:border-white/[.10] transition-colors">
-                <CreditCard size={13} className="text-violet-400 shrink-0"/>
+                <CreditCard size={13} className="text-stone-400 shrink-0"/>
                 <span className="flex-1 text-[12px] text-white">{fmtCcy(cn.amount_cents / 100, cn.currency)}</span>
                 <span className="text-[11px] text-stone-500 capitalize">{cn.credit_reason.replace(/_/g, " ")}</span>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CN_STATUS_COLORS[cn.status] ?? "text-stone-400 bg-stone-400/10"}`}>

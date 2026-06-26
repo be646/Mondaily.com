@@ -33,7 +33,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  owner: "bg-violet-500/10 text-violet-300 border-violet-500/20",
+  owner: "bg-stone-500/10 text-stone-300 border-stone-500/20",
   admin: "bg-stone-500/10 text-stone-300 border-stone-500/20",
   member: "bg-white/[.05] text-stone-400 border-white/[.07]",
   viewer: "bg-white/[.03] text-stone-600 border-white/[.05]",

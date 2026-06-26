@@ -90,7 +90,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
       <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-violet-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-violet-400"/></div>
+            <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-stone-400"/></div>
             <span className="text-sm font-semibold text-white">New Credit Note</span>
           </div>
           <button onClick={onClose} className="text-stone-600 hover:text-stone-300 transition-colors text-lg leading-none">×</button>
@@ -264,7 +264,7 @@ export function CreditNotesPage() {
                     <td className="px-4 py-3 max-w-[220px]">
                       {cn.ai_summary ? (
                         <div className="flex items-start gap-1.5">
-                          <Sparkles size={10} className="text-violet-400 mt-0.5 shrink-0"/>
+                          <Sparkles size={10} className="text-stone-400 mt-0.5 shrink-0"/>
                           <span className="text-[11px] text-stone-500 truncate">{cn.ai_summary}</span>
                         </div>
                       ) : <span className="text-[11px] text-stone-700">—</span>}

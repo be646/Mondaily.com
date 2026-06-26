@@ -59,7 +59,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
         <div className="mb-4 flex items-center gap-3">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-sans text-lg font-semibold transition-all duration-300"
-            style={{ background: hasEmail ? "#6366f1" : "#f4f4f5", color: hasEmail ? "white" : "#d4d4d8" }}
+            style={{ background: hasEmail ? "var(--accent)" : "#f4f4f5", color: hasEmail ? "white" : "#d4d4d8" }}
           >
             {hasEmail ? email.charAt(0).toUpperCase() : "?"}
           </div>
@@ -151,7 +151,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
         <div className="flex items-center gap-4 mb-5">
           <div
             className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full font-sans text-2xl font-bold transition-all duration-500"
-            style={{ background: hasName ? "#6366f1" : "#f4f4f5", color: hasName ? "white" : "#d4d4d8" }}
+            style={{ background: hasName ? "var(--accent)" : "#f4f4f5", color: hasName ? "white" : "#d4d4d8" }}
           >
             {initial}
           </div>
@@ -164,7 +164,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
             </p>
             <p
               className="font-mono text-[12px] transition-all duration-300"
-              style={{ color: hasTitle ? "#6366f1" : "#d4d4d8" }}
+              style={{ color: hasTitle ? "var(--accent)" : "#d4d4d8" }}
             >
               {hasTitle ? title : "Job title"}
             </p>
@@ -269,7 +269,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
             <div className="px-3 py-3 border-b border-black/[.05]">
               <p
                 className="font-mono text-[11px] font-bold truncate transition-all duration-300"
-                style={{ color: hasName ? "#6366f1" : "#d4d4d8" }}
+                style={{ color: hasName ? "var(--accent)" : "#d4d4d8" }}
               >
                 {hasName ? name : "Workspace"}
               </p>
@@ -378,25 +378,25 @@ export function ConnectEmailPanel({ connected }: { connected: string[] }) {
           <div className="flex items-center justify-center py-4">
             <svg width="200" height="100" viewBox="0 0 200 100">
               {/* Animated connections */}
-              <line x1="100" y1="50" x2="40" y2="20" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
+              <line x1="100" y1="50" x2="40" y2="20" stroke="#8a857d" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
                 <animate attributeName="stroke-dashoffset" values="0;-6" dur="1s" repeatCount="indefinite" />
               </line>
-              <line x1="100" y1="50" x2="160" y2="20" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
+              <line x1="100" y1="50" x2="160" y2="20" stroke="#8a857d" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
                 <animate attributeName="stroke-dashoffset" values="0;-6" dur="1.3s" repeatCount="indefinite" />
               </line>
-              <line x1="100" y1="50" x2="40" y2="80" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
+              <line x1="100" y1="50" x2="40" y2="80" stroke="#8a857d" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
                 <animate attributeName="stroke-dashoffset" values="0;-6" dur="0.9s" repeatCount="indefinite" />
               </line>
-              <line x1="100" y1="50" x2="160" y2="80" stroke="#6366f1" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
+              <line x1="100" y1="50" x2="160" y2="80" stroke="#8a857d" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="4 2">
                 <animate attributeName="stroke-dashoffset" values="0;-6" dur="1.1s" repeatCount="indefinite" />
               </line>
               {/* Nodes */}
-              <circle cx="100" cy="50" r="10" fill="#6366f1" />
+              <circle cx="100" cy="50" r="10" fill="#8a857d" />
               <text x="100" y="54" textAnchor="middle" fill="white" fontSize="8" fontFamily="monospace">YOU</text>
               {[{x:40,y:20,l:"A"},{x:160,y:20,l:"B"},{x:40,y:80,l:"C"},{x:160,y:80,l:"D"}].map(({x,y,l}) => (
                 <g key={l}>
                   <circle cx={x} cy={y} r="7" fill="#e0e7ff" />
-                  <text x={x} y={y+3} textAnchor="middle" fill="#6366f1" fontSize="7" fontFamily="monospace">{l}</text>
+                  <text x={x} y={y+3} textAnchor="middle" fill="#8a857d" fontSize="7" fontFamily="monospace">{l}</text>
                 </g>
               ))}
             </svg>
@@ -643,7 +643,7 @@ export function PlanPanel({ selected }: { selected: string }) {
             >
               <div
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all duration-400"
-                style={{ background: i < unlockedCount ? "#6366f1" : "#f4f4f5" }}
+                style={{ background: i < unlockedCount ? "var(--accent)" : "#f4f4f5" }}
               >
                 <Check size={10} className={i < unlockedCount ? "text-white" : "text-stone-300"} strokeWidth={3} />
               </div>

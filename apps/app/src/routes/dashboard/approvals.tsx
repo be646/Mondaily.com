@@ -97,7 +97,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900">
-            <ReceiptText size={15} className="text-violet-400"/>
+            <ReceiptText size={15} className="text-stone-400"/>
           </div>
           <div>
             <div className="text-[13px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">{fmt(cn.amount_cents, cn.currency)}</div>
@@ -126,7 +126,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
 
       {cn.ai_summary && (
         <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/[.04]">
-          <Sparkles size={10} className="text-violet-400 mt-0.5 shrink-0"/>
+          <Sparkles size={10} className="text-stone-400 mt-0.5 shrink-0"/>
           <p className="text-[11px] leading-relaxed text-stone-600 dark:text-stone-300">{cn.ai_summary}</p>
         </div>
       )}

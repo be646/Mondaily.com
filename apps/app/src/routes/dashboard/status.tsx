@@ -39,7 +39,7 @@ const FEATURE_STATUS_META: Record<FeatureStatus, { label: string; color: string 
   live:                 { label: "Live",                 color: "#10b981" },
   partial:               { label: "Partial",              color: "#3b82f6" },
   needs_configuration:    { label: "Needs configuration",  color: "#d97706" },
-  planned:                { label: "Planned",              color: "#8b5cf6" },
+  planned:                { label: "Planned",              color: "var(--accent)" },
   not_built:              { label: "Not built",            color: "var(--text-faint)" },
 };
 
@@ -78,7 +78,7 @@ interface ProjectLogResponse { available: boolean; reason?: string; updates: Pro
 const ROADMAP_TIERS: { key: string; label: string; tone: string }[] = [
   { key: "must_fix", label: "Must fix before clients", tone: "#dc2626" },
   { key: "should_improve", label: "Should improve", tone: "#d97706" },
-  { key: "future", label: "Future AI-native upgrades", tone: "#8b5cf6" },
+  { key: "future", label: "Future AI-native upgrades", tone: "var(--accent)" },
 ];
 
 function useProjectLog() {

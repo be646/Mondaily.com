@@ -122,8 +122,8 @@ export function SegmentBuilder({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[.06]">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10 border border-violet-500/20">
-              <Filter size={13} className="text-violet-400" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
+              <Filter size={13} className="text-stone-400" />
             </div>
             <span className="text-sm font-semibold text-white">Segment Builder</span>
             <span className="text-xs text-white/30">{cleanName}</span>
@@ -155,7 +155,7 @@ export function SegmentBuilder({
                     <button
                       key={l}
                       onClick={() => setLogic(l)}
-                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${logic === l ? "bg-violet-600 text-white" : "text-white/30 hover:text-white/60"}`}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${logic === l ? "bg-stone-600 text-white" : "text-white/30 hover:text-white/60"}`}
                     >
                       {l}
                     </button>
@@ -177,7 +177,7 @@ export function SegmentBuilder({
                       <select
                         value={rule.field}
                         onChange={e => updateRule(rule.id, { field: e.target.value })}
-                        className="flex-1 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-violet-500/40"
+                        className="flex-1 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-stone-500/40"
                       >
                         {columns.map(c => (
                           <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
@@ -187,7 +187,7 @@ export function SegmentBuilder({
                       <select
                         value={rule.operator}
                         onChange={e => updateRule(rule.id, { operator: e.target.value as Operator })}
-                        className="h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-violet-500/40"
+                        className="h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-stone-500/40"
                       >
                         {OPERATORS.map(o => (
                           <option key={o.value} value={o.value}>{o.label}</option>
@@ -199,7 +199,7 @@ export function SegmentBuilder({
                           value={rule.value}
                           onChange={e => updateRule(rule.id, { value: e.target.value })}
                           placeholder="value"
-                          className="w-28 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 placeholder-white/20 outline-none focus:border-violet-500/40"
+                          className="w-28 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 placeholder-white/20 outline-none focus:border-stone-500/40"
                         />
                       )}
                       <button
@@ -216,7 +216,7 @@ export function SegmentBuilder({
 
               <button
                 onClick={addRule}
-                className="flex items-center gap-1.5 text-xs text-white/30 hover:text-violet-400 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-white/30 hover:text-stone-400 transition-colors"
               >
                 <Plus size={12} /> Add rule
               </button>
@@ -224,7 +224,7 @@ export function SegmentBuilder({
               {/* Preview */}
               <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 flex items-center justify-between">
                 <span className="text-xs text-white/40">Matching records</span>
-                <span className={`text-sm font-semibold ${matched.length > 0 ? "text-violet-400" : "text-white/20"}`}>
+                <span className={`text-sm font-semibold ${matched.length > 0 ? "text-stone-400" : "text-white/20"}`}>
                   {matched.length} / {records.length}
                 </span>
               </div>
@@ -236,7 +236,7 @@ export function SegmentBuilder({
                   value={listName}
                   onChange={e => setListName(e.target.value)}
                   placeholder={`${cleanName} segment — ${new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}`}
-                  className="w-full h-9 rounded-xl border border-white/[.07] bg-[#141414] px-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-violet-500/40 transition-colors"
+                  className="w-full h-9 rounded-xl border border-white/[.07] bg-[#141414] px-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-stone-500/40 transition-colors"
                 />
               </div>
             </>
@@ -252,7 +252,7 @@ export function SegmentBuilder({
             <button
               onClick={saveSegment}
               disabled={matched.length === 0 || saving}
-              className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-500 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-40"
             >
               {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</> : <><List size={12} /> Save {matched.length} records as list</>}
             </button>

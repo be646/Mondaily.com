@@ -3,9 +3,9 @@ import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <circle cx="16" cy="16" r="6.5" fill="#6366f1" />
-      <circle cx="16" cy="16" r="13" stroke="#6366f1" strokeWidth="1.4" opacity="0.35" />
-      <circle cx="0" cy="0" r="2.4" fill="#6366f1" opacity="0.85">
+      <circle cx="16" cy="16" r="6.5" fill="#8a857d" />
+      <circle cx="16" cy="16" r="13" stroke="#8a857d" strokeWidth="1.4" opacity="0.35" />
+      <circle cx="0" cy="0" r="2.4" fill="#8a857d" opacity="0.85">
         <animateMotion dur={thinking ? "1.2s" : "6s"} repeatCount="indefinite" path="M27,9 A13,13 0 1 1 5,23 A13,13 0 1 1 27,9" />
       </circle>
     </svg>
@@ -79,7 +79,7 @@ function inlineFormat(text: string): React.ReactNode {
 
 // ── Accent palette (same as home) ─────────────────────────────────────────────
 const ACCENTS = [
-  { border: "border-l-violet-500/50", dot: "bg-violet-400", userBorder: "border-violet-500/30", userText: "text-violet-200" },
+  { border: "border-l-violet-500/50", dot: "bg-stone-400", userBorder: "border-stone-500/30", userText: "text-stone-200" },
   { border: "border-l-blue-500/50",   dot: "bg-blue-400",   userBorder: "border-blue-500/30",   userText: "text-blue-200"   },
   { border: "border-l-emerald-500/50",dot: "bg-emerald-400",userBorder: "border-emerald-500/30",userText: "text-emerald-200"},
   { border: "border-l-rose-500/50",   dot: "bg-rose-400",   userBorder: "border-rose-500/30",   userText: "text-rose-200"   },

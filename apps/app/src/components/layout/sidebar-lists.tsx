@@ -225,7 +225,7 @@ export function SidebarLists() {
                   Manual
                 </button>
                 <button onClick={() => setTab("ai")}
-                  className={`flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-violet-500/20 text-violet-300" : "text-stone-500 hover:text-stone-300"}`}>
+                  className={`flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-stone-500/20 text-stone-300" : "text-stone-500 hover:text-stone-300"}`}>
                   <Sparkles size={10} /> AI
                 </button>
               </div>
@@ -318,10 +318,10 @@ export function SidebarLists() {
                 <p className="text-[11px] text-stone-600">Describe the list you want. AI will name it, pick the right object type, and populate it with matching records.</p>
                 <textarea autoFocus value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4}
                   placeholder={`e.g. "High-value fintech companies" or "Leads from referrals not yet contacted"`}
-                  className="w-full resize-none rounded-xl border border-white/[.08] bg-white/[.02] px-3 py-2.5 text-[12px] text-white placeholder-stone-700 outline-none focus:border-violet-500/40 transition-colors" />
+                  className="w-full resize-none rounded-xl border border-white/[.08] bg-white/[.02] px-3 py-2.5 text-[12px] text-white placeholder-stone-700 outline-none focus:border-stone-500/40 transition-colors" />
                 {aiError && <p className="text-[11px] text-stone-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-violet-500 transition-colors">
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-stone-500 transition-colors">
                   {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><Sparkles size={13} /> Create with AI</>}
                 </button>
               </div>

@@ -206,13 +206,13 @@ export function AccountSettings() {
                 onClick={() => setAppearance(mode)}
                 className={`relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all ${
                   appearance === mode
-                    ? "border-[#818cf8] bg-[#eef2ff] text-[#312e81] dark:border-stone-500/50 dark:bg-stone-500/[.06] dark:text-white"
+                    ? "border-[var(--accent)] bg-[#eef2ff] text-[#312e81] dark:border-stone-500/50 dark:bg-stone-500/[.06] dark:text-white"
                     : "border-[#e5e7eb] bg-white text-[#52525b] hover:bg-[#f9fafb] dark:border-white/[.07] dark:bg-transparent dark:text-stone-500 dark:hover:border-white/[.14] dark:hover:text-stone-300"
                 }`}
               >
-                <Icon size={18} className={appearance === mode ? "text-[#4f46e5] dark:text-white" : ""}/>
+                <Icon size={18} className={appearance === mode ? "text-[var(--accent)] dark:text-white" : ""}/>
                 <span className="text-xs font-medium capitalize">{label}</span>
-                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[#4f46e5] dark:text-stone-400" />}
+                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[var(--accent)] dark:text-stone-400" />}
               </button>
             ))}
           </div>

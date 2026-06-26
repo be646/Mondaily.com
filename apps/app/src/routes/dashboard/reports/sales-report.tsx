@@ -301,8 +301,8 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
       >
         {/* Modal header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[.07] shrink-0">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15 ring-1 ring-violet-500/20">
-            <Sparkles size={13} className="text-violet-400"/>
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/15 ring-1 ring-stone-500/20">
+            <Sparkles size={13} className="text-stone-400"/>
           </div>
           <span className="flex-1 text-sm font-semibold text-white">{title}</span>
           {onPrint && (
@@ -397,19 +397,19 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
   return (
     <>
       {/* Compact trigger card — never stretches */}
-      <div className="rounded-2xl border border-violet-500/20 bg-[#141414] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
-          <Sparkles size={16} className="text-violet-400"/>
+      <div className="rounded-2xl border border-stone-500/20 bg-[#141414] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
+          <Sparkles size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Forecast</p>
           <p className="text-[11px] text-stone-500 mt-0.5">
-            {result ? <span className="text-violet-300 italic">{result.headline}</span>
+            {result ? <span className="text-stone-300 italic">{result.headline}</span>
                     : `Project ${hasValue?"revenue":"completions"} with Mondaily AI`}
           </p>
         </div>
         {loading ? (
-          <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
+          <Loader2 size={15} className="animate-spin text-stone-400 shrink-0"/>
         ) : error ? (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-stone-400 max-w-[160px] truncate">{error}</span>
@@ -421,11 +421,11 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
               <p className="text-[10px] text-stone-500 uppercase tracking-wider">Projected</p>
               <p className="text-base font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             </div>
-            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 transition-colors">View</button>
+            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-500/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
             <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={runForecast} className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
+          <button onClick={runForecast} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors">
             Generate
           </button>
         )}
@@ -485,7 +485,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           )}
           <div className="px-6 py-3 flex items-center justify-between border-t border-white/[.05]">
             <span className="text-[10px] text-stone-700">Powered by Mondaily AI</span>
-            <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-stone-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
+            <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">↺ Regenerate</button>
           </div>
         </AIModal>
       )}
@@ -505,7 +505,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
     performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/[.06]", text: "text-emerald-400" },
     opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/25",    bg: "bg-blue-500/[.06]",    text: "text-blue-400"    },
     risk:        { label: "Risk",        dot: "bg-stone-400",     border: "border-stone-500/25",     bg: "bg-stone-500/[.06]",     text: "text-stone-400"     },
-    summary:     { label: "Summary",     dot: "bg-violet-400",  border: "border-violet-500/25",  bg: "bg-violet-500/[.06]",  text: "text-violet-400"  },
+    summary:     { label: "Summary",     dot: "bg-stone-400",  border: "border-stone-500/25",  bg: "bg-stone-500/[.06]",  text: "text-stone-400"  },
   } as const;
   type Cat = keyof typeof CATEGORY_META;
   const fallbackMeta = CATEGORY_META.summary;
@@ -535,7 +535,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
     if (!insights) return;
     const cards = insights.map(ins => {
       const cat = ins.category as Cat;
-      const colors: Record<Cat, string> = { performance:"#059669", opportunity:"#2563eb", risk:"#dc2626", summary:"#7c3aed" };
+      const colors: Record<Cat, string> = { performance:"#059669", opportunity:"#2563eb", risk:"#dc2626", summary:"var(--accent)" };
       const c = colors[cat] ?? colors.summary;
       return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;break-inside:avoid">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${c};margin-bottom:4px">${ins.category}</div>
@@ -563,8 +563,8 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
     <>
       {/* Compact trigger card */}
       <div className="rounded-2xl border border-white/[.08] bg-[#141414] p-5 flex items-center gap-4 print:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/15 ring-1 ring-violet-500/25">
-          <Sparkles size={16} className="text-violet-400"/>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
+          <Sparkles size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Insights</p>
@@ -573,7 +573,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           </p>
         </div>
         {loading ? (
-          <Loader2 size={15} className="animate-spin text-violet-400 shrink-0"/>
+          <Loader2 size={15} className="animate-spin text-stone-400 shrink-0"/>
         ) : error ? (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-stone-400 max-w-[160px] truncate">{error}</span>
@@ -581,11 +581,11 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           </div>
         ) : insights ? (
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 transition-colors">View</button>
+            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-500/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
             <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={run} className="shrink-0 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-violet-500 transition-colors">
+          <button onClick={run} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors">
             Analyse
           </button>
         )}
@@ -625,7 +625,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           </div>
           <div className="px-5 py-3 flex items-center justify-between border-t border-white/[.05]">
             <span className="text-[10px] text-stone-700">Powered by Mondaily AI · {records.length} records</span>
-            <button onClick={() => { setInsights(null); setModalOpen(false); run(); }} className="text-[11px] text-stone-600 hover:text-violet-400 transition-colors">↺ Regenerate</button>
+            <button onClick={() => { setInsights(null); setModalOpen(false); run(); }} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">↺ Regenerate</button>
           </div>
         </AIModal>
       )}
@@ -1067,7 +1067,7 @@ export function SalesReportPage() {
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .bar-cell { width: 100px; }
     .bar-track { height: 5px; background: #f3f4f6; border-radius: 99px; overflow: hidden; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, #7c3aed, #4f46e5); border-radius: 99px; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent)); border-radius: 99px; }
     .tfoot td { font-weight: 700; font-size: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb; border-bottom: none; }
     /* Trend table */
     .trend-table th, .trend-table td { padding: 7px 10px; }
@@ -1383,7 +1383,7 @@ export function SalesReportPage() {
                 label={hasStage ? "Completion Rate" : "Total This Period"}
                 value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
                 sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
-                color="border-violet-500/20 bg-violet-500/[.06] text-violet-400"
+                color="border-stone-500/20 bg-stone-500/[.06] text-stone-400"
                 trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
                 delta={pctDelta(stats.completionRate, prevStats.completionRate)}
               />
@@ -1500,7 +1500,7 @@ export function SalesReportPage() {
                 ? topRecords.reduce((s, r) => s + (isNaN(Number(r.data[valueCol!] ?? 0)) ? 0 : Number(r.data[valueCol!] ?? 0)), 0)
                 : 0;
               const ROW_COLORS = [
-                { bar: "from-violet-500 to-purple-400", badge: "bg-violet-500/15 text-violet-300 border-violet-500/20" },
+                { bar: "from-stone-500 to-stone-400", badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-blue-500 to-cyan-400",     badge: "bg-blue-500/15 text-blue-300 border-blue-500/20" },
                 { bar: "from-emerald-500 to-teal-400",  badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20" },
                 { bar: "from-amber-500 to-yellow-400",  badge: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
@@ -1509,7 +1509,7 @@ export function SalesReportPage() {
                 { bar: "from-teal-500 to-emerald-400",  badge: "bg-teal-500/15 text-teal-300 border-teal-500/20" },
                 { bar: "from-orange-500 to-amber-400",  badge: "bg-orange-500/15 text-orange-300 border-orange-500/20" },
                 { bar: "from-cyan-500 to-sky-400",      badge: "bg-cyan-500/15 text-cyan-300 border-cyan-500/20" },
-                { bar: "from-fuchsia-500 to-purple-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
+                { bar: "from-fuchsia-500 to-stone-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
               ];
               return (
                 <div className="mb-6 rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden print:border-gray-200 print:bg-white">

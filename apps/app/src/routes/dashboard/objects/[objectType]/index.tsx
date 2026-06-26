@@ -743,9 +743,9 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-[#ddd6fe] bg-[#f5f3ff] px-2.5 py-1.5 text-[11px] font-medium text-[#6d28d9] transition-all hover:bg-[#ede9fe] dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
+            className="flex items-center gap-1.5 rounded-md border border-[#ddd6fe] bg-[#f5f3ff] px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] transition-all hover:bg-[#ede9fe] dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
           >
-            <Sparkles size={11} className="text-[#7c3aed] dark:text-stone-400"/> Fill with AI
+            <Sparkles size={11} className="text-[var(--accent)] dark:text-stone-400"/> Fill with AI
           </button>
           <button
             onClick={() => setDedupOpen(true)}
@@ -755,7 +755,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setSegmentOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-stone-300 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-violet-500/40 dark:hover:text-violet-400 dark:hover:bg-stone-900/20"
+            className="flex items-center gap-1.5 rounded-md border border-dashed border-stone-300 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-stone-500/40 dark:hover:text-stone-400 dark:hover:bg-stone-900/20"
           >
             <Filter size={11}/> Segment
           </button>
@@ -816,7 +816,7 @@ export function ObjectIndexPage() {
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f5f3ff] border border-[#ddd6fe] dark:bg-stone-500/10 dark:border-stone-500/20">
-                  <Sparkles size={22} className="text-[#7c3aed] dark:text-stone-400"/>
+                  <Sparkles size={22} className="text-[var(--accent)] dark:text-stone-400"/>
                 </div>
               </div>
               <h3 className="text-[15px] font-semibold text-[#111827] dark:text-white capitalize">
@@ -829,9 +829,9 @@ export function ObjectIndexPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-5 py-2.5 text-[12px] font-semibold text-[#6d28d9] hover:bg-[#ede9fe] dark:border-stone-400/40 dark:bg-stone-500 dark:text-white dark:hover:bg-stone-400 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-5 py-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[#ede9fe] dark:border-stone-400/40 dark:bg-stone-500 dark:text-white dark:hover:bg-stone-400 transition-all"
               >
-                <Sparkles size={13} className="text-[#7c3aed] dark:text-white"/> Fill with AI
+                <Sparkles size={13} className="text-[var(--accent)] dark:text-white"/> Fill with AI
               </button>
               <button
                 onClick={() => setShowCreate(true)}

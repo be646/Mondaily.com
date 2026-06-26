@@ -81,7 +81,7 @@ function StickyNode({ data, selected }: NodeProps) {
 ───────────────────────────────────────────────────────────────────────────── */
 function MindNode({ data, selected }: NodeProps) {
   const [editing, setEditing] = useState(false);
-  const accent = (data.color as string) || "#6366f1";
+  const accent = (data.color as string) || "var(--accent)";
 
   return (
     <div
@@ -181,7 +181,7 @@ const TEMPLATES: Record<string, { nodes: Node[]; edges: Edge[]; label: string; d
     description: "Radial idea exploration",
     nodes: [
       { id: "c",  type: "mind", position: { x: 320, y: 200 }, data: { label: "Central Idea", color: "#ef4444" } },
-      { id: "1",  type: "mind", position: { x: 80,  y: 60  }, data: { label: "Branch 1",    color: "#6366f1" } },
+      { id: "1",  type: "mind", position: { x: 80,  y: 60  }, data: { label: "Branch 1",    color: "var(--accent)" } },
       { id: "2",  type: "mind", position: { x: 540, y: 60  }, data: { label: "Branch 2",    color: "#06b6d4" } },
       { id: "3",  type: "mind", position: { x: 80,  y: 340 }, data: { label: "Branch 3",    color: "#10b981" } },
       { id: "4",  type: "mind", position: { x: 540, y: 340 }, data: { label: "Branch 4",    color: "#f59e0b" } },
@@ -242,8 +242,8 @@ export default function Canvas() {
   const onConnect = useCallback((c: Connection) =>
     setEdges(eds => addEdge({
       ...c,
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#6366f1" },
-      style: { stroke: "#6366f1", strokeWidth: 1.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "var(--accent)" },
+      style: { stroke: "var(--accent)", strokeWidth: 1.5 },
     }, eds)),
   [setEdges]);
 
@@ -280,8 +280,8 @@ export default function Canvas() {
         nodeTypes={nodeTypes}
         fitView
         defaultEdgeOptions={{
-          style: { stroke: "#6366f1", strokeWidth: 1.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: "#6366f1" },
+          style: { stroke: "var(--accent)", strokeWidth: 1.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: "var(--accent)" },
         }}
         proOptions={{ hideAttribution: true }}
       >

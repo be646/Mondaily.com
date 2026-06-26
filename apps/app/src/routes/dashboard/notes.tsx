@@ -43,7 +43,7 @@ type ViewMode = "list" | "board" | "timeline";
 
 const OBJECT_COLORS: Record<string, string> = {
   contacts:  "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  companies: "text-violet-400 bg-violet-500/10 border-violet-500/20",
+  companies: "text-stone-400 bg-stone-500/10 border-stone-500/20",
   deals:     "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
 };
 
@@ -53,7 +53,7 @@ const NOTE_COLORS: Record<string, { ring: string; bg: string; dot: string }> = {
   red:     { ring: "ring-red-500/25",      bg: "bg-stone-500/[.04]",      dot: "bg-stone-400"     },
   emerald: { ring: "ring-emerald-500/25",  bg: "bg-emerald-500/[.04]",  dot: "bg-emerald-400" },
   blue:    { ring: "ring-blue-500/25",     bg: "bg-blue-500/[.04]",     dot: "bg-blue-400"    },
-  violet:  { ring: "ring-violet-500/25",   bg: "bg-violet-500/[.04]",   dot: "bg-violet-400"  },
+  violet:  { ring: "ring-stone-500/25",   bg: "bg-stone-500/[.04]",   dot: "bg-stone-400"  },
 };
 const COLOR_KEYS = Object.keys(NOTE_COLORS) as (keyof typeof NOTE_COLORS)[];
 

@@ -620,7 +620,7 @@ export function ListPage() {
         <ModalShell onClose={() => setAiOpen(false)}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-violet-400" />
+              <Sparkles size={14} className="text-stone-400" />
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Add with AI</h2>
             </div>
             <button
@@ -671,7 +671,7 @@ export function ListPage() {
                         className={`flex w-full items-center gap-3 border-b px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-stone-50 dark:hover:bg-stone-900/60 ${sel ? "surface-selected" : ""}`}
                         style={{ borderColor: "var(--border-soft)" }}
                       >
-                        <div className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${sel ? "bg-violet-600 border-violet-600" : ""}`} style={sel ? undefined : { borderColor: "var(--border-strong)" }}>
+                        <div className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${sel ? "bg-stone-600 border-stone-600" : ""}`} style={sel ? undefined : { borderColor: "var(--border-strong)" }}>
                           {sel && <svg viewBox="0 0 10 8" className="h-2.5 w-2.5 fill-white"><path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                         </div>
                         <div className="min-w-0">

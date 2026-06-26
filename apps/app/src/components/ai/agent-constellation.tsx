@@ -85,7 +85,7 @@ function RunAgentButton({ agentId }: { agentId: string }) {
  */
 
 const STATE_RING: Record<ConstellationState, string> = {
-  active: "border-violet-500",
+  active: "border-stone-500",
   monitoring: "border-cyan-500",
   needs_approval: "border-amber-500",
   issue: "border-rose-500",
@@ -229,7 +229,7 @@ export function AgentConstellationPanel() {
   );
 }
 
-const AGENT_DOT_PALETTE = ["#6366f1", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4", "#ec4899", "#3b82f6", "#84cc16"];
+const AGENT_DOT_PALETTE = ["var(--accent)", "#10b981", "var(--accent)", "#f59e0b", "#06b6d4", "#ec4899", "#3b82f6", "#84cc16"];
 
 /** Sidebar "Agents" section — a flat, always-visible list (colored dot +
  * name, click to inspect), not a popover hidden behind a hover trigger.

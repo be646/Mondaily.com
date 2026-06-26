@@ -43,7 +43,7 @@ const PLAN_COLORS: Record<string, string> = {
   free: "bg-white/[.05] text-stone-400",
   trial: "bg-emerald-500/10 text-emerald-300",
   pro: "bg-blue-500/10 text-blue-300",
-  business: "bg-violet-500/10 text-violet-300",
+  business: "bg-stone-500/10 text-stone-300",
   enterprise: "bg-amber-500/10 text-amber-300",
 };
 

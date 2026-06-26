@@ -275,7 +275,7 @@ function AIWorkflowModal({ onClose, onApply }: {
       <div className={`w-full rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
         <div className="flex items-center justify-between p-5 border-b border-white/[.06]">
           <div className="flex items-center gap-2">
-            <Sparkles size={15} className="text-violet-400"/>
+            <Sparkles size={15} className="text-stone-400"/>
             <h2 className="font-semibold text-white">Generate workflow with AI</h2>
           </div>
           <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={16}/></button>
@@ -288,7 +288,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
-            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-stone-600 resize-none outline-none focus:border-violet-500/40 transition-colors"
+            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
           />
           {error && <p className="text-xs text-stone-400">{error}</p>}
         </div>
@@ -314,14 +314,14 @@ function AIWorkflowModal({ onClose, onApply }: {
           <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-violet-500">
+              className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-500">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={generate} disabled={loading} className="text-sm text-stone-500 hover:text-stone-300">Regenerate</button>
               <button onClick={apply}
-                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+                className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white hover:bg-stone-500">
                 <Sparkles size={13}/> Apply to builder
               </button>
             </div>
@@ -448,7 +448,7 @@ export function WorkflowBuilderPage() {
         </span>
 
         <button onClick={() => setAiOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 px-3 py-1.5 text-xs font-medium text-violet-300 hover:bg-violet-600/30 transition-colors">
+          className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
           <Sparkles size={12}/> Generate with AI
         </button>
 

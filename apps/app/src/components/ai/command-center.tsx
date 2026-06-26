@@ -119,7 +119,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   ].slice(0, 6);
 
   const TONE_COLOR: Record<StreamItem["tone"], string> = {
-    violet: "#8b5cf6", amber: "#d97706", rose: "#dc2626", blue: "#3b82f6", default: "var(--text-muted)",
+    violet: "var(--accent)", amber: "#d97706", rose: "#dc2626", blue: "#3b82f6", default: "var(--text-muted)",
   };
 
   const isLoading = decisionsLoading;
@@ -269,12 +269,12 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
 // numbers in the hero pills or agent cards (e.g. "active tasks" here is
 // workspace-wide, the hero pill's "open tasks" is assigned-to-you).
 const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType; color: string }[] = [
-  { key: "tasksOpen",      label: "active tasks",        icon: CheckSquare, color: "#6366f1" },
+  { key: "tasksOpen",      label: "active tasks",        icon: CheckSquare, color: "var(--accent)" },
   { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#dc2626" },
   { key: "relationships",  label: "relationship records", icon: Users,       color: "#d97706" },
   { key: "financeOverdue", label: "overdue invoices",     icon: Receipt,     color: "#0891b2" },
   { key: "records",        label: "total records",        icon: Database,   color: "#059669" },
-  { key: "workflows",      label: "workflow records",      icon: Workflow,   color: "#7c3aed" },
+  { key: "workflows",      label: "workflow records",      icon: Workflow,   color: "var(--accent)" },
   { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#e11d48" },
 ];
 

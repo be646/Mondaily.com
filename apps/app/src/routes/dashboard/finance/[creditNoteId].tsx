@@ -131,8 +131,8 @@ export function CreditNoteDetailPage() {
           <div className="p-5 space-y-5 border-b border-white/[.06]">
             {/* Icon + amount */}
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
-                <ReceiptText size={18} className="text-violet-400"/>
+              <div className="h-10 w-10 rounded-xl bg-stone-500/15 flex items-center justify-center shrink-0">
+                <ReceiptText size={18} className="text-stone-400"/>
               </div>
               <div>
                 <div className="text-[18px] font-bold text-white">{fmt(cn.amount_cents, cn.currency)}</div>
@@ -227,10 +227,10 @@ export function CreditNoteDetailPage() {
         <main className="flex-1 overflow-auto p-6 space-y-6 max-w-2xl">
           {/* AI summary */}
           {cn.ai_summary && (
-            <div className="rounded-xl border border-violet-500/20 bg-violet-500/[.04] p-4">
+            <div className="rounded-xl border border-stone-500/20 bg-stone-500/[.04] p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={12} className="text-violet-400"/>
-                <span className="text-[11px] font-semibold text-violet-400 uppercase tracking-wider">AI Summary</span>
+                <Sparkles size={12} className="text-stone-400"/>
+                <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">AI Summary</span>
               </div>
               <p className="text-[13px] text-stone-300 leading-relaxed">{cn.ai_summary}</p>
             </div>
