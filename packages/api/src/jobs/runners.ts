@@ -457,11 +457,140 @@ export async function runEnrichWorkspace(workspaceId: string, limit = 10): Promi
   }
 }
 
+/**
+ * AI Lead Scoring — computes the "AI Score" (0-100) the landing page
+ * advertises for every deal/opportunity record and writes it to
+ * nodes.lead_score (+ lead_score_updated_at / lead_score_signals).
+ *
+ * Deterministic intent model, same philosophy as runRelationshipHealth: a
+ * transparent weighted heuristic over real signals (pipeline stage, deal
+ * value, recency, recent activity, engagement, firmographic enrichment) —
+ * no per-deal LLM call, so it stays fast and free to run across thousands
+ * of records. The score is what the generic column sort (incl. natural
+ * language "sort by AI score") was already wired to read.
+ */
+const DEAL_STEMS = ["deal", "opportunit", "pipeline"];
+function isDealType(objectType: string): boolean {
+  const t = objectType.toLowerCase();
+  return DEAL_STEMS.some((s) => t.includes(s));
+}
+
+/** Ordinal buying-intent by pipeline stage — later stages score higher. */
+function stageIntent(stage: string): number {
+  const s = stage.toLowerCase();
+  if (!s) return 0;
+  if (/(closed.?lost|lost|dead|abandon|disqualif)/.test(s)) return -40;
+  if (/(closed.?won|won)/.test(s)) return 30;
+  if (/(negotiat|contract|commit|verbal|final|signature)/.test(s)) return 28;
+  if (/(proposal|quote|demo|present|poc|pilot|trial|evaluat)/.test(s)) return 20;
+  if (/(qualif|discovery|meeting|engaged|contacted|working)/.test(s)) return 10;
+  if (/(lead|new|prospect|inbound|cold|backlog|open)/.test(s)) return 0;
+  return 5; // a stage exists but isn't recognised — mild positive
+}
+
+/** Parse a numeric value out of mixed currency strings ("$25,000", "25k"). */
+function numericValue(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const k = /k\s*$/i.test(v.trim()) ? 1000 : /m\s*$/i.test(v.trim()) ? 1_000_000 : 1;
+    const n = Number(v.replace(/[^0-9.\-]/g, ""));
+    return Number.isFinite(n) ? n * k : null;
+  }
+  return null;
+}
+
+export async function runLeadScoring(workspaceId?: string): Promise<{ total_scored: number }> {
+  const wsIds = await listWorkspaceIds(workspaceId);
+  let totalScored = 0;
+
+  for (const wsId of wsIds) {
+    const jobId = await startJob({
+      workspace_id: wsId, agent_name: "lead_scoring",
+      trigger_type: workspaceId ? "manual" : "scheduled", input: { workspace_id: wsId },
+    });
+    try {
+      const { data: allNodes } = await supabase
+        .from("nodes").select("id, data, object_type, updated_at").eq("workspace_id", wsId).limit(5000);
+      const nodes = allNodes ?? [];
+      const deals = nodes.filter((n) => isDealType(String(n.object_type)));
+      if (!deals.length) { await completeJob(jobId, { scored: 0 }, []); continue; }
+
+      // Recent activity per deal (last 30d) — one query, counted in memory.
+      const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const dealIds = deals.map((d) => d.id);
+      const activityByNode = new Map<string, number>();
+      const { data: acts } = await supabase
+        .from("activities").select("node_id").gte("created_at", since).in("node_id", dealIds);
+      for (const a of acts ?? []) activityByNode.set(String(a.node_id), (activityByNode.get(String(a.node_id)) ?? 0) + 1);
+
+      // Open tasks linked to each deal — a sign of active engagement.
+      const openTasksByRecord = new Map<string, number>();
+      for (const n of nodes) {
+        const t = String(n.object_type).toLowerCase();
+        const d = (n.data ?? {}) as Record<string, unknown>;
+        if (t.includes("task") && String(d.status ?? "") !== "done" && d.record_id) {
+          openTasksByRecord.set(String(d.record_id), (openTasksByRecord.get(String(d.record_id)) ?? 0) + 1);
+        }
+      }
+
+      const nowIso = new Date().toISOString();
+      const updates = deals.map((deal) => {
+        const d = (deal.data ?? {}) as Record<string, unknown>;
+        const signals: Record<string, unknown> = {};
+        let score = 50;
+
+        const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "");
+        const intent = stageIntent(stage);
+        signals.stage = stage || null;
+        signals.stage_intent = intent;
+        score += intent;
+
+        const value = numericValue(d.deal_value ?? d.value ?? d.amount ?? d.arr);
+        signals.deal_value = value;
+        if (value !== null) {
+          if (value >= 100000) score += 15; else if (value >= 25000) score += 10; else if (value >= 5000) score += 5;
+        }
+
+        const days = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
+        signals.days_since_update = days;
+        if (days <= 7) score += 15; else if (days <= 30) score += 5; else if (days <= 90) score -= 10; else score -= 20;
+
+        const recent = activityByNode.get(deal.id) ?? 0;
+        signals.recent_activity_30d = recent;
+        if (recent >= 5) score += 15; else if (recent >= 2) score += 7; else if (recent === 0) score -= 8;
+
+        const openTasks = openTasksByRecord.get(deal.id) ?? 0;
+        signals.open_tasks = openTasks;
+        if (openTasks > 0) score += 5;
+
+        const enriched = numericValue(d.headcount ?? d.employees ?? d.company_size) !== null || numericValue(d.arr) !== null;
+        signals.enriched = enriched;
+        if (enriched) score += 5;
+
+        return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
+      });
+
+      const CHUNK = 25;
+      for (let i = 0; i < updates.length; i += CHUNK) {
+        await Promise.all(updates.slice(i, i + CHUNK).map((u) =>
+          supabase.from("nodes").update({ lead_score: u.finalScore, lead_score_updated_at: nowIso, lead_score_signals: u.signals }).eq("id", u.id)
+        ));
+      }
+      totalScored += updates.length;
+      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} deal(s)` }, []);
+    } catch (err: unknown) {
+      await failJob(jobId, err instanceof Error ? err.message : String(err));
+    }
+  }
+  return { total_scored: totalScored };
+}
+
 /** Every daily runner, in execution order. Used by the Vercel Cron endpoint. */
 export async function runAllDaily(): Promise<Record<string, unknown>> {
   const results: Record<string, unknown> = {};
   // Sequential, mirrors the original cron staggering (relationship → recurring → overdue → deals → chaser)
   results.relationship_health = await runRelationshipHealth().catch((e) => ({ error: String(e) }));
+  results.lead_scoring = await runLeadScoring().catch((e) => ({ error: String(e) }));
   results.recurring_invoices = await runRecurringInvoices().catch((e) => ({ error: String(e) }));
   results.overdue_task_decisions = await runOverdueTaskDecisions().catch((e) => ({ error: String(e) }));
   results.deal_alerts = await runDealAlerts().catch((e) => ({ error: String(e) }));

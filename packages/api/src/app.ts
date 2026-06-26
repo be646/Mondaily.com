@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
-import { enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
+import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions } from "./jobs/index";
 import { runAllDaily } from "./jobs/runners";
 import { runAllWorkflows } from "./jobs/workflow-engine";
 import { runAllVertical } from "./jobs/vertical-agents";
@@ -95,7 +95,7 @@ app.route("/api/v1/tags", tagsRouter);
 app.route("/api/v1/onboarding", onboardingRouter);
 app.route("/api/v1", appDataRouter);
 
-const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
+const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
 app.all("/api/inngest", inngestHandler);
 
 /**

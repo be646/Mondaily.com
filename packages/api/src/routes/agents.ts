@@ -3,7 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import {
   runDealAlerts, runRelationshipHealth, runOverdueTaskDecisions,
-  runInvoiceChaser, runRecurringInvoices, runEnrichWorkspace,
+  runInvoiceChaser, runRecurringInvoices, runEnrichWorkspace, runLeadScoring,
 } from "../jobs/runners";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } from "../jobs/vertical-agents";
@@ -19,11 +19,12 @@ router.use("*", requireAuth);
  */
 const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<string, unknown>>> = {
   relationship: async (ws) => ({ ...(await runDealAlerts(ws)), ...(await runRelationshipHealth(ws)) }),
+  "lead-scoring": async (ws) => runLeadScoring(ws),
   operations: async (ws) => runOverdueTaskDecisions(ws),
   finance: async (ws) => ({ ...(await runInvoiceChaser(ws)), ...(await runRecurringInvoices(ws)) }),
   "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
   workflow: async (ws) => ({ ...(await runWorkflowsForWorkspace(ws)) }),
-  opportunity: async (ws) => runOpportunityScan(ws),
+  opportunity: async (ws) => ({ ...(await runOpportunityScan(ws)), ...(await runLeadScoring(ws)) }),
   people: async (ws) => runPeopleScan(ws),
   portfolio: async (ws) => runPortfolioScan(ws),
   asset: async (ws) => runAssetScan(ws),

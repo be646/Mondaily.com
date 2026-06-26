@@ -70678,9 +70678,116 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
     throw err2;
   }
 }
+var DEAL_STEMS = ["deal", "opportunit", "pipeline"];
+function isDealType(objectType2) {
+  const t2 = objectType2.toLowerCase();
+  return DEAL_STEMS.some((s3) => t2.includes(s3));
+}
+function stageIntent(stage) {
+  const s3 = stage.toLowerCase();
+  if (!s3) return 0;
+  if (/(closed.?lost|lost|dead|abandon|disqualif)/.test(s3)) return -40;
+  if (/(closed.?won|won)/.test(s3)) return 30;
+  if (/(negotiat|contract|commit|verbal|final|signature)/.test(s3)) return 28;
+  if (/(proposal|quote|demo|present|poc|pilot|trial|evaluat)/.test(s3)) return 20;
+  if (/(qualif|discovery|meeting|engaged|contacted|working)/.test(s3)) return 10;
+  if (/(lead|new|prospect|inbound|cold|backlog|open)/.test(s3)) return 0;
+  return 5;
+}
+function numericValue(v2) {
+  if (typeof v2 === "number") return Number.isFinite(v2) ? v2 : null;
+  if (typeof v2 === "string") {
+    const k2 = /k\s*$/i.test(v2.trim()) ? 1e3 : /m\s*$/i.test(v2.trim()) ? 1e6 : 1;
+    const n2 = Number(v2.replace(/[^0-9.\-]/g, ""));
+    return Number.isFinite(n2) ? n2 * k2 : null;
+  }
+  return null;
+}
+async function runLeadScoring(workspaceId) {
+  const wsIds = await listWorkspaceIds(workspaceId);
+  let totalScored = 0;
+  for (const wsId of wsIds) {
+    const jobId = await startJob({
+      workspace_id: wsId,
+      agent_name: "lead_scoring",
+      trigger_type: workspaceId ? "manual" : "scheduled",
+      input: { workspace_id: wsId }
+    });
+    try {
+      const { data: allNodes } = await supabase.from("nodes").select("id, data, object_type, updated_at").eq("workspace_id", wsId).limit(5e3);
+      const nodes = allNodes ?? [];
+      const deals = nodes.filter((n2) => isDealType(String(n2.object_type)));
+      if (!deals.length) {
+        await completeJob(jobId, { scored: 0 }, []);
+        continue;
+      }
+      const since = new Date(Date.now() - 30 * 864e5).toISOString();
+      const dealIds = deals.map((d2) => d2.id);
+      const activityByNode = /* @__PURE__ */ new Map();
+      const { data: acts } = await supabase.from("activities").select("node_id").gte("created_at", since).in("node_id", dealIds);
+      for (const a2 of acts ?? []) activityByNode.set(String(a2.node_id), (activityByNode.get(String(a2.node_id)) ?? 0) + 1);
+      const openTasksByRecord = /* @__PURE__ */ new Map();
+      for (const n2 of nodes) {
+        const t2 = String(n2.object_type).toLowerCase();
+        const d2 = n2.data ?? {};
+        if (t2.includes("task") && String(d2.status ?? "") !== "done" && d2.record_id) {
+          openTasksByRecord.set(String(d2.record_id), (openTasksByRecord.get(String(d2.record_id)) ?? 0) + 1);
+        }
+      }
+      const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+      const updates = deals.map((deal) => {
+        const d2 = deal.data ?? {};
+        const signals = {};
+        let score = 50;
+        const stage = String(d2.stage ?? d2.deal_stage ?? d2.status ?? "");
+        const intent = stageIntent(stage);
+        signals.stage = stage || null;
+        signals.stage_intent = intent;
+        score += intent;
+        const value = numericValue(d2.deal_value ?? d2.value ?? d2.amount ?? d2.arr);
+        signals.deal_value = value;
+        if (value !== null) {
+          if (value >= 1e5) score += 15;
+          else if (value >= 25e3) score += 10;
+          else if (value >= 5e3) score += 5;
+        }
+        const days = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 864e5);
+        signals.days_since_update = days;
+        if (days <= 7) score += 15;
+        else if (days <= 30) score += 5;
+        else if (days <= 90) score -= 10;
+        else score -= 20;
+        const recent = activityByNode.get(deal.id) ?? 0;
+        signals.recent_activity_30d = recent;
+        if (recent >= 5) score += 15;
+        else if (recent >= 2) score += 7;
+        else if (recent === 0) score -= 8;
+        const openTasks = openTasksByRecord.get(deal.id) ?? 0;
+        signals.open_tasks = openTasks;
+        if (openTasks > 0) score += 5;
+        const enriched = numericValue(d2.headcount ?? d2.employees ?? d2.company_size) !== null || numericValue(d2.arr) !== null;
+        signals.enriched = enriched;
+        if (enriched) score += 5;
+        return { id: deal.id, finalScore: Math.max(0, Math.min(100, Math.round(score))), signals };
+      });
+      const CHUNK = 25;
+      for (let i2 = 0; i2 < updates.length; i2 += CHUNK) {
+        await Promise.all(updates.slice(i2, i2 + CHUNK).map(
+          (u2) => supabase.from("nodes").update({ lead_score: u2.finalScore, lead_score_updated_at: nowIso, lead_score_signals: u2.signals }).eq("id", u2.id)
+        ));
+      }
+      totalScored += updates.length;
+      await completeJob(jobId, { scored: updates.length, summary: `Scored ${updates.length} deal(s)` }, []);
+    } catch (err2) {
+      await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    }
+  }
+  return { total_scored: totalScored };
+}
 async function runAllDaily() {
   const results = {};
   results.relationship_health = await runRelationshipHealth().catch((e2) => ({ error: String(e2) }));
+  results.lead_scoring = await runLeadScoring().catch((e2) => ({ error: String(e2) }));
   results.recurring_invoices = await runRecurringInvoices().catch((e2) => ({ error: String(e2) }));
   results.overdue_task_decisions = await runOverdueTaskDecisions().catch((e2) => ({ error: String(e2) }));
   results.deal_alerts = await runDealAlerts().catch((e2) => ({ error: String(e2) }));
@@ -70700,6 +70807,13 @@ var relationshipHealth = inngest.createFunction(
   { id: "crm-relationship-health", name: "CRM: Relationship Health Scoring", concurrency: { limit: 1 } },
   { cron: "0 2 * * *" },
   async () => runRelationshipHealth()
+);
+
+// src/jobs/lead-scoring.ts
+var leadScoring = inngest.createFunction(
+  { id: "crm-lead-scoring", name: "CRM: AI Lead Scoring", concurrency: { limit: 1 } },
+  { cron: "0 3 * * *" },
+  async () => runLeadScoring()
 );
 
 // src/jobs/deal-alerts.ts
@@ -73547,11 +73661,12 @@ var router8 = new Hono2();
 router8.use("*", requireAuth);
 var AGENT_RUNNERS = {
   relationship: async (ws) => ({ ...await runDealAlerts(ws), ...await runRelationshipHealth(ws) }),
+  "lead-scoring": async (ws) => runLeadScoring(ws),
   operations: async (ws) => runOverdueTaskDecisions(ws),
   finance: async (ws) => ({ ...await runInvoiceChaser(ws), ...await runRecurringInvoices(ws) }),
   "graph-enrichment": async (ws) => runEnrichWorkspace(ws),
   workflow: async (ws) => ({ ...await runWorkflowsForWorkspace(ws) }),
-  opportunity: async (ws) => runOpportunityScan(ws),
+  opportunity: async (ws) => ({ ...await runOpportunityScan(ws), ...await runLeadScoring(ws) }),
   people: async (ws) => runPeopleScan(ws),
   portfolio: async (ws) => runPortfolioScan(ws),
   asset: async (ws) => runAssetScan(ws)
@@ -78089,7 +78204,7 @@ app.route("/api/v1/expenses", router34);
 app.route("/api/v1/tags", router35);
 app.route("/api/v1/onboarding", router36);
 app.route("/api/v1", router12);
-var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
+var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
   const secret = process.env.CRON_SECRET;
