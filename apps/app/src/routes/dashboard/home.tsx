@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Sparkles, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -547,10 +547,10 @@ export function HomePage() {
                         {!isStreaming && !loading && i === messages.length - 1 && (
                           <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
                             <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-ai">
-                              <Sparkles size={11}/> Create task from this
+                              <LogoMark size={11}/> Create task from this
                             </button>
                             <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-ai">
-                              <Sparkles size={11}/> Draft message
+                              <LogoMark size={11}/> Draft message
                             </button>
                             <button onClick={() => sendSuggestion(buildChipText("related", i))} className="btn-suggested">
                               Show related objects
@@ -710,7 +710,7 @@ export function HomePage() {
               <CheckSquare size={13} className="text-stone-500 dark:text-stone-400"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tasks</span>
               <span className="flow-micro-badge">
-                <Sparkles size={8}/> AI sorted
+                <LogoMark size={8}/> AI sorted
               </span>
             </div>
             <Link to="/tasks" className="flex items-center gap-0.5 text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>
@@ -731,7 +731,7 @@ export function HomePage() {
               </div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-                <Sparkles size={16} className="mb-2" style={{ color: "var(--text-faint)" }}/>
+                <LogoMark size={16} className="mb-2" style={{ color: "var(--text-faint)" }}/>
                 <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No open tasks.</p>
                 <p className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>Ask AI to create tasks from your work.</p>
               </div>
@@ -772,7 +772,7 @@ export function HomePage() {
           {/* Task AI footer */}
           <div className="flow-panel-footer" ref={taskPickerRef}>
             <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "color-mix(in srgb, var(--surface-hover) 48%, transparent)" }}>
-              <Sparkles size={11} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
+              <LogoMark size={11} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submitTaskWidgetInput(taskWidgetInput)}
@@ -857,7 +857,7 @@ export function HomePage() {
             <div className="flex shrink-0 items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
-                  <Sparkles size={11} style={{ color: "var(--text-muted)" }}/>
+                  <LogoMark size={11} style={{ color: "var(--text-muted)" }}/>
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">

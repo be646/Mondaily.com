@@ -1,5 +1,6 @@
-import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import type { ReactNode } from "react";
 
 export function PageSkeleton({ rows = 6, label }: { rows?: number; label?: string }) {
@@ -86,7 +87,7 @@ export function EmptyState({
       <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--text-muted)" }}>{description}</p>
       {aiHint && (
         <p className="mt-2.5 flex items-center gap-1.5 max-w-sm text-xs text-stone-600 dark:text-stone-400">
-          <Sparkles size={11} className="shrink-0"/>
+          <LogoMark size={11} className="shrink-0"/>
           {aiHint}
         </p>
       )}

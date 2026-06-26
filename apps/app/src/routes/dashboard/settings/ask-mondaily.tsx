@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Trash2, MessageCircle } from "lucide-react";
+import { Trash2, MessageCircle } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { getThreads, saveThreads } from "../../../lib/chat-store";
 import { getAuthHeaders } from "../../../lib/api-client";
 
@@ -111,7 +112,7 @@ export function AskMondailySettings() {
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-8 flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10">
-          <Sparkles size={18} className="text-red-400"/>
+          <LogoMark size={18} className="text-red-400"/>
         </div>
         <div>
           <p className="text-xs text-stone-500">Manage your Ask Mondaily settings, prompts and tool access.</p>

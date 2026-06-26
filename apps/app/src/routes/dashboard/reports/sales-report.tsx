@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { LogoMark } from "@/components/logo";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
-  Download, Target, Sparkles, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, Bookmark,
+  Download, Target, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, Bookmark,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
@@ -302,7 +303,7 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
         {/* Modal header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[.07] shrink-0">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/15 ring-1 ring-stone-500/20">
-            <Sparkles size={13} className="text-stone-400"/>
+            <LogoMark size={13} className="text-stone-400"/>
           </div>
           <span className="flex-1 text-sm font-semibold text-white">{title}</span>
           {onPrint && (
@@ -399,7 +400,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
       {/* Compact trigger card — never stretches */}
       <div className="rounded-2xl border border-stone-500/20 bg-[#141414] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
-          <Sparkles size={16} className="text-stone-400"/>
+          <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Forecast</p>
@@ -564,7 +565,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
       {/* Compact trigger card */}
       <div className="rounded-2xl border border-white/[.08] bg-[#141414] p-5 flex items-center gap-4 print:hidden">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
-          <Sparkles size={16} className="text-stone-400"/>
+          <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">AI Insights</p>

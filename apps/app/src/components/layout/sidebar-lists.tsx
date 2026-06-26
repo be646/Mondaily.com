@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2, MoreHorizontal, Plus, Sparkles, UserCheck, Users, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, MoreHorizontal, Plus, UserCheck, Users, X } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/react";
@@ -226,7 +227,7 @@ export function SidebarLists() {
                 </button>
                 <button onClick={() => setTab("ai")}
                   className={`flex items-center gap-1 rounded-md px-3 py-1 text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-stone-500/20 text-stone-300" : "text-stone-500 hover:text-stone-300"}`}>
-                  <Sparkles size={10} /> AI
+                  <LogoMark size={10} /> AI
                 </button>
               </div>
               <button onClick={resetModal} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors">
@@ -322,7 +323,7 @@ export function SidebarLists() {
                 {aiError && <p className="text-[11px] text-stone-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-stone-500 transition-colors">
-                  {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><Sparkles size={13} /> Create with AI</>}
+                  {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><LogoMark size={13} /> Create with AI</>}
                 </button>
               </div>
             )}

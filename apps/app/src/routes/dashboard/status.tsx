@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, CircleSlash, HelpCircle, Network, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleSlash, HelpCircle, Network } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
@@ -207,7 +208,7 @@ export function StatusPage() {
             {updates.map((u) => (
               <div key={u.id} className="stream-row">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
-                  <Sparkles size={11} style={{ color: "var(--accent)" }}/>
+                  <LogoMark size={11} style={{ color: "var(--accent)" }}/>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

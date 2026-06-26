@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Zap, Mail, GitBranch, Play, Pause, MoreHorizontal, Trash2, Copy, Sparkles, Loader2, X, Check } from "lucide-react";
+import { Plus, Zap, Mail, GitBranch, Play, Pause, MoreHorizontal, Trash2, Copy, Loader2, X, Check } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
@@ -60,7 +61,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
       <div className={`w-full rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between p-5 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
-            <Sparkles size={15} className="text-stone-400"/>
+            <LogoMark size={15} className="text-stone-400"/>
             <h2 className="font-semibold text-white">Generate sequence with AI</h2>
           </div>
           <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={16}/></button>
@@ -112,7 +113,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
               className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-500">
-              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
+              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
@@ -331,7 +332,7 @@ export function AutomationsPage() {
         <h1 className="flex-1 text-[15px] font-semibold text-white tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
-          <Sparkles size={12}/> Generate with AI
+          <LogoMark size={12}/> Generate with AI
         </button>
         <button
           onClick={() => createSequence.mutate()}

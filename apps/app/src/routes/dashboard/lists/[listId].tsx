@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/react";
+import { LogoMark } from "@/components/logo";
 import {
   Download, Globe, Grid2X2, ListPlus, Loader2,
-  MoreHorizontal, Plus, Search, Sparkles, Table2, Trash2, UserCheck, Users, X, Mail, Wand2,
+  MoreHorizontal, Plus, Search, Table2, Trash2, UserCheck, Users, X, Mail, Wand2,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -386,7 +387,7 @@ export function ListPage() {
               disabled={enrichingAll}
               className="btn-ai !px-3 !py-1.5 !text-xs"
             >
-              {enrichingAll ? <Loader2 size={13} className="animate-spin"/> : enrichAllDone ? <Sparkles size={13}/> : <Wand2 size={13}/>}
+              {enrichingAll ? <Loader2 size={13} className="animate-spin"/> : enrichAllDone ? <LogoMark size={13}/> : <Wand2 size={13}/>}
               {enrichAllDone ? "Enriching…" : "Enrich All"}
             </button>
             <button
@@ -407,7 +408,7 @@ export function ListPage() {
           onClick={openAi}
           className="btn-ai !px-3 !py-1.5 !text-xs"
         >
-          <Sparkles size={13}/> Add with AI
+          <LogoMark size={13}/> Add with AI
         </button>
         <button
           onClick={() => setProspectOpen(true)}
@@ -459,7 +460,7 @@ export function ListPage() {
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-6 border-y py-24 text-center" style={{ borderColor: "var(--border-soft)" }}>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)", color: "var(--accent)" }}>
-              <Sparkles size={24} />
+              <LogoMark size={24} />
             </div>
             <div>
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No records in this list yet</h2>
@@ -472,7 +473,7 @@ export function ListPage() {
                 onClick={openAi}
                 className="btn-ai !px-4 !py-2 !text-xs"
               >
-                <Sparkles size={13} /> Add with AI
+                <LogoMark size={13} /> Add with AI
               </button>
               <button
                 onClick={() => setAddOpen(true)}
@@ -620,7 +621,7 @@ export function ListPage() {
         <ModalShell onClose={() => setAiOpen(false)}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-stone-400" />
+              <LogoMark size={14} className="text-stone-400" />
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Add with AI</h2>
             </div>
             <button
@@ -651,7 +652,7 @@ export function ListPage() {
             >
               {aiLoading || candidates.isLoading
                 ? <><Loader2 size={13} className="animate-spin" /> {candidates.isLoading ? "Loading records…" : "Finding matches…"}</>
-                : <><Sparkles size={13} /> Find matching records</>}
+                : <><LogoMark size={13} /> Find matching records</>}
             </button>
           ) : (
             <>

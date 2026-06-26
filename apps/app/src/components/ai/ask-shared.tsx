@@ -1,5 +1,6 @@
 import React from "react";
-import { Network, ShieldAlert, Workflow, Receipt, Users, Sparkles } from "lucide-react";
+import { Network, ShieldAlert, Workflow, Receipt, Users } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import {
   CheckSquare, FileSignature, UserRound, Box, GitBranch, BarChart2,
   FileText, Mail, Bell, Wallet, Database,
@@ -249,7 +250,7 @@ export function EvidenceStrip({ sources }: { sources: SourceCardData[] }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
       <span className="flex items-center gap-1">
-        <Sparkles size={10} className={hasSources ? "text-cyan-600 dark:text-cyan-400" : ""}/>
+        <LogoMark size={10} className={hasSources ? "text-cyan-600 dark:text-cyan-400" : ""}/>
         {hasSources ? "Source-backed" : "No sources returned"}
       </span>
       <span>·</span>

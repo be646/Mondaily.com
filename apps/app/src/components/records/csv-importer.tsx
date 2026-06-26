@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from "react";
-import { Upload, FileText, X, Sparkles, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, FileText, X, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -160,7 +161,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
   // ── Inferring ────────────────────────────────────────────────────────────────
   if (phase === "inferring") return (
     <div className="flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/[.04] px-4 py-4">
-      <Sparkles size={16} className="shrink-0 animate-pulse text-stone-400"/>
+      <LogoMark size={16} className="shrink-0 animate-pulse text-stone-400"/>
       <div>
         <p className="text-xs font-medium text-stone-300">Inferring schema with Claude…</p>
         <p className="text-[10px] text-stone-600">{fileName} · {rows.length} rows · {headers.length} columns</p>
@@ -181,7 +182,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
         </div>
         <div className="flex items-center gap-1.5">
           <span className="flex items-center gap-1 rounded-md border border-stone-500/20 bg-stone-500/[.06] px-1.5 py-0.5 text-[9px] text-stone-400">
-            <Sparkles size={8}/> AI schema
+            <LogoMark size={8}/> AI schema
           </span>
           <button onClick={reset} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={14}/></button>
         </div>

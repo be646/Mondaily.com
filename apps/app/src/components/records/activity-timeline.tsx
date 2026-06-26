@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { X, Activity, Sparkles, User, Zap, Settings } from "lucide-react";
+import { X, Activity, User, Zap, Settings } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 
 interface ActivityItem {
@@ -17,7 +18,7 @@ interface ActivityItem {
 
 function actorIcon(type: string) {
   switch (type) {
-    case "ai_agent": return <Sparkles size={10} className="text-stone-400" />;
+    case "ai_agent": return <LogoMark size={10} className="text-stone-400" />;
     case "integration": return <Zap size={10} className="text-amber-400" />;
     case "system": return <Settings size={10} className="text-stone-500" />;
     default: return <User size={10} className="text-blue-400" />;

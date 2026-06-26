@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 
 interface Decision {
@@ -41,7 +42,7 @@ export function FinanceAgentStrip({ invoiceId }: { invoiceId?: string }) {
   return (
     <div className="mb-4 rounded-xl p-3" style={{ background: "var(--surface-hover)" }}>
       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
-        <Sparkles size={11} className="text-stone-500"/> Finance Agent — {financeDecisions.length} awaiting your approval
+        <LogoMark size={11} className="text-stone-500"/> Finance Agent — {financeDecisions.length} awaiting your approval
       </div>
       <ul className="space-y-1.5">
         {financeDecisions.map(d => (

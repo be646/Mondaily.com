@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LogoMark } from "@/components/logo";
 import {
   AtSign, Calendar, CheckSquare, ChevronRight, Database, File,
   FunctionSquare, Hash, Link, List, Lock, Mail, Percent, Phone,
-  Plus, Text, Trash2, X, Sparkles, Loader2, Check, ArrowLeft,
+  Plus, Text, Trash2, X, Loader2, Check, ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { apiClient, getAuthHeaders } from "../../../lib/api-client";
@@ -143,7 +144,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               </button>
             )}
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-stone-500/15">
-              <Sparkles size={13} className="text-stone-400"/>
+              <LogoMark size={13} className="text-stone-400"/>
             </div>
             <div>
               <div className="text-[13px] font-semibold text-white">
@@ -196,7 +197,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
                 disabled={!prompt.trim() || loading}
                 className="flex items-center gap-2 rounded-lg bg-stone-500 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-40 transition-colors"
               >
-                {loading ? <><Loader2 size={12} className="animate-spin"/> Generating…</> : <><Sparkles size={12}/> Generate schema</>}
+                {loading ? <><Loader2 size={12} className="animate-spin"/> Generating…</> : <><LogoMark size={12}/> Generate schema</>}
               </button>
             </div>
           </div>
@@ -311,7 +312,7 @@ export function ObjectsSettings() {
       {/* AI Generate CTA */}
       <div className="mb-4 flex items-center gap-3 rounded-xl border border-stone-500/20 bg-stone-500/5 px-4 py-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-500/15">
-          <Sparkles size={16} className="text-stone-400"/>
+          <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-semibold text-white">Generate any sheet with AI</div>
@@ -321,7 +322,7 @@ export function ObjectsSettings() {
           onClick={() => setAiOpen(true)}
           className="shrink-0 flex items-center gap-1.5 rounded-lg bg-stone-500 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-400 transition-colors"
         >
-          <Sparkles size={11}/> Generate
+          <LogoMark size={11}/> Generate
         </button>
       </div>
 
@@ -329,7 +330,7 @@ export function ObjectsSettings() {
         <EmptyState icon={Database} title="No object definitions" description="Create your first custom object or generate one with AI."
           action={
             <div className="flex gap-2">
-              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-stone-600 px-3 py-2 text-sm"><Sparkles size={13}/> Generate with AI</button>
+              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-stone-600 px-3 py-2 text-sm"><LogoMark size={13}/> Generate with AI</button>
               <button onClick={() => setObjectOpen(true)} className="rounded-md border border-white/[.06] px-3 py-2 text-sm text-stone-400">Manual</button>
             </div>
           }
@@ -355,7 +356,7 @@ export function ObjectsSettings() {
               <Plus size={13}/> Custom object
             </button>
             <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-stone-500/30 px-3 py-2 text-sm text-stone-400/70 hover:text-stone-300 hover:border-stone-500/50 transition-colors">
-              <Sparkles size={13}/> Generate with AI
+              <LogoMark size={13}/> Generate with AI
             </button>
           </aside>
 

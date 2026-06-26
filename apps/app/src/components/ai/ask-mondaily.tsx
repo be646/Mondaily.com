@@ -1,4 +1,4 @@
-import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Sparkles } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks } from "lucide-react";
 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
@@ -375,10 +375,10 @@ export function AskMondaily() {
                     {!isStreaming && !loading && i === messages.length - 1 && (
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
                         <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-ai">
-                          <Sparkles size={11}/> Create task from this
+                          <LogoMark size={11}/> Create task from this
                         </button>
                         <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-ai">
-                          <Sparkles size={11}/> Draft message
+                          <LogoMark size={11}/> Draft message
                         </button>
                         <button onClick={() => sendSuggestion(buildChipText("related", i))} className="btn-suggested">
                           Show related objects

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { LogoMark } from "@/components/logo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import {
-  ChevronLeft, ReceiptText, Sparkles, Clock, CheckCircle2, XCircle,
+  ChevronLeft, ReceiptText, Clock, CheckCircle2, XCircle,
   Link2, User, FileText, AlertTriangle, RefreshCcw,
 } from "lucide-react";
 
@@ -229,7 +230,7 @@ export function CreditNoteDetailPage() {
           {cn.ai_summary && (
             <div className="rounded-xl border border-stone-500/20 bg-stone-500/[.04] p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={12} className="text-stone-400"/>
+                <LogoMark size={12} className="text-stone-400"/>
                 <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">AI Summary</span>
               </div>
               <p className="text-[13px] text-stone-300 leading-relaxed">{cn.ai_summary}</p>

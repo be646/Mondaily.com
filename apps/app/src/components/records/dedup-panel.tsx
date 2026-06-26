@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Sparkles, X, Merge, List, Phone, Mail, AlertTriangle, Check, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Merge, List, Phone, Mail, AlertTriangle, Check, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -214,7 +215,7 @@ export function DedupPanel({
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[.06]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
-              <Sparkles size={14} className="text-stone-400" />
+              <LogoMark size={14} className="text-stone-400" />
             </div>
             <span className="text-sm font-semibold text-white">AI Data Cleaner</span>
             {step === "review" && groups.length > 0 && (
@@ -234,7 +235,7 @@ export function DedupPanel({
           {step === "scan" && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
               <div className="h-14 w-14 rounded-2xl bg-stone-500/10 border border-stone-500/15 flex items-center justify-center">
-                <Sparkles size={24} className="text-stone-400" />
+                <LogoMark size={24} className="text-stone-400" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-white mb-1">Scan {records.length} records for duplicates</p>
@@ -245,7 +246,7 @@ export function DedupPanel({
                 disabled={scanning}
                 className="flex items-center gap-2 rounded-xl bg-stone-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-500 transition-colors disabled:opacity-60"
               >
-                {scanning ? <><Loader2 size={14} className="animate-spin" /> Scanning…</> : <><Sparkles size={14} /> Scan now</>}
+                {scanning ? <><Loader2 size={14} className="animate-spin" /> Scanning…</> : <><LogoMark size={14} /> Scan now</>}
               </button>
             </div>
           )}
@@ -337,7 +338,7 @@ export function DedupPanel({
                 {[
                   { icon: <Mail size={12} />, label: "Contacts with email", color: "text-blue-400" },
                   { icon: <Phone size={12} />, label: "Contacts with phone", color: "text-emerald-400" },
-                  { icon: <Sparkles size={12} />, label: "Contacts with both", color: "text-stone-400" },
+                  { icon: <LogoMark size={12} />, label: "Contacts with both", color: "text-stone-400" },
                 ].map((item, i) => (
                   <div key={i} className={`flex items-center gap-2.5 rounded-lg border border-white/[.05] bg-white/[.02] px-3 py-2.5 ${item.color}`}>
                     {item.icon}

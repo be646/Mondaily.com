@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { LogoMark } from "@/components/logo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import {
-  ShieldCheck, Clock, CheckCircle2, XCircle, Sparkles,
+  ShieldCheck, Clock, CheckCircle2, XCircle,
   ReceiptText, ChevronRight, AlertTriangle, UserCircle2,
 } from "lucide-react";
 
@@ -126,7 +127,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
 
       {cn.ai_summary && (
         <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/[.04]">
-          <Sparkles size={10} className="text-stone-400 mt-0.5 shrink-0"/>
+          <LogoMark size={10} className="text-stone-400 mt-0.5 shrink-0"/>
           <p className="text-[11px] leading-relaxed text-stone-600 dark:text-stone-300">{cn.ai_summary}</p>
         </div>
       )}

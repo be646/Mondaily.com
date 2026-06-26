@@ -1,5 +1,6 @@
-import { Sparkles, Activity, ArrowRight, ShieldCheck } from "lucide-react";
+import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
 import { SourceCard, type SourceCardData } from "./ask-shared";
+import { LogoMark } from "@/components/logo";
 
 /**
  * Universal AI Intelligence layer — reusable components shown on record and
@@ -18,13 +19,13 @@ export function AIInsightBadge({ summary }: { summary?: string | null }) {
   if (!summary) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]" style={{ color: "var(--text-faint)", border: "1px solid var(--border-soft)" }}>
-        <Sparkles size={10}/> No AI summary yet
+        <LogoMark size={10}/> No AI summary yet
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px]" style={{ color: "var(--text-secondary)", background: "var(--surface-hover)" }}>
-      <Sparkles size={10} className="text-stone-500 dark:text-stone-400 shrink-0"/>
+      <LogoMark size={10} className="text-stone-500 dark:text-stone-400 shrink-0"/>
       <span className="truncate max-w-[260px]">{summary}</span>
     </span>
   );

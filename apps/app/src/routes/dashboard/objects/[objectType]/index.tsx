@@ -1,6 +1,7 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, X, Sparkles, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter } from "lucide-react";
+import { LogoMark } from "@/components/logo";
+import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter } from "lucide-react";
 import { RecordTable } from "../../../../components/records/record-table";
 import { BoardView } from "../../../../components/records/board-view";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
@@ -34,7 +35,7 @@ function EnrichBanner({ name, done }: { name: string; done: boolean }) {
         ? "border-stone-600/50 bg-stone-800/40 text-stone-300"
         : "border-stone-700/40 bg-stone-900/30 text-stone-500"
     }`}>
-      <Sparkles size={12} className={done ? "text-stone-300" : "animate-pulse text-stone-600"}/>
+      <LogoMark size={12} className={done ? "text-stone-300" : "animate-pulse text-stone-600"}/>
       {done
         ? `AI enriched "${name}" — fields auto-populated`
         : `Enriching "${name}" in background…`}
@@ -212,7 +213,7 @@ function CreateRecordModal({
                 onClick={() => { setTab("ai"); setTimeout(() => promptRef.current?.focus(), 50); }}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${tab === "ai" ? "bg-stone-500/20 text-stone-300" : "text-stone-500 hover:text-stone-300"}`}
               >
-                <Sparkles size={10}/> Generate with AI
+                <LogoMark size={10}/> Generate with AI
               </button>
             </div>
           </div>
@@ -321,7 +322,7 @@ function CreateRecordModal({
                   disabled={aiLoading || !aiPrompt.trim()}
                   className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-stone-400 disabled:opacity-50"
                 >
-                  {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><Sparkles size={11}/> Generate {aiCount} records</>}
+                  {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><LogoMark size={11}/> Generate {aiCount} records</>}
                 </button>
               </div>
             </div>
@@ -478,7 +479,7 @@ function AIFillModal({
         <div className="flex items-center justify-between border-b border-white/[.06] px-6 py-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
-              <Sparkles size={13} className="text-stone-400"/>
+              <LogoMark size={13} className="text-stone-400"/>
             </div>
             <div>
               <p className="text-[13px] font-semibold text-white capitalize">Fill "{cleanName}" with AI</p>
@@ -533,7 +534,7 @@ function AIFillModal({
                 className="flex items-center gap-2 rounded-lg border border-stone-400/40 bg-stone-500 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-400 disabled:opacity-50 transition-all">
                 {loading
                   ? <><Loader2 size={12} className="animate-spin"/> Generating {count} records…</>
-                  : <><Sparkles size={12}/> Generate {count} records</>}
+                  : <><LogoMark size={12}/> Generate {count} records</>}
               </button>
             </div>
           </div>
@@ -745,7 +746,7 @@ export function ObjectIndexPage() {
             onClick={() => setShowAIFill(true)}
             className="flex items-center gap-1.5 rounded-md border border-[#ddd6fe] bg-[#f5f3ff] px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] transition-all hover:bg-[#ede9fe] dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
           >
-            <Sparkles size={11} className="text-[var(--accent)] dark:text-stone-400"/> Fill with AI
+            <LogoMark size={11} className="text-[var(--accent)] dark:text-stone-400"/> Fill with AI
           </button>
           <button
             onClick={() => setDedupOpen(true)}
@@ -816,7 +817,7 @@ export function ObjectIndexPage() {
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f5f3ff] border border-[#ddd6fe] dark:bg-stone-500/10 dark:border-stone-500/20">
-                  <Sparkles size={22} className="text-[var(--accent)] dark:text-stone-400"/>
+                  <LogoMark size={22} className="text-[var(--accent)] dark:text-stone-400"/>
                 </div>
               </div>
               <h3 className="text-[15px] font-semibold text-[#111827] dark:text-white capitalize">
@@ -831,7 +832,7 @@ export function ObjectIndexPage() {
                 onClick={() => setShowAIFill(true)}
                 className="flex items-center gap-2 rounded-lg border border-[#ddd6fe] bg-[#f5f3ff] px-5 py-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-[#ede9fe] dark:border-stone-400/40 dark:bg-stone-500 dark:text-white dark:hover:bg-stone-400 transition-all"
               >
-                <Sparkles size={13} className="text-[var(--accent)] dark:text-white"/> Fill with AI
+                <LogoMark size={13} className="text-[var(--accent)] dark:text-white"/> Fill with AI
               </button>
               <button
                 onClick={() => setShowCreate(true)}

@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { LogoMark } from "@/components/logo";
 import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
-  ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X,
-  Sparkles, Command, Settings2, ArrowUpDown, Download, GripVertical,
+  ChevronDown, ChevronUp, ChevronsUpDown, Plus, Check, Search, X, Command, Settings2, ArrowUpDown, Download, GripVertical,
   UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
   Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
@@ -387,7 +387,7 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
       </div>
       {enriched && (
         <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-white ring-1 ring-[#141414] flex items-center justify-center">
-          <Sparkles size={5} className="text-black"/>
+          <LogoMark size={5} className="text-black"/>
         </div>
       )}
     </div>
@@ -972,7 +972,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   return (
     <div className={`rounded-lg border px-3 py-2 transition-all duration-300 ${statusColors[status]}`}>
       <div className="flex items-center gap-2">
-        <Sparkles size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-stone-400 animate-pulse" : status === "applied" ? "text-stone-300" : "text-stone-600"}`}/>
+        <LogoMark size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-stone-400 animate-pulse" : status === "applied" ? "text-stone-300" : "text-stone-600"}`}/>
         <input ref={inputRef} value={value}
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") apply(); if (e.key === "Escape") { setValue(""); onClear(); setStatus("idle"); } }}
@@ -1921,7 +1921,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         />
         {isEnriched && (
           <span className="inline-flex items-center gap-0.5 rounded-sm bg-stone-800/60 border border-stone-700/50 px-1.5 py-0.5 text-[9px] font-medium text-stone-400 shrink-0">
-            <Sparkles size={8}/> AI
+            <LogoMark size={8}/> AI
           </span>
         )}
         <Link to={`/objects/${objectType}/${record.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 text-stone-600 hover:text-stone-300 transition-colors">
@@ -2023,7 +2023,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         )}
         {nlpActive && (
           <span className="flex items-center gap-1 rounded-md border border-stone-700/60 bg-stone-800/40 px-2 py-1 text-[10px] text-stone-400 mr-1">
-            <Sparkles size={9}/> AI active
+            <LogoMark size={9}/> AI active
           </span>
         )}
 

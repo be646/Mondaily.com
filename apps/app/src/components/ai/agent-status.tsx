@@ -4,7 +4,7 @@ import { useUser, useClerk } from "@clerk/react";
 import { useState, useRef, useEffect } from "react";
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
-  HelpCircle, MoreHorizontal, Copy, Check, Loader2, Sparkles,
+  HelpCircle, MoreHorizontal, Copy, Check, Loader2,
   ThumbsUp, ThumbsDown, Sun, Moon,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
@@ -59,7 +59,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-5 w-5 items-center justify-center rounded-md bg-stone-500/15">
-            <Sparkles size={10} className="text-stone-400"/>
+            <LogoMark size={10} className="text-stone-400"/>
           </div>
           <span className="text-[13px] font-semibold text-white">Ask Mondaily</span>
         </div>
@@ -169,7 +169,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 {m.role === "assistant" && !loading && i === messages.length - 1 && i > 0 && (
                   <div className="flex flex-wrap gap-1 ml-1 mt-0.5">
                     <button onClick={() => sendChip(buildChipText("task", i))} className="btn-ai !text-[10px] !px-2 !py-0.5">
-                      <Sparkles size={9}/> Create task
+                      <LogoMark size={9}/> Create task
                     </button>
                     <button onClick={() => sendChip(buildChipText("related", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
                       Related objects
@@ -353,7 +353,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                 : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-stone-200 hover:bg-stone-50 dark:border-white/[.07] dark:bg-transparent dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-white"
             }`}
           >
-            <Sparkles size={12} className={askOpen ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}/>
+            <LogoMark size={12} className={askOpen ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}/>
             Ask AI
           </button>
 

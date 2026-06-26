@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, CheckCheck, Trash2, Filter, ShieldAlert, Sparkles } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, Filter, ShieldAlert } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -131,7 +132,7 @@ export function NotificationsPage() {
           <p className="mt-1 text-xs text-stone-400 dark:text-stone-700">Reviews, approvals, and mentions will appear here</p>
           {filter !== "unread" && (
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-stone-600 dark:text-stone-400">
-              <Sparkles size={11} className="shrink-0"/>
+              <LogoMark size={11} className="shrink-0"/>
               Mondaily will start surfacing signals once more workspace activity is available.
             </p>
           )}

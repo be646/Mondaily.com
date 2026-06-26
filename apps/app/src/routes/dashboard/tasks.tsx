@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet, Sparkles, Loader2 } from "lucide-react";
+import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, Trash2, Calendar, Pencil, Tag, ArrowUpDown, ArrowUp, ArrowDown, Flag, List, Columns3, Sheet, Loader2 } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
@@ -210,7 +211,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
             {isOverdue && <span className="rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] text-stone-400">Overdue</span>}
             {flagged && (
               <span className="flex items-center gap-1 rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
-                <Sparkles size={9}/>AI flagged
+                <LogoMark size={9}/>AI flagged
               </span>
             )}
           </div>
@@ -303,7 +304,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
       <div className={`w-full rounded-2xl border border-stone-200 bg-white shadow-2xl overflow-hidden transition-all dark:border-white/[.09] dark:bg-[#141414] ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-white/[.06]">
           <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-stone-600 dark:text-stone-400"/>
+            <LogoMark size={14} className="text-stone-600 dark:text-stone-400"/>
             <span className="text-sm font-semibold text-[#111827] dark:text-white">Suggest tasks with AI</span>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors"><X size={15}/></button>
@@ -360,7 +361,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
           {suggestions.length === 0 ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
               className="flex items-center gap-2 rounded-xl bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
-              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><Sparkles size={13}/> Generate</>}
+              {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
@@ -493,7 +494,7 @@ export function TasksPage() {
           </div>
           <button onClick={() => setShowAISuggest(true)}
             className="flex items-center gap-1.5 rounded-xl border border-[#ddd6fe] bg-[#f5f3ff] px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-[#ede9fe] dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
-            <Sparkles size={12} className="text-[var(--accent)] dark:text-stone-400"/> Suggest with AI
+            <LogoMark size={12} className="text-[var(--accent)] dark:text-stone-400"/> Suggest with AI
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
@@ -644,7 +645,7 @@ export function TasksPage() {
                       </span>
                       {flaggedTaskIds.has(task.id) && (
                         <span className="flex items-center gap-1 rounded-full border border-stone-400/30 bg-stone-400/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
-                          <Sparkles size={9}/>AI flagged
+                          <LogoMark size={9}/>AI flagged
                         </span>
                       )}
                       {task.due_date && (

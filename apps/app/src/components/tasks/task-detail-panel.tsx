@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Plus, Check, Trash2, Paperclip, Send, CheckCheck, ChevronDown, Sparkles, Link2, ExternalLink, Loader2 } from "lucide-react";
+import { X, Plus, Check, Trash2, Paperclip, Send, CheckCheck, ChevronDown, Link2, ExternalLink, Loader2 } from "lucide-react";
+import { LogoMark } from "@/components/logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useUser } from "@clerk/react";
 import { apiClient, getAuthHeaders } from "../../lib/api-client";
@@ -383,10 +384,10 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "rgba(124,58,237,0.20)", background: "rgba(124,58,237,0.04)" }}>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 dark:text-stone-400">
-                    <Sparkles size={10}/> AI summary
+                    <LogoMark size={10}/> AI summary
                   </span>
                   <button onClick={runAiSummary} disabled={aiSummaryLoading} className="btn-ai px-2 py-0.5 text-[11px]">
-                    {aiSummaryLoading ? <Loader2 size={11} className="animate-spin"/> : <Sparkles size={11}/>}
+                    {aiSummaryLoading ? <Loader2 size={11} className="animate-spin"/> : <LogoMark size={11}/>}
                     {aiSummary ? "Refresh" : "Summarize"}
                   </button>
                 </div>

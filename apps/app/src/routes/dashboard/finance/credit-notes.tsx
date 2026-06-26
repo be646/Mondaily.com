@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogoMark } from "@/components/logo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import {
   Plus, Search, ReceiptText, Clock, CheckCircle2, AlertCircle,
-  XCircle, Sparkles, DollarSign, ChevronRight, RefreshCcw,
+  XCircle, DollarSign, ChevronRight, RefreshCcw,
 } from "lucide-react";
 
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
@@ -264,7 +265,7 @@ export function CreditNotesPage() {
                     <td className="px-4 py-3 max-w-[220px]">
                       {cn.ai_summary ? (
                         <div className="flex items-start gap-1.5">
-                          <Sparkles size={10} className="text-stone-400 mt-0.5 shrink-0"/>
+                          <LogoMark size={10} className="text-stone-400 mt-0.5 shrink-0"/>
                           <span className="text-[11px] text-stone-500 truncate">{cn.ai_summary}</span>
                         </div>
                       ) : <span className="text-[11px] text-stone-700">—</span>}

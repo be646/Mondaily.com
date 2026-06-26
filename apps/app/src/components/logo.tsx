@@ -1,6 +1,7 @@
-export function LogoMark({ size = 32, thinking = false }: { size?: number; thinking?: boolean }) {
+import React from "react";
+export function LogoMark({ size = 32, thinking = false, className, style }: { size?: number; thinking?: boolean; className?: string; style?: React.CSSProperties }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block" }}>
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} style={{ flexShrink: 0, display: "block", ...style }}>
       <circle cx="16" cy="16" r="6.5" fill="currentColor" />
       <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="1.4" opacity="0.35" />
       <circle cx="0" cy="0" r="2.4" fill="currentColor" opacity="0.85">

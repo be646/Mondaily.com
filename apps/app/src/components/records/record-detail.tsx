@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { LogoMark } from "@/components/logo";
 import { Link } from "react-router-dom";
 import {
   ChevronLeft, Check, Building2, Users, Wifi, Calendar,
   DollarSign, Users2, Mail, Phone, Tag, Clock, Plus,
-  ChevronDown, Sparkles, MapPin, TrendingUp, Square,
+  ChevronDown, MapPin, TrendingUp, Square,
   CheckSquare, FileText, X, Link2, Search, UserCheck,
   Camera, ExternalLink, Briefcase, Percent, Receipt,
   CreditCard, Star, List, Trash2, Pencil, PhoneCall,
@@ -1778,7 +1779,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
       {autoMsg && (
         <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/[.06] px-6 py-2 text-xs text-emerald-400 shrink-0">
-          <Sparkles size={12} className="shrink-0"/>{autoMsg}
+          <LogoMark size={12} className="shrink-0"/>{autoMsg}
         </div>
       )}
 

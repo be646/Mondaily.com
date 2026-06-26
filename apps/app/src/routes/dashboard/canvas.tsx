@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { LogoMark } from "@/components/logo";
 import {
   ReactFlow, Background, Controls,
   addEdge, useNodesState, useEdgesState,
@@ -8,7 +9,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import {
   StickyNote, Circle, Type, LayoutGrid, GitBranch,
-  ChevronDown, Trash2, Sparkles,
+  ChevronDown, Trash2,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -397,7 +398,7 @@ export default function Canvas() {
                   border: "1px solid rgba(99,102,241,0.15)",
                 }}
               >
-                <Sparkles size={22} className="text-stone-400/60" />
+                <LogoMark size={22} className="text-stone-400/60" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-white/30 mb-1">Start with a template or add a node</p>
