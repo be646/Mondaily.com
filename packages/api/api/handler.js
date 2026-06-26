@@ -68964,6 +68964,9 @@ async function aiGatewayAgentStream(req, onEvent) {
         await onEvent({ type: "token", text: fb.reply });
         return { ...fb, usage: r2.usage ?? fb.usage };
       }
+      const FRIENDLY = "Done \u2014 I've processed that above. Let me know if you'd like any adjustments.";
+      await onEvent({ type: "token", text: FRIENDLY });
+      return { ...r2, reply: FRIENDLY };
     }
     return r2;
   } catch (err2) {
@@ -68978,7 +68981,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  const client = new openai_default({ baseURL, apiKey, timeout: 4e4, maxRetries: 1 });
+  const client = new openai_default({ baseURL, apiKey, timeout: 15e3, maxRetries: 1 });
   const openaiTools = req.tools.map((t2) => ({
     type: "function",
     function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
@@ -72621,6 +72624,12 @@ router6.post("/stream", requireAuth, zValidator("json", external_exports.object(
   c2.header("Cache-Control", "no-cache, no-transform");
   c2.header("Content-Encoding", "none");
   return streamSSE(c2, async (stream2) => {
+    let writeChain = Promise.resolve();
+    const safeWrite = (obj) => {
+      writeChain = writeChain.then(() => stream2.writeSSE({ data: JSON.stringify(obj) })).catch(() => {
+      });
+      return writeChain;
+    };
     try {
       let webContext = "";
       if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
@@ -72631,11 +72640,6 @@ ${webContext}` : "") + buildContextNote(context2);
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map((h2) => ({ role: h2.role, content: h2.content }));
       const messages = [...priorTurns, { role: "user", content: message }];
       const sources = [];
-      let writeChain = Promise.resolve();
-      const safeWrite = (obj) => {
-        writeChain = writeChain.then(() => stream2.writeSSE({ data: JSON.stringify(obj) }));
-        return writeChain;
-      };
       const { reply: agentReply, usage } = await aiGatewayAgentStream({
         system: systemPrompt,
         tools: TOOLS,
@@ -72694,7 +72698,7 @@ ${webContext}` : "") + buildContextNote(context2);
       await writeChain;
     } catch (err2) {
       console.error("[ask:stream] error:", err2?.message ?? err2);
-      await stream2.writeSSE({ data: JSON.stringify({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] }) });
+      await safeWrite({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] });
     }
   });
 });
@@ -77296,7 +77300,7 @@ app.get("/api/cron/daily", async (c2) => {
   const vertical = await runAllVertical().catch((e2) => ({ error: String(e2) }));
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), results, workflows, vertical });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.6.0-harden" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.6.1-harden" }));
 app.get("/api/debug-auth", async (c2) => {
   const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const clerkKey = process.env.CLERK_SECRET_KEY;

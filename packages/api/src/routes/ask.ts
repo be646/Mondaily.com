@@ -1305,6 +1305,18 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
   c.header("Content-Encoding", "none");
 
   return streamSSE(c, async (stream) => {
+    // Serialize ALL SSE writes through one chain. Tools now run concurrently
+    // (Promise.all in the gateway), so multiple onToolCall callbacks may try to
+    // write at once — chaining prevents interleaved/corrupted SSE frames. Each
+    // write's failure is swallowed (a client disconnect / already-closed stream
+    // must never reject the chain) so the terminal 'done' — including from the
+    // catch below — always completes cleanly. Hoisted above try so the catch
+    // can reuse the same serialized writer.
+    let writeChain: Promise<void> = Promise.resolve();
+    const safeWrite = (obj: unknown): Promise<void> => {
+      writeChain = writeChain.then(() => stream.writeSSE({ data: JSON.stringify(obj) })).catch(() => {});
+      return writeChain;
+    };
     try {
       let webContext = "";
       if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
@@ -1312,15 +1324,6 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];
-
-      // Serialize ALL SSE writes through one chain. Tools now run concurrently
-      // (Promise.all in the gateway), so multiple onToolCall callbacks may try
-      // to write at once — chaining prevents interleaved/corrupted SSE frames.
-      let writeChain: Promise<void> = Promise.resolve();
-      const safeWrite = (obj: unknown): Promise<void> => {
-        writeChain = writeChain.then(() => stream.writeSSE({ data: JSON.stringify(obj) }));
-        return writeChain;
-      };
 
       const { reply: agentReply, usage } = await aiGatewayAgentStream({
         system: systemPrompt,
@@ -1374,7 +1377,10 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
       await writeChain;
     } catch (err: any) {
       console.error("[ask:stream] error:", err?.message ?? err);
-      await stream.writeSSE({ data: JSON.stringify({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] }) });
+      // Terminate through the SAME serialized writer (failures swallowed) so the
+      // SSE stream always closes with a 'done' frame, even mid-write / on a
+      // closed socket — the frontend never hangs waiting for termination.
+      await safeWrite({ type: "done", reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [] });
     }
   });
 });

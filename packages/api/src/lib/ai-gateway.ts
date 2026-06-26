@@ -620,6 +620,12 @@ export async function aiGatewayAgentStream(
         await onEvent({ type: "token", text: fb.reply });
         return { ...fb, usage: r.usage ?? fb.usage };
       }
+      // Last-resort guard: the model ran tools but produced no prose AND the
+      // recovery also came back blank. Inject a friendly message so the frontend
+      // never renders an empty bubble.
+      const FRIENDLY = "Done — I've processed that above. Let me know if you'd like any adjustments.";
+      await onEvent({ type: "token", text: FRIENDLY });
+      return { ...r, reply: FRIENDLY };
     }
     return r;
   } catch (err: any) {
@@ -640,10 +646,11 @@ async function runOpenAICompatAgentStream(
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
-  // Streaming agent: a streamed answer legitimately runs longer than a single
-  // call, so keep a moderate timeout but trim retries to 1 so a stall fails in
-  // one window instead of stacking. Mid-stream drops are handled below.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 40000, maxRetries: 1 });
+  // Streaming agent: FAIL-FAST. 15s timeout + 1 retry so an upstream spike
+  // surfaces instantly rather than hanging. A cut is safe here — mid-stream
+  // drops preserve partial text below, and an empty result drops to the
+  // non-streaming recovery + friendly fallback in aiGatewayAgentStream.
+  const client = new OpenAI({ baseURL, apiKey, timeout: 15000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
