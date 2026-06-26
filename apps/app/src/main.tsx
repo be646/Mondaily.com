@@ -75,15 +75,27 @@ function AuthGate({ children }: { children: React.ReactNode }) {
             body.clerk_org_id = organization.id;
             body.name = organization.name ?? "My Workspace";
           }
-          const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify(body),
-          });
-          if (res.ok) {
-            const { workspace_id, is_new } = (await res.json()) as { workspace_id: string; is_new?: boolean };
-            localStorage.setItem("mondaily_workspace_id", workspace_id);
-            if (is_new) localStorage.setItem("mondaily_needs_onboarding", "1");
+          // Retry with backoff so a transient network/5xx blip during signup
+          // doesn't leave the user without a workspace. Bootstrap is idempotent
+          // (finds-or-creates by clerk_org_id), so retrying is safe and also
+          // recovers an orphaned Clerk org. A 4xx (e.g. 401 deleted account) is
+          // terminal — retrying won't help.
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify(body),
+              });
+              if (res.ok) {
+                const { workspace_id, is_new } = (await res.json()) as { workspace_id: string; is_new?: boolean };
+                localStorage.setItem("mondaily_workspace_id", workspace_id);
+                if (is_new) localStorage.setItem("mondaily_needs_onboarding", "1");
+                break;
+              }
+              if (res.status < 500) break; // client error — don't retry
+            } catch { /* network error — fall through to retry */ }
+            if (attempt < 2) await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
           }
         }
       } catch { /* non-fatal */ }
