@@ -13,6 +13,7 @@
  */
 import { Hono } from "hono";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { createClerkClient } from "@clerk/backend";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 
@@ -69,11 +70,23 @@ function popupHtml(message: string, ok: boolean): string {
 
 // 1) INITIATE — authed. Returns the Nylas hosted-auth URL (signed state).
 router.post("/connect", requireAuth, async (c) => {
-  const body = await c.req.json<{ provider?: string }>().catch(() => ({} as { provider?: string }));
+  const body = await c.req.json<{ provider?: string; login_hint?: string }>().catch(() => ({} as { provider?: string; login_hint?: string }));
   const provider = normalizeProvider(body.provider);
   const clientId = process.env.NYLAS_CLIENT_ID;
   if (!clientId) return c.json({ error: "NYLAS_CLIENT_ID is not configured on the server." }, 503);
   if (!process.env.API_BASE_URL) return c.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
+
+  // Resolve the user's email for login_hint so Nylas skips its email-entry screen
+  // and goes straight to the provider. Prefer a client-supplied hint; otherwise
+  // look it up from Clerk. Best-effort — connect still works without it.
+  let loginHint = typeof body.login_hint === "string" ? body.login_hint : undefined;
+  if (!loginHint && process.env.CLERK_SECRET_KEY) {
+    try {
+      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      const u = await clerk.users.getUser(c.get("userId"));
+      loginHint = u.primaryEmailAddress?.emailAddress ?? u.emailAddresses?.[0]?.emailAddress;
+    } catch { /* best-effort */ }
+  }
 
   const state = signState({
     u: c.get("userId"),
@@ -86,6 +99,12 @@ router.post("/connect", requireAuth, async (c) => {
   url.searchParams.set("redirect_uri", callbackUrl());
   url.searchParams.set("response_type", "code");
   url.searchParams.set("provider", provider);
+  // login_hint = the signed-in user's email → Nylas skips its own email-entry
+  // screen and routes straight to Google's consent (the "just sign in with Gmail"
+  // experience users expect).
+  if (loginHint && /.+@.+\..+/.test(loginHint)) {
+    url.searchParams.set("login_hint", loginHint);
+  }
   url.searchParams.set("state", state);
   return c.json({ auth_url: url.toString() });
 });

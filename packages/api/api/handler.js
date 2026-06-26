@@ -77539,6 +77539,7 @@ router38.post("/", requireJwt, async (c2) => {
 
 // src/routes/integrations.ts
 var import_node_crypto4 = require("crypto");
+init_dist();
 var router39 = new Hono2();
 var NYLAS_BASE = "https://api.us.nylas.com";
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
@@ -77585,6 +77586,15 @@ router39.post("/connect", requireAuth, async (c2) => {
   const clientId = process.env.NYLAS_CLIENT_ID;
   if (!clientId) return c2.json({ error: "NYLAS_CLIENT_ID is not configured on the server." }, 503);
   if (!process.env.API_BASE_URL) return c2.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
+  let loginHint = typeof body.login_hint === "string" ? body.login_hint : void 0;
+  if (!loginHint && process.env.CLERK_SECRET_KEY) {
+    try {
+      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+      const u2 = await clerk.users.getUser(c2.get("userId"));
+      loginHint = u2.primaryEmailAddress?.emailAddress ?? u2.emailAddresses?.[0]?.emailAddress;
+    } catch {
+    }
+  }
   const state = signState({
     u: c2.get("userId"),
     w: c2.get("workspaceId"),
@@ -77597,6 +77607,9 @@ router39.post("/connect", requireAuth, async (c2) => {
   url.searchParams.set("redirect_uri", callbackUrl());
   url.searchParams.set("response_type", "code");
   url.searchParams.set("provider", provider);
+  if (loginHint && /.+@.+\..+/.test(loginHint)) {
+    url.searchParams.set("login_hint", loginHint);
+  }
   url.searchParams.set("state", state);
   return c2.json({ auth_url: url.toString() });
 });
