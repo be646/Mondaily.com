@@ -2228,6 +2228,41 @@ const AGENTS = [
     prepares: "New candidate records, each with a source URL — never invented",
     approval: "Requires approval before any candidate is added to the graph",
   },
+  {
+    icon: "◎", name: "Signal Agent", accent: "#7fa3b0", brush: "30deg",
+    desc: "Scores intent and flags risk across the graph — lead scores, at-risk and high-intent deals — surfacing what's heating up or going cold before you have to look.",
+    watches: "Record activity, deal stage and amount, and engagement signals",
+    prepares: "Lead scores and Decision-Queue alerts for at-risk or high-intent deals",
+    approval: "Writes scores directly; alerts route to the Decision Queue",
+  },
+  {
+    icon: "◑", name: "Opportunity Agent", accent: "#a07164", brush: "-30deg",
+    desc: "Tracks every opportunity through its stages and ages — flags the ones that are stalled, slipping, or close to closing, and recommends the next move.",
+    watches: "Opportunity stage, age, and movement across the pipeline",
+    prepares: "Decision-Queue recommendations for stalled or at-risk opportunities",
+    approval: "Recommends only — never advances a stage without approval",
+  },
+  {
+    icon: "◐", name: "People Agent", accent: "#8a8071", brush: "54deg",
+    desc: "Keeps people and contact records warm — surfaces follow-ups, dormant relationships, and the next touch that's overdue.",
+    watches: "People records, last-touch dates, and open follow-ups",
+    prepares: "Follow-up recommendations queued for review",
+    approval: "Recommends only — you approve before anything is sent",
+  },
+  {
+    icon: "◭", name: "Portfolio Agent", accent: "#6f8068", brush: "-54deg",
+    desc: "Watches portfolio and investment records for the positions that need attention — concentration, drift, or items going stale.",
+    watches: "Portfolio and investment records and their status",
+    prepares: "Decision-Queue items for positions needing attention",
+    approval: "Recommends only — approval required for any action",
+  },
+  {
+    icon: "◮", name: "Asset Agent", accent: "#a68762", brush: "66deg",
+    desc: "Monitors real-estate and asset records — leases, renewals, and maintenance windows — and queues what's coming due.",
+    watches: "Asset and real-estate records, dates and status",
+    prepares: "Decision-Queue items for assets needing attention",
+    approval: "Recommends only — approval required for any action",
+  },
 ];
 
 function AgentTerminalLine({ label, text, color, active }: { label: string; text: string; color: string; active: boolean }) {
@@ -2251,16 +2286,58 @@ function AgentTerminalLine({ label, text, color, active }: { label: string; text
   );
 }
 
+type LogLine = { prefix?: string; prefixColor?: string; label?: string; labelColor?: string; text: string; color?: string; indent?: boolean };
+function buildAgentLog(agent: (typeof AGENTS)[number], slug: string): LogLine[] {
+  return [
+    { prefix: "$", prefixColor: "#7c8379", text: `${slug}.inspect --scope workspace_graph`, color: "#9fb08f" },
+    { indent: true, label: "watching", labelColor: "#8fb3b0", text: agent.watches, color: "#cfd6cb" },
+    { indent: true, label: "preparing", labelColor: "#d7c6a3", text: agent.prepares, color: "#cfd6cb" },
+    { indent: true, label: "approval", labelColor: "#9fb08f", text: agent.approval, color: "#cfd6cb" },
+    { prefix: "$", prefixColor: "#7c8379", text: "sources.attach --mode human_review", color: "#9fb08f" },
+    { indent: true, prefix: "✓", prefixColor: "#6f8068", text: "evidence linked to workspace_graph", color: "#9aa39a" },
+    { prefix: "$", prefixColor: "#7c8379", text: "decision.queue --status pending", color: "#9fb08f" },
+    { indent: true, prefix: "⮑", prefixColor: "#7c8379", text: "routed for human review", color: "#9aa39a" },
+    { prefix: "$", prefixColor: "#7c8379", text: `${slug}.status`, color: "#9fb08f" },
+    { indent: true, prefix: "●", prefixColor: agent.accent, text: "active · streaming", color: "#cfd6cb" },
+  ];
+}
+
+// Rich, auto-scrolling terminal log: lines appear one by one and the data scrolls
+// up (older lines fade off the top), instead of three fixed rows.
+function AgentTerminalLog({ agent, slug }: { agent: (typeof AGENTS)[number]; slug: string }) {
+  const lines = useMemo(() => buildAgentLog(agent, slug), [agent, slug]);
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setCount(0);
+    const t = setInterval(() => setCount(c => (c >= lines.length ? c : c + 1)), 430);
+    return () => clearInterval(t);
+  }, [lines]);
+  useEffect(() => { const el = ref.current; if (el) el.scrollTop = el.scrollHeight; }, [count]);
+  return (
+    <div ref={ref} className="agent-log relative h-44 overflow-hidden font-mono text-[12px] leading-6">
+      {lines.slice(0, count).map((ln, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className={ln.indent ? "pl-4" : ""}
+        >
+          {ln.prefix && <span style={{ color: ln.prefixColor }}>{ln.prefix} </span>}
+          {ln.label && <span style={{ color: ln.labelColor }}>{ln.label}&nbsp;&nbsp;</span>}
+          <span style={{ color: ln.color }}>{ln.text}</span>
+        </motion.div>
+      ))}
+      {count < lines.length && <span className="ml-px inline-block h-3 w-[6px] animate-pulse align-middle" style={{ background: agent.accent }} />}
+    </div>
+  );
+}
+
 function AgentsSection() {
   const [openIdx, setOpenIdx] = useState(0);
   const agent = AGENTS[openIdx]!;
-  const [terminalActive, setTerminalActive] = useState(true);
-
-  useEffect(() => {
-    setTerminalActive(false);
-    const t = setTimeout(() => setTerminalActive(true), 80);
-    return () => clearTimeout(t);
-  }, [openIdx]);
+  const slug = agent.name.toLowerCase().replace(" agent", "").replace(/\s+/g, "_");
 
   return (
     <section id="agents" className="relative mx-auto max-w-6xl px-6 py-16">
@@ -2272,7 +2349,7 @@ function AgentsSection() {
         Each agent watches a slice of the graph. Click any tile to inspect what it sees, prepares, and routes for approval.
       </p>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7 mb-3">
+      <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         {AGENTS.map((ag, i) => {
           const open = openIdx === i;
           return (
@@ -2281,38 +2358,53 @@ function AgentsSection() {
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.4, delay: i * 0.07 }}
+              transition={{ duration: 0.35, delay: (i % 6) * 0.05 }}
               onClick={() => setOpenIdx(i)}
-              className="agent-brush group cursor-pointer rounded-xl p-3 text-left transition-all sm:p-4"
+              className="agent-brush group relative cursor-pointer overflow-hidden rounded-xl border p-3.5 text-left transition-all"
               style={{
                 "--brush-rotate": ag.brush,
-                "--brush-saturation": open ? "1.0" : "0.6",
-                border: open ? `1.5px solid ${ag.accent}60` : "1.5px solid rgba(0,0,0,0.06)",
-                background: open ? `${ag.accent}0a` : "white",
+                "--brush-saturation": open ? "1.0" : "0.55",
+                borderColor: open ? `${ag.accent}66` : "rgba(0,0,0,0.07)",
+                background: open ? `linear-gradient(160deg, ${ag.accent}16, ${ag.accent}04)` : "white",
+                boxShadow: open ? `0 10px 26px -14px ${ag.accent}80` : "0 1px 2px rgba(0,0,0,0.03)",
               } as CSSProperties}
             >
-              <span className="mb-4 block h-2 w-2 rounded-full transition-all" style={{ background: open ? ag.accent : "#d4d4d8", boxShadow: open ? `0 0 0 4px ${ag.accent}22` : "none" }} />
-              <span className="block text-[12px] font-semibold leading-tight text-zinc-800">{ag.name}</span>
-              <span className="mt-1.5 block text-[10px] leading-snug" style={{ color: open ? ag.accent : "#a1a1aa" }}>{open ? "selected ↓" : "watching"}</span>
+              <div className="mb-2.5 flex items-center justify-between">
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-[13px] transition-all"
+                  style={{ background: open ? `${ag.accent}22` : "#f4f4f5", color: open ? ag.accent : "#a1a1aa" }}
+                >
+                  {ag.icon}
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full transition-all" style={{ background: open ? ag.accent : "#d4d4d8", boxShadow: open ? `0 0 0 3px ${ag.accent}26` : "none" }} />
+              </div>
+              <span className="block text-[12.5px] font-semibold leading-tight text-zinc-800">{ag.name.replace(" Agent", "")}</span>
+              <span className="mt-1 block text-[10px] leading-snug" style={{ color: open ? ag.accent : "#a1a1aa" }}>{open ? "inspecting" : "watching"}</span>
             </motion.div>
           );
         })}
       </div>
 
-      <div className="relative overflow-hidden rounded-xl bg-[#050706] px-5 py-5 text-left text-white" style={{ border: `1px solid ${agent.accent}30` }}>
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(111,128,104,0.06)_1px,transparent_1px),linear-gradient(180deg,rgba(111,128,104,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
-        <div className="pointer-events-none absolute inset-0 rounded-xl" style={{ background: `radial-gradient(ellipse at 0% 0%, ${agent.accent}18, transparent 60%)` }} />
-        <div className="relative">
-          <div className="mb-4 flex items-center gap-2 font-mono text-[11px]">
-            <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full" style={{ background: agent.accent }} />
-            <span style={{ color: agent.accent }}>{agent.name.toLowerCase().replace(" agent", "")}</span>
-            <span className="terminal-muted">.inspect()</span>
-            <span className="ml-auto font-medium" style={{ color: agent.accent }}>active</span>
-          </div>
-          <div className="flex flex-col gap-3 font-mono">
-            <AgentTerminalLine label="watches" text={agent.watches} color="#8fb3b0" active={terminalActive} />
-            <AgentTerminalLine label="prepares" text={agent.prepares} color="#d7c6a3" active={terminalActive} />
-            <AgentTerminalLine label="approval" text={agent.approval} color="#9fb08f" active={terminalActive} />
+      <div className="relative overflow-hidden rounded-2xl border bg-[#050706] text-left text-white" style={{ borderColor: `${agent.accent}40` }}>
+        {/* MacBook-inspired title bar */}
+        <div className="flex items-center border-b border-white/10 px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
+          <span className="flex gap-2">
+            <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f56" }} />
+            <span className="h-3 w-3 rounded-full" style={{ background: "#ffbd2e" }} />
+            <span className="h-3 w-3 rounded-full" style={{ background: "#27c93f" }} />
+          </span>
+          <span className="mx-auto flex items-center gap-2 font-mono text-[11px]" style={{ color: "#7c8379" }}>
+            <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full" style={{ background: agent.accent }} />
+            {slug}@mondaily — inspect
+          </span>
+          <span className="font-mono text-[11px] font-medium" style={{ color: agent.accent }}>active</span>
+        </div>
+        {/* Body — live scrolling log */}
+        <div className="relative px-5 py-4">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(111,128,104,0.06)_1px,transparent_1px),linear-gradient(180deg,rgba(111,128,104,0.04)_1px,transparent_1px)] bg-[size:28px_28px]" />
+          <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(ellipse at 0% 0%, ${agent.accent}16, transparent 60%)` }} />
+          <div className="relative">
+            <AgentTerminalLog agent={agent} slug={slug} />
           </div>
         </div>
       </div>

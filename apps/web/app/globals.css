@@ -539,3 +539,9 @@ body {
   .hero-cell, .hero-cell::after { animation: none; }
   .hero-cell { opacity: 0.45; }
 }
+
+/* Agent terminal log — fade older lines as they scroll up off the top */
+.agent-log {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24%, #000 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 24%, #000 100%);
+}
