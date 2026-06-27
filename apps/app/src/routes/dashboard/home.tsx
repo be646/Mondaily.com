@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -642,26 +642,29 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all sm:px-5">
+          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2 rounded-full px-2.5 py-2 transition-all sm:px-3">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : ""}`}
-              style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>
-              <Zap size={14}/>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+              style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
+              <Plus size={18}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 bg-transparent text-[14.5px] outline-none" style={{ color: "var(--text-primary)" }}/>
+              placeholder={isChatting ? "Continue the conversation…" : "What do you want to know?"}
+              className="flex-1 bg-transparent px-1 text-[15px] outline-none" style={{ color: "var(--text-primary)" }}/>
             {isChatting && (
-              <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-1" style={{ color: "var(--text-faint)" }}>Clear</button>
+              <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-0.5" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
-            <button disabled title="Voice coming soon" className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg cursor-not-allowed opacity-40" style={{ color: "var(--text-faint)" }}>
-              <Mic size={13}/>
+            <button disabled title="Voice coming soon" className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full cursor-not-allowed opacity-40" style={{ color: "var(--text-faint)" }}>
+              <Mic size={15}/>
             </button>
+            {/* Send — circular accent button with an arrow */}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-stone-900 text-white hover:bg-stone-800 dark:bg-white dark:text-stone-950 dark:hover:bg-stone-200" : ""}`}
-              style={input.trim() && !loading ? undefined : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
-              {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
+              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 disabled:cursor-not-allowed"
+              style={input.trim() && !loading
+                ? { background: "var(--accent)", color: "#fff" }
+                : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
+              {loading ? <Loader2 size={15} className="animate-spin"/> : <ArrowUp size={17} strokeWidth={2.5}/>}
             </button>
           </div>
         </div>

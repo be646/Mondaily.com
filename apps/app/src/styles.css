@@ -467,7 +467,7 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 
 .chat-input-bar {
-  min-height: 4.35rem;
+  min-height: 3.25rem;
 }
 
 /* Conversation panel — a fixed-height box that slides open once to make space for
