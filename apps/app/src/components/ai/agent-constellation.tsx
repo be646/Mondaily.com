@@ -259,13 +259,13 @@ export function AgentHeroStrip() {
           return (
             <span
               key={a.id}
-              className="relative inline-flex h-1.5 w-1.5 items-center justify-center rounded-full"
+              className="relative inline-flex h-2 w-2 items-center justify-center rounded-full"
               style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)", boxShadow: "0 0 0 1.5px var(--surface-card)" }}
             >
               {liveDot && (
                 <motion.span
-                  animate={{ opacity: [0.3, 0.7, 0.3] }}
-                  transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.3 }}
+                  animate={{ opacity: [0.35, 0.8, 0.35] }}
+                  transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.3 }}
                   className="absolute inset-0 rounded-full"
                   style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}
                 />
@@ -274,10 +274,10 @@ export function AgentHeroStrip() {
           );
         })}
       </span>
-      <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-        AI agents{live.length > 0 ? ` · ${live.length} active` : ""}
+      <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+        AI agents <span className="font-normal" style={{ color: "var(--text-faint)" }}>{live.length > 0 ? `· ${live.length} active` : ""}</span>
       </span>
-      <ArrowUpRight size={10} className="opacity-30 transition-opacity group-hover:opacity-80" style={{ color: "var(--text-muted)" }}/>
+      <ArrowUpRight size={11} className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--text-muted)" }}/>
     </a>
   );
 }

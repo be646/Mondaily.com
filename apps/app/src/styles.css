@@ -759,7 +759,6 @@ html[data-theme="dark"] .minimal-sparkline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-left: -0.6rem;
 }
 
 @keyframes chatInputScan {
@@ -778,9 +777,9 @@ html[data-theme="dark"] .minimal-sparkline {
   align-items: baseline;
   gap: 0.4rem;
   border-radius: 0.6rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.55rem;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .home-telemetry-strip > a { cursor: pointer; }

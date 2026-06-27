@@ -47,7 +47,7 @@ export function SidebarObjects() {
                 className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[15px] transition-colors ${
                   active
                     ? "font-medium text-stone-950 dark:text-stone-50"
-                    : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-200"
                 }`}
               >
                 {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50" />}

@@ -520,44 +520,41 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <Settings size={14}/>
             </Link>
           ) : (
-            <div className="overflow-hidden">
-              {/* Trial row */}
-              <div className="flex items-center justify-between border-b border-stone-200 px-1 py-2 dark:border-stone-800">
-                <div>
-                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>Trial</span>
-                  <span className="text-[11px] ml-1" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
-                </div>
-                <Link
-                  to="/settings/billing"
-                  className="rounded-md px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors"
-                  style={{ color: "var(--text-primary)" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--surface-selected)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}
-                >
-                  Upgrade
+            <div className="relative pt-5">
+              {/* Trial — a floating elevated layer (soft shadow) sitting above the
+                  user card, rather than a row crammed inside the frame. */}
+              <Link
+                to="/settings/billing"
+                className="absolute left-1.5 right-1.5 top-0 z-10 flex items-center justify-between rounded-xl px-3 py-2 transition-transform hover:-translate-y-px"
+                style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)", boxShadow: "0 10px 22px -10px rgba(0,0,0,0.45)" }}
+              >
+                <span className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>
+                  Trial <span className="font-normal" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
+                </span>
+                <span className="rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}>Upgrade</span>
+              </Link>
+
+              {/* User + invite — the base frame the trial floats over */}
+              <div className="rounded-xl px-1 pb-1 pt-6" style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)" }}>
+                <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                  {user?.imageUrl
+                    ? <img src={user.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>
+                    : <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
+                        {user?.firstName?.[0]?.toUpperCase() || "?"}
+                      </div>
+                  }
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-[13px] leading-tight" style={{ color: "var(--text-primary)" }}>{user?.fullName || user?.firstName || "You"}</div>
+                    <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{user?.primaryEmailAddress?.emailAddress}</div>
+                  </div>
+                  <Settings size={13} style={{ color: "var(--text-faint)" }}/>
+                </Link>
+
+                <Link to="/settings/members" className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                  <Users size={13} style={{ color: "var(--text-faint)" }}/>
+                  <span className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>Invite members</span>
                 </Link>
               </div>
-
-              {/* User row */}
-              <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-md px-1 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
-                {user?.imageUrl
-                  ? <img src={user.imageUrl} className="h-5 w-5 rounded-full object-cover shrink-0" alt=""/>
-                  : <div className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
-                      {user?.firstName?.[0]?.toUpperCase() || "?"}
-                    </div>
-                }
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-[12px] leading-tight" style={{ color: "var(--text-primary)" }}>{user?.fullName || user?.firstName || "You"}</div>
-                  <div className="truncate text-[10px]" style={{ color: "var(--text-faint)" }}>{user?.primaryEmailAddress?.emailAddress}</div>
-                </div>
-                <Settings size={12} style={{ color: "var(--text-faint)" }}/>
-              </Link>
-
-              {/* Invite members — directly under the name/email */}
-              <Link to="/settings/members" className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
-                <Users size={13} style={{ color: "var(--text-faint)" }}/>
-                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>Invite members</span>
-              </Link>
             </div>
           )}
         </div>

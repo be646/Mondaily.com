@@ -39,7 +39,7 @@ export function SidebarAsk() {
     <section className="mt-2">
       <button
         onClick={() => setHistoryOpen(o => !o)}
-        className="mb-1 flex w-full items-center gap-1.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-stone-950 dark:hover:text-stone-50"
+        className="mb-1 flex w-full items-center gap-1.5 px-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-stone-950 dark:hover:text-stone-50"
         style={{ color: "var(--text-faint)" }}
       >
         Recent chats <span className="font-medium normal-case tracking-normal">({threads.length})</span>
@@ -49,7 +49,7 @@ export function SidebarAsk() {
         <div key={t.id} className="group relative flex items-center">
           <Link
             to={`/ask/${t.id}`}
-            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-[15px] transition-colors truncate ${location.pathname === `/ask/${t.id}` ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"}`}
+            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-[15px] transition-colors truncate ${location.pathname === `/ask/${t.id}` ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-200"}`}
           >
             <MessageCircle size={12} className="shrink-0"/>
             <span className="truncate">{t.title}</span>

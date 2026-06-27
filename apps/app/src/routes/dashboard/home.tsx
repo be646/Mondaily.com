@@ -413,7 +413,7 @@ export function HomePage() {
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
       <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* Left — greeting + AI agents */}
           <div className="min-w-0">
             <div className="flex flex-col gap-1.5">
