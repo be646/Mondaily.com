@@ -1041,11 +1041,11 @@ const HERO_TRACES: Array<{ type: "h" | "v"; along: number; color: string; dur: n
   { type: "h", along: 60,  color: "#c76b78", dur: 8.5, delay: 6.4 },
   { type: "v", along: 180, color: "#5fa05f", dur: 11,  delay: 2.4 },
 ];
-function HeroNetBackdrop() {
+function HeroNetBackdrop({ widthClass = "w-[min(820px,96vw)]", opacity = 1 }: { widthClass?: string; opacity?: number } = {}) {
   const H = [60, 120, 180, 240, 300];
   const V = [90, 180, 270, 360, 450, 540, 630];
   return (
-    <div aria-hidden className="hero-net pointer-events-none absolute left-1/2 top-1/2 w-[min(820px,96vw)] -translate-x-1/2 -translate-y-1/2">
+    <div aria-hidden className={`hero-net pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${widthClass}`} style={{ opacity }}>
       <svg viewBox="0 0 720 360" className="h-auto w-full" fill="none">
         <defs>
           <linearGradient id="heroLineH" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="720" y2="0">
@@ -1853,7 +1853,7 @@ function ProcessTabsSection() {
       <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
         From a new record landing to an invoice marked paid — the same graph carries the work and the agents run each step. Click through to watch it.
       </p>
-      <div className="mb-8 flex flex-wrap gap-2">
+      <div className="mb-8 inline-flex flex-wrap gap-1 rounded-xl border border-zinc-200 bg-zinc-50/70 p-1">
         {tabs.map((tab, i) => {
           const accents = ["#9fb08f", "#a68762", "#8fb3b0", "#a07164"];
           const isActive = active === i;
@@ -1861,24 +1861,14 @@ function ProcessTabsSection() {
             <button
               key={tab.label}
               onClick={() => setActive(i)}
-              style={isActive ? {
-                background: `${accents[i]}14`,
-                borderColor: `${accents[i]}50`,
-                color: accents[i],
-              } : {}}
-              className={`relative rounded-full border px-5 py-2 text-left text-[12px] font-medium uppercase tracking-[0.12em] transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[12.5px] font-medium transition-all ${
                 isActive
-                  ? "border-transparent"
-                  : "border-black/[.07] bg-transparent text-zinc-400 hover:border-black/[.14] hover:text-zinc-700"
+                  ? "bg-white text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.06)] ring-1 ring-black/[.06]"
+                  : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              {isActive && (
-                <span
-                  className="absolute left-3 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full"
-                  style={{ background: accents[i] }}
-                />
-              )}
-              <span className={isActive ? "pl-4" : ""}>{tab.label}</span>
+              <span className="h-1.5 w-1.5 rounded-full transition-colors" style={{ background: isActive ? accents[i] : "#d4d4d8" }} />
+              {tab.label}
             </button>
           );
         })}
@@ -3213,8 +3203,10 @@ export function LandingPage() {
 
           {/* ── Bridge: signals → decision (typographic, not a block) ── */}
           <FadeIn>
-            <section className="mx-auto max-w-4xl px-6 py-16 text-center">
-              <p className="font-sans font-semibold leading-snug tracking-tight text-zinc-900" style={{ fontSize: "clamp(1.4rem, 3vw, 2.15rem)" }}>
+            <section className="relative mx-auto max-w-5xl overflow-hidden px-6 py-24 text-center">
+              {/* Same net as the hero, spread wider, with the coloured comet lines running along it */}
+              <HeroNetBackdrop widthClass="w-[min(1180px,99vw)]" opacity={0.9} />
+              <p className="relative z-10 mx-auto max-w-4xl font-sans font-semibold leading-snug tracking-tight text-zinc-900" style={{ fontSize: "clamp(1.4rem, 3vw, 2.15rem)" }}>
                 Every signal already carries its{" "}
                 <span style={{ color: "#6f8068" }}>source</span>, a{" "}
                 <span style={{ color: "#a68762" }}>health read</span>, and the next step{" "}
