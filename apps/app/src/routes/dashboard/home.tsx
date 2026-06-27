@@ -413,57 +413,58 @@ export function HomePage() {
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
       <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          {/* Left — greeting + AI agents */}
           <div className="min-w-0">
             <div className="flex flex-col gap-1.5">
               <p className="home-section-kicker">{todayLabel}</p>
               <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
             </div>
-            <p className="home-section-copy mt-1 max-w-2xl">
-              Mondaily has reviewed the graph. Your next signals are ready.
-            </p>
-            {/* AI agents — clean, premium summary, front and centre in the welcome
-                area (moved out of the sidebar). Scrolls to the full constellation. */}
+            {/* AI agents — quiet summary; scrolls to the full constellation. */}
             <div className="mt-3">
               <AgentHeroStrip />
             </div>
           </div>
-          <div className="home-live-strip">
-            <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-            <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+
+          {/* Right — the signals/notification bar: tasks, pending, unread, overdue */}
+          <div className="flex flex-col gap-2 lg:items-end">
+            <div className="home-telemetry-strip">
+              <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
+              <Link to="/decisions"><FileText size={13}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
+              <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
+            </div>
+
+            {/* Anything that actually needs attention */}
+            {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 lg:justify-end">
+                {overdueCount > 0 && (
+                  <Link to="/tasks" state={{ filter: "overdue" }} className="attention-chip">
+                    <Clock size={11}/>
+                    {overdueCount} overdue assigned to you
+                  </Link>
+                )}
+                {urgentCount > 0 && (
+                  <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="attention-chip">
+                    <Flag size={11}/>
+                    {urgentCount} urgent
+                  </Link>
+                )}
+                {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
+                  <Link to="/notifications" className="attention-chip">
+                    <BellDot size={11}/>
+                    {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Ambient live signs */}
+            <div className="home-live-strip">
+              <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+            </div>
           </div>
         </div>
-
-        <div className="home-telemetry-strip mt-3">
-          <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
-          <Link to="/decisions"><FileText size={13}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
-          <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
-        </div>
-
-        {/* Anything that actually needs attention — kept separate from
-            the ambient live signs above so the two don't blur together. */}
-        {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
-          <div className="relative mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            {overdueCount > 0 && (
-              <Link to="/tasks" state={{ filter: "overdue" }} className="attention-chip">
-                <Clock size={11}/>
-                {overdueCount} overdue assigned to you
-              </Link>
-            )}
-            {urgentCount > 0 && (
-              <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="attention-chip">
-                <Flag size={11}/>
-                {urgentCount} urgent
-              </Link>
-            )}
-            {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-              <Link to="/notifications" className="attention-chip">
-                <BellDot size={11}/>
-                {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
-              </Link>
-            )}
-          </div>
-        )}
       </div>
 
       {showWorkspaceRecovery && populatedWorkspace && (
