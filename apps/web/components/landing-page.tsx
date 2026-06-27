@@ -1573,7 +1573,7 @@ function WorkspaceGraphPreview() {
         {/* RIGHT PANEL — MacBook-inspired terminal */}
         <div className="landing-terminal relative flex min-h-[460px] flex-col overflow-hidden rounded-2xl border border-white/10">
           {/* Title bar — traffic lights + window title */}
-          <div className="flex items-center border-b border-white/10 px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
+          <div className="flex items-center px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
             <span className="flex gap-2">
               <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f56" }} />
               <span className="h-3 w-3 rounded-full" style={{ background: "#ffbd2e" }} />
@@ -2505,7 +2505,7 @@ function AgentsSection() {
 
       <div className="relative overflow-hidden rounded-2xl border bg-[#050706] text-left text-white" style={{ borderColor: `${agent.accent}40` }}>
         {/* MacBook-inspired title bar */}
-        <div className="flex items-center border-b border-white/10 px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
+        <div className="flex items-center px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
           <span className="flex gap-2">
             <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f56" }} />
             <span className="h-3 w-3 rounded-full" style={{ background: "#ffbd2e" }} />
