@@ -209,7 +209,7 @@ export function AgentConstellationPanel() {
                     <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
                       <agent.icon size={11} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
                       {live && (
-                        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2" style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-page)" }}/>
+                        <span className="live-ping absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2" style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-page)" }}/>
                       )}
                     </span>
                     <span className="max-w-[8.5rem] truncate text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
@@ -256,10 +256,15 @@ export function AgentHeroStrip() {
       <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
       {live.length > 0 && (
         <span className="flex flex-wrap items-center gap-1.5">
-          {live.map((a, i) => (
-            <span key={a.id} title={a.name} className="live-dot"
-              style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}/>
-          ))}
+          {live.map((a) => {
+            // Colour by the agent's index in the FULL constellation, so each agent's
+            // dot matches its colour in the Live-operations Agent Constellation.
+            const idx = constellation.findIndex(c => c.id === a.id);
+            return (
+              <span key={a.id} title={a.name} className="live-dot"
+                style={{ background: AGENT_DOT_PALETTE[(idx < 0 ? 0 : idx) % AGENT_DOT_PALETTE.length] }}/>
+            );
+          })}
         </span>
       )}
     </a>

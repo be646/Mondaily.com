@@ -413,6 +413,17 @@ html[data-theme="dark"] .minimal-sparkline {
   70%, 100% { transform: scale(2.6); opacity: 0;   }
 }
 
+/* Ping-only helper — adds the live pulse ring to an already-styled dot (e.g. the
+   Agent Constellation indicator) without changing its size/position. */
+.live-ping::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: liveDotPing 1.9s ease-out infinite;
+}
+
 .chat-input-bar {
   min-height: 4.35rem;
 }
