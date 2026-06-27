@@ -304,46 +304,10 @@ function RotatingWord({ words }: { words: string[] }) {
   );
 }
 
-const FEATURE_TERMINAL_LINES = [
-  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "graph", color: "#8fb3b0" }, { text: " → ", color: "#7c8379" }, { text: "connect messy records", color: "#d7c6a3" }],
-  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "enrich", color: "#a68762" }, { text: " → ", color: "#7c8379" }, { text: "attach web-backed fields", color: "#d7c6a3" }],
-  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "signal", color: "#8fb3b0" }, { text: " → ", color: "#7c8379" }, { text: "explain changed records", color: "#d7c6a3" }],
-  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "draft", color: "#a07164" }, { text: " → ", color: "#7c8379" }, { text: "prepare tasks and messages", color: "#d7c6a3" }],
-  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "monitor", color: "#607078" }, { text: " → ", color: "#7c8379" }, { text: "watch finance and decisions", color: "#d7c6a3" }],
-  [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "prospect", color: "#6f8068" }, { text: " → ", color: "#7c8379" }, { text: "discover sourced candidates", color: "#d7c6a3" }],
-];
-
-// Colored automation-flow cards — replaces a third terminal; each op has its own
-// saturated accent so the section reads alive, and a glow flows through them.
-const AUTOMATION_OPS: { verb: string; icon: string; color: string; outcome: string }[] = [
-  { verb: "graph",    icon: "◈", color: "#5f9e8f", outcome: "Connect messy records into one graph" },
-  { verb: "enrich",   icon: "◆", color: "#c08a3e", outcome: "Attach web-backed fields to every record" },
-  { verb: "signal",   icon: "◎", color: "#4f9bc4", outcome: "Explain what changed and why it matters" },
-  { verb: "draft",    icon: "✎", color: "#c76b78", outcome: "Prepare tasks and messages, sourced" },
-  { verb: "monitor",  icon: "◑", color: "#7b6fb0", outcome: "Watch finance and decisions continuously" },
-  { verb: "prospect", icon: "✦", color: "#5fa05f", outcome: "Discover new candidates with real sources" },
-];
 
 function FeatureSection() {
   const [active, setActive] = useState<string | null>(null);
-  const [operationIdx, setOperationIdx] = useState(0);
-  const [typedChars, setTypedChars] = useState(0);
   const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
-
-  const activeLineLength = FEATURE_TERMINAL_LINES[operationIdx]!.reduce((s, seg) => s + seg.text.length, 0);
-
-  useEffect(() => {
-    const t = setInterval(() => setOperationIdx(i => (i + 1) % FEATURE_TERMINAL_LINES.length), 1800);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    setTypedChars(0);
-    const t = setInterval(() => {
-      setTypedChars(c => (c < activeLineLength ? c + 1 : c));
-    }, 28);
-    return () => clearInterval(t);
-  }, [operationIdx, activeLineLength]);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20">
@@ -408,56 +372,6 @@ function FeatureSection() {
             })}
           </div>
         ))}
-      </div>
-
-      {/* What Mondaily does automatically — a live automation flow of colored
-          cards (a different technique than the terminals elsewhere). The active
-          op glows and a highlight sweeps through it, cycling down the pipeline. */}
-      <div className="rounded-2xl border border-black/[.06] bg-gradient-to-b from-zinc-50/70 to-white p-6 sm:p-7">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-[#7c9a6f]">What Mondaily does automatically</p>
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-400">
-            <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-[#5f9e8f]" />
-            live
-          </span>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {AUTOMATION_OPS.map((op, i) => {
-            const on = i === operationIdx;
-            return (
-              <motion.div
-                key={op.verb}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.35, delay: i * 0.05 }}
-                className="relative overflow-hidden rounded-xl border p-4 transition-all duration-300"
-                style={{
-                  borderColor: on ? `${op.color}66` : "rgba(0,0,0,0.06)",
-                  background: on ? `linear-gradient(150deg, ${op.color}16, ${op.color}05)` : "white",
-                  boxShadow: on ? `0 12px 28px -16px ${op.color}90` : "0 1px 2px rgba(0,0,0,0.03)",
-                }}
-              >
-                {on && (
-                  <motion.span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-y-0 w-1/3"
-                    style={{ background: `linear-gradient(90deg, transparent, ${op.color}24, transparent)` }}
-                    initial={{ left: "-40%" }}
-                    animate={{ left: ["-40%", "120%"] }}
-                    transition={{ duration: 1.7, repeat: Infinity, ease: "linear" }}
-                  />
-                )}
-                <div className="relative flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg text-[12px]" style={{ background: `${op.color}1f`, color: op.color }}>{op.icon}</span>
-                  <span className="font-mono text-[13px] font-semibold lowercase" style={{ color: op.color }}>{op.verb}</span>
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full transition-all" style={{ background: on ? op.color : "#d4d4d8", boxShadow: on ? `0 0 0 3px ${op.color}28` : "none" }} />
-                </div>
-                <p className="relative mt-2 text-[12.5px] leading-snug text-zinc-600">{op.outcome}</p>
-              </motion.div>
-            );
-          })}
-        </div>
       </div>
 
       {/* Integrations strip */}
