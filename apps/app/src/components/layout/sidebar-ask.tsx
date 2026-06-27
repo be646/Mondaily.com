@@ -6,9 +6,8 @@ import { getThreads, saveThreads, loadThreadsFromServer, deleteThreadFromServer,
 export function SidebarAsk() {
   const location = useLocation();
   const [threads, setThreads] = useState<ChatThread[]>([]);
-  // Quiet by default — chat history opens on demand instead of always
-  // listing up to 10 prior threads permanently in the sidebar.
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // Open by default — consistent with the other sidebar sections.
+  const [historyOpen, setHistoryOpen] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const CAP = 6;
 
@@ -50,7 +49,7 @@ export function SidebarAsk() {
         <div key={t.id} className="group relative flex items-center">
           <Link
             to={`/ask/${t.id}`}
-            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors truncate ${location.pathname === `/ask/${t.id}` ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"}`}
+            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-[15px] transition-colors truncate ${location.pathname === `/ask/${t.id}` ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"}`}
           >
             <MessageCircle size={12} className="shrink-0"/>
             <span className="truncate">{t.title}</span>

@@ -16,9 +16,8 @@ function objectIcon(slug: string) {
 
 export function SidebarObjects() {
   const location = useLocation();
-  // Quiet by default — opens on demand instead of always listing every
-  // object type permanently in the sidebar.
-  const [open, setOpen] = useState(false);
+  // Open by default — consistent with the other sidebar sections.
+  const [open, setOpen] = useState(true);
   const query = useQuery({
     queryKey: ["sidebar-objects"],
     queryFn: () => apiClient.get<ObjectDefinition[]>("/objects"),
@@ -45,7 +44,7 @@ export function SidebarObjects() {
               <Link
                 key={obj.id}
                 to={`/objects/${obj.slug}`}
-                className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[15px] transition-colors ${
                   active
                     ? "font-medium text-stone-950 dark:text-stone-50"
                     : "text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"

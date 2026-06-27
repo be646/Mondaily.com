@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Sidebar } from "../../components/layout/sidebar";
+import { Sidebar, GettingStarted } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
 import { CommandPalette } from "../../components/ui/command-palette";
@@ -9,7 +9,7 @@ import { apiClient } from "../../lib/api-client";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
-  List, Building2, TrendingUp, type LucideIcon,
+  List, Building2, TrendingUp, Activity, type LucideIcon,
 } from "lucide-react";
 
 // ─── Page icon + label derived from current path ─────────────────────────────
@@ -149,6 +149,15 @@ export function DashboardLayout() {
               <span>Search…</span>
               <kbd className="rounded border px-1 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)", background: "transparent" }}>⌘K</kbd>
             </button>
+            {/* Status — quick access icon in the top bar */}
+            <Link
+              to="/status"
+              title="System status"
+              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
+              style={{ color: "var(--text-faint)" }}
+            >
+              <Activity size={15}/>
+            </Link>
             {/* Page-specific action buttons are portaled here by sub-pages */}
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
           </div>
@@ -161,6 +170,7 @@ export function DashboardLayout() {
 
       <QuickActions />
       <CommandPalette />
+      <GettingStarted />
       <MobileNav />
     </div>
   );

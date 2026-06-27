@@ -20,36 +20,41 @@ import { SidebarAsk } from "./sidebar-ask";
 // "Finance" only appears here when the module is enabled — otherwise its
 // slot is "Reports" so the main nav never shows a field-specific label for
 // a module that isn't on. ──────────────────────────────────────────────────
-const PRIMARY_NAV: { to: string; label: string; icon: React.ElementType }[] = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/ask/new", label: "Ask", icon: MessageCircle },
-  { to: "/search", label: "Graph", icon: GitBranch },
-  { to: "/tasks", label: "Tasks", icon: CheckSquare },
-  { to: "/decisions", label: "Decisions", icon: ShieldCheck },
-  { to: "/automations", label: "Automations", icon: Activity },
-  { to: "/reports", label: "Reports", icon: BarChart2 },
+// Each page gets a quiet, matte, natural tint for its icon — desaturated earthy
+// tones that sit calmly on both light and dark, so the nav reads as colour-coded
+// without ever feeling loud.
+type NavEntry = { to: string; label: string; icon: React.ElementType; tint: string };
+
+const PRIMARY_NAV: NavEntry[] = [
+  { to: "/home", label: "Home", icon: Home, tint: "#b08968" },          // warm taupe
+  { to: "/ask/new", label: "Ask", icon: MessageCircle, tint: "#8b7fb0" }, // muted violet
+  { to: "/search", label: "Graph", icon: GitBranch, tint: "#6f9c97" },   // muted teal
+  { to: "/tasks", label: "Tasks", icon: CheckSquare, tint: "#7fa37f" },  // sage
+  { to: "/decisions", label: "Decisions", icon: ShieldCheck, tint: "#7f93b0" }, // slate blue
+  { to: "/automations", label: "Automations", icon: Activity, tint: "#8a86b8" }, // muted indigo
+  { to: "/reports", label: "Reports", icon: BarChart2, tint: "#6f9aa3" }, // muted cyan
 ];
 
 // ─── Workspace — daily-use surfaces, kept FLAT (no click to reveal). Canvas
 // lives here too, so there's no longer a second "Automation" group that holds
 // only Canvas (which read as a duplicate of the primary "Automations" item).
-const WORKSPACE_NAV: { to: string; label: string; icon: React.ElementType }[] = [
-  { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/notes",  label: "Notes",  icon: FileText },
-  { to: "/emails", label: "Emails", icon: Mail },
-  { to: "/calls",  label: "Calls",  icon: Phone },
-  { to: "/canvas", label: "Canvas", icon: Layers },
+const WORKSPACE_NAV: NavEntry[] = [
+  { to: "/notifications", label: "Notifications", icon: Bell, tint: "#c2a06b" }, // muted amber
+  { to: "/notes",  label: "Notes",  icon: FileText, tint: "#9a9a8f" },           // warm grey
+  { to: "/emails", label: "Emails", icon: Mail, tint: "#b08a90" },               // muted rose
+  { to: "/calls",  label: "Calls",  icon: Phone, tint: "#7faa92" },              // muted green
+  { to: "/canvas", label: "Canvas", icon: Layers, tint: "#9b86b0" },            // muted purple
 ];
 
 // ─── Finance — the one genuinely large set, so it stays a collapsible group.
 // Only rendered when the Finance module is on. (Reports lives in the primary nav.)
-const FINANCE_NAV: { to: string; label: string; icon: React.ElementType }[] = [
-  { to: "/finance/invoices",     label: "Invoices",        icon: Receipt        },
-  { to: "/finance/credit-notes", label: "Credit Notes",    icon: ReceiptText    },
-  { to: "/finance/quotes",       label: "Quotes",          icon: FileSignature  },
-  { to: "/finance/expenses",     label: "Expenses",        icon: Wallet         },
-  { to: "/finance/reports",      label: "Finance Reports", icon: TrendingUp     },
-  { to: "/approvals",            label: "Approvals",       icon: ShieldCheck    },
+const FINANCE_NAV: NavEntry[] = [
+  { to: "/finance/invoices",     label: "Invoices",        icon: Receipt,       tint: "#a3946b" }, // gold
+  { to: "/finance/credit-notes", label: "Credit Notes",    icon: ReceiptText,   tint: "#9c8478" }, // clay
+  { to: "/finance/quotes",       label: "Quotes",          icon: FileSignature, tint: "#7f93b0" }, // slate
+  { to: "/finance/expenses",     label: "Expenses",        icon: Wallet,        tint: "#84a37f" }, // sage
+  { to: "/finance/reports",      label: "Finance Reports", icon: TrendingUp,    tint: "#6f9aa3" }, // cyan
+  { to: "/approvals",            label: "Approvals",       icon: ShieldCheck,   tint: "#8a86b8" }, // indigo
 ];
 
 // ─── Getting Started checklist ────────────────────────────────────────────────
@@ -165,38 +170,37 @@ export function GettingStarted() {
 
   if (dismissed || doneCount === total) return null;
 
+  // Floating, dismissible — it's a temporary aid for new users, so it lives as a
+  // FAB at the bottom-right of the app rather than taking permanent sidebar space.
   return (
-    <div className="shrink-0 px-2 pb-1">
-      <div className={open ? "rounded-xl overflow-hidden" : ""} style={open ? { background: "var(--surface-card)", border: "1px solid var(--border-soft)" } : undefined}>
-        {/* Checklist — slides open inside the card itself, same bg */}
-        {open && (
-          <div className="px-2 pt-1.5 pb-0 max-h-[320px] overflow-y-auto sidebar-scroll space-y-px">
+    <div className="fixed bottom-5 right-5 z-[200] flex flex-col items-end">
+      {open && (
+        <div className="mb-3 w-72 overflow-hidden rounded-2xl border shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+          <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+            <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Getting started</span>
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{doneCount}/{total} done</span>
+          </div>
+          <div className="mx-4 mb-1 h-1 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+            <div className="h-full rounded-full bg-stone-950 transition-all duration-500 dark:bg-stone-50" style={{ width: `${pct}%` }}/>
+          </div>
+          <div className="max-h-[300px] space-y-px overflow-y-auto px-2 py-2 sidebar-scroll">
             {CHECKLIST.map(item => {
               const checked = done.has(item.id);
               const hovered = hoverId === item.id;
               return (
-                <div
-                  key={item.id}
-                  className="relative"
-                  onMouseEnter={() => setHoverId(item.id)}
-                  onMouseLeave={() => setHoverId(null)}
-                >
+                <div key={item.id} className="relative" onMouseEnter={() => setHoverId(item.id)} onMouseLeave={() => setHoverId(null)}>
                   <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-stone-100 dark:bg-white/[.06]" : ""}`}>
                     <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-stone-950 border-stone-950 dark:bg-stone-50 dark:border-stone-50" : "border-stone-300 dark:border-stone-800"}`}>
                       {checked && <Check size={7} className="text-white dark:text-black" strokeWidth={3.5}/>}
                     </div>
                     <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
-                      <span className={`text-[11px] leading-tight ${checked ? "line-through text-stone-400 dark:text-white/20" : "text-stone-600 dark:text-white/55"}`}>
-                        {item.label}
-                      </span>
+                      <span className={`text-[12px] leading-tight ${checked ? "line-through text-stone-400 dark:text-white/20" : "text-stone-600 dark:text-white/70"}`}>{item.label}</span>
                     </Link>
                   </div>
-
-                  {/* Tooltip — pops right */}
+                  {/* Tooltip — pops left (FAB is on the right edge) */}
                   {hovered && !checked && (
-                    <div className="absolute left-full top-0 z-[210] ml-2.5 w-56 pointer-events-none">
-                      <div className="absolute -left-[7px] top-2.5 h-3 w-3 rotate-45 border-l border-t border-stone-200 bg-white dark:border-stone-800 dark:bg-black"/>
-                      <div className="rounded-xl border border-stone-200 bg-white px-3 py-3 shadow-none dark:border-stone-800 dark:bg-black">
+                    <div className="absolute right-full top-0 z-[210] mr-2.5 w-56 pointer-events-none">
+                      <div className="rounded-xl border border-stone-200 bg-white px-3 py-3 shadow-lg dark:border-stone-800 dark:bg-black">
                         <div className="text-[12px] font-semibold text-[#111827] dark:text-white mb-1.5">{item.label}</div>
                         <div className="text-[11px] text-stone-500 dark:text-white/40 leading-relaxed">{item.hint}</div>
                         <div className="mt-2.5 text-[10px] font-semibold text-stone-950 dark:text-stone-50">→ Go there</div>
@@ -206,36 +210,27 @@ export function GettingStarted() {
                 </div>
               );
             })}
-
-            {/* Dismiss */}
-            <div className="border-t border-stone-200 mt-1 px-1 py-2 flex items-center justify-between dark:border-stone-900">
-              <span className="text-[10px] text-stone-400 dark:text-white/20">Auto-detected · updates live</span>
-              <button onClick={dismiss} className="text-[10px] font-semibold text-stone-500 hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50 transition-colors">
-                Mark all done
-              </button>
-            </div>
           </div>
-        )}
-
-        {/* Header — a quiet single line, same weight as a nav item, so it
-            never competes visually with Home/Tasks/etc. above it. */}
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors surface-hover"
-        >
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>
-          <span className="flex-1 text-left text-[11px]" style={{ color: "var(--text-faint)" }}>
-            Getting started · {doneCount}/{total}
-          </span>
-          <ChevronDown size={10} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
-        </button>
-
-        {open && (
-          <div className="mx-3 mb-2.5 mt-1 h-px rounded-full bg-stone-200 overflow-hidden dark:bg-stone-900">
-            <div className="h-full rounded-full bg-stone-950 transition-all duration-500 dark:bg-stone-50" style={{ width: `${pct}%` }}/>
+          <div className="flex items-center justify-between border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+            <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>Auto-detected · updates live</span>
+            <button onClick={dismiss} className="text-[10px] font-semibold text-stone-500 hover:text-stone-950 dark:text-stone-600 dark:hover:text-stone-50 transition-colors">Dismiss</button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* The floating button — a progress ring + label */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="group flex items-center gap-2.5 rounded-full border px-4 py-2.5 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.35)] transition-all hover:-translate-y-0.5"
+        style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}
+      >
+        <span className="relative flex h-5 w-5 items-center justify-center rounded-full" style={{ background: `conic-gradient(var(--accent) ${pct}%, var(--surface-hover) ${pct}%)` }}>
+          <span className="absolute inset-[3px] rounded-full" style={{ background: "var(--surface-card)" }}/>
+          <span className="relative text-[8px] font-bold" style={{ color: "var(--text-secondary)" }}>{doneCount}</span>
+        </span>
+        <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Getting started</span>
+        <ChevronDown size={12} className={`transition-transform ${open ? "" : "rotate-180"}`} style={{ color: "var(--text-faint)" }}/>
+      </button>
     </div>
   );
 }
@@ -266,20 +261,23 @@ function Logo({ size = 24 }: { size?: number }) {
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
 function NavItem({
-  to, label, icon: Icon, collapsed, badge,
-}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number }) {
+  to, label, icon: Icon, collapsed, badge, tint,
+}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string }) {
   const location = useLocation();
   const active = location.pathname.startsWith(to);
+  // Matte per-page tint: the icon carries a quiet natural colour. When the row is
+  // active it goes full-strength; otherwise it's softened so the nav stays calm.
+  const iconColor = tint ? (active ? tint : `color-mix(in srgb, ${tint} 70%, var(--text-faint))`) : undefined;
 
   if (collapsed) {
     return (
       <Link
         to={to}
         title={label}
-        className={`mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "text-stone-950 dark:text-stone-50" : "text-stone-500 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-200"}`}
+        className={`mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "text-stone-950 dark:text-stone-50" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
       >
         {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
-        <Icon size={14}/>
+        <Icon size={16} style={{ color: iconColor }}/>
         {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-stone-950 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 9 ? "9+" : badge}</span>}
       </Link>
     );
@@ -287,10 +285,10 @@ function NavItem({
   return (
     <Link
       to={to}
-      className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[14px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-400 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
+      className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
     >
       {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
-      <Icon size={15} className={active ? "text-stone-950 dark:text-stone-50" : "text-stone-400 dark:text-stone-600"}/>
+      <Icon size={16} style={{ color: iconColor }}/>
       {label}
       {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-stone-950 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 99 ? "99+" : badge}</span>}
     </Link>
@@ -313,15 +311,17 @@ function SectionLabel({ label }: { label: string }) {
 // route lives inside it.
 function NavGroup({ label, items, unreadCount }: {
   label: string;
-  items: { to: string; label: string; icon: React.ElementType }[];
+  items: NavEntry[];
   unreadCount: number;
 }) {
   const location = useLocation();
   const hasActive = items.some(i => location.pathname.startsWith(i.to));
   const storeKey = `sb_group_${label}`;
+  // Consistent with the other sidebar sections: open by default, and remembers
+  // if you choose to collapse it.
   const [open, setOpen] = useState<boolean>(() => {
     const saved = localStorage.getItem(storeKey);
-    return saved === null ? hasActive : saved === "1";
+    return saved === null ? true : saved === "1";
   });
   useEffect(() => { if (hasActive) setOpen(true); }, [hasActive]);
   const toggle = () => setOpen(o => { localStorage.setItem(storeKey, o ? "0" : "1"); return !o; });
@@ -521,10 +521,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </Link>
           ) : (
             <div className="overflow-hidden">
-              {/* Getting started — lives here, just above the trial, instead of
-                  competing with the nav up top */}
-              <GettingStarted />
-
               {/* Trial row */}
               <div className="flex items-center justify-between border-b border-stone-200 px-1 py-2 dark:border-stone-800">
                 <div>
@@ -561,12 +557,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <Link to="/settings/members" className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
                 <Users size={13} style={{ color: "var(--text-faint)" }}/>
                 <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>Invite members</span>
-              </Link>
-
-              {/* Status — quiet footer link */}
-              <Link to="/status" className="flex items-center gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
-                <Activity size={13} style={{ color: "var(--text-faint)" }}/>
-                <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>Status</span>
               </Link>
             </div>
           )}

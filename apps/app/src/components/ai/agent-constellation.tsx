@@ -250,21 +250,21 @@ export function AgentHeroStrip() {
   return (
     <a
       href="#agents"
-      className="agent-hero-pill group inline-flex items-center gap-3 rounded-full px-3.5 py-2 transition-all"
+      className="agent-hero-pill group inline-flex items-center gap-2 rounded-full px-2.5 py-1 transition-all"
       style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}
     >
-      <span className="flex items-center -space-x-1.5">
-        {constellation.slice(0, 5).map((a, i) => {
+      <span className="flex items-center -space-x-1">
+        {constellation.slice(0, 4).map((a, i) => {
           const liveDot = isLiveState(a.state);
           return (
             <span
               key={a.id}
-              className="relative inline-flex h-3 w-3 items-center justify-center rounded-full"
-              style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)", boxShadow: "0 0 0 2px var(--surface-card)" }}
+              className="relative inline-flex h-2 w-2 items-center justify-center rounded-full"
+              style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)", boxShadow: "0 0 0 1.5px var(--surface-card)" }}
             >
               {liveDot && (
                 <motion.span
-                  animate={{ opacity: [0.4, 0.85, 0.4], scale: [1, 1.6, 1] }}
+                  animate={{ opacity: [0.4, 0.85, 0.4], scale: [1, 1.7, 1] }}
                   transition={{ duration: 2, repeat: Infinity, delay: i * 0.25 }}
                   className="absolute inset-0 rounded-full"
                   style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}
@@ -274,13 +274,10 @@ export function AgentHeroStrip() {
           );
         })}
       </span>
-      <span className="flex items-baseline gap-1.5 leading-none">
-        <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>AI agents</span>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {constellation.length} · {live.length > 0 ? `${live.length} active` : "all quiet"}
-        </span>
+      <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+        AI agents · <span style={{ color: "var(--text-faint)" }}>{live.length > 0 ? `${live.length} active` : "quiet"}</span>
       </span>
-      <ArrowUpRight size={13} className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--text-muted)" }}/>
+      <ArrowUpRight size={11} className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--text-muted)" }}/>
     </a>
   );
 }
