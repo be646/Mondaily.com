@@ -279,18 +279,20 @@ export function SidebarAgents() {
   if (isLoading || !constellation.length) return null;
   const live = constellation.filter(a => isLiveState(a.state));
   return (
-    <Link to="/home#agents" className="flex items-center gap-2 pb-2.5 pl-[46px] pr-3 -mt-1">
-      <span className="text-[10px] font-medium" style={{ color: "var(--text-faint)" }}>AI agents</span>
-      <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length}</span>
+    <Link to="/home#agents" className="block rounded-lg px-1.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>AI agents</span>
+        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
+      </div>
       {live.length > 0 && (
-        <span className="ml-auto flex flex-wrap items-center justify-end gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {live.map((a) => {
             const idx = constellation.findIndex(c => c.id === a.id);
             const color = AGENT_DOT_PALETTE[(idx < 0 ? 0 : idx) % AGENT_DOT_PALETTE.length];
             return <span key={a.id} title={a.name} className="h-1.5 w-1.5 rounded-full"
               style={{ background: `color-mix(in srgb, ${color} 55%, var(--text-muted))` }}/>;
           })}
-        </span>
+        </div>
       )}
     </Link>
   );

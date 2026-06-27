@@ -420,22 +420,19 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             className={`flex w-full items-center gap-2.5 px-3 py-3 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900 ${collapsed ? "justify-center" : ""}`}
           >
             {workspaceLogo
-              ? <img src={workspaceLogo} alt={workspaceName} className="h-6 w-6 rounded-md object-cover shrink-0"/>
-              : <Logo size={24}/>
+              ? <img src={workspaceLogo} alt={workspaceName} className="h-7 w-7 rounded-md object-cover shrink-0"/>
+              : <Logo size={28}/>
             }
             {!collapsed && (
               <>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="truncate text-[13px] font-semibold text-stone-950 dark:text-stone-50 leading-tight">{workspaceName}</div>
-                  <div className="text-[10px] text-stone-400 dark:text-stone-600">Pro workspace</div>
+                  <div className="truncate text-[14px] font-semibold text-stone-950 dark:text-stone-50 leading-tight">{workspaceName}</div>
+                  <div className="text-[11px] text-stone-400 dark:text-stone-600">Pro workspace</div>
                 </div>
-                <ChevronsUpDown size={11} className="text-stone-400 dark:text-stone-700 shrink-0"/>
+                <ChevronsUpDown size={12} className="text-stone-400 dark:text-stone-700 shrink-0"/>
               </>
             )}
           </button>
-
-          {/* AI agents — inside the workspace box, under the name / Pro line */}
-          {!collapsed && <SidebarAgents />}
 
           {workspaceOpen && !collapsed && (
             <>
@@ -469,6 +466,13 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </>
           )}
         </div>
+
+        {/* AI agents — its own section, split from the workspace header */}
+        {!collapsed && (
+          <div className="shrink-0 border-b border-stone-200 px-2 py-2 dark:border-stone-800">
+            <SidebarAgents />
+          </div>
+        )}
 
         {/* Quick Action — frozen above the scroll area, always visible */}
         {!collapsed && (
