@@ -2260,7 +2260,7 @@ function InvoiceDemo() {
         <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white" style={{ background: "#0f172a" }}>+ New invoice</span>
       </div>
       <div className="flex items-center gap-1 border-b border-zinc-100 px-4 py-2">
-        {[["all", "All"], ["draft", "Draft"], ["sent", "Sent"], ["paid", "Paid"], ["overdue", "Overdue"]].map(([k, l]) => (
+        {([["all", "All"], ["draft", "Draft"], ["sent", "Sent"], ["paid", "Paid"], ["overdue", "Overdue"]] as const).map(([k, l]) => (
           <button key={k} onClick={() => setFilter(k)} className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${filter === k ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-800"}`}>{l}</button>
         ))}
       </div>
