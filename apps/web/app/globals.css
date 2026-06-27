@@ -489,59 +489,69 @@ body {
   color: var(--landing-text) !important;
 }
 
-/* ── Hero animated terminal-grid backdrop ─────────────────────────────────────
-   A subtle grid of terminal blocks behind the hero text: each block fades in/out
-   on its own stagger, thin scan-lines travel in mixed directions, soft multi-colour
-   shades, radial-masked so it only glows behind the text and fades at the edges. */
-.hero-backdrop {
-  width: min(880px, 94vw);
-  height: 440px;
-  opacity: 0.5;
-  -webkit-mask-image: radial-gradient(ellipse 58% 62% at 50% 46%, #000 0%, rgba(0,0,0,0.55) 52%, transparent 78%);
-  mask-image: radial-gradient(ellipse 58% 62% at 50% 46%, #000 0%, rgba(0,0,0,0.55) 52%, transparent 78%);
-}
-.hero-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 64px;
-  gap: 12px;
-  width: 100%;
-  height: 100%;
-}
-.hero-cell {
-  position: relative;
-  border-radius: 9px;
-  border: 1px solid color-mix(in srgb, var(--c) 24%, transparent);
-  background: color-mix(in srgb, var(--c) 5%, transparent);
-  box-shadow: inset 0 0 14px color-mix(in srgb, var(--c) 7%, transparent);
-  overflow: hidden;
-  opacity: 0;
-  animation: heroCellPulse 6.5s ease-in-out infinite;
-  animation-delay: var(--d);
-}
-.hero-cell::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  animation-duration: 5s;
-  animation-iteration-count: infinite;
-  animation-timing-function: linear;
-  animation-delay: var(--sd);
-}
-.hero-cell-0::after { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 55%, transparent), transparent); animation-name: heroScanX; }
-.hero-cell-1::after { background: linear-gradient(270deg, transparent, color-mix(in srgb, var(--c) 55%, transparent), transparent); animation-name: heroScanXrev; }
-.hero-cell-2::after { background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--c) 55%, transparent), transparent); animation-name: heroScanY; }
-@keyframes heroCellPulse { 0%, 100% { opacity: 0; } 35%, 62% { opacity: 1; } }
-@keyframes heroScanX { 0% { transform: translateX(-110%); } 55%, 100% { transform: translateX(110%); } }
-@keyframes heroScanXrev { 0% { transform: translateX(110%); } 55%, 100% { transform: translateX(-110%); } }
-@keyframes heroScanY { 0% { transform: translateY(-110%); } 55%, 100% { transform: translateY(110%); } }
-@media (prefers-reduced-motion: reduce) {
-  .hero-cell, .hero-cell::after { animation: none; }
-  .hero-cell { opacity: 0.45; }
-}
+
 
 /* Agent terminal log — fade older lines as they scroll up off the top */
 .agent-log {
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24%, #000 100%);
   mask-image: linear-gradient(180deg, transparent 0, #000 24%, #000 100%);
+}
+
+/* ── Hero net backdrop — faint grid with colour traces running along it (x.ai) ── */
+.hero-net {
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
+  background-size: 60px 60px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 44%, #000 28%, transparent 82%);
+  mask-image: radial-gradient(ellipse 72% 70% at 50% 44%, #000 28%, transparent 82%);
+}
+.landing-shell.dark .hero-net {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+/* horizontal trace — runs left → right along a grid row */
+.hero-snake-x {
+  position: absolute;
+  left: -180px;
+  height: 2px;
+  width: 180px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 85%, transparent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent);
+  opacity: 0;
+  animation-name: snakeX;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+/* vertical trace — runs top → bottom along a grid column */
+.hero-snake-y {
+  position: absolute;
+  top: -180px;
+  width: 2px;
+  height: 180px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--c) 85%, transparent));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent);
+  opacity: 0;
+  animation-name: snakeY;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes snakeX {
+  0% { transform: translateX(0); opacity: 0; }
+  8% { opacity: 0.85; }
+  90% { opacity: 0.85; }
+  100% { transform: translateX(calc(100vw + 360px)); opacity: 0; }
+}
+@keyframes snakeY {
+  0% { transform: translateY(0); opacity: 0; }
+  8% { opacity: 0.85; }
+  90% { opacity: 0.85; }
+  100% { transform: translateY(calc(100vh + 360px)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-snake-x, .hero-snake-y { animation: none; opacity: 0; }
 }

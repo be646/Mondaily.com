@@ -1141,28 +1141,32 @@ function AutomationFlow() {
 }
 
 // ── Email signup ──────────────────────────────────────────────────────────────
-// ── Hero backdrop — a subtle animated terminal grid behind the hero text. Blocks
-// fade in/out on their own stagger; thin scan-lines travel in mixed directions;
-// soft multi-colour terminal shades; radial-masked so it only glows behind the
-// text and fades at the edges. Pure CSS keyframes for performance. ─────────────
-const HERO_CELL_COLORS = ["#9fb08f", "#8fb3b0", "#d7c6a3", "#c59a8d", "#6f8068", "#8b7fb0"];
-function HeroGridBackdrop() {
-  const cells = 42; // 7 cols × 6 rows
+// ── Hero backdrop — a faint full grid ("net") with thin colour traces that run
+// along the lines like snakes (x.ai-style). Radial-masked so it fades at the
+// edges. Pure CSS keyframes. ──────────────────────────────────────────────────
+const HERO_SNAKES: Array<{ axis: "x" | "y"; pos: string; color: string; dur: number; delay: number }> = [
+  { axis: "x", pos: "22%", color: "#9fb08f", dur: 9, delay: 0 },
+  { axis: "y", pos: "30%", color: "#8fb3b0", dur: 11, delay: 2.5 },
+  { axis: "x", pos: "58%", color: "#8b7fb0", dur: 10, delay: 4 },
+  { axis: "y", pos: "72%", color: "#c59a8d", dur: 12.5, delay: 1.2 },
+  { axis: "x", pos: "40%", color: "#7fa3b0", dur: 8.5, delay: 6.5 },
+  { axis: "y", pos: "50%", color: "#d7c6a3", dur: 13, delay: 3.4 },
+];
+function HeroNetBackdrop() {
   return (
-    <div aria-hidden className="hero-backdrop pointer-events-none absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2">
-      <div className="hero-grid">
-        {Array.from({ length: cells }).map((_, i) => (
-          <span
-            key={i}
-            className={`hero-cell hero-cell-${i % 3}`}
-            style={{
-              ["--c" as string]: HERO_CELL_COLORS[i % HERO_CELL_COLORS.length],
-              ["--d" as string]: `${((i * 0.53) % 5.5).toFixed(2)}s`,
-              ["--sd" as string]: `${((i * 0.83) % 4.5).toFixed(2)}s`,
-            } as React.CSSProperties}
-          />
-        ))}
-      </div>
+    <div aria-hidden className="hero-net pointer-events-none absolute inset-0">
+      {HERO_SNAKES.map((s, i) => (
+        <span
+          key={i}
+          className={`hero-snake hero-snake-${s.axis}`}
+          style={{
+            [s.axis === "x" ? "top" : "left"]: s.pos,
+            ["--c" as string]: s.color,
+            animationDuration: `${s.dur}s`,
+            animationDelay: `${s.delay}s`,
+          } as React.CSSProperties}
+        />
+      ))}
     </div>
   );
 }
@@ -3173,8 +3177,8 @@ export function LandingPage() {
 
         <main style={{ paddingTop: "64px", overflowX: "hidden" }}>
           {/* ── Hero ── */}
-          <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
-            <HeroGridBackdrop />
+          <section className="relative mx-auto max-w-6xl overflow-hidden px-6 pb-20 pt-16 text-center">
+            <HeroNetBackdrop />
             <div className="relative z-10 mx-auto max-w-3xl">
               <motion.div
                 initial={{ opacity: 0, y: 14 }}
