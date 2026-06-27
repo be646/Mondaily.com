@@ -171,7 +171,6 @@ export function HomePage() {
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
-  const prevLenRef = useRef(0);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -261,23 +260,18 @@ export function HomePage() {
   const recentThreads = getThreads().slice(0, 3);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ONE scroll only — on a new user turn, bring that message near the top so the
-  // answer has room to stream into view below it. NO auto-scroll during streaming:
-  // the answer starts at a fixed spot and the user scrolls to read more. This is
-  // what kills the "violent fall to the bottom". overflow-anchor:none stops the
-  // browser from auto-focusing the latest tokens.
+  // Bottom-anchored streaming: keep the newest line at the BOTTOM so the answer
+  // types upward (older text pushes up, the end stays visible). Instant set
+  // (scroll-behavior:auto) so there's no smooth-scroll tussle; only follows while
+  // a turn is active AND the user is near the bottom, so scrolling up to re-read
+  // isn't yanked. The unified element means the thinking→text swap no longer jumps.
   useEffect(() => {
     const el = messagesRef.current;
-    const last = messages[messages.length - 1];
-    if (el && messages.length > prevLenRef.current && last?.role === "user") {
-      requestAnimationFrame(() => {
-        const userEls = el.querySelectorAll<HTMLElement>('[data-role="user"]');
-        const lastUserEl = userEls[userEls.length - 1];
-        if (lastUserEl) el.scrollTop = Math.max(0, lastUserEl.offsetTop - 8);
-      });
-    }
-    prevLenRef.current = messages.length;
-  }, [messages]);
+    if (!el) return;
+    const active = loading || streamingMsgIdx !== null;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
+    if (active && nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
