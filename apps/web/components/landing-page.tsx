@@ -2244,9 +2244,12 @@ function ProcessTabsSection() {
   return (
     <section id="product" className="landing-process-tabs mx-auto max-w-6xl px-6 py-16">
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Product engine</p>
-      <h2 className="mb-8 font-sans font-semibold tracking-tight text-zinc-900">
+      <h2 className="mb-2 font-sans font-semibold tracking-tight text-zinc-900">
         Four processes, one graph
       </h2>
+      <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
+        From a new record landing to an invoice marked paid — the same graph carries the work and the agents run each step. Click through to watch it.
+      </p>
       <div className="mb-8 flex flex-wrap gap-2">
         {tabs.map((tab, i) => {
           const accents = ["#9fb08f", "#a68762", "#8fb3b0", "#a07164"];
@@ -2461,7 +2464,7 @@ function AgentsSection() {
         A team of agents, watching one graph
       </h2>
       <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
-        Each agent watches a slice of the graph. Click any tile to inspect what it sees, prepares, and routes for approval.
+        Twelve specialized agents each watch a slice of the graph — enriching, scoring, drafting, and monitoring in real time. Click any tile to inspect what it sees, prepares, and routes to your Decision Queue.
       </p>
 
       <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
@@ -3352,7 +3355,7 @@ export function LandingPage() {
 
                 {/* Subheading */}
                 <p className="mx-auto mb-7 max-w-xl text-[16px] leading-relaxed text-zinc-500">
-                  One living workspace graph. Agents watch, explain, and prepare the next move with sources.
+                  A living graph of everything your business knows — watched by a fleet of AI agents that enrich, score, and draft your next move in real time. Every action is source-backed, and nothing sends without your approval.
                 </p>
 
               </motion.div>
