@@ -380,15 +380,15 @@ function FeatureSection() {
         <div className="flex flex-wrap items-center gap-3">
           <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400 mr-1">Integrations ·</span>
           {([
-            { name: "Gmail", bg: "#EA4335", icon: <path fill="white" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/> },
-            { name: "Outlook", bg: "#0078D4", icon: <><rect x="1" y="2" width="13" height="20" rx="2" fill="white" opacity="0.9"/><circle cx="7.5" cy="12" r="4" fill="#0078D4"/><rect x="14" y="5" width="10" height="14" rx="1" fill="white" opacity="0.7"/><path d="M14 7l5 5-5 5" fill="none" stroke="white" strokeWidth="1.5"/></> },
-            { name: "Google Calendar", bg: "#1A73E8", icon: <><rect x="2" y="3" width="20" height="18" rx="2" fill="white" opacity="0.15" stroke="white" strokeWidth="1.5"/><rect x="2" y="3" width="20" height="6" rx="2" fill="white" opacity="0.3"/><text x="12" y="18" textAnchor="middle" fontFamily="Arial" fontWeight="800" fontSize="9" fill="white">31</text><line x1="7" y1="1" x2="7" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/><line x1="17" y1="1" x2="17" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></> },
-            { name: "Slack", bg: "#4A154B", icon: <path fill="white" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.123 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.166 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.166 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/> },
-            { name: "Zapier", bg: "#FF4A00", icon: <path fill="white" d="M13.617 11.997l5.247-5.248H19v-.003l.003.003L24 6.745v-4.49L19.008 2.25 13.753 7.5H13.5L10.24 7.49 15.75 2H11.25L6 7.5h-.247L.003 2.253 0 2.25v4.49l5 .009v.001h.247L0 12v4.5l5.25-.001L10.5 12h.253v.003L5.25 17.49v.003h-.003L.003 17.502 0 17.5V22l5.25.001L10.5 16.5h.253l3.255.009-5.508 5.509v-.001L8.25 22h4.5l5.25-5.5h.247l4.998.009.005-.009V22h.75v-4.5l-5.25-.009V17.49l5.25-5.49V7.5l-5.25 4.497h-.135Z"/> },
-            { name: "Typeform", bg: "#262627", icon: <><line x1="4" y1="5" x2="20" y2="5" stroke="white" strokeWidth="2.5" strokeLinecap="round"/><line x1="12" y1="5" x2="12" y2="19" stroke="white" strokeWidth="2.5" strokeLinecap="round"/></> },
-            { name: "Segment", bg: "#52BD94", icon: <path fill="white" d="M22 11h-1.032A9.004 9.004 0 0 0 13 3.032V2h-2v1.032A9.004 9.004 0 0 0 3.032 11H2v2h1.032A9.004 9.004 0 0 0 11 20.968V22h2v-1.032A9.004 9.004 0 0 0 20.968 13H22v-2zm-9 8a7 7 0 1 1 0-14 7 7 0 0 1 0 14zm4-8H13V7h-2v4H7v2h4v4h2v-4h4v-2z"/> },
-            { name: "Mailchimp", bg: "#FFE01B", icon: <path fill="#241C15" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2a7.2 7.2 0 0 1-6-3.22c.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08a7.2 7.2 0 0 1-6 3.22z"/> },
-          ] as { name: string; bg: string; icon: React.ReactNode }[]).map(item => (
+            { name: "Gmail", slug: "gmail", bg: "#EA4335" },
+            { name: "Outlook", slug: "microsoftoutlook", bg: "#0078D4" },
+            { name: "Google Calendar", slug: "googlecalendar", bg: "#1A73E8" },
+            { name: "Slack", slug: "slack", bg: "#4A154B" },
+            { name: "Zapier", slug: "zapier", bg: "#FF4A00" },
+            { name: "Typeform", slug: "typeform", bg: "#262627" },
+            { name: "Segment", slug: "segment", bg: "#52BD94" },
+            { name: "Mailchimp", slug: "mailchimp", bg: "#FFE01B", fg: "241C15" },
+          ] as { name: string; slug: string; bg: string; fg?: string }[]).map(item => (
             <div
               key={item.name}
               aria-label={item.name}
@@ -396,7 +396,15 @@ function FeatureSection() {
               className="flex items-center justify-center shrink-0"
               style={{ width: 36, height: 36, borderRadius: 9, background: item.bg }}
             >
-              <svg viewBox="0 0 24 24" width="18" height="18">{item.icon}</svg>
+              {/* Real brand glyphs from the official Simple Icons CDN */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://cdn.simpleicons.org/${item.slug}/${item.fg ?? "white"}`}
+                alt={item.name}
+                width={18}
+                height={18}
+                loading="lazy"
+              />
             </div>
           ))}
         </div>
@@ -1320,12 +1328,18 @@ function HeroPipelinePreview() {
 }
 
 const WORKSPACE_GRAPH_NODES = [
-  { label: "Graph Agent", x: 50, y: 25, color: "#9fb08f", detail: "Searches, links, and explains records" },
-  { label: "Enrichment Agent", x: 25, y: 50, color: "#8a8071", detail: "Adds sourced fields from the web" },
-  { label: "Relationship Agent", x: 75, y: 50, color: "#a68762", detail: "Watches follow-ups and relationship health" },
-  { label: "Finance Agent", x: 25, y: 76, color: "#a07164", detail: "Prepares invoice and credit-note actions" },
-  { label: "Operations Agent", x: 75, y: 76, color: "#6f8068", detail: "Finds overdue and stalled work" },
-  { label: "Ask AI", x: 50, y: 90, color: "#607078", detail: "Turns the graph into an ongoing conversation" },
+  { label: "Graph Agent", x: 17, y: 20, color: "#9fb08f", detail: "Searches, links, and explains records" },
+  { label: "Enrichment Agent", x: 50, y: 18, color: "#8a8071", detail: "Adds sourced fields from the web" },
+  { label: "Relationship Agent", x: 83, y: 20, color: "#a68762", detail: "Watches follow-ups and relationship health" },
+  { label: "Finance Agent", x: 15, y: 39, color: "#a07164", detail: "Prepares invoice and credit-note actions" },
+  { label: "Operations Agent", x: 50, y: 41, color: "#6f8068", detail: "Finds overdue and stalled work" },
+  { label: "Workflow Agent", x: 85, y: 39, color: "#607078", detail: "Runs multi-step automations on events" },
+  { label: "Prospecting Agent", x: 17, y: 59, color: "#5f9e8f", detail: "Finds new leads on the open web" },
+  { label: "Signal Agent", x: 50, y: 61, color: "#8fb3b0", detail: "Surfaces what changed and why it matters" },
+  { label: "Opportunity Agent", x: 83, y: 59, color: "#7b6fb0", detail: "Spots deals worth pursuing" },
+  { label: "People Agent", x: 15, y: 79, color: "#c08a3e", detail: "Keeps contacts and roles current" },
+  { label: "Portfolio Agent", x: 50, y: 81, color: "#4f9bc4", detail: "Tracks companies and holdings" },
+  { label: "Asset Agent", x: 85, y: 79, color: "#a8896c", detail: "Monitors assets and renewals" },
 ];
 
 const WORKSPACE_TERMINAL_ROWS: Array<{
@@ -1400,7 +1414,13 @@ const AGENT_ASK_PROMPTS = [
   "Which relationships have gone quiet or need a follow-up?",
   "Which invoices are overdue or need chasing right now?",
   "What tasks are stalled or overdue across the workspace?",
-  "What should I act on across the workspace today?",
+  "Which automations ran on the graph today?",
+  "What new leads were found on the web this week?",
+  "What changed across my accounts that I should know about?",
+  "Which open deals are worth pursuing right now?",
+  "Which contacts changed roles or need updating?",
+  "How are my portfolio companies trending?",
+  "Which assets or renewals are coming due soon?",
 ];
 
 function TerminalLine({
@@ -1554,7 +1574,7 @@ function WorkspaceGraphPreview() {
                   key={node.label}
                   type="button"
                   onClick={() => setActive(i)}
-                  className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border bg-white px-2 py-1 transition-all"
+                  className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border bg-white px-1.5 py-0.5 transition-all"
                   style={{
                     left: `${node.x}%`,
                     top: `${node.y}%`,
@@ -1575,7 +1595,7 @@ function WorkspaceGraphPreview() {
                       />
                     )}
                   </span>
-                  <span className="whitespace-nowrap text-[11px] font-medium" style={{ color: on ? "#27272a" : "#52525b" }}>{node.label.replace(" Agent", "")}</span>
+                  <span className="whitespace-nowrap text-[10px] font-medium" style={{ color: on ? "#27272a" : "#52525b" }}>{node.label.replace(" Agent", "")}</span>
                 </button>
               );
             })}
@@ -2491,8 +2511,17 @@ function AgentTerminalLog({ agent, slug }: { agent: (typeof AGENTS)[number]; slu
 
 function AgentsSection() {
   const [openIdx, setOpenIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
   const agent = AGENTS[openIdx]!;
   const slug = agent.name.toLowerCase().replace(" agent", "").replace(/\s+/g, "_");
+
+  // Auto-advance through the agents so the panel plays itself; hovering a tile
+  // pauses the rotation so the visitor can read.
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => setOpenIdx(i => (i + 1) % AGENTS.length), 2600);
+    return () => clearInterval(t);
+  }, [paused]);
 
   return (
     <section id="agents" className="relative mx-auto max-w-6xl px-6 py-16">
@@ -2501,7 +2530,7 @@ function AgentsSection() {
         A team of agents, watching one graph
       </h2>
       <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
-        Twelve specialized agents each watch a slice of the graph — enriching, scoring, drafting, and monitoring in real time. Click any tile to inspect what it sees, prepares, and routes to your Decision Queue.
+        Twelve specialized agents each watch a slice of the graph — enriching, scoring, drafting, and monitoring in real time. The panel cycles through them automatically; hover any tile to pause and inspect what it sees, prepares, and routes to your Decision Queue.
       </p>
 
       <div className="mb-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
@@ -2515,6 +2544,8 @@ function AgentsSection() {
               viewport={{ once: true, margin: "-40px" }}
               transition={{ duration: 0.35, delay: (i % 6) * 0.05 }}
               onClick={() => setOpenIdx(i)}
+              onMouseEnter={() => { setPaused(true); setOpenIdx(i); }}
+              onMouseLeave={() => setPaused(false)}
               className="agent-brush group relative cursor-pointer overflow-hidden rounded-xl border p-3.5 text-left transition-all"
               style={{
                 "--brush-rotate": ag.brush,
@@ -2785,6 +2816,200 @@ function UseCasesSection() {
             <p className="text-[11px] leading-snug text-zinc-500">{u.desc}</p>
           </motion.div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Lead finding (Prospecting agent) ─────────────────────────────────────────
+// A light, auto-playing replica of the real "Find from web" tool
+// (apps/app/src/components/ai/prospecting-modal.tsx → POST /prospecting/run).
+// The flow plays itself: query types out → searches the web → candidates stream
+// in with confidence + a real-looking source → routed to the Decision Queue.
+
+const LEAD_QUERY = "AI startups in London using computer vision";
+
+const LEAD_CONF_STYLE: Record<"high" | "medium" | "low", string> = {
+  high: "text-emerald-600 border-emerald-500/30 bg-emerald-500/10",
+  medium: "text-amber-600 border-amber-500/30 bg-amber-500/10",
+  low: "text-zinc-500 border-black/[.08] bg-black/[.03]",
+};
+
+const LEAD_CANDIDATES: {
+  name: string; desc: string; reason: string;
+  conf: "high" | "medium" | "low"; source: string; status: "queued" | "existing";
+}[] = [
+  { name: "Vantage Vision", desc: "Computer-vision QA for manufacturing lines.", reason: "Matches “computer vision” · London HQ", conf: "high", source: "techcrunch.com", status: "queued" },
+  { name: "Lumen Robotics", desc: "Vision-guided warehouse automation, Series A.", reason: "London · strong fit on stack", conf: "high", source: "sifted.eu", status: "queued" },
+  { name: "Cortex Retail", desc: "On-device vision models for store analytics.", reason: "Listed in the “London AI 100”", conf: "medium", source: "uktech.news", status: "queued" },
+  { name: "Pixel & Co", desc: "Image-recognition API for insurers.", reason: "Already a record in your graph", conf: "medium", source: "crunchbase.com", status: "existing" },
+];
+
+function LeadFindingSection() {
+  const [typed, setTyped] = useState(0);
+  const [phase, setPhase] = useState<"typing" | "searching" | "results">("typing");
+  const [revealed, setRevealed] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const TYPE_MS = 40;
+    function cycle() {
+      if (!alive) return;
+      setPhase("typing"); setTyped(0); setRevealed(0);
+      const q = LEAD_QUERY;
+      for (let i = 1; i <= q.length; i++) timers.push(setTimeout(() => setTyped(i), i * TYPE_MS));
+      const afterType = q.length * TYPE_MS + 550;
+      timers.push(setTimeout(() => setPhase("searching"), afterType));
+      const afterSearch = afterType + 1700;
+      timers.push(setTimeout(() => setPhase("results"), afterSearch));
+      LEAD_CANDIDATES.forEach((_, i) => timers.push(setTimeout(() => setRevealed(i + 1), afterSearch + 300 + i * 450)));
+      const total = afterSearch + 300 + LEAD_CANDIDATES.length * 450 + 3400;
+      timers.push(setTimeout(cycle, total));
+    }
+    cycle();
+    return () => { alive = false; timers.forEach(clearTimeout); };
+  }, []);
+
+  const searching = phase === "searching";
+  const queued = LEAD_CANDIDATES.filter(c => c.status === "queued").length;
+  const existing = LEAD_CANDIDATES.filter(c => c.status === "existing").length;
+
+  return (
+    <section id="prospecting" className="mx-auto max-w-6xl px-6 py-16">
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#6f8068" }}>Prospecting agent</p>
+      <h2 className="mb-2 font-sans font-semibold tracking-tight text-zinc-900">
+        Find leads on the open web — with real sources
+      </h2>
+      <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
+        Describe who you’re after in plain language. The agent runs a live web search, returns real
+        companies and people with a source for each, and routes them to your Decision Queue — nothing is
+        created until you approve.
+      </p>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_0.9fr]">
+        {/* App window — exact replica of the real "Find from web" tool */}
+        <div className="overflow-hidden rounded-2xl border border-black/[.08] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_18px_40px_-24px_rgba(0,0,0,0.18)]">
+          {/* Title bar */}
+          <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-zinc-500"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" stroke="currentColor" strokeWidth="1.4"/></svg>
+              <span className="text-[12.5px] font-semibold text-zinc-800">Find from web</span>
+            </div>
+            <span className="text-zinc-300">✕</span>
+          </div>
+
+          <div className="space-y-3 p-4">
+            {/* Query */}
+            <div>
+              <label className="mb-1 block text-[10.5px] font-medium text-zinc-400">What are you looking for?</label>
+              <div className="min-h-[40px] rounded-lg border border-zinc-200 bg-zinc-50/60 px-3 py-2 text-[12.5px] text-zinc-800">
+                {LEAD_QUERY.slice(0, typed)}
+                {phase === "typing" && <span className="ml-px inline-block h-3.5 w-px translate-y-0.5 animate-pulse bg-zinc-500" />}
+              </div>
+            </div>
+            {/* Controls */}
+            <div className="flex items-center gap-2">
+              <span className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-600">company</span>
+              <span className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-600">10 results</span>
+              <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+                <span className="flex h-3.5 w-3.5 items-center justify-center rounded border border-zinc-300 bg-zinc-900 text-[8px] text-white">✓</span>
+                Require review
+              </span>
+            </div>
+            {/* Run button */}
+            <div
+              className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[12.5px] font-medium text-white"
+              style={{ background: "#6f8068", opacity: phase === "typing" ? 0.6 : 1 }}
+            >
+              {searching ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8"/><path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              )}
+              {searching ? "Searching the web…" : "Run search"}
+            </div>
+
+            {/* Results */}
+            {phase === "results" && (
+              <div className="space-y-2.5 pt-1">
+                <div className="flex flex-wrap gap-1.5 text-[10.5px]">
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-amber-600">{queued} awaiting approval</span>
+                  <span className="rounded-full border border-black/[.08] bg-black/[.03] px-2 py-0.5 text-zinc-500">{existing} already in graph</span>
+                  <span className="rounded-full border border-black/[.08] bg-black/[.03] px-2 py-0.5 text-zinc-500">{LEAD_CANDIDATES.length} sources checked</span>
+                </div>
+                <ul className="space-y-2">
+                  {LEAD_CANDIDATES.slice(0, revealed).map((c, i) => (
+                    <motion.li
+                      key={c.name}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="rounded-xl border border-black/[.07] bg-white p-2.5"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {c.status === "queued" ? (
+                          <span className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-900 text-[8px] text-white">✓</span>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-zinc-400"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6"/><path d="m8.5 12 2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-[12px] font-semibold text-zinc-900">{c.name}</p>
+                            <span className={`shrink-0 rounded-full border px-1.5 text-[9px] font-medium ${LEAD_CONF_STYLE[c.conf]}`}>{c.conf}</span>
+                          </div>
+                          <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500">{c.desc}</p>
+                          <p className="mt-0.5 text-[10px] text-zinc-400">{c.reason}</p>
+                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-zinc-400">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M14 4h6v6M20 4l-9 9M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            {c.source}
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-[9.5px] text-zinc-400">{c.status === "existing" ? "In graph" : "Pending"}</span>
+                      </div>
+                    </motion.li>
+                  ))}
+                </ul>
+                {revealed >= LEAD_CANDIDATES.length && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 pt-0.5">
+                    <span className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-[11.5px] font-medium text-white">
+                      ✓ Approve selected ({queued}) — create records
+                    </span>
+                    <span className="rounded-lg border border-black/[.1] px-3 py-2 text-[11.5px] text-zinc-500">New search</span>
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* How it works — the live process, step by step */}
+        <ol className="space-y-3">
+          {[
+            { k: "typing", t: "You describe the lead", d: "Plain language — “AI startups in London using computer vision.” No filters to build." },
+            { k: "searching", t: "The agent searches the web", d: "A live search across the open web — not a static list. Every hit keeps its source." },
+            { k: "results", t: "Candidates come back, sourced", d: "Each with a confidence read, why it matched, and the page it came from." },
+            { k: "approve", t: "You approve — then it’s a record", d: "Matches route to your Decision Queue. Nothing enters the graph until you say so." },
+          ].map((s, i) => {
+            const order = ["typing", "searching", "results", "approve"];
+            const curIdx = phase === "results" && revealed >= LEAD_CANDIDATES.length ? 3 : order.indexOf(phase);
+            const on = i === curIdx;
+            const done = i < curIdx;
+            return (
+              <li key={s.k} className="flex items-start gap-3 rounded-xl border p-3 transition-all duration-300"
+                style={{ borderColor: on ? "rgba(111,128,104,0.4)" : "rgba(0,0,0,0.06)", background: on ? "rgba(111,128,104,0.05)" : "transparent" }}>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold transition-colors"
+                  style={{ background: on || done ? "#6f8068" : "#e4e4e7", color: on || done ? "#fff" : "#71717a" }}>
+                  {done ? "✓" : i + 1}
+                </span>
+                <div>
+                  <p className="text-[12.5px] font-semibold text-zinc-800">{s.t}</p>
+                  <p className="mt-0.5 text-[11.5px] leading-snug text-zinc-500">{s.d}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );
@@ -3331,7 +3556,6 @@ export function LandingPage() {
   return (
     <>
       {!ready && !skipPreloader && <Preloader onDone={handleDone} />}
-      <StickyStartBar />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -3340,6 +3564,7 @@ export function LandingPage() {
         data-theme="light"
         className="landing-shell min-h-screen bg-white text-zinc-900"
       >
+        <StickyStartBar />
         <header className="landing-nav fixed top-0 left-0 right-0 z-40 border-b">
           <Nav />
         </header>
@@ -3448,6 +3673,9 @@ export function LandingPage() {
 
           {/* ── Product process tabs ── */}
           <FadeIn><ProcessTabsSection /></FadeIn>
+
+          {/* ── Lead finding (Prospecting agent) live demo ── */}
+          <FadeIn><LeadFindingSection /></FadeIn>
 
           {/* ── Feature map ── */}
           <FadeIn><FeatureSection /></FadeIn>
