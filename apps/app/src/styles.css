@@ -49,9 +49,9 @@ html[data-theme="light"] {
   --text-secondary:   #404040;
   --text-muted:       #737373;
   --text-faint:       #a3a3a3;
-  /* matte accent — warm taupe, no blue/indigo */
-  --accent:           #57534e;
-  --accent-hover:     #44403c;
+  /* sage-green accent — matched to the landing page */
+  --accent:           #6f8068;
+  --accent-hover:     #5c6b55;
 
   --md-bg:          var(--surface-page);
   --md-bg-panel:    var(--surface-card);

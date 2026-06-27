@@ -603,7 +603,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
                   onChange={e => updateRule(i, { col: e.target.value })}
                   className="w-full bg-transparent text-xs text-[var(--text-secondary)] outline-none capitalize"
                 >
-                  {columns.map(c => <option key={c} value={c} className="bg-[#13151a]">{colLabel(c)}</option>)}
+                  {columns.map(c => <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-primary)]">{colLabel(c)}</option>)}
                 </select>
               </div>
               <button
@@ -2135,7 +2135,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <div key={i} className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
               <select value={rule.col} onChange={e => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: e.target.value } : x))}
                 className="bg-transparent text-[11px] text-[var(--text-secondary)] outline-none capitalize max-w-[120px]">
-                {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[#13151a]">{colLabel(c)}</option>)}
+                {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-primary)]">{colLabel(c)}</option>)}
               </select>
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400"}`}>
@@ -2801,7 +2801,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     {cellTip && <CellTipPortal text={cellTip.text} x={cellTip.x} y={cellTip.y}/>}
 
     {undoToast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-[#1a1d24] px-4 py-3 shadow-2xl">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-3 shadow-2xl">
         <span className="text-sm text-[var(--text-secondary)]">Record deleted</span>
         <button
           onClick={undoDelete}

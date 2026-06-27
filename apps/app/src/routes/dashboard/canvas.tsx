@@ -297,7 +297,7 @@ export default function Canvas() {
         {/* controls — minimal style */}
         <Controls
           showInteractive={false}
-          className="[&>button]:!bg-[#12151b] [&>button]:!border-[var(--border-soft)] [&>button]:!text-[var(--text-secondary)] [&>button:hover]:!bg-[var(--surface-hover)] [&>button:hover]:!text-[var(--text-secondary)] !shadow-none !border !border-[var(--border-soft)] !rounded-xl !overflow-hidden"
+          className="[&>button]:!bg-[var(--surface-card)] [&>button]:!border-[var(--border-soft)] [&>button]:!text-[var(--text-secondary)] [&>button:hover]:!bg-[var(--surface-hover)] [&>button:hover]:!text-[var(--text-secondary)] !shadow-none !border !border-[var(--border-soft)] !rounded-xl !overflow-hidden"
         />
 
         {/* ── Floating toolbar ── */}
