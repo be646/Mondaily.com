@@ -519,7 +519,7 @@ export function HomePage() {
         )}
 
         {isChatting && (
-          <div ref={messagesRef} className="chat-stick-bottom relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto", contain: "layout" }}>
+          <div ref={messagesRef} className="chat-stick-bottom relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-3 pt-2 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto" }}>
             {(() => {
               // Unified turn list: real messages + a single PENDING assistant row while
               // thinking. The pending row shares the SAME key/index/structure as the
