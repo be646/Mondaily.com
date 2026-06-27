@@ -39,7 +39,7 @@ export function SidebarAsk() {
     <section className="mt-2">
       <button
         onClick={() => setHistoryOpen(o => !o)}
-        className="mb-1 flex w-full items-center gap-1.5 px-3 text-left text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-stone-950 dark:hover:text-stone-50"
+        className="mb-1 flex w-full items-center gap-1.5 px-3 text-left text-[12px] font-semibold uppercase tracking-[0.16em] transition-colors hover:text-stone-950 dark:hover:text-stone-50"
         style={{ color: "var(--text-faint)" }}
       >
         Recent chats <span className="font-medium normal-case tracking-normal">({threads.length})</span>

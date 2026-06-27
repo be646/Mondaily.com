@@ -513,29 +513,33 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
         </nav>
 
         {/* Bottom bar */}
-        <div className="shrink-0 border-t border-stone-200 p-2.5 dark:border-stone-800">
+        <div className="shrink-0 border-t border-stone-200 dark:border-stone-800">
           {collapsed ? (
-            <Link to="/settings/account" title="Settings"
-              className="flex items-center justify-center rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50 transition-colors">
-              <Settings size={14}/>
-            </Link>
+            <div className="p-2.5">
+              <Link to="/settings/account" title="Settings"
+                className="flex items-center justify-center rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50 transition-colors">
+                <Settings size={14}/>
+              </Link>
+            </div>
           ) : (
-            <div className="relative pt-6">
-              {/* Trial — a layer that comes from BEHIND the user card: same width
-                  and shape, peeking out at the top, with a soft shadow for depth. */}
+            <div className="relative px-2 pt-8 pb-2">
+              {/* Trial — a layer peeking from BEHIND the banner, sitting a bit higher,
+                  with a soft shadow for depth. */}
               <Link
                 to="/settings/billing"
-                className="absolute inset-x-0 top-0 z-0 flex items-center justify-between rounded-xl px-3 pt-1.5 pb-7 transition-all hover:pt-1"
+                className="absolute inset-x-2 top-0 z-0 flex items-center justify-between rounded-xl px-3 pt-1.5 pb-9 transition-all hover:pt-1"
                 style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)", boxShadow: "0 6px 16px -8px rgba(0,0,0,0.4)" }}
               >
-                <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                <span className="text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>
                   Trial <span className="font-normal" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
                 </span>
-                <span className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}>Upgrade</span>
+                <span className="rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}>Upgrade</span>
               </Link>
 
-              {/* User + invite — the front card, opaque so it covers the trial's body */}
-              <div className="relative z-10 rounded-xl border bg-white px-1 py-1 dark:bg-stone-950" style={{ borderColor: "var(--border-soft)" }}>
+              {/* User + invite — a full-width banner, part of the sidebar; opaque so it
+                  covers the trial's body. -mx-2 cancels the container padding so it
+                  spans edge to edge. */}
+              <div className="relative z-10 -mx-2 border-t bg-white px-3 py-1 dark:bg-stone-950" style={{ borderColor: "var(--border-soft)" }}>
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
                   {user?.imageUrl
                     ? <img src={user.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>

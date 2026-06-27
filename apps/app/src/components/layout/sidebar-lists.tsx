@@ -173,18 +173,15 @@ export function SidebarLists() {
 
   return (
     <section className="mt-5">
-      <div className="mb-2 flex items-center justify-between px-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>Lists</p>
-        <button onClick={() => setOpen(true)} title="New list" className="transition-colors hover:text-stone-950 dark:hover:text-stone-50" style={{ color: "var(--text-faint)" }}>
-          <Plus size={13} />
-        </button>
+      <div className="mb-2 px-3">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>Lists</p>
       </div>
 
       {/* My Lists */}
       {myLists.length > 0 && (
         <div className="mb-1">
           <button onClick={() => setMyOpen(v => !v)}
-            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300">
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300">
             {myOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <UserCheck size={9} /> Mine
           </button>
@@ -202,7 +199,7 @@ export function SidebarLists() {
       {teamLists.length > 0 && (
         <div className="mb-1">
           <button onClick={() => setTeamOpen(v => !v)}
-            className="flex w-full items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300">
+            className="flex w-full items-center gap-1 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400 transition-colors hover:text-stone-700 dark:text-stone-600 dark:hover:text-stone-300">
             {teamOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
             <Users size={9} /> Shared
           </button>
@@ -214,6 +211,14 @@ export function SidebarLists() {
             </button>
           )}
         </div>
+      )}
+
+      {(myLists.length > 0 || teamLists.length > 0) && (
+        <button onClick={() => setOpen(true)}
+          className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-normal transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-200"
+          style={{ color: "var(--text-faint)" }}>
+          <Plus size={13} className="shrink-0" /> Add list
+        </button>
       )}
 
       {query.isError && (
