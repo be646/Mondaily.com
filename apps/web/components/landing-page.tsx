@@ -1141,6 +1141,32 @@ function AutomationFlow() {
 }
 
 // ── Email signup ──────────────────────────────────────────────────────────────
+// ── Hero backdrop — a subtle animated terminal grid behind the hero text. Blocks
+// fade in/out on their own stagger; thin scan-lines travel in mixed directions;
+// soft multi-colour terminal shades; radial-masked so it only glows behind the
+// text and fades at the edges. Pure CSS keyframes for performance. ─────────────
+const HERO_CELL_COLORS = ["#9fb08f", "#8fb3b0", "#d7c6a3", "#c59a8d", "#6f8068", "#8b7fb0"];
+function HeroGridBackdrop() {
+  const cells = 42; // 7 cols × 6 rows
+  return (
+    <div aria-hidden className="hero-backdrop pointer-events-none absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2">
+      <div className="hero-grid">
+        {Array.from({ length: cells }).map((_, i) => (
+          <span
+            key={i}
+            className={`hero-cell hero-cell-${i % 3}`}
+            style={{
+              ["--c" as string]: HERO_CELL_COLORS[i % HERO_CELL_COLORS.length],
+              ["--d" as string]: `${((i * 0.53) % 5.5).toFixed(2)}s`,
+              ["--sd" as string]: `${((i * 0.83) % 4.5).toFixed(2)}s`,
+            } as React.CSSProperties}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Hero visual proof — pipeline board, styled like the real app ──────────────
 const STAGE_STYLE: Record<string, { dot: string; text: string }> = {
   New:         { dot: "bg-zinc-300",    text: "text-zinc-500" },
@@ -3055,8 +3081,9 @@ export function LandingPage() {
 
         <main style={{ paddingTop: "64px", overflowX: "hidden" }}>
           {/* ── Hero ── */}
-          <section className="mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
-            <div className="mx-auto max-w-3xl">
+          <section className="relative mx-auto max-w-6xl px-6 pb-20 pt-16 text-center">
+            <HeroGridBackdrop />
+            <div className="relative z-10 mx-auto max-w-3xl">
               <motion.div
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 14 }}
