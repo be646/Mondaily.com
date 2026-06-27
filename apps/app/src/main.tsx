@@ -121,6 +121,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
+  // Primary-button colour: "dark" (default) or "accent" (sage green)
+  const btn = localStorage.getItem("mondaily_btnstyle");
+  if (btn === "accent") document.documentElement.dataset.btnstyle = "accent";
 })();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -76,6 +76,15 @@ export function AccountSettings() {
   const [appearance, setAppearance] = useState<Appearance>(
     () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "light",
   );
+  const [btnStyle, setBtnStyle] = useState<"dark" | "accent">(
+    () => (localStorage.getItem("mondaily_btnstyle") as "dark" | "accent" | null) ?? "dark",
+  );
+  function chooseBtnStyle(s: "dark" | "accent") {
+    setBtnStyle(s);
+    localStorage.setItem("mondaily_btnstyle", s);
+    if (s === "accent") document.documentElement.dataset.btnstyle = "accent";
+    else delete document.documentElement.dataset.btnstyle;
+  }
   const [notifications, setNotifications] = useState<Record<string, NotificationChannel>>({});
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
@@ -220,6 +229,26 @@ export function AccountSettings() {
                 {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[var(--accent)] dark:text-stone-400" />}
               </button>
             ))}
+          </div>
+
+          <div className="mt-5 border-t border-[#e5e7eb] pt-5 dark:border-[var(--border-soft)]">
+            <p className="mb-2.5 text-xs font-medium text-[#52525b] dark:text-stone-400">Primary button style</p>
+            <div className="grid grid-cols-2 gap-3">
+              {([["dark", "Dark"], ["accent", "Sage green"]] as const).map(([s, label]) => (
+                <button
+                  key={s}
+                  onClick={() => chooseBtnStyle(s)}
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all ${
+                    btnStyle === s
+                      ? "border-[var(--accent)] bg-stone-200 dark:border-stone-500/50 dark:bg-stone-500/[.06]"
+                      : "border-[#e5e7eb] bg-white hover:bg-[#f9fafb] dark:border-[var(--border-soft)] dark:bg-transparent"
+                  }`}
+                >
+                  <span className="text-xs font-medium text-[#52525b] dark:text-stone-300">{label}</span>
+                  <span className="inline-flex h-6 items-center rounded-lg px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--accent)" : "#18181b" }}>Save</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>

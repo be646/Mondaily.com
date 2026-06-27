@@ -60,6 +60,12 @@ html[data-theme="light"] {
   --md-text-muted:  var(--text-muted);
 }
 
+/* Solid primary-button colour — user-switchable (Settings → Appearance).
+   Default = dark (landing CTA). data-btnstyle="accent" = sage green. */
+:root { --btn-solid-bg: #18181b; --btn-solid-fg: #ffffff; }
+html[data-theme="dark"] { --btn-solid-bg: #ffffff; --btn-solid-fg: #0a0a0a; }
+html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #ffffff; }
+
 /* ── Mondaily logo scan animation ── */
 @keyframes scanUp {
   0%   { transform: translateY(0); }
@@ -1006,6 +1012,15 @@ html[data-theme="dark"] .minimal-sparkline {
     background: var(--surface-hover);
     color: var(--text-primary);
   }
+
+  /* Solid primary action button — colour driven by --btn-solid-* (user choice).
+     !important so it wins over the per-element text utilities left on buttons. */
+  .btn-solid {
+    background: var(--btn-solid-bg) !important;
+    border: 1px solid var(--btn-solid-bg) !important;
+    color: var(--btn-solid-fg) !important;
+  }
+  .btn-solid:hover:not(:disabled) { filter: brightness(1.12); }
 
   /* AI action button — high-contrast monochrome command block. */
   .btn-ai {

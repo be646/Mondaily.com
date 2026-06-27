@@ -771,7 +771,7 @@ export function HomePage() {
                 {activeTasks.slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "bg-stone-900 dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
+                  const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
                       className="flow-list-row group flex cursor-pointer items-center gap-3 transition-colors">

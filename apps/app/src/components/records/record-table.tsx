@@ -102,7 +102,7 @@ function EditableCell({
           if (e.key === "Escape") setEditing(false);
           e.stopPropagation();
         }}
-        className={`w-full min-w-0 bg-stone-900 text-[12px] text-[var(--text-primary)] outline-none rounded px-1 py-0.5 border border-stone-600/60 -mx-1 ${numeric ? "text-right font-mono" : ""} ${className}`}
+        className={`w-full min-w-0 btn-solid text-[12px] text-[var(--text-primary)] outline-none rounded px-1 py-0.5 border border-stone-600/60 -mx-1 ${numeric ? "text-right font-mono" : ""} ${className}`}
       />
     );
   }
