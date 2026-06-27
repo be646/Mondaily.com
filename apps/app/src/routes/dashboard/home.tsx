@@ -587,7 +587,7 @@ export function HomePage() {
                                   { key: "explain", label: "Explain reasoning" },
                                   { key: "decision", label: "Add to decision queue" },
                                   { key: "workflow", label: "Draft workflow" },
-                                ] as const).map(a => (
+                                ] as { key: "task" | "draft" | "related" | "explain" | "decision" | "workflow"; label: string; mark?: boolean }[]).map(a => (
                                   <button key={a.key} onClick={() => sendSuggestion(buildChipText(a.key, i))} className="chat-action">
                                     {a.mark && <LogoMark size={11}/>}{a.label}
                                   </button>
