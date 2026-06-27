@@ -1479,7 +1479,7 @@ function WorkspaceGraphPreview() {
     <div className="relative mx-auto w-full max-w-full overflow-hidden sm:max-w-6xl">
       <div className="grid gap-6 lg:grid-cols-2">
         {/* LEFT PANEL — graph tree */}
-        <div className="relative min-h-[430px] p-5 sm:p-8">
+        <div className="relative flex min-h-[460px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 sm:p-7">
           <div className="mb-6 text-left">
             <div className="mb-2 flex items-center gap-2">
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-500">Living workspace graph</p>
@@ -1563,21 +1563,27 @@ function WorkspaceGraphPreview() {
           </div>
         </div>
 
-        {/* RIGHT PANEL — terminal / operating layer */}
-        <div className="landing-terminal relative min-h-[430px] p-6 sm:p-8">
-          <div className="relative flex h-full min-h-[380px] flex-col">
-            <div className="mb-5 text-left">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em]" style={{ color: "#9fb08f" }}>
-                <motion.span
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.6, repeat: Infinity }}
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ background: "#9fb08f" }}
-                />
-                operating layer
-              </div>
-            </div>
+        {/* RIGHT PANEL — MacBook-inspired terminal */}
+        <div className="landing-terminal relative flex min-h-[460px] flex-col overflow-hidden rounded-2xl border border-white/10">
+          {/* Title bar — traffic lights + window title */}
+          <div className="flex items-center border-b border-white/10 px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
+            <span className="flex gap-2">
+              <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f56" }} />
+              <span className="h-3 w-3 rounded-full" style={{ background: "#ffbd2e" }} />
+              <span className="h-3 w-3 rounded-full" style={{ background: "#27c93f" }} />
+            </span>
+            <span className="mx-auto flex items-center gap-2 font-mono text-[11px]" style={{ color: "#7c8379" }}>
+              <motion.span
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: "#9fb08f" }}
+              />
+              agents@mondaily — operating layer
+            </span>
+          </div>
 
+          <div className="relative flex flex-1 flex-col p-5 sm:p-6">
             {/* Terminal rows — fixed-height lines, no layout shift */}
             <div className="space-y-1 overflow-hidden">
               {WORKSPACE_TERMINAL_ROWS.map((row, i) => (
@@ -1603,53 +1609,38 @@ function WorkspaceGraphPreview() {
             </div>
 
             {/* Current process + connected Ask AI prompt */}
-            <div className="mt-auto pt-5">
+            <div className="mt-auto pt-5 font-mono text-[12px] leading-6">
               <div style={{ borderTop: "1px solid rgba(159,176,143,0.18)" }} className="pt-4">
-                <p className="mb-3 text-[11px] uppercase tracking-[0.16em]" style={{ color: "#7c8379" }}>Current process</p>
-                <div className="flex items-start gap-3">
-                  <span className="mt-[3px] h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
-                  <div className="min-w-0 flex-1">
-                    <motion.p
-                      key={activeNode.label}
-                      initial={{ opacity: 0, y: 3 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.22 }}
-                      className="text-[13px] font-semibold leading-snug"
-                      style={{ color: "#f4f7f2" }}
-                    >
-                      {activeNode.label}
-                    </motion.p>
-                    <motion.p
-                      key={`${activeNode.label}-d`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.22, delay: 0.07 }}
-                      className="mt-0.5 text-[12px] leading-snug"
-                      style={{ color: "#7c8379" }}
-                    >
-                      {activeNode.detail}
-                    </motion.p>
-                  </div>
+                {/* Current process — printed as terminal output, left-aligned */}
+                <div className="text-left">
+                  <span style={{ color: "#7c8379" }}>$ </span>
+                  <span style={{ color: "#9fb08f" }}>process.current</span>
                 </div>
-
-                {/* Ask AI chip — visually connected to current process */}
+                <motion.div
+                  key={activeNode.label}
+                  initial={{ opacity: 0, y: 2 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className="mt-1.5 flex items-start gap-2 pl-3 text-left"
+                >
+                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: activeNode.color }} />
+                  <span className="min-w-0">
+                    <span style={{ color: "#f4f7f2" }}>{activeNode.label}</span>
+                    <span style={{ color: "#7c8379" }}> — {activeNode.detail}</span>
+                  </span>
+                </motion.div>
                 <motion.div
                   key={`ask-${active}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 0.22, delay: 0.14 }}
-                  className="mt-3 flex items-center gap-2"
+                  transition={{ duration: 0.22, delay: 0.12 }}
+                  className="mt-2 truncate pl-3 text-left"
                 >
-                  <div className="h-px flex-1" style={{ background: "rgba(159,176,143,0.18)" }} />
-                  <div
-                    className="flex max-w-[280px] items-center gap-1.5 rounded px-2.5 py-1.5"
-                    style={{ background: "rgba(159,176,143,0.07)", border: "1px solid rgba(159,176,143,0.16)" }}
-                  >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#607078" }} />
-                    <span className="font-mono text-[11px] font-medium" style={{ color: "#9fb08f" }}>ask →</span>
-                    <span className="truncate text-[11px]" style={{ color: "#d7c6a3" }}>{askPrompt}</span>
-                    <span className="shrink-0 text-[11px]" style={{ color: "#7c8379" }}>↵</span>
-                  </div>
+                  <span style={{ color: "#7c8379" }}>$ </span>
+                  <span style={{ color: "#9fb08f" }}>ask</span>
+                  <span style={{ color: "#7c8379" }}> → </span>
+                  <span style={{ color: "#d7c6a3" }}>{askPrompt}</span>
+                  <span style={{ color: "#7c8379" }}> ↵</span>
                 </motion.div>
               </div>
             </div>
