@@ -110,6 +110,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 // Apply saved theme before first render to avoid flash
 (function initTheme() {
+  // One-time migration: light is the new default — reset existing devices once
+  // (they can switch back to dark from Settings → Appearance).
+  if (!localStorage.getItem("mondaily_theme_light_reset")) {
+    localStorage.setItem("mondaily_appearance", "light");
+    localStorage.setItem("mondaily_theme_light_reset", "1");
+  }
   const saved = localStorage.getItem("mondaily_appearance") as "dark" | "light" | "system" | null;
   const mode = saved ?? "light";
   const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);

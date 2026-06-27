@@ -74,7 +74,7 @@ export function AccountSettings() {
   const [name, setName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [appearance, setAppearance] = useState<Appearance>(
-    () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "dark",
+    () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "light",
   );
   const [notifications, setNotifications] = useState<Record<string, NotificationChannel>>({});
   const [deleteOpen, setDeleteOpen] = useState(false);
