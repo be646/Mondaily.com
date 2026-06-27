@@ -520,7 +520,7 @@ export function HomePage() {
       )}
 
       <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
-        <div className="relative">
+        <div className={`relative ${isChatting ? "flex flex-col" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
             {[
@@ -537,9 +537,8 @@ export function HomePage() {
           </div>
         )}
 
-        <div className={`chat-convo ${isChatting ? "is-open" : ""}`}>
-          {isChatting && (
-          <div ref={messagesRef} className="chat-convo-scroll space-y-6 pr-1" style={{ scrollbarWidth: "none" }}>
+        {isChatting && (
+          <div ref={messagesRef} className="relative min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none" }}>
             {(() => {
               return messages.map((m, i) => {
                 const isStreaming = streamingMsgIdx === i;
@@ -637,11 +636,10 @@ export function HomePage() {
             )}
             <div ref={bottomRef}/>
           </div>
-          )}
-        </div>
+        )}
 
-        {/* Input */}
-        <div className="relative mx-auto max-w-3xl" ref={pickerRef}>
+        {/* Input — pinned at the bottom of the chat column while chatting */}
+        <div className={`relative mx-auto w-full max-w-3xl ${isChatting ? "mt-3 shrink-0" : ""}`} ref={pickerRef}>
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
