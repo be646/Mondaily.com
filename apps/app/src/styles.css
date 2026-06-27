@@ -440,21 +440,17 @@ html[data-theme="dark"] .minimal-sparkline {
   overscroll-behavior: contain;
 }
 
-/* Welcome (hero) — slides/fades away smoothly while chatting so the chat gets the
-   space, and restores when the chat is cleared. */
-.command-room {
-  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.32s ease, margin 0.45s ease, padding 0.45s ease, border-color 0.3s ease;
-  max-height: 600px;
+/* Welcome text (greeting + agents + graph/source) — slides/fades away while
+   chatting so the chat gets space. The notifications/signals stay visible. */
+.welcome-info {
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.32s ease, margin 0.45s ease;
+  max-height: 320px;
   overflow: hidden;
 }
-.command-room.is-hidden {
+.welcome-info.is-hidden {
   max-height: 0;
   opacity: 0;
-  margin-top: -2rem;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  border-bottom-color: transparent;
+  margin: 0;
 }
 .chat-input-orbit {
   position: relative;

@@ -430,11 +430,11 @@ export function HomePage() {
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className={`command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8 ${isChatting ? "is-hidden" : ""}`} style={{ borderColor: "var(--border-soft)" }}>
+      <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* Left — greeting + a clean cluster: frameless AI agents and the
-              graph/source status stacked beside it */}
-          <div className="min-w-0">
+              graph/source status. Collapses while chatting (notifications stay). */}
+          <div className={`welcome-info min-w-0 ${isChatting ? "is-hidden" : ""}`}>
             <div className="flex flex-col gap-1.5">
               <p className="home-section-kicker">{todayLabel}</p>
               <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
