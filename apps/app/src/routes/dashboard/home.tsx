@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
-import { AgentConstellationPanel, AgentHeroStrip } from "../../components/ai/agent-constellation";
+import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
@@ -451,7 +451,6 @@ export function HomePage() {
               <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
             </div>
             <div className="mt-5 flex flex-col items-start gap-px">
-              <AgentHeroStrip />
               <span className="status-line">
                 Graph {graphSynced ? "synced" : "syncing"}
                 <span className="live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>

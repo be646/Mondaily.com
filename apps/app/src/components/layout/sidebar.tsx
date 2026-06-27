@@ -14,6 +14,7 @@ import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
+import { SidebarAgents } from "../ai/agent-constellation";
 
 // ─── Primary nav — calm by design: 6 items max, always visible. Everything
 // else lives in the collapsible "More" group below or behind command/search.
@@ -432,6 +433,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </>
             )}
           </button>
+
+          {/* AI agents — inside the workspace box, under the name / Pro line */}
+          {!collapsed && <SidebarAgents />}
 
           {workspaceOpen && !collapsed && (
             <>

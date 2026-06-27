@@ -271,6 +271,31 @@ export function AgentHeroStrip() {
   );
 }
 
+// ─── Sidebar agents ───────────────────────────────────────────────────────────
+// Compact agents line for the workspace header box: same per-agent colours as the
+// constellation but more MATTE (blended toward grey), one dot per active agent.
+export function SidebarAgents() {
+  const { constellation, isLoading } = useAgentData();
+  if (isLoading || !constellation.length) return null;
+  const live = constellation.filter(a => isLiveState(a.state));
+  return (
+    <Link to="/home#agents" className="flex items-center gap-2 pb-2.5 pl-[46px] pr-3 -mt-1">
+      <span className="text-[10px] font-medium" style={{ color: "var(--text-faint)" }}>AI agents</span>
+      <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length}</span>
+      {live.length > 0 && (
+        <span className="ml-auto flex flex-wrap items-center justify-end gap-1">
+          {live.map((a) => {
+            const idx = constellation.findIndex(c => c.id === a.id);
+            const color = AGENT_DOT_PALETTE[(idx < 0 ? 0 : idx) % AGENT_DOT_PALETTE.length];
+            return <span key={a.id} title={a.name} className="h-1.5 w-1.5 rounded-full"
+              style={{ background: `color-mix(in srgb, ${color} 55%, var(--text-muted))` }}/>;
+          })}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   const { constellation, isLoading } = useAgentData();
 
