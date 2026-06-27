@@ -305,73 +305,116 @@ function RotatingWord({ words }: { words: string[] }) {
 }
 
 
-function FeatureSection() {
-  const [active, setActive] = useState<string | null>(null);
-  const getNode = (id: string) => MAIN_NODES.find(n => n.id === id)!;
+// ── AI reports demo — the Reports agent composes a report live from the graph ──
+const REPORT_KPIS = [
+  { label: "Open pipeline", val: "£482k", delta: "+12%", up: true },
+  { label: "Win rate", val: "31%", delta: "+4 pts", up: true },
+  { label: "At risk", val: "£64k", delta: "3 deals", up: false },
+];
+const REPORT_BARS = [38, 52, 47, 63, 58, 74];
+const REPORT_INSIGHTS = [
+  "3 deals have stalled over 14 days in Proposal — owners nudged.",
+  "Enterprise segment is up 12% month-over-month.",
+  "2 invoices overdue (£6.1k) — reminders drafted for approval.",
+];
 
+function AiReportDemo() {
+  const [phase, setPhase] = useState<"composing" | "done">("composing");
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    function cycle() {
+      if (!alive) return;
+      setPhase("composing"); setShown(0);
+      timers.push(setTimeout(() => setPhase("done"), 1700));
+      REPORT_INSIGHTS.forEach((_, i) => timers.push(setTimeout(() => setShown(i + 1), 2300 + i * 520)));
+      timers.push(setTimeout(cycle, 2300 + REPORT_INSIGHTS.length * 520 + 3800));
+    }
+    cycle();
+    return () => { alive = false; timers.forEach(clearTimeout); };
+  }, []);
+  const composing = phase === "composing";
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#9fb08f" }}>One workspace graph</p>
-      <h2 className="mb-4 font-sans font-semibold tracking-tight text-zinc-800">
-        Every part of the business, one connected graph
-      </h2>
-
-      {/* Live stats bar — numbers pulse to signal the system is live */}
-      <div className="mb-10 flex gap-6 text-[14px] text-zinc-600">
-        <span>
-          <LiveStat start={8420} step={[1, 3]} intervalMs={4200} />
-          {" "}records enriched
-        </span>
-        <span className="text-zinc-500">·</span>
-        <span>
-          <LiveStat start={234} step={[0, 1]} intervalMs={6500} />
-          {" "}opportunities tracked
-        </span>
-        <span className="text-zinc-500">·</span>
-        <span>
-          <LiveStat start={12} step={[0, 1]} intervalMs={9000} />
-          {" "}sequences running
-        </span>
+    <div className="overflow-hidden rounded-2xl border border-black/[.08] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_18px_40px_-24px_rgba(0,0,0,0.18)]">
+      <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[12.5px] font-semibold text-zinc-800">Reports</span>
+          <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white" style={{ background: "#6f8068" }}>AI</span>
+        </div>
+        <span className="text-[10.5px] text-zinc-400">Q3 · pipeline health</span>
       </div>
-
-      {/* Module grid — grouped by zone */}
-      <div className="mb-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {MODULE_ZONES.map((z, zi) => (
-          <div key={z.zone} className="flex flex-col gap-3">
-            <span className="text-[11px] font-medium uppercase tracking-widest" style={{ color: z.accent }}>{z.zone}</span>
-            {z.ids.map((id, ii) => {
-              const node = getNode(id);
-              const on = active === id;
-              return (
-                <motion.div
-                  key={id}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.35, delay: (zi * 2 + ii) * 0.06 }}
-                  whileHover={{ y: -2 }}
-                  onMouseEnter={() => setActive(id)}
-                  onMouseLeave={() => setActive(null)}
-                  className="rounded-xl border p-4 transition-colors cursor-default"
-                  style={{
-                    borderColor: on ? `${z.accent}4d` : "rgba(0,0,0,.05)",
-                    background: on ? `${z.accent}0a` : "rgba(0,0,0,.015)",
-                  }}
-                >
-                  <div className="mb-2.5 flex items-center gap-2.5">
-                    <span className="h-2 w-2 rounded-full transition-all" style={{ background: z.accent, opacity: on ? 1 : 0.6, boxShadow: on ? `0 0 0 3px ${z.accent}26` : "none" }}/>
-                    <span className={`text-[14px] font-semibold transition-colors ${on ? "text-zinc-800" : "text-zinc-600"}`}>{node.label}</span>
-                  </div>
-                  <ul className="flex flex-col gap-1">
-                    {node.subs.slice(0, 3).map((sub, si) => (
-                      <li key={si} className="text-[12px] text-zinc-500 leading-relaxed">{sub.label}</li>
-                    ))}
-                  </ul>
-                </motion.div>
-              );
-            })}
+      <div className="flex items-center gap-2 border-b border-zinc-100 px-4 py-2.5">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0 text-zinc-400"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+        <span className="flex-1 truncate text-[12px] text-zinc-600">Summarize Q3 pipeline health and flag at-risk deals</span>
+        <span className="shrink-0 rounded-md px-2 py-1 text-[10.5px] font-medium text-white" style={{ background: "#0f172a" }}>{composing ? "Composing…" : "Generate"}</span>
+      </div>
+      <div className="p-4">
+        {composing ? (
+          <div className="flex items-center justify-center gap-2 py-12 text-[12px] text-zinc-500">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+            Composing report from 1,240 records…
           </div>
-        ))}
+        ) : (
+          <div className="space-y-3.5">
+            <div className="grid grid-cols-3 gap-2.5">
+              {REPORT_KPIS.map(k => (
+                <motion.div key={k.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-black/[.06] bg-zinc-50/50 p-2.5">
+                  <div className="text-[10px] text-zinc-400">{k.label}</div>
+                  <div className="text-[17px] font-semibold leading-tight text-zinc-900">{k.val}</div>
+                  <div className="text-[10.5px] font-medium" style={{ color: k.up ? "#059669" : "#b45309" }}>{k.delta}</div>
+                </motion.div>
+              ))}
+            </div>
+            <div className="flex h-20 items-end gap-1.5 rounded-xl border border-black/[.06] bg-zinc-50/40 p-3">
+              {REPORT_BARS.map((b, i) => (
+                <motion.div key={i} initial={{ height: 0 }} animate={{ height: `${b}%` }} transition={{ duration: 0.5, delay: i * 0.06 }} className="flex-1 rounded-t" style={{ background: "#6f8068", opacity: 0.45 + i * 0.09 }} />
+              ))}
+            </div>
+            <ul className="space-y-1.5">
+              {REPORT_INSIGHTS.slice(0, shown).map((t, i) => (
+                <motion.li key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} className="flex items-start gap-2 text-[11.5px] leading-snug text-zinc-600">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#6f8068" }} />{t}
+                </motion.li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-[10.5px] text-zinc-500">
+        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#6f8068" }} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.6, repeat: Infinity }} />
+        <span><span className="font-medium text-zinc-700">Reports Agent</span> · composed from your graph · every figure links to its records</span>
+      </div>
+    </div>
+  );
+}
+
+function FeatureSection() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-20">
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#6f8068" }}>AI reports</p>
+      <h2 className="mb-2 font-sans font-semibold tracking-tight text-zinc-800">
+        Reports that write themselves
+      </h2>
+      <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
+        Ask in plain language and the Reports agent composes it live from the graph — KPIs, trends, and the
+        risks worth acting on, with every figure traceable to the records behind it.
+      </p>
+      <div className="mb-12 grid items-center gap-8 lg:grid-cols-[0.8fr_1fr]">
+        <ul className="space-y-3.5">
+          {([
+            ["Ask, don’t build", "No drag-and-drop builder — describe the report and it’s composed."],
+            ["Always current", "Runs on live graph data, so a report is never stale."],
+            ["Insight, not just numbers", "The agent flags what changed and what to do next."],
+            ["Sourced & auditable", "Every metric links back to the records it came from."],
+          ] as [string, string][]).map(([t, d]) => (
+            <li key={t} className="flex items-start gap-2.5">
+              <svg width="15" height="15" viewBox="0 0 14 14" className="mt-0.5 shrink-0" style={{ color: "#6f8068" }}><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span><span className="text-[13px] font-semibold text-zinc-800">{t}</span><span className="block text-[12px] leading-snug text-zinc-500">{d}</span></span>
+            </li>
+          ))}
+        </ul>
+        <AiReportDemo />
       </div>
 
       {/* Integrations strip */}
@@ -2158,6 +2201,9 @@ function RecordsSheetDemo() {
   const [pending, setPending] = useState<{ id: number; name: string } | null>({ id: 4, name: "James Lee" });
   const [selected, setSelected] = useState<number>(1);
   const [enriching, setEnriching] = useState(false);
+  const [ai, setAi] = useState<{ label: string; accent: string; text: string } | null>(null);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const aiTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const score = (s: number) => (s >= 80 ? { c: "#059669", b: "#ecfdf5" } : s >= 60 ? { c: "#b45309", b: "#fffbeb" } : { c: "#52525b", b: "#f4f4f5" });
   function enrich() {
     if (!pending || enriching) return;
@@ -2170,7 +2216,22 @@ function RecordsSheetDemo() {
     }, 1300);
   }
   const COLS = "grid grid-cols-[1.4fr_1fr_1fr_0.9fr_0.9fr] items-center gap-2";
+  const selRow = rows.find(r => r.id === selected);
   const selName = [...rows, ...(pending ? [pending] : [])].find(r => r.id === selected)?.name ?? "—";
+
+  function runAi(kind: "ask" | "draft" | "list") {
+    if (aiTimer.current) clearTimeout(aiTimer.current);
+    const first = selName.split(" ")[0];
+    const co = selRow?.company ?? "the account";
+    setAi(null);
+    setAiLoading(kind);
+    aiTimer.current = setTimeout(() => {
+      setAiLoading(null);
+      if (kind === "ask") setAi({ label: "Graph Agent", accent: "#6f8068", text: `${selName} (${co}) scores ${selRow?.score ?? "—"} with health ${selRow?.health ?? "—"}. Last meaningful touch was 9 days ago — a check-in is due this week.` });
+      else if (kind === "draft") setAi({ label: "Relationship Agent", accent: "#a68762", text: `Drafted a follow-up to ${first}: “Hi ${first}, circling back on where we left things at ${co} — do you have 15 minutes this week?” Queued for your approval.` });
+      else setAi({ label: "Operations Agent", accent: "#607078", text: `${selName} added to the “Q3 priority outreach” list. The agent will watch for new signals and re-score weekly.` });
+    }, 900);
+  }
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_50px_-28px_rgba(0,0,0,0.25)]">
       <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
@@ -2211,12 +2272,27 @@ function RecordsSheetDemo() {
           </div>
         )}
       </div>
+      {(ai || aiLoading) && (
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-zinc-100 bg-zinc-50/40 px-4 py-2.5">
+          {aiLoading ? (
+            <div className="flex items-center gap-2 text-[11.5px] text-zinc-500">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="animate-spin"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+              {aiLoading === "ask" ? "Reading the graph…" : aiLoading === "draft" ? "Drafting…" : "Updating the list…"}
+            </div>
+          ) : ai && (
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold text-white" style={{ background: ai.accent }}>{ai.label}</span>
+              <p className="text-[11.5px] leading-snug text-zinc-600">{ai.text}</p>
+            </div>
+          )}
+        </motion.div>
+      )}
       <div className="flex items-center gap-2 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-[11px]">
         <span className="text-zinc-500">Selected · <span className="font-medium text-zinc-700">{selName}</span></span>
         <span className="ml-auto flex gap-1.5">
-          <span className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600">Ask AI</span>
-          <span className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600">Draft message</span>
-          <span className="rounded-md px-2 py-1 font-medium text-white" style={{ background: "#0f172a" }}>Add to list</span>
+          <button onClick={() => runAi("ask")} className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-white">Ask AI</button>
+          <button onClick={() => runAi("draft")} className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-white">Draft message</button>
+          <button onClick={() => runAi("list")} className="rounded-md px-2 py-1 font-medium text-white transition-opacity hover:opacity-90" style={{ background: "#0f172a" }}>Add to list</button>
         </span>
       </div>
     </div>
@@ -2240,8 +2316,17 @@ function InvoiceDemo() {
     { num: "INV-0038", client: "Stark Industries", amount: "£12,400.00", status: "paid", due: "Jun 10" },
   ];
   const [filter, setFilter] = useState("all");
+  const [sel, setSel] = useState<string>("INV-0041");
+  const [approved, setApproved] = useState<Record<string, boolean>>({});
   const rows = filter === "all" ? all : all.filter(r => r.status === filter);
   const COLS = "grid grid-cols-[1fr_1.7fr_1fr_0.9fr_0.7fr] items-center gap-2";
+  const FINANCE_ACTION: Record<string, string> = {
+    overdue: "drafted a payment reminder — a polite chase with the invoice attached, ready to send.",
+    sent: "will send a gentle nudge 3 days before the due date, and flag it the moment it goes overdue.",
+    draft: "prepared this invoice from the won deal — line items and totals are filled, ready to send.",
+    paid: "logged the payment, matched it to the invoice, and updated cash flow. Nothing to do.",
+  };
+  const selRow = all.find(r => r.num === sel);
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_50px_-28px_rgba(0,0,0,0.25)]">
       <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
@@ -2260,22 +2345,40 @@ function InvoiceDemo() {
         <div className={`${COLS} px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400`}>
           <span>Invoice</span><span>Client</span><span>Amount</span><span>Status</span><span>Due</span>
         </div>
-        {rows.map(r => (
-          <div key={r.num} className={`${COLS} border-t border-zinc-100 px-3 py-2.5 transition-colors hover:bg-zinc-50/60`}>
-            <span className="text-[12px] font-medium text-zinc-800">{r.num}</span>
-            <span className="truncate text-[12px] text-zinc-700">{r.client}</span>
-            <span className="text-[12px] font-semibold text-zinc-900">{r.amount}</span>
-            <span><span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: BADGE[r.status]!.c, background: BADGE[r.status]!.b }}>{BADGE[r.status]!.label}</span></span>
-            <span className="text-[12px] text-zinc-500">{r.due}</span>
-          </div>
-        ))}
+        {rows.map(r => {
+          const on = sel === r.num;
+          return (
+            <button key={r.num} onClick={() => setSel(r.num)} className={`${COLS} w-full border-t border-zinc-100 px-3 py-2.5 text-left transition-colors ${on ? "bg-zinc-50" : "hover:bg-zinc-50/60"}`}>
+              <span className="text-[12px] font-medium text-zinc-800">{r.num}</span>
+              <span className="truncate text-[12px] text-zinc-700">{r.client}</span>
+              <span className="text-[12px] font-semibold text-zinc-900">{r.amount}</span>
+              <span><span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: BADGE[r.status]!.c, background: BADGE[r.status]!.b }}>{approved[r.num] && r.status === "overdue" ? "Reminder sent" : BADGE[r.status]!.label}</span></span>
+              <span className="text-[12px] text-zinc-500">{r.due}</span>
+            </button>
+          );
+        })}
         {rows.length === 0 && <div className="px-3 py-6 text-center text-[12px] text-zinc-400">No {filter} invoices</div>}
       </div>
-      <div className="flex items-center gap-2 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-[11px]">
-        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
-        <span className="truncate text-zinc-500"><span className="font-medium text-amber-700">Finance Agent</span> drafted a reminder for INV-0041</span>
-        <span className="ml-auto shrink-0 rounded-md border border-zinc-200 px-2 py-1 text-zinc-600">Approve ↵</span>
-      </div>
+      {selRow && (
+        <div className="border-t border-zinc-100 bg-zinc-50/40 px-4 py-2.5">
+          <div className="flex items-start gap-2">
+            <motion.span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
+            <p className="flex-1 text-[11.5px] leading-snug text-zinc-600">
+              <span className="font-semibold text-amber-700">Finance Agent</span> {FINANCE_ACTION[selRow.status]} <span className="text-zinc-400">· {selRow.num} · {selRow.client}</span>
+            </p>
+            {(selRow.status === "overdue" || selRow.status === "draft" || selRow.status === "sent") && (
+              <button
+                onClick={() => setApproved(a => ({ ...a, [selRow.num]: true }))}
+                disabled={approved[selRow.num]}
+                className="shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-white transition-opacity disabled:opacity-50"
+                style={{ background: "#0f172a" }}
+              >
+                {approved[selRow.num] ? "Approved ✓" : selRow.status === "draft" ? "Send invoice" : "Approve send"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
