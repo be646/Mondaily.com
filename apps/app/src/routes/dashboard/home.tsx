@@ -266,22 +266,21 @@ export function HomePage() {
   // bubble up and smooth-scroll the whole document on every token, which was the
   // jump on send + the up/down shake while streaming. Follow the stream
   // (streamedUpTo) but only when already near the bottom, so reading isn't yanked.
-  // Claude-style: on a NEW turn, scroll the user's message to the TOP of the box,
-  // then leave it alone. The answer (and the thinking indicator) writes into the
-  // stable space below — it never chases the bottom on every token, so nothing
-  // shakes or moves. The user scrolls to read; the position stays solid.
+  // Claude-style stable writing: while a turn is active (thinking or streaming),
+  // keep the latest USER message pinned to the TOP of the scroll box. The answer
+  // writes into the space below it and the view never drifts down on its own —
+  // we re-assert the same top position every token, so the browser's auto-scroll
+  // can't pull the answer below the fold. Once the turn finishes, we stop and the
+  // user scrolls freely.
   useEffect(() => {
     const el = messagesRef.current;
-    const lastMsg = messages[messages.length - 1];
-    if (el && messages.length > prevMsgCountRef.current && lastMsg?.role === "user") {
-      requestAnimationFrame(() => {
-        const userEls = el.querySelectorAll<HTMLElement>('[data-role="user"]');
-        const lastUserEl = userEls[userEls.length - 1];
-        if (lastUserEl) el.scrollTo({ top: Math.max(0, lastUserEl.offsetTop - 8), behavior: "smooth" });
-      });
-    }
-    prevMsgCountRef.current = messages.length;
-  }, [messages]);
+    if (!el) return;
+    const active = loading || streamingMsgIdx !== null;
+    if (!active) return;
+    const userEls = el.querySelectorAll<HTMLElement>('[data-role="user"]');
+    const lastUserEl = userEls[userEls.length - 1];
+    if (lastUserEl) el.scrollTop = Math.max(0, lastUserEl.offsetTop - 8);
+  }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   // While the chat slides open, suppress auto-scroll briefly so the slide stays
   // smooth instead of snapping to the bottom mid-animation.
@@ -538,7 +537,7 @@ export function HomePage() {
         )}
 
         {isChatting && (
-          <div ref={messagesRef} className="relative min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none" }}>
+          <div ref={messagesRef} className="relative min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none" }}>
             {(() => {
               return messages.map((m, i) => {
                 const isStreaming = streamingMsgIdx === i;
