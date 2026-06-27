@@ -2570,7 +2570,7 @@ function LiveSignalsSection() {
         What Mondaily notices while you work
       </h2>
       <p className="mb-8 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        A signal feed with source, status, and next action.
+        Agents surface what changed across the graph — every signal carries its source, a relationship-health read, and the next action already prepared for you.
       </p>
 
       <div className="border-y border-black/[.06] py-5">
@@ -2921,7 +2921,7 @@ function TrustSection() {
         Your data, isolated and protected
       </h2>
       <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
-        Built so the AI is as trustworthy as the team using it. Isolation and permissions aren&apos;t an afterthought — they&apos;re the foundation.
+        Every workspace is isolated at the database with row-level security and scoped by role-based permissions — your records never touch another tenant&apos;s. Isolation and access control are the foundation, not an afterthought.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
