@@ -512,10 +512,11 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           )}
         </nav>
 
-        {/* Bottom bar */}
-        <div className="shrink-0 border-t border-stone-200 dark:border-stone-800">
+        {/* Bottom bar — no top border here; the line lives on the user banner
+            below the trial, so nothing shows above/behind the trial layer. */}
+        <div className="shrink-0">
           {collapsed ? (
-            <div className="p-2.5">
+            <div className="p-2.5 border-t border-stone-200 dark:border-stone-800">
               <Link to="/settings/account" title="Settings"
                 className="flex items-center justify-center rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50 transition-colors">
                 <Settings size={14}/>
@@ -539,7 +540,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               {/* User + invite — a full-width banner, part of the sidebar; opaque so it
                   covers the trial's body. -mx-2 cancels the container padding so it
                   spans edge to edge. */}
-              <div className="relative z-10 -mx-2 bg-white px-3 py-1 dark:bg-stone-950">
+              <div className="relative z-10 -mx-2 border-t border-stone-200 bg-white px-3 py-1 dark:border-stone-800 dark:bg-stone-950">
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
                   {user?.imageUrl
                     ? <img src={user.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>

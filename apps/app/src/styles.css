@@ -413,20 +413,24 @@ html[data-theme="dark"] .minimal-sparkline {
    the answer, then scrolls INTERNALLY so streaming never reflows or shakes the
    page; slides back closed when the chat is cleared. */
 .chat-convo {
-  max-height: 0;
+  height: 0;
   opacity: 0;
   overflow: hidden;
   margin-bottom: 0;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, margin-bottom 0.4s ease;
+  /* Only fade — NOT height. Animating height fought with the streaming auto-scroll
+     and caused the up/down shake on start. Height snaps once; the box is then a
+     FIXED size, so streaming + new chips scroll internally and never move the page. */
+  transition: opacity 0.2s ease;
 }
 .chat-convo.is-open {
-  max-height: min(520px, 56vh);
+  height: min(460px, 52vh);
   opacity: 1;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 .chat-convo-scroll {
-  max-height: min(520px, 56vh);
+  height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .chat-input-orbit {
   position: relative;
