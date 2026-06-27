@@ -2987,12 +2987,12 @@ function EmailSignup() {
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="Work email"
-        className="min-w-0 flex-1 bg-transparent px-6 py-3.5 text-[14px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
+        className="min-w-0 flex-1 bg-transparent px-5 py-3 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
         required
       />
       <button
         type="submit"
-        className="shrink-0 rounded-full bg-zinc-900 px-7 py-3.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-85 dark:bg-white dark:text-zinc-900"
+        className="shrink-0 rounded-full bg-zinc-900 px-6 py-3 text-[13px] font-medium text-white transition-opacity hover:opacity-85 dark:bg-white dark:text-zinc-900"
       >
         Start free →
       </button>
@@ -3129,7 +3129,7 @@ export function PricingSection() {
 
               <a
                 href={plan.href}
-                className="block rounded-full py-2.5 text-center text-[12.5px] font-semibold transition-all hover:opacity-90"
+                className="block rounded-full py-2.5 text-center text-[12.5px] font-medium transition-all hover:opacity-90"
                 style={plan.highlight
                   ? { background: accent, color: "#ffffff", boxShadow: `0 10px 22px -12px ${accent}` }
                   : { border: "1px solid rgba(0,0,0,0.12)", color: "#3f3f46" }}
@@ -3375,7 +3375,7 @@ export function LandingPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 10 }}
                 transition={{ duration: 0.55, delay: 0.55 }}
-                className="mx-auto mt-12 max-w-2xl"
+                className="mx-auto mt-20 max-w-lg"
               >
                 <EmailSignup />
                 <p className="mt-3 text-center text-[13px] text-zinc-500">
