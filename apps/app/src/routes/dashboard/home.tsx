@@ -171,7 +171,7 @@ export function HomePage() {
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
-  const pinnedRef = useRef(true);
+  const prevLenRef = useRef(0);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -261,28 +261,23 @@ export function HomePage() {
   const recentThreads = getThreads().slice(0, 3);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Track whether the user is pinned to the bottom (passive scroll listener). When
-  // we programmatically scroll, this stays true; when the user scrolls up to read,
-  // it flips false and we stop following — no tussle.
+  // ONE scroll only — on a new user turn, bring that message near the top so the
+  // answer has room to stream into view below it. NO auto-scroll during streaming:
+  // the answer starts at a fixed spot and the user scrolls to read more. This is
+  // what kills the "violent fall to the bottom". overflow-anchor:none stops the
+  // browser from auto-focusing the latest tokens.
   useEffect(() => {
     const el = messagesRef.current;
-    if (!el) return;
-    const onScroll = () => { pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
-  }, [isChatting]);
-
-  // Follow the bottom ONLY when active AND pinned. requestAnimationFrame batches it
-  // to one adjustment per frame; scroll-behavior:auto on the box means it's an
-  // instant set (no smooth-scroll rubber-banding fighting the per-token updates).
-  useEffect(() => {
-    const el = messagesRef.current;
-    if (!el) return;
-    const active = loading || streamingMsgIdx !== null;
-    if (active && pinnedRef.current) {
-      requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight; });
+    const last = messages[messages.length - 1];
+    if (el && messages.length > prevLenRef.current && last?.role === "user") {
+      requestAnimationFrame(() => {
+        const userEls = el.querySelectorAll<HTMLElement>('[data-role="user"]');
+        const lastUserEl = userEls[userEls.length - 1];
+        if (lastUserEl) el.scrollTop = Math.max(0, lastUserEl.offsetTop - 8);
+      });
     }
-  }, [messages, loading, streamedUpTo, streamingMsgIdx]);
+    prevLenRef.current = messages.length;
+  }, [messages]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
@@ -532,16 +527,25 @@ export function HomePage() {
         {isChatting && (
           <div ref={messagesRef} className="relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto", contain: "layout" }}>
             {(() => {
-              return messages.map((m, i) => {
+              // Unified turn list: real messages + a single PENDING assistant row while
+              // thinking. The pending row shares the SAME key/index/structure as the
+              // real assistant row that replaces it, so React reconciles IN PLACE — no
+              // unmount/remount, no positional shift (the Gemini zero-shift model).
+              const turns: Array<{ role: "user" | "assistant"; content: string; pending?: boolean }> =
+                messages.map(mm => ({ role: mm.role as "user" | "assistant", content: mm.content }));
+              if (loading && streamingMsgIdx === null && turns[turns.length - 1]?.role === "user")
+                turns.push({ role: "assistant", content: "", pending: true });
+              return turns.map((m, i) => {
                 const isStreaming = streamingMsgIdx === i;
                 const displayText = isStreaming ? m.content.slice(0, streamedUpTo) : m.content;
                 const meta = messageMeta[i];
                 const AgentIcon = meta?.agent.icon;
+                const showThinking = !!m.pending || (isStreaming && !displayText);
                 return (
                   <div key={i} data-role={m.role} className={`w-full min-w-0 ${m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}`}>
                     {m.role === "assistant" && (
                       <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
-                        <LogoMark size={16}/>
+                        <LogoMark size={16} thinking={showThinking}/>
                       </div>
                     )}
                     {m.role === "user" ? (
@@ -550,14 +554,16 @@ export function HomePage() {
                       </div>
                     ) : (
                       <div className="flex-1 min-w-0">
-                        <div className="ask-assistant-line min-w-0 break-words pl-4 text-sm space-y-0.5">
-                          {/* While streaming, render plain text (symbols stripped) so the
-                              answer types out smoothly letter-by-letter without markdown
-                              structures reflowing mid-stream. Format once it's complete. */}
-                          {isStreaming
-                            ? <p className="whitespace-pre-wrap break-words leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
-                            : renderMarkdown(displayText)}
-                          {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
+                        {/* UNIFIED slot — thinking, streaming, and final markdown all
+                            render inside the SAME tags/indent; only the inner text swaps.
+                            The top-edge never moves. */}
+                        <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
+                          {showThinking
+                            ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
+                            : isStreaming
+                              ? <p className="whitespace-pre-wrap break-words leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
+                              : renderMarkdown(displayText)}
+                          {isStreaming && displayText && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
                         {!isStreaming && meta && AgentIcon && (
                           <div className="flex flex-wrap items-center gap-2 mt-2 pl-4">
@@ -609,22 +615,6 @@ export function HomePage() {
                 );
               });
             })()}
-            {/* THINKING ANCHOR — structurally identical to an assistant row, so the
-                reasoning line sits in the EXACT slot the answer text will stream into.
-                When the first token arrives this disappears and the assistant row
-                renders at the same top-edge: zero vertical shift. */}
-            {loading && streamingMsgIdx === null && (
-              <div className="w-full min-w-0 flex gap-3 items-start">
-                <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
-                  <LogoMark size={16} thinking />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="ask-assistant-line min-w-0 break-words pl-4 text-sm">
-                    <span className="italic" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
-                  </div>
-                </div>
-              </div>
-            )}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
               <div className="flex flex-col gap-1.5 pl-9">
                 {suggestions.map((s, i) => (
