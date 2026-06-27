@@ -536,7 +536,7 @@ export function HomePage() {
                 const AgentIcon = meta?.agent.icon;
                 const showThinking = !!m.pending || (isStreaming && !displayText);
                 return (
-                  <div key={i} data-role={m.role} className={`w-full min-w-0 ${m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}`}>
+                  <div key={i} data-role={m.role} className={`mx-auto w-full max-w-3xl min-w-0 ${m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}`}>
                     {m.role === "assistant" && (
                       <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
                         <LogoMark size={16} thinking={showThinking}/>
@@ -569,38 +569,32 @@ export function HomePage() {
                           </div>
                         )}
                         {!isStreaming && meta && meta.sources.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2 pl-4">
+                          <div className="mt-2.5 grid grid-cols-1 gap-1.5 pl-4 sm:grid-cols-2">
                             {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
                           </div>
                         )}
-                        {/* Same action-chip set as the main Ask page and the right-side
-                            drawer — built from buildChipText() so every surface embeds
-                            the same real prior question/answer, not just "this". */}
+                        {/* Unified actions tray — one consistent pill style, grouped in a
+                            subtle bordered panel attached under the answer. */}
                         {!isStreaming && !loading && i === messages.length - 1 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                            <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-ai">
-                              <LogoMark size={11}/> Create task from this
-                            </button>
-                            <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-ai">
-                              <LogoMark size={11}/> Draft message
-                            </button>
-                            <button onClick={() => sendSuggestion(buildChipText("related", i))} className="btn-suggested">
-                              Show related objects
-                            </button>
-                            <button onClick={() => sendSuggestion(buildChipText("explain", i))} className="btn-suggested">
-                              Explain reasoning
-                            </button>
-                            <button onClick={() => sendSuggestion(buildChipText("decision", i))} className="btn-suggested">
-                              Add to decision queue
-                            </button>
-                            <button onClick={() => sendSuggestion(buildChipText("workflow", i))} className="btn-suggested">
-                              Draft workflow
-                            </button>
-                            <span title="Coming soon — no report-creation tool exists yet"
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium cursor-not-allowed opacity-50"
-                              style={{ border: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
-                              Create report
-                            </span>
+                          <div className="mt-3 pl-4">
+                            <div className="rounded-xl border p-2" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 55%, transparent)" }}>
+                              <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Suggested actions</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {([
+                                  { key: "task", label: "Create task", mark: true },
+                                  { key: "draft", label: "Draft message", mark: true },
+                                  { key: "related", label: "Show related" },
+                                  { key: "explain", label: "Explain reasoning" },
+                                  { key: "decision", label: "Add to decision queue" },
+                                  { key: "workflow", label: "Draft workflow" },
+                                ] as const).map(a => (
+                                  <button key={a.key} onClick={() => sendSuggestion(buildChipText(a.key, i))} className="chat-action">
+                                    {a.mark && <LogoMark size={11}/>}{a.label}
+                                  </button>
+                                ))}
+                                <span title="Coming soon — no report-creation tool exists yet" className="chat-action chat-action-disabled">Create report</span>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

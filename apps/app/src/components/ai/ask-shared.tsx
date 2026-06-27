@@ -220,11 +220,13 @@ export function SourceCard({ source }: { source: SourceCardData }) {
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter") open(); } : undefined}
-      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${clickable ? "cursor-pointer hover:border-cyan-400/50 hover:bg-[var(--surface-hover)]" : ""}`}
+      className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors ${clickable ? "cursor-pointer hover:bg-[var(--surface-hover)]" : ""}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+      onMouseEnter={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; } : undefined}
+      onMouseLeave={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; } : undefined}
       title={clickable ? "Open record in new tab" : undefined}
     >
-      <Icon size={12} className="shrink-0 text-cyan-600 dark:text-cyan-400"/>
+      <Icon size={12} className="shrink-0" style={{ color: "var(--accent)" }}/>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[11.5px] font-medium" style={{ color: "var(--text-primary)" }}>{source.title}</span>
@@ -250,7 +252,7 @@ export function EvidenceStrip({ sources }: { sources: SourceCardData[] }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
       <span className="flex items-center gap-1">
-        <LogoMark size={10} className={hasSources ? "text-cyan-600 dark:text-cyan-400" : ""}/>
+        <LogoMark size={10} style={hasSources ? { color: "var(--accent)" } : undefined}/>
         {hasSources ? "Source-backed" : "No sources returned"}
       </span>
       <span>·</span>

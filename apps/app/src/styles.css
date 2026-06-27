@@ -436,6 +436,36 @@ html[data-theme="dark"] .minimal-sparkline {
   margin-top: auto;
 }
 
+/* Unified chat action pill — one consistent matte style for every suggested action
+   under an answer (replaces the mixed btn-ai / btn-suggested look). */
+.chat-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.chat-action:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.chat-action-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.chat-action-disabled:hover {
+  background: var(--surface-card);
+  border-color: var(--border-soft);
+  color: var(--text-secondary);
+}
+
 .chat-input-bar {
   min-height: 4.35rem;
 }
