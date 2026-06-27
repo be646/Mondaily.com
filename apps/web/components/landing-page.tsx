@@ -2154,105 +2154,135 @@ function RecordsSheetPreview() {
   );
 }
 
-// Faithful mini-recreation of the real app's Records spreadsheet (dark UI).
+// Interactive light recreation of the app's Records sheet — select rows, run
+// enrichment, lead-score + health columns, contextual action bar.
 function RecordsSheetDemo() {
-  const rows = [
-    { name: "Sarah Chen", company: "Acme Corp", title: "VP Sales", email: "s.chen@acme.com", health: 92 },
-    { name: "Marcus Webb", company: "Northwind", title: "CTO", email: "m.webb@northwind.io", health: 78 },
-    { name: "Elena Ruiz", company: "Globex", title: "Head of Ops", email: "e.ruiz@globex.com", health: 61 },
+  const seed = [
+    { id: 1, name: "Sarah Chen", company: "Acme Corp", title: "VP Sales", score: 92, health: 88 },
+    { id: 2, name: "Marcus Webb", company: "Northwind", title: "CTO", score: 74, health: 71 },
+    { id: 3, name: "Elena Ruiz", company: "Globex", title: "Head of Ops", score: 58, health: 63 },
   ];
-  const cols = "grid grid-cols-[1.3fr_1fr_1fr_1.5fr_0.8fr] items-center gap-2";
+  const [rows, setRows] = useState(seed);
+  const [pending, setPending] = useState<{ id: number; name: string } | null>({ id: 4, name: "James Lee" });
+  const [selected, setSelected] = useState<number>(1);
+  const [enriching, setEnriching] = useState(false);
+  const score = (s: number) => (s >= 80 ? { c: "#059669", b: "#ecfdf5" } : s >= 60 ? { c: "#b45309", b: "#fffbeb" } : { c: "#52525b", b: "#f4f4f5" });
+  function enrich() {
+    if (!pending || enriching) return;
+    setEnriching(true);
+    setTimeout(() => {
+      setRows(r => [...r, { id: pending.id, name: pending.name, company: "Initech", title: "Founder", score: 81, health: 77 }]);
+      setSelected(pending.id);
+      setPending(null);
+      setEnriching(false);
+    }, 1300);
+  }
+  const COLS = "grid grid-cols-[1.4fr_1fr_1fr_0.9fr_0.9fr] items-center gap-2";
+  const selName = [...rows, ...(pending ? [pending] : [])].find(r => r.id === selected)?.name ?? "—";
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[.08] bg-[#0e0f12] text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[.06] px-4 py-3">
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_50px_-28px_rgba(0,0,0,0.25)]">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-semibold">People</span>
-          <span className="rounded-full bg-white/[.06] px-2 py-0.5 text-[10px] text-stone-400">248 records</span>
+          <span className="text-[13px] font-semibold text-zinc-800">People</span>
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500">{rows.length + (pending ? 1 : 0)} records</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-md border border-white/[.08] px-2.5 py-1 text-[11px] text-stone-300">＋ Add</span>
-          <span className="rounded-md bg-stone-500/20 px-2.5 py-1 text-[11px] text-stone-300">✦ Enrich all</span>
-        </div>
+        <button onClick={enrich} disabled={!pending || enriching} className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity disabled:opacity-50" style={{ background: "#0f172a" }}>
+          {enriching ? "Enriching…" : "✦ Enrich all"}
+        </button>
       </div>
       <div className="px-1.5 py-1">
-        <div className={`${cols} px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-stone-600`}>
-          <span>Name</span><span>Company</span><span>Title</span><span>Email</span><span>Health</span>
+        <div className={`${COLS} px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400`}>
+          <span>Name</span><span>Company</span><span>Title</span><span>Lead score</span><span>Health</span>
         </div>
-        {rows.map(r => (
-          <div key={r.name} className={`${cols} border-t border-white/[.03] px-3 py-2.5`}>
-            <span className="flex items-center gap-2 text-[12px]"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/[.08] text-[9px] text-stone-300">{r.name.split(" ").map(w => w[0]).join("")}</span>{r.name}</span>
-            <span className="text-[12px] text-stone-300">{r.company}</span>
-            <span className="text-[12px] text-stone-400">{r.title}</span>
-            <span className="truncate text-[12px] text-stone-400">{r.email}</span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-12 overflow-hidden rounded-full bg-white/[.08]"><span className="block h-full rounded-full" style={{ width: `${r.health}%`, background: r.health > 80 ? "#34d399" : r.health > 65 ? "#a3a35a" : "#f59e0b" }} /></span>
-              <span className="text-[11px] text-stone-400">{r.health}</span>
-            </span>
+        {rows.map(r => {
+          const sc = score(r.score); const on = selected === r.id;
+          return (
+            <button key={r.id} onClick={() => setSelected(r.id)} className={`${COLS} w-full border-t border-zinc-100 px-3 py-2.5 text-left transition-colors ${on ? "bg-zinc-50" : "hover:bg-zinc-50/60"}`}>
+              <span className="flex items-center gap-2 text-[12px] text-zinc-800"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[9px] font-medium text-zinc-600">{r.name.split(" ").map(w => w[0]).join("")}</span>{r.name}</span>
+              <span className="text-[12px] text-zinc-600">{r.company}</span>
+              <span className="text-[12px] text-zinc-500">{r.title}</span>
+              <span><span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold tabular-nums" style={{ color: sc.c, background: sc.b }}>{r.score}</span></span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-12 overflow-hidden rounded-full bg-zinc-100"><span className="block h-full rounded-full" style={{ width: `${r.health}%`, background: r.health > 80 ? "#059669" : r.health > 65 ? "#d97706" : "#a1a1aa" }} /></span>
+                <span className="text-[11px] tabular-nums text-zinc-500">{r.health}</span>
+              </span>
+            </button>
+          );
+        })}
+        {pending && (
+          <div className={`${COLS} border-t border-zinc-100 px-3 py-2.5`}>
+            <span className="flex items-center gap-2 text-[12px] text-zinc-800"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-zinc-100 text-[9px] font-medium text-zinc-600">JL</span>{pending.name}</span>
+            <span className="text-[11px] italic text-zinc-400">{enriching ? "enriching…" : "incomplete"}</span>
+            <span className="text-[11px] italic text-zinc-400">{enriching ? "enriching…" : "—"}</span>
+            <span className="text-[11px] italic text-zinc-400">{enriching ? "scoring…" : "—"}</span>
+            <span>{enriching ? <motion.span className="inline-block h-1.5 w-1.5 rounded-full bg-zinc-400" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }} /> : <span className="text-[11px] text-zinc-300">—</span>}</span>
           </div>
-        ))}
-        <div className={`${cols} border-t border-white/[.03] px-3 py-2.5`}>
-          <span className="flex items-center gap-2 text-[12px]"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/[.08] text-[9px] text-stone-300">JL</span>James Lee</span>
-          <span className="text-[11px] italic text-stone-600">enriching…</span>
-          <span className="text-[11px] italic text-stone-600">enriching…</span>
-          <span className="text-[11px] italic text-stone-600">enriching…</span>
-          <motion.span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity }} />
-        </div>
+        )}
       </div>
-      <div className="flex items-center gap-2 border-t border-white/[.06] px-4 py-2.5 text-[11px]">
-        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#8fb3b0" }} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
-        <span className="text-stone-400"><span style={{ color: "#8fb3b0" }}>Enrichment Agent</span> pulling ARR, headcount &amp; tech stack from the web</span>
+      <div className="flex items-center gap-2 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-[11px]">
+        <span className="text-zinc-500">Selected · <span className="font-medium text-zinc-700">{selName}</span></span>
+        <span className="ml-auto flex gap-1.5">
+          <span className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600">Ask AI</span>
+          <span className="rounded-md border border-zinc-200 px-2 py-1 text-zinc-600">Draft message</span>
+          <span className="rounded-md px-2 py-1 font-medium text-white" style={{ background: "#0f172a" }}>Add to list</span>
+        </span>
       </div>
     </div>
   );
 }
 
-// Faithful mini-recreation of the real app's Invoices view (dark UI).
+// Interactive light recreation of the app's Invoices view — the status filter
+// actually filters the table.
 function InvoiceDemo() {
-  const BADGE: Record<string, { label: string; color: string; bg: string }> = {
-    draft:   { label: "Draft",   color: "#a8a29e", bg: "rgba(168,162,158,0.14)" },
-    sent:    { label: "Sent",    color: "#60a5fa", bg: "rgba(96,165,250,0.14)" },
-    paid:    { label: "Paid",    color: "#34d399", bg: "rgba(52,211,153,0.14)" },
-    overdue: { label: "Overdue", color: "#f59e0b", bg: "rgba(245,158,11,0.14)" },
+  const BADGE: Record<string, { label: string; c: string; b: string }> = {
+    draft:   { label: "Draft",   c: "#52525b", b: "#f4f4f5" },
+    sent:    { label: "Sent",    c: "#2563eb", b: "#eff6ff" },
+    paid:    { label: "Paid",    c: "#059669", b: "#ecfdf5" },
+    overdue: { label: "Overdue", c: "#d97706", b: "#fffbeb" },
   };
-  const rows = [
-    { num: "INV-0042", client: "Acme Corp", email: "billing@acme.com", amount: "£4,200.00", status: "sent", due: "Jul 14" },
-    { num: "INV-0041", client: "Northwind Traders", email: "ap@northwind.io", amount: "£1,850.00", status: "overdue", due: "Jun 30" },
-    { num: "INV-0040", client: "Globex", email: "finance@globex.com", amount: "£9,300.00", status: "paid", due: "Jun 22" },
-    { num: "INV-0039", client: "Initech", email: "accounts@initech.co", amount: "£620.00", status: "draft", due: "—" },
+  const all = [
+    { num: "INV-0042", client: "Acme Corp", amount: "£4,200.00", status: "sent", due: "Jul 14" },
+    { num: "INV-0041", client: "Northwind Traders", amount: "£1,850.00", status: "overdue", due: "Jun 30" },
+    { num: "INV-0040", client: "Globex", amount: "£9,300.00", status: "paid", due: "Jun 22" },
+    { num: "INV-0039", client: "Initech", amount: "£620.00", status: "draft", due: "—" },
+    { num: "INV-0038", client: "Stark Industries", amount: "£12,400.00", status: "paid", due: "Jun 10" },
   ];
-  const cols = "grid grid-cols-[1fr_1.6fr_1fr_0.9fr_0.7fr] items-center gap-2";
+  const [filter, setFilter] = useState("all");
+  const rows = filter === "all" ? all : all.filter(r => r.status === filter);
+  const COLS = "grid grid-cols-[1fr_1.7fr_1fr_0.9fr_0.7fr] items-center gap-2";
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/[.08] bg-[#0e0f12] text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
-      <div className="flex items-center justify-between gap-3 border-b border-white/[.06] px-4 py-3">
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_50px_-28px_rgba(0,0,0,0.25)]">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
         <div className="flex items-center gap-6">
-          <div><div className="text-[10px] uppercase tracking-wide text-stone-500">Outstanding</div><div className="text-[16px] font-semibold">£6,050.00</div></div>
-          <div><div className="text-[10px] uppercase tracking-wide text-stone-500">Paid</div><div className="text-[16px] font-semibold text-emerald-400">£9,300.00</div></div>
+          <div><div className="text-[10px] uppercase tracking-wide text-zinc-400">Outstanding</div><div className="text-[16px] font-semibold text-zinc-900">£6,050.00</div></div>
+          <div><div className="text-[10px] uppercase tracking-wide text-zinc-400">Paid</div><div className="text-[16px] font-semibold text-emerald-600">£21,700.00</div></div>
         </div>
-        <span className="rounded-lg bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-950">+ New invoice</span>
+        <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white" style={{ background: "#0f172a" }}>+ New invoice</span>
       </div>
-      <div className="flex items-center gap-1 border-b border-white/[.06] px-4 py-2">
-        {["All", "Draft", "Sent", "Paid", "Overdue"].map((f, i) => (
-          <span key={f} className={`rounded-md px-2.5 py-1 text-[11px] ${i === 0 ? "bg-white/[.08] text-white" : "text-stone-500"}`}>{f}</span>
+      <div className="flex items-center gap-1 border-b border-zinc-100 px-4 py-2">
+        {[["all", "All"], ["draft", "Draft"], ["sent", "Sent"], ["paid", "Paid"], ["overdue", "Overdue"]].map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k)} className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${filter === k ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-800"}`}>{l}</button>
         ))}
       </div>
       <div className="px-1.5 py-1">
-        <div className={`${cols} px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-stone-600`}>
+        <div className={`${COLS} px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400`}>
           <span>Invoice</span><span>Client</span><span>Amount</span><span>Status</span><span>Due</span>
         </div>
         {rows.map(r => (
-          <div key={r.num} className={`${cols} border-t border-white/[.03] px-3 py-2.5`}>
-            <span className="text-[12px] font-medium">{r.num}</span>
-            <span className="min-w-0"><span className="block truncate text-[12px]">{r.client}</span><span className="block truncate text-[10px] text-stone-600">{r.email}</span></span>
-            <span className="text-[12px] font-semibold">{r.amount}</span>
-            <span><span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: BADGE[r.status]!.color, background: BADGE[r.status]!.bg }}>{BADGE[r.status]!.label}</span></span>
-            <span className="text-[12px] text-stone-400">{r.due}</span>
+          <div key={r.num} className={`${COLS} border-t border-zinc-100 px-3 py-2.5 transition-colors hover:bg-zinc-50/60`}>
+            <span className="text-[12px] font-medium text-zinc-800">{r.num}</span>
+            <span className="truncate text-[12px] text-zinc-700">{r.client}</span>
+            <span className="text-[12px] font-semibold text-zinc-900">{r.amount}</span>
+            <span><span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: BADGE[r.status]!.c, background: BADGE[r.status]!.b }}>{BADGE[r.status]!.label}</span></span>
+            <span className="text-[12px] text-zinc-500">{r.due}</span>
           </div>
         ))}
+        {rows.length === 0 && <div className="px-3 py-6 text-center text-[12px] text-zinc-400">No {filter} invoices</div>}
       </div>
-      <div className="flex items-center gap-2 border-t border-white/[.06] px-4 py-2.5 text-[11px]">
-        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
-        <span className="truncate text-stone-400"><span className="text-amber-300">Finance Agent</span> drafted a reminder for INV-0041</span>
-        <span className="ml-auto shrink-0 rounded-md bg-white/[.06] px-2 py-1 text-[10px] text-stone-300">Approve ↵</span>
+      <div className="flex items-center gap-2 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-[11px]">
+        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
+        <span className="truncate text-zinc-500"><span className="font-medium text-amber-700">Finance Agent</span> drafted a reminder for INV-0041</span>
+        <span className="ml-auto shrink-0 rounded-md border border-zinc-200 px-2 py-1 text-zinc-600">Approve ↵</span>
       </div>
     </div>
   );
@@ -3335,8 +3365,8 @@ export function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: ready ? 1 : 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
-        data-theme={theme}
-        className={`landing-shell min-h-screen bg-white text-zinc-900 ${theme === "dark" ? "dark" : ""}`}
+        data-theme="light"
+        className="landing-shell min-h-screen bg-white text-zinc-900"
       >
         <header className="landing-nav fixed top-0 left-0 right-0 z-40 border-b">
           <Nav />
@@ -3527,7 +3557,6 @@ export function LandingPage() {
             <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
               <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
               <div className="flex items-center gap-3">
-                <FooterThemeToggle theme={theme} onToggle={toggleTheme} />
                 <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-700 transition-colors">
                   System status
                 </a>
