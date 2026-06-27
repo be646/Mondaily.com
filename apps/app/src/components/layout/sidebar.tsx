@@ -520,22 +520,22 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               <Settings size={14}/>
             </Link>
           ) : (
-            <div className="relative pt-5">
-              {/* Trial — a floating elevated layer (soft shadow) sitting above the
-                  user card, rather than a row crammed inside the frame. */}
+            <div className="relative pt-6">
+              {/* Trial — a layer that comes from BEHIND the user card: same width
+                  and shape, peeking out at the top, with a soft shadow for depth. */}
               <Link
                 to="/settings/billing"
-                className="absolute left-1.5 right-1.5 top-0 z-10 flex items-center justify-between rounded-xl px-3 py-2 transition-transform hover:-translate-y-px"
-                style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)", boxShadow: "0 10px 22px -10px rgba(0,0,0,0.45)" }}
+                className="absolute inset-x-0 top-0 z-0 flex items-center justify-between rounded-xl px-3 pt-1.5 pb-7 transition-all hover:pt-1"
+                style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)", boxShadow: "0 6px 16px -8px rgba(0,0,0,0.4)" }}
               >
-                <span className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>
+                <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
                   Trial <span className="font-normal" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
                 </span>
-                <span className="rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}>Upgrade</span>
+                <span className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}>Upgrade</span>
               </Link>
 
-              {/* User + invite — the base frame the trial floats over */}
-              <div className="rounded-xl px-1 pb-1 pt-6" style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)" }}>
+              {/* User + invite — the front card, opaque so it covers the trial's body */}
+              <div className="relative z-10 rounded-xl border bg-white px-1 py-1 dark:bg-stone-950" style={{ borderColor: "var(--border-soft)" }}>
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
                   {user?.imageUrl
                     ? <img src={user.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>

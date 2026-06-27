@@ -414,19 +414,15 @@ export function HomePage() {
           centered — reads as a normal page header. ── */}
       <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Left — greeting + AI agents */}
+          {/* Left — just the greeting */}
           <div className="min-w-0">
             <div className="flex flex-col gap-1.5">
               <p className="home-section-kicker">{todayLabel}</p>
               <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
             </div>
-            {/* AI agents — quiet summary; scrolls to the full constellation. */}
-            <div className="mt-3">
-              <AgentHeroStrip />
-            </div>
           </div>
 
-          {/* Right — the signals/notification bar: tasks, pending, unread, overdue */}
+          {/* Right — the signals bar (tasks, pending, unread, overdue) + agents */}
           <div className="flex flex-col gap-2 lg:items-end">
             <div className="home-telemetry-strip">
               <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
@@ -458,10 +454,13 @@ export function HomePage() {
               </div>
             )}
 
-            {/* Ambient live signs */}
-            <div className="home-live-strip">
-              <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-              <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+            {/* Ambient live signs + AI agents */}
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <div className="home-live-strip">
+                <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+                <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+              </div>
+              <AgentHeroStrip />
             </div>
           </div>
         </div>
