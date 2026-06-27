@@ -14,7 +14,6 @@ import { useClerk, useUser } from "@clerk/react";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
-import { AgentPulse } from "../ai/agent-constellation";
 
 // ─── Primary nav — calm by design: 6 items max, always visible. Everything
 // else lives in the collapsible "More" group below or behind command/search.
@@ -480,11 +479,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             </button>
           </div>
         )}
-
-        {/* Agent Dock — visible near the top, compact by default. */}
-        <div className="shrink-0 border-b border-stone-200 px-2 py-2 dark:border-stone-800">
-          <AgentPulse collapsed={collapsed}/>
-        </div>
 
         {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">

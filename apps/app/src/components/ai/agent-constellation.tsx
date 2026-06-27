@@ -235,6 +235,56 @@ const AGENT_DOT_PALETTE = ["var(--accent)", "#10b981", "var(--accent)", "#f59e0b
  * name, click to inspect), not a popover hidden behind a hover trigger.
  * Live agents get a small breathing ring; everything else just sits there
  * quietly, which is the honest state for monitoring/disabled/not_configured. */
+// ─── Hero agent strip ─────────────────────────────────────────────────────────
+// A clean, premium summary of the agent fleet for the Home welcome area (replaces
+// the old sidebar dock). An overlapping stack of live-pulsing dots + a quiet
+// count, in a pill that lifts on hover and scrolls to the full constellation.
+export function AgentHeroStrip() {
+  const { constellation, isLoading } = useAgentData();
+
+  if (isLoading) return <div className="skeleton-shimmer h-9 w-52 rounded-full"/>;
+  if (!constellation.length) return null;
+
+  const live = constellation.filter(a => isLiveState(a.state));
+
+  return (
+    <a
+      href="#agents"
+      className="agent-hero-pill group inline-flex items-center gap-3 rounded-full px-3.5 py-2 transition-all"
+      style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}
+    >
+      <span className="flex items-center -space-x-1.5">
+        {constellation.slice(0, 5).map((a, i) => {
+          const liveDot = isLiveState(a.state);
+          return (
+            <span
+              key={a.id}
+              className="relative inline-flex h-3 w-3 items-center justify-center rounded-full"
+              style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)", boxShadow: "0 0 0 2px var(--surface-card)" }}
+            >
+              {liveDot && (
+                <motion.span
+                  animate={{ opacity: [0.4, 0.85, 0.4], scale: [1, 1.6, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: i * 0.25 }}
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}
+                />
+              )}
+            </span>
+          );
+        })}
+      </span>
+      <span className="flex items-baseline gap-1.5 leading-none">
+        <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>AI agents</span>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+          {constellation.length} · {live.length > 0 ? `${live.length} active` : "all quiet"}
+        </span>
+      </span>
+      <ArrowUpRight size={13} className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--text-muted)" }}/>
+    </a>
+  );
+}
+
 export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   const { constellation, isLoading } = useAgentData();
 

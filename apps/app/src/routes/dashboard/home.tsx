@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
-import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
+import { AgentConstellationPanel, AgentHeroStrip } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
@@ -422,10 +422,14 @@ export function HomePage() {
             <p className="home-section-copy mt-1 max-w-2xl">
               Mondaily has reviewed the graph. Your next signals are ready.
             </p>
+            {/* AI agents — clean, premium summary, front and centre in the welcome
+                area (moved out of the sidebar). Scrolls to the full constellation. */}
+            <div className="mt-3">
+              <AgentHeroStrip />
+            </div>
           </div>
           <div className="home-live-strip">
             <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-            <span className="status-chip" data-tone={notificationsQuery.isError ? "amber" : "default"}><span className="dot" style={{ animation: "none" }}/>{notificationsQuery.isError ? "Agent status partial" : "Agents active"}</span>
             <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
           </div>
         </div>
@@ -676,7 +680,9 @@ export function HomePage() {
         {/* Agents lead — the AI command center is the centerpiece, with the
             workspace pulse as supporting context below it. */}
         <div className="space-y-6">
-          <AgentConstellationPanel />
+          <div id="agents" className="scroll-mt-20">
+            <AgentConstellationPanel />
+          </div>
           <WorkspaceGraphPulse />
         </div>
       </section>
