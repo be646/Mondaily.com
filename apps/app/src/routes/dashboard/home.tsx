@@ -170,6 +170,7 @@ export function HomePage() {
   const [streamedUpTo, setStreamedUpTo] = useState(0);
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -259,9 +260,16 @@ export function HomePage() {
   const recentThreads = getThreads().slice(0, 3);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Scroll ONLY the inner message box — never the page. scrollIntoView used to
+  // bubble up and smooth-scroll the whole document on every token, which was the
+  // jump on send + the up/down shake while streaming. Follow the stream
+  // (streamedUpTo) but only when already near the bottom, so reading isn't yanked.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    const el = messagesRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamedUpTo]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
@@ -511,8 +519,9 @@ export function HomePage() {
           </div>
         )}
 
-        {isChatting && (
-          <div className="mb-6 max-h-[560px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
+        <div className={`chat-convo ${isChatting ? "is-open" : ""}`}>
+          {isChatting && (
+          <div ref={messagesRef} className="chat-convo-scroll space-y-6 pr-1" style={{ scrollbarWidth: "none" }}>
             {(() => {
               return messages.map((m, i) => {
                 const isStreaming = streamingMsgIdx === i;
@@ -605,7 +614,8 @@ export function HomePage() {
             )}
             <div ref={bottomRef}/>
           </div>
-        )}
+          )}
+        </div>
 
         {/* Input */}
         <div className="relative mx-auto max-w-3xl" ref={pickerRef}>

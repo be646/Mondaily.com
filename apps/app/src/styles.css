@@ -373,6 +373,26 @@ html[data-theme="dark"] .minimal-sparkline {
 .chat-input-bar {
   min-height: 4.35rem;
 }
+
+/* Conversation panel — a fixed-height box that slides open once to make space for
+   the answer, then scrolls INTERNALLY so streaming never reflows or shakes the
+   page; slides back closed when the chat is cleared. */
+.chat-convo {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-bottom: 0;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, margin-bottom 0.4s ease;
+}
+.chat-convo.is-open {
+  max-height: min(520px, 56vh);
+  opacity: 1;
+  margin-bottom: 1.5rem;
+}
+.chat-convo-scroll {
+  max-height: min(520px, 56vh);
+  overflow-y: auto;
+}
 .chat-input-orbit {
   position: relative;
   overflow: hidden;

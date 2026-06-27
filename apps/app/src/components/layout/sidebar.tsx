@@ -539,7 +539,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               {/* User + invite — a full-width banner, part of the sidebar; opaque so it
                   covers the trial's body. -mx-2 cancels the container padding so it
                   spans edge to edge. */}
-              <div className="relative z-10 -mx-2 border-t bg-white px-3 py-1 dark:bg-stone-950" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="relative z-10 -mx-2 bg-white px-3 py-1 dark:bg-stone-950">
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
                   {user?.imageUrl
                     ? <img src={user.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>
