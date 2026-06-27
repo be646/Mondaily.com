@@ -1406,6 +1406,89 @@ const WORKSPACE_GRAPH_NODES = [
   { label: "Asset Agent", x: 85, y: 79, color: "#a8896c", detail: "Monitors assets and renewals" },
 ];
 
+// Per-agent execution traces — one log per node (same order as WORKSPACE_GRAPH_NODES).
+// Written to read like the real stack: Hono API routes on Vercel, the Cerebras
+// gpt-oss reasoning model, runLeadScoring(), the Decision Queue, and the
+// /prospecting/run route — so the terminal shows what actually runs, not filler.
+type WgLogLine = { t: "cmd" | "call" | "ok" | "out" | "meta"; s: string };
+const WORKSPACE_AGENT_LOGS: WgLogLine[][] = [
+  [ // Graph
+    { t: "cmd", s: 'graph.query("linked records")' },
+    { t: "call", s: "POST /api/v1/graph/traverse" },
+    { t: "meta", s: "model cerebras/gpt-oss-120b · reasoning=on" },
+    { t: "ok", s: "1,240 nodes · 3,418 edges · 84ms" },
+    { t: "out", s: '"Acme ↔ 3 open deals, 2 overdue tasks"' },
+  ],
+  [ // Enrichment
+    { t: "cmd", s: "enrich.run --scope new_records" },
+    { t: "call", s: "web.search → fetch(6 sources)" },
+    { t: "ok", s: "+ARR +headcount +tech_stack +funding" },
+    { t: "meta", s: "provenance: source_url stored per field" },
+  ],
+  [ // Relationship
+    { t: "cmd", s: "relationship.scan --open-loops" },
+    { t: "call", s: "GET /api/v1/nodes?stale=true" },
+    { t: "ok", s: "health 84 → 78 · follow-up due" },
+    { t: "out", s: "draft → decision_queue" },
+  ],
+  [ // Finance
+    { t: "cmd", s: "finance.watch --check invoice_age" },
+    { t: "out", s: "INV-0031 · £8,400 · 5d overdue" },
+    { t: "call", s: 'draft.reminder(tone="polite")' },
+    { t: "ok", s: "queued → await approval" },
+  ],
+  [ // Operations
+    { t: "cmd", s: "ops.queue --scan stalled" },
+    { t: "ok", s: "7 tasks > SLA · 3 deals idle" },
+    { t: "call", s: "route → decision_ready" },
+  ],
+  [ // Workflow
+    { t: "cmd", s: 'workflow.run(trigger="stage_change")' },
+    { t: "call", s: 'match(stage="Proposal") → 4 actions' },
+    { t: "ok", s: "enroll · notify · draft_quote" },
+    { t: "meta", s: "event-driven · Inngest + Vercel Cron" },
+  ],
+  [ // Prospecting
+    { t: "cmd", s: "POST /api/v1/prospecting/run" },
+    { t: "out", s: '{ query:"AI startups · London", n:10 }' },
+    { t: "call", s: "web.search → score(confidence)" },
+    { t: "ok", s: "11 candidates → decision_queue" },
+  ],
+  [ // Signal
+    { t: "cmd", s: "signal.detect --watch graph" },
+    { t: "ok", s: "Δ hiring +3 · recent funding round" },
+    { t: "out", s: '"why it matters: expansion signal"' },
+  ],
+  [ // Opportunity
+    { t: "cmd", s: "opportunity.rank()" },
+    { t: "call", s: "runLeadScoring(node_id)" },
+    { t: "ok", s: "lead_score 91 (Δ +6) · top 5%" },
+  ],
+  [ // People
+    { t: "cmd", s: "people.sync --roles" },
+    { t: "call", s: "enrich(contact) · verify(email)" },
+    { t: "ok", s: "role updated · 2 new contacts" },
+  ],
+  [ // Portfolio
+    { t: "cmd", s: "portfolio.track()" },
+    { t: "call", s: "agg(holdings) · pull valuations" },
+    { t: "ok", s: "MoM +12% · 1 company flagged" },
+  ],
+  [ // Asset
+    { t: "cmd", s: "asset.monitor --renewals" },
+    { t: "ok", s: "2 renewals due < 30d" },
+    { t: "call", s: "draft.reminder → decision_queue" },
+  ],
+];
+
+const WG_LOG_STYLE: Record<WgLogLine["t"], { prefix: string; color: string }> = {
+  cmd:  { prefix: "$ ", color: "#9fb08f" },
+  call: { prefix: "→ ", color: "#8fb3b0" },
+  ok:   { prefix: "✓ ", color: "#7fae8a" },
+  out:  { prefix: "  ", color: "#d7c6a3" },
+  meta: { prefix: "# ", color: "#7c8379" },
+};
+
 const WORKSPACE_TERMINAL_ROWS: Array<{
   prompt: string;
   segments: Array<{ text: string; color: string }>;
@@ -1565,6 +1648,16 @@ function WorkspaceGraphPreview() {
 
   const activeNode = WORKSPACE_GRAPH_NODES[active]!;
   const askPrompt = AGENT_ASK_PROMPTS[active]!;
+  const activeLog = WORKSPACE_AGENT_LOGS[active] ?? [];
+  const activeSlug = activeNode.label.replace(" Agent", "").toLowerCase();
+
+  // Stream the active agent's log line-by-line; reset whenever the node changes.
+  const [logShown, setLogShown] = useState(0);
+  useEffect(() => {
+    setLogShown(0);
+    const t = setInterval(() => setLogShown(n => (n < activeLog.length ? n + 1 : n)), 300);
+    return () => clearInterval(t);
+  }, [active, activeLog.length]);
 
   return (
     <div className="relative mx-auto w-full max-w-full overflow-hidden sm:max-w-6xl">
@@ -1707,62 +1800,56 @@ function WorkspaceGraphPreview() {
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ background: "#9fb08f" }}
               />
-              agents@mondaily — operating layer
+              agent.run(&quot;{activeSlug}&quot;) — mondaily
             </span>
           </div>
 
           <div className="relative flex flex-1 flex-col p-5 sm:p-6">
-            {/* Terminal rows — fixed-height lines, no layout shift */}
-            <div className="space-y-1 overflow-hidden">
-              {WORKSPACE_TERMINAL_ROWS.map((row, i) => (
-                <TerminalLine
-                  key={row.prompt}
-                  segments={row.segments}
-                  active={i === activeRowIndex}
-                  typedChars={i === activeRowIndex ? typedChars : undefined}
-                />
-              ))}
-              <div style={{ opacity: 0.28 }} className="h-7 overflow-hidden whitespace-nowrap font-mono text-[12px] leading-7">
-                <span style={{ color: "#7c8379" }}>$ </span>
-                <span style={{ color: "#c59a8d" }}>approval.queue</span>
-                <span style={{ color: "#7c8379" }}> --mode </span>
-                <span style={{ color: "#8fb3b0" }}>human_review</span>
-              </div>
-              <div style={{ opacity: 0.18 }} className="h-7 overflow-hidden whitespace-nowrap font-mono text-[12px] leading-7">
-                <span style={{ color: "#7c8379" }}>$ </span>
-                <span style={{ color: "#9fb08f" }}>sources.attach</span>
-                <span style={{ color: "#7c8379" }}> --scope </span>
-                <span style={{ color: "#d7c6a3" }}>workspace_graph</span>
-              </div>
+            {/* Active agent header */}
+            <div className="mb-3 flex items-center gap-2 font-mono text-[12px]">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: activeNode.color }} />
+              <span style={{ color: "#f4f7f2" }}>{activeNode.label}</span>
+              <span style={{ color: "#7c8379" }}>· running</span>
             </div>
 
-            {/* Current process + connected Ask AI prompt */}
+            {/* Streaming execution log — follows the active node */}
+            <div className="flex-1 space-y-1 overflow-hidden font-mono text-[12px] leading-6">
+              {activeLog.map((line, i) => {
+                const st = WG_LOG_STYLE[line.t];
+                const visible = i < logShown;
+                return (
+                  <motion.div
+                    key={`${active}-${i}`}
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: visible ? 1 : 0, x: visible ? 0 : -4 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden whitespace-nowrap text-left"
+                    style={{ color: st.color }}
+                  >
+                    <span style={{ color: "#5b615a" }}>{st.prefix}</span>{line.s}
+                  </motion.div>
+                );
+              })}
+              {/* blinking cursor while the log is still printing */}
+              {logShown < activeLog.length && (
+                <motion.span
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ duration: 0.9, repeat: Infinity }}
+                  className="inline-block h-3.5 w-[7px] align-middle"
+                  style={{ background: "#9fb08f" }}
+                />
+              )}
+            </div>
+
+            {/* Footer — the human-in-the-loop step every agent routes to */}
             <div className="mt-auto pt-5 font-mono text-[12px] leading-6">
               <div style={{ borderTop: "1px solid rgba(159,176,143,0.18)" }} className="pt-4">
-                {/* Current process — printed as terminal output, left-aligned */}
-                <div className="text-left">
-                  <span style={{ color: "#7c8379" }}>$ </span>
-                  <span style={{ color: "#9fb08f" }}>process.current</span>
-                </div>
-                <motion.div
-                  key={activeNode.label}
-                  initial={{ opacity: 0, y: 2 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22 }}
-                  className="mt-1.5 flex items-start gap-2 pl-3 text-left"
-                >
-                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: activeNode.color }} />
-                  <span className="min-w-0">
-                    <span style={{ color: "#f4f7f2" }}>{activeNode.label}</span>
-                    <span style={{ color: "#7c8379" }}> — {activeNode.detail}</span>
-                  </span>
-                </motion.div>
                 <motion.div
                   key={`ask-${active}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.22, delay: 0.12 }}
-                  className="mt-2 truncate pl-3 text-left"
+                  className="truncate text-left"
                 >
                   <span style={{ color: "#7c8379" }}>$ </span>
                   <span style={{ color: "#9fb08f" }}>ask</span>
