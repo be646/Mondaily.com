@@ -220,7 +220,7 @@ export function SourceCard({ source }: { source: SourceCardData }) {
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter") open(); } : undefined}
-      className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors ${clickable ? "cursor-pointer hover:bg-[var(--surface-hover)]" : ""}`}
+      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${clickable ? "cursor-pointer hover:bg-[var(--surface-hover)]" : ""}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
       onMouseEnter={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; } : undefined}
       onMouseLeave={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; } : undefined}
