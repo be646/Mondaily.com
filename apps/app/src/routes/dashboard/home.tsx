@@ -170,6 +170,7 @@ export function HomePage() {
   const [streamedUpTo, setStreamedUpTo] = useState(0);
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -259,9 +260,15 @@ export function HomePage() {
   const recentThreads = getThreads().slice(0, 3);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Scroll ONLY the inner messages box — never the page (scrollIntoView used to
+  // bubble up and yank the whole document on every streamed token). Auto-follow
+  // only when the user is already near the bottom, so reading isn't interrupted.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    const el = messagesRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamedUpTo]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
@@ -497,8 +504,8 @@ export function HomePage() {
               { label: "Ask Operations about overdue work", action: () => prefill("Ask Operations Agent: ") },
               ...(hasFinance ? [{ label: "Ask Finance about overdue invoices", action: () => prefill("Ask Finance Agent: ") }] : []),
               { label: "What changed in the graph?", action: () => sendSuggestion("What changed in the graph?") },
-            ].map(s => (
-              <button key={s.label} onClick={s.action} className="chat-suggestion-row group">
+            ].map((s, i, arr) => (
+              <button key={s.label} onClick={s.action} className="chat-suggestion-row group" style={{ zIndex: arr.length - i }}>
                 <span className="flex-1 truncate">{s.label}</span>
                 <CornerDownLeft size={12} className="shrink-0 opacity-45 transition-opacity group-hover:opacity-100"/>
               </button>
@@ -506,8 +513,9 @@ export function HomePage() {
           </div>
         )}
 
-        {isChatting && (
-          <div className="mb-6 max-h-[560px] overflow-y-auto space-y-6 pr-1 scroll-smooth" style={{ scrollbarWidth: "none" }}>
+        <div className={`chat-convo ${isChatting ? "is-open" : ""}`}>
+          {isChatting && (
+          <div ref={messagesRef} className="chat-convo-scroll space-y-6 pr-1" style={{ scrollbarWidth: "none" }}>
             {(() => {
               return messages.map((m, i) => {
                 const isStreaming = streamingMsgIdx === i;
@@ -600,7 +608,8 @@ export function HomePage() {
             )}
             <div ref={bottomRef}/>
           </div>
-        )}
+          )}
+        </div>
 
         {/* Input */}
         <div className="relative mx-auto max-w-3xl" ref={pickerRef}>
@@ -626,7 +635,7 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2.5 rounded-2xl px-4 py-5 transition-all sm:px-5">
+          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2.5 rounded-2xl px-4 py-7 transition-all sm:px-5">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : ""}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-faint)" }}>
@@ -635,7 +644,7 @@ export function HomePage() {
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 bg-transparent text-[14.5px] outline-none" style={{ color: "var(--text-primary)" }}/>
+              className="flex-1 bg-transparent text-[15.5px] outline-none" style={{ color: "var(--text-primary)" }}/>
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-1" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
