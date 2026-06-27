@@ -414,15 +414,29 @@ export function HomePage() {
           centered — reads as a normal page header. ── */}
       <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Left — just the greeting */}
+          {/* Left — greeting + a clean cluster: frameless AI agents and the
+              graph/source status stacked beside it */}
           <div className="min-w-0">
             <div className="flex flex-col gap-1.5">
               <p className="home-section-kicker">{todayLabel}</p>
               <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
             </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+              <AgentHeroStrip />
+              <div className="flex flex-col gap-1">
+                <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>
+                  Graph {graphSynced ? "synced" : "syncing"}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>
+                  Sources {sourcesChecked ? "checked" : "checking…"}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Right — the signals bar (tasks, pending, unread, overdue) + agents */}
+          {/* Right — the signals bar (tasks, pending, unread, overdue) */}
           <div className="flex flex-col gap-2 lg:items-end">
             <div className="home-telemetry-strip">
               <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
@@ -453,15 +467,6 @@ export function HomePage() {
                 )}
               </div>
             )}
-
-            {/* Ambient live signs + AI agents */}
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <div className="home-live-strip">
-                <span className="status-chip" data-tone={graphSynced ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-                <span className="status-chip" data-tone={sourcesChecked ? "default" : "amber"}><span className="dot" style={{ animation: "none" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
-              </div>
-              <AgentHeroStrip />
-            </div>
           </div>
         </div>
       </div>
@@ -488,7 +493,7 @@ export function HomePage() {
         </div>
       )}
 
-      <section ref={askSectionRef} className="home-section relative mx-auto max-w-4xl">
+      <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
         <div className="relative">
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">

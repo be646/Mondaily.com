@@ -242,26 +242,23 @@ const AGENT_DOT_PALETTE = ["var(--accent)", "#10b981", "var(--accent)", "#f59e0b
 export function AgentHeroStrip() {
   const { constellation, isLoading } = useAgentData();
 
-  if (isLoading) return <div className="skeleton-shimmer h-9 w-52 rounded-full"/>;
+  if (isLoading) return <div className="skeleton-shimmer h-4 w-32 rounded"/>;
   if (!constellation.length) return null;
 
   const live = constellation.filter(a => isLiveState(a.state));
 
+  // Frameless: a quiet label + active/total count, with the live-pulsing dots on
+  // the right. No pill, no extra words.
   return (
-    <a
-      href="#agents"
-      className="agent-hero-pill group inline-flex items-center gap-2 rounded-full px-2.5 py-1 transition-all"
-      style={{ border: "1px solid var(--border-soft)", background: "var(--surface-card)" }}
-    >
-      <span className="flex items-center -space-x-1">
-        {constellation.slice(0, 3).map((a, i) => {
+    <a href="#agents" className="group inline-flex items-center gap-2">
+      <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>AI agents</span>
+      <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
+      <span className="flex items-center gap-1">
+        {constellation.slice(0, 5).map((a, i) => {
           const liveDot = isLiveState(a.state);
           return (
-            <span
-              key={a.id}
-              className="relative inline-flex h-2 w-2 items-center justify-center rounded-full"
-              style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)", boxShadow: "0 0 0 1.5px var(--surface-card)" }}
-            >
+            <span key={a.id} className="relative inline-flex h-1.5 w-1.5 rounded-full"
+              style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)" }}>
               {liveDot && (
                 <motion.span
                   animate={{ opacity: [0.35, 0.8, 0.35] }}
@@ -274,10 +271,6 @@ export function AgentHeroStrip() {
           );
         })}
       </span>
-      <span className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>
-        AI agents <span className="font-normal" style={{ color: "var(--text-faint)" }}>{live.length > 0 ? `· ${live.length} active` : ""}</span>
-      </span>
-      <ArrowUpRight size={11} className="opacity-40 transition-opacity group-hover:opacity-90" style={{ color: "var(--text-muted)" }}/>
     </a>
   );
 }
