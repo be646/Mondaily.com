@@ -313,6 +313,17 @@ const FEATURE_TERMINAL_LINES = [
   [{ text: "agent", color: "#9fb08f" }, { text: ".", color: "#7c8379" }, { text: "prospect", color: "#6f8068" }, { text: " → ", color: "#7c8379" }, { text: "discover sourced candidates", color: "#d7c6a3" }],
 ];
 
+// Colored automation-flow cards — replaces a third terminal; each op has its own
+// saturated accent so the section reads alive, and a glow flows through them.
+const AUTOMATION_OPS: { verb: string; icon: string; color: string; outcome: string }[] = [
+  { verb: "graph",    icon: "◈", color: "#5f9e8f", outcome: "Connect messy records into one graph" },
+  { verb: "enrich",   icon: "◆", color: "#c08a3e", outcome: "Attach web-backed fields to every record" },
+  { verb: "signal",   icon: "◎", color: "#4f9bc4", outcome: "Explain what changed and why it matters" },
+  { verb: "draft",    icon: "✎", color: "#c76b78", outcome: "Prepare tasks and messages, sourced" },
+  { verb: "monitor",  icon: "◑", color: "#7b6fb0", outcome: "Watch finance and decisions continuously" },
+  { verb: "prospect", icon: "✦", color: "#5fa05f", outcome: "Discover new candidates with real sources" },
+];
+
 function FeatureSection() {
   const [active, setActive] = useState<string | null>(null);
   const [operationIdx, setOperationIdx] = useState(0);
@@ -384,7 +395,7 @@ function FeatureSection() {
                   }}
                 >
                   <div className="mb-2.5 flex items-center gap-2.5">
-                    <span className="h-1.5 w-1.5 rounded-full transition-colors" style={{ background: on ? z.accent : "#d4d4d8" }}/>
+                    <span className="h-2 w-2 rounded-full transition-all" style={{ background: z.accent, opacity: on ? 1 : 0.6, boxShadow: on ? `0 0 0 3px ${z.accent}26` : "none" }}/>
                     <span className={`text-[14px] font-semibold transition-colors ${on ? "text-zinc-800" : "text-zinc-600"}`}>{node.label}</span>
                   </div>
                   <ul className="flex flex-col gap-1">
@@ -399,22 +410,53 @@ function FeatureSection() {
         ))}
       </div>
 
-      {/* What Mondaily does automatically — rendered as a stable operation
-          stream so it feels active without pretending to be live telemetry. */}
-      <div className="landing-terminal p-6 sm:p-7">
+      {/* What Mondaily does automatically — a live automation flow of colored
+          cards (a different technique than the terminals elsewhere). The active
+          op glows and a highlight sweeps through it, cycling down the pipeline. */}
+      <div className="rounded-2xl border border-black/[.06] bg-gradient-to-b from-zinc-50/70 to-white p-6 sm:p-7">
         <div className="mb-5 flex items-center justify-between gap-3">
-          <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-[#9fb08f]">What Mondaily does automatically</p>
-          <span className="text-[11px] text-[#7c8379]">operation stream</span>
+          <p className="text-[12px] font-medium uppercase tracking-[0.18em] text-[#7c9a6f]">What Mondaily does automatically</p>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-400">
+            <motion.span animate={{ opacity: [0.35, 1, 0.35] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full bg-[#5f9e8f]" />
+            live
+          </span>
         </div>
-        <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
-          {FEATURE_TERMINAL_LINES.map((segments, i) => (
-            <TerminalLine
-              key={i}
-              active={i === operationIdx}
-              segments={segments}
-              typedChars={i === operationIdx ? typedChars : undefined}
-            />
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {AUTOMATION_OPS.map((op, i) => {
+            const on = i === operationIdx;
+            return (
+              <motion.div
+                key={op.verb}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.35, delay: i * 0.05 }}
+                className="relative overflow-hidden rounded-xl border p-4 transition-all duration-300"
+                style={{
+                  borderColor: on ? `${op.color}66` : "rgba(0,0,0,0.06)",
+                  background: on ? `linear-gradient(150deg, ${op.color}16, ${op.color}05)` : "white",
+                  boxShadow: on ? `0 12px 28px -16px ${op.color}90` : "0 1px 2px rgba(0,0,0,0.03)",
+                }}
+              >
+                {on && (
+                  <motion.span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-y-0 w-1/3"
+                    style={{ background: `linear-gradient(90deg, transparent, ${op.color}24, transparent)` }}
+                    initial={{ left: "-40%" }}
+                    animate={{ left: ["-40%", "120%"] }}
+                    transition={{ duration: 1.7, repeat: Infinity, ease: "linear" }}
+                  />
+                )}
+                <div className="relative flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg text-[12px]" style={{ background: `${op.color}1f`, color: op.color }}>{op.icon}</span>
+                  <span className="font-mono text-[13px] font-semibold lowercase" style={{ color: op.color }}>{op.verb}</span>
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full transition-all" style={{ background: on ? op.color : "#d4d4d8", boxShadow: on ? `0 0 0 3px ${op.color}28` : "none" }} />
+                </div>
+                <p className="relative mt-2 text-[12.5px] leading-snug text-zinc-600">{op.outcome}</p>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
