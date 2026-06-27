@@ -1015,7 +1015,7 @@ function AutomationFlow() {
           <motion.div
             animate={{ opacity: shownCount >= 3 ? 1 : 0.06 }}
             transition={{ duration: 0.4 }}
-            className="my-3 grid grid-cols-2 gap-4 font-mono"
+            className="my-3 grid grid-cols-2 gap-4"
           >
             <div className="flex justify-center">
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-0.5 text-[14px] text-zinc-700">High intent</span>
@@ -1055,35 +1055,40 @@ function AutomationFlow() {
           {/* Done state — always in DOM, opacity-only transition to prevent layout shift */}
           <div
             style={{ opacity: shownCount >= FLOW_NODES.length ? 1 : 0, transition: "opacity 0.5s ease 0.2s" }}
-            className="mt-6 flex items-center gap-3 font-mono"
+            className="mt-6 flex items-center gap-3"
           >
             <div className="h-px flex-1 bg-black/[.04]"/>
-            <span className="text-[14px] text-zinc-500">[FLOW COMPLETE]</span>
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-[#6f8068]">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Flow complete
+            </span>
             <div className="h-px flex-1 bg-black/[.04]"/>
           </div>
         </div>
 
         {/* Right: stat callouts */}
         <div className="flex flex-col gap-4">
-          <div className="font-mono text-[11px] text-zinc-400 uppercase tracking-widest mb-2">// what this replaces</div>
+          <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-400">What this replaces</div>
           {[
-            { before: "Manual scoring in a spreadsheet", after: "AI scores relationships automatically, daily", icon: "◈" },
-            { before: "Forgetting to follow up",         after: "Sequences enroll without manual setup",   icon: "◈" },
-            { before: "Chasing your team for updates",   after: "Notified the moment a signal fires",icon: "◈" },
-            { before: "Finance chasing the deal owner",  after: "Quote drafted, waiting on your approval", icon: "◈" },
+            { before: "Manual scoring in a spreadsheet", after: "AI scores relationships automatically, daily" },
+            { before: "Forgetting to follow up",         after: "Sequences enroll without manual setup" },
+            { before: "Chasing your team for updates",   after: "Notified the moment a signal fires" },
+            { before: "Finance chasing the deal owner",  after: "Quote drafted, waiting on your approval" },
           ].map((row, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: shownCount >= i + 2 ? 1 : 0.1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="rounded-xl border border-black/[.04] bg-white p-4"
+              className="rounded-xl border border-black/[.06] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
             >
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 text-zinc-500 text-[14px]">{row.icon}</span>
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: "#6f80681a" }}>
+                  <svg width="11" height="11" viewBox="0 0 14 14" fill="none" style={{ color: "#6f8068" }}><path d="M2.5 7.5l3 3 6-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
                 <div>
-                  <div className="text-[14px] text-zinc-600 line-through mb-0.5">{row.before}</div>
-                  <div className="text-[13px] text-zinc-700">{row.after}</div>
+                  <div className="mb-0.5 text-[13px] text-zinc-400 line-through">{row.before}</div>
+                  <div className="text-[13.5px] font-medium text-zinc-800">{row.after}</div>
                 </div>
               </div>
             </motion.div>
@@ -1134,6 +1139,17 @@ function HeroNetBackdrop() {
             <stop offset="0.5" stopColor="#64748b" stopOpacity="0.28" />
             <stop offset="1" stopColor="#64748b" stopOpacity="0" />
           </linearGradient>
+          {/* Comet streaks — tail fades to a bright head, colour from each trace */}
+          <linearGradient id="heroCometH" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="currentColor" stopOpacity="0" />
+            <stop offset="0.65" stopColor="currentColor" stopOpacity="0.45" />
+            <stop offset="1" stopColor="currentColor" stopOpacity="1" />
+          </linearGradient>
+          <linearGradient id="heroCometV" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="currentColor" stopOpacity="0" />
+            <stop offset="0.65" stopColor="currentColor" stopOpacity="0.45" />
+            <stop offset="1" stopColor="currentColor" stopOpacity="1" />
+          </linearGradient>
         </defs>
         {H.map((y, i) => (
           <line key={`h${i}`} x1="0" y1={y} x2="720" y2={y} stroke="url(#heroLineH)" strokeWidth="1" className="hero-line" style={{ animationDelay: `${i * 0.5}s` }} />
@@ -1142,13 +1158,18 @@ function HeroNetBackdrop() {
           <line key={`v${i}`} x1={x} y1="0" x2={x} y2="360" stroke="url(#heroLineV)" strokeWidth="1" className="hero-line" style={{ animationDelay: `${i * 0.4 + 0.25}s` }} />
         ))}
         {HERO_TRACES.map((t, i) => (
-          <circle
+          <line
             key={i}
-            r="3.4"
-            cx={t.type === "h" ? 0 : t.along}
-            cy={t.type === "h" ? t.along : 0}
+            x1={t.type === "h" ? -150 : t.along}
+            y1={t.type === "h" ? t.along : -150}
+            x2={t.type === "h" ? 0 : t.along}
+            y2={t.type === "h" ? t.along : 0}
+            stroke={`url(#heroComet${t.type === "h" ? "H" : "V"})`}
+            strokeWidth="2"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
             className={`hero-trace hero-trace-${t.type}`}
-            style={{ fill: t.color, color: t.color, ["--td" as string]: `${t.dur}s`, animationDelay: `${t.delay}s` } as React.CSSProperties}
+            style={{ color: t.color, ["--td" as string]: `${t.dur}s`, animationDelay: `${t.delay}s` } as React.CSSProperties}
           />
         ))}
       </svg>
@@ -3664,6 +3685,19 @@ export function LandingPage() {
 
           {/* ── Live signal cards ── */}
           <FadeIn><LiveSignalsSection /></FadeIn>
+
+          {/* ── Bridge: signals → decision (typographic, not a block) ── */}
+          <FadeIn>
+            <section className="mx-auto max-w-4xl px-6 py-16 text-center">
+              <p className="font-sans font-semibold leading-snug tracking-tight text-zinc-900" style={{ fontSize: "clamp(1.4rem, 3vw, 2.15rem)" }}>
+                Every signal already carries its{" "}
+                <span style={{ color: "#6f8068" }}>source</span>, a{" "}
+                <span style={{ color: "#a68762" }}>health read</span>, and the next step{" "}
+                <span style={{ color: "#607078" }}>already drafted</span>.
+                <span className="mt-1 block text-zinc-400">You just decide.</span>
+              </p>
+            </section>
+          </FadeIn>
 
           {/* ── How it's different ── */}
           <FadeIn><ComparisonSection /></FadeIn>
