@@ -1202,14 +1202,14 @@ function HeroNetBackdrop() {
     <div aria-hidden className="hero-net pointer-events-none absolute left-1/2 top-1/2 w-[min(820px,96vw)] -translate-x-1/2 -translate-y-1/2">
       <svg viewBox="0 0 720 360" className="h-auto w-full" fill="none">
         <defs>
-          <linearGradient id="heroLineH" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id="heroLineH" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="720" y2="0">
             <stop offset="0" stopColor="#64748b" stopOpacity="0" />
-            <stop offset="0.5" stopColor="#64748b" stopOpacity="0.16" />
+            <stop offset="0.5" stopColor="#64748b" stopOpacity="0.28" />
             <stop offset="1" stopColor="#64748b" stopOpacity="0" />
           </linearGradient>
-          <linearGradient id="heroLineV" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="heroLineV" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="360">
             <stop offset="0" stopColor="#64748b" stopOpacity="0" />
-            <stop offset="0.5" stopColor="#64748b" stopOpacity="0.16" />
+            <stop offset="0.5" stopColor="#64748b" stopOpacity="0.28" />
             <stop offset="1" stopColor="#64748b" stopOpacity="0" />
           </linearGradient>
         </defs>
@@ -1222,7 +1222,7 @@ function HeroNetBackdrop() {
         {HERO_TRACES.map((t, i) => (
           <circle
             key={i}
-            r="2.4"
+            r="3.4"
             cx={t.type === "h" ? 0 : t.along}
             cy={t.type === "h" ? t.along : 0}
             className={`hero-trace hero-trace-${t.type}`}
@@ -3349,6 +3349,7 @@ export function LandingPage() {
               <div className="relative">
                 <HeroNetBackdrop />
               <motion.div
+                className="relative z-[1]"
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 14 }}
                 transition={{ duration: 0.55, delay: 0.2 }}
