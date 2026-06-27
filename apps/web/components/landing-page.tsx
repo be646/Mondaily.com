@@ -2154,6 +2154,110 @@ function RecordsSheetPreview() {
   );
 }
 
+// Faithful mini-recreation of the real app's Records spreadsheet (dark UI).
+function RecordsSheetDemo() {
+  const rows = [
+    { name: "Sarah Chen", company: "Acme Corp", title: "VP Sales", email: "s.chen@acme.com", health: 92 },
+    { name: "Marcus Webb", company: "Northwind", title: "CTO", email: "m.webb@northwind.io", health: 78 },
+    { name: "Elena Ruiz", company: "Globex", title: "Head of Ops", email: "e.ruiz@globex.com", health: 61 },
+  ];
+  const cols = "grid grid-cols-[1.3fr_1fr_1fr_1.5fr_0.8fr] items-center gap-2";
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/[.08] bg-[#0e0f12] text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[.06] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-semibold">People</span>
+          <span className="rounded-full bg-white/[.06] px-2 py-0.5 text-[10px] text-stone-400">248 records</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md border border-white/[.08] px-2.5 py-1 text-[11px] text-stone-300">＋ Add</span>
+          <span className="rounded-md bg-stone-500/20 px-2.5 py-1 text-[11px] text-stone-300">✦ Enrich all</span>
+        </div>
+      </div>
+      <div className="px-1.5 py-1">
+        <div className={`${cols} px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-stone-600`}>
+          <span>Name</span><span>Company</span><span>Title</span><span>Email</span><span>Health</span>
+        </div>
+        {rows.map(r => (
+          <div key={r.name} className={`${cols} border-t border-white/[.03] px-3 py-2.5`}>
+            <span className="flex items-center gap-2 text-[12px]"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/[.08] text-[9px] text-stone-300">{r.name.split(" ").map(w => w[0]).join("")}</span>{r.name}</span>
+            <span className="text-[12px] text-stone-300">{r.company}</span>
+            <span className="text-[12px] text-stone-400">{r.title}</span>
+            <span className="truncate text-[12px] text-stone-400">{r.email}</span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-12 overflow-hidden rounded-full bg-white/[.08]"><span className="block h-full rounded-full" style={{ width: `${r.health}%`, background: r.health > 80 ? "#34d399" : r.health > 65 ? "#a3a35a" : "#f59e0b" }} /></span>
+              <span className="text-[11px] text-stone-400">{r.health}</span>
+            </span>
+          </div>
+        ))}
+        <div className={`${cols} border-t border-white/[.03] px-3 py-2.5`}>
+          <span className="flex items-center gap-2 text-[12px]"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white/[.08] text-[9px] text-stone-300">JL</span>James Lee</span>
+          <span className="text-[11px] italic text-stone-600">enriching…</span>
+          <span className="text-[11px] italic text-stone-600">enriching…</span>
+          <span className="text-[11px] italic text-stone-600">enriching…</span>
+          <motion.span className="inline-block h-1.5 w-1.5 rounded-full bg-stone-500" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.2, repeat: Infinity }} />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 border-t border-white/[.06] px-4 py-2.5 text-[11px]">
+        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#8fb3b0" }} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
+        <span className="text-stone-400"><span style={{ color: "#8fb3b0" }}>Enrichment Agent</span> pulling ARR, headcount &amp; tech stack from the web</span>
+      </div>
+    </div>
+  );
+}
+
+// Faithful mini-recreation of the real app's Invoices view (dark UI).
+function InvoiceDemo() {
+  const BADGE: Record<string, { label: string; color: string; bg: string }> = {
+    draft:   { label: "Draft",   color: "#a8a29e", bg: "rgba(168,162,158,0.14)" },
+    sent:    { label: "Sent",    color: "#60a5fa", bg: "rgba(96,165,250,0.14)" },
+    paid:    { label: "Paid",    color: "#34d399", bg: "rgba(52,211,153,0.14)" },
+    overdue: { label: "Overdue", color: "#f59e0b", bg: "rgba(245,158,11,0.14)" },
+  };
+  const rows = [
+    { num: "INV-0042", client: "Acme Corp", email: "billing@acme.com", amount: "£4,200.00", status: "sent", due: "Jul 14" },
+    { num: "INV-0041", client: "Northwind Traders", email: "ap@northwind.io", amount: "£1,850.00", status: "overdue", due: "Jun 30" },
+    { num: "INV-0040", client: "Globex", email: "finance@globex.com", amount: "£9,300.00", status: "paid", due: "Jun 22" },
+    { num: "INV-0039", client: "Initech", email: "accounts@initech.co", amount: "£620.00", status: "draft", due: "—" },
+  ];
+  const cols = "grid grid-cols-[1fr_1.6fr_1fr_0.9fr_0.7fr] items-center gap-2";
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/[.08] bg-[#0e0f12] text-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.6)]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[.06] px-4 py-3">
+        <div className="flex items-center gap-6">
+          <div><div className="text-[10px] uppercase tracking-wide text-stone-500">Outstanding</div><div className="text-[16px] font-semibold">£6,050.00</div></div>
+          <div><div className="text-[10px] uppercase tracking-wide text-stone-500">Paid</div><div className="text-[16px] font-semibold text-emerald-400">£9,300.00</div></div>
+        </div>
+        <span className="rounded-lg bg-white px-3 py-1.5 text-[11px] font-semibold text-stone-950">+ New invoice</span>
+      </div>
+      <div className="flex items-center gap-1 border-b border-white/[.06] px-4 py-2">
+        {["All", "Draft", "Sent", "Paid", "Overdue"].map((f, i) => (
+          <span key={f} className={`rounded-md px-2.5 py-1 text-[11px] ${i === 0 ? "bg-white/[.08] text-white" : "text-stone-500"}`}>{f}</span>
+        ))}
+      </div>
+      <div className="px-1.5 py-1">
+        <div className={`${cols} px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-stone-600`}>
+          <span>Invoice</span><span>Client</span><span>Amount</span><span>Status</span><span>Due</span>
+        </div>
+        {rows.map(r => (
+          <div key={r.num} className={`${cols} border-t border-white/[.03] px-3 py-2.5`}>
+            <span className="text-[12px] font-medium">{r.num}</span>
+            <span className="min-w-0"><span className="block truncate text-[12px]">{r.client}</span><span className="block truncate text-[10px] text-stone-600">{r.email}</span></span>
+            <span className="text-[12px] font-semibold">{r.amount}</span>
+            <span><span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: BADGE[r.status]!.color, background: BADGE[r.status]!.bg }}>{BADGE[r.status]!.label}</span></span>
+            <span className="text-[12px] text-stone-400">{r.due}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2 border-t border-white/[.06] px-4 py-2.5 text-[11px]">
+        <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.4, repeat: Infinity }} />
+        <span className="truncate text-stone-400"><span className="text-amber-300">Finance Agent</span> drafted a reminder for INV-0041</span>
+        <span className="ml-auto shrink-0 rounded-md bg-white/[.06] px-2 py-1 text-[10px] text-stone-300">Approve ↵</span>
+      </div>
+    </div>
+  );
+}
+
 function RecordsSheetSection() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-20">
@@ -2164,7 +2268,7 @@ function RecordsSheetSection() {
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         No manual data entry — the AI enriches and updates relationship health on rows while you watch.
       </p>
-      <RecordsSheetPreview />
+      <RecordsSheetDemo />
     </section>
   );
 }
@@ -2179,7 +2283,7 @@ function FinanceBoardSection() {
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
         Draft a quote, raise the invoice, and Mondaily tracks it through to payment — chasing overdue invoices (with your approval) and handling recurring billing without a spreadsheet.
       </p>
-      <InvoiceBoardPreview />
+      <InvoiceDemo />
     </section>
   );
 }
