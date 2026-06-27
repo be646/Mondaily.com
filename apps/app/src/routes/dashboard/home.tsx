@@ -266,20 +266,17 @@ export function HomePage() {
   // bubble up and smooth-scroll the whole document on every token, which was the
   // jump on send + the up/down shake while streaming. Follow the stream
   // (streamedUpTo) but only when already near the bottom, so reading isn't yanked.
-  // Claude-style stable writing: while a turn is active (thinking or streaming),
-  // keep the latest USER message pinned to the TOP of the scroll box. The answer
-  // writes into the space below it and the view never drifts down on its own —
-  // we re-assert the same top position every token, so the browser's auto-scroll
-  // can't pull the answer below the fold. Once the turn finishes, we stop and the
-  // user scrolls freely.
+  // Standard chat flow: the newest text stays at the BOTTOM and older text scrolls
+  // up as it streams. We follow the bottom only while a turn is active AND the user
+  // is already near the bottom — so manual scroll-up to re-read is never fought.
+  // The box is contained (not the page) + plain-text streaming, so it flows smoothly
+  // with no shake. Scroll up to see earlier text.
   useEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
     const active = loading || streamingMsgIdx !== null;
-    if (!active) return;
-    const userEls = el.querySelectorAll<HTMLElement>('[data-role="user"]');
-    const lastUserEl = userEls[userEls.length - 1];
-    if (lastUserEl) el.scrollTop = Math.max(0, lastUserEl.offsetTop - 8);
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 220;
+    if (active && nearBottom) el.scrollTop = el.scrollHeight;
   }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   // While the chat slides open, suppress auto-scroll briefly so the slide stays
