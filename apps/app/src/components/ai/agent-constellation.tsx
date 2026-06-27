@@ -253,11 +253,11 @@ export function AgentHeroStrip() {
     <a href="#agents" className="group inline-flex items-center gap-2">
       <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>AI agents</span>
       <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
-      <span className="flex items-center gap-1">
-        {constellation.slice(0, 5).map((a, i) => {
+      <span className="flex flex-wrap items-center gap-1">
+        {constellation.map((a, i) => {
           const liveDot = isLiveState(a.state);
           return (
-            <span key={a.id} className="relative inline-flex h-1.5 w-1.5 rounded-full"
+            <span key={a.id} title={a.name} className="relative inline-flex h-1.5 w-1.5 rounded-full"
               style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)" }}>
               {liveDot && (
                 <motion.span

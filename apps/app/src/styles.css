@@ -370,6 +370,41 @@ html[data-theme="dark"] .minimal-sparkline {
   border-color: transparent;
   background: color-mix(in srgb, var(--surface-hover) 46%, transparent);
 }
+/* Graph / Sources status rows under the AI-agents line: text left, a live pulsing
+   dot on the right, and a soft card + shadow reaction on hover. */
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 138px;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid transparent;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  transition: background 0.15s ease, box-shadow 0.18s ease, border-color 0.15s ease, transform 0.18s ease;
+  cursor: default;
+}
+.status-line:hover {
+  background: var(--surface-card);
+  border-color: var(--border-soft);
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+  color: var(--text-secondary);
+}
+.status-live-dot {
+  height: 0.42rem;
+  width: 0.42rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  animation: statusLiveDot 1.8s ease-in-out infinite;
+}
+@keyframes statusLiveDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(0.72); }
+}
+
 .chat-input-bar {
   min-height: 4.35rem;
 }

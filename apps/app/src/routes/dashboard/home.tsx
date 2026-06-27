@@ -429,16 +429,16 @@ export function HomePage() {
               <p className="home-section-kicker">{todayLabel}</p>
               <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="mt-3 flex flex-col items-start gap-2">
               <AgentHeroStrip />
               <div className="flex flex-col gap-1">
-                <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>
+                <span className="status-line">
                   Graph {graphSynced ? "synced" : "syncing"}
+                  <span className="status-live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>
+                <span className="status-line">
                   Sources {sourcesChecked ? "checked" : "checking…"}
+                  <span className="status-live-dot" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>
                 </span>
               </div>
             </div>
