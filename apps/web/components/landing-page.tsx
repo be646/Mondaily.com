@@ -3100,8 +3100,8 @@ const PLANS = [
     desc: "For workspaces that want AI doing the heavy lifting.",
     cta: "Start Pro trial", href: "https://app.mondaily.com/sign-up?plan=pro", highlight: true,
     capacityPct: 75,
-    features: ["Unlimited Ask Mondaily","Agent recommendations","AI enrichment","Automations","Source-backed answers"],
-    unlocks: "Unlocks unlimited Ask Mondaily, agent recommendations, AI enrichment, and automations.",
+    features: ["Unlimited Ask Mondaily","12 AI agents on your graph","Real-time automations","AI enrichment + lead scoring","Source-backed answers"],
+    unlocks: "Unlocks unlimited Ask Mondaily, the full agent fleet, real-time automations, AI enrichment and lead scoring.",
   },
   {
     name: "Business", bestFor: "Best for teams with controls",
@@ -3109,8 +3109,8 @@ const PLANS = [
     desc: "For teams that need roles, approvals, and finance.",
     cta: "Start Business trial", href: "https://app.mondaily.com/sign-up?plan=business", highlight: false,
     capacityPct: 90,
-    features: ["Roles and permissions","Finance module","Advanced reports","Approval flows","API / webhooks"],
-    unlocks: "Unlocks roles & permissions, the finance module, approval flows, and the API.",
+    features: ["Roles & permissions (RBAC)","Finance + deal-stage quote drafting","Multi-trigger workflows","Approval & Decision Queue","MCP server + REST API"],
+    unlocks: "Unlocks RBAC, the finance module with quote drafting, multi-trigger workflows, and the MCP server + API.",
   },
   {
     name: "Enterprise", bestFor: "Best for secure graph at scale",
@@ -3168,53 +3168,69 @@ export function PricingSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.07 }}
-              className={`group relative flex flex-col rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-1 ${
-                plan.highlight
-                  ? "landing-pro-card bg-zinc-900 text-white"
-                  : "border border-black/[.07] bg-white"
-              }`}
-              style={plan.highlight ? {} : { boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.04)" }}
+              className="group relative flex flex-col rounded-2xl border bg-white p-6 transition-all duration-200 hover:-translate-y-1"
+              style={{
+                borderColor: plan.highlight ? accent : "rgba(0,0,0,0.08)",
+                background: plan.highlight ? `linear-gradient(180deg, ${accent}12, #ffffff 40%)` : "#ffffff",
+                boxShadow: plan.highlight
+                  ? `0 0 0 1px ${accent}, 0 26px 60px -30px ${accent}`
+                  : "0 1px 3px rgba(0,0,0,0.04), 0 14px 30px -20px rgba(0,0,0,0.12)",
+              }}
             >
-              {/* Accent line at top */}
-              <div className="mb-4 h-0.5 w-8 rounded-full" style={{ background: plan.highlight ? "rgba(255,255,255,0.3)" : accent }} />
+              {plan.highlight && (
+                <span className="absolute -top-2.5 left-6 rounded-full px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-white" style={{ background: accent }}>
+                  Most popular
+                </span>
+              )}
 
-              <div className={`mb-0.5 text-[13px] font-semibold uppercase tracking-[0.12em] ${plan.highlight ? "text-white/70" : "text-zinc-500"}`}>{plan.name}</div>
-              <div className={`mb-4 text-[11px] ${plan.highlight ? "text-white/50" : "text-zinc-400"}`}>{plan.bestFor}</div>
+              <div className="text-[13px] font-semibold uppercase tracking-[0.12em]" style={{ color: accent }}>{plan.name}</div>
+              <div className="mb-5 mt-0.5 text-[11px] text-zinc-400">{plan.bestFor}</div>
 
-              <div className="mb-4 flex items-end gap-1">
+              <div className="flex items-end gap-1">
                 {price === null ? (
-                  <span className={`text-3xl font-semibold tracking-tight ${plan.highlight ? "text-white" : "text-zinc-900"}`}>Custom</span>
+                  <span className="text-[34px] font-semibold leading-none tracking-tight text-zinc-900">Custom</span>
                 ) : price === 0 ? (
-                  <span className={`text-3xl font-semibold tracking-tight ${plan.highlight ? "text-white" : "text-zinc-900"}`}>Free</span>
+                  <span className="text-[34px] font-semibold leading-none tracking-tight text-zinc-900">Free</span>
                 ) : (
                   <>
-                    <span className={`text-3xl font-semibold tracking-tight ${plan.highlight ? "text-white" : "text-zinc-900"}`}>${price}</span>
-                    <span className={`mb-1 text-[12px] ${plan.highlight ? "text-white/50" : "text-zinc-400"}`}>/{plan.period}</span>
+                    <span className="text-[34px] font-semibold leading-none tracking-tight text-zinc-900">${price}</span>
+                    <span className="mb-0.5 text-[12px] text-zinc-400">/{plan.period}</span>
                   </>
                 )}
               </div>
+              <div className="mb-5 mt-2 text-[12px] leading-relaxed text-zinc-500">{plan.desc}</div>
 
-              <ul className="mb-6 flex-1 space-y-2">
+              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">What&apos;s included</div>
+              <ul className="mb-6 flex-1 space-y-2.5">
                 {plan.features.map(f => (
-                  <li key={f} className={`flex items-start gap-2 text-[12.5px] ${plan.highlight ? "text-white/70" : "text-zinc-500"}`}>
-                    <span className="mt-0.5 shrink-0" style={{ color: plan.highlight ? "rgba(255,255,255,0.4)" : accent }}>✓</span>{f}
+                  <li key={f} className="flex items-start gap-2 text-[12.5px] text-zinc-600">
+                    <svg width="14" height="14" viewBox="0 0 14 14" className="mt-0.5 shrink-0" style={{ color: accent }}><path d="M2.5 7.5l3 3 6-7.5" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    {f}
                   </li>
                 ))}
               </ul>
 
               <a
                 href={plan.href}
-                className={`block rounded-full py-2.5 text-center text-[12.5px] font-medium transition-opacity hover:opacity-85 ${
-                  plan.highlight
-                    ? "landing-pro-cta bg-white text-zinc-900"
-                    : "border border-black/[.1] text-zinc-700 hover:border-black/[.2]"
-                }`}
+                className="block rounded-full py-2.5 text-center text-[12.5px] font-semibold transition-all hover:opacity-90"
+                style={plan.highlight
+                  ? { background: accent, color: "#ffffff", boxShadow: `0 10px 22px -12px ${accent}` }
+                  : { border: "1px solid rgba(0,0,0,0.12)", color: "#3f3f46" }}
               >
                 {plan.cta}
               </a>
             </motion.div>
           );
         })}
+      </div>
+
+      <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-zinc-400">
+        {["14-day Pro trial — no card required", "Cancel anytime", "Your data stays yours — row-level isolation"].map(t => (
+          <span key={t} className="inline-flex items-center gap-1.5">
+            <svg width="13" height="13" viewBox="0 0 14 14" className="shrink-0 text-zinc-300"><path d="M2.5 7.5l3 3 6-7.5" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            {t}
+          </span>
+        ))}
       </div>
     </section>
   );
