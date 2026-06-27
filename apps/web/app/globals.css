@@ -497,61 +497,24 @@ body {
   mask-image: linear-gradient(180deg, transparent 0, #000 24%, #000 100%);
 }
 
-/* ── Hero net backdrop — faint grid with colour traces running along it (x.ai) ── */
-.hero-net {
-  background-image:
-    linear-gradient(to right, rgba(0, 0, 0, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.045) 1px, transparent 1px);
-  background-size: 60px 60px;
-  background-position: center;
-  -webkit-mask-image: radial-gradient(ellipse 72% 70% at 50% 44%, #000 28%, transparent 82%);
-  mask-image: radial-gradient(ellipse 72% 70% at 50% 44%, #000 28%, transparent 82%);
-}
-.landing-shell.dark .hero-net {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-}
-/* horizontal trace — runs left → right along a grid row */
-.hero-snake-x {
-  position: absolute;
-  left: -180px;
-  height: 2px;
-  width: 180px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c) 85%, transparent));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent);
+
+
+/* ── Hero net — SVG lines fade at their ends and meet in the middle; glowing
+   colour traces run along a few of them. ─────────────────────────────────── */
+.hero-line { animation: heroLineBreath 5s ease-in-out infinite; }
+@keyframes heroLineBreath { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+.hero-trace {
   opacity: 0;
-  animation-name: snakeX;
+  filter: drop-shadow(0 0 4px currentColor) drop-shadow(0 0 9px currentColor);
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  animation-duration: var(--td);
 }
-/* vertical trace — runs top → bottom along a grid column */
-.hero-snake-y {
-  position: absolute;
-  top: -180px;
-  width: 2px;
-  height: 180px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--c) 85%, transparent));
-  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 55%, transparent);
-  opacity: 0;
-  animation-name: snakeY;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-@keyframes snakeX {
-  0% { transform: translateX(0); opacity: 0; }
-  8% { opacity: 0.85; }
-  90% { opacity: 0.85; }
-  100% { transform: translateX(calc(100vw + 360px)); opacity: 0; }
-}
-@keyframes snakeY {
-  0% { transform: translateY(0); opacity: 0; }
-  8% { opacity: 0.85; }
-  90% { opacity: 0.85; }
-  100% { transform: translateY(calc(100vh + 360px)); opacity: 0; }
-}
+.hero-trace-h { animation-name: heroTraceH; }
+.hero-trace-v { animation-name: heroTraceV; }
+@keyframes heroTraceH { 0% { transform: translateX(0); opacity: 0; } 10% { opacity: 1; } 86% { opacity: 1; } 100% { transform: translateX(720px); opacity: 0; } }
+@keyframes heroTraceV { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 86% { opacity: 1; } 100% { transform: translateY(360px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .hero-snake-x, .hero-snake-y { animation: none; opacity: 0; }
+  .hero-line { animation: none; opacity: 0.6; }
+  .hero-trace { animation: none; opacity: 0; }
 }

@@ -1183,32 +1183,53 @@ function AutomationFlow() {
 }
 
 // ── Email signup ──────────────────────────────────────────────────────────────
-// ── Hero backdrop — a faint full grid ("net") with thin colour traces that run
-// along the lines like snakes (x.ai-style). Radial-masked so it fades at the
-// edges. Pure CSS keyframes. ──────────────────────────────────────────────────
-const HERO_SNAKES: Array<{ axis: "x" | "y"; pos: string; color: string; dur: number; delay: number }> = [
-  { axis: "x", pos: "22%", color: "#9fb08f", dur: 9, delay: 0 },
-  { axis: "y", pos: "30%", color: "#8fb3b0", dur: 11, delay: 2.5 },
-  { axis: "x", pos: "58%", color: "#8b7fb0", dur: 10, delay: 4 },
-  { axis: "y", pos: "72%", color: "#c59a8d", dur: 12.5, delay: 1.2 },
-  { axis: "x", pos: "40%", color: "#7fa3b0", dur: 8.5, delay: 6.5 },
-  { axis: "y", pos: "50%", color: "#d7c6a3", dur: 13, delay: 3.4 },
+// ── Hero backdrop — an SVG net behind the hero text only. Each line is a gradient
+// stroke that FADES at its ends and is strongest in the middle, so the lines
+// "meet" softly at the centre (no whole-net fade). Glowing colour traces run
+// along a few of the lines. ───────────────────────────────────────────────────
+const HERO_TRACES: Array<{ type: "h" | "v"; along: number; color: string; dur: number; delay: number }> = [
+  { type: "h", along: 120, color: "#5f9e8f", dur: 7,   delay: 0 },
+  { type: "h", along: 240, color: "#c08a3e", dur: 9,   delay: 3.2 },
+  { type: "v", along: 270, color: "#7b6fb0", dur: 8,   delay: 1.5 },
+  { type: "v", along: 450, color: "#4f9bc4", dur: 10,  delay: 5 },
+  { type: "h", along: 60,  color: "#c76b78", dur: 8.5, delay: 6.4 },
+  { type: "v", along: 180, color: "#5fa05f", dur: 11,  delay: 2.4 },
 ];
 function HeroNetBackdrop() {
+  const H = [60, 120, 180, 240, 300];
+  const V = [90, 180, 270, 360, 450, 540, 630];
   return (
-    <div aria-hidden className="hero-net pointer-events-none absolute inset-0">
-      {HERO_SNAKES.map((s, i) => (
-        <span
-          key={i}
-          className={`hero-snake hero-snake-${s.axis}`}
-          style={{
-            [s.axis === "x" ? "top" : "left"]: s.pos,
-            ["--c" as string]: s.color,
-            animationDuration: `${s.dur}s`,
-            animationDelay: `${s.delay}s`,
-          } as React.CSSProperties}
-        />
-      ))}
+    <div aria-hidden className="hero-net pointer-events-none absolute left-1/2 top-1/2 w-[min(820px,96vw)] -translate-x-1/2 -translate-y-1/2">
+      <svg viewBox="0 0 720 360" className="h-auto w-full" fill="none">
+        <defs>
+          <linearGradient id="heroLineH" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#64748b" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#64748b" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#64748b" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="heroLineV" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#64748b" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#64748b" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#64748b" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {H.map((y, i) => (
+          <line key={`h${i}`} x1="0" y1={y} x2="720" y2={y} stroke="url(#heroLineH)" strokeWidth="1" className="hero-line" style={{ animationDelay: `${i * 0.5}s` }} />
+        ))}
+        {V.map((x, i) => (
+          <line key={`v${i}`} x1={x} y1="0" x2={x} y2="360" stroke="url(#heroLineV)" strokeWidth="1" className="hero-line" style={{ animationDelay: `${i * 0.4 + 0.25}s` }} />
+        ))}
+        {HERO_TRACES.map((t, i) => (
+          <circle
+            key={i}
+            r="2.4"
+            cx={t.type === "h" ? 0 : t.along}
+            cy={t.type === "h" ? t.along : 0}
+            className={`hero-trace hero-trace-${t.type}`}
+            style={{ fill: t.color, color: t.color, ["--td" as string]: `${t.dur}s`, animationDelay: `${t.delay}s` } as React.CSSProperties}
+          />
+        ))}
+      </svg>
     </div>
   );
 }
@@ -3220,8 +3241,9 @@ export function LandingPage() {
         <main style={{ paddingTop: "64px", overflowX: "hidden" }}>
           {/* ── Hero ── */}
           <section className="relative mx-auto max-w-6xl overflow-hidden px-6 pb-20 pt-16 text-center">
-            <HeroNetBackdrop />
             <div className="relative z-10 mx-auto max-w-3xl">
+              <div className="relative">
+                <HeroNetBackdrop />
               <motion.div
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 14 }}
@@ -3269,6 +3291,7 @@ export function LandingPage() {
                 </p>
 
               </motion.div>
+              </div>
 
               {/* Chat search bar */}
               <motion.div
