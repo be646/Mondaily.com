@@ -175,6 +175,7 @@ export function AskMondaily() {
   const [streamedUpTo, setStreamedUpTo] = useState(0);
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -231,9 +232,16 @@ export function AskMondaily() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [threadId]);
 
+  // Follow the bottom inside the message box only (never the page) — newest text
+  // stays at the bottom and older flows up, solid/no shake. Only follows when the
+  // user is already near the bottom, so manual scroll-up isn't fought.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    const el = messagesRef.current;
+    if (!el) return;
+    const active = loading || streamingMsgIdx !== null;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 220;
+    if (active && nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
 
@@ -320,7 +328,7 @@ export function AskMondaily() {
       </div>
 
       {/* ── Message area ── */}
-      <div className="ask-message-scroll flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarWidth: "none" }}>
+      <div ref={messagesRef} className="ask-message-scroll flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarWidth: "none", overflowAnchor: "none" }}>
 
         {/* Empty state — command center, not a generic chatbot greeting */}
         {!isChatting && (
@@ -368,7 +376,11 @@ export function AskMondaily() {
                 ) : (
                   <div className="flex-1 min-w-0">
                     <div className="ask-assistant-line pl-4 text-sm space-y-0.5">
-                      {renderMarkdown(displayText)}
+                      {/* Plain text while streaming so it types smoothly without
+                          markdown reflow; formatted once complete. */}
+                      {isStreaming
+                        ? <p className="whitespace-pre-wrap leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
+                        : renderMarkdown(displayText)}
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
 

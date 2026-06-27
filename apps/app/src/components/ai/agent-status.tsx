@@ -25,6 +25,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText } = useAskEngine({
     context: pageContext ?? { scope_label: "the workspace (no page context)" },
@@ -43,7 +44,14 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     } catch {}
   }
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+  // Follow the bottom inside the chat box only (never the page), and only when the
+  // user is already near the bottom — solid, no shake.
+  useEffect(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 220;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages, loading]);
 
   const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
   const sendChip = (text: string) => doSend(text);
@@ -110,7 +118,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-auto p-3 space-y-3">
+      <div ref={messagesRef} className="flex-1 overflow-auto p-3 space-y-3" style={{ overflowAnchor: "none" }}>
         {displayMessages.map((m, i) => {
           const meta = messageMeta[i];
           const AgentIcon = meta?.agent.icon;

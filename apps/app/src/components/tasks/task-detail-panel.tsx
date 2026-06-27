@@ -184,6 +184,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const commentsScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLocalLabels(task.labels || []);
@@ -215,7 +216,9 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   }, [task.id, task.title, task.status, task.assignee_id, task.record_id, members]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll the comments box itself to the bottom (never the page).
+    const el = commentsScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [activeTab]);
 
   const checklistQ   = useQuery({ queryKey: ["task-checklist",  task.id], queryFn: () => apiClient.get<ChecklistItem[]>(`/tasks/${task.id}/checklist`) });
@@ -514,7 +517,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
           {/* Comments */}
           {activeTab === "comments" && (
             <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
+              <div ref={commentsScrollRef} className="flex-1 overflow-auto px-4 py-4 space-y-4" style={{ overflowAnchor: "none" }}>
                 {comments.length === 0 && activity.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <p className="text-sm" style={{ color: "var(--text-muted)" }}>No messages yet</p>
