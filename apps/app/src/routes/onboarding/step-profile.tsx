@@ -40,7 +40,7 @@ export function StepProfile() {
       <button
         onClick={continueSetup}
         disabled={!name.trim() || loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-600 py-2.5 font-mono text-[13px] font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-all disabled:opacity-50"
       >
         {loading ? "Saving…" : "Continue"} {!loading && <ArrowRight size={13} />}
       </button>

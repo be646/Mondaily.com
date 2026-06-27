@@ -7,7 +7,7 @@ interface TagData { id: string; name: string; color: string }
 
 const PRESET_COLORS = [
   "var(--accent)", "#ec4899", "#f59e0b", "#10b981", "#3b82f6",
-  "#ef4444", "var(--accent)", "#06b6d4", "#f97316", "#84cc16",
+  "#ef4444", "var(--accent)", "var(--accent)", "#f97316", "#84cc16",
 ];
 
 export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
@@ -67,19 +67,19 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-xs rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-xs rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center">
               <Tag size={12} className="text-stone-400"/>
             </div>
-            <span className="text-sm font-semibold text-white">Tags</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Tags</span>
             {nodeTags.data && nodeTags.data.length > 0 && (
               <span className="rounded-full bg-stone-500/20 px-2 py-0.5 text-[10px] font-semibold text-stone-300">{nodeTags.data.length}</span>
             )}
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors"><X size={14}/></button>
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors"><X size={14}/></button>
         </div>
 
         {/* Search */}
@@ -87,7 +87,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") onClose(); }}
             placeholder="Search or create tag…"
-            className="w-full bg-white/[.04] border border-white/[.07] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-stone-500/40 placeholder:text-white/20 transition-colors"/>
+            className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/40 placeholder:text-[var(--text-secondary)] transition-colors"/>
         </div>
 
         {/* Active tags */}
@@ -107,7 +107,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
         {/* Tag list */}
         <div className="p-1 max-h-44 overflow-y-auto">
-          {allTags.isLoading && <p className="text-xs text-white/20 text-center py-4">Loading…</p>}
+          {allTags.isLoading && <p className="text-xs text-[var(--text-secondary)] text-center py-4">Loading…</p>}
           {allTags.isError && (
             <p className="text-xs text-stone-400/70 text-center py-3 px-2">{(allTags.error as Error).message}</p>
           )}
@@ -115,18 +115,18 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
             const active = nodeTagIds.has(tag.id);
             return (
               <button key={tag.id} onClick={() => active ? removeTag.mutate(tag.id) : addTag.mutate(tag.id)}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 hover:bg-white/[.04] transition-colors">
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors">
                 <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
-                <span className="flex-1 text-left text-xs text-white/70">{tag.name}</span>
+                <span className="flex-1 text-left text-xs text-[var(--text-secondary)]">{tag.name}</span>
                 {active
                   ? <Check size={11} className="text-stone-400 shrink-0"/>
-                  : <Plus size={11} className="text-white/20 shrink-0"/>
+                  : <Plus size={11} className="text-[var(--text-secondary)] shrink-0"/>
                 }
               </button>
             );
           })}
           {filtered.length === 0 && !canCreate && !allTags.isLoading && (
-            <p className="text-xs text-white/20 text-center py-3">
+            <p className="text-xs text-[var(--text-secondary)] text-center py-3">
               {search ? "No matching tags" : "No tags yet — type to create one"}
             </p>
           )}
@@ -134,8 +134,8 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
         {/* Create new tag */}
         {canCreate && (
-          <div className="border-t border-white/[.06] px-3 py-3 space-y-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/25">Pick a color</p>
+          <div className="border-t border-[var(--border-soft)] px-3 py-3 space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Pick a color</p>
             <div className="flex gap-1.5 flex-wrap">
               {PRESET_COLORS.map(c => (
                 <button key={c} onClick={() => setNewColor(c)}
@@ -144,7 +144,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
               ))}
             </div>
             <button onClick={createAndAdd} disabled={creating}
-              className="flex w-full items-center gap-2 rounded-xl border border-white/[.07] bg-white/[.02] hover:bg-white/[.05] px-3 py-2 text-xs text-white/60 hover:text-white transition-colors disabled:opacity-40">
+              className="flex w-full items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)] px-3 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40">
               <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: newColor }}/>
               {creating ? "Creating…" : `Create "${search.trim()}"`}
             </button>
@@ -176,7 +176,7 @@ export function TagBadges({ nodeId, onOpenPicker }: { nodeId: string; onOpenPick
         </span>
       ))}
       {(!tags || tags.length === 0) && onOpenPicker && (
-        <button onClick={onOpenPicker} className="text-[10px] text-white/20 hover:text-white/50 transition-colors">+ Add tag</button>
+        <button onClick={onOpenPicker} className="text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">+ Add tag</button>
       )}
     </div>
   );

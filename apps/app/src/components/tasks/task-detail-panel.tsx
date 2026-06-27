@@ -29,7 +29,7 @@ const LABEL_COLORS: Record<string, string> = {
   "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Bug":         "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-400/10 border-rose-200 dark:border-rose-400/30",
   "Feature":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
-  "Research":    "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-400/10 border-cyan-200 dark:border-cyan-400/30",
+  "Research":    "text-[var(--accent)] dark:text-[var(--accent)] bg-[var(--accent)] dark:bg-[var(--accent)]/10 border-[var(--accent)] dark:border-[var(--accent)]/30",
 };
 const LABELS = Object.keys(LABEL_COLORS);
 const QUICK_EMOJIS = ["👍","❤️","😂","🎉","🔥","👀","😮","😢","🙏","✅","💯","🚀","⚡","🎯","💪","😎","🤔","👏","🥳","😅"];
@@ -45,7 +45,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-cyan-500/20 text-cyan-600 dark:text-cyan-400"];
+  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-[var(--accent)]/20 text-[var(--accent)] dark:text-[var(--accent)]"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -600,7 +600,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     <button onClick={() => toggleCheckItem.mutate({ itemId: item.id, completed: !item.completed })}
                       className="mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors"
                       style={item.completed ? { borderColor: "#10b981", background: "#10b981" } : { borderColor: "var(--border-strong)" }}>
-                      {item.completed && <Check size={9} className="text-white"/>}
+                      {item.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm" style={{ color: item.completed ? "var(--text-faint)" : "var(--text-secondary)", textDecoration: item.completed ? "line-through" : undefined }}>{item.text}</p>

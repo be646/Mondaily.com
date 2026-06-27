@@ -108,7 +108,7 @@ export function NotificationsPage() {
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
-                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize transition-colors ${typeFilter === t ? "border-stone-900 bg-stone-900 text-white dark:border-cyan-500/30 dark:bg-white dark:text-stone-950" : "border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-900 dark:border-stone-800 dark:text-stone-500 dark:hover:border-stone-700 dark:hover:text-stone-200"}`}
+                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium capitalize transition-colors ${typeFilter === t ? "border-stone-900 bg-stone-900 text-[var(--text-primary)] dark:border-[var(--accent)]/30 dark:bg-white dark:text-stone-950" : "border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-900 dark:border-stone-800 dark:text-stone-500 dark:hover:border-stone-700 dark:hover:text-stone-200"}`}
                 >
                   {t === "all" ? "All types" : (TYPE_LABELS[t] ?? t)}
                 </button>

@@ -10,7 +10,7 @@ const TYPE_COLORS: Record<ColType, string> = {
   Text:     "bg-stone-700/50 text-stone-300 border-stone-600/40",
   Number:   "bg-blue-900/40 text-blue-300 border-blue-500/30",
   Email:    "bg-stone-900/40 text-stone-300 border-stone-500/30",
-  URL:      "bg-cyan-900/40 text-cyan-300 border-cyan-500/30",
+  URL:      "bg-[var(--accent)]/40 text-[var(--accent)] border-[var(--accent)]/30",
   Date:     "bg-orange-900/40 text-orange-300 border-orange-500/30",
   Status:   "bg-yellow-900/40 text-yellow-300 border-yellow-500/30",
   Currency: "bg-emerald-900/40 text-emerald-300 border-emerald-500/30",
@@ -143,11 +143,11 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       className={`group relative flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-5 transition-all ${
         dragging
           ? "border-stone-500/30 bg-stone-600/[.06]"
-          : "border-white/[.08] hover:border-white/[.16] hover:bg-white/[.02]"
+          : "border-[var(--border-soft)] hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)]"
       }`}
     >
       <input ref={inputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFileChange}/>
-      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-white/[.08] bg-white/[.03] text-stone-500 group-hover:text-stone-300"}`}>
+      <div className={`rounded-lg border p-2 transition-colors ${dragging ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-500 group-hover:text-stone-300"}`}>
         <Upload size={16}/>
       </div>
       <div className="text-center">
@@ -172,12 +172,12 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Preview / type editor ─────────────────────────────────────────────────────
   if (phase === "previewing") return (
-    <div className="rounded-xl border border-white/[.08] bg-[#141414] overflow-hidden">
+    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-white/[.06] px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-4 py-3">
         <FileText size={14} className="shrink-0 text-stone-500"/>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-white truncate">{fileName}</p>
+          <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{fileName}</p>
           <p className="text-[10px] text-stone-600">{rows.length} rows · {headers.length} columns · schema inferred</p>
         </div>
         <div className="flex items-center gap-1.5">
@@ -189,7 +189,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       </div>
 
       {/* Column type pills */}
-      <div className="border-b border-white/[.06] px-4 py-3">
+      <div className="border-b border-[var(--border-soft)] px-4 py-3">
         <div className="flex flex-wrap gap-1.5">
           {headers.map(h => (
             <div key={h} className="relative group/pill">
@@ -201,7 +201,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
                 {ALL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] opacity-60">▾</span>
-              <div className="absolute -top-5 left-0 whitespace-nowrap rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white opacity-0 group-hover/pill:opacity-100 transition-opacity z-10">
+              <div className="absolute -top-5 left-0 whitespace-nowrap rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-[var(--text-primary)] opacity-0 group-hover/pill:opacity-100 transition-opacity z-10">
                 {h}
               </div>
             </div>
@@ -212,7 +212,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       {/* Data preview toggle */}
       <button
         onClick={() => setShowPreview(p => !p)}
-        className="flex w-full items-center gap-2 border-b border-white/[.06] px-4 py-2 text-left text-[10px] text-stone-600 hover:text-stone-400 transition-colors"
+        className="flex w-full items-center gap-2 border-b border-[var(--border-soft)] px-4 py-2 text-left text-[10px] text-stone-600 hover:text-stone-400 transition-colors"
       >
         {showPreview ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
         {showPreview ? "Hide" : "Show"} data preview (first 3 rows)
@@ -221,7 +221,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       {showPreview && (
         <div className="overflow-auto max-h-[160px]">
           <table className="w-full text-[10px]">
-            <thead className="sticky top-0 bg-[#141414] border-b border-white/[.06]">
+            <thead className="sticky top-0 bg-[var(--surface-card)] border-b border-[var(--border-soft)]">
               <tr>
                 {headers.map(h => (
                   <th key={h} className="px-3 py-1.5 text-left font-medium text-stone-600 whitespace-nowrap">{h}</th>
@@ -230,7 +230,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
             </thead>
             <tbody>
               {rows.slice(0, 3).map((row, i) => (
-                <tr key={i} className="border-b border-white/[.03]">
+                <tr key={i} className="border-b border-[var(--border-soft)]">
                   {headers.map((_, j) => (
                     <td key={j} className="px-3 py-1.5 text-stone-400 max-w-[120px] truncate">{row[j] ?? ""}</td>
                   ))}
@@ -243,14 +243,14 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
       {/* Actions */}
       <div className="flex items-center justify-between px-4 py-3">
-        <p className="text-[10px] text-stone-600">Ready to import <span className="text-white font-medium">{rows.length}</span> records</p>
+        <p className="text-[10px] text-stone-600">Ready to import <span className="text-[var(--text-primary)] font-medium">{rows.length}</span> records</p>
         <div className="flex items-center gap-2">
-          <button onClick={reset} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white transition-colors">
+          <button onClick={reset} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-colors">
             Cancel
           </button>
           <button
             onClick={runImport}
-            className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
           >
             <Upload size={11}/> Import {rows.length} rows
           </button>
@@ -261,10 +261,10 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Importing ────────────────────────────────────────────────────────────────
   if (phase === "importing") return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/[.08] bg-white/[.02] px-4 py-4">
+    <div className="flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
       <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
       <div>
-        <p className="text-xs font-medium text-white">Importing {rows.length} rows…</p>
+        <p className="text-xs font-medium text-[var(--text-primary)]">Importing {rows.length} rows…</p>
         <p className="text-[10px] text-stone-600">Creating records in {objectType}</p>
       </div>
     </div>
@@ -275,7 +275,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
     <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${result.errors.length > 0 ? "border-yellow-500/20 bg-yellow-500/[.04]" : "border-emerald-500/20 bg-emerald-500/[.04]"}`}>
       <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${result.errors.length > 0 ? "text-yellow-400" : "text-emerald-400"}`}/>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-white">
+        <p className="text-xs font-semibold text-[var(--text-primary)]">
           {result.created} record{result.created !== 1 ? "s" : ""} imported successfully
         </p>
         {result.errors.length > 0 && (

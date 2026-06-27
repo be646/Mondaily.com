@@ -30,7 +30,7 @@ export function InviteAcceptPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-[#0d0d0d] px-6 text-center text-white">
+    <div className="grid min-h-screen place-items-center bg-[var(--surface-page)] px-6 text-center text-[var(--text-primary)]">
       <div className="w-full max-w-sm">
         {status === "success" ? <CheckCircle className="mx-auto mb-5 text-emerald-500" size={34} /> : <Users className="mx-auto mb-5 text-red-500" size={34} />}
         <h1 className="text-xl font-semibold">{status === "success" ? "Joined!" : "You've been invited"}</h1>
@@ -38,7 +38,7 @@ export function InviteAcceptPage() {
         {status !== "success" ? (
           <div className="flex justify-center gap-3">
             <button onClick={acceptInvite} disabled={status === "loading"} className="rounded-md bg-red-600 px-5 py-2 text-sm font-medium disabled:opacity-50">{status === "loading" ? "Joining..." : "Accept invitation"}</button>
-            <button onClick={() => navigate("/sign-in")} className="rounded-md border border-white/10 px-5 py-2 text-sm">Decline</button>
+            <button onClick={() => navigate("/sign-in")} className="rounded-md border border-[var(--border-soft)] px-5 py-2 text-sm">Decline</button>
           </div>
         ) : null}
         {status === "error" ? <p className="mt-4 text-sm text-red-400">This invitation is invalid or expired.</p> : null}

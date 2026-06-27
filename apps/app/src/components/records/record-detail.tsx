@@ -35,7 +35,7 @@ export const INDUSTRY_TAXONOMY: { name: string; bg: string; text: string; border
   { name: "B2B",                    bg: "#1e3a5f", text: "#93c5fd", border: "#3b82f6" },
   { name: "B2C",                    bg: "#4a1942", text: "#f0abfc", border: "#d946ef" },
   { name: "SaaS",                   bg: "#2d1b69", text: "#c4b5fd", border: "var(--accent)" },
-  { name: "Web Services & Apps",    bg: "#0c3341", text: "#67e8f9", border: "#06b6d4" },
+  { name: "Web Services & Apps",    bg: "#0c3341", text: "var(--accent)", border: "var(--accent)" },
   { name: "Consulting",             bg: "#3d2700", text: "#fcd34d", border: "#f59e0b" },
   { name: "FinTech",                bg: "#052e16", text: "#6ee7b7", border: "#10b981" },
   { name: "HealthTech",             bg: "#042f2e", text: "#5eead4", border: "#14b8a6" },
@@ -146,7 +146,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
           </div>
         )}
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
-          <Camera size={16} className="text-white"/>
+          <Camera size={16} className="text-[var(--text-primary)]"/>
         </div>
       </button>
 
@@ -160,7 +160,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
             onChange={e => { setUrl(e.target.value); setError(""); }}
             onKeyDown={e => { if (e.key === "Enter") applyUrl(urlDraft); if (e.key === "Escape") setOpen(false); }}
             placeholder="Paste image URL…"
-            className="w-full rounded border border-white/[.08] bg-white/[.04] px-2 py-1.5 text-xs text-white placeholder-stone-600 outline-none focus:border-stone-500/30 mb-1"
+            className="w-full rounded border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-stone-500/30 mb-1"
           />
           {error && <p className="text-[10px] text-stone-400 mb-1">{error}</p>}
 
@@ -173,7 +173,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
             </button>
             <button
               onClick={() => fileRef.current?.click()}
-              className="flex-1 rounded-md border border-white/[.08] bg-white/[.03] text-stone-400 text-xs py-1.5 hover:bg-white/[.06] transition-colors"
+              className="flex-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-400 text-xs py-1.5 hover:bg-[var(--surface-hover)] transition-colors"
             >
               Upload file
             </button>
@@ -215,7 +215,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
   const overflow = categories.length - MAX;
   const selected = new Set(categories.map(c => c.name));
 
-  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","var(--accent)","#06b6d4"];
+  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","var(--accent)","var(--accent)"];
   const filtered = INDUSTRY_TAXONOMY.filter(t =>
     !query || t.name.toLowerCase().includes(query.toLowerCase())
   );
@@ -254,18 +254,18 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
               className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border group"
             >
               {cat.name}
-              <button onClick={() => onUpdate(categories.filter((_, j) => j !== i))} className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-white ml-0.5">
+              <button onClick={() => onUpdate(categories.filter((_, j) => j !== i))} className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-[var(--text-primary)] ml-0.5">
                 <X size={8}/>
               </button>
             </span>
           );
         })}
         {overflow > 0 && (
-          <span className="rounded-full bg-white/[.05] border border-white/[.06] px-2 py-0.5 text-[10px] text-stone-500">+{overflow}</span>
+          <span className="rounded-full bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-0.5 text-[10px] text-stone-500">+{overflow}</span>
         )}
         <button
           onClick={() => setOpen(o => !o)}
-          className="h-5 w-5 rounded-full border border-dashed border-white/[.14] bg-white/[.03] hover:bg-white/[.07] flex items-center justify-center text-stone-600 hover:text-stone-400 transition-colors"
+          className="h-5 w-5 rounded-full border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)] flex items-center justify-center text-stone-600 hover:text-stone-400 transition-colors"
         >
           <Plus size={9}/>
         </button>
@@ -273,14 +273,14 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
 
       {open && (
         <div className="dropdown-panel absolute left-0 top-full mt-2 w-64 z-50 p-2">
-          <div className="flex items-center gap-1.5 border border-white/[.07] rounded-md px-2 py-1.5 mb-2 bg-white/[.02]">
+          <div className="flex items-center gap-1.5 border border-[var(--border-soft)] rounded-md px-2 py-1.5 mb-2 bg-[var(--surface-hover)]">
             <Search size={11} className="text-stone-600 shrink-0"/>
             <input
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search industries…"
-              className="flex-1 bg-transparent text-xs text-white placeholder-stone-600 outline-none"
+              className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none"
             />
           </div>
           <div className="max-h-48 overflow-y-auto space-y-0.5 scrollbar-thin">
@@ -290,7 +290,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
                 <button
                   key={t.name}
                   onClick={() => toggle(t)}
-                  className="flex items-center gap-2.5 w-full rounded-md px-2 py-1.5 hover:bg-white/[.04] transition-colors"
+                  className="flex items-center gap-2.5 w-full rounded-md px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   <span
                     style={{ background: t.bg, color: t.text, borderColor: t.border + "55" }}
@@ -305,7 +305,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
             {filtered.length === 0 && <p className="px-2 py-2 text-xs text-stone-600">No matches</p>}
           </div>
           {/* Create custom category */}
-          <div className="border-t border-white/[.06] mt-1 pt-2">
+          <div className="border-t border-[var(--border-soft)] mt-1 pt-2">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-stone-600 px-1 mb-1.5">Create custom</p>
             <div className="flex items-center gap-1.5">
               <input
@@ -314,12 +314,12 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
                 onChange={e => setCustomName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") addCustom(); }}
                 placeholder="Category name…"
-                className="flex-1 bg-white/[.03] border border-white/[.07] rounded-md px-2 py-1.5 text-xs text-white placeholder-stone-600 outline-none focus:border-white/[.14]"
+                className="flex-1 bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-md px-2 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)]"
               />
               <button
                 onClick={addCustom}
                 disabled={!customName.trim() || selected.has(customName.trim())}
-                className="rounded-md bg-white/[.05] border border-white/[.08] px-2 py-1.5 text-[10px] text-stone-400 hover:text-white hover:bg-white/[.08] transition-colors disabled:opacity-30"
+                className="rounded-md bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-1.5 text-[10px] text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-30"
               >
                 Add
               </button>
@@ -353,12 +353,12 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
             onChange={e => setDraft(e.target.value)}
             onBlur={commit}
             onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setEditing(false); setDraft(fmt(value)); } }}
-            className="w-full rounded border border-stone-500/30 bg-white/[.05] px-2 py-0.5 text-xs text-white outline-none"
+            className="w-full rounded border border-stone-500/30 bg-[var(--surface-hover)] px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none"
           />
         ) : (
           <button
             onClick={() => { setEditing(true); setDraft(fmt(value)); }}
-            className="min-w-0 text-left text-xs text-stone-300 hover:text-white transition-colors truncate group-hover:underline group-hover:decoration-dotted group-hover:decoration-stone-600 underline-offset-2"
+            className="min-w-0 text-left text-xs text-stone-300 hover:text-[var(--text-primary)] transition-colors truncate group-hover:underline group-hover:decoration-dotted group-hover:decoration-stone-600 underline-offset-2"
           >
             {fmt(value)}
           </button>
@@ -405,12 +405,12 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
           onChange={e => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setEditing(false); setDraft(fmt(value)); } }}
-          className="w-full rounded border border-stone-500/30 bg-white/[.05] px-2 py-1 text-sm text-white outline-none"
+          className="w-full rounded border border-stone-500/30 bg-[var(--surface-hover)] px-2 py-1 text-sm text-[var(--text-primary)] outline-none"
         />
       ) : (
         <button
           onClick={() => onSave && setEditing(true)}
-          className={`text-left text-sm font-semibold text-white truncate w-full ${onSave ? "hover:text-stone-300 transition-colors" : "cursor-default"}`}
+          className={`text-left text-sm font-semibold text-[var(--text-primary)] truncate w-full ${onSave ? "hover:text-stone-300 transition-colors" : "cursor-default"}`}
           title={onSave ? "Click to edit" : undefined}
         >
           {fmt(value)}
@@ -433,8 +433,8 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
           <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "text-stone-600 border-white/[.06] hover:text-emerald-300 hover:border-emerald-500/20"}`}>Won</button>
-          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-stone-300 border-stone-500/30" : "text-stone-600 border-white/[.06] hover:text-stone-300 hover:border-stone-500/20"}`}>Lost</button>
+          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "text-stone-600 border-[var(--border-soft)] hover:text-emerald-300 hover:border-emerald-500/20"}`}>Won</button>
+          <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-stone-300 border-stone-500/30" : "text-stone-600 border-[var(--border-soft)] hover:text-stone-300 hover:border-stone-500/20"}`}>Lost</button>
         </div>
       </div>
       <div className="flex items-start">
@@ -442,17 +442,17 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
           const isActive = s === stage;
           const isPast   = activeIdx > i && !isWon && !isLost;
           const dot = STAGE_DOT[s] ?? "bg-stone-400";
-          const dotCls = isActive ? `${dot} ring-2 ring-white/30 scale-125` : isPast ? `${dot} opacity-50` : "bg-white/[.08]";
+          const dotCls = isActive ? `${dot} ring-2 ring-white/30 scale-125` : isPast ? `${dot} opacity-50` : "bg-[var(--surface-hover)]";
           return (
             <div key={s} className="flex flex-col items-center flex-1">
               <div className="flex items-center w-full">
-                {i > 0 && <div className={`h-px flex-1 ${isPast || isActive ? "bg-white/20" : "bg-white/[.05]"}`}/>}
+                {i > 0 && <div className={`h-px flex-1 ${isPast || isActive ? "bg-[var(--surface-hover)]" : "bg-[var(--surface-hover)]"}`}/>}
                 <button onClick={() => onSave(s)} className="shrink-0 hover:scale-110 transition-transform">
                   <div className={`h-3 w-3 rounded-full transition-all ${dotCls}`}/>
                 </button>
-                {i < PIPE_STAGES.length - 1 && <div className={`h-px flex-1 ${isPast ? "bg-white/20" : "bg-white/[.05]"}`}/>}
+                {i < PIPE_STAGES.length - 1 && <div className={`h-px flex-1 ${isPast ? "bg-[var(--surface-hover)]" : "bg-[var(--surface-hover)]"}`}/>}
               </div>
-              <span className={`mt-2 text-[9px] font-medium uppercase tracking-wide text-center leading-tight max-w-[50px] ${isActive ? "text-white" : isPast ? "text-stone-600" : "text-stone-700"}`}>{s}</span>
+              <span className={`mt-2 text-[9px] font-medium uppercase tracking-wide text-center leading-tight max-w-[50px] ${isActive ? "text-[var(--text-primary)]" : isPast ? "text-stone-600" : "text-stone-700"}`}>{s}</span>
             </div>
           );
         })}
@@ -594,7 +594,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
 // ─── Activity feed ────────────────────────────────────────────────────────────
 function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
   const cls = type === "create" ? "bg-emerald-500" : type === "update" ? "bg-blue-500" : "bg-stone-600";
-  return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[#141414]`}/>;
+  return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[var(--surface-card)]`}/>;
 }
 
 function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; createdAt: string }) {
@@ -617,7 +617,7 @@ function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; crea
           <div key={ev.id ?? i} className="flex gap-3">
             <div className="flex flex-col items-center">
               <ActivityDot type={type}/>
-              {i < events.length - 1 && <div className="w-px flex-1 bg-white/[.05] mt-1"/>}
+              {i < events.length - 1 && <div className="w-px flex-1 bg-[var(--surface-hover)] mt-1"/>}
             </div>
             <div className="pb-5 min-w-0">
               <p className="text-sm text-stone-300">{ev.ai_summary || label}</p>
@@ -760,17 +760,17 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
         <button
           onClick={() => createNote.mutate()}
           disabled={createNote.isPending}
-          className="flex items-center gap-1 rounded-md border border-white/[.07] bg-white/[.02] px-2 py-1 text-[10px] text-stone-500 hover:text-white hover:bg-white/[.05] transition-colors"
+          className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-stone-500 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <Plus size={10}/> New note
         </button>
       </div>
       {isLoading ? (
-        <div className="h-12 rounded-lg bg-white/[.02] animate-pulse"/>
+        <div className="h-12 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>
       ) : notes.length === 0 && !createNote.isPending ? (
         <button
           onClick={() => createNote.mutate()}
-          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-white/[.06] bg-white/[.01] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-white/[.10] transition-colors"
+          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
         >
           <FileText size={13}/>
           Click to add a note…
@@ -778,14 +778,14 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
       ) : (
         <div className="space-y-1.5">
           {createNote.isPending && (
-            <div className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5 animate-pulse">
-              <div className="h-2.5 w-28 rounded bg-white/[.05] mb-1.5"/>
-              <div className="h-2 w-40 rounded bg-white/[.04]"/>
+            <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 animate-pulse">
+              <div className="h-2.5 w-28 rounded bg-[var(--surface-hover)] mb-1.5"/>
+              <div className="h-2 w-40 rounded bg-[var(--surface-hover)]"/>
             </div>
           )}
           {notes.slice(0, 3).map(note => (
-            <div key={note.id} className="rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5 hover:border-white/[.09] cursor-pointer transition-colors">
-              <p className="text-xs font-medium text-white">{String(note.data.title || "Untitled note")}</p>
+            <div key={note.id} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 hover:border-[var(--border-soft)] cursor-pointer transition-colors">
+              <p className="text-xs font-medium text-[var(--text-primary)]">{String(note.data.title || "Untitled note")}</p>
               <p className="text-[10px] text-stone-600 mt-0.5">
                 {String(note.data.content || "This note has no content")} • {relativeTime(String(note.data.created_at || note.updated_at))}
               </p>
@@ -840,14 +840,14 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
         </p>
         <button
           onClick={() => setAdding(true)}
-          className="flex items-center gap-1 rounded-md border border-white/[.07] bg-white/[.02] px-2 py-1 text-[10px] text-stone-500 hover:text-white hover:bg-white/[.05] transition-colors"
+          className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-stone-500 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <Plus size={10}/> Add task
         </button>
       </div>
 
       {adding && (
-        <div className="flex items-center gap-2 rounded-lg border border-stone-500/20 bg-white/[.02] px-2.5 py-2 mb-1.5">
+        <div className="flex items-center gap-2 rounded-lg border border-stone-500/20 bg-[var(--surface-hover)] px-2.5 py-2 mb-1.5">
           <Square size={13} className="text-stone-600 shrink-0"/>
           <input
             ref={inputRef} value={newTitle}
@@ -857,18 +857,18 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
               if (e.key === "Escape") { setAdding(false); setNewTitle(""); }
             }}
             placeholder="Task title… Enter to save"
-            className="flex-1 bg-transparent text-xs text-white placeholder-stone-600 outline-none"
+            className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none"
           />
           <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-stone-600 hover:text-stone-400"><X size={11}/></button>
         </div>
       )}
 
       {isLoading ? (
-        <div className="h-10 rounded-lg bg-white/[.02] animate-pulse"/>
+        <div className="h-10 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>
       ) : tasks.length === 0 && !adding ? (
         <button
           onClick={() => setAdding(true)}
-          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-white/[.06] bg-white/[.01] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-white/[.10] transition-colors"
+          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
         >
           <CheckSquare size={13}/>
           Click to add a task…
@@ -878,7 +878,7 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
           {[...todo, ...done].slice(0, 5).map(task => {
             const isDone = Boolean(task.data.done);
             return (
-              <div key={task.id} className="flex items-center gap-2.5 rounded-md px-2 py-2 hover:bg-white/[.02] transition-colors">
+              <div key={task.id} className="flex items-center gap-2.5 rounded-md px-2 py-2 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => toggleTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone
                     ? <CheckSquare size={13} className="text-emerald-400"/>
@@ -921,7 +921,7 @@ function NoteCard({ note, onUpdate, onDelete }: {
 
   return (
     <div
-      className="group rounded-xl border border-white/[.06] bg-white/[.02] p-4 hover:border-white/[.10] transition-colors"
+      className="group rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 hover:border-[var(--border-soft)] transition-colors"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -932,7 +932,7 @@ function NoteCard({ note, onUpdate, onDelete }: {
             onChange={e => setTitle(e.target.value)}
             onBlur={saveTitle}
             placeholder="Note title…"
-            className="w-full bg-transparent text-sm font-semibold text-white placeholder-stone-700 outline-none border-b border-transparent focus:border-white/[.08] pb-1 mb-2 transition-colors"
+            className="w-full bg-transparent text-sm font-semibold text-[var(--text-primary)] placeholder-stone-700 outline-none border-b border-transparent focus:border-[var(--border-soft)] pb-1 mb-2 transition-colors"
           />
           <textarea
             ref={taRef}
@@ -988,13 +988,13 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Notes</p>
-        <button onClick={() => createNote.mutate()} disabled={createNote.isPending} className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white hover:bg-white/[.06] transition-colors disabled:opacity-50">
+        <button onClick={() => createNote.mutate()} disabled={createNote.isPending} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
           <Plus size={12}/> New note
         </button>
       </div>
-      {createNote.isPending && <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-white/[.05] mb-2"/><div className="h-2 w-48 rounded bg-white/[.04]"/></div>}
+      {createNote.isPending && <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-[var(--surface-hover)] mb-2"/><div className="h-2 w-48 rounded bg-[var(--surface-hover)]"/></div>}
       {notes.length === 0 && !isLoading && !createNote.isPending ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-white/[.05] bg-white/[.01] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <FileText size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No notes yet. Click "New note" to get started.</p>
         </div>
@@ -1067,21 +1067,21 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Tasks</p>
-        <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white hover:bg-white/[.06] transition-colors">
+        <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
           <Plus size={12}/> Add task
         </button>
       </div>
       {adding && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-stone-500/20 bg-white/[.02] px-3 py-2.5">
+        <div className="flex items-center gap-2.5 rounded-lg border border-stone-500/20 bg-[var(--surface-hover)] px-3 py-2.5">
           <Square size={14} className="text-stone-600 shrink-0"/>
           <input ref={inputRef} value={newTitle} onChange={e => setNewTitle(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && newTitle.trim()) createTask.mutate(newTitle.trim()); if (e.key === "Escape") { setAdding(false); setNewTitle(""); } }}
-            placeholder="Task title… (Enter to save)" className="flex-1 bg-transparent text-sm text-white placeholder-stone-600 outline-none"/>
+            placeholder="Task title… (Enter to save)" className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
           <button onClick={() => { setAdding(false); setNewTitle(""); }} className="text-stone-600 hover:text-stone-400"><X size={12}/></button>
         </div>
       )}
       {tasks.length === 0 && !adding ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-white/[.05] bg-white/[.01] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <CheckSquare size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No tasks yet. Click "Add task" to get started.</p>
         </div>
@@ -1091,7 +1091,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
             const isDone = Boolean(task.data.done);
             const isEditing = editingId === task.id;
             return (
-              <div key={task.id} className="group flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-white/[.02] transition-colors">
+              <div key={task.id} className="group flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => updateTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone ? <CheckSquare size={15} className="text-emerald-400"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
                 </button>
@@ -1102,18 +1102,18 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
                     onChange={e => setEditTitle(e.target.value)}
                     onBlur={() => commitEdit(task)}
                     onKeyDown={e => { if (e.key === "Enter") commitEdit(task); if (e.key === "Escape") setEditingId(null); }}
-                    className="flex-1 bg-transparent text-sm text-white outline-none border-b border-white/[.12]"
+                    className="flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none border-b border-[var(--border-soft)]"
                   />
                 ) : (
                   <span
                     onClick={() => !isDone && startEdit(task)}
-                    className={`flex-1 text-sm cursor-text ${isDone ? "line-through text-stone-600" : "text-stone-300 hover:text-white"}`}
+                    className={`flex-1 text-sm cursor-text ${isDone ? "line-through text-stone-600" : "text-stone-300 hover:text-[var(--text-primary)]"}`}
                   >
                     {String(task.data.title || "Untitled task")}
                   </span>
                 )}
                 {task.data.assignee != null && !isEditing && (
-                  <span className="text-[10px] text-stone-600 shrink-0 rounded bg-white/[.04] px-1.5 py-0.5">{String(task.data.assignee)}</span>
+                  <span className="text-[10px] text-stone-600 shrink-0 rounded bg-[var(--surface-hover)] px-1.5 py-0.5">{String(task.data.assignee)}</span>
                 )}
                 <button
                   onClick={() => deleteTask.mutate(task.id)}
@@ -1212,13 +1212,13 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Contact Log</p>
-        <button onClick={() => setAdding(o => !o)} className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white hover:bg-white/[.06] transition-colors">
+        <button onClick={() => setAdding(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
           <Plus size={12}/> Log contact
         </button>
       </div>
 
       {adding && (
-        <div className="rounded-xl border border-white/[.08] bg-white/[.02] p-4 space-y-3">
+        <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
           {/* Type picker */}
           <div className="flex gap-2">
             {CONTACT_LOG_TYPES.map(t => {
@@ -1226,7 +1226,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
               const active = logType === t.value;
               return (
                 <button key={t.value} onClick={() => setLogType(t.value)}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-white/[.06] text-stone-500 hover:text-stone-300 hover:bg-white/[.02]"}`}>
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)]"}`}>
                   <Icon size={12}/> {t.label}
                 </button>
               );
@@ -1237,12 +1237,12 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
             <div>
               <p className="text-[10px] text-stone-600 mb-1">Date & time</p>
               <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full bg-white/[.03] border border-white/[.07] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-white/[.14]"/>
+                className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]"/>
             </div>
             <div>
               <p className="text-[10px] text-stone-600 mb-1">Outcome</p>
               <select value={outcome} onChange={e => setOutcome(e.target.value)}
-                className="w-full bg-white/[.03] border border-white/[.07] rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-white/[.14]">
+                className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]">
                 {CONTACT_OUTCOMES.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
@@ -1252,7 +1252,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
             <p className="text-[10px] text-stone-600 mb-1">Notes</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
               placeholder="What was discussed?"
-              className="w-full resize-none bg-white/[.03] border border-white/[.07] rounded-lg px-3 py-2.5 text-xs text-white placeholder-stone-700 outline-none focus:border-white/[.14] leading-relaxed"/>
+              className="w-full resize-none bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed"/>
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => setAdding(false)} className="rounded-lg px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
@@ -1264,9 +1264,9 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
         </div>
       )}
 
-      {isLoading && <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-xl bg-white/[.02] animate-pulse"/>)}</div>}
+      {isLoading && <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-xl bg-[var(--surface-hover)] animate-pulse"/>)}</div>}
       {!isLoading && logs.length === 0 && !adding && (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-white/[.05] bg-white/[.01] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <PhoneCall size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No contact logs yet.</p>
           <p className="mt-1 text-xs text-stone-700">Click "Log contact" to record a call, email, or meeting.</p>
@@ -1278,7 +1278,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
           const Icon = typeDef.icon;
           const loggedAt = log.data.logged_at ? relativeTime(String(log.data.logged_at)) : relativeTime(log.updated_at);
           return (
-            <div key={log.id} className="group flex items-start gap-3 rounded-xl border border-white/[.06] bg-white/[.02] p-3.5 hover:border-white/[.09] transition-colors">
+            <div key={log.id} className="group flex items-start gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3.5 hover:border-[var(--border-soft)] transition-colors">
               <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${typeDef.bg}`}>
                 <Icon size={14} className={typeDef.color}/>
               </div>
@@ -1375,11 +1375,11 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-white" },
+          { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
           { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-emerald-400" },
         ].map(card => (
-          <div key={card.label} className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+          <div key={card.label} className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">{card.label}</p>
             <p className={`text-lg font-bold ${card.accent}`}>{card.value}</p>
           </div>
@@ -1392,15 +1392,15 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Invoices</p>
           <button
             onClick={() => setShowNewInvoice(o => !o)}
-            className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white hover:bg-white/[.06] transition-colors"
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <Plus size={12}/> New Invoice
           </button>
         </div>
 
         {showNewInvoice && (
-          <div className="rounded-xl border border-white/[.08] bg-white/[.02] p-4 mb-3 space-y-3">
-            <p className="text-xs font-medium text-white">New Invoice for {recordName}</p>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 mb-3 space-y-3">
+            <p className="text-xs font-medium text-[var(--text-primary)]">New Invoice for {recordName}</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-[10px] text-stone-600 mb-1 block">Amount</label>
@@ -1445,17 +1445,17 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         )}
 
         {invLoading ? (
-          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-white/[.02] animate-pulse"/>)}</div>
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : invoices.length === 0 ? (
-          <div className="flex min-h-24 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+          <div className="flex min-h-24 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
             <Receipt size={16} className="mb-1.5 text-stone-700"/>
             <p className="text-xs text-stone-600">No invoices yet for this record.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden">
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[.04]">
+                <tr className="border-b border-[var(--border-soft)]">
                   <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Number</th>
                   <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Amount</th>
                   <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Status</th>
@@ -1464,11 +1464,11 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
               </thead>
               <tbody>
                 {invoices.map(inv => (
-                  <tr key={inv.id} className="border-b border-white/[.03] hover:bg-white/[.02] transition-colors">
+                  <tr key={inv.id} className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors">
                     <td className="px-4 py-2.5">
                       <Link to={`/finance/invoices/${inv.id}`} className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors">{inv.number}</Link>
                     </td>
-                    <td className="px-4 py-2.5 text-[12px] text-white">{fmtCcy(inv.total, inv.currency)}</td>
+                    <td className="px-4 py-2.5 text-[12px] text-[var(--text-primary)]">{fmtCcy(inv.total, inv.currency)}</td>
                     <td className="px-4 py-2.5">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${INVOICE_STATUS_COLORS[inv.status] ?? "text-stone-400 bg-stone-400/10"}`}>
                         {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
@@ -1489,9 +1489,9 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Credit Notes</p>
         {cnLoading ? (
-          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-white/[.02] animate-pulse"/>)}</div>
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : creditNotes.length === 0 ? (
-          <div className="flex min-h-20 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+          <div className="flex min-h-20 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
             <CreditCard size={16} className="mb-1.5 text-stone-700"/>
             <p className="text-xs text-stone-600">No credit notes for this record.</p>
           </div>
@@ -1499,9 +1499,9 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <div className="space-y-2">
             {creditNotes.map(cn => (
               <Link key={cn.id} to={`/finance/credit-notes/${cn.id}`}
-                className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-4 py-2.5 hover:border-white/[.10] transition-colors">
+                className="flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 hover:border-[var(--border-soft)] transition-colors">
                 <CreditCard size={13} className="text-stone-400 shrink-0"/>
-                <span className="flex-1 text-[12px] text-white">{fmtCcy(cn.amount_cents / 100, cn.currency)}</span>
+                <span className="flex-1 text-[12px] text-[var(--text-primary)]">{fmtCcy(cn.amount_cents / 100, cn.currency)}</span>
                 <span className="text-[11px] text-stone-500 capitalize">{cn.credit_reason.replace(/_/g, " ")}</span>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CN_STATUS_COLORS[cn.status] ?? "text-stone-400 bg-stone-400/10"}`}>
                   {cn.status.replace(/_/g, " ")}
@@ -1558,20 +1558,20 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">{tabLabel}</p>
         <div ref={searchRef} className="relative">
-          <button onClick={() => setSearchOpen(o => !o)} className="flex items-center gap-1.5 rounded-md border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white hover:bg-white/[.06] transition-colors">
+          <button onClick={() => setSearchOpen(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
             <Link2 size={12}/> Link record
           </button>
           {searchOpen && (
             <div className="dropdown-panel absolute right-0 top-full mt-1 w-72 z-50 p-2">
-              <div className="flex items-center gap-2 border border-white/[.08] rounded-md px-2 py-1.5 mb-2 bg-white/[.02]">
+              <div className="flex items-center gap-2 border border-[var(--border-soft)] rounded-md px-2 py-1.5 mb-2 bg-[var(--surface-hover)]">
                 <Search size={12} className="text-stone-600 shrink-0"/>
-                <input ref={searchInput} value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Search records…" className="flex-1 bg-transparent text-xs text-white placeholder-stone-600 outline-none"/>
+                <input ref={searchInput} value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Search records…" className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
               </div>
               {allLoading ? <p className="text-xs text-stone-600 px-2 py-2">Loading…</p> : searchResults.length === 0 ? (
                 <p className="text-xs text-stone-600 px-2 py-2">{searchText ? "No matches" : "No records to link"}</p>
               ) : searchResults.map(r => (
                 <button key={r.id} onClick={() => linkRecord.mutate(r.id)} disabled={linkRecord.isPending}
-                  className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-white/[.04] transition-colors group">
+                  className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-[var(--surface-hover)] transition-colors group">
                   <div className={`h-6 w-6 rounded-lg border bg-gradient-to-br flex items-center justify-center text-[9px] font-bold shrink-0 ${avatarColor(rname(r))}`}>{initials(rname(r))}</div>
                   <div className="min-w-0 text-left"><p className="text-xs text-stone-300 truncate">{rname(r)}</p><p className="text-[10px] text-stone-600 capitalize">{r.object_type}</p></div>
                   <Link2 size={11} className="text-stone-700 group-hover:text-stone-400 ml-auto shrink-0 transition-colors"/>
@@ -1581,9 +1581,9 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
           )}
         </div>
       </div>
-      {relLoading ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-white/[.02] animate-pulse"/>)}</div>
+      {relLoading ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>)}</div>
        : related.length === 0 ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <Link2 size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No linked records yet.</p>
           <p className="mt-1 text-xs text-stone-700">Click "Link record" to associate companies, people, or deals.</p>
@@ -1594,9 +1594,9 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
             const n = rname(r);
             return (
               <Link key={r.id} to={`/objects/${r.object_type}/${r.id}`}
-                className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] p-3 hover:border-white/[.10] hover:bg-white/[.03] transition-colors group">
+                className="flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors group">
                 <div className={`h-8 w-8 rounded-lg border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(n)}`}>{initials(n)}</div>
-                <div className="min-w-0 flex-1"><p className="text-sm font-medium text-white truncate">{n}</p><p className="text-xs text-stone-600 capitalize">{r.object_type}</p></div>
+                <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--text-primary)] truncate">{n}</p><p className="text-xs text-stone-600 capitalize">{r.object_type}</p></div>
                 <ChevronLeft size={13} className="text-stone-700 group-hover:text-stone-400 rotate-180 transition-colors shrink-0"/>
               </Link>
             );
@@ -1769,7 +1769,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     <div className="flex h-full min-h-0 flex-col">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 border-b border-stone-800/50 px-6 py-3 shrink-0">
-        <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-stone-500 hover:text-white transition-colors">
+        <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-stone-500 hover:text-[var(--text-primary)] transition-colors">
           <ChevronLeft size={13}/>{objectType}
         </Link>
         <span className="text-xs text-stone-700">/</span>
@@ -1795,7 +1795,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             <div className="flex items-center gap-3">
               <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo} wrapClass="shrink-0"/>
               <div className="flex-1 min-w-0">
-                <h1 className="text-[13px] font-bold text-white tracking-wide leading-snug uppercase truncate">{name}</h1>
+                <h1 className="text-[13px] font-bold text-[var(--text-primary)] tracking-wide leading-snug uppercase truncate">{name}</h1>
                 <p className="text-[11px] text-stone-500 truncate mt-0.5">
                   {fmt((data.domain ?? data.website ?? "") as string) !== "—"
                     ? fmt((data.domain ?? data.website ?? "") as string)
@@ -1834,14 +1834,14 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               <a
                 href={email ? `mailto:${email}` : undefined}
                 onClick={e => { if (!email) e.preventDefault(); }}
-                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-white/[.08] bg-white/[.03] text-stone-300 hover:text-white hover:bg-white/[.06] cursor-pointer" : "border-white/[.04] bg-white/[.01] text-stone-700 cursor-not-allowed"}`}
+                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-300 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-700 cursor-not-allowed"}`}
               >
                 <Mail size={12}/> Email
               </a>
               <div ref={listRef} className="relative">
                 <button
                   onClick={() => setListOpen(o => !o)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-xs font-medium text-stone-400 hover:text-white hover:bg-white/[.06] transition-colors"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs font-medium text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   <List size={12}/> Lists
                   <ChevronDown size={10} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>
@@ -1970,7 +1970,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               const label = t === "Company" ? companyTabLabel : t;
               return (
                 <button key={t} onClick={() => setTab(t)}
-                  className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-white" : "text-stone-500 hover:text-stone-300"}`}>
+                  className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
                   {label}
                   {tab === t && <span className="absolute bottom-0 left-0 right-0 h-px bg-stone-500"/>}
                 </button>
@@ -2029,14 +2029,14 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {tab === "Contact Log" && <ContactLogTab  recordId={recordId} vertical={record.vertical}/>}
             {tab === "Finance"     && <FinanceTab     recordId={recordId} recordName={name} vertical={record.vertical}/>}
             {tab === "Files"   && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
                 <FileText size={20} className="mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">Files</p>
                 <p className="mt-1 text-xs text-stone-600">No files attached to this record yet.</p>
               </div>
             )}
             {tab === "Emails"  && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-white/[.05] bg-white/[.01] text-center">
+              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
                 <Mail size={20} className="mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">Emails</p>
                 <p className="mt-1 text-xs text-stone-600">No emails linked yet.</p>

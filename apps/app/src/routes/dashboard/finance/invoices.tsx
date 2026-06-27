@@ -102,13 +102,13 @@ export function InvoicesPage() {
       <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-[15px] font-semibold text-white">Invoices</h1>
+            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Invoices</h1>
             <p className="text-[12px] text-stone-500 mt-0.5">Create, send, and track invoices</p>
           </div>
           <button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending}
-            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50"
           >
             <Plus size={13}/> New Invoice
           </button>
@@ -123,7 +123,7 @@ export function InvoicesPage() {
               <DollarSign size={12} className="text-stone-500"/>
               <span className="text-[11px] text-stone-500">Outstanding</span>
             </div>
-            <div className="text-[18px] font-semibold text-white">{formatCurrency(totalOwed, "GBP")}</div>
+            <div className="text-[18px] font-semibold text-[var(--text-primary)]">{formatCurrency(totalOwed, "GBP")}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
@@ -136,12 +136,12 @@ export function InvoicesPage() {
 
         {/* Filters + search */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] p-1">
+          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1">
             {FILTERS.map(f => (
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}
+                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}
               >
                 {f.label}
               </button>
@@ -177,7 +177,7 @@ export function InvoicesPage() {
         ) : (
           <table className="minimal-table">
             <thead>
-              <tr className="border-b border-white/[.04]">
+              <tr className="border-b border-[var(--border-soft)]">
                 {["Invoice", "Client", "Amount", "Status", "Due Date", ""].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-stone-600">{h}</th>
                 ))}
@@ -190,15 +190,15 @@ export function InvoicesPage() {
                 return (
                   <tr
                     key={inv.id}
-                    className="border-b border-white/[.03] hover:bg-white/[.02] transition-colors cursor-pointer"
+                    className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                     onClick={() => navigate(`/finance/invoices/${inv.id}`)}
                   >
-                    <td className="px-4 py-3 text-[12px] font-medium text-white">{inv.number}</td>
+                    <td className="px-4 py-3 text-[12px] font-medium text-[var(--text-primary)]">{inv.number}</td>
                     <td className="px-4 py-3">
-                      <div className="text-[12px] text-white">{inv.client_name}</div>
+                      <div className="text-[12px] text-[var(--text-primary)]">{inv.client_name}</div>
                       {inv.client_email && <div className="text-[11px] text-stone-600">{inv.client_email}</div>}
                     </td>
-                    <td className="px-4 py-3 text-[12px] font-semibold text-white">
+                    <td className="px-4 py-3 text-[12px] font-semibold text-[var(--text-primary)]">
                       {formatCurrency(inv.total, inv.currency)}
                     </td>
                     <td className="px-4 py-3">

@@ -464,7 +464,7 @@ export function ListPage() {
             value={filterText}
             onChange={e => setFilterText(e.target.value)}
             placeholder="Filter…"
-            className="w-44 rounded-md border border-stone-200 bg-stone-50 pl-7 pr-2.5 py-1.5 text-[11px] outline-none placeholder-stone-400 dark:border-white/[.07] dark:bg-white/[.02] dark:placeholder-stone-600"
+            className="w-44 rounded-md border border-stone-200 bg-stone-50 pl-7 pr-2.5 py-1.5 text-[11px] outline-none placeholder-stone-400 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:placeholder-stone-600"
             style={{ color: "var(--text-primary)" }}
           />
         </div>
@@ -512,14 +512,14 @@ export function ListPage() {
         <button
           onClick={exportCsv}
           title="Export CSV"
-          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-stone-300 hover:text-stone-600 dark:border-white/[.08] dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-white/[.05] dark:hover:border-white/[.10]"
+          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-stone-300 hover:text-stone-600 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"
         >
           <Download size={11}/> Export
         </button>
         <button
           onClick={() => setDeleteConfirm(true)}
           title="Delete list"
-          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-rose-300 hover:text-rose-500 dark:border-white/[.08] dark:text-stone-400 dark:hover:text-rose-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/[.06]"
+          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-rose-300 hover:text-rose-500 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:text-rose-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/[.06]"
         >
           <Trash2 size={11}/>
         </button>
@@ -567,7 +567,7 @@ export function ListPage() {
             {selected.size > 0 && (
               <div className="mb-2 flex items-center gap-3 rounded-lg border px-3 py-2 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
                 <span style={{ color: "var(--text-secondary)" }}>{selected.size} selected</span>
-                <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-rose-500 transition-colors hover:bg-rose-500/[.06] dark:border-white/[.08]">
+                <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-rose-500 transition-colors hover:bg-rose-500/[.06] dark:border-[var(--border-soft)]">
                   <X size={11}/> Remove from list
                 </button>
                 <button onClick={() => setSelected(new Set())} className="text-[11px]" style={{ color: "var(--text-faint)" }}>Clear</button>
@@ -594,7 +594,7 @@ export function ListPage() {
                 {sortedRecords.map(record => {
                   const prov = recordProvenance(record);
                   return (
-                  <tr key={record.id} className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-white/[.03]" : ""}`}>
+                  <tr key={record.id} className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-[var(--surface-hover)]" : ""}`}>
                     <td className="w-8 px-2">
                       <input type="checkbox" checked={selected.has(record.id)} onChange={() => toggleSelect(record.id)} className="cursor-pointer align-middle"/>
                     </td>
@@ -839,15 +839,15 @@ export function ListPage() {
       {/* ── Enroll in Sequence ── */}
       {enrollOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl flex flex-col max-h-[80vh]">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[.06]">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                   <Mail size={13} className="text-emerald-400" />
                 </div>
-                <span className="text-sm font-semibold text-white">Enroll in Sequence</span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">Enroll in Sequence</span>
               </div>
-              <button onClick={() => setEnrollOpen(false)} className="text-white/30 hover:text-white/70 transition-colors"><X size={16} /></button>
+              <button onClick={() => setEnrollOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors"><X size={16} /></button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-5">
@@ -857,38 +857,38 @@ export function ListPage() {
                     <Mail size={22} className="text-emerald-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white mb-1">Enrollment complete</p>
-                    <p className="text-xs text-white/40">{records.length} records enrolled in "{enrollSeqName}"</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Enrollment complete</p>
+                    <p className="text-xs text-[var(--text-secondary)]">{records.length} records enrolled in "{enrollSeqName}"</p>
                   </div>
                 </div>
               ) : enrollStep === "confirm" ? (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-4">
-                    <p className="text-xs text-white/40 mb-1">Enrolling into</p>
-                    <p className="text-sm font-semibold text-white">{enrollSeqName}</p>
+                  <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
+                    <p className="text-xs text-[var(--text-secondary)] mb-1">Enrolling into</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{enrollSeqName}</p>
                   </div>
-                  <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 flex items-center justify-between">
-                    <span className="text-xs text-white/40">Records to enroll</span>
+                  <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
+                    <span className="text-xs text-[var(--text-secondary)]">Records to enroll</span>
                     <span className="text-sm font-semibold text-emerald-400">{records.length}</span>
                   </div>
-                  <p className="text-[11px] text-white/30">Records already enrolled in this sequence will be skipped automatically.</p>
+                  <p className="text-[11px] text-[var(--text-secondary)]">Records already enrolled in this sequence will be skipped automatically.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs text-white/40 mb-3">Choose a sequence to enroll {records.length} record{records.length !== 1 ? "s" : ""} from this list:</p>
+                  <p className="text-xs text-[var(--text-secondary)] mb-3">Choose a sequence to enroll {records.length} record{records.length !== 1 ? "s" : ""} from this list:</p>
                   {sequencesQuery.isLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-white/30 py-4"><Loader2 size={13} className="animate-spin" /> Loading sequences…</div>
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] py-4"><Loader2 size={13} className="animate-spin" /> Loading sequences…</div>
                   ) : sequences.length === 0 ? (
-                    <p className="text-xs text-white/30 py-4 text-center">No sequences found. Create one first under Sequences.</p>
+                    <p className="text-xs text-[var(--text-secondary)] py-4 text-center">No sequences found. Create one first under Sequences.</p>
                   ) : (
                     sequences.map(seq => (
                       <button
                         key={seq.id}
                         onClick={() => { setEnrollSeqId(seq.id); setEnrollSeqName(seq.name); setEnrollStep("confirm"); }}
-                        className="w-full flex items-center justify-between rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors text-left"
+                        className="w-full flex items-center justify-between rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors text-left"
                       >
-                        <span className="text-sm text-white">{seq.name}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${seq.status === "active" ? "bg-emerald-500/15 text-emerald-400" : "bg-white/[.06] text-white/30"}`}>{seq.status}</span>
+                        <span className="text-sm text-[var(--text-primary)]">{seq.name}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${seq.status === "active" ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}>{seq.status}</span>
                       </button>
                     ))
                   )}
@@ -896,10 +896,10 @@ export function ListPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-t border-white/[.06]">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border-soft)]">
               <button
                 onClick={() => enrollStep === "confirm" ? setEnrollStep("pick") : setEnrollOpen(false)}
-                className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors"
               >
                 {enrollStep === "done" ? "Close" : enrollStep === "confirm" ? "Back" : "Cancel"}
               </button>
@@ -907,7 +907,7 @@ export function ListPage() {
                 <button
                   onClick={enrollInSequence}
                   disabled={enrolling}
-                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-40"
                 >
                   {enrolling ? <><Loader2 size={12} className="animate-spin" /> Enrolling…</> : <><Mail size={12} /> Enroll {records.length} records</>}
                 </button>
@@ -915,7 +915,7 @@ export function ListPage() {
               {enrollStep === "done" && (
                 <button
                   onClick={() => setEnrollOpen(false)}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors"
                 >
                   Done
                 </button>

@@ -21,7 +21,7 @@ interface Expense {
 const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; label: string }> = {
   travel:               { color: "text-blue-400",    icon: Car,           label: "Travel"               },
   software:             { color: "text-stone-400",  icon: Monitor,       label: "Software"             },
-  hardware:             { color: "text-cyan-400",    icon: Monitor,       label: "Hardware"             },
+  hardware:             { color: "text-[var(--accent)]",    icon: Monitor,       label: "Hardware"             },
   meals:                { color: "text-amber-400",   icon: Coffee,        label: "Meals"                },
   marketing:            { color: "text-pink-400",    icon: Zap,           label: "Marketing"            },
   professional_services:{ color: "text-emerald-400", icon: Briefcase,     label: "Professional Services"},
@@ -80,11 +80,11 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-amber-500/20 flex items-center justify-center"><Receipt size={12} className="text-amber-400"/></div>
-            <span className="text-sm font-semibold text-white">Log Expense</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Log Expense</span>
           </div>
           <button onClick={onClose} className="text-stone-600 hover:text-stone-300 transition-colors text-lg leading-none">×</button>
         </div>
@@ -129,7 +129,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50">
               {loading ? "Saving…" : "Log Expense"}
             </button>
           </div>
@@ -172,11 +172,11 @@ export function ExpensesPage() {
       <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-[15px] font-semibold text-white">Expenses</h1>
+            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Expenses</h1>
             <p className="text-[12px] text-stone-500 mt-0.5">Track and manage business expenses</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             <Plus size={13}/> Log Expense
           </button>
         </div>
@@ -194,20 +194,20 @@ export function ExpensesPage() {
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-stone-500"/><span className="text-[11px] text-stone-500">This Month</span></div>
-            <div className="text-[17px] font-semibold text-white">{fmt(totalThisMonth, currency)}</div>
+            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{fmt(totalThisMonth, currency)}</div>
             <div className="text-[10px] text-stone-700 mt-0.5">all statuses</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] p-1 flex-wrap">
+          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1 flex-wrap">
             <button onClick={() => setCategoryFilter("")}
-              className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === "" ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}>
+              className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === "" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
               All
             </button>
             {CATEGORIES.map(c => (
               <button key={c.key} onClick={() => setCategoryFilter(c.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === c.key ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}>
+                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === c.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
                 {c.label}
               </button>
             ))}
@@ -231,7 +231,7 @@ export function ExpensesPage() {
         ) : (
           <table className="minimal-table">
             <thead>
-              <tr className="border-b border-white/[.04]">
+              <tr className="border-b border-[var(--border-soft)]">
                 {["Date", "Description", "Vendor", "Category", "Amount", "Status"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-stone-600">{h}</th>
                 ))}
@@ -244,18 +244,18 @@ export function ExpensesPage() {
                 const stsCfg = STATUS_CONFIG[e.status] ?? STATUS_CONFIG["draft"]!;
                 const StsIcon = stsCfg.icon;
                 return (
-                  <tr key={e.id} className="border-b border-white/[.03] hover:bg-white/[.015] transition-colors">
+                  <tr key={e.id} className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors">
                     <td className="px-4 py-3 text-[11px] text-stone-600">
                       {new Date(e.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
-                    <td className="px-4 py-3 text-[12px] font-medium text-white">{e.description}</td>
+                    <td className="px-4 py-3 text-[12px] font-medium text-[var(--text-primary)]">{e.description}</td>
                     <td className="px-4 py-3 text-[11px] text-stone-500">{e.vendor ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 text-[10px] font-medium ${catCfg.color}`}>
                         <CatIcon size={10}/>{catCfg.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[13px] font-semibold text-white">{fmt(e.amount_cents, e.currency)}</td>
+                    <td className="px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)]">{fmt(e.amount_cents, e.currency)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${stsCfg.color}`}>
                         <StsIcon size={10}/>{stsCfg.label}

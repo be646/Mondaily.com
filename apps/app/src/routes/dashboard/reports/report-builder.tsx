@@ -94,7 +94,7 @@ export function ReportBuilderPage() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-white/[.06] px-4 py-4 sm:px-6">
+      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-6">
         <input
           value={report.name}
           onChange={e => setReport({ ...report, name: e.target.value })}
@@ -103,7 +103,7 @@ export function ReportBuilderPage() {
         <select
           value={report.type}
           onChange={e => setReport({ ...report, type: e.target.value as ReportType })}
-          className="h-9 rounded-lg border border-white/[.08] bg-[#141414] px-3 text-sm text-white outline-none focus:border-stone-500/40"
+          className="h-9 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/40"
         >
           <option value="insight">Insight</option>
           <option value="funnel">Funnel</option>
@@ -112,20 +112,20 @@ export function ReportBuilderPage() {
         </select>
         <button
           onClick={() => save.mutate(report)}
-          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-white hover:bg-stone-500"
+          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500"
         >
           <Save size={14} /> {save.isPending ? "Saving…" : "Save report"}
         </button>
       </header>
       <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_320px]">
         <main className="min-w-0 p-4 sm:p-6">
-          <div className="rounded-xl border border-white/[.07] bg-white/[.02] p-5">
-            <h2 className="mb-5 text-sm font-medium text-white">{report.name}</h2>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5">
+            <h2 className="mb-5 text-sm font-medium text-[var(--text-primary)]">{report.name}</h2>
             {run.isLoading ? <PageSkeleton rows={5} /> : <ReportChart type={report.type} result={run.data} config={report.config} />}
           </div>
         </main>
-        <aside className="border-t border-white/[.06] p-5 lg:border-l lg:border-t-0">
-          <h2 className="mb-5 text-sm font-semibold text-white">Configuration</h2>
+        <aside className="border-t border-[var(--border-soft)] p-5 lg:border-l lg:border-t-0">
+          <h2 className="mb-5 text-sm font-semibold text-[var(--text-primary)]">Configuration</h2>
           <ConfigPanel report={report} update={updateConfig} objects={objects} />
         </aside>
       </div>
@@ -178,7 +178,7 @@ function ConfigPanel({ report, update, objects }: {
           <div className="grid grid-cols-3 gap-1">
             {(["line","bar","number"] as const).map(t => (
               <button key={t} onClick={() => update({ chart_type: t })}
-                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-white" : "border-white/10 text-stone-400"}`}>
+                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400"}`}>
                 {t}
               </button>
             ))}
@@ -273,7 +273,7 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
   if (type === "insight" && config.chart_type === "number") return (
     <div className="grid h-80 place-items-center text-center">
       <div>
-        <p className="text-6xl font-semibold text-white">{result?.total ?? 0}</p>
+        <p className="text-6xl font-semibold text-[var(--text-primary)]">{result?.total ?? 0}</p>
         {config.compare && (
           <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-emerald-400" : "text-stone-400"}`}>
             {(result?.change ?? 0) >= 0 ? "+" : ""}{result?.change ?? 0}% vs previous period

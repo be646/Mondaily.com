@@ -42,7 +42,7 @@ interface ProspectingRunResult {
 const CONFIDENCE_STYLE: Record<ProspectCandidate["confidence_label"], string> = {
   high: "text-emerald-400 border-emerald-400/30 bg-emerald-400/10",
   medium: "text-amber-400 border-amber-400/30 bg-amber-400/10",
-  low: "text-stone-400 border-white/[.08] bg-white/[.03]",
+  low: "text-stone-400 border-[var(--border-soft)] bg-[var(--surface-hover)]",
 };
 
 export function ProspectingModal({
@@ -116,13 +116,13 @@ export function ProspectingModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5 max-h-[85vh] overflow-y-auto">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5 max-h-[85vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Globe size={14} className="text-stone-400" />
-            <h2 className="text-sm font-semibold text-white">Find from web</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Find from web</h2>
           </div>
-          <button onClick={onClose} className="text-stone-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)] transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -173,7 +173,7 @@ export function ProspectingModal({
             <button
               onClick={() => run.mutate()}
               disabled={!query.trim() || run.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-stone-500 transition-colors disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 px-4 py-2.5 text-[13px] font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50"
             >
               {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
               {run.isPending ? "Searching the web…" : "Run search"}
@@ -184,7 +184,7 @@ export function ProspectingModal({
             <div className="flex flex-wrap gap-1.5 text-[11px]">
               {result.created > 0 && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-emerald-400">{result.created} created</span>}
               {result.queued_for_review > 0 && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-amber-400">{result.queued_for_review} awaiting approval</span>}
-              {result.existing > 0 && <span className="rounded-full border border-white/[.08] bg-white/[.03] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
+              {result.existing > 0 && <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
               {result.added_to_list > 0 && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
             </div>
 
@@ -193,7 +193,7 @@ export function ProspectingModal({
             ) : (
               <ul className="space-y-2">
                 {result.candidates.map((c, i) => (
-                  <li key={i} className="rounded-xl border border-white/[.07] bg-white/[.02] p-3">
+                  <li key={i} className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3">
                     <div className="flex items-start gap-2.5">
                       {c.status === "queued_for_review" ? (
                         <input
@@ -207,7 +207,7 @@ export function ProspectingModal({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-[12.5px] font-medium text-white">{c.name}</p>
+                          <p className="truncate text-[12.5px] font-medium text-[var(--text-primary)]">{c.name}</p>
                           <span className={`shrink-0 rounded-full border px-1.5 py-0 text-[9.5px] font-medium ${CONFIDENCE_STYLE[c.confidence_label]}`}>{c.confidence_label}</span>
                         </div>
                         {c.description && <p className="mt-0.5 line-clamp-2 text-[11px] text-stone-400">{c.description}</p>}
@@ -230,7 +230,7 @@ export function ProspectingModal({
                 <button
                   onClick={() => approveSelected.mutate()}
                   disabled={selected.size === 0 || approveSelected.isPending}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-[12.5px] font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-[12.5px] font-medium text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-50"
                 >
                   {approveSelected.isPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                   Approve selected ({selected.size}) — create records{destinationListId ? " and add to list" : ""}
@@ -238,12 +238,12 @@ export function ProspectingModal({
               )}
               <button
                 onClick={() => { setResult(null); }}
-                className="rounded-lg border border-white/[.09] px-4 py-2 text-[12.5px] text-stone-300 hover:bg-white/[.04] transition-colors"
+                className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12.5px] text-stone-300 hover:bg-[var(--surface-hover)] transition-colors"
               >
                 New search
               </button>
               {queuedCandidates.length === 0 && (
-                <button onClick={onClose} className="ml-auto rounded-lg border border-white/[.09] px-4 py-2 text-[12.5px] text-stone-300 hover:bg-white/[.04] transition-colors">
+                <button onClick={onClose} className="ml-auto rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12.5px] text-stone-300 hover:bg-[var(--surface-hover)] transition-colors">
                   Done
                 </button>
               )}

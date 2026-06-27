@@ -69,7 +69,7 @@ export function DecisionsPage() {
                     {sources.length > 0 && <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s} />)}</div>}
                     <div className="flex items-center gap-1.5 pt-1">
                       <button onClick={() => act.mutate({ id: d.id, action: "approve" })} disabled={act.isPending}
-                        className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-white transition-colors disabled:opacity-50" style={{ background: "#10b981" }}>
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-[var(--text-primary)] transition-colors disabled:opacity-50" style={{ background: "#10b981" }}>
                         <CheckCircle2 size={11} /> Approve
                       </button>
                       <button onClick={() => act.mutate({ id: d.id, action: "reject" })} disabled={act.isPending}

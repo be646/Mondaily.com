@@ -62,7 +62,7 @@ export function WorkspaceSelectPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-[#0d0d0d] px-6 text-white">
+    <div className="grid min-h-screen place-items-center bg-[var(--surface-page)] px-6 text-[var(--text-primary)]">
       <div className="w-full max-w-md">
         <Building2 className="mx-auto mb-4 text-red-500" />
         <h1 className="text-center text-xl font-semibold">Choose a workspace</h1>
@@ -76,7 +76,7 @@ export function WorkspaceSelectPage() {
 
         <div className="space-y-2">
           {myWorkspaces.map(ws => (
-            <button key={ws.workspace_id} onClick={() => selectWorkspaceId(ws.workspace_id)} className="flex w-full items-center gap-3 rounded-lg border border-white/10 p-3 text-left hover:bg-white/[.04]">
+            <button key={ws.workspace_id} onClick={() => selectWorkspaceId(ws.workspace_id)} className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)]">
               <div className="grid h-9 w-9 place-items-center rounded-md bg-red-500/10 text-sm font-semibold text-red-400">{ws.name.charAt(0)}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{ws.name}</p>
@@ -96,7 +96,7 @@ export function WorkspaceSelectPage() {
             <p className="mb-2 mt-5 text-[11px] uppercase tracking-widest text-stone-600">Organizations</p>
             <div className="space-y-2">
               {orgMemberships.map(({ organization, role }) => (
-                <button key={organization.id} onClick={() => selectOrg(organization.id, organization.name)} className="flex w-full items-center gap-3 rounded-lg border border-white/10 p-3 text-left hover:bg-white/[.04]">
+                <button key={organization.id} onClick={() => selectOrg(organization.id, organization.name)} className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)]">
                   <div className="grid h-9 w-9 place-items-center rounded-md bg-red-500/10 text-sm font-semibold text-red-400">{organization.name.charAt(0)}</div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{organization.name}</p>
@@ -109,7 +109,7 @@ export function WorkspaceSelectPage() {
           </>
         )}
 
-        <button onClick={() => navigate("/onboarding/workspace")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 p-3 text-sm text-stone-400 hover:text-white">
+        <button onClick={() => navigate("/onboarding/workspace")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-3 text-sm text-stone-400 hover:text-[var(--text-primary)]">
           <Plus size={15} /> Create new workspace
         </button>
       </div>

@@ -47,7 +47,7 @@ function CellTipPortal({ text, x, y }: { text: string; x: number; y: number }) {
       style={{ left: x + 14, top: y + 14 }}
     >
       <div
-        className="max-w-sm rounded-lg px-3 py-2 text-[12px] text-white/90 leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
+        className="max-w-sm rounded-lg px-3 py-2 text-[12px] text-[var(--text-secondary)] leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
         style={{ background: "rgba(13,15,19,0.96)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(10px)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
       >
         {text}
@@ -102,7 +102,7 @@ function EditableCell({
           if (e.key === "Escape") setEditing(false);
           e.stopPropagation();
         }}
-        className={`w-full min-w-0 bg-stone-900 text-[12px] text-white outline-none rounded px-1 py-0.5 border border-stone-600/60 -mx-1 ${numeric ? "text-right font-mono" : ""} ${className}`}
+        className={`w-full min-w-0 bg-stone-900 text-[12px] text-[var(--text-primary)] outline-none rounded px-1 py-0.5 border border-stone-600/60 -mx-1 ${numeric ? "text-right font-mono" : ""} ${className}`}
       />
     );
   }
@@ -200,7 +200,7 @@ function CategoryCell({ value, onSave }: {
                   </span>
                 );
               })}
-              {overflow > 0 && <span className="rounded-full bg-white/[.05] border border-white/[.06] px-1.5 py-0.5 text-[9px] text-stone-500">+{overflow}</span>}
+              {overflow > 0 && <span className="rounded-full bg-[var(--surface-hover)] border border-[var(--border-soft)] px-1.5 py-0.5 text-[9px] text-stone-500">+{overflow}</span>}
             </>
         }
       </div>
@@ -208,23 +208,23 @@ function CategoryCell({ value, onSave }: {
       {/* Picker portal */}
       {open && createPortal(
         <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-52 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          className="w-52 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-2 pt-2 pb-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
               placeholder="Search categories…"
-              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-white/[.15] placeholder:text-white/20"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="p-1 max-h-56 overflow-y-auto">
             {filtered.map(t => {
               const active = selected.has(t.name);
               return (
                 <button key={t.name} onClick={() => toggle(t)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[.04] transition-colors">
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors">
                   <span style={{ color: t.text }} className="shrink-0 opacity-70">
                     <IndustryIcon name={t.name} size={11}/>
                   </span>
-                  <span className="flex-1 text-left text-xs text-white/50" style={{ color: active ? t.text : undefined }}>
+                  <span className="flex-1 text-left text-xs text-[var(--text-secondary)]" style={{ color: active ? t.text : undefined }}>
                     {t.name}
                   </span>
                   {active && <Check size={10} style={{ color: t.border }} className="shrink-0"/>}
@@ -233,8 +233,8 @@ function CategoryCell({ value, onSave }: {
             })}
           </div>
           {cats.length > 0 && (
-            <div className="border-t border-white/[.06] px-2 py-1.5">
-              <button onClick={() => { onSave([]); }} className="text-[10px] text-white/20 hover:text-stone-400 transition-colors">Clear all</button>
+            <div className="border-t border-[var(--border-soft)] px-2 py-1.5">
+              <button onClick={() => { onSave([]); }} className="text-[10px] text-[var(--text-secondary)] hover:text-stone-400 transition-colors">Clear all</button>
             </div>
           )}
         </div>,
@@ -366,7 +366,7 @@ function RecordIdCell({ id }: { id: string }) {
   }
   return (
     <div className="flex items-center gap-1.5 group/id">
-      <span className="font-mono text-[10px] text-white/25 tracking-wider select-all group-hover/id:text-white/50 transition-colors">
+      <span className="font-mono text-[10px] text-[var(--text-secondary)] tracking-wider select-all group-hover/id:text-[var(--text-secondary)] transition-colors">
         {sid}
       </span>
       <button
@@ -399,7 +399,7 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
         {initials || "?"}
       </div>
       {enriched && (
-        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-white ring-1 ring-[#141414] flex items-center justify-center">
+        <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-white ring-1 ring-[var(--surface-card)] flex items-center justify-center">
           <LogoMark size={5} className="text-black"/>
         </div>
       )}
@@ -524,7 +524,7 @@ function CalcDropdown({ col, current, onSelect, onClose, triggerRef }: {
         </button>
       ))}
       {current && <>
-        <div className="mx-2 my-1 border-t border-white/[.06]"/>
+        <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
         <button onClick={() => { onSelect(null); onClose(); }} className="dropdown-item w-full text-stone-500">Clear</button>
       </>}
     </PortalDropdown>
@@ -541,7 +541,7 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }
 }) {
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="left" className="w-56">
-      <div className="px-3 py-2 border-b border-white/[.06]">
+      <div className="px-3 py-2 border-b border-[var(--border-soft)]">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Visible columns</p>
       </div>
       <div className="py-1 max-h-64 overflow-auto">
@@ -550,8 +550,8 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }
           return (
             <button key={col} onClick={() => onToggle(col)}
               className="dropdown-item w-full gap-2.5">
-              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-stone-500 bg-stone-500" : "border-white/20 bg-transparent"}`}>
-                {visible && <Check size={10} className="text-white"/>}
+              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${visible ? "border-stone-500 bg-stone-500" : "border-[var(--border-soft)] bg-transparent"}`}>
+                {visible && <Check size={10} className="text-[var(--text-primary)]"/>}
               </div>
               <span className="capitalize">{colLabel(col)}</span>
               <GripVertical size={12} className="ml-auto text-stone-700"/>
@@ -559,10 +559,10 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }
           );
         })}
       </div>
-      <div className="border-t border-white/[.06] px-3 py-2">
+      <div className="border-t border-[var(--border-soft)] px-3 py-2">
         <button
           onClick={() => { columns.forEach(c => hidden.has(c) && onToggle(c)); onClose(); }}
-          className="text-[11px] text-stone-500 hover:text-white transition-colors"
+          className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
         >
           Show all columns
         </button>
@@ -596,12 +596,12 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
         )}
         <div className="space-y-1.5">
           {rules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-lg border border-white/[.06] bg-white/[.02] px-2 py-1.5">
+            <div key={i} className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5">
               <div className="flex-1 min-w-0">
                 <select
                   value={rule.col}
                   onChange={e => updateRule(i, { col: e.target.value })}
-                  className="w-full bg-transparent text-xs text-white/80 outline-none capitalize"
+                  className="w-full bg-transparent text-xs text-[var(--text-secondary)] outline-none capitalize"
                 >
                   {columns.map(c => <option key={c} value={c} className="bg-[#13151a]">{colLabel(c)}</option>)}
                 </select>
@@ -612,16 +612,16 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
               >
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
-              <button onClick={() => onChange(rules.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-stone-400 transition-colors shrink-0">
+              <button onClick={() => onChange(rules.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400 transition-colors shrink-0">
                 <X size={12}/>
               </button>
             </div>
           ))}
         </div>
       </div>
-      <div className="border-t border-white/[.06] px-3 py-2 flex items-center justify-between">
+      <div className="border-t border-[var(--border-soft)] px-3 py-2 flex items-center justify-between">
         <button onClick={addRule} disabled={rules.length >= columns.length}
-          className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-white transition-colors disabled:opacity-20">
+          className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-20">
           <Plus size={11}/> Add sort
         </button>
         {rules.length > 0 && (
@@ -667,7 +667,7 @@ function ExportDropdown({ records, columns, objectType, onClose, triggerRef }: {
 
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-44">
-      <div className="px-3 py-2 border-b border-white/[.06]">
+      <div className="px-3 py-2 border-b border-[var(--border-soft)]">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Import / Export</p>
       </div>
       <button onClick={exportCSV} className="dropdown-item w-full gap-2">
@@ -699,7 +699,7 @@ function avatarColor(name: string) {
 function MemberAvatar({ name, size = 5 }: { name: string; size?: number }) {
   const initials = name.split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   return (
-    <div className={`h-${size} w-${size} rounded-full ${avatarColor(name)} flex items-center justify-center text-[9px] font-bold text-white shrink-0`}>
+    <div className={`h-${size} w-${size} rounded-full ${avatarColor(name)} flex items-center justify-center text-[9px] font-bold text-[var(--text-primary)] shrink-0`}>
       {initials}
     </div>
   );
@@ -717,7 +717,7 @@ function OwnerCell({ value, members, onSelect }: {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-white/[.05] transition-colors">
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-[var(--surface-hover)] transition-colors">
         {assigned ? (
           <>
             <MemberAvatar name={label} size={5}/>
@@ -733,7 +733,7 @@ function OwnerCell({ value, members, onSelect }: {
 
       {open && (
         <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-48">
-          <div className="px-3 py-2 border-b border-white/[.06]">
+          <div className="px-3 py-2 border-b border-[var(--border-soft)]">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Assign to</p>
           </div>
           {members.length === 0 && <p className="px-3 py-2 text-xs text-stone-600">No members yet</p>}
@@ -754,7 +754,7 @@ function OwnerCell({ value, members, onSelect }: {
             );
           })}
           {value && <>
-            <div className="mx-2 my-1 border-t border-white/[.06]"/>
+            <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
             <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full text-stone-500">
               Unassign
             </button>
@@ -778,7 +778,7 @@ const COLUMN_TYPE_PRESETS = [
   { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-pink-400"    },
   { type: "category",  label: "Category",   hint: "Pick a category with icon",                 icon: LayoutGrid,   color: "text-orange-400"  },
   { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-teal-400"    },
-  { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-white/30"    },
+  { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-[var(--text-secondary)]"    },
   { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-stone-400"   },
   { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-blue-400"    },
   { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-rose-400"    },
@@ -860,7 +860,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
 
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
-      <div className="px-3 pt-3 pb-2 border-b border-white/[.06]">
+      <div className="px-3 pt-3 pb-2 border-b border-[var(--border-soft)]">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-2">Add column</p>
         <input
           ref={inputRef}
@@ -868,7 +868,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") submit(); if (e.key === "Escape") onClose(); }}
           placeholder="Column name…"
-          className="w-full rounded-md border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-stone-500/30"
+          className="w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30"
         />
       </div>
       <div className="py-1">
@@ -878,39 +878,39 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
             <button key={t} onClick={() => !taken && pickType(t)}
               onMouseEnter={() => setHovered(t)} onMouseLeave={() => setHovered(null)}
               disabled={taken}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${taken ? "opacity-30 cursor-not-allowed" : type === t ? "bg-white/[.05] text-white" : "text-stone-400 hover:bg-white/[.03] hover:text-white"}`}>
-              <Icon size={13} className={taken ? "text-white/20" : color}/>
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-xs transition-colors ${taken ? "opacity-30 cursor-not-allowed" : type === t ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"}`}>
+              <Icon size={13} className={taken ? "text-[var(--text-secondary)]" : color}/>
               <span className="font-medium">{label}</span>
-              {taken && <span className="ml-auto text-[9px] text-white/20">already added</span>}
+              {taken && <span className="ml-auto text-[9px] text-[var(--text-secondary)]">already added</span>}
               {!taken && type === t && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
             </button>
           );
         })}
       </div>
       {activePreset && (
-        <div className="px-3 py-2 border-t border-white/[.04] text-[10px] text-stone-600">
+        <div className="px-3 py-2 border-t border-[var(--border-soft)] text-[10px] text-stone-600">
           {activePreset.hint}
         </div>
       )}
       {type === "relation" && (
-        <div className="px-3 py-2 border-t border-white/[.06]">
+        <div className="px-3 py-2 border-t border-[var(--border-soft)]">
           <p className="text-[10px] font-semibold text-stone-600 mb-1.5 uppercase tracking-wider">Link to object</p>
           <div className="flex flex-col gap-1">
             {objectDefs.map(obj => (
               <button key={obj.slug} onClick={() => setRelatedTarget(obj.slug)}
-                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-blue-500/15 text-blue-300 border border-blue-500/30" : "text-stone-400 hover:bg-white/[.04] hover:text-white border border-transparent"}`}>
+                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-blue-500/15 text-blue-300 border border-blue-500/30" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-transparent"}`}>
                 <Link2 size={11} className={relatedTarget === obj.slug ? "text-blue-400" : "text-stone-600"}/>
                 {obj.label || obj.slug}
                 {relatedTarget === obj.slug && <Check size={10} className="ml-auto text-blue-400"/>}
               </button>
             ))}
-            {objectDefs.length === 0 && <p className="text-[10px] text-white/20">No other objects</p>}
+            {objectDefs.length === 0 && <p className="text-[10px] text-[var(--text-secondary)]">No other objects</p>}
           </div>
         </div>
       )}
-      <div className="px-3 pb-3 pt-2 border-t border-white/[.06]">
+      <div className="px-3 pb-3 pt-2 border-t border-[var(--border-soft)]">
         <button onClick={submit}
-          className="w-full rounded-lg bg-stone-500 py-1.5 text-xs font-semibold text-white hover:bg-stone-400 transition-colors">
+          className="w-full rounded-lg bg-stone-500 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 transition-colors">
           Add {name.trim() || PRESET_DEFAULTS[type] || type}
         </button>
       </div>
@@ -990,13 +990,13 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
           onChange={e => setValue(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") apply(); if (e.key === "Escape") { setValue(""); onClear(); setStatus("idle"); } }}
           placeholder={placeholder}
-          className="flex-1 bg-transparent text-xs text-white placeholder-stone-700 outline-none"
+          className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none"
         />
         <div className="flex items-center gap-1.5 shrink-0">
           {hasActive && <button onClick={() => { setValue(""); onClear(); setStatus("idle"); }} className="text-[10px] text-stone-600 hover:text-stone-400 transition-colors">Clear</button>}
-          <kbd className="flex items-center gap-0.5 rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-stone-600"><Command size={8}/><span>⇧K</span></kbd>
+          <kbd className="flex items-center gap-0.5 rounded border border-[var(--border-soft)] bg-[var(--surface-hover)] px-1.5 py-0.5 text-[10px] text-stone-600"><Command size={8}/><span>⇧K</span></kbd>
           <button onClick={apply} disabled={!value.trim() || status === "thinking"}
-            className="rounded-md border border-white/[.08] bg-white/[.04] px-2.5 py-1 text-[11px] text-stone-400 hover:bg-white/[.07] hover:text-white transition-colors disabled:opacity-40">
+            className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[11px] text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40">
             {status === "thinking" ? "…" : "Run"}
           </button>
         </div>
@@ -1020,15 +1020,15 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors">
+        className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
         {value ? <><Globe size={11} className="text-teal-400/60 shrink-0"/>{value}</> : <span className="text-stone-700 hover:text-stone-500">— select country</span>}
       </button>
       {open && (
         <PortalDropdown triggerRef={ref} onClose={() => { setOpen(false); setSearch(""); }} align="left" className="w-52">
-          <div className="px-2 py-1.5 border-b border-white/[.06]">
+          <div className="px-2 py-1.5 border-b border-[var(--border-soft)]">
             <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search country…"
-              className="w-full bg-transparent text-xs text-white placeholder-stone-700 outline-none"/>
+              className="w-full bg-transparent text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none"/>
           </div>
           <div className="max-h-48 overflow-y-auto py-1">
             {value && <button onClick={() => { onSelect(""); setOpen(false); setSearch(""); }} className="dropdown-item w-full text-stone-500 text-xs">Clear</button>}
@@ -1051,7 +1051,7 @@ interface WorkspaceTag { id: string; name: string; color: string }
 
 const PRESET_TAG_COLORS = [
   "var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6",
-  "#ef4444","var(--accent)","#06b6d4","#f97316","#84cc16",
+  "#ef4444","var(--accent)","var(--accent)","#f97316","#84cc16",
 ];
 
 // tagColor kept for backwards compat with filter badges
@@ -1130,29 +1130,29 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
       </div>
       {open && createPortal(
         <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-52 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          className="w-52 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-2 pt-2 pb-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") setOpen(false); }}
               placeholder="Search or create tag…"
-              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/40 placeholder:text-white/20"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/40 placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="max-h-40 overflow-y-auto p-1">
             {filtered.map(tag => {
               const active = nodeTagIds.has(tag.id);
               return (
                 <button key={tag.id} onClick={() => active ? removeTag.mutate(tag.id) : addTag.mutate(tag.id)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[.04] transition-colors">
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors">
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
-                  <span className="flex-1 text-left text-xs text-white/70">{tag.name}</span>
+                  <span className="flex-1 text-left text-xs text-[var(--text-secondary)]">{tag.name}</span>
                   {active && <Check size={10} className="text-stone-400 shrink-0"/>}
                 </button>
               );
             })}
-            {filtered.length === 0 && !canCreate && <p className="text-xs text-white/20 text-center py-2">No tags found</p>}
+            {filtered.length === 0 && !canCreate && <p className="text-xs text-[var(--text-secondary)] text-center py-2">No tags found</p>}
           </div>
           {canCreate && (
-            <div className="border-t border-white/[.06] p-2 space-y-1.5">
+            <div className="border-t border-[var(--border-soft)] p-2 space-y-1.5">
               <div className="flex gap-1">
                 {PRESET_TAG_COLORS.map(c => (
                   <button key={c} onClick={() => setNewColor(c)}
@@ -1161,7 +1161,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
                 ))}
               </div>
               <button onClick={createAndAdd} disabled={creating}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-white/60 hover:bg-stone-500/10 hover:text-stone-300 transition-colors disabled:opacity-40">
+                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-300 transition-colors disabled:opacity-40">
                 <Plus size={11}/> Create "{search.trim()}"
               </button>
             </div>
@@ -1216,12 +1216,12 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
         onBlur={commit}
         onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
         placeholder="0 or =A*0.1"
-        className="w-full max-w-[100px] bg-white/[.04] border border-white/[.10] rounded px-2 py-0.5 text-xs text-white outline-none font-mono"/>
+        className="w-full max-w-[100px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
     );
   }
   return (
     <button onClick={() => setEditing(true)}
-      className="text-xs text-white/70 hover:text-white tabular-nums transition-colors text-left w-full">
+      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full">
       {displayVal ?? <span className="text-stone-700">— number</span>}
     </button>
   );
@@ -1286,7 +1286,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
   return (
     <div className="relative">
       <button ref={btnRef} onClick={openDropdown}
-        className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors max-w-[140px] truncate">
+        className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors max-w-[140px] truncate">
         {current
           ? <><Link2 size={10} className="text-blue-400 shrink-0"/><span className="truncate">{current.label}</span></>
           : <span className="text-stone-700">— link record</span>
@@ -1294,16 +1294,16 @@ function RelationCell({ value, relatedObjectType, onSave }: {
       </button>
       {open && createPortal(
         <div ref={ref} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
-          className="w-56 rounded-xl border border-white/[.08] bg-[#0f1117] shadow-2xl py-1">
+          className="w-56 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl py-1">
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
-              className="w-full bg-white/[.04] border border-white/[.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500/40 placeholder:text-white/20"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-blue-500/40 placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="max-h-48 overflow-y-auto">
             {current && (
               <button onClick={() => { onSave(null); setOpen(false); }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-400/70 hover:bg-white/[.04] hover:text-stone-400 transition-colors">
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-stone-400/70 hover:bg-[var(--surface-hover)] hover:text-stone-400 transition-colors">
                 <X size={10}/> Remove link
               </button>
             )}
@@ -1312,7 +1312,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
               const isActive = current?.id === r.id;
               return (
                 <button key={r.id} onClick={() => { onSave({ id: r.id, label: lbl }); setOpen(false); }}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-white/[.04] ${isActive ? "text-blue-400" : "text-white/70"}`}>
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)] ${isActive ? "text-blue-400" : "text-[var(--text-secondary)]"}`}>
                   <Link2 size={10} className={isActive ? "text-blue-400" : "text-stone-600"}/>
                   <span className="truncate flex-1 text-left">{lbl}</span>
                   {isActive && <Check size={10} className="text-blue-400 shrink-0"/>}
@@ -1320,7 +1320,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
               );
             })}
             {filtered.length === 0 && (
-              <p className="text-xs text-white/20 text-center py-3">No records found</p>
+              <p className="text-xs text-[var(--text-secondary)] text-center py-3">No records found</p>
             )}
           </div>
         </div>,
@@ -1346,7 +1346,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-white/[.08] bg-white/[.03] text-white/40 hover:text-white/80 hover:border-white/[.15]"}`}
+        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}
       >
         {s && <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>}
         <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 mr-0.5">{col.replaceAll("_", " ")}</span>
@@ -1368,7 +1368,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
             );
           })}
           {activeValue && <>
-            <div className="mx-2 my-1 border-t border-white/[.06]"/>
+            <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
             <button onClick={() => { onSelect(activeValue); setOpen(false); }} className="dropdown-item w-full text-stone-500">Clear</button>
           </>}
         </PortalDropdown>
@@ -1908,14 +1908,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       return <img src={val} alt="" className="h-6 w-6 rounded object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}/>;
     }
     if ((col === "logo_url" || col === "avatar_url" || col === "image_url") && typeof val === "string" && val.startsWith("data:")) {
-      return <span className="text-white/20 text-[10px]">image</span>;
+      return <span className="text-[var(--text-secondary)] text-[10px]">image</span>;
     }
 
     // Long text fields — truncate with tooltip
     const isLong = col === "description" || col === "bio" || col === "notes" || col === "summary" || col === "address";
     if (isLong && typeof val === "string" && val.length > 60) {
       return (
-        <span className="block truncate text-white/40 text-[11px]">
+        <span className="block truncate text-[var(--text-secondary)] text-[11px]">
           {val}
         </span>
       );
@@ -1937,7 +1937,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <EditableCell
           raw={val}
           onSave={v => saveCell(record, col, v)}
-          className="flex-1 font-medium text-white truncate"
+          className="flex-1 font-medium text-[var(--text-primary)] truncate"
         />
         {isEnriched && (
           <span className="inline-flex items-center gap-0.5 rounded-sm bg-stone-800/60 border border-stone-700/50 px-1.5 py-0.5 text-[9px] font-medium text-stone-400 shrink-0">
@@ -1967,7 +1967,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
   if (!records.length) return (
-    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-lg border border-stone-800/40 bg-white/[.01] px-6 text-center">
+    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-lg border border-stone-800/40 bg-[var(--surface-hover)] px-6 text-center">
       <Database className="mb-3 text-stone-700" size={26}/>
       <h2 className="text-sm font-medium text-stone-300">No {objectType} yet</h2>
       <p className="mt-1 max-w-sm text-sm text-stone-600">Create a record to get started.</p>
@@ -1978,25 +1978,25 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     return (
       <tr
         key={record.id}
-        className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-stone-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-white/[.008]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-white/[.03] ${rowAccent(record)}`}
+        className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-stone-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-[var(--surface-hover)]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-[var(--surface-hover)] ${rowAccent(record)}`}
       >
-        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0d0d0d] dark:group-hover:bg-[#141414]"}`}>
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
           <div
             onClick={() => toggleSelectRow(record.id)}
-            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-stone-500 border-stone-500" : "border-stone-300 opacity-0 group-hover:opacity-100 hover:border-stone-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
+            className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-stone-500 border-stone-500" : "border-stone-300 opacity-0 group-hover:opacity-100 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}
           >
-            {selected.has(record.id) && <Check size={10} className="text-white" strokeWidth={3}/>}
+            {selected.has(record.id) && <Check size={10} className="text-[var(--text-primary)]" strokeWidth={3}/>}
           </div>
         </td>
         {hasRecordIdCol && (
-          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0d0d0d] dark:group-hover:bg-[#141414]"}`}>
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
             <RecordIdCell id={record.id}/>
           </td>
         )}
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-2.5 text-stone-900 dark:text-white/70 border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-white/50" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-stone-900 dark:text-white/90 ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[#0d0d0d] dark:group-hover:bg-[#141414]") : ""}`}
+            className={`px-4 py-2.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -2010,7 +2010,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {renderCell(col, record)}
           </td>
         ))}
-        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-stone-500 dark:text-white/45 tabular-nums border-b border-b-[#edf0f5] dark:border-b-white/[.04]">
+        <td className="whitespace-nowrap px-4 py-2.5 text-[11px] text-stone-500 dark:text-[var(--text-secondary)] tabular-nums border-b border-b-[#edf0f5] dark:border-b-white/[.04]">
           {fmtDate(record.updated_at)}
         </td>
         <td className="border-b border-b-[#edf0f5] dark:border-b-white/[.04] w-10 px-2">
@@ -2028,18 +2028,18 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // Toolbar button styles — clean clickable pills with real borders in light mode
   const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border";
-  const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-white dark:hover:bg-white/[.06] dark:hover:border-white/[.08]`;
-  const TB_ON   = `${TB} border-stone-300 bg-stone-200 text-stone-900 dark:border-white/[.08] dark:text-white dark:bg-white/[.06]`;
-  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-200 px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-white/[.10] dark:text-stone-300";
-  const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-500/70 px-1 text-[9px] font-semibold text-white";
+  const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]`;
+  const TB_ON   = `${TB} border-stone-300 bg-stone-200 text-stone-900 dark:border-[var(--border-soft)] dark:text-[var(--text-primary)] dark:bg-[var(--surface-hover)]`;
+  const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-200 px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-[var(--surface-hover)] dark:text-stone-300";
+  const TB_DOT_ACTIVE = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-500/70 px-1 text-[9px] font-semibold text-[var(--text-primary)]";
 
   return (
     <>
     <section className="flex flex-col h-full bg-white dark:bg-transparent">
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[#eef2f7] dark:border-white/[.04] shrink-0">
+      <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)] shrink-0">
         {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
-          <span className="text-[11px] text-[#9ca3af] dark:text-white/45 tabular-nums mr-2">{sorted.length} of {records.length}</span>
+          <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
           <span className="flex items-center gap-1 rounded-md border border-stone-700/60 bg-stone-800/40 px-2 py-1 text-[10px] text-stone-400 mr-1">
@@ -2056,7 +2056,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {hiddenCols.size > 0 && <span className={TB_DOT}>{allColumnsWithCustom.length - hiddenCols.size}</span>}
           </button>
 
-          <div className="w-px h-3 bg-white/[.07] mx-1"/>
+          <div className="w-px h-3 bg-[var(--surface-hover)] mx-1"/>
 
           {/* Filter */}
           <button onClick={() => setOpenPanel(p => p === "filter" ? null : "filter")}
@@ -2082,7 +2082,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {groupByCol && <span className={TB_DOT}>{colLabel(groupByCol)}</span>}
           </button>
 
-          <div className="w-px h-3 bg-white/[.07] mx-1"/>
+          <div className="w-px h-3 bg-[var(--surface-hover)] mx-1"/>
 
           {/* Export */}
           <button onClick={() => setOpenPanel(p => p === "export" ? null : "export")}
@@ -2103,45 +2103,45 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
       {/* ── Columns inline bar ── */}
       {openPanel === "view" && (
-        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0 mr-2">Columns</span>
+        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0 mr-2">Columns</span>
           {allColumnsWithCustom.map(col => {
             const visible = !hiddenCols.has(col);
             return (
               <button key={col} onClick={() => toggleCol(col)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-white/[.10] bg-white/[.05] text-white/70" : "border-white/[.04] bg-transparent text-white/20 hover:text-white/40 hover:border-white/[.08]"}`}>
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)]" : "border-[var(--border-soft)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}>
                 {visible && <Check size={9} className="text-stone-400 shrink-0"/>}
                 <span className="capitalize">{colLabel(col)}</span>
               </button>
             );
           })}
           <button onClick={() => allColumnsWithCustom.forEach(c => hiddenCols.has(c) && toggleCol(c))}
-            className="ml-2 text-[10px] text-white/25 hover:text-white/60 transition-colors shrink-0 whitespace-nowrap">
+            className="ml-2 text-[10px] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors shrink-0 whitespace-nowrap">
             Show all
           </button>
-          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 pl-2"><X size={13}/></button>
         </div>
       )}
 
       {/* ── Sort inline bar ── */}
       {openPanel === "sort" && (
-        <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0">Sort by</span>
-          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0">Sort by</span>
+          <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {sortRules.length === 0 && (
-            <span className="text-[11px] text-white/20">No sorts — add one below</span>
+            <span className="text-[11px] text-[var(--text-secondary)]">No sorts — add one below</span>
           )}
           {sortRules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 shrink-0">
+            <div key={i} className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
               <select value={rule.col} onChange={e => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: e.target.value } : x))}
-                className="bg-transparent text-[11px] text-white/70 outline-none capitalize max-w-[120px]">
+                className="bg-transparent text-[11px] text-[var(--text-secondary)] outline-none capitalize max-w-[120px]">
                 {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[#13151a]">{colLabel(c)}</option>)}
               </select>
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
-              <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-white/20 hover:text-stone-400"><X size={10}/></button>
+              <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400"><X size={10}/></button>
             </div>
           ))}
           <button onClick={() => { const unused = [...allColumnsWithCustom, "__updated_at"].find(c => !sortRules.some(r => r.col === c)); if (unused) { setSortRules(r => [...r, { col: unused, dir: "asc" }]); setQuickSortCol(null); } }}
@@ -2153,70 +2153,70 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               Clear
             </button>
           )}
-          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 pl-2"><X size={13}/></button>
         </div>
       )}
 
       {/* ── Group inline bar ── */}
       {openPanel === "groupby" && (
-        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0 mr-1">Group by</span>
-          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+        <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0 mr-1">Group by</span>
+          <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={() => { setGroupBy(null); }}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-stone-400 hover:text-stone-100 hover:border-white/[.08]"}`}>
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
             {!groupByCol && <Check size={9} className="text-stone-400"/>}None
           </button>
           {orderedColumns.map(col => (
             <button key={col} onClick={() => setGroupBy(col)}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-white/[.12] bg-white/[.06] text-white" : "border-white/[.04] text-stone-400 hover:text-stone-100 hover:border-white/[.08]"}`}>
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
               {groupByCol === col && <Check size={9} className="text-stone-400"/>}
               {colLabel(col)}
             </button>
           ))}
-          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 pl-2"><X size={13}/></button>
         </div>
       )}
 
       {/* ── Export inline bar ── */}
       {openPanel === "export" && (
-        <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0">Export</span>
-          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0">Export</span>
+          <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={() => {
             const rows = [columns.join(","), ...sorted.map(r => columns.map(c => JSON.stringify(r.data[c] ?? "")).join(","))].join("\n");
             const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([rows], { type: "text/csv" })), download: `${objectType}.csv` });
             a.click(); URL.revokeObjectURL(a.href); setOpenPanel(null);
-          }} className="flex items-center gap-1.5 text-[11px] text-white/50 hover:text-white transition-colors">
+          }} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={11}/> Export as CSV
-            <span className="text-[10px] text-white/20 ml-1">({sorted.length} rows)</span>
+            <span className="text-[10px] text-[var(--text-secondary)] ml-1">({sorted.length} rows)</span>
           </button>
-          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0"><X size={13}/></button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0"><X size={13}/></button>
         </div>
       )}
 
       {/* ── Saved views inline bar ── */}
       {openPanel === "views" && (
-        <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-white/20 shrink-0">Saved</span>
-          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
-          {savedViews.length === 0 && <span className="text-[11px] text-white/20">No saved views yet</span>}
+        <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0">Saved</span>
+          <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
+          {savedViews.length === 0 && <span className="text-[11px] text-[var(--text-secondary)]">No saved views yet</span>}
           {savedViews.map(v => (
-            <div key={v.id} className="flex items-center gap-0.5 rounded-lg border border-white/[.08] bg-white/[.03] pl-2.5 pr-1 py-1 shrink-0">
-              <button onClick={() => { applyView(v); setOpenPanel(null); }} className="text-[11px] text-white/60 hover:text-white transition-colors whitespace-nowrap">
+            <div key={v.id} className="flex items-center gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-2.5 pr-1 py-1 shrink-0">
+              <button onClick={() => { applyView(v); setOpenPanel(null); }} className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">
                 {v.name}
               </button>
-              <button onClick={() => deleteView(v.id)} className="p-0.5 text-white/15 hover:text-stone-400 transition-colors ml-1"><X size={10}/></button>
+              <button onClick={() => deleteView(v.id)} className="p-0.5 text-[var(--text-secondary)] hover:text-stone-400 transition-colors ml-1"><X size={10}/></button>
             </div>
           ))}
-          <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+          <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {saveViewOpen ? (
             <div className="flex items-center gap-1.5 shrink-0">
               <input autoFocus value={newViewName} onChange={e => setNewViewName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
                 placeholder="Name this view…"
-                className="bg-white/[.04] border border-white/[.08] rounded-lg px-2.5 py-1 text-[11px] text-white outline-none focus:border-white/[.15] placeholder:text-white/20 w-36"/>
+                className="bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)] w-36"/>
               <button onClick={saveCurrentView} className="text-emerald-400 hover:text-emerald-300 transition-colors p-0.5"><Check size={12}/></button>
-              <button onClick={() => setSaveViewOpen(false)} className="text-white/20 hover:text-white/50 p-0.5"><X size={11}/></button>
+              <button onClick={() => setSaveViewOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] p-0.5"><X size={11}/></button>
             </div>
           ) : (
             <button onClick={() => setSaveViewOpen(true)}
@@ -2224,7 +2224,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <Plus size={11}/> Save current view
             </button>
           )}
-          <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 pl-2"><X size={13}/></button>
+          <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 pl-2"><X size={13}/></button>
         </div>
       )}
 
@@ -2247,7 +2247,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         const allFilterCols = [...filterableCols, ...customFilterCols];
 
         return (
-          <div className="flex items-center gap-2 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0 overflow-x-auto">
+          <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
             {/* Search — icon that expands on click */}
             <div className="flex items-center shrink-0">
               {filterSearchOpen ? (
@@ -2264,7 +2264,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     className="key-input w-44 py-1 pl-6 pr-6 text-xs"
                   />
                   {filterText && (
-                    <button onClick={() => { setFilterText(""); setFilterSearchOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-600 hover:text-white transition-colors">
+                    <button onClick={() => { setFilterText(""); setFilterSearchOpen(false); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-600 hover:text-[var(--text-primary)] transition-colors">
                       <X size={10}/>
                     </button>
                   )}
@@ -2272,14 +2272,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               ) : (
                 <button
                   onClick={() => setFilterSearchOpen(true)}
-                  className={`flex items-center justify-center h-6 w-6 rounded-md transition-colors ${filterText ? "text-white bg-white/[.08]" : "text-stone-400 hover:text-stone-100 hover:bg-white/[.04]"}`}
+                  className={`flex items-center justify-center h-6 w-6 rounded-md transition-colors ${filterText ? "text-[var(--text-primary)] bg-[var(--surface-hover)]" : "text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)]"}`}
                   title="Search records"
                 >
                   <Search size={12}/>
                 </button>
               )}
             </div>
-            {allFilterCols.length > 0 && <div className="h-3 w-px bg-white/[.08] shrink-0"/>}
+            {allFilterCols.length > 0 && <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>}
 
             {allFilterCols.length === 0 && (
               <span className="text-xs text-stone-600">Add a Stage, Status, or Assignee column to enable filters.</span>
@@ -2301,14 +2301,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     <span className={`text-[10px] font-semibold uppercase tracking-widest shrink-0 ${hasDate ? "text-stone-300" : "text-stone-600"}`}>{col.replaceAll("_"," ")}</span>
                     <input type="date" value={dateFrom}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__from"); return e.target.value ? [...o,{col:col+"__from",value:e.target.value}] : o; })}
-                      className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-stone-500/30"
+                      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
                     <span className="text-stone-700 text-[10px]">→</span>
                     <input type="date" value={dateTo}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__to"); return e.target.value ? [...o,{col:col+"__to",value:e.target.value}] : o; })}
-                      className="rounded-lg border border-white/[.08] bg-white/[.03] px-2 py-1 text-[10px] text-white outline-none focus:border-stone-500/30"
+                      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
-                    <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+                    <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
                   </div>
                 );
               }
@@ -2344,7 +2344,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     isStage={isStage || isStatus}
                     onSelect={val => toggleQuickFilter(col, val)}
                   />
-                  <div className="h-3 w-px bg-white/[.08] shrink-0"/>
+                  <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
                 </div>
               );
             })}
@@ -2354,7 +2354,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 Clear all
               </button>
             )}
-            <button onClick={() => setOpenPanel(null)} className="ml-auto text-white/20 hover:text-white/50 shrink-0 transition-colors pl-2">
+            <button onClick={() => setOpenPanel(null)} className="ml-auto text-[var(--text-secondary)] hover:text-[var(--text-secondary)] shrink-0 transition-colors pl-2">
               <X size={13}/>
             </button>
           </div>
@@ -2363,36 +2363,36 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
       {/* Bulk action bar */}
       {someSelected && (
-        <div className="flex items-center gap-3 px-6 py-2 border-b border-white/[.06] bg-white/[.02] shrink-0">
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-white/60">
-            <div className="h-4 w-4 rounded-md bg-stone-500 flex items-center justify-center text-[9px] font-bold text-white">{selected.size}</div>
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+            <div className="h-4 w-4 rounded-md bg-stone-500 flex items-center justify-center text-[9px] font-bold text-[var(--text-primary)]">{selected.size}</div>
             selected
           </span>
-          <div className="h-3 w-px bg-white/[.08]" />
+          <div className="h-3 w-px bg-[var(--surface-hover)]" />
 
           {/* Add to list */}
           <div className="relative">
             <button
               onClick={() => { setListPickerOpen(o => !o); setAssignPickerOpen(false); }}
-              className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <List size={12} /> Add to list
             </button>
             {listPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
-                  <div className="px-3 py-2 border-b border-white/[.05]">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">Add {selected.size} to list</p>
+                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2 border-b border-[var(--border-soft)]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Add {selected.size} to list</p>
                   </div>
                   <div className="p-1">
                     {(listsQuery.data ?? []).length === 0 && (
-                      <p className="px-3 py-3 text-xs text-white/25 text-center">No lists yet</p>
+                      <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No lists yet</p>
                     )}
                     {(listsQuery.data ?? []).map(l => (
                       <button key={l.id} onClick={() => { bulkAddToList(l.id); setListPickerOpen(false); }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-white/55 hover:bg-white/[.05] hover:text-white transition-colors">
-                        <List size={11} className="text-white/25 shrink-0"/>
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                        <List size={11} className="text-[var(--text-secondary)] shrink-0"/>
                         <span className="truncate">{l.name}</span>
                       </button>
                     ))}
@@ -2403,37 +2403,37 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </div>
 
           {/* Find similar from web */}
-          <div className="h-3 w-px bg-white/[.08]" />
+          <div className="h-3 w-px bg-[var(--surface-hover)]" />
           <button
             onClick={() => setProspectOpen(true)}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
             <Globe size={12} /> Find similar from web
           </button>
 
           {/* Assign to */}
-          <div className="h-3 w-px bg-white/[.08]" />
+          <div className="h-3 w-px bg-[var(--surface-hover)]" />
           <div ref={assignPickerRef} className="relative">
             <button
               onClick={() => { setAssignPickerOpen(o => !o); setListPickerOpen(false); setAssignSearch(""); }}
-              className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <UserCircle2 size={12} /> Assign to
             </button>
             {assignPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setAssignPickerOpen(false); setAssignSearch(""); }} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
-                  <div className="px-3 py-2 border-b border-white/[.05]">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 mb-2">Assign {selected.size} records</p>
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="px-3 py-2 border-b border-[var(--border-soft)]">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Assign {selected.size} records</p>
                     <div className="relative">
-                      <Search size={10} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-white/20"/>
+                      <Search size={10} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
                       <input
                         autoFocus
                         value={assignSearch}
                         onChange={e => setAssignSearch(e.target.value)}
                         placeholder="Search members…"
-                        className="w-full bg-white/[.04] border border-white/[.06] rounded-lg pl-6 pr-3 py-1.5 text-xs text-white outline-none focus:border-white/[.12] placeholder:text-white/20"
+                        className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg pl-6 pr-3 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)]"
                       />
                     </div>
                   </div>
@@ -2459,13 +2459,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                               setAssignPickerOpen(false);
                               setAssignSearch("");
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-white/55 hover:bg-white/[.05] hover:text-white transition-colors">
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                             <MemberAvatar name={label} size={5}/>
                             <div className="flex flex-col items-start min-w-0">
-                              <span className="truncate text-white/70">{m.name || m.email}</span>
-                              {m.name && m.email && <span className="text-[10px] text-white/25 truncate">{m.email}</span>}
+                              <span className="truncate text-[var(--text-secondary)]">{m.name || m.email}</span>
+                              {m.name && m.email && <span className="text-[10px] text-[var(--text-secondary)] truncate">{m.email}</span>}
                             </div>
-                            {m.role && <span className="ml-auto text-[9px] text-white/20 capitalize shrink-0">{m.role}</span>}
+                            {m.role && <span className="ml-auto text-[9px] text-[var(--text-secondary)] capitalize shrink-0">{m.role}</span>}
                           </button>
                         );
                       })}
@@ -2473,7 +2473,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       const lb = (m.name || m.email || "").toLowerCase();
                       return assignSearch ? lb.includes(assignSearch.toLowerCase()) : true;
                     }).length === 0 && (
-                      <p className="px-3 py-3 text-xs text-white/25 text-center">No members found</p>
+                      <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No members found</p>
                     )}
                   </div>
                 </div>
@@ -2485,23 +2485,23 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <div ref={bulkEditRef} className="relative">
               <button
                 onClick={() => setBulkEditField(f => f ? null : (bulkEditCols[0] ?? null))}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <Check size={12}/> Edit field
               </button>
               {bulkEditField && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
-                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-xl border border-white/[.07] bg-[#0f1117] shadow-2xl overflow-hidden">
-                    <div className="px-3 py-2 border-b border-white/[.05] flex items-center gap-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 flex-1">Edit {selected.size} records</p>
+                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden">
+                    <div className="px-3 py-2 border-b border-[var(--border-soft)] flex items-center gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] flex-1">Edit {selected.size} records</p>
                     </div>
                     {/* Column tabs */}
                     {bulkEditCols.length > 1 && (
-                      <div className="flex gap-0.5 p-1.5 border-b border-white/[.05] overflow-x-auto">
+                      <div className="flex gap-0.5 p-1.5 border-b border-[var(--border-soft)] overflow-x-auto">
                         {bulkEditCols.map(col => (
                           <button key={col} onClick={() => setBulkEditField(col)}
-                            className={`rounded-md px-2 py-1 text-[10px] capitalize whitespace-nowrap transition-colors ${bulkEditField === col ? "bg-white/[.08] text-white" : "text-stone-400 hover:text-stone-100"}`}>
+                            className={`rounded-md px-2 py-1 text-[10px] capitalize whitespace-nowrap transition-colors ${bulkEditField === col ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-400 hover:text-stone-100"}`}>
                             {colLabel(col)}
                           </button>
                         ))}
@@ -2523,7 +2523,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           const opts = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
                           return opts.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                               <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
                             </button>
                           ));
@@ -2532,7 +2532,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           const opts = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
                           return opts.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                               <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
                             </button>
                           ));
@@ -2542,11 +2542,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                             const label = m.name || m.email || "";
                             return (
                               <button key={m.id} onClick={() => applyBulkEdit(col, label)}
-                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                                 <MemberAvatar name={label} size={5}/>
                                 <div className="flex flex-col items-start min-w-0">
-                                  <span className="truncate text-white/70">{m.name || m.email}</span>
-                                  {m.name && m.email && <span className="text-[10px] text-white/25">{m.email}</span>}
+                                  <span className="truncate text-[var(--text-secondary)]">{m.name || m.email}</span>
+                                  {m.name && m.email && <span className="text-[10px] text-[var(--text-secondary)]">{m.email}</span>}
                                 </div>
                               </button>
                             );
@@ -2556,10 +2556,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
                           return existing.length > 0 ? existing.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                               {v}
                             </button>
-                          )) : <p className="px-3 py-3 text-xs text-white/20 text-center">No country values yet</p>;
+                          )) : <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No country values yet</p>;
                         }
                         if (isTagCol) {
                           const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))];
@@ -2567,20 +2567,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                             const tc = tagColor(v);
                             return (
                               <button key={v} onClick={() => applyBulkEdit(col, v)}
-                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors">
+                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] ${tc.bg}`}>{v}</span>
                               </button>
                             );
-                          }) : <p className="px-3 py-3 text-xs text-white/20 text-center">No tags yet</p>;
+                          }) : <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No tags yet</p>;
                         }
                         // Generic text field
                         const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].slice(0, 15);
                         return existing.length > 0 ? existing.map(v => (
                           <button key={v} onClick={() => applyBulkEdit(col, v)}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/60 hover:bg-white/[.05] hover:text-white transition-colors truncate">
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors truncate">
                             {v}
                           </button>
-                        )) : <p className="px-3 py-3 text-xs text-white/20 text-center">No values yet</p>;
+                        )) : <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No values yet</p>;
                       })()}
                     </div>
                   </div>
@@ -2592,7 +2592,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           {/* Bulk delete */}
           <button
             onClick={bulkDelete}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-stone-400 transition-colors ml-auto"
+            className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-stone-400 transition-colors ml-auto"
           >
             <Trash2 size={12} /> Delete {selected.size}
           </button>
@@ -2616,19 +2616,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <thead className="sticky top-0 z-20">
             <tr>
               {/* Checkbox column */}
-              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-0 z-30">
+              <th className="w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-0 z-30">
                 <div
                   onClick={toggleSelectAll}
-                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-stone-500 border-stone-500" : someSelected ? "border-stone-300 bg-stone-50 dark:border-white/30 dark:bg-white/[.06]" : "border-stone-300 hover:border-stone-400 dark:border-white/[.10] dark:hover:border-white/30"}`}
+                  className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${allSelected ? "bg-stone-500 border-stone-500" : someSelected ? "border-stone-300 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)]" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}
                 >
-                  {allSelected && <Check size={10} className="text-white" strokeWidth={3}/>}
-                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-stone-400 dark:bg-white/60" />}
+                  {allSelected && <Check size={10} className="text-[var(--text-primary)]" strokeWidth={3}/>}
+                  {!allSelected && someSelected && <div className="h-1.5 w-1.5 rounded-sm bg-stone-400 dark:bg-[var(--surface-hover)]" />}
                 </div>
               </th>
               {/* Record ID locked column — only when added via Add Column */}
               {hasRecordIdCol && (
-                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
-                  <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-500 dark:text-white/20">ID</span>
+                <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
+                  <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-500 dark:text-[var(--text-secondary)]">ID</span>
                 </th>
               )}
               {orderedColumns.map((col, colIdx) => {
@@ -2637,7 +2637,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -2660,7 +2660,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         <div
                           draggable
                           onDragStart={e => { e.stopPropagation(); dragColRef.current = col; }}
-                          className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 dark:text-white/10 dark:hover:text-white/30 shrink-0 pr-0.5"
+                          className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-secondary)] shrink-0 pr-0.5"
                           title="Drag to reorder"
                         >
                           <GripVertical size={11}/>
@@ -2679,12 +2679,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       onMouseDown={e => startResize(col, e, w ?? (e.currentTarget.parentElement?.offsetWidth ?? 160))}
                       className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/resize z-10"
                     >
-                      <div className="w-px h-4 bg-stone-200 dark:bg-white/[.06] group-hover/resize:bg-stone-400/50 transition-colors"/>
+                      <div className="w-px h-4 bg-stone-200 dark:bg-[var(--surface-hover)] group-hover/resize:bg-stone-400/50 transition-colors"/>
                     </div>
                   </th>
                 );
               })}
-              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
+              <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors">
                   <Calendar size={11}/>
                   <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
@@ -2694,11 +2694,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {/* Add column */}
               <th
                 ref={addColHeaderRef}
-                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[#0d0d0d] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] relative"
+                className="w-10 px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] relative"
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-                  className="flex h-6 w-6 items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-white/20 dark:hover:text-white/60 dark:hover:bg-white/[.05] transition-all"
+                  className="flex h-6 w-6 items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)] transition-all"
                   title="Add column"
                 >
                   <Plus size={13}/>
@@ -2718,7 +2718,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs text-stone-400 dark:text-white/20">
+                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs text-stone-400 dark:text-[var(--text-secondary)]">
                   No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
                 </td>
               </tr>
@@ -2736,11 +2736,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   const ss = stageStyle(groupVal);
                   rowsToRender.push(
                     <tr key={`grp-${groupVal}`}>
-                      <td colSpan={columns.length + 3} className="px-4 py-2 bg-stone-50 dark:bg-white/[.015] border-y border-stone-200 dark:border-white/[.04]">
+                      <td colSpan={columns.length + 3} className="px-4 py-2 bg-stone-50 dark:bg-[var(--surface-hover)] border-y border-stone-200 dark:border-[var(--border-soft)]">
                         <div className="flex items-center gap-2">
                           <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
-                          <span className="text-[11px] font-semibold text-stone-600 dark:text-white/50 capitalize">{groupVal}</span>
-                          <span className="text-[10px] text-stone-400 dark:text-white/20 ml-1">{groupRows.length}</span>
+                          <span className="text-[11px] font-semibold text-stone-600 dark:text-[var(--text-secondary)] capitalize">{groupVal}</span>
+                          <span className="text-[10px] text-stone-400 dark:text-[var(--text-secondary)] ml-1">{groupRows.length}</span>
                         </div>
                       </td>
                     </tr>
@@ -2755,12 +2755,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </tbody>
           <tfoot className="sticky bottom-0 z-20">
             <tr>
-              <td className="w-8 min-w-[32px] max-w-[32px] bg-stone-50 dark:bg-[#141414] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-30" />
-              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-stone-50 dark:bg-[#141414] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-30"/>}
+              <td className="w-8 min-w-[32px] max-w-[32px] bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-30" />
+              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-30"/>}
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-stone-50 dark:bg-[#141414] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}
@@ -2775,7 +2775,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     )}
                     {calculations[col] ? (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-white transition-colors tabular-nums font-mono">
+                        className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono">
                         <span className="text-stone-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
                         {calcResult(calculations[col], col, sorted)}
                       </button>
@@ -2789,8 +2789,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   </div>
                 </td>
               ))}
-              <td className="px-3 py-3 text-[12px] text-stone-700 tabular-nums bg-[#141414] border-t border-t-zinc-800/60">{sorted.length} rows</td>
-              <td className="bg-[#141414] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
+              <td className="px-3 py-3 text-[12px] text-stone-700 tabular-nums bg-[var(--surface-card)] border-t border-t-zinc-800/60">{sorted.length} rows</td>
+              <td className="bg-[var(--surface-card)] border-t border-t-zinc-800/60 border-l border-l-zinc-800/20 w-8"/>
             </tr>
           </tfoot>
         </table>
@@ -2801,11 +2801,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     {cellTip && <CellTipPortal text={cellTip.text} x={cellTip.x} y={cellTip.y}/>}
 
     {undoToast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-white/10 bg-[#1a1d24] px-4 py-3 shadow-2xl">
-        <span className="text-sm text-white/70">Record deleted</span>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-[#1a1d24] px-4 py-3 shadow-2xl">
+        <span className="text-sm text-[var(--text-secondary)]">Record deleted</span>
         <button
           onClick={undoDelete}
-          className="flex items-center gap-1.5 rounded-lg bg-white/[.08] px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/[.12] transition-colors"
+          className="flex items-center gap-1.5 rounded-lg bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <RotateCcw size={11} />
           Undo
@@ -2818,10 +2818,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       <>
         <div className="fixed inset-0 z-[9998]" onClick={() => setColCtxMenu(null)}/>
         <div
-          className="fixed z-[9999] rounded-xl border border-white/[.08] bg-[#0f1117] py-1 shadow-xl min-w-[160px]"
+          className="fixed z-[9999] rounded-xl border border-[var(--border-soft)] bg-[#0f1117] py-1 shadow-xl min-w-[160px]"
           style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
         >
-          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 border-b border-white/[.06] mb-1">
+          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 border-b border-[var(--border-soft)] mb-1">
             {colCtxMenu.col.replaceAll("_", " ")}
           </div>
           <button
@@ -2844,11 +2844,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               toggleCol(colCtxMenu.col);
               setColCtxMenu(null);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <X size={12}/> Hide column
           </button>
-          <div className="border-t border-white/[.06] mt-1 pt-1">
+          <div className="border-t border-[var(--border-soft)] mt-1 pt-1">
             <button
               onClick={() => {
                 const col = colCtxMenu.col;
@@ -2856,7 +2856,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 saveColMeta({ ...colMeta, [col]: { ...colMeta[col], required: !cur } });
                 setColCtxMenu(null);
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               {colMeta[colCtxMenu.col]?.required
                 ? <><Check size={12} className="text-stone-400"/> Required (click to remove)</>
@@ -2871,11 +2871,11 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 if (val !== null) saveColMeta({ ...colMeta, [col]: { ...colMeta[col], defaultValue: val } });
                 setColCtxMenu(null);
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-white/40 hover:bg-white/[.04] hover:text-white transition-colors"
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               <Hash size={12}/> Set default value
               {colMeta[colCtxMenu.col]?.defaultValue && (
-                <span className="ml-auto text-[10px] text-white/25 truncate max-w-[70px]">{colMeta[colCtxMenu.col]!.defaultValue}</span>
+                <span className="ml-auto text-[10px] text-[var(--text-secondary)] truncate max-w-[70px]">{colMeta[colCtxMenu.col]!.defaultValue}</span>
               )}
             </button>
           </div>

@@ -59,7 +59,7 @@ export function NotificationsBell() {
       >
         <Bell size={15}/>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-stone-950 text-[9px] font-semibold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">
+          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-stone-950 text-[9px] font-semibold text-[var(--text-primary)] flex items-center justify-center leading-none dark:bg-white dark:text-black">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -68,11 +68,11 @@ export function NotificationsBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}/>
-          <div className="absolute right-0 top-9 z-50 w-80 rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden">
+          <div className="absolute right-0 top-9 z-50 w-80 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[.06]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-white">Notifications</span>
+                <span className="text-[13px] font-semibold text-[var(--text-primary)]">Notifications</span>
                 {unread > 0 && (
                   <span className="rounded-full bg-stone-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-stone-400">{unread}</span>
                 )}
@@ -80,7 +80,7 @@ export function NotificationsBell() {
               {unread > 0 && (
                 <button
                   onClick={() => markAllRead.mutate()}
-                  className="text-[11px] text-stone-500 hover:text-white transition-colors"
+                  className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors"
                 >
                   Mark all read
                 </button>
@@ -99,11 +99,11 @@ export function NotificationsBell() {
                   <button
                     key={n.id}
                     onClick={() => handleClick(n)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 border-b border-white/[.04] last:border-0 hover:bg-white/[.03] transition-colors text-left ${!n.is_read ? "bg-white/[.02]" : ""}`}
+                    className={`flex w-full items-start gap-3 px-4 py-3 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors text-left ${!n.is_read ? "bg-[var(--surface-hover)]" : ""}`}
                   >
                     <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-stone-400" : "bg-transparent"}`}/>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-white" : "text-stone-400"}`}>{n.title}</p>
+                      <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-[var(--text-primary)]" : "text-stone-400"}`}>{n.title}</p>
                       {n.body && <p className="text-[11px] text-stone-600 mt-0.5 truncate">{n.body}</p>}
                       <p className="text-[10px] text-stone-700 mt-1">{fmtTime(n.created_at)}</p>
                     </div>
@@ -113,10 +113,10 @@ export function NotificationsBell() {
             </div>
 
             {/* Footer */}
-            <div className="border-t border-white/[.06] px-4 py-2.5">
+            <div className="border-t border-[var(--border-soft)] px-4 py-2.5">
               <button
                 onClick={() => { setOpen(false); navigate("/notifications"); }}
-                className="w-full text-center text-[11px] text-stone-600 hover:text-white transition-colors"
+                className="w-full text-center text-[11px] text-stone-600 hover:text-[var(--text-primary)] transition-colors"
               >
                 View all notifications →
               </button>

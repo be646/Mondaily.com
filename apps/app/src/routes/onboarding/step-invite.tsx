@@ -31,7 +31,7 @@ export function StepInvite() {
         <p className="mb-7 font-mono text-[12px] text-stone-500">Your team can join securely from their invitation links.</p>
         <button
           onClick={() => navigate("/onboarding/import")}
-          className="mx-auto flex items-center justify-center gap-2 rounded-xl bg-stone-600 px-6 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all"
+          className="mx-auto flex items-center justify-center gap-2 rounded-xl bg-stone-600 px-6 py-2.5 font-mono text-[13px] font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-all"
         >
           Continue <ArrowRight size={13} />
         </button>
@@ -78,7 +78,7 @@ export function StepInvite() {
         <button
           onClick={sendInvites}
           disabled={!emails.some(e => e.includes("@")) || loading}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-600 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-stone-500 transition-all disabled:opacity-50"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-stone-600 py-2.5 font-mono text-[13px] font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-all disabled:opacity-50"
         >
           {loading ? "Sending…" : "Send invites"} {!loading && <ArrowRight size={13} />}
         </button>

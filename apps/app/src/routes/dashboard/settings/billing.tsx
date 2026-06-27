@@ -40,7 +40,7 @@ interface Billing {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  free: "bg-white/[.05] text-stone-400",
+  free: "bg-[var(--surface-hover)] text-stone-400",
   trial: "bg-emerald-500/10 text-emerald-300",
   pro: "bg-blue-500/10 text-blue-300",
   business: "bg-stone-500/10 text-stone-300",
@@ -74,7 +74,7 @@ export function BillingSettings() {
       {/* ── Plan ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-white">Current plan</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Current plan</h2>
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${PLAN_COLORS[billing.plan] ?? PLAN_COLORS.free}`}>
             {billing.plan}
           </span>
@@ -82,7 +82,7 @@ export function BillingSettings() {
         <div className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold capitalize text-white">{billing.plan} plan</p>
+              <p className="text-sm font-semibold capitalize text-[var(--text-primary)]">{billing.plan} plan</p>
               <p className="mt-0.5 text-sm text-stone-500">
                 {billing.next_billing_date
                   ? `Next billing on ${new Date(billing.next_billing_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
@@ -91,7 +91,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { openBilling(billing.plan); }}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all"
+              className="flex shrink-0 items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
             </button>
@@ -103,9 +103,9 @@ export function BillingSettings() {
               <div className="flex items-center gap-2 text-sm text-stone-300">
                 <Users size={14} className="text-stone-500" /> Seats used
               </div>
-              <span className="text-sm font-medium text-white">{billing.seats_used} / {billing.seats_limit}</span>
+              <span className="text-sm font-medium text-[var(--text-primary)]">{billing.seats_used} / {billing.seats_limit}</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[.08]">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
               <div
                 className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
                 style={{ width: `${seatPct}%` }}
@@ -122,10 +122,10 @@ export function BillingSettings() {
       {billing.card_last4 && (
         <section className="settings-section">
           <div className="settings-section-header">
-            <h2 className="text-sm font-semibold text-white">Payment method</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment method</h2>
           </div>
           <div className="flex items-center gap-3 p-5">
-            <div className="grid h-9 w-14 place-items-center rounded-md border border-white/[.08] bg-white/[.03]">
+            <div className="grid h-9 w-14 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)]">
               <CreditCard size={16} className="text-stone-500" />
             </div>
             <div>
@@ -145,7 +145,7 @@ export function BillingSettings() {
       {/* ── Invoice history ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-white">Invoice history</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Invoice history</h2>
         </div>
         {billing.invoices.length ? (
           <div className="minimal-sheet divide-y divide-stone-200 px-5 dark:divide-stone-800">
@@ -153,7 +153,7 @@ export function BillingSettings() {
               <a
                 key={inv.id}
                 href={inv.pdf_url}
-                className="flex items-center justify-between py-3.5 hover:text-white transition-colors"
+                className="flex items-center justify-between py-3.5 hover:text-[var(--text-primary)] transition-colors"
               >
                 <div>
                   <p className="text-sm text-stone-200">{new Date(inv.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>

@@ -64,7 +64,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${checked ? "bg-stone-500" : "bg-white/[.10]"}`}
+      className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${checked ? "bg-stone-500" : "bg-[var(--surface-hover)]"}`}
     >
       <span className={`block h-3 w-3 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-3.5" : "translate-x-0.5"}`}/>
     </button>
@@ -93,13 +93,13 @@ function StepCard({
     <div className="relative">
       {/* connector */}
       {!isLast && (
-        <div className="absolute left-[27px] top-full z-0 h-6 w-px bg-white/[.08]"/>
+        <div className="absolute left-[27px] top-full z-0 h-6 w-px bg-[var(--surface-hover)]"/>
       )}
 
-      <div className="relative z-10 rounded-xl border border-white/[.07] bg-[#141414] overflow-hidden">
+      <div className="relative z-10 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
         {/* Step header */}
         <div
-          className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-white/[.02] transition-colors"
+          className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-[var(--surface-hover)] transition-colors"
           onClick={() => setOpen(o => !o)}
         >
           <GripVertical size={14} className="shrink-0 text-stone-700"/>
@@ -107,7 +107,7 @@ function StepCard({
             {step.type === "email" ? <Mail size={12}/> : <CheckSquare size={12}/>}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-white truncate">
+            <p className="text-xs font-medium text-[var(--text-primary)] truncate">
               {step.type === "email" ? (step.subject || "Email — no subject") : (step.task_title || "Task — no title")}
             </p>
             <p className="mt-0.5 text-[10px] text-stone-600 flex items-center gap-1">
@@ -128,7 +128,7 @@ function StepCard({
 
         {/* Step editor */}
         {open && (
-          <div className="border-t border-white/[.06] px-4 pb-4 pt-3 space-y-3">
+          <div className="border-t border-[var(--border-soft)] px-4 pb-4 pt-3 space-y-3">
             {/* Delay */}
             {step.position > 1 && (
               <div className="flex items-center gap-2">
@@ -138,12 +138,12 @@ function StepCard({
                   type="number" min={0}
                   value={step.delay_value}
                   onChange={e => onUpdate(step.id, { delay_value: Number(e.target.value) })}
-                  className="w-16 rounded-md border border-white/[.07] bg-white/[.03] px-2 py-1 text-xs text-white outline-none focus:border-stone-500/30"
+                  className="w-16 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                 />
                 <select
                   value={step.delay_unit}
                   onChange={e => onUpdate(step.id, { delay_unit: e.target.value as Step["delay_unit"] })}
-                  className="rounded-md border border-white/[.07] bg-[#141414] px-2 py-1 text-xs text-white outline-none focus:border-stone-500/30"
+                  className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                 >
                   <option value="minutes">minutes</option>
                   <option value="hours">hours</option>
@@ -160,7 +160,7 @@ function StepCard({
                     value={step.subject ?? ""}
                     onChange={e => onUpdate(step.id, { subject: e.target.value })}
                     placeholder="Email subject…"
-                    className="rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-stone-500/30"
+                    className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30"
                   />
                 </div>
                 {seq.accounts.length > 0 && (
@@ -169,7 +169,7 @@ function StepCard({
                     <select
                       value={step.from_account ?? ""}
                       onChange={e => onUpdate(step.id, { from_account: e.target.value })}
-                      className="rounded-md border border-white/[.07] bg-[#141414] px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/30"
+                      className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     >
                       <option value="">Select account…</option>
                       {seq.accounts.map(a => <option key={a.id} value={a.id}>{a.email}</option>)}
@@ -181,7 +181,7 @@ function StepCard({
                   <select
                     value={step.send_as ?? "new"}
                     onChange={e => onUpdate(step.id, { send_as: e.target.value as "new" | "reply" })}
-                    className="rounded-md border border-white/[.07] bg-[#141414] px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/30"
+                    className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                   >
                     <option value="new">New email</option>
                     <option value="reply">Reply to previous</option>
@@ -194,7 +194,7 @@ function StepCard({
                     onChange={e => onUpdate(step.id, { body: e.target.value })}
                     rows={5}
                     placeholder="Write your email…"
-                    className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-2 text-xs text-white placeholder-stone-700 outline-none focus:border-stone-500/30 resize-none"
+                    className="w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-2 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30 resize-none"
                   />
                 </div>
               </>
@@ -206,7 +206,7 @@ function StepCard({
                     value={step.task_title ?? ""}
                     onChange={e => onUpdate(step.id, { task_title: e.target.value })}
                     placeholder="Task title…"
-                    className="rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-xs text-white placeholder-stone-700 outline-none focus:border-stone-500/30"
+                    className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30"
                   />
                 </div>
                 {seq.members.length > 0 && (
@@ -215,7 +215,7 @@ function StepCard({
                     <select
                       value={step.assignee_id ?? ""}
                       onChange={e => onUpdate(step.id, { assignee_id: e.target.value })}
-                      className="rounded-md border border-white/[.07] bg-[#141414] px-2.5 py-1.5 text-xs text-white outline-none focus:border-stone-500/30"
+                      className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     >
                       <option value="">Unassigned</option>
                       {seq.members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -355,11 +355,11 @@ export function SequenceBuilderPage() {
             onChange={e => setName(e.target.value)}
             onBlur={saveName}
             onKeyDown={e => { if (e.key === "Enter") saveName(); if (e.key === "Escape") { setName(seq.name); setNameEdit(false); } }}
-            className="flex-1 bg-transparent text-[15px] font-semibold text-white outline-none border-b border-stone-500/40 pb-0.5"
+            className="flex-1 bg-transparent text-[15px] font-semibold text-[var(--text-primary)] outline-none border-b border-stone-500/40 pb-0.5"
           />
         ) : (
           <h1
-            className="flex-1 cursor-pointer text-[15px] font-semibold text-white hover:text-stone-400 transition-colors truncate"
+            className="flex-1 cursor-pointer text-[15px] font-semibold text-[var(--text-primary)] hover:text-stone-400 transition-colors truncate"
             onClick={() => setNameEdit(true)}
           >
             {seq.name}
@@ -374,7 +374,7 @@ export function SequenceBuilderPage() {
           <button
             onClick={saveSteps}
             disabled={patchSeq.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.04] px-3 py-1.5 text-xs text-white hover:bg-white/[.07] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <Save size={11}/> Save
           </button>
@@ -383,7 +383,7 @@ export function SequenceBuilderPage() {
         <button
           onClick={toggleStatus}
           disabled={patchSeq.isPending}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-white hover:bg-yellow-400" : "border-stone-500/30 bg-stone-600 text-white hover:bg-stone-500"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-[var(--text-primary)] hover:bg-yellow-400" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
         >
           {seq.status === "active" ? <><Pause size={11}/> Pause</> : <><Play size={11}/> Activate</>}
         </button>
@@ -395,10 +395,10 @@ export function SequenceBuilderPage() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${tab === t.key ? "border-stone-500 text-white" : "border-transparent text-stone-500 hover:text-stone-300"}`}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${tab === t.key ? "border-stone-500 text-[var(--text-primary)]" : "border-transparent text-stone-500 hover:text-stone-300"}`}
           >
             {t.label}
-            {t.count != null && <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${tab === t.key ? "bg-stone-500/20 text-stone-300" : "bg-white/[.06] text-stone-600"}`}>{t.count}</span>}
+            {t.count != null && <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${tab === t.key ? "bg-stone-500/20 text-stone-300" : "bg-[var(--surface-hover)] text-stone-600"}`}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -410,7 +410,7 @@ export function SequenceBuilderPage() {
         {tab === "steps" && (
           <div className="max-w-xl mx-auto">
             {seq.steps.length === 0 ? (
-              <div className="mb-6 rounded-xl border border-dashed border-white/[.08] py-10 text-center">
+              <div className="mb-6 rounded-xl border border-dashed border-[var(--border-soft)] py-10 text-center">
                 <Mail size={20} className="mx-auto mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">No steps yet</p>
                 <p className="mt-1 text-xs text-stone-600">Add an email or task step to build your sequence</p>
@@ -434,14 +434,14 @@ export function SequenceBuilderPage() {
               <button
                 onClick={() => addStep.mutate("email")}
                 disabled={addStep.isPending}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-stone-400 hover:bg-white/[.05] hover:text-white transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <Mail size={12} className="text-stone-400"/> Add email step
               </button>
               <button
                 onClick={() => addStep.mutate("task")}
                 disabled={addStep.isPending}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-4 py-2.5 text-xs text-stone-400 hover:bg-white/[.05] hover:text-white transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <CheckSquare size={12} className="text-blue-400"/> Add task step
               </button>
@@ -453,7 +453,7 @@ export function SequenceBuilderPage() {
         {tab === "enrollments" && (
           <div className="max-w-2xl mx-auto">
             {seq.enrollments.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/[.08] py-10 text-center">
+              <div className="rounded-xl border border-dashed border-[var(--border-soft)] py-10 text-center">
                 <Users size={20} className="mx-auto mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">No contacts enrolled</p>
                 <p className="mt-1 text-xs text-stone-600">Go to a People or Company record and enroll them in this sequence</p>
@@ -461,7 +461,7 @@ export function SequenceBuilderPage() {
             ) : (
               <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-xs">
-                  <thead className="border-b border-stone-200 dark:border-stone-800 bg-white/[.02]">
+                  <thead className="border-b border-stone-200 dark:border-stone-800 bg-[var(--surface-hover)]">
                     <tr>
                       <th className="px-4 py-2.5 text-left font-medium text-stone-500">Contact</th>
                       <th className="px-4 py-2.5 text-left font-medium text-stone-500">Company</th>
@@ -472,8 +472,8 @@ export function SequenceBuilderPage() {
                   </thead>
                   <tbody>
                     {seq.enrollments.map((e, i) => (
-                      <tr key={e.id} className={`border-b border-white/[.04] hover:bg-white/[.02] ${i === seq.enrollments.length - 1 ? "border-0" : ""}`}>
-                        <td className="px-4 py-2.5 font-medium text-white">{e.contact_name}</td>
+                      <tr key={e.id} className={`border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] ${i === seq.enrollments.length - 1 ? "border-0" : ""}`}>
+                        <td className="px-4 py-2.5 font-medium text-[var(--text-primary)]">{e.contact_name}</td>
                         <td className="px-4 py-2.5 text-stone-500">{e.company || "—"}</td>
                         <td className="px-4 py-2.5 text-stone-400">{e.current_step} / {seq.steps.length}</td>
                         <td className="px-4 py-2.5">
@@ -499,7 +499,7 @@ export function SequenceBuilderPage() {
             {/* KPI cards */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                { label: "Enrolled", value: totalEnrolled, color: "text-white" },
+                { label: "Enrolled", value: totalEnrolled, color: "text-[var(--text-primary)]" },
                 { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-stone-400" },
                 { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-stone-400" },
                 { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-stone-400" },
@@ -515,7 +515,7 @@ export function SequenceBuilderPage() {
             {seq.steps.length > 0 && (
               <div className="minimal-sheet overflow-hidden">
                 <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
-                  <p className="text-xs font-semibold text-white">Step performance</p>
+                  <p className="text-xs font-semibold text-[var(--text-primary)]">Step performance</p>
                 </div>
                 <div className="divide-y divide-stone-200 dark:divide-stone-800">
                   {seq.steps.map((step, i) => {
@@ -525,14 +525,14 @@ export function SequenceBuilderPage() {
                     const pct = sent > 0 ? Math.round((opened / sent) * 100) : 0;
                     return (
                       <div key={i} className="flex items-center gap-4 px-4 py-3">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/[.06] text-[10px] font-bold text-stone-400">{i + 1}</div>
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[10px] font-bold text-stone-400">{i + 1}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-white truncate">{String(step.label ?? step.subject ?? `Step ${i + 1}`)}</p>
+                          <p className="text-xs font-medium text-[var(--text-primary)] truncate">{String(step.label ?? step.subject ?? `Step ${i + 1}`)}</p>
                           <p className="text-[10px] text-stone-600 capitalize">{String(step.type ?? "email")}</p>
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
                           <p className="text-xs text-stone-400">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>
-                          {sent > 0 && <p className="text-[10px] text-white/30">{opened} opened · {clicked} clicked · {pct}%</p>}
+                          {sent > 0 && <p className="text-[10px] text-[var(--text-secondary)]">{opened} opened · {clicked} clicked · {pct}%</p>}
                         </div>
                       </div>
                     );
@@ -544,7 +544,7 @@ export function SequenceBuilderPage() {
             {/* Unsubscribes */}
             <div className="premium-panel px-4 py-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold text-white">Unsubscribes</p>
+                <p className="text-xs font-semibold text-[var(--text-primary)]">Unsubscribes</p>
                 <p className="text-[11px] text-stone-600 mt-0.5">Contacts who opted out</p>
               </div>
               <div className="text-right">
@@ -554,7 +554,7 @@ export function SequenceBuilderPage() {
             </div>
 
             {totalEnrolled === 0 && (
-              <p className="text-center text-xs text-white/20 py-4">Enroll contacts to start tracking analytics</p>
+              <p className="text-center text-xs text-[var(--text-secondary)] py-4">Enroll contacts to start tracking analytics</p>
             )}
           </div>
         )}
@@ -563,9 +563,9 @@ export function SequenceBuilderPage() {
         {tab === "settings" && (
           <div className="max-w-lg mx-auto space-y-4">
             {/* Sending window */}
-            <div className="rounded-xl border border-white/[.07] bg-[#141414] overflow-hidden">
+            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
               <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
-                <p className="text-xs font-semibold text-white">Sending window</p>
+                <p className="text-xs font-semibold text-[var(--text-primary)]">Sending window</p>
               </div>
               <div className="space-y-4 px-4 py-4">
                 <div className="flex items-center justify-between">
@@ -582,7 +582,7 @@ export function SequenceBuilderPage() {
                               : [...seq.settings.sending_days, d];
                             patchSeq.mutate({ settings: { ...seq.settings, sending_days: days } } as any);
                           }}
-                          className={`rounded-md px-2 py-1 text-[9px] font-semibold transition-colors ${active ? "bg-stone-500/20 text-stone-300 border border-stone-500/20" : "bg-white/[.03] text-stone-600 border border-white/[.06] hover:text-stone-400"}`}
+                          className={`rounded-md px-2 py-1 text-[9px] font-semibold transition-colors ${active ? "bg-stone-500/20 text-stone-300 border border-stone-500/20" : "bg-[var(--surface-hover)] text-stone-600 border border-[var(--border-soft)] hover:text-stone-400"}`}
                         >
                           {d}
                         </button>
@@ -597,14 +597,14 @@ export function SequenceBuilderPage() {
                       type="time"
                       value={seq.settings.send_start}
                       onChange={e => patchSeq.mutate({ settings: { ...seq.settings, send_start: e.target.value } } as any)}
-                      className="rounded-md border border-white/[.07] bg-white/[.03] px-2 py-1 text-xs text-white outline-none focus:border-stone-500/30"
+                      className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
                     <span className="text-xs text-stone-600">to</span>
                     <input
                       type="time"
                       value={seq.settings.send_end}
                       onChange={e => patchSeq.mutate({ settings: { ...seq.settings, send_end: e.target.value } } as any)}
-                      className="rounded-md border border-white/[.07] bg-white/[.03] px-2 py-1 text-xs text-white outline-none focus:border-stone-500/30"
+                      className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
                   </div>
                 </div>
@@ -614,16 +614,16 @@ export function SequenceBuilderPage() {
                     type="number" min={1} max={500}
                     value={seq.settings.daily_limit}
                     onChange={e => patchSeq.mutate({ settings: { ...seq.settings, daily_limit: Number(e.target.value) } } as any)}
-                    className="w-20 rounded-md border border-white/[.07] bg-white/[.03] px-2 py-1 text-xs text-white outline-none focus:border-stone-500/30 text-right"
+                    className="w-20 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30 text-right"
                   />
                 </div>
               </div>
             </div>
 
             {/* Behavior */}
-            <div className="rounded-xl border border-white/[.07] bg-[#141414] overflow-hidden">
+            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
               <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
-                <p className="text-xs font-semibold text-white">Behavior</p>
+                <p className="text-xs font-semibold text-[var(--text-primary)]">Behavior</p>
               </div>
               <div className="divide-y divide-white/[.04] px-4">
                 {[
@@ -632,7 +632,7 @@ export function SequenceBuilderPage() {
                 ].map(({ key, label, sub }) => (
                   <div key={key} className="flex items-center justify-between py-3.5">
                     <div>
-                      <p className="text-xs font-medium text-white">{label}</p>
+                      <p className="text-xs font-medium text-[var(--text-primary)]">{label}</p>
                       <p className="mt-0.5 text-[10px] text-stone-600">{sub}</p>
                     </div>
                     <Toggle

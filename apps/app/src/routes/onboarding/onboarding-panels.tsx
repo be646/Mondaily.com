@@ -83,7 +83,7 @@ export function SignUpPanel({ email, stage }: { email: string; stage: "form" | "
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200 bg-white"}`}>
-                {done && <Check size={9} className="text-white" strokeWidth={3} />}
+                {done && <Check size={9} className="text-[var(--text-primary)]" strokeWidth={3} />}
               </div>
               <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
             </div>
@@ -212,7 +212,7 @@ export function ProfilePanel({ name, title }: { name: string; title: string }) {
             ].map(({ label, done }) => (
               <div key={label} className="flex items-center gap-2.5">
                 <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200"}`}>
-                  {done && <Check size={9} className="text-white" strokeWidth={3} />}
+                  {done && <Check size={9} className="text-[var(--text-primary)]" strokeWidth={3} />}
                 </div>
                 <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
               </div>
@@ -321,7 +321,7 @@ export function WorkspacePanel({ name, size, industry }: { name: string; size: s
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200"}`}>
-                {done && <Check size={9} className="text-white" strokeWidth={3} />}
+                {done && <Check size={9} className="text-[var(--text-primary)]" strokeWidth={3} />}
               </div>
               <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
             </div>
@@ -435,7 +435,7 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
         <div className="space-y-2.5">
           {/* You */}
           <div className="flex items-center gap-3 rounded-xl border border-stone-500/30 bg-stone-600/[.04] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-500 font-semibold text-white text-xs">Y</div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-500 font-semibold text-[var(--text-primary)] text-xs">Y</div>
             <div>
               <p className="font-mono text-[12px] font-medium text-stone-800">You</p>
               <p className="font-mono text-[10px] text-stone-500">Admin · workspace owner</p>
@@ -478,7 +478,7 @@ export function InvitePanel({ emails, sent }: { emails: string[]; sent: boolean 
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
-                <Check size={10} className="text-white" strokeWidth={3} />
+                <Check size={10} className="text-[var(--text-primary)]" strokeWidth={3} />
               </div>
               <span className="font-mono text-[12px] font-semibold text-emerald-700">{valid.length} invitation{valid.length !== 1 ? "s" : ""} sent</span>
             </div>
@@ -522,7 +522,7 @@ export function ImportPanel({ file }: { file: string }) {
       <div className="rounded-2xl border border-black/[.07] bg-white p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 ${file ? "bg-stone-500" : "bg-stone-100"}`}>
-            <FileSpreadsheet size={16} className={file ? "text-white" : "text-stone-300"} />
+            <FileSpreadsheet size={16} className={file ? "text-[var(--text-primary)]" : "text-stone-300"} />
           </div>
           <div className="min-w-0">
             <p className={`font-mono text-[12px] font-medium truncate transition-colors duration-300 ${file ? "text-stone-800" : "text-stone-300"}`}>
@@ -565,7 +565,7 @@ export function ImportPanel({ file }: { file: string }) {
           ].map(({ label, done }) => (
             <div key={label} className="flex items-center gap-2.5">
               <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all duration-400 ${done ? "border-stone-500 bg-stone-500" : "border-stone-200"}`}>
-                {done && <Check size={9} className="text-white" strokeWidth={3} />}
+                {done && <Check size={9} className="text-[var(--text-primary)]" strokeWidth={3} />}
               </div>
               <span className={`font-mono text-[11px] transition-colors duration-300 ${done ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
             </div>
@@ -645,7 +645,7 @@ export function PlanPanel({ selected }: { selected: string }) {
                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all duration-400"
                 style={{ background: i < unlockedCount ? "var(--accent)" : "#f4f4f5" }}
               >
-                <Check size={10} className={i < unlockedCount ? "text-white" : "text-stone-300"} strokeWidth={3} />
+                <Check size={10} className={i < unlockedCount ? "text-[var(--text-primary)]" : "text-stone-300"} strokeWidth={3} />
               </div>
               <span className={`font-mono text-[12px] transition-colors duration-300 ${i < unlockedCount ? "text-stone-700" : "text-stone-300"}`}>
                 {feature}
@@ -662,7 +662,7 @@ export function PlanPanel({ selected }: { selected: string }) {
       <FadeIn show={unlockedCount >= plan.features.length} delay={100}>
         <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-stone-500">
-            <Check size={16} className="text-white" strokeWidth={2.5} />
+            <Check size={16} className="text-[var(--text-primary)]" strokeWidth={2.5} />
           </div>
           <p className="font-mono text-[13px] font-semibold text-stone-700">Workspace ready</p>
           <p className="mt-1 font-mono text-[11px] text-stone-500">

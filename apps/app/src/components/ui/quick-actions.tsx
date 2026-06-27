@@ -27,7 +27,7 @@ const ACTIONS: Action[] = [
 // Shared input style matching CommandPalette
 const inputCls = "h-9 w-full rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-900 placeholder-stone-400 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:placeholder-stone-600 dark:focus:border-stone-600";
 const selectCls = "h-9 flex-1 rounded-md border border-stone-200 bg-white px-2 text-xs text-stone-700 outline-none transition-colors focus:border-stone-400 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-300 dark:focus:border-stone-600";
-const btnPrimary = "flex-1 h-9 rounded-md border border-stone-950 bg-stone-950 text-xs font-medium text-white transition-colors hover:bg-stone-800 disabled:opacity-40 dark:border-stone-50 dark:bg-stone-50 dark:text-stone-950 dark:hover:bg-stone-200";
+const btnPrimary = "flex-1 h-9 rounded-md border border-stone-950 bg-stone-950 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-stone-800 disabled:opacity-40 dark:border-stone-50 dark:bg-stone-50 dark:text-stone-950 dark:hover:bg-stone-200";
 const btnSecondary = "flex-1 h-9 rounded-md border border-stone-200 text-xs text-stone-600 transition-colors hover:border-stone-300 hover:text-stone-950 dark:border-stone-800 dark:text-stone-400 dark:hover:border-stone-700 dark:hover:text-stone-50";
 
 function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {

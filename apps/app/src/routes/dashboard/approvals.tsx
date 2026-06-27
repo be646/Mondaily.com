@@ -126,7 +126,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
       </div>
 
       {cn.ai_summary && (
-        <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/[.04]">
+        <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-[var(--accent)]/20 dark:bg-[var(--accent)]/[.04]">
           <LogoMark size={10} className="text-stone-400 mt-0.5 shrink-0"/>
           <p className="text-[11px] leading-relaxed text-stone-600 dark:text-stone-300">{cn.ai_summary}</p>
         </div>
@@ -265,7 +265,7 @@ export function ApprovalsPage() {
       {/* Header */}
       <div className="shrink-0 border-b border-stone-200 px-6 py-4 dark:border-stone-800">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-cyan-500/20 dark:bg-cyan-500/[.05]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-[var(--accent)]/20 dark:bg-[var(--accent)]/[.05]">
             <ShieldCheck size={14} className="text-stone-400"/>
           </div>
           <div>

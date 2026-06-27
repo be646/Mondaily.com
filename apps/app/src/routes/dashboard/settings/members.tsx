@@ -12,8 +12,8 @@ interface MembersData { members: Member[]; invitations: Member[]; teams: Team[] 
 function Avatar({ member, small = false }: { member: Member; small?: boolean }) {
   const cls = small ? "h-7 w-7 text-[10px]" : "h-9 w-9 text-sm";
   return member.image_url
-    ? <img src={member.image_url} alt="" className={`${cls} shrink-0 rounded-full border border-[#141414] object-cover`} />
-    : <div className={`${cls} grid shrink-0 place-items-center rounded-full border border-[#141414] bg-stone-500/10 font-medium text-stone-300`}>
+    ? <img src={member.image_url} alt="" className={`${cls} shrink-0 rounded-full border border-[var(--surface-card)] object-cover`} />
+    : <div className={`${cls} grid shrink-0 place-items-center rounded-full border border-[var(--surface-card)] bg-stone-500/10 font-medium text-stone-300`}>
         {(member.name || member.email).slice(0, 1).toUpperCase()}
       </div>;
 }
@@ -22,10 +22,10 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={close} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-semibold text-white">{title}</h2>
-          <button onClick={close} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={15} /></button>
+          <h2 className="font-semibold text-[var(--text-primary)]">{title}</h2>
+          <button onClick={close} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
         </div>
         {children}
       </div>
@@ -36,8 +36,8 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
 const ROLE_COLORS: Record<string, string> = {
   owner: "bg-stone-500/10 text-stone-300 border-stone-500/20",
   admin: "bg-stone-500/10 text-stone-300 border-stone-500/20",
-  member: "bg-white/[.05] text-stone-400 border-white/[.07]",
-  viewer: "bg-white/[.03] text-stone-600 border-white/[.05]",
+  member: "bg-[var(--surface-hover)] text-stone-400 border-[var(--border-soft)]",
+  viewer: "bg-[var(--surface-hover)] text-stone-600 border-[var(--border-soft)]",
 };
 
 export function MembersSettings() {
@@ -116,10 +116,10 @@ export function MembersSettings() {
 
       {/* ── Toolbar ── */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-0.5 rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
+        <div className="flex gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {(["members", "teams", "invitations"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${tab === t ? "bg-white/[.08] text-white" : "text-stone-500 hover:text-stone-300"}`}>
+              className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${tab === t ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
               {t}
               {t === "invitations" && data.invitations.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-400">{data.invitations.length}</span>
@@ -131,13 +131,13 @@ export function MembersSettings() {
           {tab === "members" && (
             <>
               <button onClick={copyInviteLink}
-                className="flex items-center gap-2 rounded-lg border border-white/[.08] px-3 py-2 text-sm text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                 {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                 {copied ? "Copied!" : "Copy invite link"}
               </button>
               {isAdmin && (
                 <button onClick={() => setInviteOpen(true)}
-                  className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
+                  className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
                   <UserPlus size={14} /> Invite member
                 </button>
               )}
@@ -145,7 +145,7 @@ export function MembersSettings() {
           )}
           {tab === "teams" && isAdmin && (
             <button onClick={() => setTeamOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
+              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
               <Plus size={14} /> Create team
             </button>
           )}
@@ -190,7 +190,7 @@ export function MembersSettings() {
                         </td>
                         <td className="text-sm text-stone-400 dark:text-stone-600">{m.last_active ?? "Recently"}</td>
                         <td>
-                          <span className={`rounded-full px-2 py-1 text-[10px] font-medium capitalize ${m.status === "active" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.03] text-stone-600"}`}>
+                          <span className={`rounded-full px-2 py-1 text-[10px] font-medium capitalize ${m.status === "active" ? "bg-emerald-500/10 text-emerald-400" : "bg-[var(--surface-hover)] text-stone-600"}`}>
                             {m.status}
                           </span>
                         </td>
@@ -223,7 +223,7 @@ export function MembersSettings() {
                         className="flex w-full items-center gap-3 px-4 py-4 text-left">
                         <div className="flex -space-x-2">
                           {tMembers.slice(0, 5).map(m => <Avatar key={m.id} member={m} small />)}
-                          {tMembers.length === 0 && <div className="grid h-7 w-7 place-items-center rounded-full bg-white/[.05]"><Users size={12} /></div>}
+                          {tMembers.length === 0 && <div className="grid h-7 w-7 place-items-center rounded-full bg-[var(--surface-hover)]"><Users size={12} /></div>}
                         </div>
                         <div className="flex-1">
                           <p className="text-sm font-semibold text-stone-200">{t.name}</p>
@@ -232,10 +232,10 @@ export function MembersSettings() {
                         <ChevronDown size={14} className={`text-stone-600 transition-transform ${isOpen ? "rotate-180" : ""}`} />
                       </button>
                       {isOpen && (
-                        <div className="border-t border-white/[.06] px-4 pb-4 pt-3 space-y-4">
+                        <div className="border-t border-[var(--border-soft)] px-4 pb-4 pt-3 space-y-4">
                           <div className="space-y-1.5">
                             {tMembers.map(m => (
-                              <div key={m.id} className="flex items-center gap-3 rounded-lg bg-white/[.025] px-3 py-2.5">
+                              <div key={m.id} className="flex items-center gap-3 rounded-lg bg-[var(--surface-hover)] px-3 py-2.5">
                                 <Avatar member={m} small />
                                 <span className="flex-1 text-sm text-stone-300">{m.name || m.email}</span>
                                 <button onClick={() => removeTeamMember(t.id, m.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Remove</button>
@@ -249,7 +249,7 @@ export function MembersSettings() {
                               <div className="flex flex-wrap gap-1.5">
                                 {available.slice(0, 8).map(m => (
                                   <button key={m.id} onClick={() => addToTeam(t.id, m.id)}
-                                    className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-2.5 py-1.5 text-xs text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors">
+                                    className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-2.5 py-1.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                                     <Plus size={10} /> {m.name?.split(" ")[0] || m.email}
                                   </button>
                                 ))}
@@ -281,7 +281,7 @@ export function MembersSettings() {
                   </thead>
                   <tbody>
                     {data.invitations.map(inv => (
-                      <tr key={inv.id} className="border-b border-white/[.04] last:border-0">
+                      <tr key={inv.id} className="border-b border-[var(--border-soft)] last:border-0">
                         <td className="px-4 py-3.5 text-stone-300">{inv.email}</td>
                         <td className="px-4 py-3.5 capitalize text-stone-500">{inv.role}</td>
                         <td className="px-4 py-3.5 text-stone-600">{inv.invited_by ?? "Workspace admin"}</td>
@@ -343,7 +343,7 @@ export function MembersSettings() {
               </select>
             </label>
             <button type="submit" disabled={!invite.emails.includes("@") || sendInvite.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-white hover:bg-stone-500 transition-all disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all disabled:opacity-40">
               <UserPlus size={14} /> {sendInvite.isPending ? "Sending…" : "Send invitation"}
             </button>
           </form>
@@ -362,9 +362,9 @@ export function MembersSettings() {
             {data.members.length > 0 && (
               <div>
                 <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-stone-500">Add members</span>
-                <div className="max-h-48 space-y-0.5 overflow-auto rounded-lg border border-white/[.07]">
+                <div className="max-h-48 space-y-0.5 overflow-auto rounded-lg border border-[var(--border-soft)]">
                   {data.members.map(m => (
-                    <label key={m.id} className="flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-white/[.03] transition-colors">
+                    <label key={m.id} className="flex cursor-pointer items-center gap-3 px-3 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
                       <input type="checkbox" checked={team.member_ids.includes(m.id)}
                         onChange={e => setTeam({ ...team, member_ids: e.target.checked ? [...team.member_ids, m.id] : team.member_ids.filter(id => id !== m.id) })}
                         className="h-4 w-4 rounded accent-red-500" />
@@ -376,7 +376,7 @@ export function MembersSettings() {
               </div>
             )}
             <button type="submit" disabled={!team.name.trim() || createTeam.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-white hover:bg-stone-500 transition-all disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all disabled:opacity-40">
               {createTeam.isPending ? "Creating…" : "Create team"}
             </button>
           </form>

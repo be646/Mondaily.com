@@ -88,11 +88,11 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-stone-400"/></div>
-            <span className="text-sm font-semibold text-white">New Credit Note</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">New Credit Note</span>
           </div>
           <button onClick={onClose} className="text-stone-600 hover:text-stone-300 transition-colors text-lg leading-none">×</button>
         </div>
@@ -141,7 +141,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50">
               {loading ? "Creating…" : "Create"}
             </button>
           </div>
@@ -178,11 +178,11 @@ export function CreditNotesPage() {
       <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-[15px] font-semibold text-white">Credit Notes</h1>
+            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Credit Notes</h1>
             <p className="text-[12px] text-stone-500 mt-0.5">Manage refunds, billing corrections and goodwill credits</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             <Plus size={13}/> New Credit Note
           </button>
         </div>
@@ -201,17 +201,17 @@ export function CreditNotesPage() {
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><DollarSign size={11} className="text-stone-500"/><span className="text-[11px] text-stone-500">Total credit issued</span></div>
-            <div className="text-[17px] font-semibold text-white">{fmt(totalExecuted, currency)}</div>
+            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{fmt(totalExecuted, currency)}</div>
             <div className="text-[10px] text-stone-700 mt-0.5">this workspace</div>
           </div>
         </div>
 
         {/* Filters + search */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] p-1">
+          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1">
             {FILTERS.map(f => (
               <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-white/[.07] text-white" : "text-stone-500 hover:text-stone-300"}`}>
+                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
                 {f.label}
               </button>
             ))}
@@ -236,7 +236,7 @@ export function CreditNotesPage() {
         ) : (
           <table className="minimal-table">
             <thead>
-              <tr className="border-b border-white/[.04]">
+              <tr className="border-b border-[var(--border-soft)]">
                 {["Client", "Amount", "Reason", "Status", "AI Summary", "Created", ""].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-stone-600">{h}</th>
                 ))}
@@ -248,14 +248,14 @@ export function CreditNotesPage() {
                 const Icon = cfg.icon;
                 return (
                   <tr key={cn.id}
-                    className="border-b border-white/[.03] hover:bg-white/[.015] transition-colors cursor-pointer"
+                    className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                     onClick={() => navigate(`/finance/credit-notes/${cn.id}`)}>
                     <td className="px-4 py-3">
-                      <div className="text-[12px] font-medium text-white">{cn.client_name ?? "—"}</div>
+                      <div className="text-[12px] font-medium text-[var(--text-primary)]">{cn.client_name ?? "—"}</div>
                     </td>
-                    <td className="px-4 py-3 text-[13px] font-semibold text-white">{fmt(cn.amount_cents, cn.currency)}</td>
+                    <td className="px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</td>
                     <td className="px-4 py-3">
-                      <span className="text-[11px] text-stone-400 rounded-full bg-white/[.04] px-2 py-0.5">{REASON_LABELS[cn.credit_reason]}</span>
+                      <span className="text-[11px] text-stone-400 rounded-full bg-[var(--surface-hover)] px-2 py-0.5">{REASON_LABELS[cn.credit_reason]}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.color}`}>

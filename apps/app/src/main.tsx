@@ -111,7 +111,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 // Apply saved theme before first render to avoid flash
 (function initTheme() {
   const saved = localStorage.getItem("mondaily_appearance") as "dark" | "light" | "system" | null;
-  const mode = saved ?? "dark";
+  const mode = saved ?? "light";
   const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.dataset.theme = dark ? "dark" : "light";

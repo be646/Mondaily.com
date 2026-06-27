@@ -62,20 +62,20 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         : "Hi! I'm Mondaily AI. Ask me anything about your business." }];
 
   return (
-    <div className="flex h-full w-[300px] shrink-0 flex-col border-l border-white/[.06] bg-[#141414]">
+    <div className="flex h-full w-[300px] shrink-0 flex-col border-l border-[var(--border-soft)] bg-[var(--surface-card)]">
       {/* Panel header */}
-      <div className="flex items-center justify-between border-b border-white/[.06] px-4 py-3 shrink-0">
+      <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex h-5 w-5 items-center justify-center rounded-md bg-stone-500/15">
             <LogoMark size={10} className="text-stone-400"/>
           </div>
-          <span className="text-[13px] font-semibold text-white">Ask Mondaily</span>
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">Ask Mondaily</span>
         </div>
         <div className="flex items-center gap-0.5">
           <div className="relative">
             <button
               onClick={() => setMenuOpen(o => !o)}
-              className="rounded-md p-1.5 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"
+              className="rounded-md p-1.5 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               <MoreHorizontal size={13}/>
             </button>
@@ -103,7 +103,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1.5 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"
+            className="rounded-md p-1.5 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <X size={13}/>
           </button>
@@ -112,7 +112,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 
       {/* Context strip — what this drawer is scoped to right now */}
       {pageContext?.scope_label && (
-        <div className="shrink-0 border-b border-white/[.06] px-3 py-1.5">
+        <div className="shrink-0 border-b border-[var(--border-soft)] px-3 py-1.5">
           <span className="text-[10px] text-stone-500">Scoped to: <span className="text-stone-300">{pageContext.scope_label}</span></span>
         </div>
       )}
@@ -132,7 +132,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
               <div className="flex flex-col gap-1 max-w-[85%]">
                 <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
-                    ? "bg-white/[.06] border border-white/[.08] text-white rounded-tr-sm whitespace-pre-wrap"
+                    ? "bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text-primary)] rounded-tr-sm whitespace-pre-wrap"
                     : "text-stone-300"
                 }`}>
                   {m.role === "assistant" ? <Markdown text={m.content}/> : m.content}
@@ -202,7 +202,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             <div className="flex h-5 w-5 shrink-0 items-center justify-center text-stone-400 mt-0.5">
               <LogoMark size={16} thinking/>
             </div>
-            <div className="rounded-xl bg-white/[.04] border border-white/[.06] px-3 py-2 flex items-center gap-2">
+            <div className="rounded-xl bg-[var(--surface-hover)] border border-[var(--border-soft)] px-3 py-2 flex items-center gap-2">
               {streamStatus ? (
                 <span className="text-[10.5px] text-stone-400">{streamStatus}</span>
               ) : tokenCount > 0 ? (
@@ -221,14 +221,14 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-white/[.06] p-3 shrink-0">
-        <div className="flex items-center gap-2 rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2 focus-within:border-white/[.14] transition-colors">
+      <div className="border-t border-[var(--border-soft)] p-3 shrink-0">
+        <div className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
             placeholder="Ask anything…"
-            className="flex-1 bg-transparent text-[12px] text-white placeholder-stone-600 outline-none"
+            className="flex-1 bg-transparent text-[12px] text-[var(--text-primary)] placeholder-stone-600 outline-none"
           />
           <button
             onClick={send}
@@ -255,15 +255,15 @@ function ShareModal({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Share2 size={14} className="text-stone-400"/>
-            <span className="text-[13px] font-semibold text-white">Share this view</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">Share this view</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"
+            className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <X size={13}/>
           </button>
@@ -271,9 +271,9 @@ function ShareModal({ onClose }: { onClose: () => void }) {
         <p className="mb-3 text-[11px] text-stone-600 leading-relaxed">
           Anyone with this link can view this page if they have access to this workspace.
         </p>
-        <div className="flex items-center gap-2 rounded-xl border border-white/[.08] bg-white/[.03] px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
           <span className="flex-1 truncate text-[11px] text-stone-500">{url}</span>
-          <button onClick={copy} className="shrink-0 text-stone-500 hover:text-white transition-colors">
+          <button onClick={copy} className="shrink-0 text-stone-500 hover:text-[var(--text-primary)] transition-colors">
             {copied ? <Check size={13} className="text-emerald-400"/> : <Copy size={13}/>}
           </button>
         </div>
@@ -322,7 +322,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   return (
     <>
       {/* Top bar */}
-      <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-white/[.06] dark:bg-[#141414] px-4 py-1.5 shrink-0">
+      <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] px-4 py-1.5 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
           {leftSlot ?? <span className="text-xs text-[#9ca3af] dark:text-stone-700">AI status: idle</span>}
@@ -333,14 +333,14 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {showShare && (
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-[11px] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-white/[.07] dark:text-stone-500 dark:hover:bg-white/[.04] dark:hover:text-white"
+              className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-[11px] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-[var(--border-soft)] dark:text-stone-500 dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)]"
             >
               <Share2 size={12}/> Share
             </button>
           )}
 
           <button
-            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:text-stone-600 dark:hover:bg-white/[.04] dark:hover:text-stone-300"
+            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:text-stone-600 dark:hover:bg-[var(--surface-hover)] dark:hover:text-stone-300"
             title="Help"
           >
             <HelpCircle size={14}/>
@@ -363,8 +363,8 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             onClick={() => setAskOpen(o => !o)}
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
               askOpen
-                ? "border-stone-200 bg-stone-50 text-stone-700 dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-white"
-                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-stone-200 hover:bg-stone-50 dark:border-white/[.07] dark:bg-transparent dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-white"
+                ? "border-stone-200 bg-stone-50 text-stone-700 dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-[var(--text-primary)]"
+                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-stone-200 hover:bg-stone-50 dark:border-[var(--border-soft)] dark:bg-transparent dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-[var(--text-primary)]"
             }`}
           >
             <LogoMark size={12} className={askOpen ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}/>
@@ -387,14 +387,14 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)}/>
                 <div className="dropdown-panel absolute right-0 top-full mt-2 w-56 z-50">
                   {/* User info header */}
-                  <div className="flex items-center gap-2.5 border-b border-white/[.06] px-3 py-2.5">
+                  <div className="flex items-center gap-2.5 border-b border-[var(--border-soft)] px-3 py-2.5">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-500/20 text-[11px] font-semibold text-stone-400">
                       {avatarUrl
                         ? <img src={avatarUrl} alt={fullName} className="h-full w-full object-cover"/>
                         : initials}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-[12px] font-medium text-white">{fullName}</div>
+                      <div className="truncate text-[12px] font-medium text-[var(--text-primary)]">{fullName}</div>
                       <div className="truncate text-[10px] text-stone-600">{user?.emailAddresses?.[0]?.emailAddress}</div>
                     </div>
                   </div>
@@ -404,7 +404,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                   <Link to="/settings/workspace" onClick={() => setUserMenuOpen(false)} className="dropdown-item">
                     <Settings size={12}/> Workspace settings
                   </Link>
-                  <div className="mx-2 my-1 border-t border-white/[.05]"/>
+                  <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
                   <button
                     onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }}
                     className="dropdown-item text-stone-400 hover:text-stone-300"

@@ -159,7 +159,7 @@ function StagePill({ value, stages, onMove }: { value: string; stages: string[];
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold border border-white/[.05] bg-stone-900/60 transition-colors ${text}`}
+        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-semibold border border-[var(--border-soft)] bg-stone-900/60 transition-colors ${text}`}
       >
         <span className={`h-1.5 w-1.5 rounded-full ${dot}`}/>
         {value}
@@ -205,7 +205,7 @@ function CardField({ value, onSave, placeholder = "—", numeric = false, classN
       onChange={e => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") { setDraft(value); setEditing(false); } e.stopPropagation(); }}
-      className={`w-full bg-stone-800 text-[11px] text-white outline-none rounded px-1.5 py-0.5 border border-stone-600/60 ${numeric ? "text-right font-mono" : ""} ${className}`}
+      className={`w-full bg-stone-800 text-[11px] text-[var(--text-primary)] outline-none rounded px-1.5 py-0.5 border border-stone-600/60 ${numeric ? "text-right font-mono" : ""} ${className}`}
     />
   );
 
@@ -321,29 +321,29 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
-        <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-3.5">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <span className="text-[13px] font-semibold text-white capitalize">New {objectType.replace(/[-_]/g, " ")}</span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border border-white/[.05] bg-stone-900/60 ${text}`}>{defaultStage}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)] capitalize">New {objectType.replace(/[-_]/g, " ")}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border border-[var(--border-soft)] bg-stone-900/60 ${text}`}>{defaultStage}</span>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-white/[.05] hover:text-white transition-colors"><X size={14}/></button>
+          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={14}/></button>
         </div>
         <div className="max-h-[360px] overflow-auto px-5 py-4 space-y-0.5">
           {fieldKeys.map(k => (
-            <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-white/[.04] last:border-0">
+            <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-[var(--border-soft)] last:border-0">
               <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 truncate">{labelOf(k)}</span>
               <input value={values[k] ?? ""} onChange={e => setValues(p => ({ ...p, [k]: e.target.value }))}
                 placeholder="—"
-                className="w-full rounded-md border border-white/[.07] bg-white/[.03] px-2.5 py-1.5 text-sm text-white placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-white/[.05] transition-colors"/>
+                className="w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-[var(--surface-hover)] transition-colors"/>
             </div>
           ))}
           {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
         </div>
-        <div className="flex items-center justify-end gap-2 border-t border-white/[.06] px-5 py-3.5">
-          <button onClick={onClose} className="rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:text-white transition-all">Cancel</button>
+        <div className="flex items-center justify-end gap-2 border-t border-[var(--border-soft)] px-5 py-3.5">
+          <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 disabled:opacity-50 transition-all">
+            className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
             <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
           </button>
@@ -498,7 +498,7 @@ export function BoardView({ objectType }: { objectType: string }) {
             <input ref={newStageRef} value={newStageName} onChange={e => setNewStageName(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
               placeholder="Stage name…"
-              className="flex-1 bg-transparent text-[11px] text-white placeholder-stone-600 outline-none"/>
+              className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
             <button onClick={commitNewStage} className="text-stone-500 hover:text-emerald-400 transition-colors"><Check size={12}/></button>
             <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={12}/></button>
           </div>

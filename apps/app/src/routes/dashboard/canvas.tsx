@@ -92,17 +92,17 @@ function MindNode({ data, selected }: NodeProps) {
         boxShadow: selected
           ? `0 0 0 1px ${accent}60, 0 0 20px ${accent}20`
           : `0 0 12px ${accent}15`,
-        background: `radial-gradient(ellipse at top left, ${accent}12, #141414)`,
+        background: `radial-gradient(ellipse at top left, ${accent}12, var(--surface-card))`,
       }}
       className="min-w-[110px] max-w-[200px] rounded-full border-2 px-5 py-2.5 text-center cursor-default select-none transition-all"
     >
       {editing ? (
         <input autoFocus defaultValue={data.label as string}
           onBlur={e => { (data.onLabelChange as (v: string) => void)?.(e.target.value); setEditing(false); }}
-          className="bg-transparent text-sm text-white text-center outline-none w-full font-medium"
+          className="bg-transparent text-sm text-[var(--text-primary)] text-center outline-none w-full font-medium"
         />
       ) : (
-        <span className="text-sm font-semibold text-white tracking-tight">
+        <span className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
           {(data.label as string) || "Idea"}
         </span>
       )}
@@ -118,16 +118,16 @@ function TextNode({ data, selected }: NodeProps) {
   return (
     <div
       onDoubleClick={() => setEditing(true)}
-      className={`min-w-[120px] cursor-default transition-all ${selected ? "ring-1 ring-white/20 ring-offset-2 ring-offset-[#141414] rounded-lg" : ""}`}
+      className={`min-w-[120px] cursor-default transition-all ${selected ? "ring-1 ring-white/20 ring-offset-2 ring-offset-[var(--surface-card)] rounded-lg" : ""}`}
     >
       {editing ? (
         <textarea autoFocus defaultValue={data.label as string}
           onBlur={e => { (data.onLabelChange as (v: string) => void)?.(e.target.value); setEditing(false); }}
-          className="bg-transparent text-white/90 outline-none resize-none text-sm w-44 h-16 leading-relaxed"
+          className="bg-transparent text-[var(--text-secondary)] outline-none resize-none text-sm w-44 h-16 leading-relaxed"
         />
       ) : (
-        <p className="text-white/90 text-sm font-medium whitespace-pre-wrap leading-relaxed">
-          {(data.label as string) || <span className="text-white/30 italic">Text…</span>}
+        <p className="text-[var(--text-secondary)] text-sm font-medium whitespace-pre-wrap leading-relaxed">
+          {(data.label as string) || <span className="text-[var(--text-secondary)] italic">Text…</span>}
         </p>
       )}
     </div>
@@ -149,8 +149,8 @@ function QuadrantNode({ data }: NodeProps) {
       className="w-[520px] h-[420px] rounded-2xl overflow-hidden"
       style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#0f1117" }}
     >
-      <div className="flex items-center justify-center py-2 border-b border-white/[.06]">
-        <span className="text-[10px] font-semibold tracking-[0.18em] uppercase text-white/30">
+      <div className="flex items-center justify-center py-2 border-b border-[var(--border-soft)]">
+        <span className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[var(--text-secondary)]">
           {data.label as string}
         </span>
       </div>
@@ -158,9 +158,9 @@ function QuadrantNode({ data }: NodeProps) {
         {labels.map((q, i) => (
           <div
             key={i}
-            className={`flex items-center justify-center text-xs text-white/25 font-medium
-              ${i % 2 === 0 ? "border-r border-white/[.06]" : ""}
-              ${i < 2 ? "border-b border-white/[.06]" : ""}`}
+            className={`flex items-center justify-center text-xs text-[var(--text-secondary)] font-medium
+              ${i % 2 === 0 ? "border-r border-[var(--border-soft)]" : ""}
+              ${i < 2 ? "border-b border-[var(--border-soft)]" : ""}`}
             style={{ background: i === 0 ? "rgba(99,102,241,0.04)" : i === 1 ? "rgba(236,72,153,0.04)" : i === 2 ? "rgba(16,185,129,0.04)" : "rgba(245,158,11,0.04)" }}
           >
             {q}
@@ -183,7 +183,7 @@ const TEMPLATES: Record<string, { nodes: Node[]; edges: Edge[]; label: string; d
     nodes: [
       { id: "c",  type: "mind", position: { x: 320, y: 200 }, data: { label: "Central Idea", color: "#ef4444" } },
       { id: "1",  type: "mind", position: { x: 80,  y: 60  }, data: { label: "Branch 1",    color: "var(--accent)" } },
-      { id: "2",  type: "mind", position: { x: 540, y: 60  }, data: { label: "Branch 2",    color: "#06b6d4" } },
+      { id: "2",  type: "mind", position: { x: 540, y: 60  }, data: { label: "Branch 2",    color: "var(--accent)" } },
       { id: "3",  type: "mind", position: { x: 80,  y: 340 }, data: { label: "Branch 3",    color: "#10b981" } },
       { id: "4",  type: "mind", position: { x: 540, y: 340 }, data: { label: "Branch 4",    color: "#f59e0b" } },
     ],
@@ -297,7 +297,7 @@ export default function Canvas() {
         {/* controls — minimal style */}
         <Controls
           showInteractive={false}
-          className="[&>button]:!bg-[#12151b] [&>button]:!border-white/[.07] [&>button]:!text-white/40 [&>button:hover]:!bg-white/[.06] [&>button:hover]:!text-white/80 !shadow-none !border !border-white/[.07] !rounded-xl !overflow-hidden"
+          className="[&>button]:!bg-[#12151b] [&>button]:!border-[var(--border-soft)] [&>button]:!text-[var(--text-secondary)] [&>button:hover]:!bg-[var(--surface-hover)] [&>button:hover]:!text-[var(--text-secondary)] !shadow-none !border !border-[var(--border-soft)] !rounded-xl !overflow-hidden"
         />
 
         {/* ── Floating toolbar ── */}
@@ -321,7 +321,7 @@ export default function Canvas() {
               <button
                 key={btn.label}
                 onClick={btn.onClick}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-white/40 hover:bg-white/[.06] hover:text-white/90 transition-all duration-100"
+                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] transition-all duration-100"
               >
                 {btn.icon}
                 {btn.label}
@@ -335,7 +335,7 @@ export default function Canvas() {
             <div className="relative">
               <button
                 onClick={() => setTemplateOpen(o => !o)}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-white/40 hover:bg-white/[.06] hover:text-white/90 transition-all duration-100"
+                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] transition-all duration-100"
               >
                 <GitBranch size={13} />
                 Templates
@@ -358,10 +358,10 @@ export default function Canvas() {
                       <button
                         key={key}
                         onClick={() => loadTemplate(key)}
-                        className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left hover:bg-white/[.05] transition-colors"
+                        className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left hover:bg-[var(--surface-hover)] transition-colors"
                       >
-                        <span className="text-[12px] font-semibold text-white/80">{t.label}</span>
-                        <span className="text-[10px] text-white/30">{t.description}</span>
+                        <span className="text-[12px] font-semibold text-[var(--text-secondary)]">{t.label}</span>
+                        <span className="text-[10px] text-[var(--text-secondary)]">{t.description}</span>
                       </button>
                     ))}
                   </div>
@@ -379,7 +379,7 @@ export default function Canvas() {
                 setEdges(es => es.filter(e => !e.selected));
               }}
               disabled={selectedCount === 0}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-white/25 hover:bg-stone-500/10 hover:text-stone-400 transition-all duration-100 disabled:pointer-events-none"
+              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-400 transition-all duration-100 disabled:pointer-events-none"
             >
               <Trash2 size={13} />
               {selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
@@ -401,8 +401,8 @@ export default function Canvas() {
                 <LogoMark size={22} className="text-stone-400/60" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white/30 mb-1">Start with a template or add a node</p>
-                <p className="text-xs text-white/15">Double-click to edit · Drag between nodes to connect</p>
+                <p className="text-sm font-semibold text-[var(--text-secondary)] mb-1">Start with a template or add a node</p>
+                <p className="text-xs text-[var(--text-secondary)]">Double-click to edit · Drag between nodes to connect</p>
               </div>
             </div>
           </Panel>

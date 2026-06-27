@@ -187,7 +187,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => takeAction.mutate("approved")} disabled={takeAction.isPending}
-            className="flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition-colors"
+            className="flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 transition-colors"
             style={{ background: "#10b981" }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#059669"; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#10b981"; }}>
             <CheckCircle size={15}/> Approve
           </button>

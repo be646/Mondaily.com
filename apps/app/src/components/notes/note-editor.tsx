@@ -6,7 +6,7 @@ import {
 import { useEffect } from "react";
 
 function Sep() {
-  return <span className="mx-0.5 h-4 w-px shrink-0 bg-white/[.07]" />;
+  return <span className="mx-0.5 h-4 w-px shrink-0 bg-[var(--surface-hover)]" />;
 }
 
 export function NoteEditor({
@@ -47,7 +47,7 @@ export function NoteEditor({
 
   const charCount = editor?.getText().length ?? 0;
 
-  if (!editor) return <div className="h-40 animate-pulse rounded-xl bg-white/[.03]" />;
+  if (!editor) return <div className="h-40 animate-pulse rounded-xl bg-[var(--surface-hover)]" />;
 
   function btn(active: boolean, onClick: () => void, icon: React.ReactNode, title: string) {
     return (
@@ -57,8 +57,8 @@ export function NoteEditor({
         onClick={onClick}
         className={`grid h-7 w-7 place-items-center rounded-md transition-colors ${
           active
-            ? "bg-white/[.10] text-white"
-            : "text-stone-500 hover:bg-white/[.05] hover:text-stone-300"
+            ? "bg-[var(--surface-hover)] text-[var(--text-primary)]"
+            : "text-stone-500 hover:bg-[var(--surface-hover)] hover:text-stone-300"
         }`}
       >
         {icon}
@@ -67,9 +67,9 @@ export function NoteEditor({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[.07] bg-[#141414]">
+    <div className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)]">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-white/[.06] px-3 py-2">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-[var(--border-soft)] px-3 py-2">
         {btn(editor.isActive("bold"),     () => editor.chain().focus().toggleBold().run(),        <Bold size={13} />,        "Bold")}
         {btn(editor.isActive("italic"),   () => editor.chain().focus().toggleItalic().run(),      <Italic size={13} />,      "Italic")}
         {btn(editor.isActive("heading", { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 size={13} />, "Heading")}
@@ -82,7 +82,7 @@ export function NoteEditor({
           type="button"
           title="Divider"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className="grid h-7 w-7 place-items-center rounded-md text-stone-500 hover:bg-white/[.05] hover:text-stone-300 transition-colors"
+          className="grid h-7 w-7 place-items-center rounded-md text-stone-500 hover:bg-[var(--surface-hover)] hover:text-stone-300 transition-colors"
         >
           <Minus size={13} />
         </button>
@@ -93,7 +93,7 @@ export function NoteEditor({
             key={name}
             type="button"
             onClick={() => editor.chain().focus().insertContent(`@${name.split(" ")[0]} `).run()}
-            className="rounded-md px-2 py-1 text-[11px] text-stone-600 hover:bg-white/[.05] hover:text-stone-300 transition-colors"
+            className="rounded-md px-2 py-1 text-[11px] text-stone-600 hover:bg-[var(--surface-hover)] hover:text-stone-300 transition-colors"
           >
             @{name.split(" ")[0]}
           </button>
@@ -103,7 +103,7 @@ export function NoteEditor({
             type="button"
             disabled={saving || editor.isEmpty}
             onClick={onSave}
-            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 text-xs font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-all"
+            className="ml-auto flex h-7 items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all"
           >
             <Send size={11} />
             {saving ? "Saving…" : "Save"}
@@ -114,15 +114,15 @@ export function NoteEditor({
       {/* Editor area */}
       <EditorContent
         editor={editor}
-        className="[&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-white [&_.ProseMirror_h2]:mt-3 [&_.ProseMirror_h2]:mb-1
-          [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-white/20 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-stone-400
-          [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-white/[.05] [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-[12px] [&_.ProseMirror_code]:text-stone-300
+        className="[&_.ProseMirror_h2]:text-base [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-[var(--text-primary)] [&_.ProseMirror_h2]:mt-3 [&_.ProseMirror_h2]:mb-1
+          [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-[var(--border-soft)] [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-stone-400
+          [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-[var(--surface-hover)] [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-[12px] [&_.ProseMirror_code]:text-stone-300
           [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5
-          [&_.ProseMirror_hr]:border-white/[.08] [&_.ProseMirror_hr]:my-3"
+          [&_.ProseMirror_hr]:border-[var(--border-soft)] [&_.ProseMirror_hr]:my-3"
       />
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-white/[.06] px-4 py-2">
+      <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-4 py-2">
         <span className="text-[11px] text-stone-700">
           {charCount > 0 ? `${charCount} characters` : "Start typing…"}
         </span>

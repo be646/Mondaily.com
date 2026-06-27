@@ -43,9 +43,9 @@ const REASON_LABELS: Record<CreditReason, string> = {
 
 // State machine — which transitions are available from a given status
 const TRANSITIONS: Record<CreditStatus, { to: CreditStatus; label: string; style: string }[]> = {
-  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-amber-300 bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20" }, { to: "void", label: "Void", style: "text-stone-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
-  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-blue-300 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/20" },   { to: "void", label: "Void", style: "text-stone-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
-  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20" }, { to: "void", label: "Void", style: "text-stone-500 bg-white/[.03] border-white/[.06] hover:bg-white/[.05]" }],
+  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-amber-300 bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20" }, { to: "void", label: "Void", style: "text-stone-500 bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
+  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-blue-300 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/20" },   { to: "void", label: "Void", style: "text-stone-500 bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
+  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20" }, { to: "void", label: "Void", style: "text-stone-500 bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
   executed:         [],
   void:             [],
 };
@@ -115,8 +115,8 @@ export function CreditNoteDetailPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-white/[.06] px-6 py-3 shrink-0">
-        <Link to="/finance/credit-notes" className="flex items-center gap-1 text-[12px] text-stone-500 hover:text-white transition-colors">
+      <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-6 py-3 shrink-0">
+        <Link to="/finance/credit-notes" className="flex items-center gap-1 text-[12px] text-stone-500 hover:text-[var(--text-primary)] transition-colors">
           <ChevronLeft size={13}/> Credit Notes
         </Link>
         <span className="text-stone-700">/</span>
@@ -128,15 +128,15 @@ export function CreditNoteDetailPage() {
 
       <div className="flex flex-1 min-h-0">
         {/* ── Left panel ── */}
-        <aside className="w-[260px] shrink-0 border-r border-white/[.06] flex flex-col overflow-y-auto">
-          <div className="p-5 space-y-5 border-b border-white/[.06]">
+        <aside className="w-[260px] shrink-0 border-r border-[var(--border-soft)] flex flex-col overflow-y-auto">
+          <div className="p-5 space-y-5 border-b border-[var(--border-soft)]">
             {/* Icon + amount */}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-stone-500/15 flex items-center justify-center shrink-0">
                 <ReceiptText size={18} className="text-stone-400"/>
               </div>
               <div>
-                <div className="text-[18px] font-bold text-white">{fmt(cn.amount_cents, cn.currency)}</div>
+                <div className="text-[18px] font-bold text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</div>
                 <div className="text-[11px] text-stone-500">{cn.client_name ?? "No client"}</div>
               </div>
             </div>
@@ -170,12 +170,12 @@ export function CreditNoteDetailPage() {
           </div>
 
           {/* Links */}
-          <div className="p-4 space-y-4 border-b border-white/[.06]">
+          <div className="p-4 space-y-4 border-b border-[var(--border-soft)]">
             <div>
               <p className="text-[9px] font-semibold uppercase tracking-widest text-stone-600 mb-2">Linked invoice</p>
               {linkedInvoice ? (
                 <Link to={`/finance/invoices/${linkedInvoice.id}`}
-                  className="flex items-center gap-2 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-2 text-[12px] text-stone-300 hover:text-white hover:border-white/[.10] transition-colors">
+                  className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-2 text-[12px] text-stone-300 hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors">
                   <FileText size={11} className="text-stone-600 shrink-0"/>
                   <span className="truncate">{linkedInvoice.number} · {linkedInvoice.client_name}</span>
                 </Link>
@@ -187,7 +187,7 @@ export function CreditNoteDetailPage() {
                     {invoices.map(i => <option key={i.id} value={i.id}>{i.number} · {i.client_name}</option>)}
                   </select>
                   <button onClick={applyToInvoice} disabled={!linkInvoiceId || linkingInvoice}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-white/[.07] bg-white/[.02] px-2 py-1.5 text-[11px] text-stone-400 hover:text-white hover:bg-white/[.05] transition-colors disabled:opacity-40">
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40">
                     <Link2 size={10}/>{linkingInvoice ? "Linking…" : "Apply to invoice"}
                   </button>
                 </div>
@@ -268,7 +268,7 @@ function NoteEditor({ initialValue, onSave }: { initialValue: string; onSave: (v
       onBlur={() => { if (val !== initialValue) onSave(val); }}
       placeholder="Add internal notes here…"
       rows={5}
-      className="w-full resize-none rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 text-[13px] text-stone-300 placeholder-stone-700 outline-none focus:border-white/[.12] leading-relaxed transition-colors"
+      className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 text-[13px] text-stone-300 placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed transition-colors"
     />
   );
 }
@@ -285,7 +285,7 @@ function DraftEditor({ creditNote: cn, onSave }: { creditNote: CreditNote; onSav
   }
 
   return (
-    <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 space-y-3">
+    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Client name</label>

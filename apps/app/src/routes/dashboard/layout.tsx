@@ -81,7 +81,7 @@ function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={onClose}/>
-      <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-white dark:bg-[#0d0d0d] md:hidden">
+      <div className="fixed left-0 top-0 bottom-0 z-50 w-72 overflow-auto bg-white dark:bg-[var(--surface-page)] md:hidden">
         <Sidebar onMobileClose={onClose} />
       </div>
     </>
@@ -136,7 +136,7 @@ export function DashboardLayout() {
               <Menu size={16}/>
             </button>
             <PageIcon size={16} className={`${pageColor} shrink-0`}/>
-            <span className="text-[13px] font-semibold text-[#111827] dark:text-white/80 capitalize select-none hidden sm:inline">
+            <span className="text-[13px] font-semibold text-[#111827] dark:text-[var(--text-secondary)] capitalize select-none hidden sm:inline">
               {pageLabel}
             </span>
             {/* Search trigger */}

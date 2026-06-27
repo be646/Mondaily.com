@@ -296,9 +296,9 @@ export function AskMondaily() {
       {/* ── Header ── */}
       <div className="ask-header shrink-0">
         <div className="flex items-center justify-between px-6 py-3.5">
-          <div className="flex items-center gap-3 text-[#111827] dark:text-white">
+          <div className="flex items-center gap-3 text-[#111827] dark:text-[var(--text-primary)]">
             <LogoSymbol size={24} thinking={loading} />
-            <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[#111827] dark:text-white">
+            <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[#111827] dark:text-[var(--text-primary)]">
               Ask
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-stone-400 opacity-40 animate-ping"/>
@@ -315,11 +315,11 @@ export function AskMondaily() {
           </div>
           {isChatting && (
             <div className="flex items-center gap-3">
-              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-white transition-colors">
+              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-[var(--text-primary)] transition-colors">
                 <Download size={12}/> Export
               </button>
               <button onClick={clear}
-                className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-white transition-colors">
+                className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-[var(--text-primary)] transition-colors">
                 New chat
               </button>
             </div>
@@ -334,10 +334,10 @@ export function AskMondaily() {
         {!isChatting && (
           <div className="flex h-full items-center justify-center">
             <div className="w-full max-w-lg text-center">
-              <div className="mx-auto mb-5 flex items-center justify-center text-stone-500 dark:text-white/80">
+              <div className="mx-auto mb-5 flex items-center justify-center text-stone-500 dark:text-[var(--text-secondary)]">
                 <LogoSymbol size={52} />
               </div>
-              <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">What do you want to know about the workspace graph?</p>
+              <p className="text-sm font-medium text-[#111827] dark:text-[var(--text-primary)] mb-1">What do you want to know about the workspace graph?</p>
               <p className="text-xs text-[#9ca3af] dark:text-stone-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
               <div className="chat-suggestion-stack mx-auto max-w-md">
                 {EMPTY_SUGGESTION_GROUPS.map(s => (
@@ -495,19 +495,19 @@ export function AskMondaily() {
 
           {/* Quick prompts picker */}
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-white/[.08] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-              <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-white/[.06]">
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-[var(--border-soft)] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+              <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)]">
                 <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-stone-600 uppercase tracking-widest">Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => sendSuggestion(prompt)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-white/[.05] transition-colors group">
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-[var(--surface-hover)] transition-colors group">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-50 group-hover:bg-stone-100 dark:bg-stone-500/10 dark:group-hover:bg-stone-500/20 transition-colors">
                       <Icon size={13} className="text-stone-600 dark:text-stone-400"/>
                     </span>
                     <span>
-                      <span className="block text-sm text-[#111827] group-hover:text-stone-700 dark:text-stone-200 dark:group-hover:text-white transition-colors">{label}</span>
+                      <span className="block text-sm text-[#111827] group-hover:text-stone-700 dark:text-stone-200 dark:group-hover:text-[var(--text-primary)] transition-colors">{label}</span>
                       <span className="block text-[11px] text-[#9ca3af] dark:text-stone-600">{description}</span>
                     </span>
                   </button>
@@ -519,7 +519,7 @@ export function AskMondaily() {
           {/* Input */}
           <div className="ask-input flex items-center gap-2 rounded-2xl px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-white/[.05]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
               <Zap size={14}/>
             </button>
             <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
@@ -533,7 +533,7 @@ export function AskMondaily() {
               </button>
             )}
             <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-stone-600 text-white hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-white/[.04] dark:text-stone-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-stone-600 text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
               {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
             </button>
           </div>

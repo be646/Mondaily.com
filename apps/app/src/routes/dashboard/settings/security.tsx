@@ -30,9 +30,9 @@ function CopyField({ label, value, copied, onCopy }: { label: string; value: str
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">{label}</span>
-      <div className="flex h-10 items-center rounded-lg border border-white/[.08] bg-white/[.02]">
+      <div className="flex h-10 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <code className="min-w-0 flex-1 truncate px-3 text-xs text-stone-400">{value}</code>
-        <button onClick={onCopy} className="px-3 text-stone-500 hover:text-white transition-colors">
+        <button onClick={onCopy} className="px-3 text-stone-500 hover:text-[var(--text-primary)] transition-colors">
           {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
         </button>
       </div>
@@ -104,10 +104,10 @@ export function SecuritySettings() {
         <div className="settings-section-header">
           <div className="flex items-center gap-2">
             <Shield size={14} className="text-stone-500" />
-            <h2 className="text-sm font-semibold text-white">Single Sign-On (SAML 2.0)</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Single Sign-On (SAML 2.0)</h2>
             <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-300">Enterprise</span>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-white/[.04] text-stone-600"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-[var(--surface-hover)] text-stone-600"}`}>
             {data.saml_enabled ? "Configured" : "Not configured"}
           </span>
         </div>
@@ -135,10 +135,10 @@ export function SecuritySettings() {
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => save({ saml_enabled: true, saml_provider: data.saml_provider, saml_metadata: data.saml_metadata })}
-              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-500 transition-all">
+              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
               {data.saml_enabled ? "Update SSO" : "Configure SSO"}
             </button>
-            <button className="rounded-lg border border-white/[.08] px-4 py-2 text-sm text-stone-400 hover:bg-white/[.04] hover:text-white transition-colors">
+            <button className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
               Test SSO
             </button>
             <label className="ml-auto flex items-center gap-2 text-sm text-stone-300 cursor-pointer">
@@ -155,7 +155,7 @@ export function SecuritySettings() {
       {/* ── Active Sessions ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><Smartphone size={14} /> Active sessions</h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Smartphone size={14} /> Active sessions</h2>
           <button
             onClick={() => Promise.all(data.sessions.filter(s => !s.current).map(s => revoke.mutateAsync(s.id)))}
             className="text-xs text-stone-400 hover:text-stone-300 transition-colors"
@@ -167,7 +167,7 @@ export function SecuritySettings() {
           <div className="overflow-x-auto">
             <table className="minimal-table min-w-[650px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/[.05] bg-white/[.015]">
+                <tr className="border-b border-[var(--border-soft)] bg-[var(--surface-hover)]">
                   {["Device", "Browser", "Location", "IP", "Last active", ""].map(h => (
                     <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
                   ))}
@@ -175,7 +175,7 @@ export function SecuritySettings() {
               </thead>
               <tbody>
                 {data.sessions.map(s => (
-                  <tr key={s.id} className={`border-b border-white/[.04] last:border-0 ${s.current ? "bg-emerald-500/[.02]" : ""}`}>
+                  <tr key={s.id} className={`border-b border-[var(--border-soft)] last:border-0 ${s.current ? "bg-emerald-500/[.02]" : ""}`}>
                     <td className="px-4 py-3.5">
                       <span className="text-stone-200">{s.device}</span>
                       {s.current && <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">Current</span>}
@@ -202,14 +202,14 @@ export function SecuritySettings() {
       {/* ── Protected Recipients ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-white"><LockKeyhole size={14} /> Protected recipients</h2>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><LockKeyhole size={14} /> Protected recipients</h2>
         </div>
         <div className="p-5 space-y-4">
           <p className="text-sm text-stone-500">Prevent AI sequences from emailing specific domains. Useful for blocking competitors, personal addresses, or internal teams.</p>
           {data.protected_recipients.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {data.protected_recipients.map(r => (
-                <span key={r} className="flex items-center gap-1.5 rounded-full bg-white/[.05] px-3 py-1.5 text-xs text-stone-400">
+                <span key={r} className="flex items-center gap-1.5 rounded-full bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400">
                   {r}
                   <button onClick={() => save({ protected_recipients: data.protected_recipients.filter(x => x !== r) })}
                     className="text-stone-600 hover:text-stone-400 transition-colors"><X size={10} /></button>
@@ -221,7 +221,7 @@ export function SecuritySettings() {
             <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="competitor.com"
               className="key-input h-9 flex-1 px-3 text-sm" />
             <button type="submit"
-              className="flex items-center gap-1.5 rounded-lg border border-white/[.09] px-3 py-2 text-sm text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
               <Plus size={13} /> Add
             </button>
           </form>
@@ -229,7 +229,7 @@ export function SecuritySettings() {
             Presets:
             {["gmail.com", "hotmail.com", "yahoo.com"].map(p => (
               <button key={p} onClick={() => setDomain(p)}
-                className="rounded-md border border-white/[.07] px-2 py-1 hover:text-stone-300 transition-colors">{p}</button>
+                className="rounded-md border border-[var(--border-soft)] px-2 py-1 hover:text-stone-300 transition-colors">{p}</button>
             ))}
           </div>
         </div>
@@ -238,7 +238,7 @@ export function SecuritySettings() {
       {/* ── Data & Export Controls ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-white">Data & export controls</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Data & export controls</h2>
         </div>
         <div className="px-5 py-3">
           <div className="grid grid-cols-[1fr_96px_96px] items-center">
@@ -247,14 +247,14 @@ export function SecuritySettings() {
             <div className="py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-stone-700">API access</div>
             {Object.entries(data.access_controls ?? defaultControls).map(([role, controls]) => (
               <div key={role} className="contents">
-                <div className="border-t border-white/[.04] py-3.5 text-sm capitalize text-stone-300">{role}</div>
-                <div className="border-t border-white/[.04] py-3.5 flex justify-center">
+                <div className="border-t border-[var(--border-soft)] py-3.5 text-sm capitalize text-stone-300">{role}</div>
+                <div className="border-t border-[var(--border-soft)] py-3.5 flex justify-center">
                   <AccessToggle
                     checked={controls.export}
                     onChange={v => save({ access_controls: { ...(data.access_controls ?? defaultControls), [role]: { ...controls, export: v } } })}
                   />
                 </div>
-                <div className="border-t border-white/[.04] py-3.5 flex justify-center">
+                <div className="border-t border-[var(--border-soft)] py-3.5 flex justify-center">
                   <AccessToggle
                     checked={controls.api}
                     onChange={v => save({ access_controls: { ...(data.access_controls ?? defaultControls), [role]: { ...controls, api: v } } })}
@@ -270,7 +270,7 @@ export function SecuritySettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-white">Audit log</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Audit log</h2>
             <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-300">Enterprise</span>
           </div>
           <button className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-300 transition-colors">
@@ -281,7 +281,7 @@ export function SecuritySettings() {
           <div className="overflow-x-auto">
             <table className="minimal-table min-w-[600px] text-left text-sm">
               <thead>
-                <tr className="border-b border-white/[.05] bg-white/[.015]">
+                <tr className="border-b border-[var(--border-soft)] bg-[var(--surface-hover)]">
                   {["Actor", "Action", "Target", "Timestamp", "IP"].map(h => (
                     <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
                   ))}
@@ -289,7 +289,7 @@ export function SecuritySettings() {
               </thead>
               <tbody>
                 {data.audit_log?.map(entry => (
-                  <tr key={entry.id} className="border-b border-white/[.04] last:border-0">
+                  <tr key={entry.id} className="border-b border-[var(--border-soft)] last:border-0">
                     <td className="px-4 py-3 text-stone-200">{entry.actor}</td>
                     <td className="px-4 py-3 font-mono text-xs text-stone-400">{entry.action}</td>
                     <td className="px-4 py-3 text-stone-600">{entry.target}</td>

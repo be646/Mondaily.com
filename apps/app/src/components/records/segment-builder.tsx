@@ -117,18 +117,18 @@ export function SegmentBuilder({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="w-full max-w-xl rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl flex flex-col max-h-[85vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[.06]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
               <Filter size={13} className="text-stone-400" />
             </div>
-            <span className="text-sm font-semibold text-white">Segment Builder</span>
-            <span className="text-xs text-white/30">{cleanName}</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Segment Builder</span>
+            <span className="text-xs text-[var(--text-secondary)]">{cleanName}</span>
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors">
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -140,28 +140,28 @@ export function SegmentBuilder({
                 <Check size={22} className="text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white mb-1">Segment saved as list</p>
-                <p className="text-xs text-white/40">"{savedListName}"</p>
-                <p className="text-xs text-white/30 mt-1">{matched.length} records · visible under Lists in sidebar</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Segment saved as list</p>
+                <p className="text-xs text-[var(--text-secondary)]">"{savedListName}"</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">{matched.length} records · visible under Lists in sidebar</p>
               </div>
             </div>
           ) : (
             <>
               {/* Logic toggle */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-white/40">Match</span>
-                <div className="flex rounded-lg border border-white/[.07] bg-white/[.03] p-0.5">
+                <span className="text-xs text-[var(--text-secondary)]">Match</span>
+                <div className="flex rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
                   {(["AND", "OR"] as const).map(l => (
                     <button
                       key={l}
                       onClick={() => setLogic(l)}
-                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${logic === l ? "bg-stone-600 text-white" : "text-white/30 hover:text-white/60"}`}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${logic === l ? "bg-stone-600 text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-secondary)]"}`}
                     >
                       {l}
                     </button>
                   ))}
                 </div>
-                <span className="text-xs text-white/40">of the following rules</span>
+                <span className="text-xs text-[var(--text-secondary)]">of the following rules</span>
               </div>
 
               {/* Rules */}
@@ -170,14 +170,14 @@ export function SegmentBuilder({
                   const op = OPERATORS.find(o => o.value === rule.operator);
                   return (
                     <div key={rule.id} className="flex items-center gap-2">
-                      <span className="text-[10px] text-white/20 w-6 text-right flex-shrink-0">
+                      <span className="text-[10px] text-[var(--text-secondary)] w-6 text-right flex-shrink-0">
                         {i === 0 ? "IF" : logic}
                       </span>
                       {/* Field */}
                       <select
                         value={rule.field}
                         onChange={e => updateRule(rule.id, { field: e.target.value })}
-                        className="flex-1 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-stone-500/40"
+                        className="flex-1 h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-secondary)] outline-none focus:border-stone-500/40"
                       >
                         {columns.map(c => (
                           <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
@@ -187,7 +187,7 @@ export function SegmentBuilder({
                       <select
                         value={rule.operator}
                         onChange={e => updateRule(rule.id, { operator: e.target.value as Operator })}
-                        className="h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 outline-none focus:border-stone-500/40"
+                        className="h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-secondary)] outline-none focus:border-stone-500/40"
                       >
                         {OPERATORS.map(o => (
                           <option key={o.value} value={o.value}>{o.label}</option>
@@ -199,13 +199,13 @@ export function SegmentBuilder({
                           value={rule.value}
                           onChange={e => updateRule(rule.id, { value: e.target.value })}
                           placeholder="value"
-                          className="w-28 h-8 rounded-lg border border-white/[.07] bg-[#141414] px-2 text-xs text-white/70 placeholder-white/20 outline-none focus:border-stone-500/40"
+                          className="w-28 h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-secondary)] placeholder-white/20 outline-none focus:border-stone-500/40"
                         />
                       )}
                       <button
                         onClick={() => removeRule(rule.id)}
                         disabled={rules.length === 1}
-                        className="text-white/20 hover:text-stone-400 transition-colors disabled:pointer-events-none"
+                        className="text-[var(--text-secondary)] hover:text-stone-400 transition-colors disabled:pointer-events-none"
                       >
                         <X size={13} />
                       </button>
@@ -216,27 +216,27 @@ export function SegmentBuilder({
 
               <button
                 onClick={addRule}
-                className="flex items-center gap-1.5 text-xs text-white/30 hover:text-stone-400 transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-stone-400 transition-colors"
               >
                 <Plus size={12} /> Add rule
               </button>
 
               {/* Preview */}
-              <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3 flex items-center justify-between">
-                <span className="text-xs text-white/40">Matching records</span>
-                <span className={`text-sm font-semibold ${matched.length > 0 ? "text-stone-400" : "text-white/20"}`}>
+              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
+                <span className="text-xs text-[var(--text-secondary)]">Matching records</span>
+                <span className={`text-sm font-semibold ${matched.length > 0 ? "text-stone-400" : "text-[var(--text-secondary)]"}`}>
                   {matched.length} / {records.length}
                 </span>
               </div>
 
               {/* List name */}
               <div className="space-y-1.5">
-                <label className="text-xs text-white/40">Save as list (optional name)</label>
+                <label className="text-xs text-[var(--text-secondary)]">Save as list (optional name)</label>
                 <input
                   value={listName}
                   onChange={e => setListName(e.target.value)}
                   placeholder={`${cleanName} segment — ${new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}`}
-                  className="w-full h-9 rounded-xl border border-white/[.07] bg-[#141414] px-3 text-sm text-white/80 placeholder-white/20 outline-none focus:border-stone-500/40 transition-colors"
+                  className="w-full h-9 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-sm text-[var(--text-secondary)] placeholder-white/20 outline-none focus:border-stone-500/40 transition-colors"
                 />
               </div>
             </>
@@ -244,15 +244,15 @@ export function SegmentBuilder({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/[.06]">
-          <button onClick={onClose} className="text-xs text-white/30 hover:text-white/60 transition-colors">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border-soft)]">
+          <button onClick={onClose} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">
             {saved ? "Close" : "Cancel"}
           </button>
           {!saved && (
             <button
               onClick={saveSegment}
               disabled={matched.length === 0 || saving}
-              className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-40"
             >
               {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</> : <><List size={12} /> Save {matched.length} records as list</>}
             </button>

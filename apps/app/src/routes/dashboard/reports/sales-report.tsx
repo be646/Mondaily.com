@@ -171,11 +171,11 @@ function GoalBar({ value, goal }: { value: number; goal: number }) {
   const pct = Math.min(100, Math.round(value / goal * 100));
   return (
     <div className="mt-2">
-      <div className="flex justify-between text-[10px] text-white/40 mb-1">
+      <div className="flex justify-between text-[10px] text-[var(--text-secondary)] mb-1">
         <span>{pct}% of goal</span>
         <span>{fmtMoney(goal)}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/10">
+      <div className="h-1.5 rounded-full bg-[var(--surface-hover)]">
         <div className="h-1.5 rounded-full bg-current transition-all" style={{ width: `${pct}%` }}/>
       </div>
     </div>
@@ -197,11 +197,11 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
           </button>
         )}
       </div>
-      <p className="mt-2 text-3xl font-bold text-white leading-none print:text-black">{value}</p>
+      <p className="mt-2 text-3xl font-bold text-[var(--text-primary)] leading-none print:text-black">{value}</p>
       <div className="mt-2 flex items-center gap-2 flex-wrap">
         {delta != null && <DeltaBadge delta={delta}/>}
         {sub && (
-          <div className="flex items-center gap-1 text-[11px] text-white/50 print:text-gray-500">
+          <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] print:text-gray-500">
             {trend === "up"      && <TrendingUp  size={11} className="text-emerald-400"/>}
             {trend === "down"    && <TrendingDown size={11} className="text-stone-400"/>}
             {trend === "neutral" && <Minus size={11}/>}
@@ -225,7 +225,7 @@ function ObjectPicker({ objects, value, onChange }: {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-3 py-2 text-sm text-white hover:bg-white/[.06] transition-colors"
+        className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
       >
         {selected?.name_plural ?? value}
         <ChevronDown size={13} className="text-stone-500"/>
@@ -256,10 +256,10 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
       <div className="flex-1 bg-black/40" />
-      <div className="w-full max-w-md overflow-y-auto bg-[#141414] border-l border-white/[.09] p-6" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md overflow-y-auto bg-[var(--surface-card)] border-l border-[var(--border-soft)] p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-semibold text-white truncate">{name}</h2>
-          <button onClick={onClose} className="text-stone-500 hover:text-white transition-colors">
+          <h2 className="font-semibold text-[var(--text-primary)] truncate">{name}</h2>
+          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)] transition-colors">
             <X size={16}/>
           </button>
         </div>
@@ -270,7 +270,7 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
               <span className="text-sm text-stone-300 break-all">{String(val)}</span>
             </div>
           ))}
-          <div className="pt-3 border-t border-white/[.06]">
+          <div className="pt-3 border-t border-[var(--border-soft)]">
             <div className="flex items-start gap-3">
               <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-stone-600 pt-0.5">Created</span>
               <span className="text-sm text-stone-300">{record.created_at ? new Date(record.created_at).toLocaleString() : "—"}</span>
@@ -297,22 +297,22 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"/>
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal header */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/[.07] shrink-0">
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[var(--border-soft)] shrink-0">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/15 ring-1 ring-stone-500/20">
             <LogoMark size={13} className="text-stone-400"/>
           </div>
-          <span className="flex-1 text-sm font-semibold text-white">{title}</span>
+          <span className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{title}</span>
           {onPrint && (
             <button onClick={onPrint}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-[11px] text-stone-400 hover:text-white transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors">
               <Printer size={11}/> Export
             </button>
           )}
-          <button onClick={onClose} className="rounded-lg p-1.5 text-stone-600 hover:text-white transition-colors">
+          <button onClick={onClose} className="rounded-lg p-1.5 text-stone-600 hover:text-[var(--text-primary)] transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -398,12 +398,12 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
   return (
     <>
       {/* Compact trigger card — never stretches */}
-      <div className="rounded-2xl border border-stone-500/20 bg-[#141414] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
+      <div className="rounded-2xl border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
           <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">AI Forecast</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">AI Forecast</p>
           <p className="text-[11px] text-stone-500 mt-0.5">
             {result ? <span className="text-stone-300 italic">{result.headline}</span>
                     : `Project ${hasValue?"revenue":"completions"} with Mondaily AI`}
@@ -414,19 +414,19 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
         ) : error ? (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-stone-400 max-w-[160px] truncate">{error}</span>
-            <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-stone-500 hover:text-white">Retry</button>
+            <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-stone-500 hover:text-[var(--text-primary)]">Retry</button>
           </div>
         ) : result ? (
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-right mr-1">
               <p className="text-[10px] text-stone-500 uppercase tracking-wider">Projected</p>
-              <p className="text-base font-bold text-white">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+              <p className="text-base font-bold text-[var(--text-primary)]">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             </div>
             <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
-            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
+            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-stone-500 hover:text-[var(--text-primary)] transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={runForecast} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors">
+          <button onClick={runForecast} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             Generate
           </button>
         )}
@@ -436,20 +436,20 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
       {modalOpen && result && (
         <AIModal title="AI Forecast" onClose={() => setModalOpen(false)} onPrint={printForecast}>
           {/* Projected value hero */}
-          <div className="px-6 py-6 border-b border-white/[.06]" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(59,130,246,0.04) 100%)"}}>
+          <div className="px-6 py-6 border-b border-[var(--border-soft)]" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(59,130,246,0.04) 100%)"}}>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500 mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
-            <p className="text-4xl font-bold text-white mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+            <p className="text-4xl font-bold text-[var(--text-primary)] mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>
               {result.confidence} confidence
             </span>
           </div>
           {/* Headline */}
-          <div className="px-6 py-4 border-b border-white/[.05]">
+          <div className="px-6 py-4 border-b border-[var(--border-soft)]">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">Headline</p>
             <p className="text-sm text-stone-300 italic leading-relaxed">{result.headline}</p>
           </div>
           {/* Narrative */}
-          <div className="px-6 py-4 border-b border-white/[.05]">
+          <div className="px-6 py-4 border-b border-[var(--border-soft)]">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">Analysis</p>
             <p className="text-sm text-stone-300 leading-relaxed">{result.narrative}</p>
           </div>
@@ -465,18 +465,18 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           )}
           {/* Actions */}
           {result.actions && result.actions.length > 0 && (
-            <div className="px-6 py-4 border-t border-white/[.05]">
+            <div className="px-6 py-4 border-t border-[var(--border-soft)]">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-3">What to do now</p>
               <div className="space-y-2">
                 {result.actions.map((a, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3">
+                  <div key={i} className="flex items-start gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                       a.impact === "high"   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
                       a.impact === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-400" :
                                               "border-stone-500/30 bg-stone-600/10 text-stone-400"
                     }`}>{a.impact}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium">{a.action}</p>
+                      <p className="text-sm text-[var(--text-primary)] font-medium">{a.action}</p>
                       <p className="text-[11px] text-stone-500 mt-0.5">{a.why}</p>
                     </div>
                   </div>
@@ -484,7 +484,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
               </div>
             </div>
           )}
-          <div className="px-6 py-3 flex items-center justify-between border-t border-white/[.05]">
+          <div className="px-6 py-3 flex items-center justify-between border-t border-[var(--border-soft)]">
             <span className="text-[10px] text-stone-700">Powered by Mondaily AI</span>
             <button onClick={() => { setResult(null); setModalOpen(false); runForecast(); }} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">↺ Regenerate</button>
           </div>
@@ -563,12 +563,12 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
   return (
     <>
       {/* Compact trigger card */}
-      <div className="rounded-2xl border border-white/[.08] bg-[#141414] p-5 flex items-center gap-4 print:hidden">
+      <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
           <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-white">AI Insights</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">AI Insights</p>
           <p className="text-[11px] text-stone-500 mt-0.5">
             {insights ? `${insights.length} insights ready` : "Surface patterns in your data with Mondaily AI"}
           </p>
@@ -578,15 +578,15 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
         ) : error ? (
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-stone-400 max-w-[160px] truncate">{error}</span>
-            <button onClick={() => { setError(null); run(); }} className="text-[11px] text-stone-500 hover:text-white">Retry</button>
+            <button onClick={() => { setError(null); run(); }} className="text-[11px] text-stone-500 hover:text-[var(--text-primary)]">Retry</button>
           </div>
         ) : insights ? (
           <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-stone-300 hover:bg-stone-500/20 transition-colors">View</button>
-            <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-white/[.08] bg-white/[.03] px-2.5 py-1.5 text-xs text-stone-500 hover:text-white transition-colors">↺</button>
+            <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-stone-500 hover:text-[var(--text-primary)] transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={run} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-colors">
+          <button onClick={run} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             Analyse
           </button>
         )}
@@ -611,11 +611,11 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                   </div>
                   <div>
                     <p className="text-[11px] text-stone-500 mb-0.5">{ins.title}</p>
-                    <p className="text-2xl font-bold text-white leading-tight">{ins.value}</p>
+                    <p className="text-2xl font-bold text-[var(--text-primary)] leading-tight">{ins.value}</p>
                   </div>
                   <p className="text-[11px] text-stone-400 leading-relaxed">{ins.description}</p>
                   {ins.action && (
-                    <div className="flex items-start gap-1.5 mt-1 pt-2 border-t border-white/[.06]">
+                    <div className="flex items-start gap-1.5 mt-1 pt-2 border-t border-[var(--border-soft)]">
                       <span className="text-[10px] shrink-0 text-stone-600 mt-0.5">→</span>
                       <p className="text-[11px] text-stone-400 leading-relaxed">{ins.action}</p>
                     </div>
@@ -624,7 +624,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
               );
             })}
           </div>
-          <div className="px-5 py-3 flex items-center justify-between border-t border-white/[.05]">
+          <div className="px-5 py-3 flex items-center justify-between border-t border-[var(--border-soft)]">
             <span className="text-[10px] text-stone-700">Powered by Mondaily AI · {records.length} records</span>
             <button onClick={() => { setInsights(null); setModalOpen(false); run(); }} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">↺ Regenerate</button>
           </div>
@@ -695,26 +695,26 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
     <div className="mb-6 print:hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-lg border border-white/[.08] bg-white/[.02] px-3 py-2 text-xs text-stone-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-colors"
       >
         <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-stone-500/20 text-stone-400 border border-stone-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
       </button>
 
       {open && (
-        <div className="mt-3 rounded-2xl border border-white/[.09] bg-[#141414] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-          <div className="px-5 py-4 border-b border-white/[.06]">
-            <h3 className="text-sm font-semibold text-white mb-1">Scheduled email digests</h3>
+        <div className="mt-3 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+          <div className="px-5 py-4 border-b border-[var(--border-soft)]">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Scheduled email digests</h3>
             <p className="text-[11px] text-stone-500">Receive a KPI snapshot for <strong className="text-stone-400">{objName}</strong> on a schedule.</p>
           </div>
 
           {/* Existing digests */}
           {digests.length > 0 && (
-            <div className="px-5 py-3 space-y-2 border-b border-white/[.06]">
+            <div className="px-5 py-3 space-y-2 border-b border-[var(--border-soft)]">
               {digests.map(d => (
-                <div key={d.id} className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-white/[.02] px-3 py-2.5">
+                <div key={d.id} className="flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
                   <Mail size={12} className="text-stone-400 shrink-0"/>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{FREQ_LABELS[d.frequency]} · {d.period} view</p>
+                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">{FREQ_LABELS[d.frequency]} · {d.period} view</p>
                     <p className="text-[10px] text-stone-500 truncate">{d.recipients.join(", ")}</p>
                   </div>
                   {sentMsg && sending === null && d.id === digests[0]?.id && (
@@ -723,7 +723,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   <button
                     onClick={() => sendNow(d.id)}
                     disabled={sending === d.id}
-                    className="text-[11px] text-stone-500 hover:text-white transition-colors disabled:opacity-50"
+                    className="text-[11px] text-stone-500 hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
                   >
                     {sending === d.id ? <Loader2 size={11} className="animate-spin"/> : "Send now"}
                   </button>
@@ -742,7 +742,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-white/[.08] text-stone-500 hover:text-white"}`}>
+                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-[var(--text-primary)]"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -753,7 +753,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                 <div>
                   <label className="block text-[10px] font-medium text-stone-600 mb-1">Day</label>
                   <select value={dayOfWeek} onChange={e => setDayOfWeek(Number(e.target.value))}
-                    className="w-full h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 focus:outline-none">
+                    className="w-full h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-stone-300 focus:outline-none">
                     {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
                   </select>
                 </div>
@@ -761,14 +761,14 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
               <div>
                 <label className="block text-[10px] font-medium text-stone-600 mb-1">Hour (24h)</label>
                 <select value={hour} onChange={e => setHour(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 focus:outline-none">
+                  className="w-full h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-stone-300 focus:outline-none">
                   {Array.from({length:24},(_,i) => <option key={i} value={i}>{String(i).padStart(2,"0")}:00</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[10px] font-medium text-stone-600 mb-1">Period view</label>
                 <select value={period} onChange={e => setPeriodD(e.target.value as typeof period)}
-                  className="w-full h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 focus:outline-none">
+                  className="w-full h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-stone-300 focus:outline-none">
                   {(["today","week","month","quarter","year"] as const).map(p => (
                     <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>
                   ))}
@@ -784,16 +784,16 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); } }}
                   placeholder="email@example.com"
-                  className="flex-1 h-8 rounded-lg border border-white/[.08] bg-[#141414] px-2 text-xs text-stone-300 placeholder-stone-700 focus:outline-none focus:border-stone-500/40"
+                  className="flex-1 h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-stone-300 placeholder-stone-700 focus:outline-none focus:border-stone-500/40"
                 />
-                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/[.08] text-stone-500 hover:text-white transition-colors">
+                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-[var(--border-soft)] text-stone-500 hover:text-[var(--text-primary)] transition-colors">
                   <Plus size={12}/>
                 </button>
               </div>
               {emails.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {emails.map(e => (
-                    <span key={e} className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[.03] px-2 py-0.5 text-[10px] text-stone-400">
+                    <span key={e} className="flex items-center gap-1 rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] text-stone-400">
                       {e}
                       <button onClick={() => setEmails(arr => arr.filter(x => x !== e))} className="text-stone-600 hover:text-stone-400"><X size={9}/></button>
                     </span>
@@ -805,7 +805,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <button
               onClick={() => create.mutate({ object_type: objectType, period, frequency: freq, day_of_week: freq === "weekly" ? dayOfWeek : undefined, hour, recipients: emails })}
               disabled={emails.length === 0 || create.isPending}
-              className="w-full rounded-lg bg-stone-600 py-2.5 text-xs font-medium text-white hover:bg-stone-500 disabled:opacity-40 transition-colors"
+              className="w-full rounded-lg bg-stone-600 py-2.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors"
             >
               {create.isPending ? "Creating…" : "Create digest"}
             </button>
@@ -1161,7 +1161,7 @@ export function SalesReportPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#141414] print:bg-white text-white print:text-black">
+    <div className="min-h-full bg-[var(--surface-card)] print:bg-white text-[var(--text-primary)] print:text-black">
       {/* Print header */}
       <div className="hidden print:flex items-center justify-between px-8 py-6 border-b border-gray-200">
         <div>
@@ -1178,31 +1178,31 @@ export function SalesReportPage() {
         {/* Screen header */}
         {/* Header row */}
         <div className="mb-4 flex items-center gap-3 print:hidden">
-          <Link to="/reports" className="flex items-center gap-1 text-xs text-stone-600 hover:text-white transition-colors shrink-0">
+          <Link to="/reports" className="flex items-center gap-1 text-xs text-stone-600 hover:text-[var(--text-primary)] transition-colors shrink-0">
             <ArrowLeft size={12}/> Reports
           </Link>
           <span className="text-stone-700 text-xs shrink-0">/</span>
-          <h1 className="text-sm font-semibold text-white shrink-0">Live Report</h1>
+          <h1 className="text-sm font-semibold text-[var(--text-primary)] shrink-0">Live Report</h1>
           {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
           <span className="text-xs text-stone-700 hidden sm:inline">
             {records.length} records{filteredRecords.length !== records.length && ` · ${filteredRecords.length} filtered`}
           </span>
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
             {/* Period buttons */}
-            <div className="flex gap-0.5 rounded-lg border border-white/[.06] bg-white/[.02] p-0.5">
+            <div className="flex gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
               {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
                 <button key={p} onClick={() => setPeriod(p)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-white/10 text-white" : "text-stone-500 hover:text-stone-300"}`}>
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
                   {PERIOD_LABELS[p]}
                 </button>
               ))}
             </div>
             <button onClick={exportCSV}
-              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-stone-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-colors">
               <Download size={12}/> CSV
             </button>
             <button onClick={generateReport}
-              className="flex items-center gap-1 rounded-lg border border-white/[.06] bg-white/[.02] px-2.5 py-1 text-xs text-stone-400 hover:text-white transition-colors">
+              className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-colors">
               <Printer size={12}/> Export
             </button>
           </div>
@@ -1210,14 +1210,14 @@ export function SalesReportPage() {
 
         {/* Custom date range row — only shown when Custom period is active */}
         {period === "custom" && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-white/[.06] bg-white/[.02] px-3 py-2.5 print:hidden">
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 print:hidden">
             <span className="text-[11px] font-medium text-stone-500 shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-md border border-white/[.06] bg-[#141414] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
               <span className="text-xs text-stone-600">→</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-md border border-white/[.06] bg-[#141414] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-stone-300 [color-scheme:dark] outline-none focus:border-blue-500/40"/>
             </div>
             {customStart && customEnd && (
               <span className="ml-auto text-[11px] text-stone-600">
@@ -1238,7 +1238,7 @@ export function SalesReportPage() {
             {presets.map(p => {
               const active = JSON.stringify(activeFilters) === JSON.stringify(p.filters);
               return (
-                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[.08] bg-white/[.02] text-stone-400 hover:text-white hover:border-white/20"}`}
+                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-400 hover:text-[var(--text-primary)] hover:border-[var(--border-soft)]"}`}
                   onClick={() => applyPreset(p)}>
                   {p.name}
                   <button onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
@@ -1250,7 +1250,7 @@ export function SalesReportPage() {
             })}
             {filtersActive && !savingPreset && (
               <button onClick={() => setSavingPreset(true)}
-                className="flex items-center gap-1 rounded-full border border-dashed border-white/[.12] px-2 py-0.5 text-[11px] text-stone-600 hover:text-white hover:border-white/30 transition-colors">
+                className="flex items-center gap-1 rounded-full border border-dashed border-[var(--border-soft)] px-2 py-0.5 text-[11px] text-stone-600 hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors">
                 <Plus size={9}/> Save current
               </button>
             )}
@@ -1262,14 +1262,14 @@ export function SalesReportPage() {
                   onChange={e => setPresetName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && presetName.trim()) savePreset(presetName.trim()); if (e.key === "Escape") { setSavingPreset(false); setPresetName(""); } }}
                   placeholder="Preset name…"
-                  className="h-6 rounded-md border border-blue-500/30 bg-[#141414] px-2 text-[11px] text-white placeholder-stone-600 outline-none focus:border-blue-500/50 w-36"
+                  className="h-6 rounded-md border border-blue-500/30 bg-[var(--surface-card)] px-2 text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-blue-500/50 w-36"
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
-                  className="h-6 rounded-md bg-blue-600 px-2 text-[10px] text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                  className="h-6 rounded-md bg-blue-600 px-2 text-[10px] text-[var(--text-primary)] hover:bg-blue-500 disabled:opacity-40 transition-colors">
                   Save
                 </button>
-                <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-stone-600 hover:text-white transition-colors"><X size={11}/></button>
+                <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-stone-600 hover:text-[var(--text-primary)] transition-colors"><X size={11}/></button>
               </div>
             )}
           </div>
@@ -1277,8 +1277,8 @@ export function SalesReportPage() {
 
         {/* Filter bar */}
         {hasFilters && (
-          <div className={`mb-4 print:hidden rounded-xl border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-white/[.06] bg-white/[.02]"}`}>
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.05]">
+          <div className={`mb-4 print:hidden rounded-xl border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-soft)]">
               <Filter size={11} className="text-stone-500 shrink-0"/>
               <span className="text-[11px] font-medium text-stone-500">Filters</span>
               {filtersActive ? (
@@ -1304,7 +1304,7 @@ export function SalesReportPage() {
                     <select
                       value={activeFilters[col] ?? ""}
                       onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-white/[.08] bg-[#141414] text-stone-300 focus:border-blue-500/40"}`}
+                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-[var(--border-soft)] bg-[var(--surface-card)] text-stone-300 focus:border-blue-500/40"}`}
                     >
                       <option value="">All</option>
                       {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
@@ -1340,8 +1340,8 @@ export function SalesReportPage() {
             {/* Goal dialog */}
             {editingGoal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="w-72 rounded-2xl border border-white/[.09] bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
-                  <h3 className="mb-3 text-sm font-semibold text-white">Set a goal for {vocab.kpi1Label}</h3>
+                <div className="w-72 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+                  <h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Set a goal for {vocab.kpi1Label}</h3>
                   <input
                     autoFocus
                     value={goalInput}
@@ -1351,9 +1351,9 @@ export function SalesReportPage() {
                     className="key-input w-full mb-3"
                   />
                   <div className="flex gap-2">
-                    <button onClick={saveGoal} className="flex-1 rounded-md bg-stone-600 py-2 text-xs font-medium text-white hover:bg-stone-500">Set goal</button>
-                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-white/[.06] px-3 py-2 text-xs text-stone-400 hover:text-white">Cancel</button>
-                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-white/10 px-3 py-2 text-xs text-stone-600 hover:text-stone-400">Clear</button>}
+                    <button onClick={saveGoal} className="flex-1 rounded-md bg-stone-600 py-2 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500">Set goal</button>
+                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-stone-400 hover:text-[var(--text-primary)]">Cancel</button>
+                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-stone-600 hover:text-stone-400">Clear</button>}
                   </div>
                 </div>
               </div>
@@ -1406,7 +1406,7 @@ export function SalesReportPage() {
                 label={hasStage ? "Open / Active" : "All Time"}
                 value={fmtNum(hasStage ? stats.openCount : records.length)}
                 sub={hasStage ? "in pipeline" : "records total"}
-                color="border-cyan-500/20 bg-cyan-500/[.06] text-cyan-400"
+                color="border-[var(--accent)]/20 bg-[var(--accent)]/[.06] text-[var(--accent)]"
               />
             </div>
 
@@ -1426,7 +1426,7 @@ export function SalesReportPage() {
 
             {/* Charts */}
             <div className="mb-6 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
-              <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
+              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-semibold print:text-black">{vocab.trendLabel}</h3>
                   <span className="text-[10px] text-stone-600 print:hidden">Clean trend</span>
@@ -1457,7 +1457,7 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
+              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.stageLabel}</h3>
                 {stageData.length === 0 ? (
                   <div className="flex h-48 items-center justify-center text-xs text-stone-600">
@@ -1468,7 +1468,7 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
+              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">Activity Over Time</h3>
                 {trendData.length === 0 ? (
                   <div className="flex h-48 items-center justify-center text-xs text-stone-600">No data for this period</div>
@@ -1478,14 +1478,14 @@ export function SalesReportPage() {
               </div>
 
               {hasValue && hasStage && (
-                <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
+                <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">Value by {stageCol}</h3>
                   <Sparkline values={stageData.map(item => item.value)} />
                 </div>
               )}
 
               {hasValue && !hasStage && (
-                <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-5 print:border-gray-200 print:bg-white">
+                <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">{valueCol} Distribution</h3>
                   <Sparkline values={trendData.map(item => item.revenue)} />
                 </div>
@@ -1509,14 +1509,14 @@ export function SalesReportPage() {
                 { bar: "from-stone-500 to-blue-400",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-teal-500 to-emerald-400",  badge: "bg-teal-500/15 text-teal-300 border-teal-500/20" },
                 { bar: "from-orange-500 to-amber-400",  badge: "bg-orange-500/15 text-orange-300 border-orange-500/20" },
-                { bar: "from-cyan-500 to-sky-400",      badge: "bg-cyan-500/15 text-cyan-300 border-cyan-500/20" },
+                { bar: "from-cyan-500 to-sky-400",      badge: "bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/20" },
                 { bar: "from-fuchsia-500 to-stone-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
               ];
               return (
-                <div className="mb-6 rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden print:border-gray-200 print:bg-white">
+                <div className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden print:border-gray-200 print:bg-white">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[.06]">
-                    <h3 className="text-sm font-semibold text-white print:text-black">{vocab.tableLabel}</h3>
+                  <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border-soft)]">
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)] print:text-black">{vocab.tableLabel}</h3>
                     {hasValue && (
                       <span className="text-xs text-stone-500">
                         Total <span className="font-semibold text-stone-300 ml-1">{fmtMoney(total)}</span>
@@ -1524,7 +1524,7 @@ export function SalesReportPage() {
                     )}
                   </div>
                   {/* Column labels */}
-                  <div className="grid px-5 py-2 border-b border-white/[.04]" style={{ gridTemplateColumns: hasValue ? "2rem 1fr auto auto" : "2rem 1fr auto" }}>
+                  <div className="grid px-5 py-2 border-b border-[var(--border-soft)]" style={{ gridTemplateColumns: hasValue ? "2rem 1fr auto auto" : "2rem 1fr auto" }}>
                     <span/>
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Name</span>
                     {hasStage && <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mr-4">{stageCol?.replace(/_/g," ")}</span>}
@@ -1544,7 +1544,7 @@ export function SalesReportPage() {
                         <div
                           key={r.id}
                           onClick={() => setDrillRecord(r)}
-                          className="group relative cursor-pointer px-5 py-3 hover:bg-white/[.025] transition-colors"
+                          className="group relative cursor-pointer px-5 py-3 hover:bg-[var(--surface-hover)] transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             {/* Rank */}
@@ -1554,17 +1554,17 @@ export function SalesReportPage() {
                             {/* Name + bar */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-sm font-medium text-white truncate print:text-black">
+                                <span className="text-sm font-medium text-[var(--text-primary)] truncate print:text-black">
                                   {String(r.data[nameCol] ?? "—")}
                                 </span>
                                 {hasValue && (
-                                  <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-white print:text-black">
+                                  <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-[var(--text-primary)] print:text-black">
                                     {fmtMoney(isNaN(val) ? 0 : val)}
                                   </span>
                                 )}
                               </div>
                               {hasValue && (
-                                <div className="h-1.5 w-full rounded-full bg-white/[.06] overflow-hidden">
+                                <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)] overflow-hidden">
                                   <div
                                     className={`h-full rounded-full bg-gradient-to-r ${color.bar} transition-all duration-500`}
                                     style={{ width: `${pct}%` }}
@@ -1586,9 +1586,9 @@ export function SalesReportPage() {
                   </div>
                   {/* Footer total */}
                   {hasValue && (
-                    <div className="flex items-center justify-between border-t border-white/[.06] px-5 py-3 print:border-gray-200">
+                    <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3 print:border-gray-200">
                       <span className="text-xs text-stone-500">Top {topRecords.length} records</span>
-                      <span className="font-mono text-sm font-bold text-white print:text-black">{fmtMoney(total)}</span>
+                      <span className="font-mono text-sm font-bold text-[var(--text-primary)] print:text-black">{fmtMoney(total)}</span>
                     </div>
                   )}
                 </div>

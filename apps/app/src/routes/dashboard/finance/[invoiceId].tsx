@@ -87,9 +87,9 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
   if (["draft", "cancelled"].includes(invoice.status)) return null;
 
   return (
-    <div className="rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden">
-      <div className="border-b border-white/[.04] px-4 py-3 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-white">Payments</span>
+    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
+      <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
+        <span className="text-[12px] font-medium text-[var(--text-primary)]">Payments</span>
         <button
           onClick={() => setExpanded(o => !o)}
           className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300 transition-colors"
@@ -103,9 +103,9 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
       {payments.length > 0 && (
         <div className="px-4 py-2 space-y-1.5">
           {payments.map(p => (
-            <div key={p.id} className="flex items-center justify-between py-1.5 text-[12px] border-b border-white/[.03] last:border-0">
+            <div key={p.id} className="flex items-center justify-between py-1.5 text-[12px] border-b border-[var(--border-soft)] last:border-0">
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium">{formatCurrency(p.amount, invoice.currency)}</span>
+                <span className="text-[var(--text-primary)] font-medium">{formatCurrency(p.amount, invoice.currency)}</span>
                 <span className="text-stone-600">·</span>
                 <span className="text-stone-500 capitalize">{p.method.replace(/_/g, " ")}</span>
                 {p.reference && <><span className="text-stone-700">·</span><span className="text-stone-600">{p.reference}</span></>}
@@ -124,7 +124,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             <span className="text-emerald-400">{formatCurrency(totalPaid, invoice.currency)}</span>
           </div>
           {remaining > 0 && (
-            <div className="flex justify-between text-[12px] text-stone-500 border-t border-white/[.06] pt-1.5">
+            <div className="flex justify-between text-[12px] text-stone-500 border-t border-[var(--border-soft)] pt-1.5">
               <span>Remaining</span>
               <span className="text-stone-400 font-medium">{formatCurrency(remaining, invoice.currency)}</span>
             </div>
@@ -134,7 +134,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
 
       {/* Inline form */}
       {expanded && (
-        <div className="border-t border-white/[.04] px-4 py-4 space-y-3">
+        <div className="border-t border-[var(--border-soft)] px-4 py-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-stone-600">Amount</label>
@@ -180,7 +180,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             <button
               onClick={() => recordPayment.mutate()}
               disabled={recordPayment.isPending || !amount || parseFloat(amount) <= 0}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-50"
             >
               <CheckCircle size={11}/> {recordPayment.isPending ? "Recording…" : "Record Payment"}
             </button>
@@ -372,10 +372,10 @@ export function InvoiceDetailPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 px-6 py-3">
         <div className="flex items-center gap-3">
-          <Link to="/finance/invoices" className="text-stone-500 hover:text-white transition-colors">
+          <Link to="/finance/invoices" className="text-stone-500 hover:text-[var(--text-primary)] transition-colors">
             <ArrowLeft size={15}/>
           </Link>
-          <span className="text-[14px] font-semibold text-white">{invoice.number}</span>
+          <span className="text-[14px] font-semibold text-[var(--text-primary)]">{invoice.number}</span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[invoice.status]}`}>
             {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
           </span>
@@ -387,7 +387,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save()}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-[12px] text-stone-300 hover:bg-white/[.04] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
             >
               <Save size={12}/> Save
             </button>
@@ -396,7 +396,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "sent" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-blue-500/40 border-b-[3px] border-b-blue-700 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border-x border-t border-blue-500/40 border-b-[3px] border-b-blue-700 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-blue-500 transition-colors disabled:opacity-50"
             >
               <Send size={12}/> Send Invoice
             </button>
@@ -405,14 +405,14 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "paid" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-50"
             >
               <CheckCircle size={12}/> Mark as Paid
             </button>
           )}
           <button
             onClick={() => printInvoice(invoice)}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] px-3 py-1.5 text-[12px] text-stone-500 hover:text-stone-300 hover:bg-white/[.03] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)] transition-colors"
           >
             <Download size={12}/> PDF
           </button>
@@ -434,7 +434,7 @@ export function InvoiceDetailPage() {
 
           {/* Client + meta */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 space-y-3">
+            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
               <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Bill To</div>
               <div>
                 <label className="text-[11px] text-stone-600">Client name *</label>
@@ -470,7 +470,7 @@ export function InvoiceDetailPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4 space-y-3">
+            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
               <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Details</div>
               <div>
                 <label className="text-[11px] text-stone-600">Invoice number</label>
@@ -504,9 +504,9 @@ export function InvoiceDetailPage() {
           </div>
 
           {/* Line items */}
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden">
-            <div className="border-b border-white/[.04] px-4 py-3 flex items-center justify-between">
-              <span className="text-[12px] font-medium text-white">Line Items</span>
+          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
+            <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
+              <span className="text-[12px] font-medium text-[var(--text-primary)]">Line Items</span>
               {isEditable && (
                 <button onClick={addItem} className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300 transition-colors">
                   <Plus size={11}/> Add item
@@ -516,7 +516,7 @@ export function InvoiceDetailPage() {
 
             <table className="minimal-table">
               <thead>
-                <tr className="border-b border-white/[.04]">
+                <tr className="border-b border-[var(--border-soft)]">
                   <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Description</th>
                   <th className="px-4 py-2 text-right text-[11px] font-medium text-stone-600 w-16">Qty</th>
                   <th className="px-4 py-2 text-right text-[11px] font-medium text-stone-600 w-28">Unit Price</th>
@@ -529,7 +529,7 @@ export function InvoiceDetailPage() {
                 {items.map((item, i) => {
                   const lineTotal = item.quantity * item.unit_price * (1 + item.tax_rate / 100);
                   return (
-                    <tr key={i} className="border-b border-white/[.03]">
+                    <tr key={i} className="border-b border-[var(--border-soft)]">
                       <td className="px-4 py-2">
                         <input
                           value={item.description}
@@ -573,7 +573,7 @@ export function InvoiceDetailPage() {
                           className="key-input w-full text-right text-[12px]"
                         />
                       </td>
-                      <td className="px-4 py-2 text-right text-[12px] font-medium text-white">
+                      <td className="px-4 py-2 text-right text-[12px] font-medium text-[var(--text-primary)]">
                         {formatCurrency(lineTotal, currency)}
                       </td>
                       {isEditable && (
@@ -594,7 +594,7 @@ export function InvoiceDetailPage() {
             </table>
 
             {/* Totals */}
-            <div className="flex justify-end border-t border-white/[.04] px-4 py-3">
+            <div className="flex justify-end border-t border-[var(--border-soft)] px-4 py-3">
               <div className="w-64 space-y-1.5">
                 <div className="flex justify-between text-[12px] text-stone-500">
                   <span>Subtotal</span>
@@ -604,7 +604,7 @@ export function InvoiceDetailPage() {
                   <span>Tax</span>
                   <span>{formatCurrency(tax_total, currency)}</span>
                 </div>
-                <div className="flex justify-between border-t border-white/[.06] pt-1.5 text-[14px] font-semibold text-white">
+                <div className="flex justify-between border-t border-[var(--border-soft)] pt-1.5 text-[14px] font-semibold text-[var(--text-primary)]">
                   <span>Invoice total</span>
                   <span>{formatCurrency(total, currency)}</span>
                 </div>
@@ -629,7 +629,7 @@ export function InvoiceDetailPage() {
                           <span>−{formatCurrency(paymentsAmt, currency)}</span>
                         </div>
                       )}
-                      <div className={`flex justify-between border-t border-white/[.06] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-stone-400" : "text-emerald-400"}`}>
+                      <div className={`flex justify-between border-t border-[var(--border-soft)] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-stone-400" : "text-emerald-400"}`}>
                         <span>Net owed</span>
                         <span>{formatCurrency(Math.max(0, netOwed), currency)}</span>
                       </div>

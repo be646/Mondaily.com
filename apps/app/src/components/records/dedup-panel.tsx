@@ -209,22 +209,22 @@ export function DedupPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="w-full max-w-2xl rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl flex flex-col max-h-[85vh]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[.06]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20">
               <LogoMark size={14} className="text-stone-400" />
             </div>
-            <span className="text-sm font-semibold text-white">AI Data Cleaner</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">AI Data Cleaner</span>
             {step === "review" && groups.length > 0 && (
               <span className="text-xs text-stone-400 bg-stone-400/10 border border-stone-400/20 rounded-full px-2 py-0.5">
                 {groups.length} duplicate{groups.length > 1 ? "s" : ""} found
               </span>
             )}
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors">
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -238,13 +238,13 @@ export function DedupPanel({
                 <LogoMark size={24} className="text-stone-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white mb-1">Scan {records.length} records for duplicates</p>
-                <p className="text-xs text-white/30">AI will check for matching emails, phone numbers, and names</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Scan {records.length} records for duplicates</p>
+                <p className="text-xs text-[var(--text-secondary)]">AI will check for matching emails, phone numbers, and names</p>
               </div>
               <button
                 onClick={scan}
                 disabled={scanning}
-                className="flex items-center gap-2 rounded-xl bg-stone-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-stone-500 transition-colors disabled:opacity-60"
+                className="flex items-center gap-2 rounded-xl bg-stone-600 px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-60"
               >
                 {scanning ? <><Loader2 size={14} className="animate-spin" /> Scanning…</> : <><LogoMark size={14} /> Scan now</>}
               </button>
@@ -257,14 +257,14 @@ export function DedupPanel({
               {groups.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-6 text-center">
                   <Check size={28} className="text-emerald-400" />
-                  <p className="text-sm font-semibold text-white">No duplicates found</p>
-                  <p className="text-xs text-white/30">Your data looks clean</p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">No duplicates found</p>
+                  <p className="text-xs text-[var(--text-secondary)]">Your data looks clean</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs text-white/40 mb-3">Select which record to keep for each group. All other fields will be merged in.</p>
+                  <p className="text-xs text-[var(--text-secondary)] mb-3">Select which record to keep for each group. All other fields will be merged in.</p>
                   {groups.map((g, gi) => (
-                    <div key={gi} className="rounded-xl border border-white/[.06] bg-white/[.02] overflow-hidden">
+                    <div key={gi} className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
                       <button
                         className="w-full flex items-center justify-between px-4 py-3 text-left"
                         onClick={() => setExpandedGroup(expandedGroup === gi ? null : gi)}
@@ -273,28 +273,28 @@ export function DedupPanel({
                           <span className={`text-[10px] font-semibold border rounded-full px-2 py-0.5 ${reasonColor(g.reason)}`}>
                             {reasonLabel(g.reason)}
                           </span>
-                          <span className="text-xs text-white/60 font-mono">{g.value}</span>
-                          <span className="text-xs text-white/30">{g.records.length} records</span>
+                          <span className="text-xs text-[var(--text-secondary)] font-mono">{g.value}</span>
+                          <span className="text-xs text-[var(--text-secondary)]">{g.records.length} records</span>
                         </div>
-                        {expandedGroup === gi ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />}
+                        {expandedGroup === gi ? <ChevronUp size={12} className="text-[var(--text-secondary)]" /> : <ChevronDown size={12} className="text-[var(--text-secondary)]" />}
                       </button>
                       {expandedGroup === gi && (
-                        <div className="border-t border-white/[.05] divide-y divide-white/[.04]">
+                        <div className="border-t border-[var(--border-soft)] divide-y divide-white/[.04]">
                           {g.records.map((r, ri) => {
                             const isKeep = (keepMap[gi] ?? 0) === ri;
                             const name = String(r.data.name ?? r.data.Name ?? r.data.company_name ?? "Unknown");
                             return (
                               <div
                                 key={r.id}
-                                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${isKeep ? "bg-emerald-500/5" : "hover:bg-white/[.02]"}`}
+                                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${isKeep ? "bg-emerald-500/5" : "hover:bg-[var(--surface-hover)]"}`}
                                 onClick={() => setKeepMap(prev => ({ ...prev, [gi]: ri }))}
                               >
-                                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isKeep ? "border-emerald-400 bg-emerald-400" : "border-white/20"}`}>
+                                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isKeep ? "border-emerald-400 bg-emerald-400" : "border-[var(--border-soft)]"}`}>
                                   {isKeep && <Check size={8} className="text-black" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-white/80 truncate">{name}</p>
-                                  <p className="text-[10px] text-white/30 truncate">
+                                  <p className="text-xs font-medium text-[var(--text-secondary)] truncate">{name}</p>
+                                  <p className="text-[10px] text-[var(--text-secondary)] truncate">
                                     {[r.data.email, r.data.phone, r.data.job_title].filter(Boolean).join(" · ")}
                                   </p>
                                 </div>
@@ -316,9 +316,9 @@ export function DedupPanel({
                     <AlertTriangle size={13} className="text-orange-400" />
                     <span className="text-xs font-semibold text-orange-400">Missing contact info</span>
                   </div>
-                  {missing.noBoth.length > 0 && <p className="text-xs text-white/40">{missing.noBoth.length} records missing both email and phone</p>}
-                  {missing.noEmail.length > 0 && <p className="text-xs text-white/40">{missing.noEmail.length} records missing email only</p>}
-                  {missing.noPhone.length > 0 && <p className="text-xs text-white/40">{missing.noPhone.length} records missing phone only</p>}
+                  {missing.noBoth.length > 0 && <p className="text-xs text-[var(--text-secondary)]">{missing.noBoth.length} records missing both email and phone</p>}
+                  {missing.noEmail.length > 0 && <p className="text-xs text-[var(--text-secondary)]">{missing.noEmail.length} records missing email only</p>}
+                  {missing.noPhone.length > 0 && <p className="text-xs text-[var(--text-secondary)]">{missing.noPhone.length} records missing phone only</p>}
                 </div>
               )}
             </>
@@ -331,8 +331,8 @@ export function DedupPanel({
                 <List size={20} className="text-blue-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white mb-1">Create smart lists</p>
-                <p className="text-xs text-white/30">AI will auto-create lists filtered by email and phone, ready for campaigns</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Create smart lists</p>
+                <p className="text-xs text-[var(--text-secondary)]">AI will auto-create lists filtered by email and phone, ready for campaigns</p>
               </div>
               <div className="w-full space-y-2 text-left">
                 {[
@@ -340,9 +340,9 @@ export function DedupPanel({
                   { icon: <Phone size={12} />, label: "Contacts with phone", color: "text-emerald-400" },
                   { icon: <LogoMark size={12} />, label: "Contacts with both", color: "text-stone-400" },
                 ].map((item, i) => (
-                  <div key={i} className={`flex items-center gap-2.5 rounded-lg border border-white/[.05] bg-white/[.02] px-3 py-2.5 ${item.color}`}>
+                  <div key={i} className={`flex items-center gap-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 ${item.color}`}>
                     {item.icon}
-                    <span className="text-xs text-white/60">{item.label} — <span className="italic text-white/30">will be created under Lists</span></span>
+                    <span className="text-xs text-[var(--text-secondary)]">{item.label} — <span className="italic text-[var(--text-secondary)]">will be created under Lists</span></span>
                   </div>
                 ))}
               </div>
@@ -356,13 +356,13 @@ export function DedupPanel({
                 <Check size={22} className="text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white mb-1">All done!</p>
-                <p className="text-xs text-white/30">Lists created and available under Lists in the sidebar</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">All done!</p>
+                <p className="text-xs text-[var(--text-secondary)]">Lists created and available under Lists in the sidebar</p>
               </div>
               <div className="w-full space-y-2">
                 {listResults.map((l, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-lg border border-white/[.05] bg-white/[.02] px-3 py-2.5">
-                    <span className="text-xs text-white/70">{l.name}</span>
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
+                    <span className="text-xs text-[var(--text-secondary)]">{l.name}</span>
                     <span className="text-[10px] text-emerald-400 font-medium">{l.count} records</span>
                   </div>
                 ))}
@@ -372,8 +372,8 @@ export function DedupPanel({
         </div>
 
         {/* Footer actions */}
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/[.06]">
-          <button onClick={onClose} className="text-xs text-white/30 hover:text-white/60 transition-colors">
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-[var(--border-soft)]">
+          <button onClick={onClose} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">
             {done ? "Close" : "Cancel"}
           </button>
 
@@ -382,7 +382,7 @@ export function DedupPanel({
               <>
                 <button
                   onClick={() => setStep("lists")}
-                  className="flex items-center gap-1.5 rounded-xl border border-white/[.08] px-4 py-2 text-xs text-white/50 hover:text-white hover:border-white/[.15] transition-colors"
+                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border-soft)] px-4 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors"
                 >
                   Skip merge
                 </button>
@@ -390,7 +390,7 @@ export function DedupPanel({
                   <button
                     onClick={mergeAll}
                     disabled={merging}
-                    className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-500 transition-colors disabled:opacity-60"
+                    className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-60"
                   >
                     {merging ? <><Loader2 size={12} className="animate-spin" /> Merging…</> : <><Merge size={12} /> Merge {groups.reduce((a, g) => a + g.records.length - 1, 0)} duplicates</>}
                   </button>
@@ -401,7 +401,7 @@ export function DedupPanel({
               <button
                 onClick={createSmartLists}
                 disabled={creatingLists}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-500 transition-colors disabled:opacity-60"
               >
                 {creatingLists ? <><Loader2 size={12} className="animate-spin" /> Creating lists…</> : <><List size={12} /> Create smart lists</>}
               </button>
@@ -409,7 +409,7 @@ export function DedupPanel({
             {done && (
               <button
                 onClick={onClose}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors"
               >
                 <Check size={12} /> Done
               </button>

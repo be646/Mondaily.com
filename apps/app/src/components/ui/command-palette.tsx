@@ -85,11 +85,11 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4" onClick={() => setOpen(false)}>
       <div
-        className="w-full max-w-lg rounded-2xl border border-white/[.09] bg-[#141414] shadow-2xl overflow-hidden"
+        className="w-full max-w-lg rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Input */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/[.07]">
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-soft)]">
           <Search size={15} className="text-stone-500 shrink-0"/>
           <input
             ref={inputRef}
@@ -97,9 +97,9 @@ export function CommandPalette() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={onKey}
             placeholder="Search records, pages, actions…"
-            className="flex-1 bg-transparent text-sm text-white placeholder-stone-600 outline-none"
+            className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none"
           />
-          <kbd className="hidden sm:inline-block rounded border border-white/[.08] bg-white/[.04] px-1.5 py-0.5 text-[10px] text-stone-600">ESC</kbd>
+          <kbd className="hidden sm:inline-block rounded border border-[var(--border-soft)] bg-[var(--surface-hover)] px-1.5 py-0.5 text-[10px] text-stone-600">ESC</kbd>
         </div>
 
         {/* Results */}
@@ -118,7 +118,7 @@ export function CommandPalette() {
                 key={item.id + i}
                 onClick={() => go(item)}
                 onMouseEnter={() => setIdx(i)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 transition-colors ${i === idx ? "bg-white/[.05]" : "hover:bg-white/[.03]"}`}
+                className={`flex w-full items-center gap-3 px-4 py-2.5 transition-colors ${i === idx ? "bg-[var(--surface-hover)]" : "hover:bg-[var(--surface-hover)]"}`}
               >
                 <Icon size={14} className={`${color} shrink-0`}/>
                 <span className="flex-1 text-left text-sm text-stone-200 truncate">{name}</span>
@@ -129,7 +129,7 @@ export function CommandPalette() {
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center gap-3 border-t border-white/[.05] px-4 py-2">
+        <div className="flex items-center gap-3 border-t border-[var(--border-soft)] px-4 py-2">
           <span className="text-[10px] text-stone-700">↑↓ navigate</span>
           <span className="text-[10px] text-stone-700">↵ open</span>
           <span className="text-[10px] text-stone-700 ml-auto">⌘K to close</span>

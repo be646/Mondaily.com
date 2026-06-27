@@ -10,7 +10,7 @@ interface Props {
 function scoreColor(score: number) {
   if (score >= 70) return { text: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", bar: "bg-emerald-500" };
   if (score >= 40) return { text: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", bar: "bg-amber-500" };
-  return { text: "text-stone-500", bg: "bg-white/[.04] border-white/[.08]", bar: "bg-stone-600" };
+  return { text: "text-stone-500", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", bar: "bg-stone-600" };
 }
 
 function scoreLabel(score: number) {
@@ -68,11 +68,11 @@ export function LeadScoreBadge({ score, size = "sm", signals }: Props) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <TrendingUp size={13} className={colors.text} />
-          <span className="text-xs font-semibold text-white">AI Lead Score</span>
+          <span className="text-xs font-semibold text-[var(--text-primary)]">AI Lead Score</span>
         </div>
         <span className={`text-xl font-bold ${colors.text}`}>{score}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[.06] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
         <div className={`h-full rounded-full transition-all ${colors.bar}`} style={{ width: `${score}%` }} />
       </div>
       <p className={`mt-1.5 text-[10px] font-medium ${colors.text}`}>{scoreLabel(score)}</p>

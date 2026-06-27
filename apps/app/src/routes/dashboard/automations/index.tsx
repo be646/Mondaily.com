@@ -59,13 +59,13 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
+      <div className={`w-full rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between p-5 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <LogoMark size={15} className="text-stone-400"/>
-            <h2 className="font-semibold text-white">Generate sequence with AI</h2>
+            <h2 className="font-semibold text-[var(--text-primary)]">Generate sequence with AI</h2>
           </div>
-          <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={16}/></button>
+          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={16}/></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -75,14 +75,14 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "Cold outreach to SaaS founders about our analytics tool" or "Follow-up sequence for leads who downloaded our whitepaper"`}
-            className="w-full rounded-xl border border-white/[.07] bg-white/[.02] px-3 py-2.5 text-sm text-white placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
+            className="w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
           />
           <div className="flex items-center gap-3">
             <span className="text-xs text-stone-500">Steps</span>
             <div className="flex gap-1">
               {[3,4,5,6].map(n => (
                 <button key={n} onClick={() => setStepCount(n)}
-                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-white/[.06] text-stone-500 hover:text-stone-300"}`}>
+                  className={`w-9 rounded-md border py-1 text-xs font-medium transition-colors ${stepCount === n ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300"}`}>
                   {n}
                 </button>
               ))}
@@ -92,16 +92,16 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
         </div>
 
         {preview && (
-          <div className="border-t border-white/[.06] px-5 pb-4">
+          <div className="border-t border-[var(--border-soft)] px-5 pb-4">
             <p className="py-3 text-xs font-semibold text-stone-400">"{preview.name}" — {preview.steps.length} steps</p>
             <div className="space-y-2 max-h-64 overflow-auto">
               {preview.steps.map((s, i) => (
-                <div key={i} className="rounded-lg border border-white/[.06] bg-white/[.02] p-3">
+                <div key={i} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-[10px] font-semibold text-stone-500 uppercase">Step {i+1}</span>
                     {i > 0 && <span className="text-[10px] text-stone-700">· {s.delay_value}d delay</span>}
                   </div>
-                  <p className="text-xs font-medium text-white">{s.subject}</p>
+                  <p className="text-xs font-medium text-[var(--text-primary)]">{s.subject}</p>
                   <p className="mt-1 text-[11px] text-stone-500 line-clamp-2">{s.body}</p>
                 </div>
               ))}
@@ -109,18 +109,18 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </div>
         )}
 
-        <div className="flex items-center justify-between p-5 border-t border-white/[.06]">
+        <div className="flex items-center justify-between p-5 border-t border-[var(--border-soft)]">
           <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-500">
+              className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={generate} disabled={loading} className="text-sm text-stone-500 hover:text-stone-300">Regenerate</button>
               <button onClick={createSequence} disabled={creating}
-                className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-stone-500">
+                className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500">
                 {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : <><Check size={13}/> Create sequence</>}
               </button>
             </div>
@@ -233,21 +233,21 @@ export function AutomationsPage() {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon size={15} className="text-stone-500"/>
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
-          <span className="rounded-full bg-white/[.06] px-2 py-0.5 text-[10px] text-stone-500">{items.length}</span>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
+          <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] text-stone-500">{items.length}</span>
         </div>
         {onNew ? (
           <button
             onClick={onNew}
             disabled={createSequence.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:bg-white/[.06] hover:text-white transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
           >
             <Plus size={11}/> {newLabel}
           </button>
         ) : (
           <Link
             to={newHref!}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-1.5 text-xs text-stone-400 hover:bg-white/[.06] hover:text-white transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <Plus size={11}/> {newLabel}
           </Link>
@@ -255,12 +255,12 @@ export function AutomationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/[.08] px-6 py-8 text-center">
+        <div className="rounded-xl border border-dashed border-[var(--border-soft)] px-6 py-8 text-center">
           <Icon size={20} className="mx-auto mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No {title.toLowerCase()} yet</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/[.08]">
+        <div className="overflow-hidden rounded-xl border border-[var(--border-soft)]">
           {items.map((item, i) => {
             const steps = (item.data as any)?.steps?.length ?? 0;
             const enrolled = (item.data as any)?.enrollments?.length ?? 0;
@@ -270,14 +270,14 @@ export function AutomationsPage() {
             return (
               <div
                 key={item.id}
-                className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-white/[.02] transition-colors ${i < items.length - 1 ? "border-b border-stone-200 dark:border-stone-800" : ""}`}
+                className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors ${i < items.length - 1 ? "border-b border-stone-200 dark:border-stone-800" : ""}`}
               >
                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-stone-500/30 bg-stone-600/[.08] text-stone-400"}`}>
                   <Icon size={14}/>
                 </div>
 
                 <Link to={href} className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-medium text-white">{item.name}</p>
+                  <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.name}</p>
                   <p className="mt-0.5 text-[10px] text-stone-600">
                     {steps > 0 ? `${steps} step${steps !== 1 ? "s" : ""}` : "No steps"}
                     {enrolled > 0 ? ` · ${enrolled} enrolled` : ""}
@@ -290,7 +290,7 @@ export function AutomationsPage() {
                 <div className="relative">
                   <button
                     onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === item.id ? null : item.id); }}
-                    className="rounded-md p-1.5 text-stone-600 opacity-0 group-hover:opacity-100 hover:bg-white/[.06] hover:text-stone-300 transition-all"
+                    className="rounded-md p-1.5 text-stone-600 opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-hover)] hover:text-stone-300 transition-all"
                   >
                     <MoreHorizontal size={14}/>
                   </button>
@@ -330,7 +330,7 @@ export function AutomationsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-stone-200 dark:border-stone-800 px-6 py-3">
         <Zap size={16} className="text-stone-400"/>
-        <h1 className="flex-1 text-[15px] font-semibold text-white tracking-tight">Automations</h1>
+        <h1 className="flex-1 text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
           <AIMark size={12}/> Generate
@@ -338,7 +338,7 @@ export function AutomationsPage() {
         <button
           onClick={() => createSequence.mutate()}
           disabled={createSequence.isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-500 transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all disabled:opacity-50"
         >
           <Plus size={13}/> New sequence
         </button>

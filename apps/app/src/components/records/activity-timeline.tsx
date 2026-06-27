@@ -56,15 +56,15 @@ export function ActivityTimeline({ nodeId, onClose }: { nodeId: string; onClose:
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/30 backdrop-blur-[1px] p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm h-[70vh] rounded-2xl border border-white/[.08] bg-[#0f1117] shadow-2xl flex flex-col"
+        className="w-full max-w-sm h-[70vh] rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[.06] flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)] flex-shrink-0">
           <div className="flex items-center gap-2">
             <Activity size={14} className="text-stone-400" />
-            <span className="text-sm font-semibold text-white">Activity</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Activity</span>
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white/70"><X size={15} /></button>
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)]"><X size={15} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -72,48 +72,48 @@ export function ActivityTimeline({ nodeId, onClose }: { nodeId: string; onClose:
             <div className="space-y-3">
               {[1,2,3].map(i => (
                 <div key={i} className="flex gap-3 animate-pulse">
-                  <div className="h-6 w-6 rounded-full bg-white/[.05] flex-shrink-0" />
+                  <div className="h-6 w-6 rounded-full bg-[var(--surface-hover)] flex-shrink-0" />
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-3 bg-white/[.05] rounded w-3/4" />
-                    <div className="h-2.5 bg-white/[.03] rounded w-1/2" />
+                    <div className="h-3 bg-[var(--surface-hover)] rounded w-3/4" />
+                    <div className="h-2.5 bg-[var(--surface-hover)] rounded w-1/2" />
                   </div>
                 </div>
               ))}
             </div>
           ) : !activities?.length ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-              <div className="h-10 w-10 rounded-xl bg-white/[.03] flex items-center justify-center">
-                <Activity size={18} className="text-white/20" />
+              <div className="h-10 w-10 rounded-xl bg-[var(--surface-hover)] flex items-center justify-center">
+                <Activity size={18} className="text-[var(--text-secondary)]" />
               </div>
-              <p className="text-xs text-white/30">No activity yet</p>
+              <p className="text-xs text-[var(--text-secondary)]">No activity yet</p>
             </div>
           ) : (
             <div className="relative">
-              <div className="absolute left-[11px] top-0 bottom-0 w-px bg-white/[.05]" />
+              <div className="absolute left-[11px] top-0 bottom-0 w-px bg-[var(--surface-hover)]" />
               <div className="space-y-4">
                 {activities.map(item => (
                   <div key={item.id} className="flex gap-3 relative">
-                    <div className="h-6 w-6 rounded-full border border-white/[.08] bg-[#141414] flex items-center justify-center flex-shrink-0 z-10">
+                    <div className="h-6 w-6 rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] flex items-center justify-center flex-shrink-0 z-10">
                       {actorIcon(item.actor_type)}
                     </div>
                     <div className="flex-1 min-w-0 pt-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-xs font-medium capitalize ${actionColor(item.action)}`}>{item.action}</span>
                         {item.ai_summary && (
-                          <span className="text-[11px] text-white/40 truncate">{item.ai_summary}</span>
+                          <span className="text-[11px] text-[var(--text-secondary)] truncate">{item.ai_summary}</span>
                         )}
                       </div>
                       {item.diff && Object.keys(item.diff).length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
                           {Object.keys(item.diff).slice(0, 4).map(k => (
-                            <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[.04] text-white/30">{k}</span>
+                            <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--surface-hover)] text-[var(--text-secondary)]">{k}</span>
                           ))}
                           {Object.keys(item.diff).length > 4 && (
-                            <span className="text-[10px] text-white/20">+{Object.keys(item.diff).length - 4}</span>
+                            <span className="text-[10px] text-[var(--text-secondary)]">+{Object.keys(item.diff).length - 4}</span>
                           )}
                         </div>
                       )}
-                      <p className="text-[10px] text-white/20 mt-1">{fmtTime(item.created_at)}</p>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-1">{fmtTime(item.created_at)}</p>
                     </div>
                   </div>
                 ))}

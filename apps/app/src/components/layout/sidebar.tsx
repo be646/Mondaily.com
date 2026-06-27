@@ -190,20 +190,20 @@ export function GettingStarted() {
               const hovered = hoverId === item.id;
               return (
                 <div key={item.id} className="relative" onMouseEnter={() => setHoverId(item.id)} onMouseLeave={() => setHoverId(null)}>
-                  <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-stone-100 dark:bg-white/[.06]" : ""}`}>
+                  <div className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${checked ? "opacity-35" : hovered ? "bg-stone-100 dark:bg-[var(--surface-hover)]" : ""}`}>
                     <div className={`h-3.5 w-3.5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all ${checked ? "bg-stone-950 border-stone-950 dark:bg-stone-50 dark:border-stone-50" : "border-stone-300 dark:border-stone-800"}`}>
-                      {checked && <Check size={7} className="text-white dark:text-black" strokeWidth={3.5}/>}
+                      {checked && <Check size={7} className="text-[var(--text-primary)] dark:text-black" strokeWidth={3.5}/>}
                     </div>
                     <Link to={item.to} onClick={() => setOpen(false)} className="flex-1 min-w-0">
-                      <span className={`text-[12px] leading-tight ${checked ? "line-through text-stone-400 dark:text-white/20" : "text-stone-600 dark:text-white/70"}`}>{item.label}</span>
+                      <span className={`text-[12px] leading-tight ${checked ? "line-through text-stone-400 dark:text-[var(--text-secondary)]" : "text-stone-600 dark:text-[var(--text-secondary)]"}`}>{item.label}</span>
                     </Link>
                   </div>
                   {/* Tooltip — pops left (FAB is on the right edge) */}
                   {hovered && !checked && (
                     <div className="absolute right-full top-0 z-[210] mr-2.5 w-56 pointer-events-none">
                       <div className="rounded-xl border border-stone-200 bg-white px-3 py-3 shadow-lg dark:border-stone-800 dark:bg-black">
-                        <div className="text-[12px] font-semibold text-[#111827] dark:text-white mb-1.5">{item.label}</div>
-                        <div className="text-[11px] text-stone-500 dark:text-white/40 leading-relaxed">{item.hint}</div>
+                        <div className="text-[12px] font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1.5">{item.label}</div>
+                        <div className="text-[11px] text-stone-500 dark:text-[var(--text-secondary)] leading-relaxed">{item.hint}</div>
                         <div className="mt-2.5 text-[10px] font-semibold text-stone-950 dark:text-stone-50">→ Go there</div>
                       </div>
                     </div>
@@ -244,7 +244,7 @@ function Logo({ size = 24 }: { size?: number }) {
   const dotSize = Math.max(4, size * 0.16);
   return (
     <div
-      className="relative overflow-hidden bg-black border border-white/20 shrink-0"
+      className="relative overflow-hidden bg-black border border-[var(--border-soft)] shrink-0"
       style={{ width: size, height: size, borderRadius: radius }}
     >
       <div className="logo-scan absolute inset-x-0 top-0 will-change-transform" style={{ height: "200%" }}>
@@ -279,7 +279,7 @@ function NavItem({
       >
         {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
         <Icon size={16} style={{ color: iconColor }}/>
-        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-stone-950 px-1 text-[8px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 9 ? "9+" : badge}</span>}
+        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-stone-950 px-1 text-[8px] font-bold text-[var(--text-primary)] flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 9 ? "9+" : badge}</span>}
       </Link>
     );
   }
@@ -291,7 +291,7 @@ function NavItem({
       {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
       <Icon size={16} style={{ color: iconColor }}/>
       {label}
-      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-stone-950 px-1.5 text-[9px] font-bold text-white flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 99 ? "99+" : badge}</span>}
+      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-stone-950 px-1.5 text-[9px] font-bold text-[var(--text-primary)] flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 99 ? "99+" : badge}</span>}
     </Link>
   );
 }
@@ -438,13 +438,13 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             <>
               <div className="fixed inset-0 z-40" onClick={() => setWorkspaceOpen(false)}/>
               <div className="dropdown-panel absolute left-2 right-2 top-full z-50">
-                <div className="flex items-center gap-2.5 border-b border-stone-100 dark:border-white/[.06] px-3 py-2.5">
+                <div className="flex items-center gap-2.5 border-b border-stone-100 dark:border-[var(--border-soft)] px-3 py-2.5">
                   {workspaceLogo
                     ? <img src={workspaceLogo} alt={workspaceName} className="h-5 w-5 rounded-md object-cover shrink-0"/>
                     : <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-stone-100 dark:bg-stone-900 text-[10px] font-semibold text-stone-950 dark:text-stone-50">{workspaceInitial}</div>
                   }
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-white">{workspaceName}</div>
+                    <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-[var(--text-primary)]">{workspaceName}</div>
                     <div className="text-[10px] text-stone-500 dark:text-stone-600">Pro</div>
                   </div>
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0"/>
@@ -458,7 +458,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 <Link to="/settings/workspace" onClick={() => setWorkspaceOpen(false)} className="dropdown-item">
                   <Settings size={12}/> Workspace settings
                 </Link>
-                <div className="mx-2 my-1 border-t border-stone-100 dark:border-white/[.07]"/>
+                <div className="mx-2 my-1 border-t border-stone-100 dark:border-[var(--border-soft)]"/>
                 <button onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-rose-600 hover:text-rose-700 dark:text-red-400 dark:hover:text-red-300">
                   <LogOut size={12}/> Sign out
                 </button>
@@ -577,10 +577,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       {newWorkspaceOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-[2px]" onClick={() => setNewWorkspaceOpen(false)}/>
-          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-white/[.09] dark:bg-[#141414] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-semibold text-[#111827] dark:text-white">Create workspace</span>
-              <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-white/[.05] dark:hover:text-white transition-colors">
+              <span className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Create workspace</span>
+              <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)] transition-colors">
                 <X size={13}/>
               </button>
             </div>
@@ -595,13 +595,13 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {wsError && <p className="mb-3 text-[11px] text-rose-400">{wsError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
-                className="flex-1 rounded-xl border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-white/[.08] dark:text-stone-400 dark:hover:bg-white/[.04] transition-colors">
+                className="flex-1 rounded-xl border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:bg-[var(--surface-hover)] transition-colors">
                 Cancel
               </button>
               <button
                 onClick={createWorkspace}
                 disabled={creatingWs || !newWsName.trim()}
-                className="flex-1 rounded-xl bg-stone-950 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black transition-opacity"
+                className="flex-1 rounded-xl bg-stone-950 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black transition-opacity"
               >
                 {creatingWs ? "Creating…" : "Create"}
               </button>

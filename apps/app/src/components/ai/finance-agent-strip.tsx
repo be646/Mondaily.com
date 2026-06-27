@@ -53,7 +53,7 @@ export function FinanceAgentStrip({ invoiceId }: { invoiceId?: string }) {
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <button onClick={() => act.mutate({ id: d.id, action: "approve" })} disabled={act.isPending}
-                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-medium text-white disabled:opacity-50" style={{ background: "#10b981" }}>
+                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10.5px] font-medium text-[var(--text-primary)] disabled:opacity-50" style={{ background: "#10b981" }}>
                 <CheckCircle2 size={10}/> Approve
               </button>
               <button onClick={() => act.mutate({ id: d.id, action: "reject" })} disabled={act.isPending}

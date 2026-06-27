@@ -14,7 +14,7 @@ const OBJECT_ACCENTS: Record<string, { border: string; bg: string; icon: string;
   contacts:   { border: "border-blue-500/20",    bg: "from-blue-500/[.07] to-stone-500/[.04]",     icon: "bg-blue-500/10 border-blue-500/20 text-blue-400",          arrow: "text-blue-400"    },
   companies:  { border: "border-stone-500/20",  bg: "from-stone-500/[.07] to-blue-500/[.04]",     icon: "bg-stone-500/10 border-stone-500/20 text-stone-400",    arrow: "text-stone-400"  },
   properties: { border: "border-amber-500/20",   bg: "from-amber-500/[.07] to-orange-500/[.04]",    icon: "bg-amber-500/10 border-amber-500/20 text-amber-400",       arrow: "text-amber-400"   },
-  invoices:   { border: "border-cyan-500/20",    bg: "from-cyan-500/[.07] to-blue-500/[.04]",       icon: "bg-cyan-500/10 border-cyan-500/20 text-cyan-400",          arrow: "text-cyan-400"    },
+  invoices:   { border: "border-[var(--accent)]/20",    bg: "from-cyan-500/[.07] to-blue-500/[.04]",       icon: "bg-[var(--accent)]/10 border-[var(--accent)]/20 text-[var(--accent)]",          arrow: "text-[var(--accent)]"    },
   projects:   { border: "border-rose-500/20",    bg: "from-rose-500/[.07] to-pink-500/[.04]",       icon: "bg-rose-500/10 border-rose-500/20 text-rose-400",          arrow: "text-rose-400"    },
 };
 const DEFAULT_ACCENT = { border: "border-stone-500/20", bg: "from-stone-500/[.07] to-stone-700/[.04]", icon: "bg-stone-700/50 border-stone-600/30 text-stone-400", arrow: "text-stone-400" };

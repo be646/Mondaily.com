@@ -64,12 +64,12 @@ function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, 
   return (
     <section
       draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
-      className={`group relative rounded-xl border border-white/[.07] bg-white/[.02] p-5 ${className ?? ""}`}
+      className={`group relative rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 ${className ?? ""}`}
     >
       <div className="mb-4 flex items-center gap-2 min-w-0">
         <GripVertical size={14} className="shrink-0 cursor-grab text-stone-600" />
         <span className="shrink-0">{icon}</span>
-        <h2 className="flex-1 truncate text-sm font-semibold text-white">{title || "Untitled widget"}</h2>
+        <h2 className="flex-1 truncate text-sm font-semibold text-[var(--text-primary)]">{title || "Untitled widget"}</h2>
         {link && (
           <Link to={link} className="shrink-0 text-[11px] text-stone-600 hover:text-stone-300 transition-colors">
             {linkLabel ?? "Open →"}
@@ -78,7 +78,7 @@ function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, 
         <button
           onClick={onResize}
           title={size === "large" ? "Shrink to half width" : "Expand to full width"}
-          className="shrink-0 rounded-md border border-transparent p-1 text-stone-600 hover:border-white/10 hover:text-stone-300 transition-all"
+          className="shrink-0 rounded-md border border-transparent p-1 text-stone-600 hover:border-[var(--border-soft)] hover:text-stone-300 transition-all"
         >
           {size === "large" ? <Minimize2 size={11}/> : <Maximize2 size={11}/>}
         </button>
@@ -114,7 +114,7 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <p className="text-xs text-stone-400 text-center px-4">This widget is broken or from an older format.</p>
         <button
           onClick={onRemove}
-          className="flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-500 transition-colors"
+          className="flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors"
         >
           <Trash2 size={11} /> Remove this widget
         </button>
@@ -191,11 +191,11 @@ function LiveWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, o
           <div className="mb-4 flex items-end gap-6">
             <div>
               <p className="text-[10px] text-stone-500 uppercase tracking-wide mb-0.5">{valueCol ? "Total value" : "Total records"}</p>
-              <p className="text-2xl font-bold text-white">{valueCol ? fmt(totalValue) : records.length}</p>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">{valueCol ? fmt(totalValue) : records.length}</p>
             </div>
             <div>
               <p className="text-[10px] text-stone-500 uppercase tracking-wide mb-0.5">This month</p>
-              <p className="text-xl font-semibold text-white">{trendData[trendData.length - 1]?.count ?? 0}</p>
+              <p className="text-xl font-semibold text-[var(--text-primary)]">{trendData[trendData.length - 1]?.count ?? 0}</p>
             </div>
           </div>
           <Sparkline values={trendData.map(item => valueCol ? item.value : item.count)} />
@@ -240,7 +240,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
           <AlertTriangle size={22} className="text-amber-500/60"/>
           <p className="text-xs text-stone-400">Report couldn't be loaded.</p>
-          <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-white hover:bg-stone-500 transition-colors">
+          <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             <Trash2 size={11}/> Remove widget
           </button>
         </div>
@@ -286,18 +286,18 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       <p className="text-[11px] text-stone-500">Build a chart from any object — re-runs live every dashboard load.</p>
       <label className="block">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Widget name</span>
-        <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-stone-500/50"/>
+        <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/50"/>
       </label>
       <label className="block">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Object</span>
-        <select value={slug} onChange={e => setSlug(e.target.value)} className="w-full rounded-lg border border-white/[.08] bg-[#0d0d0d] px-3 py-2 text-sm text-white outline-none">
+        <select value={slug} onChange={e => setSlug(e.target.value)} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-page)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
           {objects.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)}
         </select>
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Metric</span>
-          <select value={metric} onChange={e => setMetric(e.target.value as "count"|"sum"|"average")} className="w-full rounded-lg border border-white/[.08] bg-[#0d0d0d] px-3 py-2 text-sm text-white outline-none">
+          <select value={metric} onChange={e => setMetric(e.target.value as "count"|"sum"|"average")} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-page)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
             <option value="count">Count of records</option>
             <option value="sum">Sum of field</option>
             <option value="average">Average of field</option>
@@ -305,7 +305,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
         </label>
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Group by</span>
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value as "day"|"week"|"month"|"quarter")} className="w-full rounded-lg border border-white/[.08] bg-[#0d0d0d] px-3 py-2 text-sm text-white outline-none">
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value as "day"|"week"|"month"|"quarter")} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-page)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
             <option value="day">Day</option><option value="week">Week</option>
             <option value="month">Month</option><option value="quarter">Quarter</option>
           </select>
@@ -314,7 +314,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       {metric !== "count" && (
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Numeric field name</span>
-          <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. value, amount, revenue" className="w-full rounded-lg border border-white/[.08] bg-white/[.03] px-3 py-2 text-sm text-white outline-none focus:border-stone-500/50"/>
+          <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. value, amount, revenue" className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/50"/>
         </label>
       )}
       <label className="block">
@@ -322,7 +322,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
         <div className="flex gap-2">
           {(["bar","line"] as const).map(t => (
             <button key={t} onClick={() => setChartType(t)}
-              className={`flex-1 rounded-md border py-2 text-xs capitalize transition-colors ${chartType === t ? "border-stone-500 bg-stone-500/10 text-white" : "border-white/10 text-stone-400"}`}>
+              className={`flex-1 rounded-md border py-2 text-xs capitalize transition-colors ${chartType === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400"}`}>
               {t}
             </button>
           ))}
@@ -330,7 +330,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       </label>
       {error && <p className="text-xs text-stone-400">{error}</p>}
       <button onClick={handleAdd} disabled={creating || !slug}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-white hover:bg-stone-500 disabled:opacity-50 transition-colors">
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-colors">
         {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : "Add chart to dashboard"}
       </button>
     </div>
@@ -349,15 +349,15 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/[.09] bg-[#141414] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
-        <div className="flex items-center justify-between border-b border-white/[.06] px-5 py-4">
-          <h2 className="text-sm font-semibold text-white">Add widget</h2>
-          <button onClick={onClose} className="text-stone-500 hover:text-white"><X size={15}/></button>
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Add widget</h2>
+          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={15}/></button>
         </div>
-        <div className="flex border-b border-white/[.06]">
+        <div className="flex border-b border-[var(--border-soft)]">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? `border-b-2 text-white ${t.accent}` : "text-stone-500 hover:text-stone-300"}`}>
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? `border-b-2 text-[var(--text-primary)] ${t.accent}` : "text-stone-500 hover:text-stone-300"}`}>
               {t.icon} {t.label}
             </button>
           ))}
@@ -372,10 +372,10 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                     {objects.map(obj => (
                       <button key={obj.slug}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
-                        className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
+                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400"><BarChart2 size={14}/></div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white">{obj.name_plural}</p>
+                          <p className="text-sm font-medium text-[var(--text-primary)]">{obj.name_plural}</p>
                           <p className="text-[11px] text-stone-500">KPIs + 6-month trend</p>
                         </div>
                         <Plus size={14} className="shrink-0 text-stone-600"/>
@@ -396,10 +396,10 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                     {reports.map(report => (
                       <button key={report.id}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: report.name }); onClose(); }}
-                        className="flex w-full items-center gap-3 rounded-lg border border-white/[.06] p-3 text-left hover:bg-white/[.04] transition-colors">
+                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-500/10 text-stone-400"><LineChartIcon size={14}/></div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{report.name}</p>
+                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{report.name}</p>
                           <p className="text-[11px] text-stone-500 capitalize">{report.type?.replace(/_/g," ") ?? "report"}</p>
                         </div>
                         <Plus size={14} className="shrink-0 text-stone-600"/>
@@ -527,21 +527,21 @@ export function DashboardViewPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="mb-6 flex flex-wrap items-center gap-3">
-        <Link to="/reports" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-white transition-colors shrink-0">
+        <Link to="/reports" className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-[var(--text-primary)] transition-colors shrink-0">
           <ArrowLeft size={14}/> Reports
         </Link>
         <input
           value={dashboard.name || ""}
           onChange={e => setDashboard({ ...dashboard, name: e.target.value })}
-          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xl font-semibold text-white outline-none hover:border-white/10 focus:border-white/20 placeholder-stone-600"
+          className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xl font-semibold text-[var(--text-primary)] outline-none hover:border-[var(--border-soft)] focus:border-[var(--border-soft)] placeholder-stone-600"
           placeholder="Dashboard name"
         />
         <button onClick={() => setAdding(true)}
-          className="flex h-9 items-center gap-2 rounded-md border border-white/10 px-3 text-sm text-stone-300 hover:text-white transition-colors">
+          className="flex h-9 items-center gap-2 rounded-md border border-[var(--border-soft)] px-3 text-sm text-stone-300 hover:text-[var(--text-primary)] transition-colors">
           <Plus size={14}/> Add widget
         </button>
         <button onClick={() => save.mutate(dashboard)} disabled={save.isPending}
-          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-white hover:bg-stone-500 disabled:opacity-60 transition-colors">
+          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-60 transition-colors">
           {save.isPending ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
           {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
         </button>
@@ -554,20 +554,20 @@ export function DashboardViewPage() {
       {/* Delete confirm */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-stone-500/20 bg-[#141414] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
-            <h2 className="mb-2 text-sm font-semibold text-white">Delete dashboard?</h2>
-            <p className="mb-5 text-xs text-stone-400">This will permanently delete <strong className="text-white">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
+          <div className="w-full max-w-sm rounded-2xl border border-stone-500/20 bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+            <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">Delete dashboard?</h2>
+            <p className="mb-5 text-xs text-stone-400">This will permanently delete <strong className="text-[var(--text-primary)]">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
             <div className="flex gap-2">
               <button
                 onClick={() => deleteDashboard.mutate()}
                 disabled={deleteDashboard.isPending}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-white hover:bg-stone-500 disabled:opacity-50 transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-colors"
               >
                 {deleteDashboard.isPending ? <Loader2 size={13} className="animate-spin"/> : <Trash2 size={13}/>}
                 Yes, delete
               </button>
               <button onClick={() => setConfirmDelete(false)}
-                className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-stone-400 hover:text-white transition-colors">
+                className="rounded-lg border border-[var(--border-soft)] px-4 py-2.5 text-sm text-stone-400 hover:text-[var(--text-primary)] transition-colors">
                 Cancel
               </button>
             </div>
@@ -578,7 +578,7 @@ export function DashboardViewPage() {
       {widgets.length === 0 ? (
         <EmptyState icon={BarChart2} title="No widgets yet"
           description='Click "Add widget" — pick a Live Object for instant KPIs, a Saved Report, or build a Custom Chart.'
-          action={<button onClick={() => setAdding(true)} className="rounded-md bg-stone-600 px-3 py-2 text-sm text-white">Add first widget</button>}
+          action={<button onClick={() => setAdding(true)} className="rounded-md bg-stone-600 px-3 py-2 text-sm text-[var(--text-primary)]">Add first widget</button>}
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

@@ -31,7 +31,7 @@ function Dropdown({ value, onChange, options }: { value: string; onChange: (v: s
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="rounded-lg border border-white/[.06] bg-[#141414] px-3 py-1.5 text-sm text-white focus:border-red-500/40 outline-none"
+      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-sm text-[var(--text-primary)] focus:border-red-500/40 outline-none"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -40,9 +40,9 @@ function Dropdown({ value, onChange, options }: { value: string; onChange: (v: s
 
 function Row({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-white/[.06] last:border-0">
+    <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--border-soft)] last:border-0">
       <div className="min-w-0">
-        <div className="text-sm text-white">{label}</div>
+        <div className="text-sm text-[var(--text-primary)]">{label}</div>
         <div className="text-xs text-stone-500 mt-0.5">{description}</div>
       </div>
       <div className="shrink-0">{children}</div>
@@ -120,9 +120,9 @@ export function AskMondailySettings() {
       </div>
 
       {/* General */}
-      <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
-        <div className="border-b border-white/[.06] px-5 py-3">
-          <h2 className="text-sm font-medium text-white">General</h2>
+      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+        <div className="border-b border-[var(--border-soft)] px-5 py-3">
+          <h2 className="text-sm font-medium text-[var(--text-primary)]">General</h2>
         </div>
         <Row label="Privacy" description="Web search queries will be shared with external search providers.">
           <Dropdown value={settings.privacy} onChange={v => update({ privacy: v as AskSettings["privacy"] })} options={privacyOptions}/>
@@ -136,9 +136,9 @@ export function AskMondailySettings() {
       </section>
 
       {/* Model */}
-      <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
-        <div className="border-b border-white/[.06] px-5 py-3">
-          <h2 className="text-sm font-medium text-white">Model</h2>
+      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+        <div className="border-b border-[var(--border-soft)] px-5 py-3">
+          <h2 className="text-sm font-medium text-[var(--text-primary)]">Model</h2>
         </div>
         <Row label="Default model" description="This model will be used to generate all responses unless overridden.">
           <Dropdown value={settings.model} onChange={v => update({ model: v as AskSettings["model"] })} options={modelOptions}/>
@@ -146,17 +146,17 @@ export function AskMondailySettings() {
       </section>
 
       {/* Credits */}
-      <section className="mb-6 rounded-xl border border-white/[.07] bg-white/[.02]">
-        <div className="border-b border-white/[.06] px-5 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-white">Credits</h2>
+      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+        <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-[var(--text-primary)]">Credits</h2>
           <span className="text-xs text-stone-500">Resets on {resetStr}</span>
         </div>
         <div className="px-5 py-4">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="text-stone-500">Personal credits used</span>
-            <span className="text-white font-medium">{usedCredits} / {creditLimit}</span>
+            <span className="text-[var(--text-primary)] font-medium">{usedCredits} / {creditLimit}</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-white/10">
+          <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)]">
             <div className="h-1.5 rounded-full bg-red-500 transition-all" style={{ width: `${creditPct}%` }}/>
           </div>
           <p className="mt-3 text-xs text-stone-600">Each message you send uses 1 credit. Workspace credits and higher limits available with Pro plan.</p>
@@ -164,9 +164,9 @@ export function AskMondailySettings() {
       </section>
 
       {/* Chat history */}
-      <section className="rounded-xl border border-white/[.07] bg-white/[.02]">
-        <div className="border-b border-white/[.06] px-5 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-white">Chat history</h2>
+      <section className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+        <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-[var(--text-primary)]">Chat history</h2>
           {threads.length > 0 && (
             <button onClick={deleteAllThreads} className="text-xs text-red-400 hover:text-red-300 transition-colors">Delete all</button>
           )}

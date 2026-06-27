@@ -76,13 +76,13 @@ function GeneralSection({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-white mb-0.5">General</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">General</h2>
         <p className="text-[11px] text-stone-500">Workspace identity and regional settings.</p>
       </div>
 
       {/* Logo */}
       <div className="flex items-center gap-4">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/[.08] bg-white/[.03]">
+        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
           {logoPreview || organization?.imageUrl
             ? <img src={logoPreview || organization?.imageUrl} alt="" className="h-full w-full object-cover" />
             : <span className="text-xl font-bold text-stone-400">{(form.name || "W").slice(0, 1).toUpperCase()}</span>}
@@ -90,7 +90,7 @@ function GeneralSection({
         <div>
           <button
             onClick={() => logoRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-white/[.09] px-3 py-2 text-[12px] text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <ImagePlus size={13} /> Upload logo
           </button>
@@ -107,8 +107,8 @@ function GeneralSection({
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[11px] text-stone-400">Workspace URL</span>
-          <div className="flex h-9 items-center rounded-lg border border-white/[.09] bg-white/[.03]">
-            <span className="border-r border-white/[.07] px-3 text-[11px] text-stone-600">app.mondaily.com/</span>
+          <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+            <span className="border-r border-[var(--border-soft)] px-3 text-[11px] text-stone-600">app.mondaily.com/</span>
             <input
               value={form.slug ?? ""}
               onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
@@ -134,7 +134,7 @@ function GeneralSection({
 
       <div className="flex justify-end">
         <button onClick={() => save.mutate()} disabled={save.isPending}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white transition-all disabled:opacity-50 ${
+          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
@@ -211,7 +211,7 @@ function MembersSection() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-white mb-0.5">Members & Roles</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">Members & Roles</h2>
         <p className="text-[11px] text-stone-500">Manage workspace access and permissions.</p>
       </div>
 
@@ -235,7 +235,7 @@ function MembersSection() {
           <button
             onClick={sendInvite}
             disabled={inviting || !inviteEmail.includes("@")}
-            className="px-3 py-2 bg-stone-500 hover:bg-stone-600 text-white text-[12px] rounded-lg font-medium flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-2 bg-stone-500 hover:bg-stone-600 text-[var(--text-primary)] text-[12px] rounded-lg font-medium flex items-center gap-1.5 disabled:opacity-50"
           >
             <Plus size={13} /> Send
           </button>
@@ -244,7 +244,7 @@ function MembersSection() {
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/[.06] border border-emerald-500/20">
             <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
             <span className="text-[11px] text-emerald-400 flex-1 truncate">{inviteLink}</span>
-            <button onClick={copyLink} className="text-[11px] text-stone-400 hover:text-white flex items-center gap-1">
+            <button onClick={copyLink} className="text-[11px] text-stone-400 hover:text-[var(--text-primary)] flex items-center gap-1">
               {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? "Copied" : "Copy"}
             </button>
           </div>
@@ -256,7 +256,7 @@ function MembersSection() {
         <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-left text-[12px]">
             <thead>
-              <tr className="border-b border-stone-200 dark:border-stone-800 bg-white/[.015]">
+              <tr className="border-b border-stone-200 dark:border-stone-800 bg-[var(--surface-hover)]">
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Member</th>
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Workspace Role</th>
                 <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Finance Role</th>
@@ -265,7 +265,7 @@ function MembersSection() {
             </thead>
             <tbody>
               {members.map(m => (
-                <tr key={m.id} className="border-b border-white/[.04] last:border-0 hover:bg-white/[.015] transition-colors">
+                <tr key={m.id} className="border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="h-7 w-7 rounded-full bg-stone-700 flex items-center justify-center text-[11px] font-semibold text-stone-200 shrink-0">
@@ -324,9 +324,9 @@ function MembersSection() {
       {invitations.length > 0 && (
         <div>
           <p className="text-[11px] text-stone-500 mb-2">Pending Invites</p>
-          <div className="rounded-xl border border-white/[.06] overflow-hidden">
+          <div className="rounded-xl border border-[var(--border-soft)] overflow-hidden">
             {invitations.map(inv => (
-              <div key={inv.id} className="flex items-center justify-between px-4 py-2.5 border-b border-white/[.04] last:border-0">
+              <div key={inv.id} className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-soft)] last:border-0">
                 <div className="flex items-center gap-2.5">
                   <div className="h-6 w-6 rounded-full bg-stone-800 flex items-center justify-center text-[10px] text-stone-500">
                     {inv.email.slice(0, 1).toUpperCase()}
@@ -359,16 +359,16 @@ function ModulesSection({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-white mb-0.5">Modules</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">Modules</h2>
         <p className="text-[11px] text-stone-500">Enable or disable product modules for your workspace.</p>
       </div>
 
       {AVAILABLE_MODULES.map(mod => {
         const enabled = (form.modules ?? ["crm"]).includes(mod.id);
         return (
-          <div key={mod.id} className="flex items-center justify-between rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-3">
+          <div key={mod.id} className="flex items-center justify-between rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
             <div>
-              <p className="text-[12px] font-medium text-white">{mod.label}</p>
+              <p className="text-[12px] font-medium text-[var(--text-primary)]">{mod.label}</p>
               <p className="text-[11px] text-stone-500 mt-0.5">{mod.description}</p>
             </div>
             <button
@@ -380,7 +380,7 @@ function ModulesSection({
                   : [...current, mod.id];
                 setForm({ ...form, modules: next });
               }}
-              className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${enabled ? "bg-stone-500" : "bg-white/[.10]"}`}
+              className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${enabled ? "bg-stone-500" : "bg-[var(--surface-hover)]"}`}
             >
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`} />
             </button>
@@ -390,7 +390,7 @@ function ModulesSection({
 
       <div className="flex justify-end pt-2">
         <button onClick={() => save.mutate()} disabled={save.isPending}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-white transition-all disabled:opacity-50 ${
+          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
               ? "bg-emerald-600 border border-emerald-500/30"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
@@ -423,10 +423,10 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
     return (
       <div className="space-y-4">
         <div>
-          <h2 className="text-sm font-semibold text-white mb-0.5">Finance Access</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">Finance Access</h2>
           <p className="text-[11px] text-stone-500">Enable the Finance module first to manage finance roles.</p>
         </div>
-        <div className="rounded-xl border border-white/[.06] bg-white/[.02] px-4 py-8 text-center">
+        <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-8 text-center">
           <Globe size={20} className="text-stone-600 mx-auto mb-2" />
           <p className="text-[12px] text-stone-500">Finance module is not enabled</p>
         </div>
@@ -437,7 +437,7 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-white mb-0.5">Finance Access</h2>
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">Finance Access</h2>
         <p className="text-[11px] text-stone-500">Control each member's access to Finance &amp; Billing features.</p>
       </div>
 
@@ -445,7 +445,7 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
         <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-[12px]">
             <thead>
-              <tr className="border-b border-stone-200 dark:border-stone-800 bg-white/[.015]">
+              <tr className="border-b border-stone-200 dark:border-stone-800 bg-[var(--surface-hover)]">
                 <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-stone-600">Member</th>
                 <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-stone-600">Workspace Role</th>
                 <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-stone-600">Finance Role</th>
@@ -453,7 +453,7 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
             </thead>
             <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
               {members.map(m => (
-                <tr key={m.user_id} className="hover:bg-white/[.01]">
+                <tr key={m.user_id} className="hover:bg-[var(--surface-hover)]">
                   <td className="py-2.5 px-4">
                     <div className="flex items-center gap-2">
                       <div className="h-7 w-7 rounded-full bg-stone-700 flex items-center justify-center text-[11px] font-semibold text-stone-200">
@@ -463,7 +463,7 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
                     </div>
                   </td>
                   <td className="py-2.5 px-4">
-                    <span className="inline-flex items-center rounded-full bg-white/[.05] border border-white/[.06] px-2 py-0.5 text-[11px] text-stone-400 capitalize">
+                    <span className="inline-flex items-center rounded-full bg-[var(--surface-hover)] border border-[var(--border-soft)] px-2 py-0.5 text-[11px] text-stone-400 capitalize">
                       {m.role}
                     </span>
                   </td>
@@ -525,7 +525,7 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
         <p className="text-[12px] text-stone-500">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
-            className="flex items-center gap-2 rounded-lg border border-white/[.09] px-3 py-2 text-[12px] text-stone-300 hover:bg-white/[.04] hover:text-white transition-colors">
+            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={13} /> Export all data
           </button>
           <button onClick={() => setDeleteOpen(true)}
@@ -538,16 +538,16 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
       {deleteOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/[.09] bg-[#141414] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-semibold text-white">Delete {form.name}</h2>
-              <button onClick={() => setDeleteOpen(false)} className="text-stone-500 hover:text-white transition-colors"><X size={15} /></button>
+              <h2 className="font-semibold text-[var(--text-primary)]">Delete {form.name}</h2>
+              <button onClick={() => setDeleteOpen(false)} className="text-stone-500 hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
             </div>
             <p className="text-[12px] text-stone-500">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-white/[.08] px-4 py-2 text-[12px] text-stone-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-stone-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete workspace</button>
+              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12px] text-stone-400 hover:text-[var(--text-primary)] transition-colors">Cancel</button>
+              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-stone-600 px-4 py-2 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete workspace</button>
             </div>
           </div>
         </>
@@ -612,7 +612,7 @@ export function WorkspaceSettings() {
             key={item.key}
             onClick={() => setSection(item.key)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] mb-0.5 transition-colors ${
-              section === item.key ? "bg-white/[.05] text-stone-200" : "text-stone-500 hover:text-stone-300 hover:bg-white/[.03]"
+              section === item.key ? "bg-[var(--surface-hover)] text-stone-200" : "text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)]"
             } ${item.danger ? (section === item.key ? "text-stone-400" : "text-red-500 hover:text-stone-400") : ""}`}
           >
             <item.icon size={13} />

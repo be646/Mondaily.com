@@ -310,7 +310,7 @@ export function HomePage() {
     win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
 <title>Mondaily Scan Report — ${scanTimestamp}</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; color: #1a1a1a; line-height: 1.7; font-size: 15px; }
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; color: var(--surface-card-2); line-height: 1.7; font-size: 15px; }
   h1 { font-size: 20px; margin-bottom: 4px; } p.meta { color: #666; font-size: 13px; margin-bottom: 32px; }
   pre { white-space: pre-wrap; word-break: break-word; }
   @media print { body { margin: 24px; } }
