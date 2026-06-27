@@ -247,30 +247,21 @@ export function AgentHeroStrip() {
 
   const live = constellation.filter(a => isLiveState(a.state));
 
-  // Frameless: a quiet label + active/total count, with the live-pulsing dots on
-  // the right. No pill, no extra words.
+  // Frameless: a quiet label + active/total count, then one live-pinging dot per
+  // ACTIVE agent (so 8 working → 8 dots). The whole row gets a soft transparent
+  // hover layer.
   return (
-    <a href="#agents" className="group inline-flex items-center gap-2">
+    <a href="#agents" className="agent-hero-row group inline-flex items-center gap-2 rounded-md px-2 py-1">
       <span className="text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>AI agents</span>
       <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
-      <span className="flex flex-wrap items-center gap-1">
-        {constellation.map((a, i) => {
-          const liveDot = isLiveState(a.state);
-          return (
-            <span key={a.id} title={a.name} className="relative inline-flex h-1.5 w-1.5 rounded-full"
-              style={{ background: liveDot ? AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] : "var(--text-faint)" }}>
-              {liveDot && (
-                <motion.span
-                  animate={{ opacity: [0.35, 0.8, 0.35] }}
-                  transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.3 }}
-                  className="absolute inset-0 rounded-full"
-                  style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}
-                />
-              )}
-            </span>
-          );
-        })}
-      </span>
+      {live.length > 0 && (
+        <span className="flex flex-wrap items-center gap-1.5">
+          {live.map((a, i) => (
+            <span key={a.id} title={a.name} className="live-dot"
+              style={{ background: AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length] }}/>
+          ))}
+        </span>
+      )}
     </a>
   );
 }
