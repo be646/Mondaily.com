@@ -423,7 +423,7 @@ export function HomePage() {
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
       <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           {/* Left — greeting + a clean cluster: frameless AI agents and the
               graph/source status. Collapses while chatting (notifications stay). */}
           <div className={`welcome-info min-w-0 ${isChatting ? "is-hidden" : ""}`}>
@@ -443,40 +443,38 @@ export function HomePage() {
             </div>
           </div>
 
-        </div>
-
-        {/* Signals / notifications — full-width row, ALWAYS visible (never inside the
-            collapsing welcome), so tasks / pending / unread + overdue / urgent / AI
-            risk buttons always show. */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="home-telemetry-strip">
-            <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
-            <Link to="/decisions"><FileText size={13}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
-            <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
-          </div>
-
-          {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              {overdueCount > 0 && (
-                <Link to="/tasks" state={{ filter: "overdue" }} className="attention-chip">
-                  <Clock size={11}/>
-                  {overdueCount} overdue assigned to you
-                </Link>
-              )}
-              {urgentCount > 0 && (
-                <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="attention-chip">
-                  <Flag size={11}/>
-                  {urgentCount} urgent
-                </Link>
-              )}
-              {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-                <Link to="/notifications" className="attention-chip">
-                  <BellDot size={11}/>
-                  {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
-                </Link>
-              )}
+          {/* Right — signals bar, top-right (always renders; not inside the
+              collapsing welcome) */}
+          <div className="flex flex-col gap-2 lg:items-end">
+            <div className="home-telemetry-strip">
+              <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
+              <Link to="/decisions"><FileText size={13}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
+              <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
             </div>
-          )}
+
+            {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 lg:justify-end">
+                {overdueCount > 0 && (
+                  <Link to="/tasks" state={{ filter: "overdue" }} className="attention-chip">
+                    <Clock size={11}/>
+                    {overdueCount} overdue assigned to you
+                  </Link>
+                )}
+                {urgentCount > 0 && (
+                  <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="attention-chip">
+                    <Flag size={11}/>
+                    {urgentCount} urgent
+                  </Link>
+                )}
+                {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
+                  <Link to="/notifications" className="attention-chip">
+                    <BellDot size={11}/>
+                    {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
