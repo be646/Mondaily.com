@@ -331,9 +331,12 @@ export function AskMondaily() {
               </div>
               <p className="text-sm font-medium text-[#111827] dark:text-white mb-1">What do you want to know about the workspace graph?</p>
               <p className="text-xs text-[#9ca3af] dark:text-stone-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
-              <div className="mx-auto flex max-w-md flex-col gap-0">
+              <div className="chat-suggestion-stack mx-auto max-w-md">
                 {EMPTY_SUGGESTION_GROUPS.map(s => (
-                  <button key={s} onClick={() => sendSuggestion(s)} className="ask-suggestion-row text-xs">{s}</button>
+                  <button key={s} onClick={() => sendSuggestion(s)} className="chat-suggestion-row group">
+                    <span className="flex-1 truncate">{s}</span>
+                    <CornerDownLeft size={12} className="shrink-0 opacity-45 transition-opacity group-hover:opacity-100"/>
+                  </button>
                 ))}
               </div>
             </div>
