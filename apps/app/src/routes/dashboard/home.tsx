@@ -512,7 +512,7 @@ export function HomePage() {
       )}
 
       <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
-        <div className={`relative ${isChatting ? "flex flex-col" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
+        <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
           <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
             {[
@@ -609,10 +609,20 @@ export function HomePage() {
                 );
               });
             })()}
-            {loading && (
-              <div className="flex items-center gap-3 pl-1" style={{ color: "var(--text-muted)" }}>
-                <LogoMark size={22} thinking />
-                <span className="text-sm italic tracking-wide" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
+            {/* THINKING ANCHOR — structurally identical to an assistant row, so the
+                reasoning line sits in the EXACT slot the answer text will stream into.
+                When the first token arrives this disappears and the assistant row
+                renders at the same top-edge: zero vertical shift. */}
+            {loading && streamingMsgIdx === null && (
+              <div className="w-full min-w-0 flex gap-3 items-start">
+                <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
+                  <LogoMark size={16} thinking />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="ask-assistant-line min-w-0 break-words pl-4 text-sm">
+                    <span className="italic" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
+                  </div>
+                </div>
               </div>
             )}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
