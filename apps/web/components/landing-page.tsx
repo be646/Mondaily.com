@@ -1504,50 +1504,87 @@ function WorkspaceGraphPreview() {
             </h3>
           </div>
 
-          <div className="flex flex-col items-center">
-            <div className="flex flex-col items-center gap-1.5">
-              <motion.span
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="h-2 w-2 rounded-full bg-[#6f8068]"
-              />
-              <p className="text-[11px] text-zinc-500">workspace graph</p>
-            </div>
-
-            <div className="relative mt-4 w-full">
-              <div className="absolute left-1/2 -top-4 h-4 w-px -translate-x-1/2" style={{ background: "#8a8378", opacity: 0.5 }} />
-              <div className="absolute left-6 right-6 top-0 h-px" style={{ background: "#8a8378", opacity: 0.4 }} />
-              <div className="grid grid-cols-1 gap-x-8 gap-y-px pt-5 sm:grid-cols-2">
-                {WORKSPACE_GRAPH_NODES.map((node, i) => (
-                  <motion.button
+          <div className="relative w-full flex-1" style={{ minHeight: 290 }}>
+            {/* Edges — drawn from the central hub to every agent node */}
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+              <defs>
+                <linearGradient id="wg-edge" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#8a8378" stopOpacity="0.45" />
+                  <stop offset="100%" stopColor="#8a8378" stopOpacity="0.1" />
+                </linearGradient>
+              </defs>
+              {WORKSPACE_GRAPH_NODES.map((node, i) => {
+                const on = i === active;
+                return (
+                  <line
                     key={node.label}
-                    type="button"
-                    onClick={() => setActive(i)}
-                    initial={false}
-                    animate={{ opacity: i === active ? 1 : 0.5 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex items-start gap-2.5 py-2.5 text-left"
-                  >
-                    <span className="relative mt-1 flex h-2 w-2 shrink-0 items-center justify-center">
-                      <span className="h-2 w-2 rounded-full" style={{ background: node.color }} />
-                      {i === active && (
-                        <motion.span
-                          animate={{ opacity: [0.6, 0, 0.6], scale: [1, 2.2, 1] }}
-                          transition={{ duration: 1.7, repeat: Infinity }}
-                          className="absolute inset-0 rounded-full"
-                          style={{ background: node.color }}
-                        />
-                      )}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block whitespace-nowrap text-[12px] font-medium text-zinc-800">{node.label}</span>
-                      <span className="mt-0.5 block text-[11px] leading-snug text-zinc-500">{node.detail}</span>
-                    </span>
-                  </motion.button>
-                ))}
+                    x1={50} y1={8} x2={node.x} y2={node.y}
+                    stroke={on ? node.color : "url(#wg-edge)"}
+                    strokeWidth={on ? 1.6 : 1}
+                    strokeOpacity={on ? 0.9 : 0.5}
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                );
+              })}
+              {/* Data pulse traveling along the active edge */}
+              <motion.circle
+                key={active}
+                r={1.3}
+                fill={activeNode.color}
+                initial={{ cx: 50, cy: 8 }}
+                animate={{ cx: activeNode.x, cy: activeNode.y }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </svg>
+
+            {/* Central hub */}
+            <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: "50%", top: "8%" }}>
+              <div className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 shadow-sm">
+                <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="h-2 w-2 rounded-full bg-[#6f8068]" />
+                <span className="whitespace-nowrap text-[11px] font-semibold text-zinc-700">Workspace graph</span>
               </div>
             </div>
+
+            {/* Agent nodes */}
+            {WORKSPACE_GRAPH_NODES.map((node, i) => {
+              const on = i === active;
+              return (
+                <button
+                  key={node.label}
+                  type="button"
+                  onClick={() => setActive(i)}
+                  className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border bg-white px-2 py-1 transition-all"
+                  style={{
+                    left: `${node.x}%`,
+                    top: `${node.y}%`,
+                    borderColor: on ? node.color : "rgba(0,0,0,0.08)",
+                    boxShadow: on ? `0 0 0 3px ${node.color}22, 0 10px 22px -10px ${node.color}` : "0 1px 2px rgba(0,0,0,0.04)",
+                    opacity: on ? 1 : 0.82,
+                    zIndex: on ? 3 : 2,
+                  }}
+                >
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="h-2 w-2 rounded-full" style={{ background: node.color }} />
+                    {on && (
+                      <motion.span
+                        animate={{ opacity: [0.6, 0, 0.6], scale: [1, 2.4, 1] }}
+                        transition={{ duration: 1.7, repeat: Infinity }}
+                        className="absolute inset-0 rounded-full"
+                        style={{ background: node.color }}
+                      />
+                    )}
+                  </span>
+                  <span className="whitespace-nowrap text-[11px] font-medium" style={{ color: on ? "#27272a" : "#52525b" }}>{node.label.replace(" Agent", "")}</span>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Active node detail */}
+          <motion.p key={`d-${active}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.25 }} className="mt-2 text-center text-[11px] leading-snug text-zinc-500">
+            {activeNode.detail}
+          </motion.p>
 
           {/* Ask AI — agent-specific prompt chip */}
           <div className="mt-6 border-t border-zinc-100 pt-4 text-left">
@@ -2728,7 +2765,7 @@ function UseCasesSection() {
         Built for what your team actually tracks
       </h2>
       <p className="mb-8 max-w-2xl text-[14px] leading-relaxed text-zinc-500">
-        The graph adapts to the records your team needs to connect.
+        Define your own objects, fields, and relationships — the graph adapts to whatever your team needs to connect.
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {USE_CASES.map((u, i) => (
@@ -2738,11 +2775,13 @@ function UseCasesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.4, delay: i * 0.06 }}
-            className="rounded-xl p-4 text-left"
-            style={{ background: `${u.tone}0d`, border: `1px solid ${u.tone}28` }}
+            className="group relative overflow-hidden rounded-xl border border-black/[.07] bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_16px_32px_-18px_rgba(0,0,0,0.22)]"
           >
-            <span className="mb-4 block h-2 w-2 rounded-full" style={{ background: u.tone }} />
-            <p className="mb-1.5 text-[12.5px] font-semibold leading-tight text-zinc-800">{u.label}</p>
+            <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-100 transition-transform" style={{ background: u.tone }} />
+            <span className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: `${u.tone}1a` }}>
+              <span className="h-2 w-2 rounded-full" style={{ background: u.tone }} />
+            </span>
+            <p className="mb-1 text-[12.5px] font-semibold leading-tight text-zinc-800">{u.label}</p>
             <p className="text-[11px] leading-snug text-zinc-500">{u.desc}</p>
           </motion.div>
         ))}
