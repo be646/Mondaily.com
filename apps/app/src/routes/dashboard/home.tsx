@@ -172,6 +172,7 @@ export function HomePage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const openGuardRef = useRef(false);
+  const prevMsgCountRef = useRef(0);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -265,12 +266,22 @@ export function HomePage() {
   // bubble up and smooth-scroll the whole document on every token, which was the
   // jump on send + the up/down shake while streaming. Follow the stream
   // (streamedUpTo) but only when already near the bottom, so reading isn't yanked.
+  // Claude-style: on a NEW turn, scroll the user's message to the TOP of the box,
+  // then leave it alone. The answer (and the thinking indicator) writes into the
+  // stable space below — it never chases the bottom on every token, so nothing
+  // shakes or moves. The user scrolls to read; the position stays solid.
   useEffect(() => {
     const el = messagesRef.current;
-    if (!el || openGuardRef.current) return; // don't fight the open-slide animation
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
-    if (nearBottom) el.scrollTop = el.scrollHeight;
-  }, [messages, loading, streamedUpTo]);
+    const lastMsg = messages[messages.length - 1];
+    if (el && messages.length > prevMsgCountRef.current && lastMsg?.role === "user") {
+      requestAnimationFrame(() => {
+        const userEls = el.querySelectorAll<HTMLElement>('[data-role="user"]');
+        const lastUserEl = userEls[userEls.length - 1];
+        if (lastUserEl) el.scrollTo({ top: Math.max(0, lastUserEl.offsetTop - 8), behavior: "smooth" });
+      });
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages]);
 
   // While the chat slides open, suppress auto-scroll briefly so the slide stays
   // smooth instead of snapping to the bottom mid-animation.
@@ -537,7 +548,7 @@ export function HomePage() {
                 const meta = messageMeta[i];
                 const AgentIcon = meta?.agent.icon;
                 return (
-                  <div key={i} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
+                  <div key={i} data-role={m.role} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
                     {m.role === "assistant" && (
                       <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
                         <LogoMark size={16}/>

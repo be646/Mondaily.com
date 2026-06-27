@@ -446,6 +446,7 @@ html[data-theme="dark"] .minimal-sparkline {
   margin-bottom: 1.25rem;
 }
 .chat-convo-scroll {
+  position: relative;
   height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
