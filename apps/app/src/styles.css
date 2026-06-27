@@ -424,6 +424,18 @@ html[data-theme="dark"] .minimal-sparkline {
   animation: liveDotPing 1.9s ease-out infinite;
 }
 
+/* Stick chat content to the BOTTOM of the viewport (terminal-style): when the
+   conversation is short, the first row gets margin-top:auto so everything sits at
+   the bottom and types upward. When it overflows, the auto-margin collapses and it
+   scrolls normally (the top stays reachable, unlike justify-content:flex-end). */
+.chat-stick-bottom {
+  display: flex;
+  flex-direction: column;
+}
+.chat-stick-bottom > :first-child {
+  margin-top: auto;
+}
+
 .chat-input-bar {
   min-height: 4.35rem;
 }
