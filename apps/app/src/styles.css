@@ -383,9 +383,7 @@ html[data-theme="dark"] .minimal-sparkline {
 .status-line {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  min-width: 150px;
+  gap: 0.5rem;
   padding: 0.12rem 0.5rem;
   font-size: 0.72rem;
   color: var(--text-muted);

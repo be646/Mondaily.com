@@ -433,12 +433,12 @@ export function HomePage() {
             </div>
             <div className="mt-5 flex flex-col items-start gap-px">
               <span className="status-line">
-                Graph {graphSynced ? "synced" : "syncing"}
                 <span className="live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>
+                Graph {graphSynced ? "synced" : "syncing"}
               </span>
               <span className="status-line">
-                Sources {sourcesChecked ? "checked" : "checking…"}
                 <span className="live-dot" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>
+                Sources {sourcesChecked ? "checked" : "checking…"}
               </span>
             </div>
           </div>
