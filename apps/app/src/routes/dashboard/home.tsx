@@ -171,6 +171,7 @@ export function HomePage() {
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const openGuardRef = useRef(false);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -266,10 +267,19 @@ export function HomePage() {
   // (streamedUpTo) but only when already near the bottom, so reading isn't yanked.
   useEffect(() => {
     const el = messagesRef.current;
-    if (!el) return;
+    if (!el || openGuardRef.current) return; // don't fight the open-slide animation
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
     if (nearBottom) el.scrollTop = el.scrollHeight;
   }, [messages, loading, streamedUpTo]);
+
+  // While the chat slides open, suppress auto-scroll briefly so the slide stays
+  // smooth instead of snapping to the bottom mid-animation.
+  useEffect(() => {
+    if (!isChatting) return;
+    openGuardRef.current = true;
+    const t = setTimeout(() => { openGuardRef.current = false; }, 480);
+    return () => clearTimeout(t);
+  }, [isChatting]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
@@ -420,7 +430,7 @@ export function HomePage() {
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
+      <div className={`command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8 ${isChatting ? "is-hidden" : ""}`} style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* Left — greeting + a clean cluster: frameless AI agents and the
               graph/source status stacked beside it */}
@@ -540,7 +550,12 @@ export function HomePage() {
                     ) : (
                       <div className="flex-1 min-w-0">
                         <div className="ask-assistant-line pl-4 text-sm space-y-0.5">
-                          {renderMarkdown(displayText)}
+                          {/* While streaming, render plain text (symbols stripped) so the
+                              answer types out smoothly letter-by-letter without markdown
+                              structures reflowing mid-stream. Format once it's complete. */}
+                          {isStreaming
+                            ? <p className="whitespace-pre-wrap leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
+                            : renderMarkdown(displayText)}
                           {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
                         {!isStreaming && meta && AgentIcon && (
