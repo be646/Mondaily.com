@@ -171,8 +171,7 @@ export function HomePage() {
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
-  const openGuardRef = useRef(false);
-  const prevMsgCountRef = useRef(0);
+  const pinnedRef = useRef(true);
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -262,31 +261,28 @@ export function HomePage() {
   const recentThreads = getThreads().slice(0, 3);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll ONLY the inner message box — never the page. scrollIntoView used to
-  // bubble up and smooth-scroll the whole document on every token, which was the
-  // jump on send + the up/down shake while streaming. Follow the stream
-  // (streamedUpTo) but only when already near the bottom, so reading isn't yanked.
-  // Standard chat flow: the newest text stays at the BOTTOM and older text scrolls
-  // up as it streams. We follow the bottom only while a turn is active AND the user
-  // is already near the bottom — so manual scroll-up to re-read is never fought.
-  // The box is contained (not the page) + plain-text streaming, so it flows smoothly
-  // with no shake. Scroll up to see earlier text.
+  // Track whether the user is pinned to the bottom (passive scroll listener). When
+  // we programmatically scroll, this stays true; when the user scrolls up to read,
+  // it flips false and we stop following — no tussle.
+  useEffect(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    const onScroll = () => { pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [isChatting]);
+
+  // Follow the bottom ONLY when active AND pinned. requestAnimationFrame batches it
+  // to one adjustment per frame; scroll-behavior:auto on the box means it's an
+  // instant set (no smooth-scroll rubber-banding fighting the per-token updates).
   useEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
     const active = loading || streamingMsgIdx !== null;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 220;
-    if (active && nearBottom) el.scrollTop = el.scrollHeight;
+    if (active && pinnedRef.current) {
+      requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight; });
+    }
   }, [messages, loading, streamedUpTo, streamingMsgIdx]);
-
-  // While the chat slides open, suppress auto-scroll briefly so the slide stays
-  // smooth instead of snapping to the bottom mid-animation.
-  useEffect(() => {
-    if (!isChatting) return;
-    openGuardRef.current = true;
-    const t = setTimeout(() => { openGuardRef.current = false; }, 480);
-    return () => clearTimeout(t);
-  }, [isChatting]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
@@ -534,7 +530,7 @@ export function HomePage() {
         )}
 
         {isChatting && (
-          <div ref={messagesRef} className="relative min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none" }}>
+          <div ref={messagesRef} className="relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-8 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto", contain: "layout" }}>
             {(() => {
               return messages.map((m, i) => {
                 const isStreaming = streamingMsgIdx === i;
@@ -542,24 +538,24 @@ export function HomePage() {
                 const meta = messageMeta[i];
                 const AgentIcon = meta?.agent.icon;
                 return (
-                  <div key={i} data-role={m.role} className={m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}>
+                  <div key={i} data-role={m.role} className={`w-full min-w-0 ${m.role === "user" ? "flex justify-end" : "flex gap-3 items-start"}`}>
                     {m.role === "assistant" && (
                       <div className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }}>
                         <LogoMark size={16}/>
                       </div>
                     )}
                     {m.role === "user" ? (
-                      <div className="ask-user-bubble max-w-[72%] rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-sm leading-relaxed">
+                      <div className="ask-user-bubble max-w-[72%] min-w-0 break-words whitespace-pre-wrap rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-sm leading-relaxed">
                         {m.content}
                       </div>
                     ) : (
                       <div className="flex-1 min-w-0">
-                        <div className="ask-assistant-line pl-4 text-sm space-y-0.5">
+                        <div className="ask-assistant-line min-w-0 break-words pl-4 text-sm space-y-0.5">
                           {/* While streaming, render plain text (symbols stripped) so the
                               answer types out smoothly letter-by-letter without markdown
                               structures reflowing mid-stream. Format once it's complete. */}
                           {isStreaming
-                            ? <p className="whitespace-pre-wrap leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
+                            ? <p className="whitespace-pre-wrap break-words leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
                             : renderMarkdown(displayText)}
                           {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
