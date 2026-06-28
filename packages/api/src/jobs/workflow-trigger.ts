@@ -17,7 +17,17 @@ export const workflowTrigger = inngest.createFunction(
   async ({ event }) => {
     const { workspaceId, nodeId } = event.data as { workspaceId?: string; nodeId?: string };
     if (!workspaceId || !nodeId) return { skipped: true };
-    const summary = await runWorkflowsForWorkspace(workspaceId, { recordId: nodeId, limitRecords: 1 });
-    return { workspaceId, recordId: nodeId, ...summary };
+    // Fires on EVERY record create/update. runWorkflowsForWorkspace re-throws, so a
+    // permanent error would 500 here and Inngest would retry-storm /api/inngest (the
+    // same flood enrich-record had). Catch it: log + return cleanly so a bad record
+    // degrades per-record instead of hammering the endpoint.
+    try {
+      const summary = await runWorkflowsForWorkspace(workspaceId, { recordId: nodeId, limitRecords: 1 });
+      return { workspaceId, recordId: nodeId, ...summary };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[workflow-trigger] failed for record ${nodeId} (non-fatal):`, msg);
+      return { workspaceId, recordId: nodeId, error: msg };
+    }
   },
 );
