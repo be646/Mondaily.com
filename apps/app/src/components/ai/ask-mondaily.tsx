@@ -12,7 +12,7 @@ function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?:
   );
 }
 import { useParams } from "react-router-dom";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
@@ -235,12 +235,21 @@ export function AskMondaily() {
   // Follow the bottom inside the message box only (never the page) — newest text
   // stays at the bottom and older flows up, solid/no shake. Only follows when the
   // user is already near the bottom, so manual scroll-up isn't fought.
-  useEffect(() => {
+  // Stick-to-bottom lock (same model as Home + Quick-Ask). stickRef stays true
+  // while the user is parked near the bottom; scrolling up disengages the follow,
+  // scrolling back re-engages. Pin runs pre-paint (useLayoutEffect) and only while
+  // a turn is active — solid, no jitter, no tug when reading back.
+  const stickRef = useRef(true);
+  const onMessagesScroll = useCallback(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+  }, []);
+  useLayoutEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
     const active = loading || streamingMsgIdx !== null;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 220;
-    if (active && nearBottom) el.scrollTop = el.scrollHeight;
+    if (active && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
@@ -328,7 +337,7 @@ export function AskMondaily() {
       </div>
 
       {/* ── Message area ── */}
-      <div ref={messagesRef} className="ask-message-scroll flex-1 overflow-y-auto px-6 py-6 space-y-6" style={{ scrollbarWidth: "none", overflowAnchor: "none" }}>
+      <div ref={messagesRef} onScroll={onMessagesScroll} className="ask-message-scroll relative min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-6 py-6 space-y-6" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto" }}>
 
         {/* Empty state — command center, not a generic chatbot greeting */}
         {!isChatting && (
@@ -375,12 +384,10 @@ export function AskMondaily() {
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
-                    <div className="ask-assistant-line pl-4 text-sm space-y-0.5">
-                      {/* Plain text while streaming so it types smoothly without
-                          markdown reflow; formatted once complete. */}
-                      {isStreaming
-                        ? <p className="whitespace-pre-wrap leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
-                        : renderMarkdown(displayText)}
+                    <div className="ask-assistant-line min-w-0 break-words pl-4 text-sm space-y-0.5">
+                      {/* Render through the markdown renderer during streaming too —
+                          no plain→markdown swap, so text reads solid and never reflows. */}
+                      {renderMarkdown(displayText)}
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
 
@@ -434,28 +441,22 @@ export function AskMondaily() {
                         (not just "this") so the request is unambiguous even on its own,
                         in addition to the full history now sent with every request. */}
                     {!isStreaming && !loading && i === messages.length - 1 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2.5 pl-4">
-                        <button onClick={() => sendSuggestion(buildChipText("task", i))} className="btn-suggested">
-                          <ListChecks size={11}/> Create task
-                        </button>
-                        <button onClick={() => sendSuggestion(buildChipText("draft", i))} className="btn-suggested">
-                          <Mail size={11}/> Draft message
-                        </button>
-                        <button onClick={() => sendSuggestion(buildChipText("related", i))} className="btn-suggested">
-                          <Network size={11}/> Show related
-                        </button>
-                        <button onClick={() => sendSuggestion(buildChipText("explain", i))} className="btn-suggested">
-                          <Brain size={11}/> Explain reasoning
-                        </button>
-                        <button onClick={() => sendSuggestion(buildChipText("decision", i))} className="btn-suggested">
-                          <Inbox size={11}/> Add to decision queue
-                        </button>
-                        <button onClick={() => sendSuggestion(buildChipText("workflow", i))} className="btn-suggested">
-                          <GitBranch size={11}/> Draft workflow
-                        </button>
-                        <button onClick={() => sendSuggestion(buildChipText("report", i))} className="btn-suggested">
-                          <BarChart2 size={11}/> Create report
-                        </button>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pl-4">
+                        {([
+                          { key: "task" as const, label: "Create task", Icon: ListChecks },
+                          { key: "draft" as const, label: "Draft message", Icon: Mail },
+                          { key: "related" as const, label: "Show related", Icon: Network },
+                          { key: "explain" as const, label: "Explain reasoning", Icon: Brain },
+                          { key: "decision" as const, label: "Add to decision queue", Icon: Inbox },
+                          { key: "workflow" as const, label: "Draft workflow", Icon: GitBranch },
+                          { key: "report" as const, label: "Create report", Icon: BarChart2 },
+                        ]).map(({ key, label, Icon }) => (
+                          <button key={key} onClick={() => sendSuggestion(buildChipText(key, i))}
+                            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                            style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                            <Icon size={11}/> {label}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
