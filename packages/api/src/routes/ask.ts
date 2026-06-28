@@ -10,7 +10,7 @@ import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway } from "../lib/ai-gateway";
 
-const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
+export const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
 You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, build a custom object type, or explore relationships between records — use the appropriate tool. After using a tool, summarize what you did in plain language.
 
@@ -1308,6 +1308,8 @@ router.post("/", requireAuth, zValidator("json", z.object({
       messages,
       maxTokens: 2048,
       model: agentModelSpec,
+      workspaceId,
+      userId,
       onToolCall: async (name, input) => {
         // Deterministic local guardrail before any handler runs.
         const guardError = validateToolCall(name, input as Record<string, any>);
@@ -1354,23 +1356,8 @@ router.post("/", requireAuth, zValidator("json", z.object({
       return true;
     }).slice(0, 10);
 
-    // Track usage
-    try {
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-      await supabase.from("ai_usage").insert({
-        workspace_id: workspaceId,
-        user_id: userId,
-        model,
-        message_count: 1,
-        prompt_tokens: usage?.prompt_tokens ?? 0,
-        completion_tokens: usage?.completion_tokens ?? 0,
-        total_tokens: usage?.total_tokens ?? 0,
-        period_start: periodStart,
-        period_end: periodEnd
-      });
-    } catch (_) {}
+    // Usage telemetry is recorded centrally inside the gateway (recordAiUsage,
+    // fire-and-forget) now that workspaceId/userId are passed through.
 
     return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null, usage });
   } catch (err: any) {
@@ -1458,6 +1445,8 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
         messages,
         maxTokens: 2048,
         model: agentModelSpec,
+        workspaceId,
+        userId,
         onToolCall: async (name, input) => {
           const guardError = validateToolCall(name, input as Record<string, any>);
           if (guardError) return guardError;
@@ -1488,17 +1477,7 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
       const seen = new Set<string>();
       const dedupedSources = sources.filter(s => { const k = s.node_id ?? s.title; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10);
 
-      try {
-        const now = new Date();
-        await supabase.from("ai_usage").insert({
-          workspace_id: workspaceId, user_id: userId, model, message_count: 1,
-          prompt_tokens: usage?.prompt_tokens ?? 0,
-          completion_tokens: usage?.completion_tokens ?? 0,
-          total_tokens: usage?.total_tokens ?? 0,
-          period_start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
-          period_end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
-        });
-      } catch {}
+      // Usage telemetry recorded centrally inside the gateway (recordAiUsage).
 
       await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources, usage });
       await writeChain;

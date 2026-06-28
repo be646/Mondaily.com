@@ -27,6 +27,7 @@
  */
 
 import OpenAI from "openai";
+import { recordAiUsage } from "./ai-usage";
 
 // ── Shared types ────────────────────────────────────────────────────────────────
 
@@ -261,9 +262,12 @@ export type AgentRequest = {
   messages: Array<{ role: string; content: unknown }>;
   maxRounds?: number;
   maxTokens?: number;
-  /** Full model spec: "anthropic/claude-sonnet-4-6" or "openai-compat/llama-3.3-70b-versatile".
+  /** Full model spec, e.g. "openai-compat/gpt-oss-120b".
    *  Overrides AI_AGENT_MODEL env var when provided. */
   model?: string;
+  /** Cost telemetry: when set, token usage is logged to ai_usage for this tenant. */
+  workspaceId?: string;
+  userId?: string;
   onToolCall: (name: string, input: Record<string, unknown>) => Promise<string>;
 };
 
@@ -409,7 +413,9 @@ async function runOpenAICompatAgent(
     }
   }
 
-  return { reply, provider: "openai-compat", model: activeModel, rounds, usage: usage.total_tokens > 0 ? usage : undefined };
+  const finalUsage = usage.total_tokens > 0 ? usage : undefined;
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId });
+  return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 
 // ── Public: aiGatewayAgent ──────────────────────────────────────────────────────
@@ -610,7 +616,9 @@ async function runOpenAICompatAgentStream(
       if (reply.trim()) {
         // A partial answer already reached the user — flag it, don't hang.
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted — this reply may be incomplete. Please ask again.)_" });
-        return { reply, provider: "openai-compat", model: modelId, rounds, usage: usage.total_tokens > 0 ? usage : undefined };
+        const partialUsage = usage.total_tokens > 0 ? usage : undefined;
+        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId });
+        return { reply, provider: "openai-compat", model: modelId, rounds, usage: partialUsage };
       }
       // Nothing delivered yet — let aiGatewayAgentStream fall back to non-streaming.
       throw streamErr;
@@ -667,5 +675,7 @@ async function runOpenAICompatAgentStream(
     }
   }
 
-  return { reply, provider: "openai-compat", model: modelId, rounds, usage: usage.total_tokens > 0 ? usage : undefined };
+  const streamUsage = usage.total_tokens > 0 ? usage : undefined;
+  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId });
+  return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }

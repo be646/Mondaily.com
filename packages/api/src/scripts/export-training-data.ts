@@ -50,7 +50,14 @@ function asContent(value: unknown): string {
   return sanitizeForTraining(typeof value === "string" ? value : JSON.stringify(value));
 }
 
-function toJsonlLine(row: TrainingRow): string {
+// Token-length bounds for a usable instruction-tuning example. A single example
+// far past this is almost certainly malformed (runaway/garbage) and would skew a
+// fine-tune; an empty user OR assistant side has no signal. ~4 chars/token is the
+// standard rough estimate.
+const MAX_EXAMPLE_TOKENS = 8000;
+const estimateTokens = (s: string): number => Math.ceil(s.length / 4);
+
+function buildMessages(row: TrainingRow): ChatMessage[] {
   // Human-edited output wins as the gold completion when present.
   const completion = row.edited_output ?? row.model_output;
   const messages: ChatMessage[] = [];
@@ -58,7 +65,20 @@ function toJsonlLine(row: TrainingRow): string {
   if (sys) messages.push({ role: "system", content: sys });
   messages.push({ role: "user", content: sanitizeForTraining(row.user_prompt ?? "") });
   messages.push({ role: "assistant", content: asContent(completion) });
-  return JSON.stringify({ agent: row.agent_name ?? "unknown", messages });
+  return messages;
+}
+
+type Validation =
+  | { ok: true; tokens: number }
+  | { ok: false; reason: "empty" | "oversized"; tokens: number };
+
+function validateExample(messages: ChatMessage[]): Validation {
+  const user = messages.find((m) => m.role === "user")?.content ?? "";
+  const assistant = messages.find((m) => m.role === "assistant")?.content ?? "";
+  const tokens = messages.reduce((n, m) => n + estimateTokens(m.content), 0);
+  if (!user.trim() || !assistant.trim()) return { ok: false, reason: "empty", tokens };
+  if (tokens > MAX_EXAMPLE_TOKENS) return { ok: false, reason: "oversized", tokens };
+  return { ok: true, tokens };
 }
 
 async function main(): Promise<void> {
@@ -80,17 +100,36 @@ async function main(): Promise<void> {
     if (data.length < pageSize) break;
   }
 
-  // Exclude rows carrying prompt-injection patterns so they can't poison the
-  // fine-tuning corpus. Count + log — never a silent drop.
-  const clean = rows.filter((r) => !looksLikeInjection(rawText(r)));
-  const excluded = rows.length - clean.length;
-  const lines = clean.map(toJsonlLine);
+  // Compile each approved row into a pristine, validated training example.
+  // Every exclusion is bucketed by reason and reported — never a silent drop:
+  //   • injection — prompt-injection / poisoning pattern (LLM03)
+  //   • empty     — no usable user OR assistant signal
+  //   • oversized — runaway length that would skew the fine-tune
+  const excluded = { injection: 0, empty: 0, oversized: 0 };
+  let totalTokens = 0;
+  const lines: string[] = [];
+
+  for (const row of rows) {
+    if (looksLikeInjection(rawText(row))) { excluded.injection++; continue; }
+    const messages = buildMessages(row);
+    const v = validateExample(messages);
+    if (!v.ok) { excluded[v.reason]++; continue; }
+    totalTokens += v.tokens;
+    lines.push(JSON.stringify({ agent: row.agent_name ?? "unknown", messages }));
+  }
+
   // Always write the file (empty placeholder when there's nothing yet).
   writeFileSync(outPath, lines.length ? lines.join("\n") + "\n" : "", "utf8");
+
+  const totalExcluded = excluded.injection + excluded.empty + excluded.oversized;
+  const avgTokens = lines.length ? Math.round(totalTokens / lines.length) : 0;
   console.log(
-    `[export-training-data] wrote ${lines.length} approved example(s)` +
-    (excluded ? `, EXCLUDED ${excluded} with injection patterns` : "") +
-    ` → ${outPath}`,
+    `[export-training-data] wrote ${lines.length} clean example(s) ` +
+    `(~${totalTokens.toLocaleString()} tokens, avg ${avgTokens}/example) → ${outPath}`,
+  );
+  console.log(
+    `[export-training-data] excluded ${totalExcluded} of ${rows.length} approved row(s) — ` +
+    `injection: ${excluded.injection}, empty: ${excluded.empty}, oversized: ${excluded.oversized}`,
   );
 }
 
