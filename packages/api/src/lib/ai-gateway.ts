@@ -188,30 +188,63 @@ function openAIClient(): OpenAI {
  * instead of guessing at Sensitive env values. Leaks nothing secret: only the host
  * of the base URL and the model name.
  */
+type ProbeResult = { ok: boolean; model: string; status?: number; error?: string };
+
 export async function gatewayHealthCheck(): Promise<{
   ok: boolean;
   baseURLHost: string | null;
-  model: string;
-  status?: number;
+  env: { AI_PROVIDER_MODEL: string | null; AI_AGENT_MODEL: string | null; AI_FAST_MODEL: string | null };
+  tests?: { provider_plain: ProbeResult; agent_plain: ProbeResult; agent_with_tools: ProbeResult };
   error?: string;
 }> {
   const { baseURL, apiKey } = gatewayEnv();
-  const model = (process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC).replace(/^openai-compat\//, "");
+  const env = {
+    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? null,
+    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? null,
+    AI_FAST_MODEL: process.env.AI_FAST_MODEL ?? null,
+  };
   let baseURLHost: string | null = null;
   try { baseURLHost = baseURL ? new URL(baseURL).host : null; } catch { baseURLHost = baseURL ?? null; }
 
   if (!baseURL || !apiKey) {
     const missing = [!baseURL && "AI_GATEWAY_BASE_URL", !apiKey && "AI_GATEWAY_API_KEY"].filter(Boolean).join(" + ");
-    return { ok: false, baseURLHost, model, error: `Missing env: ${missing}` };
+    return { ok: false, baseURLHost, env, error: `Missing env: ${missing}` };
   }
-  try {
-    const client = new OpenAI({ baseURL, apiKey, timeout: 12000, maxRetries: 0 });
-    await client.chat.completions.create({ model, messages: [{ role: "user", content: "ping" }], max_tokens: 1 });
-    return { ok: true, baseURLHost, model };
-  } catch (e) {
-    const err = e as { status?: number; message?: string };
-    return { ok: false, baseURLHost, model, status: err?.status, error: err?.message ?? String(e) };
+
+  const strip = (m: string) => m.replace(/^openai-compat\//, "");
+  const providerModel = strip(env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  const agentModel = strip(env.AI_AGENT_MODEL ?? env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  const client = new OpenAI({ baseURL, apiKey, timeout: 12000, maxRetries: 0 });
+
+  async function probe(model: string, withTools: boolean): Promise<ProbeResult> {
+    try {
+      await client.chat.completions.create({
+        model,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+        ...(withTools
+          ? {
+              tools: [{ type: "function" as const, function: { name: "noop", description: "noop", parameters: { type: "object", properties: {} } } }],
+              tool_choice: "auto" as const,
+            }
+          : {}),
+      });
+      return { ok: true, model };
+    } catch (e) {
+      const err = e as { status?: number; message?: string };
+      return { ok: false, model, status: err?.status, error: err?.message ?? String(e) };
+    }
   }
+
+  // Mirror what the chat path actually does: it resolves AI_AGENT_MODEL first and
+  // sends tools. Test each axis so we see WHICH one breaks.
+  const tests = {
+    provider_plain: await probe(providerModel, false),
+    agent_plain: await probe(agentModel, false),
+    agent_with_tools: await probe(agentModel, true),
+  };
+  const ok = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok;
+  return { ok, baseURLHost, env, tests };
 }
 
 // ── Plain text generation ───────────────────────────────────────────────────────
