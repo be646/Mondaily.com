@@ -39,6 +39,14 @@ interface Billing {
   trial_days_left?: number | null;
 }
 
+interface UsageTotals { messages: number; prompt_tokens: number; completion_tokens: number; total_tokens: number }
+interface Usage {
+  period: string;
+  records: number;
+  totals: UsageTotals;
+  by_model: Record<string, UsageTotals>;
+}
+
 const PLAN_COLORS: Record<string, string> = {
   free: "bg-[var(--surface-hover)] text-stone-400",
   trial: "bg-emerald-500/10 text-emerald-300",
@@ -49,6 +57,7 @@ const PLAN_COLORS: Record<string, string> = {
 
 export function BillingSettings() {
   const query = useQuery({ queryKey: ["billing"], queryFn: () => apiClient.get<Billing>("/billing") });
+  const usageQuery = useQuery({ queryKey: ["ai-usage"], queryFn: () => apiClient.get<Usage>("/usage") });
 
   if (query.isLoading) return <PageSkeleton />;
   const billing = query.data ?? { plan: "free", seats_used: 1, seats_limit: 3, invoices: [] };
@@ -115,6 +124,56 @@ export function BillingSettings() {
               <p className="mt-2 text-xs text-stone-400">You're nearly at your seat limit. Upgrade to add more members.</p>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* ── AI usage (token telemetry) ── */}
+      <section className="settings-section">
+        <div className="settings-section-header">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">AI usage</h2>
+          <span className="text-xs text-stone-500">This month</span>
+        </div>
+        <div className="p-5">
+          {(() => {
+            const u = usageQuery.data;
+            const t = u?.totals;
+            if (usageQuery.isLoading) return <p className="text-sm text-stone-500">Loading usage…</p>;
+            if (!t || (t.total_tokens === 0 && t.messages === 0)) {
+              return <p className="text-sm text-stone-500">No AI usage recorded yet this month. Totals appear here as your team chats and runs agents.</p>;
+            }
+            const fmt = (n: number) => n.toLocaleString();
+            const cells: [string, number][] = [
+              ["Messages", t.messages],
+              ["Prompt tokens", t.prompt_tokens],
+              ["Completion tokens", t.completion_tokens],
+              ["Total tokens", t.total_tokens],
+            ];
+            return (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {cells.map(([label, val]) => (
+                    <div key={label} className="rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+                      <div className="text-[11px] text-stone-500">{label}</div>
+                      <div className="mt-0.5 text-lg font-semibold tabular-nums text-[var(--text-primary)]">{fmt(val)}</div>
+                    </div>
+                  ))}
+                </div>
+                {u && Object.keys(u.by_model).length > 0 && (
+                  <div className="mt-4">
+                    <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-500">By model</div>
+                    <div className="space-y-1.5">
+                      {Object.entries(u.by_model).map(([model, mt]) => (
+                        <div key={model} className="flex items-center justify-between text-sm">
+                          <span className="truncate text-stone-400">{model}</span>
+                          <span className="tabular-nums text-[var(--text-primary)]">{fmt(mt.total_tokens)} tokens</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </section>
 
