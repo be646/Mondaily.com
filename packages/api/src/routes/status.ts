@@ -54,12 +54,12 @@ router.get("/", async (c) => {
     explanation: clerkConfigured ? "CLERK_SECRET_KEY or CLERK_JWT_KEY is set — and this request itself passed Clerk auth." : "No Clerk key found in this environment.",
   });
 
-  // Ask Mondaily (Anthropic)
-  const anthropicConfigured = Boolean(process.env.ANTHROPIC_API_KEY);
+  // Ask Mondaily (Cerebras openai-compat gateway)
+  const gatewayConfigured = Boolean(process.env.AI_GATEWAY_BASE_URL && process.env.AI_GATEWAY_API_KEY);
   checks.push({
     id: "ask", label: "Ask Mondaily available",
-    state: anthropicConfigured ? "operational" : "needs_setup",
-    explanation: anthropicConfigured ? "ANTHROPIC_API_KEY is set — Ask Mondaily, enrichment, and the Prospecting Agent can all call Claude." : "ANTHROPIC_API_KEY is missing — Ask Mondaily and AI enrichment will not work.",
+    state: gatewayConfigured ? "operational" : "needs_setup",
+    explanation: gatewayConfigured ? "AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY are set — Ask Mondaily, enrichment, and the Prospecting Agent run on the Cerebras gateway." : "AI_GATEWAY_BASE_URL / AI_GATEWAY_API_KEY missing — the Cerebras gateway is not configured, so Ask Mondaily and AI enrichment will not work.",
   });
 
   // Agent jobs table

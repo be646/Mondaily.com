@@ -1269,12 +1269,14 @@ router.post("/", requireAuth, zValidator("json", z.object({
   // AI_AGENT_MODEL env var overrides user preference (swap provider without code change).
   // When not set, honour the user's fast/smart/auto preference mapped to Claude models.
   const agentModelSpec = process.env.AI_AGENT_MODEL ?? (() => {
+    // Cerebras-powered defaults via the openai-compat streaming gateway.
+    // No proprietary Anthropic/OpenAI model is referenced at the source layer.
     const map: Record<string, string> = {
-      fast: "anthropic/claude-haiku-4-5-20251001",
-      smart: "anthropic/claude-sonnet-4-6",
-      auto: "anthropic/claude-sonnet-4-6",
+      fast: "openai-compat/gpt-oss-120b",
+      smart: "openai-compat/gpt-oss-120b",
+      auto: "openai-compat/gpt-oss-120b",
     };
-    return map[modelPref ?? "auto"] ?? "anthropic/claude-sonnet-4-6";
+    return map[modelPref ?? "auto"] ?? "openai-compat/gpt-oss-120b";
   })();
 
   // Model ID string for usage tracking (strip provider prefix)
@@ -1418,7 +1420,7 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
   context: z.record(z.any()).optional(),
 })), async (c) => {
   const { message, web_search, history, context } = c.req.valid("json");
-  const agentModelSpec = process.env.AI_AGENT_MODEL ?? "anthropic/claude-sonnet-4-6";
+  const agentModelSpec = process.env.AI_AGENT_MODEL ?? "openai-compat/gpt-oss-120b";
   const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");

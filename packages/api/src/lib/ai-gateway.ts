@@ -1,33 +1,31 @@
 /**
- * AI Gateway — model-agnostic generation utility.
+ * AI Gateway — Cerebras-only generation utility.
+ *
+ * Mondaily runs ALL primary inference through its own openai-compatible
+ * streaming gateway (Cerebras). There is no Anthropic/OpenAI provider branch at
+ * the source layer, and no silent fallback to api.openai.com / api.anthropic.com.
  *
  * Routing is controlled by environment variables:
  *
- *   AI_PROVIDER_MODEL = "anthropic/claude-haiku-4-5-20251001"  (default)
- *                     | "openai-compat/<model-id>"
- *
+ *   AI_PROVIDER_MODEL = "openai-compat/<model-id>"   (default: gpt-oss-120b)
  *   AI_AGENT_MODEL    = same format — overrides AI_PROVIDER_MODEL for the
  *                       multi-round agentic loop (aiGatewayAgent) only.
- *                       Falls back to AI_PROVIDER_MODEL → Anthropic default.
  *
- * For the "openai-compat" route:
- *   AI_GATEWAY_BASE_URL  e.g. "https://api.fireworks.ai/inference/v1"
- *   AI_GATEWAY_API_KEY   your key for that provider
+ *   AI_GATEWAY_BASE_URL  the Cerebras openai-compatible endpoint (REQUIRED —
+ *                        the gateway throws if it is unset, rather than leaking
+ *                        traffic to a default OpenAI endpoint)
+ *   AI_GATEWAY_API_KEY   the Cerebras gateway key (REQUIRED)
  *
  * Three exported functions:
  *   aiGateway        — plain text generation (no tools)
  *   aiGatewayToolUse — single-tool structured extraction
- *   aiGatewayAgent   — multi-round agentic loop with automatic provider fallback
+ *   aiGatewayAgent   — multi-round agentic loop (Cerebras only)
  *
- * Fallback chain for aiGatewayAgent:
- *   primary spec → on 404 try Fireworks fallback models → if ANTHROPIC_API_KEY/CLAUDE_API_KEY → Anthropic haiku
- *   → if all fail → graceful reply string (never throws to caller)
- *
- * Anthropic API key: reads ANTHROPIC_API_KEY or CLAUDE_API_KEY (whichever is set)
+ * On failure: on 404 try the configured fallback model IDs → if all fail, a
+ * graceful reply string is returned (never throws to caller). No proprietary
+ * third-party provider is ever used as a fallback.
  */
 
-import { generateText } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
 import OpenAI from "openai";
 
 // ── Shared types ────────────────────────────────────────────────────────────────
@@ -62,24 +60,17 @@ export type GatewayToolRequest = {
 
 // ── Internal routing ────────────────────────────────────────────────────────────
 
-type ResolvedModel =
-  | { type: "anthropic"; modelId: string }
-  | { type: "openai-compat"; modelId: string };
+type ResolvedModel = { type: "openai-compat"; modelId: string };
+
+// Cerebras-powered default. Mondaily runs primary inference exclusively on its
+// own openai-compatible streaming gateway (AI_GATEWAY_BASE_URL → Cerebras).
+// No proprietary Anthropic/OpenAI endpoint is referenced at the default layer.
+export const CEREBRAS_DEFAULT_SPEC = "openai-compat/gpt-oss-120b";
 
 function resolveModel(spec?: string): ResolvedModel {
-  const s = spec ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
-
-  if (s.startsWith("openai-compat/")) {
-    return { type: "openai-compat", modelId: s.slice("openai-compat/".length) };
-  }
-
-  const modelId = s.startsWith("anthropic/") ? s.slice("anthropic/".length) : s;
-  return { type: "anthropic", modelId: modelId || "claude-haiku-4-5-20251001" };
-}
-
-/** Reads ANTHROPIC_API_KEY or CLAUDE_API_KEY — whichever is set. */
-function getAnthropicKey(): string | undefined {
-  return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || undefined;
+  const s = spec ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+  const modelId = s.startsWith("openai-compat/") ? s.slice("openai-compat/".length) : s;
+  return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
 }
 
 // ── Fast-model routing ──────────────────────────────────────────────────────────
@@ -101,7 +92,7 @@ const CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good
 const DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
 
 function routeAgentModel(req: AgentRequest): { spec: string; useTools: boolean; tier: "fast" | "deep" } {
-  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
   const lastUser = [...req.messages].reverse().find(m => m.role === "user");
   const msg = (typeof lastUser?.content === "string" ? lastUser.content : "").trim();
   if (msg.length > 0 && msg.length < 80 && CONVERSATIONAL_RE.test(msg) && !DATA_INTENT_RE.test(msg)) {
@@ -160,16 +151,19 @@ function openAIClient(): OpenAI {
   const baseURL = process.env.AI_GATEWAY_BASE_URL;
   const apiKey = process.env.AI_GATEWAY_API_KEY;
 
+  // Sovereignty guard: never silently fall back to api.openai.com. If the
+  // Cerebras gateway isn't configured, fail loudly rather than leak traffic to
+  // a proprietary third-party endpoint.
   if (!baseURL) {
-    console.error("[gateway] AI_GATEWAY_BASE_URL is not set — openai-compat calls will fail");
+    throw new Error("[gateway] AI_GATEWAY_BASE_URL is not set — refusing to route inference to a default OpenAI endpoint. Configure the Cerebras gateway base URL.");
   }
   if (!apiKey) {
-    console.error("[gateway] AI_GATEWAY_API_KEY is not set — openai-compat calls will fail");
+    throw new Error("[gateway] AI_GATEWAY_API_KEY is not set — Cerebras gateway credentials missing.");
   }
 
   return new OpenAI({
-    baseURL: baseURL ?? "https://api.openai.com/v1",
-    apiKey: apiKey ?? "missing-key",
+    baseURL,
+    apiKey,
     // Fail FAST + clean on a provider stall (was 45s×2 ≈ 135s worst case, which
     // froze the chat). Short timeout, one quick retry for transient 5xx/429.
     timeout: 22000,
@@ -181,17 +175,6 @@ function openAIClient(): OpenAI {
 
 export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
   const resolved = resolveModel();
-
-  if (resolved.type === "anthropic") {
-    const anthropic = createAnthropic({ apiKey: getAnthropicKey() });
-    const { text } = await generateText({
-      model: anthropic(resolved.modelId),
-      ...(req.system ? { system: req.system } : {}),
-      prompt: req.prompt,
-      maxTokens: req.maxTokens ?? 512,
-    });
-    return { text, provider: "anthropic", model: resolved.modelId };
-  }
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
@@ -214,33 +197,6 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
 
 export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<string, unknown>> {
   const resolved = resolveModel(req.model);
-
-  if (resolved.type === "anthropic") {
-    const apiKey = getAnthropicKey();
-    if (!apiKey) return {};
-
-    const body: Record<string, unknown> = {
-      model: resolved.modelId,
-      max_tokens: req.maxTokens ?? 1024,
-      tools: [{ name: req.toolName, description: req.toolDescription, input_schema: req.toolSchema }],
-      tool_choice: { type: "tool", name: req.toolName },
-      messages: [{ role: "user", content: req.prompt }],
-    };
-    if (req.system) body.system = req.system;
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) return {};
-    const data = await res.json() as { content?: { type: string; input?: Record<string, unknown> }[] };
-    return data.content?.find(b => b.type === "tool_use")?.input ?? {};
-  }
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
@@ -321,73 +277,6 @@ export type AgentResponse = {
   usage?: TokenUsage;
 };
 
-// ── Internal: Anthropic multi-round loop ────────────────────────────────────────
-
-async function runAnthropicAgent(
-  modelId: string,
-  req: AgentRequest,
-  maxRounds: number,
-): Promise<AgentResponse> {
-  const apiKey = getAnthropicKey();
-  if (!apiKey) throw new Error("No Anthropic key found (checked ANTHROPIC_API_KEY and CLAUDE_API_KEY)");
-
-  const messages: unknown[] = [...req.messages];
-  let reply = "";
-  let rounds = 0;
-
-  for (let round = 0; round < maxRounds; round++) {
-    rounds = round + 1;
-    console.log(`[gateway:anthropic] round=${round + 1} model=${modelId}`);
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: modelId,
-        max_tokens: req.maxTokens ?? 2048,
-        system: req.system,
-        tools: req.tools,
-        messages,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`[gateway:anthropic] HTTP ${res.status}:`, body);
-      throw new Error(`Anthropic HTTP ${res.status}: ${body}`);
-    }
-
-    const data = await res.json() as {
-      stop_reason: string;
-      content: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
-    };
-
-    const textBlocks = data.content.filter(b => b.type === "text").map(b => b.text ?? "");
-    if (textBlocks.length) reply = textBlocks.join("\n");
-
-    if (data.stop_reason !== "tool_use") break;
-
-    const toolBlocks = data.content.filter(b => b.type === "tool_use");
-    if (!toolBlocks.length) break;
-
-    messages.push({ role: "assistant", content: data.content });
-
-    const toolResults: unknown[] = [];
-    for (const tb of toolBlocks) {
-      console.log(`[gateway:anthropic] tool_call name=${tb.name}`);
-      const result = await req.onToolCall(tb.name!, tb.input ?? {});
-      toolResults.push({ type: "tool_result", tool_use_id: tb.id!, content: result });
-    }
-
-    messages.push({ role: "user", content: toolResults });
-  }
-
-  return { reply, provider: "anthropic", model: modelId, rounds };
-}
 
 // ── Internal: OpenAI-compat multi-round loop ────────────────────────────────────
 
@@ -546,28 +435,15 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
 
   console.log(`[gateway:agent] tier=${route.tier} spec="${spec}" provider=${resolved.type} model=${resolved.modelId} tools=${req.tools.length}`);
 
-  // ── Primary attempt ───────────────────────────────────────────────────────────
+  // ── Primary attempt (Cerebras openai-compat only) ───────────────────────────────
   try {
-    if (resolved.type === "anthropic") {
-      return await runAnthropicAgent(resolved.modelId, req, MAX_ROUNDS);
-    }
     return await runOpenAICompatAgent(resolved.modelId, req, MAX_ROUNDS);
   } catch (primaryErr: any) {
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
 
-    // ── Fallback: openai-compat exhausted → try Anthropic if key is available ────
-    if (resolved.type === "openai-compat" && getAnthropicKey()) {
-      const fallbackModel = "claude-haiku-4-5-20251001";
-      console.log(`[gateway:agent] falling back to Anthropic ${fallbackModel} (key=${process.env.ANTHROPIC_API_KEY ? "ANTHROPIC_API_KEY" : "CLAUDE_API_KEY"})`);
-      try {
-        return await runAnthropicAgent(fallbackModel, req, MAX_ROUNDS);
-      } catch (fallbackErr: any) {
-        console.error(`[gateway:agent] Anthropic fallback also failed: ${fallbackErr?.message}`);
-      }
-    }
-
-    // ── All providers failed — return graceful reply (never throw to caller) ─────
-    console.error(`[gateway:agent] all providers exhausted — returning graceful reply`);
+    // No proprietary-provider fallback — the gateway is Cerebras-only. A failure
+    // here returns a graceful reply rather than routing to Anthropic/OpenAI.
+    console.error(`[gateway:agent] Cerebras gateway exhausted — returning graceful reply`);
     return {
       reply: "I'm having trouble connecting to the AI service right now. Please try again in a moment.",
       provider: "none",
