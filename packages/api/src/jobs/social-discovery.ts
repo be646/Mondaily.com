@@ -2,42 +2,33 @@ import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 
-// ── Tavily web search (one query → flattened result rows with their URLs) ──────
+// ── Sovereign SearXNG search (private metasearch JSON → result rows) ──────────
 interface SearchHit { title: string; content: string; url: string }
 
-export const TAVILY_CREDIT_REASON = "Tavily API endpoint returned an out-of-credit or rate-limit error.";
-function isTavilyCreditError(status: number, body: string): boolean {
-  return status === 402 || status === 429 || /credit|quota|insufficient|exhaust|usage limit|rate limit|too many requests/i.test(body);
-}
+export const SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
+const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
 
-type TavilyResult = { hits: SearchHit[]; creditExhausted: boolean };
+type SearchResult = { hits: SearchHit[]; unreachable: boolean };
 
-async function tavily(query: string): Promise<TavilyResult> {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return { hits: [], creditExhausted: false };
+async function searxng(query: string): Promise<SearchResult> {
   try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: 6, search_depth: "advanced" }),
-    });
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (isTavilyCreditError(res.status, body)) {
-        console.error(`[social-discovery] tavily out-of-credit / rate-limit (HTTP ${res.status}) — short-circuiting sweep`);
-        return { hits: [], creditExhausted: true };
-      }
-      console.error(`[social-discovery] tavily search failed (HTTP ${res.status})`);
-      return { hits: [], creditExhausted: false };
+      // 5xx → the index itself is down/unreachable; treat as an infra timeout.
+      console.error(`[social-discovery] searxng HTTP ${res.status}`);
+      return { hits: [], unreachable: res.status >= 500 };
     }
-    const json = (await res.json()) as { results?: { title?: string; content?: string; url?: string }[] };
-    const hits = (json.results ?? [])
+    // Same structural keys SearXNG returns under data.results.
+    const data = (await res.json()) as { results?: { title?: string; content?: string; url?: string }[] };
+    const hits = (data.results ?? [])
       .filter((r) => r.url)
       .map((r) => ({ title: r.title ?? "", content: r.content ?? "", url: r.url as string }));
-    return { hits, creditExhausted: false };
+    return { hits, unreachable: false };
   } catch (e) {
-    console.error("[social-discovery] tavily request error:", e instanceof Error ? e.message : String(e));
-    return { hits: [], creditExhausted: false };
+    // Connection drop / DNS / timeout reaching the self-hosted instance.
+    console.error("[social-discovery] searxng unreachable:", e instanceof Error ? e.message : String(e));
+    return { hits: [], unreachable: true };
   }
 }
 
@@ -102,14 +93,14 @@ export const socialDiscoveryWorker = inngest.createFunction(
   async ({ event }) => {
     const { workspaceId, region, sector, searchType, targetSubject } = event.data;
 
-    // 1) Parallel web sweep across the query operators.
+    // 1) Parallel web sweep across the query operators (private SearXNG index).
     const queries = buildQueries(searchType, sector, region, targetSubject);
-    const sweep = await Promise.all(queries.map((q) => tavily(q)));
-    // Short-circuit on an out-of-credit / rate-limit response rather than
-    // proceeding with an empty payload.
-    if (sweep.some((s) => s.creditExhausted)) {
-      console.error("[social-discovery] " + TAVILY_CREDIT_REASON);
-      return { status: "SKIPPED_INSUFFICIENT_CREDITS" as const, reason: TAVILY_CREDIT_REASON };
+    const sweep = await Promise.all(queries.map((q) => searxng(q)));
+    // Short-circuit on a connection drop / infra timeout rather than proceeding
+    // with an empty payload.
+    if (sweep.some((s) => s.unreachable)) {
+      console.error("[social-discovery] " + SEARCH_TIMEOUT_REASON);
+      return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT" as const, reason: SEARCH_TIMEOUT_REASON };
     }
     const hits = sweep.flatMap((s) => s.hits);
     if (hits.length === 0) return { discovered: 0, reason: "no search results" };

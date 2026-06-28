@@ -1,0 +1,8 @@
+use_default_settings: true
+server:
+  secret_key: "mondaily_secure_sovereign_key"
+  limiter: false
+search:
+  formats:
+    - html
+    - json

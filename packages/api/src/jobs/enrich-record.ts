@@ -33,40 +33,53 @@ function flattenEnrichment(fields: Record<string, unknown>): Record<string, unkn
   return out;
 }
 
-// Out-of-credit / rate-limit detection for Tavily. 402 (payment required) and 429
-// (rate limit / quota) are the explicit signals; we also scan the error payload
-// for credit/limit wording in case the provider returns a non-standard status.
-export const TAVILY_CREDIT_REASON = "Tavily API endpoint returned an out-of-credit or rate-limit error.";
-function isTavilyCreditError(status: number, body: string): boolean {
-  return status === 402 || status === 429 || /credit|quota|insufficient|exhaust|usage limit|rate limit|too many requests/i.test(body);
+// ── Sovereign search + deep extraction ──────────────────────────────────────
+// Self-hosted SearXNG (private metasearch → JSON results) + crw (JS-render
+// scraper → ad-free Markdown). No third-party search meter.
+const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+const SOVEREIGN_SCRAPE_URL = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/v2/scrape";
+
+/** Query the private SearXNG index → top result URLs. */
+async function searxngUrls(query: string, limit = 4): Promise<string[]> {
+  try {
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      console.error(`[search] searxng HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json() as { results?: { url?: string }[] };
+    return (data.results ?? []).map(r => r.url).filter((u): u is string => typeof u === "string" && u.length > 0).slice(0, limit);
+  } catch (e) {
+    console.error("[search] searxng error:", e instanceof Error ? e.message : String(e));
+    return [];
+  }
 }
 
-type TavilyResult = { text: string; creditExhausted: boolean };
-
-async function tavilySearch(query: string): Promise<TavilyResult> {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return { text: "", creditExhausted: false };
+/** Render + convert one page to clean Markdown via the self-hosted scraper. */
+async function scrapeMarkdown(targetUrl: string): Promise<string> {
   try {
-    const res = await fetch("https://api.tavily.com/search", {
+    const res = await fetch(SOVEREIGN_SCRAPE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" }),
+      body: JSON.stringify({ url: targetUrl, formats: ["markdown"] }),
     });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      if (isTavilyCreditError(res.status, body)) {
-        console.error(`[tavily] out-of-credit / rate-limit (HTTP ${res.status}) — short-circuiting enrichment`);
-        return { text: "", creditExhausted: true };
-      }
-      console.error(`[tavily] search failed (HTTP ${res.status})`);
-      return { text: "", creditExhausted: false };
-    }
-    const json = await res.json() as { results?: { title: string; content: string }[] };
-    return { text: (json.results ?? []).slice(0, 4).map(r => `${r.title}: ${r.content}`).join("\n"), creditExhausted: false };
-  } catch (e) {
-    console.error("[tavily] request error:", e instanceof Error ? e.message : String(e));
-    return { text: "", creditExhausted: false };
+    if (!res.ok) return "";
+    const data = await res.json() as { markdown?: string; content?: string; data?: { markdown?: string; content?: string } };
+    return data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
+  } catch {
+    return "";
   }
+}
+
+/** Full sweep: private search → scrape the top pages → joined Markdown context. */
+async function sovereignSearch(query: string): Promise<string> {
+  const urls = await searxngUrls(query);
+  if (urls.length === 0) return "";
+  const pages = await Promise.all(
+    urls.slice(0, 3).map(u => scrapeMarkdown(u).then(md => (md ? `Source: ${u}\n${md.slice(0, 1500)}` : ""))),
+  );
+  return pages.filter(Boolean).join("\n\n");
 }
 
 async function extractFields(prompt: string, toolName: string, toolSchema: object): Promise<Record<string, unknown>> {
@@ -126,14 +139,9 @@ export const enrichRecord = inngest.createFunction(
         const contactQuery = `${name} ${company} email address phone contact`;
         await logStep(jobId, { step: "web_sweep", queries: [profileQuery, signalQuery, contactQuery] });
         const sweep = await Promise.all([
-          tavilySearch(profileQuery), tavilySearch(signalQuery), tavilySearch(contactQuery),
+          sovereignSearch(profileQuery), sovereignSearch(signalQuery), sovereignSearch(contactQuery),
         ]);
-        if (sweep.some(s => s.creditExhausted)) {
-          console.error("[enrich-record] " + TAVILY_CREDIT_REASON);
-          await failJob(jobId, TAVILY_CREDIT_REASON).catch(() => {});
-          return { status: "SKIPPED_INSUFFICIENT_CREDITS" as const, reason: TAVILY_CREDIT_REASON };
-        }
-        const webContext = sweep.map(s => s.text).filter(Boolean).join("\n");
+        const webContext = sweep.filter(Boolean).join("\n\n");
 
         await logStep(jobId, { step: "extract", type: "person" });
         fields = await extractFields(
@@ -189,13 +197,8 @@ export const enrichRecord = inngest.createFunction(
         const firmoQuery = `${name} ${domain} company funding employees revenue industry headquarters`;
         const signalQuery = `${name} news hiring funding round expansion layoffs ${new Date().getFullYear()}`;
         await logStep(jobId, { step: "web_sweep", queries: [firmoQuery, signalQuery] });
-        const sweep = await Promise.all([tavilySearch(firmoQuery), tavilySearch(signalQuery)]);
-        if (sweep.some(s => s.creditExhausted)) {
-          console.error("[enrich-record] " + TAVILY_CREDIT_REASON);
-          await failJob(jobId, TAVILY_CREDIT_REASON).catch(() => {});
-          return { status: "SKIPPED_INSUFFICIENT_CREDITS" as const, reason: TAVILY_CREDIT_REASON };
-        }
-        const webContext = sweep.map(s => s.text).filter(Boolean).join("\n");
+        const sweep = await Promise.all([sovereignSearch(firmoQuery), sovereignSearch(signalQuery)]);
+        const webContext = sweep.filter(Boolean).join("\n\n");
 
         await logStep(jobId, { step: "extract", type: "company" });
         fields = await extractFields(

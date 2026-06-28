@@ -1,0 +1,25 @@
+# Sovereign search stack — self-hosted, private search + deep-extraction.
+#
+# Replaces the third-party Tavily meter for all background intelligence vectors:
+#   - searxng : private metasearch index → structured JSON results
+#   - crw     : JS-rendering scraper → unified, ad-free Markdown of a page
+#
+# The API workers reach these via SOVEREIGN_SEARCH_URL / SOVEREIGN_SCRAPE_URL.
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: mondaily-searxng
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    volumes:
+      - ./searxng:/etc/searxng:rw
+
+  crw:
+    image: ghcr.io/us/crw:latest
+    container_name: mondaily-crw
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
