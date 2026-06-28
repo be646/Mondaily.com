@@ -245,12 +245,14 @@ export async function gatewayHealthCheck(): Promise<{
 
   // Mirror what the chat path actually does: it resolves AI_AGENT_MODEL first and
   // sends tools. Test each axis so we see WHICH one breaks.
-  const tests = {
-    provider_plain: await probe(providerModel, false),
-    agent_plain: await probe(agentModel, false),
-    agent_with_tools: await probe(agentModel, true),
-    fast_plain: await probe(fastModel, false),
-  };
+  // Space the probes ~600ms apart so the diagnostic itself doesn't trip Cerebras's
+  // burst rate-limit and false-report a 429 (which made the 4th call look broken).
+  const gap = () => new Promise<void>((r) => setTimeout(r, 600));
+  const provider_plain = await probe(providerModel, false); await gap();
+  const agent_plain = await probe(agentModel, false); await gap();
+  const agent_with_tools = await probe(agentModel, true); await gap();
+  const fast_plain = await probe(fastModel, false);
+  const tests = { provider_plain, agent_plain, agent_with_tools, fast_plain };
   const ok = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok && tests.fast_plain.ok;
   return { ok, baseURLHost, env, tests };
 }
@@ -383,7 +385,9 @@ async function runOpenAICompatAgent(
 
   // Non-streaming agent: short timeout + 1 retry so a stall fails fast and
   // bubbles up to the graceful reply instead of hanging the request.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 1 });
+  // maxRetries:3 → the SDK backs off + respects Retry-After on 429s, so Cerebras
+  // rate-limit bursts self-recover instead of failing to "trouble connecting".
+  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 3 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -613,7 +617,8 @@ async function runOpenAICompatAgentStream(
   // surfaces instantly rather than hanging. A cut is safe here — mid-stream
   // drops preserve partial text below, and an empty result drops to the
   // non-streaming recovery + friendly fallback in aiGatewayAgentStream.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
+  // maxRetries:3 → SDK backs off + honors Retry-After on 429 rate-limit bursts.
+  const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 3 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
