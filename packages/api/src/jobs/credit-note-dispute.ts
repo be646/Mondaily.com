@@ -18,10 +18,16 @@ export const creditNoteDisputeHandler = inngest.createFunction(
 
     // Step 1: Classify dispute via the AI gateway (model chosen by AI_PROVIDER_MODEL env var)
     const aiResult = await step.run("classify-dispute", async () => {
-      if (!process.env.ANTHROPIC_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
+      // Cerebras gateway must be configured; otherwise fall back to a safe
+      // default rather than calling an unconfigured provider.
+      if (!process.env.AI_GATEWAY_BASE_URL || !process.env.AI_GATEWAY_API_KEY) {
         return { amount_cents: suggestedAmountCents ?? 0, reason: "billing_error", summary: disputeBody.slice(0, 200) };
       }
 
+      // Local fail-safe (matches workflow-engine.ts): a gateway timeout / network
+      // glitch degrades to empty text → the JSON.parse catch below returns the
+      // safe default. The Inngest step never throws on a provider hiccup, so the
+      // retry framework stays clean instead of churning on a transient stall.
       const { text } = await aiGateway({
         system: `You are a billing analyst. Extract from the dispute email:
 - reason: one of "refund", "billing_error", "goodwill", "contract_discount"
@@ -31,6 +37,9 @@ export const creditNoteDisputeHandler = inngest.createFunction(
 Reply ONLY with valid JSON: {"reason":"...","amount_cents":0,"summary":"..."}`,
         prompt: disputeBody,
         maxTokens: 256,
+      }).catch((err: any) => {
+        console.error("[credit-note-dispute] classify-dispute gateway call failed (non-fatal):", err?.message ?? err);
+        return { text: "" };
       });
 
       try {
