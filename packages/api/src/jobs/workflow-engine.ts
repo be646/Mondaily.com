@@ -231,7 +231,7 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
   if (type === "notify") {
     await supabase.from("notifications").insert({
       workspace_id: workspaceId, type: "agent", title: `Workflow: ${action.label ?? "notification"}`,
-      body: `Triggered for ${recName}`, metadata: { node_id: record.id },
+      body: `Triggered for ${recName}`, metadata: { node_id: record.id, object_type: record.object_type },
     });
     return { action: action.type, mode: "executed", detail: "notified" };
   }

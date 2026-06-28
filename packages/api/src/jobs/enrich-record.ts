@@ -67,19 +67,24 @@ export const enrichRecord = inngest.createFunction(
         const name = (recordData.name ?? recordData.Name ?? "") as string;
         const subject = email || name;
 
-        // Multi-source sweep: a professional-profile pass + a signals pass. Both
-        // are REAL web searches — nothing is fabricated; the model may only use
+        // Multi-source sweep: profile + signals + a dedicated contact-details pass.
+        // All are REAL web searches — nothing is fabricated; the model may only use
         // text returned here.
+        const company = (recordData.company ?? "") as string;
         const profileQuery = email ? `${email} linkedin job title company` : `${name} linkedin job title company professional`;
-        const signalQuery = `${subject} ${recordData.company ?? ""} news role change hiring recent`;
-        await logStep(jobId, { step: "web_sweep", queries: [profileQuery, signalQuery] });
-        const [profileCtx, signalCtx] = await Promise.all([tavilySearch(profileQuery), tavilySearch(signalQuery)]);
-        const webContext = [profileCtx, signalCtx].filter(Boolean).join("\n");
+        const signalQuery = `${subject} ${company} news role change hiring recent`;
+        const contactQuery = `${name} ${company} email address phone contact`;
+        await logStep(jobId, { step: "web_sweep", queries: [profileQuery, signalQuery, contactQuery] });
+        const [profileCtx, signalCtx, contactCtx] = await Promise.all([
+          tavilySearch(profileQuery), tavilySearch(signalQuery), tavilySearch(contactQuery),
+        ]);
+        const webContext = [profileCtx, signalCtx, contactCtx].filter(Boolean).join("\n");
 
         await logStep(jobId, { step: "extract", type: "person" });
         fields = await extractFields(
           `Enrich this person from the web context below. Name: "${name}", Email: "${email}".\n` +
           `STRICT: fill ONLY fields the web context supports. OMIT anything you cannot ground in the context — never invent values. ` +
+          `For verified_contact: only include an email or phone that literally appears in the web context, and ALWAYS cite the source URL it came from. Never guess an email pattern (e.g. first.last@company.com) — if it isn't stated, omit it. ` +
           `verified_intent_signals must each cite where the signal came from. calculated_churn_risk is your estimate from the signals only; omit it if there isn't enough signal.\n` +
           `${webContext ? `Web context:\n${webContext}` : "No web context found — return only fields you are certain of from the input."}`,
           "enrich_person",
@@ -97,6 +102,15 @@ export const enrichRecord = inngest.createFunction(
                   linkedin:  { type: "string" },
                   twitter:   { type: "string" },
                   summary:   { type: "string", description: "1-2 sentence professional bio" },
+                },
+              },
+              verified_contact: {
+                type: "object",
+                description: "Contact details that LITERALLY appear in the web context, each with its source. Omit any you cannot find verbatim — never guess an email/phone pattern.",
+                properties: {
+                  email:  { type: "string" },
+                  phone:  { type: "string" },
+                  source: { type: "string", description: "URL where the email/phone was found" },
                 },
               },
               verified_intent_signals: {
@@ -182,7 +196,7 @@ export const enrichRecord = inngest.createFunction(
         type: "agent",
         title: "✦ Record enriched",
         body: `AI filled in: ${summary}${Object.keys(fields).length > 3 ? ` +${Object.keys(fields).length - 3} more` : ""}`,
-        metadata: { nodeId, fields_added: Object.keys(fields).length },
+        metadata: { nodeId, object_type: objectType, fields_added: Object.keys(fields).length },
       });
 
       await completeJob(jobId, { fields_added: Object.keys(fields).length, fields }, []);
