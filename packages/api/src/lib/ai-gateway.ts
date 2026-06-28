@@ -94,6 +94,11 @@ function resolveModel(spec?: string): ResolvedModel {
 // model (e.g. llama3.1-8b) if you want a lighter conversational tier.
 const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? CEREBRAS_DEFAULT_SPEC;
 
+// Captures the most recent REAL gateway failure (normally swallowed by the graceful
+// "trouble connecting" fallback) so GET /api/v1/ask/health can surface it. Purely
+// diagnostic — does not alter any chat behavior.
+let lastGatewayError: { at: string; message: string; status?: number; when: string } | null = null;
+
 const CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
 const DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
 
@@ -200,6 +205,7 @@ export async function gatewayHealthCheck(): Promise<{
   baseURLHost: string | null;
   env: { AI_PROVIDER_MODEL: string | null; AI_AGENT_MODEL: string | null; AI_FAST_MODEL: string | null };
   tests?: { provider_plain: ProbeResult; agent_plain: ProbeResult; agent_with_tools: ProbeResult; fast_plain: ProbeResult };
+  lastChatError?: typeof lastGatewayError;
   error?: string;
 }> {
   const { baseURL, apiKey } = gatewayEnv();
@@ -254,7 +260,7 @@ export async function gatewayHealthCheck(): Promise<{
   const fast_plain = await probe(fastModel, false);
   const tests = { provider_plain, agent_plain, agent_with_tools, fast_plain };
   const ok = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok && tests.fast_plain.ok;
-  return { ok, baseURLHost, env, tests };
+  return { ok, baseURLHost, env, tests, lastChatError: lastGatewayError };
 }
 
 // ── Plain text generation ───────────────────────────────────────────────────────
@@ -531,6 +537,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
   try {
     return await runOpenAICompatAgent(resolved.modelId, req, MAX_ROUNDS);
   } catch (primaryErr: any) {
+    lastGatewayError = { at: `agent-primary/${resolved.modelId}`, message: primaryErr?.message ?? String(primaryErr), status: primaryErr?.status, when: new Date().toISOString() };
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
 
     // No proprietary-provider fallback — the gateway is Cerebras-only. A failure
@@ -597,6 +604,7 @@ export async function aiGatewayAgentStream(
     }
     return r;
   } catch (err: any) {
+    lastGatewayError = { at: "agent-stream", message: err?.message ?? String(err), status: err?.status, when: new Date().toISOString() };
     console.error(`[gateway:agent-stream] streaming failed: ${err?.message} — falling back to non-streaming`);
     const r = await aiGatewayAgent(effectiveReq).catch(() => null);
     const reply = r?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
