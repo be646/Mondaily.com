@@ -7,3 +7,4 @@ export { creditNoteDisputeHandler } from "./credit-note-dispute";
 export { recurringInvoices } from "./recurring-invoices";
 export { overdueTaskDecisions } from "./overdue-task-decisions";
 export { workflowTrigger } from "./workflow-trigger";
+export { trainingExport } from "./training-export";

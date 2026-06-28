@@ -13,7 +13,8 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "typecheck": "turbo typecheck"
+    "typecheck": "turbo typecheck",
+    "test": "pnpm --filter @mondaily/api test"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

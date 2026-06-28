@@ -81,8 +81,22 @@ function validateExample(messages: ChatMessage[]): Validation {
   return { ok: true, tokens };
 }
 
-async function main(): Promise<void> {
-  const outPath = resolvePath(process.argv[2] ?? "training-data.jsonl");
+export interface TrainingExport {
+  jsonl: string;
+  exampleCount: number;
+  totalTokens: number;
+  avgTokens: number;
+  approvedRows: number;
+  excluded: { injection: number; empty: number; oversized: number };
+}
+
+/**
+ * Reusable compile step — paged read of every APPROVED row, validated and
+ * filtered into pristine JSONL. Shared by the CLI (`main`) and the weekly
+ * Inngest job (`jobs/training-export.ts`). Pure: returns the artifact + stats,
+ * writes nothing itself.
+ */
+export async function buildTrainingExport(): Promise<TrainingExport> {
   const pageSize = 1000;
   const rows: TrainingRow[] = [];
 
@@ -101,7 +115,7 @@ async function main(): Promise<void> {
   }
 
   // Compile each approved row into a pristine, validated training example.
-  // Every exclusion is bucketed by reason and reported — never a silent drop:
+  // Every exclusion is bucketed by reason — never a silent drop:
   //   • injection — prompt-injection / poisoning pattern (LLM03)
   //   • empty     — no usable user OR assistant signal
   //   • oversized — runaway length that would skew the fine-tune
@@ -118,22 +132,39 @@ async function main(): Promise<void> {
     lines.push(JSON.stringify({ agent: row.agent_name ?? "unknown", messages }));
   }
 
-  // Always write the file (empty placeholder when there's nothing yet).
-  writeFileSync(outPath, lines.length ? lines.join("\n") + "\n" : "", "utf8");
+  return {
+    jsonl: lines.length ? lines.join("\n") + "\n" : "",
+    exampleCount: lines.length,
+    totalTokens,
+    avgTokens: lines.length ? Math.round(totalTokens / lines.length) : 0,
+    approvedRows: rows.length,
+    excluded,
+  };
+}
 
-  const totalExcluded = excluded.injection + excluded.empty + excluded.oversized;
-  const avgTokens = lines.length ? Math.round(totalTokens / lines.length) : 0;
+async function main(): Promise<void> {
+  const outPath = resolvePath(process.argv[2] ?? "training-data.jsonl");
+  const r = await buildTrainingExport();
+
+  // Always write the file (empty placeholder when there's nothing yet).
+  writeFileSync(outPath, r.jsonl, "utf8");
+
+  const totalExcluded = r.excluded.injection + r.excluded.empty + r.excluded.oversized;
   console.log(
-    `[export-training-data] wrote ${lines.length} clean example(s) ` +
-    `(~${totalTokens.toLocaleString()} tokens, avg ${avgTokens}/example) → ${outPath}`,
+    `[export-training-data] wrote ${r.exampleCount} clean example(s) ` +
+    `(~${r.totalTokens.toLocaleString()} tokens, avg ${r.avgTokens}/example) → ${outPath}`,
   );
   console.log(
-    `[export-training-data] excluded ${totalExcluded} of ${rows.length} approved row(s) — ` +
-    `injection: ${excluded.injection}, empty: ${excluded.empty}, oversized: ${excluded.oversized}`,
+    `[export-training-data] excluded ${totalExcluded} of ${r.approvedRows} approved row(s) — ` +
+    `injection: ${r.excluded.injection}, empty: ${r.excluded.empty}, oversized: ${r.excluded.oversized}`,
   );
 }
 
-main().catch((err) => {
-  console.error("[export-training-data] failed:", err);
-  process.exit(1);
-});
+// Only run as a CLI when invoked directly (tsx src/scripts/export-training-data.ts).
+// Importing buildTrainingExport from the job must NOT trigger the CLI/process.exit.
+if (process.argv[1] && process.argv[1].includes("export-training-data")) {
+  main().catch((err) => {
+    console.error("[export-training-data] failed:", err);
+    process.exit(1);
+  });
+}

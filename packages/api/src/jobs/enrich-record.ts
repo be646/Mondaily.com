@@ -23,12 +23,18 @@ async function tavilySearch(query: string): Promise<string> {
 }
 
 async function callClaude(prompt: string, toolName: string, toolSchema: object): Promise<Record<string, unknown>> {
+  // Local fail-safe (matches the other jobs): a gateway timeout / missing-config
+  // throw degrades to "no fields enriched" rather than throwing into the Inngest
+  // worker, so a provider hiccup never crashes the enrichment run.
   const raw = await aiGatewayToolUse({
     prompt,
     toolName,
     toolDescription: "Extract enrichment fields",
     toolSchema: toolSchema as GatewayToolRequest["toolSchema"],
     maxTokens: 512,
+  }).catch((err: any) => {
+    console.error("[enrich-record] gateway call failed (non-fatal):", err?.message ?? err);
+    return {} as Record<string, unknown>;
   });
   return Object.fromEntries(Object.entries(raw).filter(([, v]) => v != null && v !== ""));
 }
