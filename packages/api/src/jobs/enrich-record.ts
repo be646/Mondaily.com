@@ -33,20 +33,39 @@ function flattenEnrichment(fields: Record<string, unknown>): Record<string, unkn
   return out;
 }
 
-async function tavilySearch(query: string): Promise<string> {
+// Out-of-credit / rate-limit detection for Tavily. 402 (payment required) and 429
+// (rate limit / quota) are the explicit signals; we also scan the error payload
+// for credit/limit wording in case the provider returns a non-standard status.
+export const TAVILY_CREDIT_REASON = "Tavily API endpoint returned an out-of-credit or rate-limit error.";
+function isTavilyCreditError(status: number, body: string): boolean {
+  return status === 402 || status === 429 || /credit|quota|insufficient|exhaust|usage limit|rate limit|too many requests/i.test(body);
+}
+
+type TavilyResult = { text: string; creditExhausted: boolean };
+
+async function tavilySearch(query: string): Promise<TavilyResult> {
   const key = process.env.TAVILY_API_KEY;
-  if (!key) return "";
+  if (!key) return { text: "", creditExhausted: false };
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" }),
     });
-    if (!res.ok) return "";
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (isTavilyCreditError(res.status, body)) {
+        console.error(`[tavily] out-of-credit / rate-limit (HTTP ${res.status}) — short-circuiting enrichment`);
+        return { text: "", creditExhausted: true };
+      }
+      console.error(`[tavily] search failed (HTTP ${res.status})`);
+      return { text: "", creditExhausted: false };
+    }
     const json = await res.json() as { results?: { title: string; content: string }[] };
-    return (json.results ?? []).slice(0, 4).map(r => `${r.title}: ${r.content}`).join("\n");
-  } catch {
-    return "";
+    return { text: (json.results ?? []).slice(0, 4).map(r => `${r.title}: ${r.content}`).join("\n"), creditExhausted: false };
+  } catch (e) {
+    console.error("[tavily] request error:", e instanceof Error ? e.message : String(e));
+    return { text: "", creditExhausted: false };
   }
 }
 
@@ -106,10 +125,15 @@ export const enrichRecord = inngest.createFunction(
         const signalQuery = `${subject} ${company} news role change hiring recent`;
         const contactQuery = `${name} ${company} email address phone contact`;
         await logStep(jobId, { step: "web_sweep", queries: [profileQuery, signalQuery, contactQuery] });
-        const [profileCtx, signalCtx, contactCtx] = await Promise.all([
+        const sweep = await Promise.all([
           tavilySearch(profileQuery), tavilySearch(signalQuery), tavilySearch(contactQuery),
         ]);
-        const webContext = [profileCtx, signalCtx, contactCtx].filter(Boolean).join("\n");
+        if (sweep.some(s => s.creditExhausted)) {
+          console.error("[enrich-record] " + TAVILY_CREDIT_REASON);
+          await failJob(jobId, TAVILY_CREDIT_REASON).catch(() => {});
+          return { status: "SKIPPED_INSUFFICIENT_CREDITS" as const, reason: TAVILY_CREDIT_REASON };
+        }
+        const webContext = sweep.map(s => s.text).filter(Boolean).join("\n");
 
         await logStep(jobId, { step: "extract", type: "person" });
         fields = await extractFields(
@@ -165,8 +189,13 @@ export const enrichRecord = inngest.createFunction(
         const firmoQuery = `${name} ${domain} company funding employees revenue industry headquarters`;
         const signalQuery = `${name} news hiring funding round expansion layoffs ${new Date().getFullYear()}`;
         await logStep(jobId, { step: "web_sweep", queries: [firmoQuery, signalQuery] });
-        const [firmoCtx, signalCtx] = await Promise.all([tavilySearch(firmoQuery), tavilySearch(signalQuery)]);
-        const webContext = [firmoCtx, signalCtx].filter(Boolean).join("\n");
+        const sweep = await Promise.all([tavilySearch(firmoQuery), tavilySearch(signalQuery)]);
+        if (sweep.some(s => s.creditExhausted)) {
+          console.error("[enrich-record] " + TAVILY_CREDIT_REASON);
+          await failJob(jobId, TAVILY_CREDIT_REASON).catch(() => {});
+          return { status: "SKIPPED_INSUFFICIENT_CREDITS" as const, reason: TAVILY_CREDIT_REASON };
+        }
+        const webContext = sweep.map(s => s.text).filter(Boolean).join("\n");
 
         await logStep(jobId, { step: "extract", type: "company" });
         fields = await extractFields(

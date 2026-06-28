@@ -5,22 +5,39 @@ import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 // ── Tavily web search (one query → flattened result rows with their URLs) ──────
 interface SearchHit { title: string; content: string; url: string }
 
-async function tavily(query: string): Promise<SearchHit[]> {
+export const TAVILY_CREDIT_REASON = "Tavily API endpoint returned an out-of-credit or rate-limit error.";
+function isTavilyCreditError(status: number, body: string): boolean {
+  return status === 402 || status === 429 || /credit|quota|insufficient|exhaust|usage limit|rate limit|too many requests/i.test(body);
+}
+
+type TavilyResult = { hits: SearchHit[]; creditExhausted: boolean };
+
+async function tavily(query: string): Promise<TavilyResult> {
   const key = process.env.TAVILY_API_KEY;
-  if (!key) return [];
+  if (!key) return { hits: [], creditExhausted: false };
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api_key: key, query, max_results: 6, search_depth: "advanced" }),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (isTavilyCreditError(res.status, body)) {
+        console.error(`[social-discovery] tavily out-of-credit / rate-limit (HTTP ${res.status}) — short-circuiting sweep`);
+        return { hits: [], creditExhausted: true };
+      }
+      console.error(`[social-discovery] tavily search failed (HTTP ${res.status})`);
+      return { hits: [], creditExhausted: false };
+    }
     const json = (await res.json()) as { results?: { title?: string; content?: string; url?: string }[] };
-    return (json.results ?? [])
+    const hits = (json.results ?? [])
       .filter((r) => r.url)
       .map((r) => ({ title: r.title ?? "", content: r.content ?? "", url: r.url as string }));
-  } catch {
-    return [];
+    return { hits, creditExhausted: false };
+  } catch (e) {
+    console.error("[social-discovery] tavily request error:", e instanceof Error ? e.message : String(e));
+    return { hits: [], creditExhausted: false };
   }
 }
 
@@ -87,8 +104,14 @@ export const socialDiscoveryWorker = inngest.createFunction(
 
     // 1) Parallel web sweep across the query operators.
     const queries = buildQueries(searchType, sector, region, targetSubject);
-    const hitGroups = await Promise.all(queries.map((q) => tavily(q)));
-    const hits = hitGroups.flat();
+    const sweep = await Promise.all(queries.map((q) => tavily(q)));
+    // Short-circuit on an out-of-credit / rate-limit response rather than
+    // proceeding with an empty payload.
+    if (sweep.some((s) => s.creditExhausted)) {
+      console.error("[social-discovery] " + TAVILY_CREDIT_REASON);
+      return { status: "SKIPPED_INSUFFICIENT_CREDITS" as const, reason: TAVILY_CREDIT_REASON };
+    }
+    const hits = sweep.flatMap((s) => s.hits);
     if (hits.length === 0) return { discovered: 0, reason: "no search results" };
 
     // Dedupe the raw hits by URL before extraction.
