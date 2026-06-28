@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
-import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport } from "./jobs/index";
+import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscovery } from "./jobs/index";
 import { runAllDaily, runLeadScoring, runDealAlerts } from "./jobs/runners";
 import { runAllWorkflows } from "./jobs/workflow-engine";
 import { runAllVertical } from "./jobs/vertical-agents";
@@ -46,6 +46,7 @@ import { onboardingRouter } from "./routes/onboarding";
 import { prospectingRouter } from "./routes/prospecting";
 import { statusRouter } from "./routes/status";
 import { usageRouter } from "./routes/usage";
+import { discoveryRouter } from "./routes/discovery";
 import { workspacesRouter } from "./routes/workspaces";
 import { integrationsRouter } from "./routes/integrations";
 import { mcpRouter } from "./routes/mcp";
@@ -79,6 +80,7 @@ app.route("/api/v1/decisions", decisionsRouter);
 app.route("/api/v1/prospecting", prospectingRouter);
 app.route("/api/v1/status", statusRouter);
 app.route("/api/v1/usage", usageRouter);
+app.route("/api/v1/discovery", discoveryRouter);
 app.route("/api/v1/workspaces", workspacesRouter);
 app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/webhooks", webhooksRouter);
@@ -111,7 +113,7 @@ app.route("/api/v1/integrations", integrationsRouter);
 app.route("/api/mcp", mcpRouter); // external AI clients (MCP), own key-based auth
 app.route("/api/v1", appDataRouter);
 
-const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport] });
+const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscovery] });
 app.all("/api/inngest", inngestHandler);
 
 /**

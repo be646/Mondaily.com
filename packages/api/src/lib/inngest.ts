@@ -54,4 +54,13 @@ export type Events = {
   "finance/invoice.recurring.generated": {
     data: { workspaceId: string; originalInvoiceId: string; newInvoiceId: string; };
   };
+  "app/social.discovery.trigger": {
+    data: {
+      workspaceId: string;
+      region?: string;
+      sector?: string;
+      searchType: "INTENT_LEADS" | "REVIEWS";
+      targetSubject?: string;
+    };
+  };
 };
