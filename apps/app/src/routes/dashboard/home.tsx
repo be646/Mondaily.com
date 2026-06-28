@@ -275,7 +275,10 @@ export function HomePage() {
   useLayoutEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
-    if (stickRef.current) el.scrollTop = el.scrollHeight;
+    // Only auto-pin while a turn is actively streaming. Once idle, never touch
+    // scrollTop — so reading back through the thread is completely free, no tug.
+    const active = loading || streamingMsgIdx !== null;
+    if (active && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   // Run AI risk scan once per day (throttled via localStorage)
@@ -579,28 +582,27 @@ export function HomePage() {
                             {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
                           </div>
                         )}
-                        {/* Unified actions tray — one consistent pill style, grouped in a
-                            subtle bordered panel attached under the answer. */}
+                        {/* Suggested actions — clean, borderless inline pill row that
+                            reads as a light extra layer under the answer (no heavy frame). */}
                         {!isStreaming && !loading && i === messages.length - 1 && (
-                          <div className="mt-3 pl-4">
-                            <div className="rounded-xl border p-2" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 55%, transparent)" }}>
-                              <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Suggested actions</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {([
-                                  { key: "task", label: "Create task", mark: true },
-                                  { key: "draft", label: "Draft message", mark: true },
-                                  { key: "related", label: "Show related" },
-                                  { key: "explain", label: "Explain reasoning" },
-                                  { key: "decision", label: "Add to decision queue" },
-                                  { key: "workflow", label: "Draft workflow" },
-                                ] as { key: "task" | "draft" | "related" | "explain" | "decision" | "workflow"; label: string; mark?: boolean }[]).map(a => (
-                                  <button key={a.key} onClick={() => sendSuggestion(buildChipText(a.key, i))} className="chat-action">
-                                    {a.mark && <LogoMark size={11}/>}{a.label}
-                                  </button>
-                                ))}
-                                <span title="Coming soon — no report-creation tool exists yet" className="chat-action chat-action-disabled">Create report</span>
-                              </div>
-                            </div>
+                          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-4">
+                            {([
+                              { key: "task", label: "Create task", mark: true },
+                              { key: "draft", label: "Draft message", mark: true },
+                              { key: "related", label: "Show related" },
+                              { key: "explain", label: "Explain reasoning" },
+                              { key: "decision", label: "Add to decision queue" },
+                              { key: "workflow", label: "Draft workflow" },
+                            ] as { key: "task" | "draft" | "related" | "explain" | "decision" | "workflow"; label: string; mark?: boolean }[]).map(a => (
+                              <button key={a.key} onClick={() => sendSuggestion(buildChipText(a.key, i))}
+                                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                                {a.mark && <LogoMark size={11}/>}{a.label}
+                              </button>
+                            ))}
+                            <span title="Coming soon — no report-creation tool exists yet"
+                              className="inline-flex items-center rounded-full border px-3 py-1.5 text-[12.5px] font-medium"
+                              style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-faint)", opacity: 0.55, cursor: "not-allowed" }}>Create report</span>
                           </div>
                         )}
                       </div>
