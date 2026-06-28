@@ -148,9 +148,18 @@ const PROVIDER_FALLBACK_MODELS = [
   "accounts/fireworks/models/mixtral-8x22b-instruct",
 ];
 
+/** Resolve the sovereign gateway credentials. Reads the canonical AI_GATEWAY_*
+ *  names first, then CEREBRAS_* as a fallback so a naming mismatch can't silently
+ *  break inference. Still 100% Cerebras — never api.openai.com. */
+export function gatewayEnv(): { baseURL?: string; apiKey?: string } {
+  return {
+    baseURL: process.env.AI_GATEWAY_BASE_URL || process.env.CEREBRAS_BASE_URL || process.env.CEREBRAS_API_BASE_URL,
+    apiKey: process.env.AI_GATEWAY_API_KEY || process.env.CEREBRAS_API_KEY,
+  };
+}
+
 function openAIClient(): OpenAI {
-  const baseURL = process.env.AI_GATEWAY_BASE_URL;
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  const { baseURL, apiKey } = gatewayEnv();
 
   // Sovereignty guard: never silently fall back to api.openai.com. If the
   // Cerebras gateway isn't configured, fail loudly rather than leak traffic to
@@ -170,6 +179,39 @@ function openAIClient(): OpenAI {
     timeout: 22000,
     maxRetries: 1,
   });
+}
+
+/**
+ * Live gateway diagnostic — sends a 1-token "ping" to the resolved Cerebras model
+ * and reports the REAL outcome (status + error message), never throwing. Used by
+ * GET /api/v1/ask/health so a misconfigured gateway can be diagnosed in one click
+ * instead of guessing at Sensitive env values. Leaks nothing secret: only the host
+ * of the base URL and the model name.
+ */
+export async function gatewayHealthCheck(): Promise<{
+  ok: boolean;
+  baseURLHost: string | null;
+  model: string;
+  status?: number;
+  error?: string;
+}> {
+  const { baseURL, apiKey } = gatewayEnv();
+  const model = (process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC).replace(/^openai-compat\//, "");
+  let baseURLHost: string | null = null;
+  try { baseURLHost = baseURL ? new URL(baseURL).host : null; } catch { baseURLHost = baseURL ?? null; }
+
+  if (!baseURL || !apiKey) {
+    const missing = [!baseURL && "AI_GATEWAY_BASE_URL", !apiKey && "AI_GATEWAY_API_KEY"].filter(Boolean).join(" + ");
+    return { ok: false, baseURLHost, model, error: `Missing env: ${missing}` };
+  }
+  try {
+    const client = new OpenAI({ baseURL, apiKey, timeout: 12000, maxRetries: 0 });
+    await client.chat.completions.create({ model, messages: [{ role: "user", content: "ping" }], max_tokens: 1 });
+    return { ok: true, baseURLHost, model };
+  } catch (e) {
+    const err = e as { status?: number; message?: string };
+    return { ok: false, baseURLHost, model, status: err?.status, error: err?.message ?? String(e) };
+  }
 }
 
 // ── Plain text generation ───────────────────────────────────────────────────────
@@ -289,8 +331,7 @@ async function runOpenAICompatAgent(
   req: AgentRequest,
   maxRounds: number,
 ): Promise<AgentResponse> {
-  const baseURL = process.env.AI_GATEWAY_BASE_URL;
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  const { baseURL, apiKey } = gatewayEnv();
 
   if (!baseURL || !apiKey) {
     throw new Error(
@@ -525,8 +566,7 @@ async function runOpenAICompatAgentStream(
   maxRounds: number,
   onEvent: (e: AgentStreamEvent) => void | Promise<void>,
 ): Promise<AgentResponse> {
-  const baseURL = process.env.AI_GATEWAY_BASE_URL;
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
   // Streaming agent: FAIL-FAST. 15s timeout + 1 retry so an upstream spike
   // surfaces instantly rather than hanging. A cut is safe here — mid-stream

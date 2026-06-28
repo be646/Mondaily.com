@@ -8,7 +8,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
-import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway } from "../lib/ai-gateway";
+import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck } from "../lib/ai-gateway";
 
 export const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -1501,5 +1501,13 @@ router.post("/stream", requireAuth, zValidator("json", z.object({
 });
 
 router.get("/threads", requireAuth, async (c) => c.json([]));
+
+// Gateway diagnostic — unauthenticated on purpose so it's browser-hittable for
+// debugging. Pings the resolved Cerebras model and returns the real outcome.
+// Leaks nothing secret (only the base-URL host + model name + error message).
+router.get("/health", async (c) => {
+  const result = await gatewayHealthCheck();
+  return c.json(result, result.ok ? 200 : 503);
+});
 
 export { router as askRouter };
