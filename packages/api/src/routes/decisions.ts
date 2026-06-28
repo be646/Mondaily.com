@@ -93,8 +93,9 @@ router.patch("/:id", zValidator("json", createSchema.partial()), async (c) => {
     .single();
   if (error) return c.json({ error: error.message }, 400);
   // Training ledger — a human manually edited the agent's recommendation; record
-  // the edit (best-effort, never blocks). `body` holds the human's modifications.
-  await logDecisionTrainingExample(c.get("workspaceId"), data, "EDITED", body);
+  // the edit. Fire-and-forget: the recorder swallows its own errors, so detaching
+  // it keeps the approve/edit response at zero added latency.
+  void logDecisionTrainingExample(c.get("workspaceId"), data, "EDITED", body);
   return c.json(data);
 });
 
@@ -113,8 +114,9 @@ async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "co
     .single();
   if (error) return c.json({ error: error.message }, 400);
   // Training ledger — capture the human's verdict on this agent recommendation.
-  // Self-contained + error-swallowing, so it can never block the user's action.
-  if (trainingAction) await logDecisionTrainingExample(c.get("workspaceId"), data, trainingAction);
+  // Fire-and-forget: self-contained + error-swallowing, so it adds no latency to
+  // (and can never block) the user's action.
+  if (trainingAction) void logDecisionTrainingExample(c.get("workspaceId"), data, trainingAction);
   await supabase.from("activities").insert({
     node_id: data.source_id ?? null,
     workspace_id: c.get("workspaceId"),

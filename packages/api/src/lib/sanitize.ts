@@ -22,11 +22,25 @@ export function sanitizeForTraining(text: string): string {
 
 /** Known prompt-injection patterns (heuristic — catches common vectors). */
 export const INJECTION_PATTERNS: RegExp[] = [
-  /ignore\s+(all\s+)?(previous|prior|above)\s+instructions/i,
+  // "ignore/forget the previous instructions|directions|prompt|rules"
+  /\b(ignore|forget|disregard)\s+(all\s+|any\s+)?(the\s+|your\s+)?(previous|prior|above|earlier|former|system)\s+(instructions?|directions?|directives?|prompts?|rules?|messages?)/i,
   /disregard\s+(the\s+)?(previous|above|system|prior)/i,
+  // role re-assignment: "you are now …", "act as an admin/system/developer"
   /\byou\s+are\s+now\b/i,
-  /^\s*system\s*:/im,
+  /\bact\s+as\s+(an?\s+|the\s+)?(admin|administrator|root|system|developer|dan)\b/i,
+  // role-marker smuggling at line start: "system:" / "assistant:"
+  /^\s*(system|assistant)\s*:/im,
+  // "new instructions:" hijack
+  /\bnew\s+instructions?\s*:/i,
+  // exfiltration: "reveal/print/repeat the system prompt" (kept narrow to "system
+  // prompt / system instructions" so ordinary "show the onboarding guidelines"
+  // text isn't flagged)
+  /\b(reveal|print|repeat|show|expose)\s+(me\s+)?(the\s+|your\s+)?system\s+(prompt|instructions?)/i,
+  // jailbreak / mode toggles
+  /\b(developer|debug|jailbreak|dan|god)\s+mode\b/i,
+  // score/result tampering: "override/set the (lead) score to 99", "output a score of 99"
   /override\s+(the\s+)?(score|instructions?|system|rules?)/i,
+  /\bset\s+(the\s+)?(lead[_\s-]?score|deal[_\s-]?score|score)\s*(=|:|\bto\b|\bof\b)\s*\d+/i,
   /output\s+an?\b.*\bscore\s+of\s+\d+/i,
 ];
 
