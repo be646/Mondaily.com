@@ -421,9 +421,9 @@ async function runOpenAICompatAgent(
 // ── Public: aiGatewayAgent ──────────────────────────────────────────────────────
 
 /**
- * Multi-round agentic loop with automatic provider fallback.
+ * Multi-round agentic loop (Cerebras openai-compat only).
  *
- * Priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → anthropic default
+ * Priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → CEREBRAS_DEFAULT_SPEC
  *
  * Fallback chain:
  *   1. Primary provider (resolved from spec above)
