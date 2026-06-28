@@ -33,6 +33,10 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
   return out;
 }
 
+const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+const isTableSep = (l: string) => l.includes("-") && /^\s*\|?[\s:|-]+\|?\s*$/.test(l);
+const tableCells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+
 export function Markdown({ text }: { text: string }) {
   const lines = (text ?? "").split("\n");
   const blocks: React.ReactNode[] = [];
@@ -47,8 +51,44 @@ export function Markdown({ text }: { text: string }) {
     );
     list = null;
   };
-  lines.forEach((raw, idx) => {
+  for (let idx = 0; idx < lines.length; idx++) {
+    const raw = lines[idx] ?? "";
     const line = raw.trimEnd();
+
+    // ── Tables: header row + separator + body → a clean, horizontally-scrollable
+    //    bordered container (never raw pipe text). ──
+    if (isTableRow(line) && isTableSep(lines[idx + 1] ?? "")) {
+      flush();
+      const header = tableCells(line);
+      const rows: string[][] = [];
+      let j = idx + 2;
+      while (j < lines.length && isTableRow(lines[j] ?? "")) { rows.push(tableCells(lines[j] ?? "")); j++; }
+      blocks.push(
+        <div key={`t-${idx}`} className="my-2 overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+          <table className="w-full border-collapse text-left text-[12.5px]">
+            <thead>
+              <tr style={{ background: "var(--surface-card-2)" }}>
+                {header.map((hc, i) => (
+                  <th key={i} className="whitespace-nowrap px-3 py-2 font-medium" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-soft)" }}>{renderInline(hc, `th-${idx}-${i}`)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, ri) => (
+                <tr key={ri}>
+                  {header.map((_h, ci) => (
+                    <td key={ci} className="whitespace-nowrap px-3 py-1.5" style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{renderInline(r[ci] ?? "", `td-${idx}-${ri}-${ci}`)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      idx = j - 1;
+      continue;
+    }
+
     const h = line.match(/^(#{1,3})\s+(.*)$/);
     const bullet = line.match(/^\s*[-*]\s+(.*)$/);
     const num = line.match(/^\s*\d+\.\s+(.*)$/);
@@ -57,9 +97,28 @@ export function Markdown({ text }: { text: string }) {
     else if (num) { if (!list || !list.ordered) { flush(); list = { ordered: true, items: [] }; } list.items.push(num[1] ?? ""); }
     else if (line === "") { flush(); }
     else { flush(); blocks.push(<p key={idx} className="my-0.5">{renderInline(line, `p-${idx}`)}</p>); }
-  });
+  }
   flush();
   return <div className="space-y-0.5">{blocks}</div>;
+}
+
+/**
+ * Split-token telemetry footer — faint monospace ledger of the real Cerebras
+ * usage frame: Thinking (reasoning) · Generation · Total. Renders nothing if no
+ * usage was reported.
+ */
+export function TokenLedger({ usage }: { usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; reasoning_tokens?: number } | null }) {
+  if (!usage) return null;
+  const total = usage.total_tokens ?? 0;
+  if (total === 0) return null;
+  const thinking = usage.reasoning_tokens ?? 0;
+  const completion = usage.completion_tokens ?? 0;
+  const generation = Math.max(0, completion - thinking);
+  return (
+    <div className="mt-1.5 font-mono text-[10.5px] tracking-tight" style={{ color: "var(--text-faint)" }}>
+      Thinking: {thinking.toLocaleString()} · Generation: {generation.toLocaleString()} · Total: {total.toLocaleString()} tokens
+    </div>
+  );
 }
 
 /**
@@ -182,7 +241,9 @@ function hrefForSource(s: BackendSourceMeta): string | undefined {
   const type = s.type === "related_object" ? "record" : s.type;
   if (type === "report" && s.node_id) return `/reports/${s.node_id}`;
   if ((type === "invoice" || type === "finance") && s.node_id) return `/finance/invoices/${s.node_id}`;
-  if (type === "task") return `/tasks`;
+  // Deep-link straight to the focused task (matches resolveNotificationLink) rather
+  // than the broad list view.
+  if (type === "task") return s.node_id ? `/tasks?id=${s.node_id}` : `/tasks`;
   // Decisions live in the dedicated Decision Queue page — not the node graph
   // (/objects/decision/<id> is empty) and not /approvals (that's finance
   // credit-note approvals).

@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/react";
+import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
 import { LogoMark } from "../../components/logo";
@@ -6,7 +7,7 @@ import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
-  GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError,
+  GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError, TokenLedger,
 } from "../../components/ai/ask-shared";
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -568,6 +569,9 @@ export function HomePage() {
                             <EvidenceStrip sources={meta.sources}/>
                           </div>
                         )}
+                        {!isStreaming && meta?.usage && (
+                          <div className="pl-4"><TokenLedger usage={meta.usage}/></div>
+                        )}
                         {!isStreaming && meta && meta.sources.length > 0 && (
                           <div className="mt-2.5 grid grid-cols-1 gap-1.5 pl-4 sm:grid-cols-2">
                             {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
@@ -604,13 +608,20 @@ export function HomePage() {
               });
             })()}
             {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
-              <div className="flex flex-col gap-1.5 pl-9">
+              <div className="flex flex-wrap gap-2 pl-9">
                 {suggestions.map((s, i) => (
-                  <button key={i} onClick={() => sendSuggestion(s)}
-                    className="ask-suggestion-row group text-sm">
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.28, delay: i * 0.06 }}
+                    onClick={() => sendSuggestion(s)}
+                    className="group inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                    style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}
+                  >
                     <span>{s}</span>
-                    <CornerDownLeft size={12} className="shrink-0 transition-colors" style={{ color: "var(--text-faint)" }}/>
-                  </button>
+                    <CornerDownLeft size={11} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }}/>
+                  </motion.button>
                 ))}
               </div>
             )}
