@@ -78,15 +78,18 @@ export const enrichRecord = inngest.createFunction(
       return { skipped: true, reason: "object_type not enrichable" };
     }
 
-    const jobId = await startJob({
-      workspace_id: workspaceId,
-      agent_name: "crm_enricher",
-      trigger_type: "signal",
-      input: { nodeId, objectType, recordData },
-      node_ids: [nodeId],
-    });
-
+    // startJob is inside the try too — if the agent_jobs insert itself throws,
+    // it must not escape the handler and trigger Inngest's retry flood.
+    let jobId: string | undefined;
     try {
+      jobId = await startJob({
+        workspace_id: workspaceId,
+        agent_name: "crm_enricher",
+        trigger_type: "signal",
+        input: { nodeId, objectType, recordData },
+        node_ids: [nodeId],
+      });
+
       const isPerson = ["contact", "person", "people", "lead"].some(t => normalizedType.includes(t));
       let fields: Record<string, unknown> = {};
 
@@ -236,9 +239,13 @@ export const enrichRecord = inngest.createFunction(
       await completeJob(jobId, { fields_added: flatKeys.length, fields: flat }, []);
       return { enriched: true, fields_count: Object.keys(fields).length };
     } catch (err: unknown) {
+      // Best-effort enrichment: do NOT re-throw. Re-throwing turned every failure
+      // into a 500 that Inngest retried indefinitely (a flood of 500s on
+      // crm-enrich-record). Log it, mark the job failed, and end the run cleanly.
       const msg = err instanceof Error ? err.message : String(err);
-      await failJob(jobId, msg);
-      throw err;
+      console.error(`[enrich-record] failed for node ${nodeId} (non-fatal):`, msg);
+      if (jobId) await failJob(jobId, msg).catch(() => {});
+      return { enriched: false, error: msg };
     }
   },
 );
