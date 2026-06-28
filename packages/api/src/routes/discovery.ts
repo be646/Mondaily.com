@@ -58,8 +58,19 @@ router.get("/", async (c) => {
     .limit(200);
   if (intent) q = q.eq("intent_type", intent);
   const { data, error } = await q;
-  if (error) return c.json({ error: error.message }, 500);
+  if (error) {
+    // Most likely the discovered_leads migration isn't applied yet. Degrade
+    // gracefully to an empty feed rather than 500-ing the page.
+    console.error("[discovery] read failed (returning empty):", error.message);
+    return c.json([]);
+  }
   return c.json(data ?? []);
+});
+
+// Lightweight setup probe so the UI can show a clear "configure discovery" state
+// instead of a silently-empty feed. Reports whether the web-search key is set.
+router.get("/status", async (c) => {
+  return c.json({ tavily_configured: Boolean(process.env.TAVILY_API_KEY) });
 });
 
 export { router as discoveryRouter };

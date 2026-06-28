@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Radar, ExternalLink, Search, Loader2 } from "lucide-react";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
@@ -19,18 +19,13 @@ interface DiscoveredLead {
 
 type SearchType = "INTENT_LEADS" | "REVIEWS";
 
-const INTENT_STYLE: Record<string, { label: string; c: string; b: string }> = {
-  BUY_SIGNAL: { label: "Buy signal", c: "#15803d", b: "#dcfce7" },
-  REVIEW:     { label: "Review",     c: "#1d4ed8", b: "#dbeafe" },
-  COMPLAINT:  { label: "Complaint",  c: "#b91c1c", b: "#fee2e2" },
+const INTENT: Record<string, { label: string; c: string; b: string; icon: typeof Star }> = {
+  BUY_SIGNAL: { label: "Buy signal", c: "#15803d", b: "#ecfdf3", icon: TrendingUp },
+  REVIEW:     { label: "Review",     c: "#1d4ed8", b: "#eff4ff", icon: Star },
+  COMPLAINT:  { label: "Complaint",  c: "#b91c1c", b: "#fef2f2", icon: AlertTriangle },
 };
 
-const FILTERS = [
-  ["all", "All"],
-  ["BUY_SIGNAL", "Buy signals"],
-  ["REVIEW", "Reviews"],
-  ["COMPLAINT", "Complaints"],
-] as const;
+const FILTERS = [["all", "All"], ["BUY_SIGNAL", "Buy signals"], ["REVIEW", "Reviews"], ["COMPLAINT", "Complaints"]] as const;
 
 export function DiscoveryPage() {
   const qc = useQueryClient();
@@ -43,7 +38,12 @@ export function DiscoveryPage() {
   const leadsQ = useQuery({
     queryKey: ["discovery"],
     queryFn: () => apiClient.get<DiscoveredLead[]>("/discovery"),
-    refetchInterval: 15_000,
+    refetchInterval: 12_000,
+  });
+  const statusQ = useQuery({
+    queryKey: ["discovery-status"],
+    queryFn: () => apiClient.get<{ tavily_configured: boolean }>("/discovery/status"),
+    staleTime: 300_000,
   });
 
   const run = useMutation({
@@ -54,53 +54,74 @@ export function DiscoveryPage() {
         region: region.trim() || undefined,
         targetSubject: targetSubject.trim() || undefined,
       }),
-    onSuccess: () => {
-      // Worker is async — poll for new rows.
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["discovery"] }), 4000);
-    },
+    onSuccess: () => setTimeout(() => qc.invalidateQueries({ queryKey: ["discovery"] }), 4000),
   });
 
   const reviewsMissingSubject = searchType === "REVIEWS" && !targetSubject.trim();
   const all = leadsQ.data ?? [];
   const rows = filter === "all" ? all : all.filter((r) => r.intent_type === filter);
+  const counts = {
+    all: all.length,
+    BUY_SIGNAL: all.filter((r) => r.intent_type === "BUY_SIGNAL").length,
+    REVIEW: all.filter((r) => r.intent_type === "REVIEW").length,
+    COMPLAINT: all.filter((r) => r.intent_type === "COMPLAINT").length,
+  } as Record<string, number>;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-4xl px-6 py-8 space-y-6">
       <PageHeader
         title="Discovery"
-        description="Sweep the open web for buyer-intent signals and reviews — grounded, source-backed, deduplicated."
+        description="Sweep the open web for buyer-intent signals and reviews — grounded, source-backed, and deduplicated."
       />
 
-      {/* ── Run a sweep ── */}
-      <section className="overflow-hidden rounded-2xl border bg-[var(--surface-card)]" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex items-center gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <Radar size={15} className="text-[var(--accent)]" />
-          <span className="text-sm font-semibold text-[var(--text-primary)]">Run a web sweep</span>
+      {/* Setup banner — only when the web-search key isn't configured */}
+      {statusQ.data && !statusQ.data.tavily_configured && (
+        <div className="flex items-start gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: "#e9d8a6", background: "#fdfaf0" }}>
+          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
+          <div className="text-[12.5px] leading-relaxed text-amber-900">
+            <span className="font-medium">Web search isn't configured yet.</span> Set <code className="rounded bg-amber-100 px-1 py-0.5 text-[11px]">TAVILY_API_KEY</code> in the API environment, then run a sweep — results land here automatically.
+          </div>
         </div>
-        <div className="space-y-3 p-4">
+      )}
+
+      {/* ── Run a sweep ── */}
+      <section
+        className="overflow-hidden rounded-2xl border bg-[var(--surface-card)]"
+        style={{ borderColor: "var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 18px 40px -28px rgba(0,0,0,0.16)" }}
+      >
+        <div className="flex items-center gap-2.5 border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "#6f80681a" }}>
+            <Radar size={15} className="text-[#6f8068]" />
+          </span>
+          <div>
+            <div className="text-[13px] font-semibold text-[var(--text-primary)]">Run a web sweep</div>
+            <div className="text-[11px] text-[var(--text-muted)]">Live search across Reddit, X, and public forums</div>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-5">
           <div className="inline-flex rounded-xl border p-1" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
             {(["INTENT_LEADS", "REVIEWS"] as SearchType[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setSearchType(t)}
-                className={`rounded-lg px-3.5 py-1.5 text-[12.5px] font-medium transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[12.5px] font-medium transition-all ${
                   searchType === t ? "bg-[var(--surface-card)] text-[var(--text-primary)] shadow-sm ring-1 ring-black/[.06]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 }`}
               >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: searchType === t ? "#6f8068" : "#d4d4d8" }} />
                 {t === "INTENT_LEADS" ? "Intent leads" : "Reviews"}
               </button>
             ))}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label={searchType === "REVIEWS" ? "Sector (optional)" : "Sector"} value={sector} onChange={setSector} placeholder="e.g. real estate, solar, SaaS" />
-            <Field label="Region (optional)" value={region} onChange={setRegion} placeholder="e.g. London, Austin TX" />
-            {searchType === "REVIEWS" && (
-              <Field label="Subject" value={targetSubject} onChange={setTargetSubject} placeholder="Person or company to review" />
-            )}
+            <Field label={searchType === "REVIEWS" ? "Sector (optional)" : "Sector"} value={sector} onChange={setSector} placeholder="real estate, solar, SaaS" />
+            <Field label="Region (optional)" value={region} onChange={setRegion} placeholder="London, Austin TX" />
+            {searchType === "REVIEWS" && <Field label="Subject" value={targetSubject} onChange={setTargetSubject} placeholder="Person or company" />}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
               onClick={() => run.mutate()}
               disabled={run.isPending || reviewsMissingSubject}
@@ -110,62 +131,77 @@ export function DiscoveryPage() {
               {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
               {run.isPending ? "Queuing sweep…" : "Run sweep"}
             </button>
-            {reviewsMissingSubject && <span className="text-[12px] text-[var(--text-muted)]">A subject is required for a reviews sweep.</span>}
-            {run.isSuccess && !run.isPending && <span className="text-[12px] text-[var(--accent)]">Sweep queued — results appear below as they land.</span>}
+            {reviewsMissingSubject && <span className="text-[12px] text-[var(--text-muted)]">Add a subject to run a reviews sweep.</span>}
+            {run.isSuccess && !run.isPending && <span className="inline-flex items-center gap-1.5 text-[12px] text-[#6f8068]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6f8068]" />Sweep queued — results appear below as they land.</span>}
           </div>
         </div>
       </section>
 
       {/* ── Results ── */}
       <section className="overflow-hidden rounded-2xl border bg-[var(--surface-card)]" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
           {FILTERS.map(([k, l]) => (
             <button
               key={k}
               onClick={() => setFilter(k)}
-              className={`rounded-md px-2.5 py-1 text-[11.5px] transition-colors ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
                 filter === k ? "bg-zinc-900 text-white" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
             >
               {l}
+              <span className={`tabular-nums ${filter === k ? "text-white/70" : "text-[var(--text-faint)]"}`}>{counts[k] ?? 0}</span>
             </button>
           ))}
-          <span className="ml-auto text-[11.5px] text-[var(--text-muted)]">{rows.length} result{rows.length === 1 ? "" : "s"}</span>
         </div>
 
         {leadsQ.isLoading ? (
-          <div className="p-4"><PageSkeleton rows={4} /></div>
+          <div className="p-5"><PageSkeleton rows={4} /></div>
         ) : rows.length === 0 ? (
-          <div className="px-4 py-12 text-center text-[13px] text-[var(--text-muted)]">
-            No discovered leads yet. Run a sweep above — grounded, on-topic results land here.
+          <div className="flex flex-col items-center px-6 py-16 text-center">
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: "#6f80681a" }}>
+              <Radar size={20} className="text-[#6f8068]" />
+            </span>
+            <p className="text-[14px] font-medium text-[var(--text-primary)]">No discovered leads yet</p>
+            <p className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[var(--text-muted)]">
+              Run a sweep above — grounded, on-topic buyer signals and reviews land here, each with a real source link.
+            </p>
           </div>
         ) : (
           <ul className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
             {rows.map((r) => {
-              const s = INTENT_STYLE[r.intent_type] ?? { label: r.intent_type, c: "#71717a", b: "#f4f4f5" };
+              const s = INTENT[r.intent_type] ?? { label: r.intent_type, c: "#71717a", b: "#f4f4f5", icon: Star };
+              const Icon = s.icon;
+              const conf = r.confidence_score ?? 0;
               return (
-                <li key={r.id} className="px-4 py-3">
+                <li key={r.id} className="px-5 py-3.5 transition-colors hover:bg-[var(--surface-hover)]">
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: s.c, background: s.b }}>{s.label}</span>
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: s.b, color: s.c }}>
+                      <Icon size={14} />
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--text-secondary)]">
-                        {r.author_name && <span className="font-medium text-[var(--text-primary)]">{r.author_name}</span>}
-                        {r.platform && <span className="rounded bg-[var(--surface-hover)] px-1.5 py-0.5 text-[10.5px] text-[var(--text-muted)]">{r.platform}</span>}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: s.c, background: s.b }}>{s.label}</span>
+                        {r.author_name && r.author_name !== "Anonymous" && <span className="text-[12px] font-medium text-[var(--text-primary)]">{r.author_name}</span>}
+                        {r.platform && <span className="rounded bg-[var(--surface-card-2)] px-1.5 py-0.5 text-[10.5px] text-[var(--text-muted)]">{r.platform}</span>}
                         {r.region && <span className="text-[11px] text-[var(--text-muted)]">· {r.region}</span>}
                         {r.target_subject && <span className="text-[11px] text-[var(--text-muted)]">· re: {r.target_subject}</span>}
                       </div>
-                      {r.raw_content && <p className="mt-1 line-clamp-3 text-[12.5px] leading-snug text-[var(--text-secondary)]">{r.raw_content}</p>}
+                      {r.raw_content && <p className="mt-1.5 line-clamp-3 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">{r.raw_content}</p>}
                       {r.source_url && (
-                        <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[11px] text-[var(--accent)] hover:underline">
-                          <ExternalLink size={10} /> source
+                        <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#6f8068] hover:underline">
+                          <ExternalLink size={10} /> View source
                         </a>
                       )}
                     </div>
-                    {typeof r.confidence_score === "number" && (
-                      <span className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium tabular-nums" style={{ color: r.confidence_score >= 70 ? "#15803d" : r.confidence_score >= 40 ? "#b45309" : "#71717a", background: "var(--surface-card-2)" }}>
-                        {r.confidence_score}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span
+                        className="rounded-md px-2 py-0.5 text-[12px] font-semibold tabular-nums"
+                        style={{ color: conf >= 70 ? "#15803d" : conf >= 40 ? "#b45309" : "#71717a", background: "var(--surface-card-2)" }}
+                      >
+                        {conf}
                       </span>
-                    )}
+                      <span className="text-[9.5px] uppercase tracking-wide text-[var(--text-faint)]">confidence</span>
+                    </div>
                   </div>
                 </li>
               );
@@ -185,7 +221,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--accent)]"
+        className="w-full rounded-lg border px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[#6f8068]"
         style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
       />
     </label>
