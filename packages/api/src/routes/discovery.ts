@@ -69,8 +69,37 @@ router.get("/", async (c) => {
 
 // Lightweight setup probe so the UI can show a clear "configure discovery" state
 // instead of a silently-empty feed. Reports whether the web-search key is set.
+// Read-only diagnostic probe for the self-hosted search stack. Two shallow GETs
+// with a hard 3s timeout each so a down service can't block the request. Any
+// connection error / timeout → that service is `false` and the overall status is
+// DEGRADED; the route never throws.
+async function probe(url: string): Promise<boolean> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3000);
+  try {
+    const res = await fetch(url, { method: "GET", signal: ctrl.signal });
+    // Any HTTP response (even 4xx) means the container is up and answering.
+    return res.status > 0;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 router.get("/status", async (c) => {
-  return c.json({ tavily_configured: Boolean(process.env.TAVILY_API_KEY) });
+  const searchUrl = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/";
+
+  const [searxng_reachable, scraper_reachable] = await Promise.all([
+    probe(`${searchUrl}?q=ping&format=json`),
+    probe(scrapeUrl),
+  ]);
+
+  return c.json({
+    status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",
+    services: { searxng_reachable, scraper_reachable },
+  });
 });
 
 export { router as discoveryRouter };

@@ -42,8 +42,8 @@ export function DiscoveryPage() {
   });
   const statusQ = useQuery({
     queryKey: ["discovery-status"],
-    queryFn: () => apiClient.get<{ tavily_configured: boolean }>("/discovery/status"),
-    staleTime: 300_000,
+    queryFn: () => apiClient.get<{ status: "HEALTHY" | "DEGRADED"; services: { searxng_reachable: boolean; scraper_reachable: boolean } }>("/discovery/status"),
+    staleTime: 60_000,
   });
 
   const run = useMutation({
@@ -74,12 +74,15 @@ export function DiscoveryPage() {
         description="Sweep the open web for buyer-intent signals and reviews — grounded, source-backed, and deduplicated."
       />
 
-      {/* Setup banner — only when the web-search key isn't configured */}
-      {statusQ.data && !statusQ.data.tavily_configured && (
+      {/* Health banner — only when the self-hosted search stack is degraded */}
+      {statusQ.data && statusQ.data.status === "DEGRADED" && (
         <div className="flex items-start gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: "#e9d8a6", background: "#fdfaf0" }}>
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
           <div className="text-[12.5px] leading-relaxed text-amber-900">
-            <span className="font-medium">Web search isn't configured yet.</span> Set <code className="rounded bg-amber-100 px-1 py-0.5 text-[11px]">TAVILY_API_KEY</code> in the API environment, then run a sweep — results land here automatically.
+            <span className="font-medium">Search stack is degraded.</span>{" "}
+            {!statusQ.data.services.searxng_reachable && "The SearXNG index is unreachable. "}
+            {!statusQ.data.services.scraper_reachable && "The page scraper is unreachable. "}
+            Sweeps will return nothing until the self-hosted appliance is back online.
           </div>
         </div>
       )}
