@@ -87,7 +87,12 @@ function resolveModel(spec?: string): ResolvedModel {
 // path when it clearly looks conversational AND shows no data intent, so we never
 // strip tools from a real workspace question.
 
-const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+// Conversational turns route here. Default MUST be a model the Cerebras gateway
+// actually hosts — the old "zai-glm-4.7" default isn't on Cerebras, so every
+// non-data chat ("hi") 404'd and fell through to the "trouble connecting" reply.
+// Fall back to the proven main model; set AI_FAST_MODEL to a real faster Cerebras
+// model (e.g. llama3.1-8b) if you want a lighter conversational tier.
+const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? CEREBRAS_DEFAULT_SPEC;
 
 const CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
 const DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
@@ -194,7 +199,7 @@ export async function gatewayHealthCheck(): Promise<{
   ok: boolean;
   baseURLHost: string | null;
   env: { AI_PROVIDER_MODEL: string | null; AI_AGENT_MODEL: string | null; AI_FAST_MODEL: string | null };
-  tests?: { provider_plain: ProbeResult; agent_plain: ProbeResult; agent_with_tools: ProbeResult };
+  tests?: { provider_plain: ProbeResult; agent_plain: ProbeResult; agent_with_tools: ProbeResult; fast_plain: ProbeResult };
   error?: string;
 }> {
   const { baseURL, apiKey } = gatewayEnv();
@@ -214,6 +219,8 @@ export async function gatewayHealthCheck(): Promise<{
   const strip = (m: string) => m.replace(/^openai-compat\//, "");
   const providerModel = strip(env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
   const agentModel = strip(env.AI_AGENT_MODEL ?? env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  // Conversational turns ("hi") route to the fast model — the surface that was 404ing.
+  const fastModel = strip(FAST_MODEL_SPEC);
   const client = new OpenAI({ baseURL, apiKey, timeout: 12000, maxRetries: 0 });
 
   async function probe(model: string, withTools: boolean): Promise<ProbeResult> {
@@ -242,8 +249,9 @@ export async function gatewayHealthCheck(): Promise<{
     provider_plain: await probe(providerModel, false),
     agent_plain: await probe(agentModel, false),
     agent_with_tools: await probe(agentModel, true),
+    fast_plain: await probe(fastModel, false),
   };
-  const ok = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok;
+  const ok = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok && tests.fast_plain.ok;
   return { ok, baseURLHost, env, tests };
 }
 
