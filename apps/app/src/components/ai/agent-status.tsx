@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2,
@@ -44,13 +44,21 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     } catch {}
   }
 
-  // Follow the bottom inside the chat box only (never the page), and only when the
-  // user is already near the bottom — solid, no shake.
-  useEffect(() => {
+  // Stick-to-bottom lock (same model as the Home surface). `stickRef` stays true
+  // while the user is parked near the bottom; scrolling up to re-read flips it
+  // false so we stop yanking them, scrolling back down re-engages it. The pin runs
+  // in useLayoutEffect — BEFORE paint — so the newest tokens are in view when the
+  // frame lands: no post-paint jump, no shake. Only fires while a turn is active.
+  const stickRef = useRef(true);
+  const onMessagesScroll = useCallback(() => {
     const el = messagesRef.current;
     if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 220;
-    if (nearBottom) el.scrollTop = el.scrollHeight;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+  }, []);
+  useLayoutEffect(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    if (loading && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
 
   const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
@@ -118,7 +126,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
       )}
 
       {/* Messages */}
-      <div ref={messagesRef} className="flex-1 overflow-auto p-3 space-y-3" style={{ overflowAnchor: "none" }}>
+      <div ref={messagesRef} onScroll={onMessagesScroll} className="relative min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-3 space-y-3" style={{ overflowAnchor: "none", scrollBehavior: "auto", scrollbarWidth: "none" }}>
         {displayMessages.map((m, i) => {
           const meta = messageMeta[i];
           const AgentIcon = meta?.agent.icon;
@@ -129,8 +137,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                   <LogoMark size={16}/>
                 </div>
               )}
-              <div className="flex flex-col gap-1 max-w-[85%]">
-                <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
+              <div className="flex flex-col gap-1 min-w-0 max-w-[85%]">
+                <div className={`min-w-0 break-words rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
                     ? "bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text-primary)] rounded-tr-sm whitespace-pre-wrap"
                     : "text-stone-300"
@@ -181,16 +189,18 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 
                 {/* Same action-chip set as Home and the main Ask page */}
                 {m.role === "assistant" && !loading && i === messages.length - 1 && i > 0 && (
-                  <div className="flex flex-wrap gap-1 ml-1 mt-0.5">
-                    <button onClick={() => sendChip(buildChipText("task", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
-                      <ListChecks size={9}/> Create task
-                    </button>
-                    <button onClick={() => sendChip(buildChipText("related", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
-                      <Network size={9}/> Related objects
-                    </button>
-                    <button onClick={() => sendChip(buildChipText("explain", i))} className="btn-suggested !text-[10px] !px-2 !py-0.5">
-                      <Brain size={9}/> Explain reasoning
-                    </button>
+                  <div className="flex flex-wrap items-center gap-1.5 ml-1 mt-1">
+                    {([
+                      { key: "task" as const, label: "Create task", Icon: ListChecks },
+                      { key: "related" as const, label: "Related objects", Icon: Network },
+                      { key: "explain" as const, label: "Explain reasoning", Icon: Brain },
+                    ]).map(({ key, label, Icon }) => (
+                      <button key={key} onClick={() => sendChip(buildChipText(key, i))}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all hover:-translate-y-px"
+                        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                        <Icon size={9}/> {label}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
