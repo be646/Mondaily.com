@@ -68,9 +68,10 @@ function buildMessages(row: TrainingRow): ChatMessage[] {
   return messages;
 }
 
-type Validation =
-  | { ok: true; tokens: number }
-  | { ok: false; reason: "empty" | "oversized"; tokens: number };
+// Plain (non-discriminated) shape so the `reason` access below never depends on
+// control-flow narrowing — which differs subtly across TypeScript versions and
+// caused a tsc failure on the build server while passing locally.
+type Validation = { ok: boolean; reason?: "empty" | "oversized"; tokens: number };
 
 function validateExample(messages: ChatMessage[]): Validation {
   const user = messages.find((m) => m.role === "user")?.content ?? "";
@@ -127,7 +128,7 @@ export async function buildTrainingExport(): Promise<TrainingExport> {
     if (looksLikeInjection(rawText(row))) { excluded.injection++; continue; }
     const messages = buildMessages(row);
     const v = validateExample(messages);
-    if (!v.ok) { excluded[v.reason]++; continue; }
+    if (!v.ok) { if (v.reason) excluded[v.reason]++; continue; }
     totalTokens += v.tokens;
     lines.push(JSON.stringify({ agent: row.agent_name ?? "unknown", messages }));
   }
