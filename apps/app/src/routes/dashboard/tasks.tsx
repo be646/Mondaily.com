@@ -388,7 +388,7 @@ export function TasksPage() {
   const { user } = useUser();
   const location = useLocation();
 
-  useEffect(() => { apiClient.post("/tasks/check-overdue", {}).catch(() => {}); }, []);
+  useEffect(() => { apiClient.post("/tasks/check-overdue", {}).catch((e) => console.error("[bg-task] swallowed error:", e)); }, []);
 
   const navState = (location.state ?? {}) as { filter?: string; priority?: string };
   const [filter, setFilter] = useState<string>(navState.filter ?? "mine");

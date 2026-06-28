@@ -16,7 +16,7 @@ export function SidebarAsk() {
   useEffect(() => {
     refresh();
     // Load from server on mount
-    loadThreadsFromServer().then(t => setThreads(t)).catch(() => {});
+    loadThreadsFromServer().then(t => setThreads(t)).catch((e) => console.error("[bg-task] swallowed error:", e));
     const interval = setInterval(refresh, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -27,7 +27,7 @@ export function SidebarAsk() {
     const updated = threads.filter(t => t.id !== id);
     saveThreads(updated);
     setThreads(updated);
-    deleteThreadFromServer(id).catch(() => {});
+    deleteThreadFromServer(id).catch((e) => console.error("[bg-task] swallowed error:", e));
   };
 
   // No permanent "Ask Mondaily" row here — the primary nav already has a

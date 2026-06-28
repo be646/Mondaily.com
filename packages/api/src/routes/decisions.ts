@@ -184,7 +184,7 @@ export async function executeApprovedAction(workspaceId: string, decision: any):
     inngest.send({
       name: "crm/record.created",
       data: { workspaceId, nodeId: node.id!, objectType: candidate.object_type, vertical: objectTypeToVertical(candidate.object_type) },
-    }).catch(() => {});
+    }).catch((e) => console.error("[bg-task] swallowed error:", e));
 
     if (evidenceItem?.destination_list_id) {
       const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", evidenceItem.destination_list_id);
@@ -252,7 +252,7 @@ router.post("/:id/approve", async (c) => {
     .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
     .maybeSingle();
-  if (decision) await executeApprovedAction(c.get("workspaceId"), decision).catch(() => {});
+  if (decision) await executeApprovedAction(c.get("workspaceId"), decision).catch((e) => console.error("[bg-task] swallowed error:", e));
   return resolve(c, "approved", {}, "APPROVED");
 });
 router.post("/:id/reject", async (c) => resolve(c, "rejected", {}, "REJECTED"));

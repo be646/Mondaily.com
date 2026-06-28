@@ -85,7 +85,7 @@ router.post("/", requireAuth, zValidator("json", importBodySchema), async (c) =>
       inngest.send({
         name: "crm/record.created",
         data: { workspaceId, nodeId, objectType: safeType, vertical, recordData: {} },
-      }).catch(() => {});
+      }).catch((e) => console.error("[bg-task] swallowed error:", e));
     }
   }
 

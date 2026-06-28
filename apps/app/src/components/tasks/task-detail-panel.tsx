@@ -195,7 +195,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     setAiSummary(null);
   }, [task.id]);
 
-  useEffect(() => { apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch(() => {}); }, [task.id]);
+  useEffect(() => { apiClient.post(`/tasks/${task.id}/view`, { user_name: userName }).catch((e) => console.error("[bg-task] swallowed error:", e)); }, [task.id]);
 
   // While this task drawer is open, the right-side Ask AI drawer (rendered
   // once at the layout level) should know what task is in scope — same

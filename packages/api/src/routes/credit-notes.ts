@@ -216,7 +216,7 @@ router.post("/", zValidator("json", creditNoteSchema), async (c) => {
   inngest.send({
     name: "finance/credit_note.created",
     data: { workspaceId, nodeId: data.id, status: body.status, amount_cents: body.amount_cents },
-  }).catch(() => {});
+  }).catch((e) => console.error("[bg-task] swallowed error:", e));
 
   return c.json({ id: data.id, ...(data.data as object), created_at: data.created_at, created_by: data.created_by }, 201);
 });

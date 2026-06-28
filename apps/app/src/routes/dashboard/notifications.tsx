@@ -4,10 +4,12 @@ import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { resolveNotificationLink } from "../../lib/notification-link";
 
 interface Notification {
   id: string; title: string; body: string; type: string;
   task_id?: string; is_read: boolean; created_at: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -62,7 +64,7 @@ export function NotificationsPage() {
 
   function handleClick(n: Notification) {
     if (!n.is_read) markRead.mutate(n.id);
-    if (n.task_id) navigate("/tasks");
+    navigate(resolveNotificationLink(n));
   }
 
   return (

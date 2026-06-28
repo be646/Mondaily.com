@@ -1739,7 +1739,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const ids = [...selected];
     setSelected(new Set());
     qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => !ids.includes(r.id)));
-    await Promise.all(ids.map(id => apiClient.delete(`/nodes/${id}`).catch(() => {})));
+    await Promise.all(ids.map(id => apiClient.delete(`/nodes/${id}`).catch((e) => console.error("[bg-task] swallowed error:", e))));
   }
 
   async function bulkAddToList(listId: string) {
@@ -1775,7 +1775,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Clear any existing undo toast first
     if (undoToast) {
       clearTimeout(undoToast.timer);
-      apiClient.delete(`/nodes/${undoToast.record.id}`).catch(() => {});
+      apiClient.delete(`/nodes/${undoToast.record.id}`).catch((e) => console.error("[bg-task] swallowed error:", e));
     }
     // Optimistic remove
     qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => r.id !== record.id));

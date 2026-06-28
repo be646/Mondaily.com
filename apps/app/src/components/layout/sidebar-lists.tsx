@@ -110,7 +110,7 @@ export function SidebarLists() {
           records: records.map(r => ({ id: r.id, data: r.data })),
         });
         for (const id of selRes.selectedIds.slice(0, 30)) {
-          await apiClient.post(`/lists/${newList.id}/entries`, { node_id: id }).catch(() => {});
+          await apiClient.post(`/lists/${newList.id}/entries`, { node_id: id }).catch((e) => console.error("[bg-task] swallowed error:", e));
         }
         qc.invalidateQueries({ queryKey: ["lists"] });
       }

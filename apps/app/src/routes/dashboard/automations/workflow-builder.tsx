@@ -404,7 +404,7 @@ export function WorkflowBuilderPage() {
       if (trigger) setTriggerType(trigger.type);
     }
       })
-      .catch(() => {});
+      .catch((e) => console.error("[bg-task] swallowed error:", e));
   }, [id]);
 
   async function saveWorkflow() {

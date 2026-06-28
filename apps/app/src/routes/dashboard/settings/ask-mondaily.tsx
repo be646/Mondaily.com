@@ -61,7 +61,7 @@ export function AskMondailySettings() {
       fetch(`${apiUrl}/api/v1/ask/credits`, { headers })
         .then(r => r.json())
         .then(data => setCredits(data))
-        .catch(() => {})
+        .catch((e) => console.error("[bg-task] swallowed error:", e))
     );
   }, []);
 

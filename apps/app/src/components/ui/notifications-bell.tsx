@@ -3,10 +3,12 @@ import { Bell } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
+import { resolveNotificationLink } from "../../lib/notification-link";
 
 interface Notification {
   id: string; title: string; body: string; type: string;
   task_id?: string; is_read: boolean; created_at: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 function fmtTime(iso: string) {
@@ -46,7 +48,7 @@ export function NotificationsBell() {
 
   function handleClick(n: Notification) {
     markRead.mutate(n.id);
-    if (n.task_id) navigate("/tasks");
+    navigate(resolveNotificationLink(n));
     setOpen(false);
   }
 

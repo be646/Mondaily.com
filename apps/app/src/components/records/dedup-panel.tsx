@@ -138,9 +138,9 @@ export function DedupPanel({
         }
       }
 
-      await apiClient.patch(`/nodes/${keeper.id}`, { data: mergedData }).catch(() => {});
+      await apiClient.patch(`/nodes/${keeper.id}`, { data: mergedData }).catch((e) => console.error("[bg-task] swallowed error:", e));
       for (const dupe of dupes) {
-        await apiClient.delete(`/nodes/${dupe.id}`).catch(() => {});
+        await apiClient.delete(`/nodes/${dupe.id}`).catch((e) => console.error("[bg-task] swallowed error:", e));
       }
     }
     qc.invalidateQueries({ queryKey: ["records", objectType] });
@@ -184,7 +184,7 @@ export function DedupPanel({
         // Add entries to the list
         await Promise.all(
           l.records.map(r =>
-            apiClient.post(`/lists/${list.id}/entries`, { node_id: r.id }).catch(() => {})
+            apiClient.post(`/lists/${list.id}/entries`, { node_id: r.id }).catch((e) => console.error("[bg-task] swallowed error:", e))
           )
         );
 

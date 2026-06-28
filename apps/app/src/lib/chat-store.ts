@@ -37,7 +37,7 @@ export function addMessageToThread(threadId: string, message: ChatMessage): void
   const newThreads: ChatThread[] = [updated, ...threads.filter(t => t.id !== threadId)];
   saveThreads(newThreads);
   // Sync to server in background
-  syncThreadToServer(updated).catch(() => {});
+  syncThreadToServer(updated).catch((e) => console.error("[bg-task] swallowed error:", e));
 }
 
 async function syncThreadToServer(thread: ChatThread): Promise<void> {

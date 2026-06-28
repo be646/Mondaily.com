@@ -383,7 +383,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     const email = user?.primaryEmailAddress?.emailAddress;
     const name = user?.fullName || user?.firstName;
     if (!user?.id || !email) return;
-    apiClient.post("/members/sync", { email, name: name || email, avatar_url: user.imageUrl || undefined }).catch(() => {});
+    apiClient.post("/members/sync", { email, name: name || email, avatar_url: user.imageUrl || undefined }).catch((e) => console.error("[bg-task] swallowed error:", e));
   }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName]);
 
   const org = user?.organizationMemberships?.[0]?.organization;

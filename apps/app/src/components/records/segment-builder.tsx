@@ -101,7 +101,7 @@ export function SegmentBuilder({
         access_level: "marketing",
       });
       await Promise.all(
-        matched.map(r => apiClient.post(`/lists/${list.id}/entries`, { node_id: r.id }).catch(() => {}))
+        matched.map(r => apiClient.post(`/lists/${list.id}/entries`, { node_id: r.id }).catch((e) => console.error("[bg-task] swallowed error:", e)))
       );
       qc.invalidateQueries({ queryKey: ["lists"] });
       setSavedListName(name);

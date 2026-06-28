@@ -133,7 +133,7 @@ router.post("/:id/enrich", async (c) => {
         vertical: "sales",
         recordData: node.data,
       },
-    }).catch(() => {});
+    }).catch((e) => console.error("[bg-task] swallowed error:", e));
     queued++;
   }
 

@@ -278,7 +278,7 @@ export async function runProspecting(
         inngest.send({
           name: "crm/record.created",
           data: { workspaceId, nodeId: node.id!, objectType: input.object_type, vertical: objectTypeToVertical(input.object_type) },
-        }).catch(() => {});
+        }).catch((e) => console.error("[bg-task] swallowed error:", e));
 
         if (input.destination_list_id) {
           const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", input.destination_list_id);

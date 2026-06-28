@@ -299,7 +299,7 @@ export function MembersSettings() {
                               onClick={async () => {
                                 // Actually revoke on the server (was cache-only,
                                 // so the invite reappeared on refresh).
-                                await apiClient.delete(`/invites/${inv.id}`).catch(() => {});
+                                await apiClient.delete(`/invites/${inv.id}`).catch((e) => console.error("[bg-task] swallowed error:", e));
                                 qc.setQueryData<MembersData>(["members"], cur => cur
                                   ? { ...cur, invitations: cur.invitations.filter(i => i.id !== inv.id) }
                                   : cur);
