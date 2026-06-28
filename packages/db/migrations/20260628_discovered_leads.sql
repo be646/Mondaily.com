@@ -10,14 +10,14 @@
 CREATE TABLE IF NOT EXISTS discovered_leads (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id     uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  source_url       text UNIQUE,
-  platform         text,                       -- 'X' | 'Reddit' | 'Google Reviews' | …
-  author_name      text,
-  raw_content      text,
-  intent_type      text CHECK (intent_type IN ('BUY_SIGNAL', 'REVIEW', 'COMPLAINT')),
-  target_subject   text,                       -- for reviews of a specific person/company
-  region           text,
-  confidence_score integer,
+  source_url       text NOT NULL UNIQUE,
+  platform         text NOT NULL,                              -- 'X' | 'Reddit' | 'Google Reviews' | …
+  author_name      text NOT NULL DEFAULT 'Anonymous',
+  raw_content      text NOT NULL,
+  intent_type      text NOT NULL CHECK (intent_type IN ('BUY_SIGNAL', 'REVIEW', 'COMPLAINT')),
+  target_subject   text,                                       -- person/company being reviewed
+  region           text,                                       -- extracted geographical boundary
+  confidence_score integer NOT NULL DEFAULT 0 CHECK (confidence_score BETWEEN 0 AND 100),
   created_at       timestamptz NOT NULL DEFAULT now()
 );
 

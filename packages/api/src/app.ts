@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serve } from "inngest/hono";
 import { inngest } from "./lib/inngest";
-import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscovery } from "./jobs/index";
+import { enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker } from "./jobs/index";
 import { runAllDaily, runLeadScoring, runDealAlerts } from "./jobs/runners";
 import { runAllWorkflows } from "./jobs/workflow-engine";
 import { runAllVertical } from "./jobs/vertical-agents";
@@ -113,7 +113,7 @@ app.route("/api/v1/integrations", integrationsRouter);
 app.route("/api/mcp", mcpRouter); // external AI clients (MCP), own key-based auth
 app.route("/api/v1", appDataRouter);
 
-const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscovery] });
+const inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker] });
 app.all("/api/inngest", inngestHandler);
 
 /**

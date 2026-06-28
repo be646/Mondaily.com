@@ -52,7 +52,9 @@ router.get("/", async (c) => {
     .select("*")
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false })
-    .limit(100);
+    // Was 100 — which capped the pending COUNT at 100 so approvals never appeared
+    // to reduce it. Raised so the queue + its count reflect reality.
+    .limit(1000);
   if (status) query = query.eq("status", status);
   const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 500);

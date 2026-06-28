@@ -79,8 +79,8 @@ const LEAD_TOOL_SCHEMA: GatewayToolRequest["toolSchema"] = {
   },
 };
 
-export const socialDiscovery = inngest.createFunction(
-  { id: "social-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
+export const socialDiscoveryWorker = inngest.createFunction(
+  { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
   { event: "app/social.discovery.trigger" },
   async ({ event }) => {
     const { workspaceId, region, sector, searchType, targetSubject } = event.data;
@@ -131,13 +131,14 @@ export const socialDiscovery = inngest.createFunction(
       .map((l) => ({
         workspace_id: workspaceId,
         source_url: l.source_url!,
-        platform: l.platform ?? null,
-        author_name: l.author_name ?? null,
-        raw_content: l.raw_content ?? null,
+        // NOT NULL columns — always provide a value.
+        platform: l.platform || "web",
+        author_name: l.author_name || "Anonymous",
+        raw_content: l.raw_content || "",
         intent_type: l.intent_type!,
         target_subject: l.target_subject ?? targetSubject ?? null,
         region: l.region ?? region ?? null,
-        confidence_score: typeof l.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l.confidence_score))) : null,
+        confidence_score: typeof l.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l.confidence_score))) : 0,
       }));
 
     if (rows.length === 0) return { discovered: 0, scanned: unique.length };

@@ -25,15 +25,16 @@ const runSchema = z.object({
 
 // Fire the discovery sweep asynchronously (Inngest). Returns immediately — the
 // worker writes results to discovered_leads, which GET / below reads.
-router.post("/run", zValidator("json", runSchema), async (c) => {
-  const body = c.req.valid("json");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function triggerSweep(c: any) {
+  const body = c.req.valid("json") as z.infer<typeof runSchema>;
   if (body.searchType === "REVIEWS" && !body.targetSubject) {
     return c.json({ error: "targetSubject is required for a REVIEWS sweep." }, 400);
   }
   await inngest.send({
     name: "app/social.discovery.trigger",
     data: {
-      workspaceId: c.get("workspaceId"),
+      workspaceId: c.get("workspaceId") as string,
       searchType: body.searchType,
       sector: body.sector,
       region: body.region,
@@ -41,7 +42,10 @@ router.post("/run", zValidator("json", runSchema), async (c) => {
     },
   });
   return c.json({ queued: true }, 202);
-});
+}
+
+router.post("/trigger", zValidator("json", runSchema), triggerSweep);
+router.post("/run", zValidator("json", runSchema), triggerSweep); // alias used by the Discovery page
 
 // Read discovered leads for this workspace, optionally filtered by intent_type.
 router.get("/", async (c) => {

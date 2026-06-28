@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, ChevronDown, Inbox } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
@@ -16,6 +17,17 @@ export function DecisionsPage() {
   const qc = useQueryClient();
   const { data: decisions, isLoading, isError } = useDecisionQueue();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Deep link: /decisions?id=<decisionId> (from a notification) auto-opens and
+  // scrolls to that card so the click lands on the exact item.
+  const focusId = searchParams.get("id");
+  useEffect(() => {
+    if (!focusId) return;
+    setOpenId(focusId);
+    const el = document.getElementById(`decision-${focusId}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusId, decisions]);
 
   const act = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) =>
@@ -50,7 +62,7 @@ export function DecisionsPage() {
             const open = openId === d.id;
             const sources = mapEvidence(d.evidence ?? []);
             return (
-              <div key={d.id} className="border-b" style={{ borderColor: "var(--border-soft)" }}>
+              <div key={d.id} id={`decision-${d.id}`} className="border-b" style={{ borderColor: "var(--border-soft)" }}>
                 <button onClick={() => setOpenId(open ? null : d.id)} className="stream-row w-full text-left" style={{ borderLeft: `2px solid ${d.risk_level === "high" ? "#dc2626" : d.risk_level === "medium" ? "#d97706" : "#10b981"}` }}>
                   {d.risk_level === "high" ? <ShieldAlert size={13} className="mt-0.5 shrink-0 text-rose-500" /> : <Clock size={13} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }} />}
                   <div className="min-w-0 flex-1">

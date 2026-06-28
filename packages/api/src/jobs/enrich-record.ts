@@ -5,6 +5,34 @@ import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 
 const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
 
+/**
+ * Flatten the structured enrichment groups into the flat top-level keys the
+ * records sheet / pipeline columns read (job_title, company, email, …), while
+ * keeping the grouped objects + arrays for richer detail surfaces.
+ */
+function flattenEnrichment(fields: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const lift = (group: unknown) => {
+    if (group && typeof group === "object" && !Array.isArray(group)) {
+      for (const [k, v] of Object.entries(group as Record<string, unknown>)) {
+        if (v != null && v !== "" && out[k] == null) out[k] = v;
+      }
+    }
+  };
+  lift(fields.professional_background);
+  lift(fields.company_firmographic_data);
+  lift(fields.verified_contact); // email, phone, source → top level
+  // Keep the rich structures available too (detail views / future surfaces).
+  if (fields.verified_intent_signals) out.intent_signals = fields.verified_intent_signals;
+  if (fields.calculated_churn_risk) out.churn_risk = fields.calculated_churn_risk;
+  // Preserve any already-flat keys the model returned directly.
+  for (const [k, v] of Object.entries(fields)) {
+    if (["professional_background", "company_firmographic_data", "verified_contact", "verified_intent_signals", "calculated_churn_risk"].includes(k)) continue;
+    if (v != null && v !== "" && out[k] == null) out[k] = v;
+  }
+  return out;
+}
+
 async function tavilySearch(query: string): Promise<string> {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return "";
@@ -181,25 +209,31 @@ export const enrichRecord = inngest.createFunction(
         return { enriched: false };
       }
 
+      // Flatten the structured groups to TOP-LEVEL keys so the records sheet /
+      // pipeline (which read flat columns like job_title, company, email) actually
+      // display them. The grouped objects are kept too, for richer detail views.
+      const flat = flattenEnrichment(fields);
+
       // Merge enriched fields into node data
       const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
-      const merged = { ...(node?.data ?? {}), ...fields };
+      const merged = { ...(node?.data ?? {}), ...flat };
       // Save data first (always works)
       await supabase.from("nodes").update({ data: merged }).eq("id", nodeId);
       // Save enrichment status columns (requires migration 0010)
       await supabase.from("nodes").update({ enriched_at: new Date().toISOString(), enrichment_status: "done" }).eq("id", nodeId);
 
-      // Create notification for the workspace
-      const summary = Object.keys(fields).slice(0, 3).join(", ");
+      // Create notification for the workspace — summarize the FLAT keys actually written.
+      const flatKeys = Object.keys(flat);
+      const summary = flatKeys.slice(0, 3).join(", ");
       await supabase.from("notifications").insert({
         workspace_id: workspaceId,
         type: "agent",
         title: "✦ Record enriched",
-        body: `AI filled in: ${summary}${Object.keys(fields).length > 3 ? ` +${Object.keys(fields).length - 3} more` : ""}`,
-        metadata: { nodeId, object_type: objectType, fields_added: Object.keys(fields).length },
+        body: `AI filled in: ${summary}${flatKeys.length > 3 ? ` +${flatKeys.length - 3} more` : ""}`,
+        metadata: { nodeId, object_type: objectType, fields_added: flatKeys.length },
       });
 
-      await completeJob(jobId, { fields_added: Object.keys(fields).length, fields }, []);
+      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat }, []);
       return { enriched: true, fields_count: Object.keys(fields).length };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
