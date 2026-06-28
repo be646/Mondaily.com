@@ -10,7 +10,7 @@ import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError, TokenLedger,
 } from "../../components/ai/ask-shared";
 import { useAskEngine } from "../../components/ai/use-ask-engine";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
@@ -261,17 +261,21 @@ export function HomePage() {
   const recentThreads = getThreads().slice(0, 3);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Bottom-anchored streaming: keep the newest line at the BOTTOM so the answer
-  // types upward (older text pushes up, the end stays visible). Instant set
-  // (scroll-behavior:auto) so there's no smooth-scroll tussle; only follows while
-  // a turn is active AND the user is near the bottom, so scrolling up to re-read
-  // isn't yanked. The unified element means the thinking→text swap no longer jumps.
-  useEffect(() => {
+  // Top-down streaming with a stick-to-bottom lock. `stickRef` stays true while
+  // the user is parked near the bottom; if they scroll up to re-read it flips
+  // false and we stop yanking them. The pin runs in useLayoutEffect — BEFORE the
+  // browser paints the new frame — so the newest tokens are already in view when
+  // the frame lands. No post-paint jump, no smooth-scroll tussle, no jitter.
+  const stickRef = useRef(true);
+  const onMessagesScroll = useCallback(() => {
     const el = messagesRef.current;
     if (!el) return;
-    const active = loading || streamingMsgIdx !== null;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
-    if (active && nearBottom) el.scrollTop = el.scrollHeight;
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+  }, []);
+  useLayoutEffect(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    if (stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading, streamedUpTo, streamingMsgIdx]);
 
   // Run AI risk scan once per day (throttled via localStorage)
@@ -520,7 +524,7 @@ export function HomePage() {
         )}
 
         {isChatting && (
-          <div ref={messagesRef} className="chat-stick-bottom relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-3 pt-2 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto" }}>
+          <div ref={messagesRef} onScroll={onMessagesScroll} className="relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-10 pt-2 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto" }}>
             {(() => {
               // Unified turn list: real messages + a single PENDING assistant row while
               // thinking. The pending row shares the SAME key/index/structure as the
@@ -555,9 +559,7 @@ export function HomePage() {
                         <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
                           {showThinking
                             ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
-                            : isStreaming
-                              ? <p className="whitespace-pre-wrap break-words leading-7" style={{ color: "var(--text-secondary)" }}>{displayText.replace(/[*_`#>|]/g, "")}</p>
-                              : renderMarkdown(displayText)}
+                            : renderMarkdown(displayText)}
                           {isStreaming && displayText && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
                         {!isStreaming && meta && AgentIcon && (
@@ -653,7 +655,8 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2 rounded-full px-2.5 py-2 transition-all sm:px-3">
+          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2 rounded-full px-2.5 py-2 transition-all sm:px-3"
+            style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
