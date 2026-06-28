@@ -19,9 +19,11 @@ export function resolveNotificationLink(n: NotificationLike): string {
   const objectType = str(m.object_type) ?? str(m.objectType);
   const decisionId = str(m.decision_id) ?? str(m.decisionId);
   const invoiceId = str(m.invoice_id) ?? str(m.invoiceId) ?? str(m.invoice);
+  const creditNoteId = str(m.credit_note_id) ?? str(m.creditNoteId);
 
   // Most specific first.
   if (n.task_id) return `/tasks?id=${n.task_id}`;
+  if (creditNoteId) return `/finance/credit-notes/${creditNoteId}`;
   if (invoiceId) return `/finance/invoices/${invoiceId}`;
   if (decisionId || n.type === "decision") return decisionId ? `/decisions?id=${decisionId}` : "/decisions";
   if (objectType && nodeId) return `/objects/${encodeURIComponent(objectType)}/${nodeId}`;

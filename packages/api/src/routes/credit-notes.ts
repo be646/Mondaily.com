@@ -40,7 +40,7 @@ const creditNoteSchema = z.object({
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-async function notifyAdmins(workspaceId: string, title: string, body: string) {
+async function notifyAdmins(workspaceId: string, title: string, body: string, creditNoteId?: string) {
   const { data: admins } = await supabase
     .from("workspace_members")
     .select("user_id")
@@ -56,11 +56,12 @@ async function notifyAdmins(workspaceId: string, title: string, body: string) {
       body,
       type: "credit_note",
       is_read: false,
+      metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
     }))
   );
 }
 
-async function notifyReviewers(workspaceId: string, title: string, body: string) {
+async function notifyReviewers(workspaceId: string, title: string, body: string, creditNoteId?: string) {
   const { data: reviewers } = await supabase
     .from("workspace_members")
     .select("user_id")
@@ -75,6 +76,7 @@ async function notifyReviewers(workspaceId: string, title: string, body: string)
       body,
       type: "credit_note",
       is_read: false,
+      metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
     }))
   );
 }
@@ -209,7 +211,7 @@ router.post("/", zValidator("json", creditNoteSchema), async (c) => {
 
   // Notify admins when created in pending_review (AI path or manual escalation)
   if (body.status === "pending_review") {
-    await notifyAdmins(workspaceId, "Credit note pending review", `A ${body.credit_reason.replace(/_/g, " ")} credit note for ${(body.amount_cents / 100).toLocaleString("en-GB", { style: "currency", currency: body.currency })} requires your approval.`);
+    await notifyAdmins(workspaceId, "Credit note pending review", `A ${body.credit_reason.replace(/_/g, " ")} credit note for ${(body.amount_cents / 100).toLocaleString("en-GB", { style: "currency", currency: body.currency })} requires your approval.`, data.id);
   }
 
   // Fire Inngest event so other jobs can react
@@ -271,16 +273,17 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
   if (error) return c.json({ error: error.message }, 500);
 
   // Post-transition side effects
+  const cnId = c.req.param("id");
   if (body.status === "executed") {
     const amount = (Number(current.amount_cents ?? 0) / 100).toLocaleString("en-GB", { style: "currency", currency: String(current.currency ?? "GBP") });
-    await notifyAdmins(workspaceId, "Credit note executed", `A ${String(current.credit_reason ?? "").replace(/_/g, " ")} credit note of ${amount} has been executed.`);
+    await notifyAdmins(workspaceId, "Credit note executed", `A ${String(current.credit_reason ?? "").replace(/_/g, " ")} credit note of ${amount} has been executed.`, cnId);
   }
   if (body.status === "pending_review") {
-    await notifyAdmins(workspaceId, "Credit note pending review", `A credit note has been submitted for your approval.`);
-    await notifyReviewers(workspaceId, "Credit note pending review", `A credit note requires reviewer sign-off.`);
+    await notifyAdmins(workspaceId, "Credit note pending review", `A credit note has been submitted for your approval.`, cnId);
+    await notifyReviewers(workspaceId, "Credit note pending review", `A credit note requires reviewer sign-off.`, cnId);
   }
   if (body.status === "verified") {
-    await notifyAdmins(workspaceId, "Credit note verified", `A credit note has been verified and is awaiting final execution.`);
+    await notifyAdmins(workspaceId, "Credit note verified", `A credit note has been verified and is awaiting final execution.`, cnId);
   }
   if (body.status === "rejected") {
     // Notify the creator
@@ -293,6 +296,7 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
         body: `Your credit note has been rejected.`,
         type: "credit_note",
         is_read: false,
+        metadata: { credit_note_id: cnId, object_type: "credit_note" },
       });
     }
   }
