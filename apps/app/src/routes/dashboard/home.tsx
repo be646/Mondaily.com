@@ -267,10 +267,17 @@ export function HomePage() {
   // browser paints the new frame — so the newest tokens are already in view when
   // the frame lands. No post-paint jump, no smooth-scroll tussle, no jitter.
   const stickRef = useRef(true);
+  const lastTopRef = useRef(0);
   const onMessagesScroll = useCallback(() => {
     const el = messagesRef.current;
     if (!el) return;
-    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+    const top = el.scrollTop;
+    // Direction-aware: ANY upward scroll instantly releases the follow (no tug);
+    // returning to the very bottom re-engages it. The programmatic pin only ever
+    // moves DOWN, so it never trips the release.
+    if (top < lastTopRef.current - 1) stickRef.current = false;
+    if (el.scrollHeight - top - el.clientHeight < 24) stickRef.current = true;
+    lastTopRef.current = top;
   }, []);
   useLayoutEffect(() => {
     const el = messagesRef.current;
@@ -562,7 +569,13 @@ export function HomePage() {
                         <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
                           {showThinking
                             ? <span className="italic animate-pulse" style={{ color: "var(--text-faint)" }}>{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
-                            : renderMarkdown(displayText)}
+                            : isStreaming
+                              // While streaming: render as STABLE plain text (the parent is
+                              // whitespace-pre-wrap) so half-typed lines don't re-parse into
+                              // headings/lists/tables each token — that re-parse was the jitter.
+                              // Format to full markdown only once the answer is complete.
+                              ? <span style={{ color: "var(--text-secondary)" }}>{displayText}</span>
+                              : renderMarkdown(displayText)}
                           {isStreaming && displayText && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
                         {!isStreaming && meta && AgentIcon && (
