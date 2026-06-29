@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, RefreshCw, ChevronRight, Play, RotateCcw, Clock, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { agentByRaw, AGENTS } from "../../lib/agents";
+import { useAgentJobsRealtime } from "../../hooks/useAgentJobsRealtime";
 
 // Agent ids that have an on-demand runner (POST /agents/:id/run) — mirrors AGENT_RUNNERS.
 const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"]);
@@ -132,6 +133,11 @@ export function AgentActivityPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  const qc = useQueryClient();
+  // True real-time via Supabase Realtime (Clerk-bridged). No-op + polling fallback when
+  // the bridge isn't configured; when live, changes invalidate the feed instantly.
+  const live = useAgentJobsRealtime(() => qc.invalidateQueries({ queryKey: ["agent-activity"] }));
+
   type RosterRaw = { agent: string; last_run: string; last_status: string; runs_today: number; errors_today: number };
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["agent-activity"],
@@ -141,15 +147,16 @@ export function AgentActivityPage() {
       roster: RosterRaw[];
       timeline: { label: string; completed: number; failed: number }[];
     }>(`/agents/activity?limit=120`),
-    // Adaptive near-real-time: poll fast (2s) while a worker is computing or just ran,
-    // relax to 8s when idle. Cheap, sovereign (through our own API), no DB exposed to the client.
+    // Live channel handles instant updates; polling is the fallback. When the realtime
+    // channel is subscribed we relax to a 30s heartbeat; otherwise stay adaptive
+    // (2s while a worker runs / just ran, 8s idle) — sovereign, no DB exposed to the client.
     refetchInterval: (query) => {
+      if (live.current) return 30_000;
       const acts = query.state.data?.activity ?? [];
       const hot = acts.some(a => a.status === "running" || Date.now() - new Date(a.started_at).getTime() < 60_000);
       return hot ? 2_000 : 8_000;
     },
   });
-  const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ["agent-activity"] });
   const runAgent = useMutation({
