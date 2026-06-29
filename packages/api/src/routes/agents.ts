@@ -7,6 +7,7 @@ import {
 } from "../jobs/runners";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } from "../jobs/vertical-agents";
+import { inngest } from "../lib/inngest";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -39,6 +40,46 @@ router.post("/:id/run", async (c) => {
   try {
     const result = await runner(c.get("workspaceId"));
     return c.json({ ran: true, agent: id, result });
+  } catch (err: unknown) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+});
+
+// Map a raw agent_jobs.agent_name → the on-demand runner id (several jobs roll up to one).
+const RAW_TO_RUNNER: Record<string, string> = {
+  crm_enricher: "graph-enrichment",
+  invoice_chaser: "finance", recurring_invoices: "finance", credit_note_dispute_handler: "finance",
+  relationship_health: "relationship", deal_alerts: "relationship",
+  lead_scoring: "lead-scoring", operations: "operations", overdue_task_decisions: "operations",
+  workflow: "workflow", opportunity: "opportunity", people: "people", portfolio: "portfolio", asset: "asset",
+};
+
+/**
+ * Replay a specific run. Reads the exact input payload from that agent_jobs row and
+ * re-triggers it cleanly: per-record enrichment jobs are re-dispatched via the original
+ * Inngest event with the same input; workspace-level agents are re-run via their runner.
+ */
+router.post("/replay", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { jobId } = (await c.req.json().catch(() => ({}))) as { jobId?: string };
+  if (!jobId) return c.json({ error: "jobId required" }, 400);
+  const { data: job } = await supabase
+    .from("agent_jobs").select("agent_name, input")
+    .eq("id", jobId).eq("workspace_id", workspaceId).single();
+  if (!job) return c.json({ error: "run not found" }, 404);
+  const input = (job.input ?? {}) as Record<string, unknown>;
+
+  // Per-record enrichment → replay the exact row via its event (true row replay).
+  if (job.agent_name === "crm_enricher" && (input.nodeId || input.node_id)) {
+    await inngest.send({ name: "crm/record.created", data: { ...input, workspace_id: workspaceId } });
+    return c.json({ replayed: true, mode: "event", agent: job.agent_name });
+  }
+  // Otherwise re-run the agent that produced it.
+  const runner = AGENT_RUNNERS[RAW_TO_RUNNER[job.agent_name] ?? ""];
+  if (!runner) return c.json({ error: `Run "${job.agent_name}" cannot be replayed on demand.` }, 400);
+  try {
+    const result = await runner(workspaceId);
+    return c.json({ replayed: true, mode: "run", agent: job.agent_name, result });
   } catch (err: unknown) {
     return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
   }

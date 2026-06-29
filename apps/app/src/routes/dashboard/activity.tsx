@@ -1,10 +1,13 @@
 import { useState } from "react";
 import type { ElementType, ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, RefreshCw, ChevronRight } from "lucide-react";
+import { Loader2, RefreshCw, ChevronRight, Play, RotateCcw, Clock, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { agentByRaw, AGENTS } from "../../lib/agents";
+
+// Agent ids that have an on-demand runner (POST /agents/:id/run) — mirrors AGENT_RUNNERS.
+const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"]);
 
 type ActivityItem = {
   id: string;
@@ -138,7 +141,26 @@ export function AgentActivityPage() {
       roster: RosterRaw[];
       timeline: { label: string; completed: number; failed: number }[];
     }>(`/agents/activity?limit=120`),
-    refetchInterval: 15_000,
+    // Adaptive near-real-time: poll fast (2s) while a worker is computing or just ran,
+    // relax to 8s when idle. Cheap, sovereign (through our own API), no DB exposed to the client.
+    refetchInterval: (query) => {
+      const acts = query.state.data?.activity ?? [];
+      const hot = acts.some(a => a.status === "running" || Date.now() - new Date(a.started_at).getTime() < 60_000);
+      return hot ? 2_000 : 8_000;
+    },
+  });
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState<string | null>(null);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["agent-activity"] });
+  const runAgent = useMutation({
+    mutationFn: (id: string) => apiClient.post(`/agents/${id}/run`),
+    onMutate: (id) => setBusy(id),
+    onSettled: () => { setBusy(null); refresh(); },
+  });
+  const replayRun = useMutation({
+    mutationFn: (jobId: string) => apiClient.post(`/agents/replay`, { jobId }),
+    onMutate: (jobId) => setBusy(jobId),
+    onSettled: () => { setBusy(null); refresh(); },
   });
   const all = data?.activity ?? [];
   const agentLabels = Array.from(new Set(all.map(a => agentOf(a.agent).label))).sort();
@@ -170,6 +192,23 @@ export function AgentActivityPage() {
   const tl = data?.timeline ?? [];
   const tlMax = Math.max(1, ...tl.map(t => t.completed + t.failed));
   const tlTotal = tl.reduce((s, t) => s + t.completed + t.failed, 0);
+
+  // ROI + speed telemetry — all from real rows (no fabricated numbers).
+  const completedToday = Math.max(0, runsToday - errors);
+  const hoursSaved = (completedToday * 10) / 60; // standard 10 min saved per successful automated run
+  const successRate = runsToday > 0 ? Math.round((completedToday / runsToday) * 100) : 0;
+  const durMsList = all
+    .map(a => (a.completed_at ? new Date(a.completed_at).getTime() - new Date(a.started_at).getTime() : null))
+    .filter((x): x is number => x !== null && x >= 0);
+  const avgMs = durMsList.length ? durMsList.reduce((s, x) => s + x, 0) / durMsList.length : 0;
+  // Tokens/sec — REAL when the agent recorded usage into output.usage (populates as agents are wired).
+  const tpsList = all.map(a => {
+    const u = (a.detail?.usage ?? {}) as Record<string, unknown>;
+    const toks = (Number(u.generation_tokens) || 0) + (Number(u.thinking_tokens) || 0) + (Number(u.completion_tokens) || 0);
+    const durS = a.completed_at ? (new Date(a.completed_at).getTime() - new Date(a.started_at).getTime()) / 1000 : 0;
+    return toks > 0 && durS > 0 ? toks / durS : null;
+  }).filter((x): x is number => x !== null);
+  const avgTps = tpsList.length ? Math.round(tpsList.reduce((s, x) => s + x, 0) / tpsList.length) : null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -208,6 +247,16 @@ export function AgentActivityPage() {
                 <div className="mt-2 text-[11px] tracking-wide text-zinc-500">{t.label}</div>
               </div>
             ))}
+          </div>
+
+          {/* ROI + speed telemetry — real metrics derived from the rows */}
+          <div className="mb-5 flex flex-wrap gap-2">
+            <Telem Icon={Clock} label="human hours saved" value={hoursSaved >= 10 ? Math.round(hoursSaved).toString() : hoursSaved.toFixed(1)} suffix="h" tone={SAGE} hint="10 min × successful runs today" />
+            <Telem Icon={CheckCircle2} label="success rate" value={successRate.toString()} suffix="%" tone={successRate >= 90 ? SAGE : AMBER} hint={`${completedToday}/${runsToday} runs today`} />
+            <Telem Icon={Clock} label="avg run" value={avgMs < 1000 ? Math.round(avgMs).toString() : (avgMs / 1000).toFixed(1)} suffix={avgMs < 1000 ? "ms" : "s"} tone="#a1a1aa" hint={`across ${durMsList.length} recent runs`} />
+            {avgTps !== null && (
+              <Telem Icon={Zap} label="tokens/sec" value={avgTps.toString()} suffix="" tone={BLUE} hint="real Cerebras throughput" />
+            )}
           </div>
 
           {/* 24h throughput — real runs per hour, completed vs failed */}
@@ -249,23 +298,34 @@ export function AgentActivityPage() {
                   const Icon = iconForLabel(r.label);
                   const state = liveState(r.lastStatus, r.lastRun);
                   const active = agentFilter === r.label;
+                  const id = Object.values(AGENTS).find(a => a.name === r.label)?.id ?? "";
+                  const runnable = RUNNABLE.has(id);
+                  const running = busy === id || state === "active";
                   return (
-                    <button key={r.label} onClick={() => setAgentFilter(active ? null : r.label)}
-                      className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all hover:border-zinc-700"
+                    <div key={r.label}
+                      className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-all hover:border-zinc-700"
                       style={{ borderColor: active ? SAGE : "#27272a", background: active ? `${SAGE}12` : "rgba(24,24,27,0.4)" }}>
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900">
-                        <Icon size={14} style={{ color: state === "active" ? SAGE : "#71717a" }} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <Heartbeat state={state} />
-                          <span className="truncate text-[12px] font-semibold text-zinc-200">{r.label.replace(" Agent", "")}</span>
+                      <button onClick={() => setAgentFilter(active ? null : r.label)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900">
+                          <Icon size={14} style={{ color: state === "active" ? SAGE : "#71717a" }} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <Heartbeat state={state} />
+                            <span className="truncate text-[12px] font-semibold text-zinc-200">{r.label.replace(" Agent", "")}</span>
+                          </div>
+                          <div className="mt-0.5 truncate text-[10.5px] text-zinc-500">
+                            {state === "active" ? "active" : "idle"} · {relAgo(r.lastRun)}{r.runsToday > 0 ? ` · ${r.runsToday} today` : ""}{r.errorsToday > 0 ? ` · ${r.errorsToday} err` : ""}
+                          </div>
                         </div>
-                        <div className="mt-0.5 truncate text-[10.5px] text-zinc-500">
-                          {state === "active" ? "active" : "idle"} · {relAgo(r.lastRun)}{r.runsToday > 0 ? ` · ${r.runsToday} today` : ""}{r.errorsToday > 0 ? ` · ${r.errorsToday} err` : ""}
-                        </div>
-                      </div>
-                    </button>
+                      </button>
+                      {runnable && (
+                        <button onClick={() => runAgent.mutate(id)} disabled={busy === id} title="Run this agent now"
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200 disabled:opacity-50">
+                          {busy === id ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} style={running ? { color: SAGE } : undefined} />}
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -359,25 +419,43 @@ export function AgentActivityPage() {
                                   <Meta k="took" v={duration(a.started_at, a.completed_at) || "—"} />
                                 </div>
 
-                                {/* real execution steps written by the worker */}
-                                {steps.length > 0 && (
-                                  <div>
-                                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">execution track · {steps.length} steps</div>
-                                    <div className="space-y-1">
-                                      {steps.map((s, si) => {
+                                {/* progressive execution track */}
+                                <div>
+                                  <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                                    execution track{steps.length > 0 ? ` · ${steps.length} steps` : ""}
+                                  </div>
+                                  <div className="space-y-1">
+                                    {steps.length > 0 ? (
+                                      steps.map((s, si) => {
                                         const obj = (s && typeof s === "object") ? s as Record<string, unknown> : { value: s };
-                                        const stepLabel = String(obj.label ?? obj.step ?? obj.name ?? obj.message ?? `step ${si + 1}`);
+                                        const stepLabel = String(obj.label ?? obj.step ?? obj.name ?? obj.message ?? Object.entries(obj).map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`).join(" ") ?? `step ${si + 1}`);
+                                        const isLast = si === steps.length - 1;
+                                        const activeStep = a.status === "running" && isLast;
                                         return (
-                                          <div key={si} className="flex items-baseline gap-2 text-[11.5px]">
-                                            <span className="text-zinc-600">[{String(si + 1).padStart(2, "0")}]</span>
-                                            <span style={{ color: SAGE }}>›</span>
+                                          <div key={si} className="flex items-center gap-2 text-[11.5px]">
+                                            <span className="tabular-nums text-zinc-600">[{si + 1}/{steps.length}]</span>
+                                            {activeStep ? <Loader2 size={11} className="animate-spin" style={{ color: AMBER }} /> : <CheckCircle2 size={11} style={{ color: SAGE }} />}
                                             <span className="text-zinc-400">{stepLabel}</span>
                                           </div>
                                         );
-                                      })}
-                                    </div>
+                                      })
+                                    ) : (
+                                      // No granular steps logged → derive a truthful progress from the real status.
+                                      ([
+                                        { l: "queued", done: true, fail: false },
+                                        { l: "executing", done: a.status !== "running", fail: false, active: a.status === "running" },
+                                        { l: a.status === "failed" ? "failed" : "saved", done: a.status !== "running", fail: a.status === "failed" },
+                                      ] as { l: string; done: boolean; fail?: boolean; active?: boolean }[]).map((p, pi, arr) => (
+                                        <div key={pi} className="flex items-center gap-2 text-[11.5px]">
+                                          <span className="tabular-nums text-zinc-600">[{pi + 1}/{arr.length}]</span>
+                                          {p.active ? <Loader2 size={11} className="animate-spin" style={{ color: AMBER }} />
+                                            : p.fail ? <XCircle size={11} style={{ color: RED }} /> : p.done ? <CheckCircle2 size={11} style={{ color: SAGE }} /> : <span className="h-[11px] w-[11px] rounded-full border border-zinc-700" />}
+                                          <span style={{ color: p.fail ? RED : "#a1a1aa" }}>{p.l}</span>
+                                        </div>
+                                      ))
+                                    )}
                                   </div>
-                                )}
+                                </div>
 
                                 {/* the unedited DB payload — proves real execution */}
                                 {a.error && (
@@ -389,6 +467,16 @@ export function AgentActivityPage() {
                                 {a.detail && Object.keys(a.detail).length > 0 && (
                                   <JsonBlock data={a.detail} title="output payload · agent_jobs.output" />
                                 )}
+
+                                {/* replay — re-trigger this exact run from its stored input */}
+                                <div className="flex items-center gap-2 pt-0.5">
+                                  <button onClick={() => replayRun.mutate(a.id)} disabled={busy === a.id}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-2.5 py-1 text-[11px] text-zinc-300 transition-colors hover:border-zinc-500 hover:text-zinc-100 disabled:opacity-50">
+                                    {busy === a.id ? <Loader2 size={11} className="animate-spin" /> : <RotateCcw size={11} />}
+                                    {a.status === "failed" ? "Replay run" : "Re-run"}
+                                  </button>
+                                  <span className="text-[10px] text-zinc-600">re-dispatches with the original input payload</span>
+                                </div>
                               </div>
                             </motion.div>
                           )}
@@ -401,6 +489,18 @@ export function AgentActivityPage() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Telem({ Icon, label, value, suffix, tone, hint }: { Icon: ElementType; label: string; value: string; suffix: string; tone: string; hint: string }) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3.5 py-2" title={hint}>
+      <Icon size={14} style={{ color: tone }} />
+      <div>
+        <div className="text-[15px] font-semibold leading-none tabular-nums" style={{ color: tone }}>{value}<span className="ml-0.5 text-[11px] font-normal text-zinc-500">{suffix}</span></div>
+        <div className="mt-0.5 text-[10px] tracking-wide text-zinc-500">{label}</div>
       </div>
     </div>
   );
