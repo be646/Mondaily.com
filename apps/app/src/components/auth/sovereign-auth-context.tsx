@@ -34,6 +34,8 @@ interface SovereignAuthValue {
   activate: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
+  /** Re-fetch /me and update the cached profile (e.g. after an avatar/name change). */
+  reloadProfile: () => Promise<void>;
 }
 
 const Ctx = createContext<SovereignAuthValue | null>(null);
@@ -95,7 +97,12 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     setGuest();
   }, []);
 
-  return <Ctx.Provider value={{ status, user, login, register, activate, logout, refresh }}>{children}</Ctx.Provider>;
+  const reloadProfile = useCallback(async () => {
+    const me = await authCall<MeResp>("/me", undefined, "GET");
+    if (me.status === 200 && me.data.userId) setAuthed(toUser(me.data), me.data.workspaceId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <Ctx.Provider value={{ status, user, login, register, activate, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
 }
 
 export function useSovereignAuth(): SovereignAuthValue {

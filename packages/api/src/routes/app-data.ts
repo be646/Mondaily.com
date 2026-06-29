@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { deleteCookie } from "hono/cookie";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
+import { ACCESS_COOKIE, REFRESH_COOKIE } from "../lib/auth-tokens";
 
 type AppVariables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: AppVariables }>();
@@ -359,6 +361,49 @@ router.patch("/settings/workspace", async (c) => {
   }).eq("id", c.get("workspaceId"));
   return c.json({ ok: true });
 });
+
+// PATCH /settings/profile — the current user updates THEIR OWN name / avatar. Not an admin
+// area (any member may edit their own profile). avatar_url accepts a hosted URL or a data: URL.
+// Writes across all of this user's workspace_members rows so the profile is consistent everywhere.
+router.patch("/settings/profile", async (c) => {
+  const userId = c.get("userId");
+  const body = await c.req.json<{ name?: string; avatar_url?: string }>().catch(() => ({} as { name?: string; avatar_url?: string }));
+  const patch: Record<string, unknown> = {};
+  if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
+  if (typeof body.avatar_url === "string") patch.avatar_url = body.avatar_url || null;
+  if (Object.keys(patch).length === 0) return c.json({ error: "Nothing to update." }, 400);
+  const { error } = await supabase.from("workspace_members").update(patch).eq("user_id", userId);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true, ...patch });
+});
+
+// DELETE /settings/workspace — owner-only. Cascade-purges the workspace's data, deletes the
+// workspace, and clears the caller's session cookies. (Admin-area write → middleware already
+// requires admin; we additionally require the strict 'owner' role.)
+router.delete("/settings/workspace", async (c) => {
+  const ws = c.get("workspaceId");
+  const userId = c.get("userId");
+  const { data: m } = await supabase.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", userId).maybeSingle();
+  if (m?.role !== "owner") return c.json({ error: "Only the workspace owner can delete this workspace." }, 403);
+
+  // Best-effort per-table purge (a table that doesn't exist just no-ops), children before parents.
+  const tables = [
+    "activities", "agent_jobs", "decision_queue", "notifications", "ai_usage", "discovered_leads",
+    "chat_threads", "email_connections", "workflows", "sequences", "lists", "notes",
+    "invoices", "credit_notes", "quotes", "expenses", "reports", "dashboards",
+    "edges", "nodes", "workspace_members",
+  ];
+  for (const t of tables) {
+    await supabase.from(t).delete().eq("workspace_id", ws).then(() => {}, () => {});
+  }
+  const { error } = await supabase.from("workspaces").delete().eq("id", ws);
+  if (error) return c.json({ error: `Could not delete workspace: ${error.message}` }, 500);
+
+  deleteCookie(c, ACCESS_COOKIE, { path: "/" });
+  deleteCookie(c, REFRESH_COOKIE, { path: "/api/v1/auth" });
+  return c.json({ ok: true });
+});
+
 router.get("/settings/members", async (c) => {
   const workspaceId = c.get("workspaceId");
   const [{ data: members }, { data: teams }, invites] = await Promise.all([

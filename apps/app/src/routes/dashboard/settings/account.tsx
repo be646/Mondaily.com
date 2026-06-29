@@ -132,10 +132,15 @@ export function AccountSettings() {
   });
 
   async function uploadAvatar(file?: File) {
-    if (!file) return;
-    void file;
-    // TODO: native avatar upload endpoint
-    await apiClient.post("/members/sync", { email: me.email });
+    if (!file || file.size > 2 * 1024 * 1024) return; // cap at 2 MB (stored as a data URL)
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
+    await apiClient.patch("/settings/profile", { avatar_url: dataUrl });
+    await sov?.reloadProfile(); // profile header reflects the new avatar immediately
   }
 
   async function connect(provider: "gmail" | "outlook") {
