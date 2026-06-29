@@ -23296,7 +23296,7 @@ var InngestFunction = class InngestFunction2 {
     const stepUrl = new URL(baseUrl.href);
     stepUrl.searchParams.set(queryKeys.FnId, fnId);
     stepUrl.searchParams.set(queryKeys.StepId, InngestFunction2.stepId);
-    const { retries: attempts, cancelOn, idempotency, batchEvents, rateLimit, throttle, concurrency, debounce, timeouts, priority, singleton } = this.opts;
+    const { retries: attempts, cancelOn, idempotency, batchEvents, rateLimit: rateLimit2, throttle, concurrency, debounce, timeouts, priority, singleton } = this.opts;
     const retries = typeof attempts === "undefined" ? void 0 : { attempts };
     const fn = {
       id: fnId,
@@ -23319,7 +23319,7 @@ var InngestFunction = class InngestFunction2 {
       } },
       idempotency,
       batchEvents,
-      rateLimit,
+      rateLimit: rateLimit2,
       throttle,
       concurrency,
       debounce,
@@ -60519,6 +60519,45 @@ async function ensureWorkspaceForUser(userId, name = "My Workspace") {
 
 // src/routes/auth.ts
 init_auth_tokens();
+
+// src/middleware/rate-limit.ts
+init_http_exception();
+var WINDOW_MS = 6e4;
+var MAX = 5;
+var buckets = /* @__PURE__ */ new Map();
+function clientIp(c2) {
+  return c2.req.header("x-forwarded-for")?.split(",")[0]?.trim() || c2.req.header("x-real-ip") || "unknown";
+}
+function rateLimit(opts) {
+  const max = opts?.max ?? MAX;
+  const windowMs = opts?.windowMs ?? WINDOW_MS;
+  return createMiddleware(async (c2, next) => {
+    let email = "";
+    try {
+      const b2 = await c2.req.json();
+      email = String(b2?.email ?? "").toLowerCase();
+    } catch {
+    }
+    const key = `${c2.req.path}|${clientIp(c2)}|${email}`;
+    const now = Date.now();
+    const hits = (buckets.get(key) ?? []).filter((t2) => now - t2 < windowMs);
+    if (hits.length >= max) {
+      const retry = Math.max(1, Math.ceil((windowMs - (now - hits[0])) / 1e3));
+      c2.header("Retry-After", String(retry));
+      throw new HTTPException(429, { message: `Too many attempts. Please wait ${retry}s and try again.` });
+    }
+    hits.push(now);
+    buckets.set(key, hits);
+    if (buckets.size > 1e4) {
+      for (const [k2, ts] of buckets) {
+        if (ts.every((t2) => now - t2 >= windowMs)) buckets.delete(k2);
+      }
+    }
+    await next();
+  });
+}
+
+// src/routes/auth.ts
 var router11 = new Hono2();
 var PW_MIN = 8;
 var credSchema = external_exports.object({ email: external_exports.string().email(), password: external_exports.string().min(PW_MIN).max(200) });
@@ -60558,7 +60597,7 @@ async function sessionProfile(userId) {
     imageUrl: data?.avatar_url ?? null
   };
 }
-router11.post("/register", zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
+router11.post("/register", rateLimit(), zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
   const userId = `usr_${(0, import_node_crypto3.randomBytes)(12).toString("hex")}`;
@@ -60580,7 +60619,7 @@ router11.post("/register", zValidator("json", credSchema.extend({ name: external
   await issueSession(c2, userId, email, c2.req.header("user-agent"));
   return c2.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
 });
-router11.post("/login", zValidator("json", credSchema), async (c2) => {
+router11.post("/login", rateLimit(), zValidator("json", credSchema), async (c2) => {
   const { email, password } = c2.req.valid("json");
   const cred = await credByEmail(email);
   if (!cred) {
@@ -60593,7 +60632,7 @@ router11.post("/login", zValidator("json", credSchema), async (c2) => {
   await issueSession(c2, cred.user_id, cred.email, c2.req.header("user-agent"));
   return c2.json({ userId: cred.user_id, email: cred.email, ...await sessionProfile(cred.user_id) });
 });
-router11.post("/request-activation", zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+router11.post("/request-activation", rateLimit(), zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
   if (await credByEmail(email)) return c2.json(generic);
@@ -60614,7 +60653,7 @@ router11.post("/request-activation", zValidator("json", external_exports.object(
   }
   return c2.json(generic);
 });
-router11.post("/activate", zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+router11.post("/activate", rateLimit(), zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
   const { token, password } = c2.req.valid("json");
   const claims = await verifyActivationToken(token);
   if (!claims) return c2.json({ error: "This activation link is invalid or has expired. Request a new one." }, 400);
@@ -60658,7 +60697,7 @@ async function sessionUserId(c2) {
   const claims = at2 ? await verifyAccessToken(at2) : null;
   return claims?.sub ?? null;
 }
-router11.post("/change-password", zValidator("json", external_exports.object({ currentPassword: external_exports.string().min(1), newPassword: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+router11.post("/change-password", rateLimit(), zValidator("json", external_exports.object({ currentPassword: external_exports.string().min(1), newPassword: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
   const userId = await sessionUserId(c2);
   if (!userId) return c2.json({ error: "Not authenticated." }, 401);
   const { currentPassword, newPassword } = c2.req.valid("json");

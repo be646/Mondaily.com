@@ -11,10 +11,11 @@ interface MembersData { members: Member[]; invitations: Member[]; teams: Team[] 
 
 function Avatar({ member, small = false }: { member: Member; small?: boolean }) {
   const cls = small ? "h-7 w-7 text-[10px]" : "h-9 w-9 text-sm";
-  return member.image_url
+  const initial = (member?.name || member?.email || "?").trim().charAt(0).toUpperCase() || "?";
+  return member?.image_url
     ? <img src={member.image_url} alt="" className={`${cls} shrink-0 rounded-full border border-[var(--surface-card)] object-cover`} />
     : <div className={`${cls} grid shrink-0 place-items-center rounded-full border border-[var(--surface-card)] bg-stone-500/10 font-medium text-stone-300`}>
-        {(member.name || member.email).slice(0, 1).toUpperCase()}
+        {initial}
       </div>;
 }
 
@@ -219,9 +220,10 @@ export function MembersSettings() {
             data.teams.length ? (
               <div className="space-y-3">
                 {data.teams.map(t => {
-                  const tMembers = data.members.filter(m => t.member_ids.includes(m.id));
+                  const memberIds = t.member_ids ?? [];
+                  const tMembers = data.members.filter(m => memberIds.includes(m.id));
                   const isOpen = expandedTeam === t.id;
-                  const available = data.members.filter(m => !t.member_ids.includes(m.id));
+                  const available = data.members.filter(m => !memberIds.includes(m.id));
                   return (
                     <article key={t.id} className="settings-section">
                       <button onClick={() => setExpandedTeam(isOpen ? undefined : t.id)}

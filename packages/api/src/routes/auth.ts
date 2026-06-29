@@ -12,6 +12,7 @@ import {
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
 } from "../lib/auth-tokens";
 import { sendWorkspaceEmail } from "../lib/mail";
+import { rateLimit } from "../middleware/rate-limit";
 
 /**
  * Sovereign Auth — native email/password identity, mounted at /api/v1/auth/*. Runs ALONGSIDE
@@ -70,7 +71,7 @@ async function sessionProfile(userId: string): Promise<{ workspaceId: string | n
 
 // POST /auth/register — brand-new sovereign account. Creates the credential, then natively
 // bootstraps a fresh workspace with the user as owner (no Clerk org).
-router.post("/register", zValidator("json", credSchema.extend({ name: z.string().max(120).optional() })), async (c) => {
+router.post("/register", rateLimit(), zValidator("json", credSchema.extend({ name: z.string().max(120).optional() })), async (c) => {
   const { email, password, name } = c.req.valid("json");
   if (await credByEmail(email)) return c.json({ error: "An account with this email already exists." }, 409);
   const userId = `usr_${randomBytes(12).toString("hex")}`;
@@ -97,7 +98,7 @@ router.post("/register", zValidator("json", credSchema.extend({ name: z.string()
 });
 
 // POST /auth/login — verify password, or flag legacy Clerk users for activation.
-router.post("/login", zValidator("json", credSchema), async (c) => {
+router.post("/login", rateLimit(), zValidator("json", credSchema), async (c) => {
   const { email, password } = c.req.valid("json");
   const cred = await credByEmail(email);
   if (!cred) {
@@ -116,7 +117,7 @@ router.post("/login", zValidator("json", credSchema), async (c) => {
 // POST /auth/request-activation — legacy bridge step 1. Emails a one-time activation link to
 // the address ON FILE (proving email ownership), so possessing an email alone can't set a
 // password. Always returns a generic ok (no account enumeration).
-router.post("/request-activation", zValidator("json", z.object({ email: z.string().email() })), async (c) => {
+router.post("/request-activation", rateLimit(), zValidator("json", z.object({ email: z.string().email() })), async (c) => {
   const { email } = c.req.valid("json");
   const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
   if (await credByEmail(email)) return c.json(generic);
@@ -139,7 +140,7 @@ router.post("/request-activation", zValidator("json", z.object({ email: z.string
 
 // POST /auth/activate — legacy bridge step 2. Requires the emailed token (proof of email
 // ownership), then binds the password to the existing user_… id.
-router.post("/activate", zValidator("json", z.object({ token: z.string().min(1), password: z.string().min(PW_MIN).max(200) })), async (c) => {
+router.post("/activate", rateLimit(), zValidator("json", z.object({ token: z.string().min(1), password: z.string().min(PW_MIN).max(200) })), async (c) => {
   const { token, password } = c.req.valid("json");
   const claims = await verifyActivationToken(token);
   if (!claims) return c.json({ error: "This activation link is invalid or has expired. Request a new one." }, 400);
@@ -196,7 +197,7 @@ async function sessionUserId(c: Parameters<typeof getCookie>[0]): Promise<string
 }
 
 // POST /auth/change-password — verify the current password, set a new one, revoke other sessions.
-router.post("/change-password", zValidator("json", z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(PW_MIN).max(200) })), async (c) => {
+router.post("/change-password", rateLimit(), zValidator("json", z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(PW_MIN).max(200) })), async (c) => {
   const userId = await sessionUserId(c);
   if (!userId) return c.json({ error: "Not authenticated." }, 401);
   const { currentPassword, newPassword } = c.req.valid("json");
