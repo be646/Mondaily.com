@@ -28,7 +28,18 @@ async function handler(req: IncomingMessage, res: ServerResponse) {
     const webResponse = await app.fetch(webRequest)
 
     res.statusCode = webResponse.status
-    webResponse.headers.forEach((value, key) => res.setHeader(key, value))
+    // Copy headers, but handle Set-Cookie separately: Headers.forEach folds multiple
+    // Set-Cookie headers into one comma-joined value, which silently DROPS all but one
+    // cookie (this locked out auth — only the refresh cookie survived, not the access
+    // cookie). getSetCookie() returns them as an array; Node emits one header per entry.
+    webResponse.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') return
+      res.setHeader(key, value)
+    })
+    const setCookies = typeof (webResponse.headers as any).getSetCookie === 'function'
+      ? (webResponse.headers as any).getSetCookie() as string[]
+      : []
+    if (setCookies.length) res.setHeader('set-cookie', setCookies)
 
     // Stream the body chunk-by-chunk so Server-Sent Events (the /ask/stream
     // endpoint) actually reach the client live instead of being buffered to

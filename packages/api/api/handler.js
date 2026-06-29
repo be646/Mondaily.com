@@ -64296,7 +64296,12 @@ async function handler(req, res) {
     });
     const webResponse = await app_default.fetch(webRequest);
     res.statusCode = webResponse.status;
-    webResponse.headers.forEach((value, key) => res.setHeader(key, value));
+    webResponse.headers.forEach((value, key) => {
+      if (key.toLowerCase() === "set-cookie") return;
+      res.setHeader(key, value);
+    });
+    const setCookies = typeof webResponse.headers.getSetCookie === "function" ? webResponse.headers.getSetCookie() : [];
+    if (setCookies.length) res.setHeader("set-cookie", setCookies);
     if (webResponse.body) {
       const reader = webResponse.body.getReader();
       if (typeof res.flushHeaders === "function") res.flushHeaders();
