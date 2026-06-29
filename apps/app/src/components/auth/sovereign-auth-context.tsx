@@ -20,6 +20,24 @@ async function authCall<T = Record<string, unknown>>(path: string, body?: unknow
   return { status: res.status, data };
 }
 
+// Native proof-of-work: fetch a signed challenge, then brute-force a nonce whose
+// sha256(`${challenge}:${nonce}`) starts with 0000 (~65k hashes — sub-second for a human,
+// a real cost for a bot hammering register/reset). Included in the protected requests.
+async function solvePow(challenge: string): Promise<string> {
+  const enc = new TextEncoder();
+  for (let nonce = 0; nonce < 8_000_000; nonce++) {
+    const buf = await crypto.subtle.digest("SHA-256", enc.encode(`${challenge}:${nonce}`));
+    const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (hex.startsWith("0000")) return String(nonce);
+  }
+  throw new Error("Could not complete the security check. Please try again.");
+}
+async function getPow(): Promise<{ pow_challenge: string; pow_nonce: string }> {
+  const res = await fetch(`${AUTH_URL}/challenge`, { credentials: "include" }).then(r => r.json()).catch(() => ({}));
+  const challenge = (res as { challenge?: string }).challenge ?? "";
+  return challenge ? { pow_challenge: challenge, pow_nonce: await solvePow(challenge) } : { pow_challenge: "", pow_nonce: "" };
+}
+
 export interface SovereignUser { userId: string; email: string; name: string | null; imageUrl: string | null }
 type Status = "loading" | "authenticated" | "unauthenticated";
 
@@ -87,13 +105,15 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (email: string, password: string, name?: string) => {
-    const r = await authCall<MeResp & { error?: string }>("/register", { email, password, name });
+    const pow = await getPow();
+    const r = await authCall<MeResp & { error?: string }>("/register", { email, password, name, ...pow });
     if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
     throw new Error(r.data.error || "Registration failed.");
   }, []);
 
   const requestActivation = useCallback(async (email: string) => {
-    await authCall("/request-activation", { email });
+    const pow = await getPow();
+    await authCall("/request-activation", { email, ...pow });
   }, []);
 
   const activate = useCallback(async (token: string, password: string) => {
@@ -107,7 +127,8 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetPassword = useCallback(async (token: string, password: string) => {
-    const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password });
+    const pow = await getPow();
+    const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password, ...pow });
     if (r.status === 200 && (r.data as { ok?: boolean }).ok !== false) {
       const me = await authCall<MeResp>("/me", undefined, "GET");
       if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return; }

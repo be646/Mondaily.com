@@ -10987,23 +10987,23 @@ var init_cookie = __esm({
     "use strict";
     init_url();
     algorithm = { name: "HMAC", hash: "SHA-256" };
-    getCryptoKey = async (secret3) => {
-      const secretBuf = typeof secret3 === "string" ? new TextEncoder().encode(secret3) : secret3;
+    getCryptoKey = async (secret4) => {
+      const secretBuf = typeof secret4 === "string" ? new TextEncoder().encode(secret4) : secret4;
       return await crypto.subtle.importKey("raw", secretBuf, algorithm, false, ["sign", "verify"]);
     };
-    makeSignature = async (value, secret3) => {
-      const key = await getCryptoKey(secret3);
+    makeSignature = async (value, secret4) => {
+      const key = await getCryptoKey(secret4);
       const signature = await crypto.subtle.sign(algorithm.name, key, new TextEncoder().encode(value));
       return btoa(String.fromCharCode(...new Uint8Array(signature)));
     };
-    verifySignature = async (base64Signature, value, secret3) => {
+    verifySignature = async (base64Signature, value, secret4) => {
       try {
         const signatureBinStr = atob(base64Signature);
         const signature = new Uint8Array(signatureBinStr.length);
         for (let i2 = 0, len = signatureBinStr.length; i2 < len; i2++) {
           signature[i2] = signatureBinStr.charCodeAt(i2);
         }
-        return await crypto.subtle.verify(algorithm, secret3, signature, new TextEncoder().encode(value));
+        return await crypto.subtle.verify(algorithm, secret4, signature, new TextEncoder().encode(value));
       } catch {
         return false;
       }
@@ -11057,9 +11057,9 @@ var init_cookie = __esm({
       }
       return parsedCookie;
     };
-    parseSigned = async (cookie, secret3, name) => {
+    parseSigned = async (cookie, secret4, name) => {
       const parsedCookie = /* @__PURE__ */ Object.create(null);
-      const secretKey = await getCryptoKey(secret3);
+      const secretKey = await getCryptoKey(secret4);
       for (const [key, value] of Object.entries(parse(cookie, name))) {
         const signatureStartPos = value.lastIndexOf(".");
         if (signatureStartPos < 1) {
@@ -11145,8 +11145,8 @@ var init_cookie = __esm({
       value = encodeURIComponent(value);
       return _serialize(name, value, opt);
     };
-    serializeSigned = async (name, value, secret3, opt = {}) => {
-      const signature = await makeSignature(value, secret3);
+    serializeSigned = async (name, value, secret4, opt = {}) => {
+      const signature = await makeSignature(value, secret4);
       value = `${value}.${signature}`;
       value = encodeURIComponent(value);
       return _serialize(name, value, opt);
@@ -11191,7 +11191,7 @@ var init_cookie2 = __esm({
       const obj = parse(cookie);
       return obj;
     };
-    getSignedCookie = async (c2, secret3, key, prefix) => {
+    getSignedCookie = async (c2, secret4, key, prefix) => {
       const cookie = c2.req.raw.headers.get("Cookie");
       if (typeof key === "string") {
         if (!cookie) {
@@ -11203,13 +11203,13 @@ var init_cookie2 = __esm({
         } else if (prefix === "host") {
           finalKey = "__Host-" + key;
         }
-        const obj2 = await parseSigned(cookie, secret3, finalKey);
+        const obj2 = await parseSigned(cookie, secret4, finalKey);
         return obj2[finalKey];
       }
       if (!cookie) {
         return {};
       }
-      const obj = await parseSigned(cookie, secret3);
+      const obj = await parseSigned(cookie, secret4);
       return obj;
     };
     generateCookie = (name, value, opt) => {
@@ -11232,28 +11232,28 @@ var init_cookie2 = __esm({
       const cookie = generateCookie(name, value, opt);
       c2.header("Set-Cookie", cookie, { append: true });
     };
-    generateSignedCookie = async (name, value, secret3, opt) => {
+    generateSignedCookie = async (name, value, secret4, opt) => {
       let cookie;
       if (opt?.prefix === "secure") {
-        cookie = await serializeSigned("__Secure-" + name, value, secret3, {
+        cookie = await serializeSigned("__Secure-" + name, value, secret4, {
           path: "/",
           ...opt,
           secure: true
         });
       } else if (opt?.prefix === "host") {
-        cookie = await serializeSigned("__Host-" + name, value, secret3, {
+        cookie = await serializeSigned("__Host-" + name, value, secret4, {
           ...opt,
           path: "/",
           secure: true,
           domain: void 0
         });
       } else {
-        cookie = await serializeSigned(name, value, secret3, { path: "/", ...opt });
+        cookie = await serializeSigned(name, value, secret4, { path: "/", ...opt });
       }
       return cookie;
     };
-    setSignedCookie = async (c2, name, value, secret3, opt) => {
-      const cookie = await generateSignedCookie(name, value, secret3, opt);
+    setSignedCookie = async (c2, name, value, secret4, opt) => {
+      const cookie = await generateSignedCookie(name, value, secret4, opt);
       c2.header("set-cookie", cookie, { append: true });
     };
     deleteCookie = (c2, name, opt) => {
@@ -11953,11 +11953,11 @@ __export(mcp_token_exports, {
   mintMcpToken: () => mintMcpToken,
   verifyMcpToken: () => verifyMcpToken
 });
-function secret2() {
+function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto7.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url2((0, import_node_crypto8.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -11973,7 +11973,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -11981,11 +11981,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto7, b64url2;
+var import_node_crypto8, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto7 = require("crypto");
+    import_node_crypto8 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -60474,10 +60474,10 @@ init_jwt4();
 var router10 = new Hono2();
 router10.use("*", requireAuth);
 router10.get("/token", async (c2) => {
-  const secret3 = process.env.SUPABASE_JWT_SECRET;
+  const secret4 = process.env.SUPABASE_JWT_SECRET;
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  if (!secret3 || !url || !anonKey) return c2.json({ enabled: false });
+  if (!secret4 || !url || !anonKey) return c2.json({ enabled: false });
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const now = Math.floor(Date.now() / 1e3);
@@ -60491,14 +60491,14 @@ router10.get("/token", async (c2) => {
       exp: now + 60 * 60
       // 1 hour; the client refreshes on reconnect
     },
-    secret3
+    secret4
   );
   return c2.json({ enabled: true, token, url, anonKey, workspaceId });
 });
 
 // src/routes/auth.ts
 init_cookie2();
-var import_node_crypto3 = require("crypto");
+var import_node_crypto4 = require("crypto");
 
 // src/lib/password.ts
 var import_node_crypto2 = require("crypto");
@@ -60608,6 +60608,44 @@ function rateLimit(opts) {
   });
 }
 
+// src/lib/pow.ts
+init_jwt4();
+var import_node_crypto3 = require("crypto");
+init_http_exception();
+var DIFFICULTY = "0000";
+var TTL_SECONDS = 300;
+function secret() {
+  const s2 = process.env.AUTH_JWT_SECRET;
+  if (!s2) throw new Error("AUTH_JWT_SECRET is not set");
+  return s2;
+}
+async function issuePowChallenge() {
+  const now = Math.floor(Date.now() / 1e3);
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto3.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  return { challenge, difficulty: DIFFICULTY.length };
+}
+async function verifyPow(challenge, nonce) {
+  if (!challenge || !nonce) return false;
+  try {
+    const p2 = await verify2(challenge, secret(), "HS256");
+    if (p2.type !== "pow") return false;
+  } catch {
+    return false;
+  }
+  return (0, import_node_crypto3.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+}
+var requirePow = createMiddleware(async (c2, next) => {
+  let body = {};
+  try {
+    body = await c2.req.json();
+  } catch {
+  }
+  if (!await verifyPow(body.pow_challenge ?? "", body.pow_nonce ?? "")) {
+    throw new HTTPException(403, { message: "Automated-traffic check failed. Please refresh and try again." });
+  }
+  await next();
+});
+
 // src/routes/auth.ts
 var router11 = new Hono2();
 var PW_MIN = 8;
@@ -60648,10 +60686,11 @@ async function sessionProfile(userId) {
     imageUrl: data?.avatar_url ?? null
   };
 }
-router11.post("/register", rateLimit(), zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
+router11.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
+router11.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto3.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto4.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -60684,7 +60723,7 @@ router11.post("/login", rateLimit(), zValidator("json", credSchema), async (c2) 
   await issueSession(c2, cred.user_id, cred.email, c2.req.header("user-agent"));
   return c2.json({ userId: cred.user_id, email: cred.email, ...await sessionProfile(cred.user_id) });
 });
-router11.post("/request-activation", rateLimit(), zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+router11.post("/request-activation", rateLimit(), requirePow, zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
   if (await credByEmail(email)) return c2.json(generic);
@@ -60737,7 +60776,7 @@ router11.post("/request-password-reset", rateLimit(), zValidator("json", externa
   }
   return c2.json(generic);
 });
-router11.post("/reset-password", rateLimit(), zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+router11.post("/reset-password", rateLimit(), requirePow, zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
   const { token, password } = c2.req.valid("json");
   const claims = await verifyResetToken(token);
   if (!claims) return c2.json({ error: "This reset link is invalid or has expired. Request a new one." }, 400);
@@ -60824,16 +60863,16 @@ router11.delete("/account", async (c2) => {
 });
 
 // src/routes/webhooks.ts
-var import_node_crypto4 = require("crypto");
+var import_node_crypto5 = require("crypto");
 var router12 = new Hono2();
 router12.post("/nylas", async (c2) => {
   const challenge = c2.req.query("challenge");
   if (challenge) return c2.text(challenge);
   const rawBody = await c2.req.text();
   const sig = c2.req.header("x-nylas-signature") ?? "";
-  const secret3 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
-  if (secret3 && sig) {
-    const expected = (0, import_node_crypto4.createHmac)("sha256", secret3).update(rawBody).digest("hex");
+  const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
+  if (secret4 && sig) {
+    const expected = (0, import_node_crypto5.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -60859,17 +60898,17 @@ router12.post("/nylas", async (c2) => {
 });
 router12.post("/stripe", async (c2) => {
   const sig = c2.req.header("stripe-signature") ?? "";
-  const secret3 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+  const secret4 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   const rawBody = await c2.req.text();
-  if (secret3 && sig) {
+  if (secret4 && sig) {
     const parts = Object.fromEntries(sig.split(",").map((p2) => p2.split("=")));
     const timestamp = parts["t"] ?? "0";
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto4.createHmac)("sha256", secret3).update(payload).digest("hex");
+    const expected = (0, import_node_crypto5.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto4.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto5.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -60988,13 +61027,13 @@ router13.post("/portal", async (c2) => {
 init_cookie2();
 
 // src/lib/tracking.ts
-var import_node_crypto5 = require("crypto");
-function secret() {
+var import_node_crypto6 = require("crypto");
+function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto5.createHmac)("sha256", secret()).update(payload).digest());
+  return b64url((0, import_node_crypto6.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -61008,7 +61047,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto5.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto6.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -61416,12 +61455,12 @@ router14.patch("/settings/integrations/:id", async (c2) => {
 });
 router14.post("/settings/integrations/api-keys", async (c2) => {
   const body = await c2.req.json();
-  const secret3 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
-  const bytes = new TextEncoder().encode(secret3);
+  const secret4 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
+  const bytes = new TextEncoder().encode(secret4);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hash = Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
-  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret3.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
-  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret3 }, 201);
+  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret4.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
+  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret4 }, 201);
 });
 router14.delete("/settings/integrations/api-keys/:id", async (c2) => {
   await supabase.from("api_keys").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
@@ -61605,7 +61644,7 @@ router14.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto6 = require("crypto");
+var import_node_crypto7 = require("crypto");
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
 var router15 = new Hono2();
 var inviteSchema = external_exports.object({
@@ -61644,7 +61683,7 @@ router15.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto6.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto7.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
@@ -65300,13 +65339,13 @@ router42.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto8 = require("crypto");
+var import_node_crypto9 = require("crypto");
 var router43 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto8.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto9.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -65314,10 +65353,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto8.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto9.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto9.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
@@ -65544,12 +65583,12 @@ app.route("/api/v1", router14);
 var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker, dailyBrief] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
-  const secret3 = process.env.CRON_SECRET;
-  if (!secret3) {
+  const secret4 = process.env.CRON_SECRET;
+  if (!secret4) {
     return c2.json({ error: "Cron disabled \u2014 CRON_SECRET is not configured." }, 503);
   }
   const provided = c2.req.header("Authorization") ?? `Bearer ${c2.req.query("secret") ?? ""}`;
-  if (provided !== `Bearer ${secret3}`) {
+  if (provided !== `Bearer ${secret4}`) {
     return c2.json({ error: "Unauthorized" }, 401);
   }
   const only = c2.req.query("only");

@@ -15,6 +15,7 @@ import {
 import { sendWorkspaceEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
 import { grantCredits, SOLO_GRANT } from "../lib/credits";
+import { issuePowChallenge, requirePow } from "../lib/pow";
 
 /**
  * Sovereign Auth — native email/password identity, mounted at /api/v1/auth/*. Runs ALONGSIDE
@@ -71,9 +72,12 @@ async function sessionProfile(userId: string): Promise<{ workspaceId: string | n
   };
 }
 
+// GET /auth/challenge — issue a signed proof-of-work challenge for the anti-bot gate.
+router.get("/challenge", async (c) => c.json(await issuePowChallenge()));
+
 // POST /auth/register — brand-new sovereign account. Creates the credential, then natively
 // bootstraps a fresh workspace with the user as owner (no Clerk org).
-router.post("/register", rateLimit(), zValidator("json", credSchema.extend({ name: z.string().max(120).optional() })), async (c) => {
+router.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: z.string().max(120).optional() })), async (c) => {
   const { email, password, name } = c.req.valid("json");
   if (await credByEmail(email)) return c.json({ error: "An account with this email already exists." }, 409);
   const userId = `usr_${randomBytes(12).toString("hex")}`;
@@ -120,7 +124,7 @@ router.post("/login", rateLimit(), zValidator("json", credSchema), async (c) => 
 // POST /auth/request-activation — legacy bridge step 1. Emails a one-time activation link to
 // the address ON FILE (proving email ownership), so possessing an email alone can't set a
 // password. Always returns a generic ok (no account enumeration).
-router.post("/request-activation", rateLimit(), zValidator("json", z.object({ email: z.string().email() })), async (c) => {
+router.post("/request-activation", rateLimit(), requirePow, zValidator("json", z.object({ email: z.string().email() })), async (c) => {
   const { email } = c.req.valid("json");
   const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
   if (await credByEmail(email)) return c.json(generic);
@@ -179,7 +183,7 @@ router.post("/request-password-reset", rateLimit(), zValidator("json", z.object(
 });
 
 // POST /auth/reset-password — verify the emailed token, set the new password, revoke all sessions.
-router.post("/reset-password", rateLimit(), zValidator("json", z.object({ token: z.string().min(1), password: z.string().min(PW_MIN).max(200) })), async (c) => {
+router.post("/reset-password", rateLimit(), requirePow, zValidator("json", z.object({ token: z.string().min(1), password: z.string().min(PW_MIN).max(200) })), async (c) => {
   const { token, password } = c.req.valid("json");
   const claims = await verifyResetToken(token);
   if (!claims) return c.json({ error: "This reset link is invalid or has expired. Request a new one." }, 400);

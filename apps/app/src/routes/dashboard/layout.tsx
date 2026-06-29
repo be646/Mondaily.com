@@ -4,6 +4,7 @@ import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
 import { CommandPalette } from "../../components/ui/command-palette";
 import { ToastHost } from "../../components/ui/toast-host";
+import { ErrorBoundary } from "../../components/ui/error-boundary";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
@@ -167,7 +168,9 @@ export function DashboardLayout() {
         }/>
 
         <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 
