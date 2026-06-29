@@ -447,7 +447,7 @@ export function AskMondaily() {
                         (not just "this") so the request is unambiguous even on its own,
                         in addition to the full history now sent with every request. */}
                     {!isStreaming && !loading && i === messages.length - 1 && (
-                      <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pl-4">
+                      <div className="chat-pills-in flex flex-wrap items-center gap-1.5 mt-2.5 pl-4">
                         {([
                           { key: "task" as const, label: "Create task", Icon: ListChecks },
                           { key: "draft" as const, label: "Draft message", Icon: Mail },

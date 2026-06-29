@@ -470,6 +470,13 @@ html[data-theme="dark"] .minimal-sparkline {
   color: var(--text-secondary);
 }
 
+/* Suggestion pills fade into view only after a stream concludes (Pillar 5). */
+@keyframes chatPillsIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.chat-pills-in { animation: chatPillsIn 0.3s ease both; }
+
 .chat-input-bar {
   min-height: 3.25rem;
 }

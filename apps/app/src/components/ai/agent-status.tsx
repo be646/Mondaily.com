@@ -197,7 +197,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 
                 {/* Same action-chip set as Home and the main Ask page */}
                 {m.role === "assistant" && !loading && i === messages.length - 1 && i > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 ml-1 mt-1">
+                  <div className="chat-pills-in flex flex-wrap items-center gap-1.5 ml-1 mt-1">
                     {([
                       { key: "task" as const, label: "Create task", Icon: ListChecks },
                       { key: "related" as const, label: "Related objects", Icon: Network },

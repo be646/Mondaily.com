@@ -63,13 +63,20 @@ export function Markdown({ text }: { text: string }) {
       const rows: string[][] = [];
       let j = idx + 2;
       while (j < lines.length && isTableRow(lines[j] ?? "")) { rows.push(tableCells(lines[j] ?? "")); j++; }
+      // Per-column numeric detection: if most body cells in a column are numeric
+      // (currency/percent/counts), right-align it — premium dashboard convention.
+      const isNumeric = (s: string) => /^[$€£]?\s*[-+]?[\d,]+(\.\d+)?\s*%?$/.test(s.trim());
+      const numericCol = header.map((_h, ci) => {
+        const vals = rows.map(r => (r[ci] ?? "").trim()).filter(Boolean);
+        return vals.length > 0 && vals.filter(isNumeric).length >= Math.ceil(vals.length / 2);
+      });
       blocks.push(
         <div key={`t-${idx}`} className="my-2 overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
           <table className="w-full border-collapse text-left text-[12.5px]">
             <thead>
               <tr style={{ background: "var(--surface-card-2)" }}>
                 {header.map((hc, i) => (
-                  <th key={i} className="whitespace-nowrap px-3 py-2 font-medium" style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-soft)" }}>{renderInline(hc, `th-${idx}-${i}`)}</th>
+                  <th key={i} className={`whitespace-nowrap px-3 py-2 font-medium ${numericCol[i] ? "text-right tabular-nums" : ""}`} style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-soft)" }}>{renderInline(hc, `th-${idx}-${i}`)}</th>
                 ))}
               </tr>
             </thead>
@@ -77,7 +84,7 @@ export function Markdown({ text }: { text: string }) {
               {rows.map((r, ri) => (
                 <tr key={ri}>
                   {header.map((_h, ci) => (
-                    <td key={ci} className="whitespace-nowrap px-3 py-1.5" style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{renderInline(r[ci] ?? "", `td-${idx}-${ri}-${ci}`)}</td>
+                    <td key={ci} className={`px-3 py-1.5 ${numericCol[ci] ? "whitespace-nowrap text-right tabular-nums" : "break-words"}`} style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{renderInline(r[ci] ?? "", `td-${idx}-${ri}-${ci}`)}</td>
                   ))}
                 </tr>
               ))}

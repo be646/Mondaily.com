@@ -600,7 +600,7 @@ export function HomePage() {
                         {/* Suggested actions — clean, borderless inline pill row that
                             reads as a light extra layer under the answer (no heavy frame). */}
                         {!isStreaming && !loading && i === messages.length - 1 && (
-                          <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-4">
+                          <div className="chat-pills-in mt-2.5 flex flex-wrap items-center gap-1.5 pl-4">
                             {([
                               { key: "task", label: "Create task", mark: true },
                               { key: "draft", label: "Draft message", mark: true },
