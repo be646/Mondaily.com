@@ -176,7 +176,8 @@ export function AskMondaily() {
   const streamRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { const el = inputRef.current; if (el && input === "") el.style.height = "auto"; }, [input]);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   // The answer now streams token-by-token for real (SSE) — see use-ask-engine.
@@ -524,15 +525,17 @@ export function AskMondaily() {
           )}
 
           {/* Input */}
-          <div className="ask-input flex items-center gap-2 rounded-2xl px-4 py-3.5 transition-all">
+          <div className="ask-input flex items-end gap-2 rounded-2xl px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
               <Zap size={14}/>
             </button>
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+            <textarea ref={inputRef} value={input} rows={1}
+              onChange={e => { setInput(e.target.value); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; }}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-stone-400" style={{ color: "var(--text-primary)" }}/>
+              className="flex-1 resize-none self-center bg-transparent py-0.5 text-sm leading-6 outline-none placeholder:text-stone-400"
+              style={{ color: "var(--text-primary)", maxHeight: 140 }}/>
             {isChatting && (
               <button onClick={clear}
                 className="shrink-0 text-xs text-[#9ca3af] hover:text-[#52525b] dark:text-stone-600 dark:hover:text-stone-400 transition-colors mr-1">

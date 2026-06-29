@@ -26,6 +26,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { const el = taRef.current; if (el && input === "") el.style.height = "auto"; }, [input]);
 
   const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText } = useAskEngine({
     context: pageContext ?? { scope_label: "the workspace (no page context)" },
@@ -240,13 +242,16 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 
       {/* Input */}
       <div className="border-t border-[var(--border-soft)] p-3 shrink-0">
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
-          <input
+        <div className="flex items-end gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
+          <textarea
+            ref={taRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && send()}
+            rows={1}
+            onChange={e => { setInput(e.target.value); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 120)}px`; }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask anything…"
-            className="flex-1 bg-transparent text-[12px] text-[var(--text-primary)] placeholder-stone-600 outline-none"
+            className="flex-1 resize-none self-center bg-transparent text-[12px] leading-5 text-[var(--text-primary)] placeholder-stone-600 outline-none"
+            style={{ maxHeight: 120 }}
           />
           <button
             onClick={send}
