@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, Download, Zap, Users } from "lucide-react";
+import { useState } from "react";
+import { CreditCard, Download, Zap, Users, Wallet, RefreshCw } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+
+interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null }
+interface LedgerRow { id: string; amount: number; transaction_type: "grant" | "usage" | "purchase"; description: string | null; created_at: string }
 
 /** Open Stripe checkout (free plan → upgrade) or the customer portal (paying
  *  plan → manage). Both are authed POSTs that return a Stripe URL we redirect
@@ -58,8 +62,15 @@ const PLAN_COLORS: Record<string, string> = {
 export function BillingSettings() {
   const query = useQuery({ queryKey: ["billing"], queryFn: () => apiClient.get<Billing>("/billing") });
   const usageQuery = useQuery({ queryKey: ["ai-usage"], queryFn: () => apiClient.get<Usage>("/usage") });
+  const balanceQuery = useQuery({ queryKey: ["credits-balance"], queryFn: () => apiClient.get<CreditBalance>("/credits/balance") });
+  const ledgerQuery = useQuery({ queryKey: ["credits-ledger"], queryFn: () => apiClient.get<{ ledger: LedgerRow[] }>("/credits/ledger") });
+  const [autoRefill, setAutoRefill] = useState(false);
 
   if (query.isLoading) return <PageSkeleton />;
+  const wallet = balanceQuery.data;
+  const ledger = ledgerQuery.data?.ledger ?? [];
+  const walletPct = wallet && wallet.granted > 0 ? Math.max(0, Math.min(100, Math.round((wallet.balance / wallet.granted) * 100))) : 0;
+  const fmtCredits = (n: number) => n.toLocaleString();
   const billing = query.data ?? { plan: "free", seats_used: 1, seats_limit: 3, invoices: [] };
   const seatPct = Math.min(Math.round((billing.seats_used / billing.seats_limit) * 100), 100);
 
@@ -176,6 +187,100 @@ export function BillingSettings() {
           })()}
         </div>
       </section>
+
+      {/* ── AI credit wallet + Pay-As-You-Go ── */}
+      {wallet?.enrolled && (
+        <section className="settings-section font-mono">
+          <div className="settings-section-header">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Wallet size={14} className="text-stone-500" /> AI credit wallet</h2>
+            <span className="text-xs capitalize text-stone-500">{wallet.account_tier} tier</span>
+          </div>
+          <div className="p-5">
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-3xl font-semibold tabular-nums text-[var(--text-primary)]">{fmtCredits(wallet.balance)}</div>
+                <div className="mt-0.5 text-xs text-stone-500">of {fmtCredits(wallet.granted)} credits remaining · {fmtCredits(wallet.used)} used</div>
+              </div>
+              <span className="tabular-nums text-sm text-stone-400">{walletPct}%</span>
+            </div>
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
+              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--accent)" }} />
+            </div>
+
+            {/* Pay-As-You-Go refill module + auto-refill toggle (Stripe stub) */}
+            <div className="mt-5 rounded-xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">Pay-As-You-Go refill</p>
+                  <p className="mt-0.5 text-xs text-stone-500">Top up 100,000 credits for <span className="tabular-nums text-stone-300">$10</span> via Stripe.</p>
+                </div>
+                <button
+                  onClick={() => { openBilling(billing.plan); }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
+                >
+                  <RefreshCw size={13} /> Buy credits
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
+                <div>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">Enable Auto-Refill</p>
+                  <p className="mt-0.5 text-xs text-stone-500">Automatically charge your card <span className="tabular-nums text-stone-300">$10</span> whenever the credit line falls below <span className="tabular-nums text-stone-300">5,000</span> units.</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={autoRefill}
+                  onClick={() => setAutoRefill(v => !v)}
+                  className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+                  style={{ background: autoRefill ? "var(--accent)" : "var(--surface-hover)" }}
+                >
+                  <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: autoRefill ? "1.5rem" : "0.125rem" }} />
+                </button>
+              </div>
+              {autoRefill && <p className="mt-2 text-[11px] text-stone-500">Auto-Refill armed — connect a card via “Buy credits” to activate billing.</p>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Credit ledger history ── */}
+      {wallet?.enrolled && (
+        <section className="settings-section font-mono">
+          <div className="settings-section-header">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Credit ledger</h2>
+            <span className="text-xs text-stone-500">{ledger.length} transaction{ledger.length === 1 ? "" : "s"}</span>
+          </div>
+          {ledger.length ? (
+            <div className="minimal-sheet overflow-x-auto">
+              <table className="minimal-table min-w-[560px] text-left text-sm">
+                <thead>
+                  <tr>{["Date", "Type", "Description", "Credits"].map(h => <th key={h} className={h === "Credits" ? "text-right" : ""}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {ledger.map(row => {
+                    const positive = row.amount >= 0;
+                    return (
+                      <tr key={row.id}>
+                        <td className="whitespace-nowrap text-stone-400">{new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                        <td>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-emerald-500/10 text-emerald-400" : row.transaction_type === "purchase" ? "bg-blue-500/10 text-blue-300" : "bg-[var(--surface-hover)] text-stone-500"}`}>
+                            {row.transaction_type}
+                          </span>
+                        </td>
+                        <td className="max-w-[260px] truncate text-stone-400">{row.description ?? "—"}</td>
+                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-emerald-400" : "text-stone-600"}`}>
+                          {positive ? "+" : "−"}{fmtCredits(Math.abs(row.amount))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="px-5 py-6 text-sm text-stone-600">No credit transactions yet. Grants and AI usage will appear here in real time.</p>
+          )}
+        </section>
+      )}
 
       {/* ── Payment method ── */}
       {billing.card_last4 && (

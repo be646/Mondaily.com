@@ -409,6 +409,18 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   });
   const unreadCount = notifications.filter(n => !n.read_at).length;
 
+  // AI credit wallet — sidebar telemetry. Shows nothing until the workspace is enrolled.
+  const { data: wallet } = useQuery<{ enrolled: boolean; balance: number; granted: number; account_tier: string; trial_ends_at: string | null }>({
+    queryKey: ["credits-balance"],
+    queryFn: () => apiClient.get("/credits/balance"),
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+  const trialDaysLeft = wallet?.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(wallet.trial_ends_at).getTime() - Date.now()) / 86_400_000))
+    : null;
+  const walletPct = wallet && wallet.granted > 0 ? Math.max(0, Math.min(100, Math.round((wallet.balance / wallet.granted) * 100))) : 0;
+
   return (
     <>
       <aside
@@ -559,6 +571,23 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   covers the trial's body. -mx-2 cancels the container padding so it
                   spans edge to edge. */}
               <div className="relative z-10 -mx-2 border-t border-stone-200 bg-white px-3 py-1 dark:border-stone-800 dark:bg-stone-950">
+                {wallet?.enrolled && (
+                  <Link to="/settings/billing" className="block px-1.5 pt-1.5 font-mono">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>{wallet.balance.toLocaleString()}</span> / {wallet.granted.toLocaleString()} credits
+                      </span>
+                      {trialDaysLeft != null && (
+                        <span className="rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--accent) 14%, transparent)", color: "var(--accent)" }}>
+                          {trialDaysLeft}d trial
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 h-1 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                      <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--accent)" }} />
+                    </div>
+                  </Link>
+                )}
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
                   {me.imageUrl
                     ? <img src={me.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>
