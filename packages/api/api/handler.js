@@ -59726,6 +59726,9 @@ router13.post("/portal", async (c2) => {
   }
 });
 
+// src/routes/app-data.ts
+init_cookie2();
+
 // src/lib/tracking.ts
 var import_node_crypto5 = require("crypto");
 function secret() {
@@ -59756,6 +59759,7 @@ function verifyTrackingToken(token) {
 }
 
 // src/routes/app-data.ts
+init_auth_tokens();
 var router14 = new Hono2();
 router14.use("*", requireAuth);
 var ADMIN_SETTINGS_AREAS = [
@@ -60007,6 +60011,56 @@ router14.patch("/settings/workspace", async (c2) => {
       ...body.modules !== void 0 ? { modules: body.modules } : {}
     }
   }).eq("id", c2.get("workspaceId"));
+  return c2.json({ ok: true });
+});
+router14.patch("/settings/profile", async (c2) => {
+  const userId = c2.get("userId");
+  const body = await c2.req.json().catch(() => ({}));
+  const patch = {};
+  if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
+  if (typeof body.avatar_url === "string") patch.avatar_url = body.avatar_url || null;
+  if (Object.keys(patch).length === 0) return c2.json({ error: "Nothing to update." }, 400);
+  const { error } = await supabase.from("workspace_members").update(patch).eq("user_id", userId);
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ ok: true, ...patch });
+});
+router14.delete("/settings/workspace", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const { data: m2 } = await supabase.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", userId).maybeSingle();
+  if (m2?.role !== "owner") return c2.json({ error: "Only the workspace owner can delete this workspace." }, 403);
+  const tables = [
+    "activities",
+    "agent_jobs",
+    "decision_queue",
+    "notifications",
+    "ai_usage",
+    "discovered_leads",
+    "chat_threads",
+    "email_connections",
+    "workflows",
+    "sequences",
+    "lists",
+    "notes",
+    "invoices",
+    "credit_notes",
+    "quotes",
+    "expenses",
+    "reports",
+    "dashboards",
+    "edges",
+    "nodes",
+    "workspace_members"
+  ];
+  for (const t2 of tables) {
+    await supabase.from(t2).delete().eq("workspace_id", ws).then(() => {
+    }, () => {
+    });
+  }
+  const { error } = await supabase.from("workspaces").delete().eq("id", ws);
+  if (error) return c2.json({ error: `Could not delete workspace: ${error.message}` }, 500);
+  deleteCookie(c2, ACCESS_COOKIE, { path: "/" });
+  deleteCookie(c2, REFRESH_COOKIE, { path: "/api/v1/auth" });
   return c2.json({ ok: true });
 });
 router14.get("/settings/members", async (c2) => {
