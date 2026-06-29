@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -192,13 +192,57 @@ export function HomePage() {
     }, 18);
   }, []);
 
+  // ── Attachments: pinned records + client-read text files fed to the chat as
+  //    context (no storage — record data comes from /search, file text via FileReader). ──
+  type AttachItem =
+    | { kind: "record"; id: string; object_type: string; title: string; data: unknown }
+    | { kind: "file"; id: string; title: string; text: string };
+  const [attachments, setAttachments] = useState<AttachItem[]>([]);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachQuery, setAttachQuery] = useState("");
+  const [attachResults, setAttachResults] = useState<{ id: string; object_type: string; data: Record<string, unknown> }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!attachOpen || attachQuery.trim().length < 2) { setAttachResults([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await apiClient.post<{ id: string; object_type: string; data: Record<string, unknown> }[]>("/search", { q: attachQuery.trim() });
+        if (!cancelled) setAttachResults((res ?? []).slice(0, 8));
+      } catch { if (!cancelled) setAttachResults([]); }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [attachQuery, attachOpen]);
+  const recordTitle = (r: { object_type: string; data: Record<string, unknown> }) =>
+    String(r.data?.name ?? r.data?.title ?? r.object_type ?? "record");
+  const addRecord = (r: { id: string; object_type: string; data: Record<string, unknown> }) => {
+    setAttachments(a => a.some(x => x.id === r.id) ? a : [...a, { kind: "record", id: r.id, object_type: r.object_type, title: recordTitle(r), data: r.data }]);
+    setAttachOpen(false); setAttachQuery(""); setAttachResults([]);
+  };
+  const onFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result ?? "").slice(0, 20000);
+      setAttachments(a => [...a, { kind: "file", id: `f-${f.name}-${text.length}`, title: f.name, text }]);
+    };
+    reader.readAsText(f);
+    setAttachOpen(false);
+    e.target.value = "";
+  };
+  const attachContext = attachments.length
+    ? { attachments: attachments.map(a => a.kind === "record"
+        ? { object_type: a.object_type, node_id: a.id, title: a.title, data: a.data }
+        : { kind: "file", title: a.title, text: a.text }) }
+    : {};
+
   // Same request pipeline as the main Ask Mondaily page and the right-side
   // drawer: same endpoint, thread_id/history handling, agent inference, real
   // sources. Home's context is general workspace scope.
   const {
     messages, setMessages, currentThreadId, setCurrentThreadId, loading,
     suggestions, setSuggestions, messageMeta, doSend, buildChipText,
-  } = useAskEngine({ context: { scope_label: "the Home dashboard (general workspace)" }, onAssistantMessage: startStreaming });
+  } = useAskEngine({ context: { scope_label: "the Home dashboard (general workspace)", ...attachContext }, onAssistantMessage: startStreaming });
 
   useEffect(() => {
     if (!loading) { setThinkingStep(0); return; }
@@ -313,7 +357,13 @@ export function HomePage() {
     return () => clearTimeout(t);
   }, []);
 
-  const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
+  const send = () => {
+    const t = input.trim();
+    if (!t && attachments.length === 0) return;
+    setInput("");
+    doSend(t || "Use the attached items.");
+    if (attachments.length) setAttachments([]); // consumed — pinned into this turn's context
+  };
 
   const newChat = () => {
     setMessages([]);
@@ -674,12 +724,54 @@ export function HomePage() {
             </div>
           )}
 
+          {/* Attach picker — records (live search) + text files (read client-side) */}
+          {attachOpen && (
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+              <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+                <Search size={13} style={{ color: "var(--text-faint)" }}/>
+                <input autoFocus value={attachQuery} onChange={e => setAttachQuery(e.target.value)}
+                  placeholder="Search records to attach…"
+                  className="flex-1 bg-transparent text-sm outline-none" style={{ color: "var(--text-primary)" }}/>
+                <button onClick={() => fileInputRef.current?.click()} className="shrink-0 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                  <Paperclip size={11}/> File
+                </button>
+              </div>
+              <div className="max-h-56 overflow-y-auto p-1.5">
+                {attachResults.length === 0 ? (
+                  <p className="px-2 py-2 text-[12px]" style={{ color: "var(--text-faint)" }}>{attachQuery.trim().length < 2 ? "Type to search records, or attach a text file." : "No matches."}</p>
+                ) : attachResults.map(r => (
+                  <button key={r.id} onClick={() => addRecord(r)} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                    <span className="rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{r.object_type}</span>
+                    <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>{recordTitle(r)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {attachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {attachments.map(a => (
+                <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                  {a.kind === "file" ? <FileText size={11} style={{ color: "var(--accent)" }}/> : <Inbox size={11} style={{ color: "var(--accent)" }}/>}
+                  <span className="max-w-[180px] truncate">{a.title}</span>
+                  <button onClick={() => setAttachments(list => list.filter(x => x.id !== a.id))} title="Remove" style={{ color: "var(--text-faint)" }}><X size={11}/></button>
+                </span>
+              ))}
+            </div>
+          )}
+          <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.log,.tsv,text/plain" onChange={onFilePick} className="hidden"/>
+
           <div className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 rounded-3xl px-2.5 py-2 transition-all sm:px-3"
             style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
               <Plus size={18}/>
+            </button>
+            <button onClick={() => setAttachOpen(o => !o)} title="Attach record or file"
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${attachOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+              style={attachOpen ? undefined : { color: "var(--text-muted)" }}>
+              <Paperclip size={17}/>
             </button>
             <textarea ref={inputRef} value={input} rows={1}
               onChange={e => {

@@ -1236,6 +1236,21 @@ function buildContextNote(context: Record<string, any> | undefined): string {
     contextNote += `\n\nThe user is currently viewing: ${context.scope_label}. Treat this as the default scope for vague references like "this" unless they clearly mean something else.`;
   }
   if (context.route) contextNote += `\n\nCurrent route: ${context.route}`;
+  // Explicitly attached records/files — pinned context the user chose. Each carries
+  // its real data so the model can answer/act on it directly without searching.
+  if (Array.isArray(context.attachments) && context.attachments.length > 0) {
+    const lines = (context.attachments as any[]).slice(0, 8).map((a, i) => {
+      const label = a.object_type ? (OBJECT_LABEL[String(a.object_type).toLowerCase()] ?? a.object_type) : (a.kind === "file" ? "file" : "record");
+      const title = a.title ?? a.name ?? "(untitled)";
+      const idPart = a.node_id ? ` — node_id: ${a.node_id}` : "";
+      // Compact the data/text payload so a big record can't blow the prompt.
+      let body = "";
+      if (a.kind === "file" && typeof a.text === "string") body = a.text.slice(0, 4000);
+      else if (a.data != null) { try { body = JSON.stringify(a.data).slice(0, 1500); } catch { body = ""; } }
+      return `${i + 1}. [${label}] "${title}"${idPart}${body ? `\n   data: ${body}` : ""}`;
+    }).join("\n");
+    contextNote += `\n\nThe user has ATTACHED the following as pinned context — use their data directly to answer or act on them, and you may reference them by name. Prefer this attached data over searching:\n${lines}`;
+  }
   return contextNote;
 }
 
