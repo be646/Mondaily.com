@@ -259,7 +259,9 @@ export function HomePage() {
 
   const isChatting = messages.length > 0;
   const recentThreads = getThreads().slice(0, 3);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  // Reset the auto-expanded textarea back to one row once it's cleared (after send).
+  useEffect(() => { const el = inputRef.current; if (el && input === "") el.style.height = "auto"; }, [input]);
 
   // Top-down streaming with a stick-to-bottom lock. `stickRef` stays true while
   // the user is parked near the bottom; if they scroll up to re-read it flips
@@ -672,17 +674,23 @@ export function HomePage() {
             </div>
           )}
 
-          <div className="ask-input chat-input-bar chat-input-orbit flex items-center gap-2 rounded-full px-2.5 py-2 transition-all sm:px-3"
+          <div className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 rounded-3xl px-2.5 py-2 transition-all sm:px-3"
             style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
               <Plus size={18}/>
             </button>
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-              placeholder={isChatting ? "Continue the conversation…" : "What do you want to know?"}
-              className="flex-1 bg-transparent px-1 text-[15px] outline-none" style={{ color: "var(--text-primary)" }}/>
+            <textarea ref={inputRef} value={input} rows={1}
+              onChange={e => {
+                setInput(e.target.value);
+                // Auto-expand up to a max height, then scroll inside.
+                const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+              }}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              placeholder={isChatting ? "Continue the conversation… (Shift+Enter for new line)" : "What do you want to know?"}
+              className="flex-1 resize-none self-center bg-transparent px-1 py-1 text-[15px] leading-6 outline-none"
+              style={{ color: "var(--text-primary)", maxHeight: 160 }}/>
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-0.5" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
