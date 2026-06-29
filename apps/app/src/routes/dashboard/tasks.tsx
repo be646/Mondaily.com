@@ -3,7 +3,7 @@ import { Check, Plus, X, Clock, User, RotateCcw, ChevronDown, Trash2, Calendar, 
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useUser } from "@clerk/react";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
@@ -407,8 +407,33 @@ export function TasksPage() {
   const [sortOpen, setSortOpen]           = useState(false);
   const [editTask, setEditTask]           = useState<Task | null>(null);
   const [viewMode, setViewMode]           = useState<"list" | "board" | "sheet">("list");
+  const [highlightId, setHighlightId]     = useState<string | null>(null);
+  const [searchParams, setSearchParams]   = useSearchParams();
 
   const query = useQuery({ queryKey: ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir], queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${filter}${labelFilter ? `&label=${labelFilter}` : ""}${priorityFilter ? `&priority=${priorityFilter}` : ""}&sort=${sortBy}&dir=${sortDir}`) });
+
+  // Deep-link resolver: when arriving with ?id=<taskId> (e.g. from a chat card),
+  // open that task's detail panel, highlight + scroll to its row, then strip the
+  // param so a later list reopen doesn't re-trigger. Falls back to fetching the
+  // single task if it isn't in the current filtered list.
+  const focusId = searchParams.get("id");
+  useEffect(() => {
+    if (!focusId) return;
+    let cancelled = false;
+    const fromList = (query.data ?? []).find(t => t.id === focusId);
+    const open = (t: Task) => {
+      if (cancelled) return;
+      setDetailTask(t);
+      setHighlightId(focusId);
+      requestAnimationFrame(() => document.getElementById(`task-${focusId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete("id"); return n; }, { replace: true });
+      setTimeout(() => { if (!cancelled) setHighlightId(null); }, 4000);
+    };
+    if (fromList) open(fromList);
+    // If not in the current filtered view, it's likely filtered out — the user can
+    // clear filters to find it; we don't 404 on a non-existent single-task endpoint.
+    return () => { cancelled = true; };
+  }, [focusId, query.data]);
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const members = membersQuery.data ?? [];
 
@@ -622,7 +647,7 @@ export function TasksPage() {
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
-                <div key={task.id} className={`rounded-2xl border transition-colors ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`}>
+                <div key={task.id} id={`task-${task.id}`} className={`rounded-2xl border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--accent)", borderColor: "var(--accent)" } : undefined}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
                     <button onClick={() => toggle.mutate(task)}
@@ -748,7 +773,7 @@ export function TasksPage() {
                     const assigneeName = getMemberName(task);
                     const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
                     return (
-                      <tr key={task.id} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors">
+                      <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--accent)", background: "color-mix(in srgb, var(--accent) 7%, transparent)" } : undefined}>
                         <td className="px-4 py-3 w-8">
                           <button onClick={() => toggle.mutate(task)}
                             className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>
