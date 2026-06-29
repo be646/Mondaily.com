@@ -8,7 +8,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { executeApprovedAction } from "./decisions";
-import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck } from "../lib/ai-gateway";
+import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 
 export const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
 
@@ -1511,6 +1511,31 @@ router.get("/health", async (c) => {
   const probe = c.req.query("probe") === "1";
   const result = await gatewayHealthCheck({ probe });
   return c.json(result, result.ok ? 200 : 503);
+});
+
+// Live chat diagnostic — runs the REAL conversational path ("hi") with the real
+// system prompt, in THIS invocation, then reads the captured error (reliable
+// because it's the same lambda). Returns the actual reply + the real failure so we
+// can see whether the backend produces a real answer or the friendly fallback.
+router.get("/health/chat", async (c) => {
+  let reply = "";
+  let threw: string | null = null;
+  try {
+    const res = await aiGatewayAgentStream(
+      { system: SYSTEM_PROMPT, messages: [{ role: "user", content: "hi" }], tools: [], maxTokens: 256 },
+      () => {},
+    );
+    reply = res.reply;
+  } catch (e) {
+    threw = e instanceof Error ? e.message : String(e);
+  }
+  const isFallback = /trouble connecting to the AI service/i.test(reply);
+  return c.json({
+    backend_ok: !!reply && !isFallback && !threw,
+    reply,
+    threw,
+    realError: getLastGatewayError(),
+  });
 });
 
 export { router as askRouter };

@@ -98,6 +98,9 @@ const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? CEREBRAS_DEFAULT_SPEC;
 // "trouble connecting" fallback) so GET /api/v1/ask/health can surface it. Purely
 // diagnostic — does not alter any chat behavior.
 let lastGatewayError: { at: string; message: string; status?: number; when: string } | null = null;
+/** Read the last captured gateway error (same-invocation reads are reliable;
+ *  cross-invocation reads on serverless are not). */
+export function getLastGatewayError() { return lastGatewayError; }
 
 const CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
 const DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
