@@ -1,6 +1,9 @@
 export const BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 const API_URL = `${BASE_URL}/api/v1`;
 
+// Sovereign-auth cutover flag: when on, send native HttpOnly session cookies with every request.
+export const USE_SOVEREIGN_AUTH = import.meta.env.VITE_USE_SOVEREIGN_AUTH === "true";
+
 // Clerk's getToken function — set once by AuthGate on mount so the api client
 // can fetch a fresh token on every request without needing React context.
 let _getToken: (() => Promise<string | null>) | null = null;
@@ -28,6 +31,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
+    ...(USE_SOVEREIGN_AUTH ? { credentials: "include" as const } : {}),
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

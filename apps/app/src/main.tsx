@@ -4,7 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { ClerkProvider, useAuth, useOrganization } from "@clerk/react";
 import { App } from "./App";
-import { setTokenProvider } from "./lib/api-client";
+import { setTokenProvider, USE_SOVEREIGN_AUTH } from "./lib/api-client";
+import { SovereignAuthProvider, useSovereignAuth } from "./components/auth/sovereign-auth-context";
 import "./styles.css";
 
 const queryClient = new QueryClient({
@@ -108,6 +109,27 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Native gate (USE_SOVEREIGN_AUTH=true). Drives readiness off our cookie session instead of
+ * Clerk — bypasses Clerk's loading/bootstrap entirely. The SovereignAuthProvider already
+ * persists the session's workspace id, so the rest of the app + apiClient work unchanged.
+ * Tokens travel via HttpOnly cookies, so the Bearer token provider is a no-op.
+ */
+function SovereignGate({ children }: { children: React.ReactNode }) {
+  const { status } = useSovereignAuth();
+  useEffect(() => { setTokenProvider(() => Promise.resolve(null)); }, []);
+  if (status === "loading") return null;
+  return <>{children}</>;
+}
+
+// Dual-auth runtime: flip the gate via the build flag. Flag OFF → byte-for-byte the Clerk path.
+function AppGate({ children }: { children: React.ReactNode }) {
+  if (USE_SOVEREIGN_AUTH) {
+    return <SovereignAuthProvider><SovereignGate>{children}</SovereignGate></SovereignAuthProvider>;
+  }
+  return <AuthGate>{children}</AuthGate>;
+}
+
 // Apply saved theme before first render to avoid flash
 (function initTheme() {
   // One-time migration: light is the new default — reset existing devices once
@@ -134,9 +156,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     >
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthGate>
+          <AppGate>
             <App />
-          </AuthGate>
+          </AppGate>
         </BrowserRouter>
       </QueryClientProvider>
     </ClerkProvider>

@@ -41,14 +41,17 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SovereignUser | null>(null);
   const booted = useRef(false);
 
-  const setAuthed = (u: SovereignUser) => { setUser(u); setStatus("authenticated"); };
+  // Persist the session's workspace so the existing apiClient (X-Workspace-Id header) works
+  // unchanged in sovereign mode — mirrors what AuthGate does in the Clerk flow.
+  const persistWorkspace = (wsId?: string | null) => { if (wsId) localStorage.setItem("mondaily_workspace_id", wsId); };
+  const setAuthed = (u: SovereignUser, wsId?: string | null) => { persistWorkspace(wsId); setUser(u); setStatus("authenticated"); };
   const setGuest = () => { setUser(null); setStatus("unauthenticated"); };
 
   const refresh = useCallback(async (): Promise<boolean> => {
     const r = await authCall<{ userId?: string }>("/refresh");
     if (r.status !== 200 || !r.data.userId) return false;
-    const me = await authCall<{ userId?: string; email?: string }>("/me", undefined, "GET");
-    if (me.status === 200 && me.data.userId) { setAuthed({ userId: me.data.userId, email: me.data.email ?? "" }); return true; }
+    const me = await authCall<{ userId?: string; email?: string; workspaceId?: string }>("/me", undefined, "GET");
+    if (me.status === 200 && me.data.userId) { setAuthed({ userId: me.data.userId, email: me.data.email ?? "" }, me.data.workspaceId); return true; }
     return false;
   }, []);
 
@@ -57,22 +60,22 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     if (booted.current) return;
     booted.current = true;
     (async () => {
-      const me = await authCall<{ userId?: string; email?: string }>("/me", undefined, "GET");
-      if (me.status === 200 && me.data.userId) { setAuthed({ userId: me.data.userId, email: me.data.email ?? "" }); return; }
+      const me = await authCall<{ userId?: string; email?: string; workspaceId?: string }>("/me", undefined, "GET");
+      if (me.status === 200 && me.data.userId) { setAuthed({ userId: me.data.userId, email: me.data.email ?? "" }, me.data.workspaceId); return; }
       if (!(await refresh())) setGuest();
     })().catch(setGuest);
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const r = await authCall<{ userId?: string; email?: string; requires_activation?: boolean; error?: string }>("/login", { email, password });
+    const r = await authCall<{ userId?: string; email?: string; workspaceId?: string; requires_activation?: boolean; error?: string }>("/login", { email, password });
     if (r.status === 200 && r.data.requires_activation) return { requiresActivation: true };
-    if (r.status === 200 && r.data.userId) { setAuthed({ userId: r.data.userId, email: r.data.email ?? email }); return {}; }
+    if (r.status === 200 && r.data.userId) { setAuthed({ userId: r.data.userId, email: r.data.email ?? email }, r.data.workspaceId); return {}; }
     throw new Error(r.data.error || "Invalid email or password.");
   }, []);
 
   const activate = useCallback(async (email: string, password: string) => {
-    const r = await authCall<{ userId?: string; email?: string; error?: string }>("/activate", { email, password });
-    if (r.status === 201 && r.data.userId) { setAuthed({ userId: r.data.userId, email: r.data.email ?? email }); return; }
+    const r = await authCall<{ userId?: string; email?: string; workspaceId?: string; error?: string }>("/activate", { email, password });
+    if (r.status === 201 && r.data.userId) { setAuthed({ userId: r.data.userId, email: r.data.email ?? email }, r.data.workspaceId); return; }
     throw new Error(r.data.error || "Activation failed.");
   }, []);
 
