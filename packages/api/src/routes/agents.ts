@@ -436,7 +436,20 @@ router.get("/activity", async (c) => {
     agents_today: Array.from(new Set((todayNames.data ?? []).map(r => r.agent_name))), // raw names; UI maps to real agents
   };
 
-  return c.json({ activity: rows, stats });
+  // Per-agent ROSTER (real proof of work): each agent's last run, last outcome, and
+  // today's run/error counts — computed from a recent window (covers all that ran).
+  const { data: rosterRows } = await supabase
+    .from("agent_jobs").select("agent_name, status, started_at")
+    .eq("workspace_id", workspaceId).order("started_at", { ascending: false }).limit(500);
+  const byAgent: Record<string, { agent: string; last_run: string; last_status: string; runs_today: number; errors_today: number }> = {};
+  for (const r of rosterRows ?? []) {
+    const a = r.agent_name as string;
+    if (!byAgent[a]) byAgent[a] = { agent: a, last_run: r.started_at, last_status: r.status, runs_today: 0, errors_today: 0 };
+    if (new Date(r.started_at) >= todayStart) { byAgent[a]!.runs_today++; if (r.status === "failed") byAgent[a]!.errors_today++; }
+  }
+  const roster = Object.values(byAgent);
+
+  return c.json({ activity: rows, stats, roster });
 });
 
 export { router as agentsRouter };

@@ -60,6 +60,14 @@ const agentOf = (raw: string) => {
   return { label, Icon: iconForLabel(label) };
 };
 
+function relAgo(iso?: string | null): string {
+  if (!iso) return "never";
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.round(s / 60); if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60); if (h < 24) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
 function fullTime(iso?: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -92,9 +100,10 @@ export function AgentActivityPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  type RosterRaw = { agent: string; last_run: string; last_status: string; runs_today: number; errors_today: number };
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["agent-activity"],
-    queryFn: () => apiClient.get<{ activity: ActivityItem[]; stats: { runs_today: number; errors_today: number; agents_today: string[] } }>(`/agents/activity?limit=120`),
+    queryFn: () => apiClient.get<{ activity: ActivityItem[]; stats: { runs_today: number; errors_today: number; agents_today: string[] }; roster: RosterRaw[] }>(`/agents/activity?limit=120`),
     refetchInterval: 30_000,
   });
   const all = data?.activity ?? [];
@@ -109,6 +118,20 @@ export function AgentActivityPage() {
   const runsToday = data?.stats?.runs_today ?? 0;
   const errors = data?.stats?.errors_today ?? 0;
   const agentsReportingToday = Array.from(new Set((data?.stats?.agents_today ?? []).map(raw => agentOf(raw).label))).length;
+
+  // Per-agent roster grouped by REAL agent (merges raw jobs, e.g. Finance = invoice_chaser
+  // + recurring_invoices). Concrete proof: last run + today's counts per agent.
+  const rosterByLabel = (() => {
+    const m: Record<string, { label: string; lastRun: string; lastStatus: string; runsToday: number; errorsToday: number }> = {};
+    for (const r of data?.roster ?? []) {
+      const label = agentOf(r.agent).label;
+      if (!m[label]) m[label] = { label, lastRun: r.last_run, lastStatus: r.last_status, runsToday: 0, errorsToday: 0 };
+      if (new Date(r.last_run) > new Date(m[label]!.lastRun)) { m[label]!.lastRun = r.last_run; m[label]!.lastStatus = r.last_status; }
+      m[label]!.runsToday += r.runs_today;
+      m[label]!.errorsToday += r.errors_today;
+    }
+    return Object.values(m).sort((a, b) => new Date(b.lastRun).getTime() - new Date(a.lastRun).getTime());
+  })();
 
   const segBox = "flex gap-0.5 rounded-xl border p-0.5";
   const segBoxStyle = { borderColor: "var(--border-soft)", background: "var(--surface-card)" } as const;
@@ -142,6 +165,35 @@ export function AgentActivityPage() {
           </div>
         ))}
       </div>
+
+      {/* Agent roster — concrete proof each agent is running (last run + today's counts) */}
+      {rosterByLabel.length > 0 && (
+        <div className="mb-6">
+          <p className="home-section-kicker mb-2">Your agents</p>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {rosterByLabel.map(r => {
+              const Icon = iconForLabel(r.label);
+              const ranToday = r.runsToday > 0;
+              return (
+                <button key={r.label} onClick={() => setAgentFilter(agentFilter === r.label ? null : r.label)}
+                  className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all hover:-translate-y-px"
+                  style={{ borderColor: agentFilter === r.label ? "var(--accent)" : "var(--border-soft)", background: "var(--surface-card)" }}>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "color-mix(in srgb, var(--accent) 10%, transparent)" }}>
+                    <Icon size={15} style={{ color: "var(--accent)" }}/>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{r.label}</div>
+                    <div className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: r.errorsToday > 0 ? "#ef4444" : ranToday ? "var(--accent)" : "var(--text-faint)" }}/>
+                      ran {relAgo(r.lastRun)}{r.runsToday > 0 ? ` · ${r.runsToday} today` : ""}{r.errorsToday > 0 ? ` · ${r.errorsToday} failed` : ""}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Status — small segmented control with counts */}
       <div className="mb-3 inline-flex">
