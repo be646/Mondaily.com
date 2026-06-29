@@ -103,10 +103,13 @@ export const enrichRecord = inngest.createFunction(
   { id: "crm-enrich-record", name: "CRM: Enrich Record", concurrency: { limit: 5 } },
   { event: "crm/record.created" },
   async ({ event }) => {
-    const { workspaceId, nodeId, objectType, recordData } = event.data;
+    const { workspaceId, nodeId, objectType } = event.data;
+    // recordData may be absent on the event — default it so we never crash on
+    // `recordData.email` (this was 500+ 'Cannot read properties of undefined' fails).
+    let recordData = (event.data.recordData ?? {}) as Record<string, unknown>;
 
-    const normalizedType = objectType.toLowerCase();
-    if (!ENRICHABLE.some(t => normalizedType.includes(t))) {
+    const normalizedType = String(objectType ?? "").toLowerCase();
+    if (!normalizedType || !ENRICHABLE.some(t => normalizedType.includes(t))) {
       return { skipped: true, reason: "object_type not enrichable" };
     }
 
@@ -121,6 +124,13 @@ export const enrichRecord = inngest.createFunction(
         input: { nodeId, objectType, recordData },
         node_ids: [nodeId],
       });
+
+      // If the event carried no record data, load it from the node so enrichment
+      // has real fields to work from instead of nothing.
+      if (Object.keys(recordData).length === 0 && nodeId) {
+        const { data: n } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
+        recordData = (n?.data ?? {}) as Record<string, unknown>;
+      }
 
       const isPerson = ["contact", "person", "people", "lead"].some(t => normalizedType.includes(t));
       let fields: Record<string, unknown> = {};
@@ -240,8 +250,11 @@ export const enrichRecord = inngest.createFunction(
       }
 
       if (Object.keys(fields).length === 0) {
-        await failJob(jobId, "No fields extracted");
-        return { enriched: false };
+        // No source data to extract from (the self-hosted search appliance may be
+        // offline, or the record genuinely has nothing to enrich). This is a clean
+        // SKIP, not a failure — don't pollute the agent's error count.
+        await completeJob(jobId, { enriched: false, skipped: true, reason: "no source data found (search appliance may be offline)" }, []);
+        return { enriched: false, reason: "no_data" };
       }
 
       // Flatten the structured groups to TOP-LEVEL keys so the records sheet /
@@ -275,6 +288,13 @@ export const enrichRecord = inngest.createFunction(
       // into a 500 that Inngest retried indefinitely (a flood of 500s on
       // crm-enrich-record). Log it, mark the job failed, and end the run cleanly.
       const msg = err instanceof Error ? err.message : String(err);
+      // A 429 / rate-limit is transient (the shared Cerebras per-minute quota) — a
+      // clean skip that retries on the next scheduled run, NOT a real failure.
+      if (/\b429\b|rate limit/i.test(msg)) {
+        console.warn(`[enrich-record] rate-limited for node ${nodeId} — skipping this run`);
+        if (jobId) await completeJob(jobId, { enriched: false, skipped: true, reason: "rate limited — will retry next run" }, []).catch(() => {});
+        return { enriched: false, reason: "rate_limited" };
+      }
       console.error(`[enrich-record] failed for node ${nodeId} (non-fatal):`, msg);
       if (jobId) await failJob(jobId, msg).catch(() => {});
       return { enriched: false, error: msg };
