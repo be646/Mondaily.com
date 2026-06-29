@@ -12,7 +12,7 @@ import { LogoMark } from "../logo";
 import { getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
-import { EvidenceStrip, SourceList, Markdown, TokenLedger } from "./ask-shared";
+import { EvidenceStrip, SourceList, Markdown, TokenLedger, sourcesToLinks } from "./ask-shared";
 
 // ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
 // main Ask page and Home: same endpoint, history/thread_id handling, real
@@ -158,7 +158,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                     : (loading && i === displayMessages.length - 1)
                       // Streaming: stable plain text (no per-token markdown re-parse → no jitter).
                       ? m.content
-                      : <Markdown text={m.content}/>}
+                      : <Markdown text={m.content} links={sourcesToLinks(meta?.sources)}/>}
                 </div>
 
                 {m.role === "assistant" && meta && AgentIcon && (

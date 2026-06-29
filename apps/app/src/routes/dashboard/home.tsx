@@ -7,7 +7,7 @@ import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
-  GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, friendlyAskError, TokenLedger,
+  GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, friendlyAskError, TokenLedger, Markdown, sourcesToLinks,
 } from "../../components/ai/ask-shared";
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
@@ -630,7 +630,7 @@ export function HomePage() {
                               // headings/lists/tables each token — that re-parse was the jitter.
                               // Format to full markdown only once the answer is complete.
                               ? <span style={{ color: "var(--text-secondary)" }}>{displayText}</span>
-                              : renderMarkdown(displayText)}
+                              : <Markdown text={displayText} links={sourcesToLinks(meta?.sources)}/>}
                           {isStreaming && displayText && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                         </div>
                         {!isStreaming && meta && AgentIcon && (

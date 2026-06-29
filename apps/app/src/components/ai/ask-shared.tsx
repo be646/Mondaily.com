@@ -13,13 +13,45 @@ import {
  * symbols and looked messy. This handles the common subset cleanly without
  * pulling in react-markdown.
  */
-function renderInline(text: string, keyBase: string): React.ReactNode[] {
+export type EntityLink = { title: string; href: string };
+
+/** Wrap occurrences of known record titles inside a plain-text segment with a
+ *  clickable deep-link — so records mentioned in the answer (and in table cells)
+ *  are clickable inline, not just in the footer list. Longest titles match first
+ *  so "Acme Corp" isn't shadowed by "Acme". */
+function linkifyPlain(seg: string, links: EntityLink[] | undefined, keyBase: string): React.ReactNode[] {
+  if (!seg || !links || links.length === 0) return [seg];
+  const cands = links.filter(l => l.href && l.title && l.title.trim().length >= 3)
+    .sort((a, b) => b.title.length - a.title.length);
+  if (cands.length === 0) return [seg];
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`(${cands.map(l => esc(l.title)).join("|")})`, "g");
+  const parts: React.ReactNode[] = [];
+  let last = 0; let m: RegExpExecArray | null; let i = 0;
+  while ((m = re.exec(seg)) !== null) {
+    if (m.index > last) parts.push(seg.slice(last, m.index));
+    const matched = m[0];
+    const link = cands.find(l => l.title === matched);
+    if (link) parts.push(
+      <a key={`${keyBase}-el-${i}`} href={link.href} target="_blank" rel="noreferrer"
+        onClick={e => { e.preventDefault(); window.open(link.href, "_blank", "noopener"); }}
+        className="underline decoration-dotted underline-offset-2 transition-colors hover:decoration-solid"
+        style={{ color: "var(--accent)" }} title="Open record in new tab">{matched}</a>
+    );
+    else parts.push(matched);
+    last = m.index + matched.length; i++;
+  }
+  if (last < seg.length) parts.push(seg.slice(last));
+  return parts;
+}
+
+function renderInline(text: string, keyBase: string, links?: EntityLink[]): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   // Split on **bold**, *italic*, `code`, and [text](url) while keeping delimiters.
   const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
   let last = 0; let m: RegExpExecArray | null; let i = 0;
   while ((m = re.exec(text)) !== null) {
-    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m.index > last) out.push(...linkifyPlain(text.slice(last, m.index), links, `${keyBase}-${i}`));
     const tok = m[0];
     if (tok.startsWith("**")) out.push(<strong key={`${keyBase}-${i}`}>{tok.slice(2, -2)}</strong>);
     else if (tok.startsWith("`")) out.push(<code key={`${keyBase}-${i}`} className="rounded px-1 py-0.5 text-[0.92em]" style={{ background: "var(--surface-hover)" }}>{tok.slice(1, -1)}</code>);
@@ -29,7 +61,7 @@ function renderInline(text: string, keyBase: string): React.ReactNode[] {
     } else out.push(<em key={`${keyBase}-${i}`}>{tok.slice(1, -1)}</em>);
     last = m.index + tok.length; i++;
   }
-  if (last < text.length) out.push(text.slice(last));
+  if (last < text.length) out.push(...linkifyPlain(text.slice(last), links, `${keyBase}-end`));
   return out;
 }
 
@@ -37,7 +69,7 @@ const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
 const isTableSep = (l: string) => l.includes("-") && /^\s*\|?[\s:|-]+\|?\s*$/.test(l);
 const tableCells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
 
-export function Markdown({ text }: { text: string }) {
+export function Markdown({ text, links }: { text: string; links?: EntityLink[] }) {
   const lines = (text ?? "").split("\n");
   const blocks: React.ReactNode[] = [];
   let list: { ordered: boolean; items: string[] } | null = null;
@@ -46,7 +78,7 @@ export function Markdown({ text }: { text: string }) {
     const Tag = list.ordered ? "ol" : "ul";
     blocks.push(
       <Tag key={`l-${blocks.length}`} className={list.ordered ? "list-decimal pl-5 space-y-0.5" : "list-disc pl-5 space-y-0.5"}>
-        {list.items.map((it, j) => <li key={j}>{renderInline(it, `li-${blocks.length}-${j}`)}</li>)}
+        {list.items.map((it, j) => <li key={j}>{renderInline(it, `li-${blocks.length}-${j}`, links)}</li>)}
       </Tag>
     );
     list = null;
@@ -76,7 +108,7 @@ export function Markdown({ text }: { text: string }) {
             <thead>
               <tr style={{ background: "var(--surface-card-2)" }}>
                 {header.map((hc, i) => (
-                  <th key={i} className={`whitespace-nowrap px-3 py-2 font-medium ${numericCol[i] ? "text-right tabular-nums" : ""}`} style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-soft)" }}>{renderInline(hc, `th-${idx}-${i}`)}</th>
+                  <th key={i} className={`whitespace-nowrap px-3 py-2 font-medium ${numericCol[i] ? "text-right tabular-nums" : ""}`} style={{ color: "var(--text-muted)", borderBottom: "1px solid var(--border-soft)" }}>{renderInline(hc, `th-${idx}-${i}`, links)}</th>
                 ))}
               </tr>
             </thead>
@@ -84,7 +116,7 @@ export function Markdown({ text }: { text: string }) {
               {rows.map((r, ri) => (
                 <tr key={ri}>
                   {header.map((_h, ci) => (
-                    <td key={ci} className={`px-3 py-1.5 ${numericCol[ci] ? "whitespace-nowrap text-right tabular-nums" : "break-words"}`} style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{renderInline(r[ci] ?? "", `td-${idx}-${ri}-${ci}`)}</td>
+                    <td key={ci} className={`px-3 py-1.5 ${numericCol[ci] ? "whitespace-nowrap text-right tabular-nums" : "break-words"}`} style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-secondary)" }}>{renderInline(r[ci] ?? "", `td-${idx}-${ri}-${ci}`, links)}</td>
                   ))}
                 </tr>
               ))}
@@ -99,11 +131,11 @@ export function Markdown({ text }: { text: string }) {
     const h = line.match(/^(#{1,3})\s+(.*)$/);
     const bullet = line.match(/^\s*[-*]\s+(.*)$/);
     const num = line.match(/^\s*\d+\.\s+(.*)$/);
-    if (h) { flush(); const lvl = (h[1] ?? "#").length; blocks.push(<p key={idx} className="font-semibold mt-2 mb-0.5" style={{ fontSize: lvl === 1 ? "1.05em" : "1em" }}>{renderInline(h[2] ?? "", `h-${idx}`)}</p>); }
+    if (h) { flush(); const lvl = (h[1] ?? "#").length; blocks.push(<p key={idx} className="font-semibold mt-2 mb-0.5" style={{ fontSize: lvl === 1 ? "1.05em" : "1em" }}>{renderInline(h[2] ?? "", `h-${idx}`, links)}</p>); }
     else if (bullet) { if (!list || list.ordered) { flush(); list = { ordered: false, items: [] }; } list.items.push(bullet[1] ?? ""); }
     else if (num) { if (!list || !list.ordered) { flush(); list = { ordered: true, items: [] }; } list.items.push(num[1] ?? ""); }
     else if (line === "") { flush(); }
-    else { flush(); blocks.push(<p key={idx} className="my-0.5">{renderInline(line, `p-${idx}`)}</p>); }
+    else { flush(); blocks.push(<p key={idx} className="my-0.5">{renderInline(line, `p-${idx}`, links)}</p>); }
   }
   flush();
   return <div className="space-y-0.5">{blocks}</div>;
@@ -302,6 +334,18 @@ export function SourceCard({ source, divider }: { source: SourceCardData; divide
       )}
     </div>
   );
+}
+
+/** Build the inline entity-link map from a response's sources (title → deep-link),
+ *  so record names mentioned in the answer/tables become clickable. */
+export function sourcesToLinks(sources: SourceCardData[] | undefined): EntityLink[] {
+  if (!sources) return [];
+  const seen = new Set<string>();
+  const out: EntityLink[] = [];
+  for (const s of sources) {
+    if (s.href && s.title && !seen.has(s.title)) { seen.add(s.title); out.push({ title: s.title, href: s.href }); }
+  }
+  return out;
 }
 
 /** Wraps referenced records into ONE clean bordered list (not scattered boxes). */

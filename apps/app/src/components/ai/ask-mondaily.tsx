@@ -16,7 +16,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
-import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger } from "./ask-shared";
+import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
 
 // ── Markdown renderer — organized: ordered lists keep numbers, tables render as
 // real tables, headings/HR styled, tighter spacing. ─────────────────────────
@@ -397,7 +397,7 @@ export function AskMondaily() {
                           re-parse → no jitter). Format to markdown once complete. */}
                       {isStreaming
                         ? <span style={{ color: "var(--text-secondary)" }}>{displayText}</span>
-                        : renderMarkdown(displayText)}
+                        : <Markdown text={displayText} links={sourcesToLinks(meta?.sources)}/>}
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
 
