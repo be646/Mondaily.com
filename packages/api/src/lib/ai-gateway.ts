@@ -450,8 +450,9 @@ async function runOpenAICompatAgent(
         model: activeModel,
         max_tokens: req.maxTokens ?? 2048,
         messages,
-        tools: openaiTools,
-        tool_choice: "auto",
+        // Only send tools when there ARE tools — Cerebras 400s on an empty
+        // `tools: []` + tool_choice (this is what broke every conversational turn).
+        ...(openaiTools.length ? { tools: openaiTools, tool_choice: "auto" as const } : {}),
       });
     } catch (e: any) {
       const status = e?.status ?? e?.code ?? "unknown";
@@ -683,8 +684,10 @@ async function runOpenAICompatAgentStream(
         model: modelId,
         max_tokens: req.maxTokens ?? 2048,
         messages,
-        tools: openaiTools,
-        tool_choice: "auto",
+        // Only send tools when there ARE tools — Cerebras 400s on an empty
+        // `tools: []` + tool_choice, which is exactly what conversational ("hi")
+        // turns sent (useTools:false strips tools to []). This was THE bug.
+        ...(openaiTools.length ? { tools: openaiTools, tool_choice: "auto" as const } : {}),
         stream: true,
         stream_options: { include_usage: true },
       });
