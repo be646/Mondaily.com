@@ -7,6 +7,21 @@ import { App } from "./App";
 import { setTokenProvider } from "./lib/api-client";
 import "./styles.css";
 
+// ── TEMPORARY DEPLOY PROBE — remove once the frontend deploy is confirmed live. ──
+// If you DON'T see "UI chat-rebuild-8" bottom-right after deploy + refresh, the
+// apps/app Vercel project is not redeploying (serving a stale build).
+const BUILD_ID = "chat-rebuild-8";
+console.log(`%c[MONDAILY UI] build ${BUILD_ID}`, "color:#6f8068;font-weight:bold");
+try {
+  const mountProbe = () => {
+    const probe = document.createElement("div");
+    probe.textContent = `UI ${BUILD_ID}`;
+    probe.style.cssText = "position:fixed;bottom:6px;right:8px;z-index:99999;font:10px monospace;color:#6f8068;background:rgba(255,255,255,.78);padding:2px 6px;border-radius:6px;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.12)";
+    document.body.appendChild(probe);
+  };
+  if (document.body) mountProbe(); else document.addEventListener("DOMContentLoaded", mountProbe);
+} catch { /* no-op */ }
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false }
