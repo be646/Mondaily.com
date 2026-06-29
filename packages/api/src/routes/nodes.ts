@@ -4,7 +4,14 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { denyViewerWrites } from "../middleware/rbac";
 import * as ubc from "@mondaily/db/ubc";
+import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
+
+/** Deal stage lives in data.deal_stage (fallbacks: stage, status). */
+function dealStageOf(data: unknown): string {
+  const d = (data ?? {}) as Record<string, unknown>;
+  return String(d.deal_stage ?? d.stage ?? d.status ?? "").trim();
+}
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -71,12 +78,37 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
   ai_summary: z.string().optional()
 })), async (c) => {
   const updates = c.req.valid("json");
-  const node = await ubc.updateNode(c.req.param("id"), c.get("workspaceId"), updates);
-  await ubc.logActivity(node.id!, c.get("workspaceId"), "human", c.get("userId"), "updated", updates);
+  const workspaceId = c.get("workspaceId");
+  const nodeId = c.req.param("id");
+  // Capture the previous stage BEFORE updating so we can detect a deal stage move.
+  const { data: prev } = await supabase.from("nodes").select("object_type, data").eq("id", nodeId).eq("workspace_id", workspaceId).single();
+  const node = await ubc.updateNode(nodeId, workspaceId, updates);
+  await ubc.logActivity(node.id!, workspaceId, "human", c.get("userId"), "updated", updates);
+
+  // Deal stage change → real notification, so the bell + "what changed" pick it up.
+  try {
+    const isDeal = String(node.object_type ?? "").toLowerCase().includes("deal");
+    const oldStage = dealStageOf(prev?.data);
+    const newStage = dealStageOf(node.data);
+    if (isDeal && newStage && oldStage !== newStage) {
+      const d = (node.data ?? {}) as Record<string, unknown>;
+      const name = String(d.name ?? d.title ?? "A deal");
+      await supabase.from("notifications").insert({
+        workspace_id: workspaceId,
+        user_id: c.get("userId"),
+        title: "Deal stage changed",
+        body: `${name} moved${oldStage ? ` from ${oldStage}` : ""} to ${newStage}.`,
+        type: "deal_stage",
+        is_read: false,
+        metadata: { node_id: node.id, object_type: node.object_type, from: oldStage || null, to: newStage },
+      });
+    }
+  } catch { /* best-effort — never block the update on the notification */ }
+
   // Real-time automation triggers (record_updated / deal_stage_change).
   inngest.send({
     name: "crm/record.updated",
-    data: { workspaceId: c.get("workspaceId"), nodeId: node.id!, objectType: node.object_type, vertical: node.vertical },
+    data: { workspaceId, nodeId: node.id!, objectType: node.object_type, vertical: node.vertical },
   }).catch(() => {/* best-effort */});
   return c.json(node);
 });
