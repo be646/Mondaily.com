@@ -69,6 +69,7 @@ export function ShadowLoginPage() {
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Verifying…</> : "Sign in"}
         </GlowButton>
+        <button type="button" onClick={() => navigate("/auth/forgot")} className="w-full text-center text-[11px] text-zinc-500 transition-colors hover:text-zinc-300">Forgot password?</button>
       </form>
     </AuthShell>
   );

@@ -3,6 +3,7 @@ import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { verifyAiCredits } from "../lib/credits";
 import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
@@ -1330,7 +1331,7 @@ function buildContextNote(context: Record<string, any> | undefined): string {
   return contextNote;
 }
 
-router.post("/", requireAuth, zValidator("json", z.object({
+router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().optional(),
   model: z.enum(["auto", "fast", "smart"]).optional(),
@@ -1498,7 +1499,7 @@ router.get("/credits", requireAuth, async (c) => {
  *   { type: "token",  text }        — a chunk of the answer
  *   { type: "done", reply, suggestions, sources } — final, authoritative
  */
-router.post("/stream", requireAuth, zValidator("json", z.object({
+router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().optional(),
   model: z.enum(["auto", "fast", "smart"]).optional(),

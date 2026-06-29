@@ -11873,8 +11873,10 @@ __export(auth_tokens_exports, {
   sha256: () => sha2565,
   signAccessToken: () => signAccessToken,
   signActivationToken: () => signActivationToken,
+  signResetToken: () => signResetToken,
   verifyAccessToken: () => verifyAccessToken,
-  verifyActivationToken: () => verifyActivationToken
+  verifyActivationToken: () => verifyActivationToken,
+  verifyResetToken: () => verifyResetToken
 });
 function jwtSecret() {
   const s2 = process.env.AUTH_JWT_SECRET;
@@ -11907,6 +11909,19 @@ async function verifyActivationToken(token) {
     return null;
   }
 }
+async function signResetToken(userId, email) {
+  const now = Math.floor(Date.now() / 1e3);
+  return sign2({ sub: userId, email, type: "reset", iat: now, exp: now + RESET_TTL_SECONDS }, jwtSecret());
+}
+async function verifyResetToken(token) {
+  try {
+    const p2 = await verify2(token, jwtSecret(), "HS256");
+    if (p2.type !== "reset" || typeof p2.sub !== "string" || typeof p2.email !== "string") return null;
+    return { sub: p2.sub, email: p2.email };
+  } catch {
+    return null;
+  }
+}
 function sha2565(s2) {
   return (0, import_node_crypto.createHash)("sha256").update(s2).digest("hex");
 }
@@ -11917,7 +11932,7 @@ function newRefreshToken() {
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS;
+var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, RESET_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
@@ -11928,6 +11943,7 @@ var init_auth_tokens = __esm({
     ACCESS_COOKIE = "md_at";
     REFRESH_COOKIE = "md_rt";
     ACTIVATION_TTL_SECONDS = 30 * 60;
+    RESET_TTL_SECONDS = 30 * 60;
   }
 });
 
@@ -53838,6 +53854,43 @@ OpenAI.Containers = Containers;
 OpenAI.ContainerListResponsesPage = ContainerListResponsesPage;
 var openai_default = OpenAI;
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/factory/index.js
+var createMiddleware = (middleware) => middleware;
+
+// src/lib/credits.ts
+init_http_exception();
+var SOLO_GRANT = 5e4;
+var BUSINESS_TRIAL_GRANT = 5e5;
+async function creditStatus(workspaceId) {
+  const { data: probe3, error } = await supabase.from("ai_credits_ledger").select("id").eq("workspace_id", workspaceId).limit(1);
+  if (error) return { balance: 0, enrolled: false };
+  if (!probe3 || probe3.length === 0) return { balance: 0, enrolled: false };
+  const { data: bal } = await supabase.rpc("ai_credit_balance", { ws: workspaceId });
+  return { balance: Number(bal ?? 0), enrolled: true };
+}
+async function grantCredits(workspaceId, amount, type, description) {
+  if (amount <= 0) return;
+  await supabase.from("ai_credits_ledger").insert({ workspace_id: workspaceId, amount: Math.round(amount), transaction_type: type, description }).then(() => {
+  }, () => {
+  });
+}
+function recordCreditUsage(workspaceId, tokens, description = "AI usage") {
+  if (!workspaceId || !tokens || tokens <= 0) return;
+  void supabase.from("ai_credits_ledger").insert({ workspace_id: workspaceId, amount: -Math.round(tokens), transaction_type: "usage", description }).then(() => {
+  }, () => {
+  });
+}
+var verifyAiCredits = createMiddleware(async (c2, next) => {
+  const ws = c2.get("workspaceId");
+  if (ws) {
+    const { balance, enrolled } = await creditStatus(ws);
+    if (enrolled && balance <= 0) {
+      throw new HTTPException(402, { message: "AI credits exhausted. Upgrade or purchase more to keep using AI features." });
+    }
+  }
+  await next();
+});
+
 // src/lib/ai-usage.ts
 function recordAiUsage(workspaceId, model, usage, opts) {
   if (!workspaceId || !usage) return;
@@ -53845,6 +53898,7 @@ function recordAiUsage(workspaceId, model, usage, opts) {
   const completion = Math.max(0, Math.round(usage.completion_tokens ?? 0));
   const total = Math.max(0, Math.round(usage.total_tokens ?? prompt + completion));
   if (prompt === 0 && completion === 0 && total === 0) return;
+  recordCreditUsage(workspaceId, total, `AI usage \xB7 ${model}`);
   const now = /* @__PURE__ */ new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
@@ -56303,9 +56357,6 @@ var zValidator = (target, schema, hook, options) => (
   })
 );
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/factory/index.js
-var createMiddleware = (middleware) => middleware;
-
 // src/middleware/auth.ts
 init_http_exception();
 init_cookie2();
@@ -58622,7 +58673,7 @@ ${lines}`;
   }
   return contextNote;
 }
-router6.post("/", requireAuth, zValidator("json", external_exports.object({
+router6.post("/", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().optional(),
   model: external_exports.enum(["auto", "fast", "smart"]).optional(),
@@ -58744,7 +58795,7 @@ router6.get("/credits", requireAuth, async (c2) => {
   const used = (data ?? []).reduce((sum, row) => sum + row.message_count, 0);
   return c2.json({ used, limit: 1e3, period_end: periodEnd });
 });
-router6.post("/stream", requireAuth, zValidator("json", external_exports.object({
+router6.post("/stream", requireAuth, verifyAiCredits, zValidator("json", external_exports.object({
   message: external_exports.string().min(1),
   thread_id: external_exports.string().optional(),
   model: external_exports.enum(["auto", "fast", "smart"]).optional(),
@@ -59561,6 +59612,7 @@ router11.post("/register", rateLimit(), zValidator("json", credSchema.extend({ n
     const ws = await ensureWorkspaceForUser(userId, name?.trim() ? `${name.trim()}'s Workspace` : "My Workspace");
     workspaceId = ws.workspaceId;
     await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
+    if (ws.isNew) await grantCredits(workspaceId, SOLO_GRANT, "grant", "Free-tier welcome credits");
   } catch (e2) {
     await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {
     }, () => {
@@ -59614,6 +59666,38 @@ router11.post("/activate", rateLimit(), zValidator("json", external_exports.obje
   if (error) return c2.json({ error: error.message }, 400);
   await issueSession(c2, claims.sub, claims.email, c2.req.header("user-agent"));
   return c2.json({ userId: claims.sub, email: claims.email, activated: true, ...await sessionProfile(claims.sub) }, 201);
+});
+router11.post("/request-password-reset", rateLimit(), zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+  const { email } = c2.req.valid("json");
+  const generic = { ok: true, message: "If an account exists for that email, a reset link is on its way." };
+  const cred = await credByEmail(email);
+  if (!cred) return c2.json(generic);
+  const token = await signResetToken(cred.user_id, cred.email);
+  const appUrl2 = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl2}/auth/reset?token=${encodeURIComponent(token)}`;
+  const member = await memberByEmail(email);
+  if (member?.workspace_id) {
+    await sendWorkspaceEmail(member.workspace_id, {
+      to: [{ email: cred.email }],
+      subject: "Reset your Mondaily password",
+      body: `<p>We received a request to reset your Mondaily password.</p>
+             <p><a href="${link}">Choose a new password</a></p>
+             <p>This link expires in 30 minutes. If you didn't request it, you can safely ignore this email.</p>`
+    }).catch(() => {
+    });
+  }
+  return c2.json(generic);
+});
+router11.post("/reset-password", rateLimit(), zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+  const { token, password } = c2.req.valid("json");
+  const claims = await verifyResetToken(token);
+  if (!claims) return c2.json({ error: "This reset link is invalid or has expired. Request a new one." }, 400);
+  const password_hash = await hashPassword(password);
+  const { error } = await supabase.from("auth_credentials").update({ password_hash, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("user_id", claims.sub);
+  if (error) return c2.json({ error: error.message }, 400);
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("user_id", claims.sub).is("revoked_at", null);
+  await issueSession(c2, claims.sub, claims.email, c2.req.header("user-agent"));
+  return c2.json({ ok: true, ...await sessionProfile(claims.sub) });
 });
 router11.post("/refresh", async (c2) => {
   const raw2 = getCookie(c2, REFRESH_COOKIE);
@@ -63828,6 +63912,38 @@ router38.get("/status", requireAuth, async (c2) => {
     sequence: false,
     apps: false
   });
+});
+router38.post("/complete", requireAuth, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const body = await c2.req.json().catch(() => ({}));
+  const track = body.track === "business" ? "business" : "solo";
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
+  const settings = wsRow?.settings ?? {};
+  await supabase.from("workspaces").update({
+    onboarded: true,
+    settings: {
+      ...settings,
+      track,
+      ...body.industry ? { industry: body.industry } : {},
+      ...body.team_size ? { team_size: body.team_size } : {},
+      ...Array.isArray(body.goals) ? { goals: body.goals } : {},
+      ...track === "business" ? { trial_ends_at: trialEndsAt } : {}
+    }
+  }).eq("id", ws);
+  if (track === "business") await grantCredits(ws, BUSINESS_TRIAL_GRANT, "grant", "14-day Pro trial credits");
+  const { count } = await supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
+  if ((count ?? 0) === 0) {
+    await supabase.from("tasks").insert([
+      { workspace_id: ws, title: "Add your first contact or company", status: "todo", assignee_id: userId, created_by: userId },
+      { workspace_id: ws, title: "Connect your inbox (Settings \u2192 Email)", status: "todo", assignee_id: userId, created_by: userId },
+      { workspace_id: ws, title: "Ask Mondaily to find new leads for you", status: "todo", assignee_id: userId, created_by: userId }
+    ]).then(() => {
+    }, () => {
+    });
+  }
+  return c2.json({ ok: true, track, trial_ends_at: track === "business" ? trialEndsAt : null });
 });
 
 // src/routes/status.ts

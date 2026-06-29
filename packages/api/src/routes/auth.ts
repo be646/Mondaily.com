@@ -9,10 +9,12 @@ import { ensureWorkspaceForUser } from "../lib/bootstrap";
 import {
   signAccessToken, verifyAccessToken, newRefreshToken, refreshExpiry, sha256,
   signActivationToken, verifyActivationToken,
+  signResetToken, verifyResetToken,
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
 } from "../lib/auth-tokens";
 import { sendWorkspaceEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
+import { grantCredits, SOLO_GRANT } from "../lib/credits";
 
 /**
  * Sovereign Auth — native email/password identity, mounted at /api/v1/auth/*. Runs ALONGSIDE
@@ -88,6 +90,7 @@ router.post("/register", rateLimit(), zValidator("json", credSchema.extend({ nam
     const ws = await ensureWorkspaceForUser(userId, name?.trim() ? `${name.trim()}'s Workspace` : "My Workspace");
     workspaceId = ws.workspaceId;
     await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
+    if (ws.isNew) await grantCredits(workspaceId, SOLO_GRANT, "grant", "Free-tier welcome credits");
   } catch (e) {
     await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {}, () => {});
     return c.json({ error: e instanceof Error ? e.message : "Failed to initialize workspace" }, 500);
@@ -150,6 +153,43 @@ router.post("/activate", rateLimit(), zValidator("json", z.object({ token: z.str
   if (error) return c.json({ error: error.message }, 400);
   await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
   return c.json({ userId: claims.sub, email: claims.email, activated: true, ...(await sessionProfile(claims.sub)) }, 201);
+});
+
+// POST /auth/request-password-reset — emails a short-lived reset link to the address on file.
+// Generic response (no account enumeration), rate-limited.
+router.post("/request-password-reset", rateLimit(), zValidator("json", z.object({ email: z.string().email() })), async (c) => {
+  const { email } = c.req.valid("json");
+  const generic = { ok: true, message: "If an account exists for that email, a reset link is on its way." };
+  const cred = await credByEmail(email);
+  if (!cred) return c.json(generic);
+  const token = await signResetToken(cred.user_id as string, cred.email as string);
+  const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl}/auth/reset?token=${encodeURIComponent(token)}`;
+  const member = await memberByEmail(email);
+  if (member?.workspace_id) {
+    await sendWorkspaceEmail(member.workspace_id, {
+      to: [{ email: cred.email as string }],
+      subject: "Reset your Mondaily password",
+      body: `<p>We received a request to reset your Mondaily password.</p>
+             <p><a href="${link}">Choose a new password</a></p>
+             <p>This link expires in 30 minutes. If you didn't request it, you can safely ignore this email.</p>`,
+    }).catch(() => {});
+  }
+  return c.json(generic);
+});
+
+// POST /auth/reset-password — verify the emailed token, set the new password, revoke all sessions.
+router.post("/reset-password", rateLimit(), zValidator("json", z.object({ token: z.string().min(1), password: z.string().min(PW_MIN).max(200) })), async (c) => {
+  const { token, password } = c.req.valid("json");
+  const claims = await verifyResetToken(token);
+  if (!claims) return c.json({ error: "This reset link is invalid or has expired. Request a new one." }, 400);
+  const password_hash = await hashPassword(password);
+  const { error } = await supabase.from("auth_credentials").update({ password_hash, updated_at: new Date().toISOString() }).eq("user_id", claims.sub);
+  if (error) return c.json({ error: error.message }, 400);
+  // Invalidate every existing session, then sign this device in fresh.
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: new Date().toISOString() }).eq("user_id", claims.sub).is("revoked_at", null);
+  await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
+  return c.json({ ok: true, ...(await sessionProfile(claims.sub)) });
 });
 
 // POST /auth/refresh — rotate the refresh token, mint a new access token.

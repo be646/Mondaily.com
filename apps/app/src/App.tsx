@@ -4,6 +4,8 @@ import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { ShadowLoginPage } from "./routes/auth/shadow-login";
 import { ShadowActivatePage } from "./routes/auth/shadow-activate";
 import { ShadowRegisterPage } from "./routes/auth/shadow-register";
+import { ShadowForgotPage } from "./routes/auth/shadow-forgot";
+import { ShadowResetPage } from "./routes/auth/shadow-reset";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { InviteAcceptPage } from "./routes/auth/invite-accept";
 import { OnboardingLayout } from "./routes/onboarding/onboarding-layout";
@@ -14,6 +16,7 @@ import { StepInvite } from "./routes/onboarding/step-invite";
 import { StepImport } from "./routes/onboarding/step-import";
 import { StepPlan } from "./routes/onboarding/step-plan";
 import { OnboardingPage } from "./routes/onboarding";
+import { SetupWizardPage } from "./routes/onboarding/setup-wizard";
 import { DashboardLayout } from "./routes/dashboard/layout";
 import { HomePage } from "./routes/dashboard/home";
 import { StatusPage } from "./routes/dashboard/status";
@@ -79,7 +82,7 @@ function DashboardRoute({ children }: { children: ReactNode }) {
   // New users (bootstrap returned is_new=true) go through onboarding before the dashboard
   if (localStorage.getItem("mondaily_needs_onboarding") === "1") {
     localStorage.removeItem("mondaily_needs_onboarding");
-    return <Navigate to="/onboarding/profile" replace />;
+    return <Navigate to="/onboarding/welcome" replace />;
   }
   return <>{children}</>;
 }
@@ -98,8 +101,11 @@ export function App() {
         <Route path="shadow-login" element={<ShadowLoginPage />} />
         <Route path="register" element={<ShadowRegisterPage />} />
         <Route path="shadow-activate" element={<ShadowActivatePage />} />
+        <Route path="forgot" element={<ShadowForgotPage />} />
+        <Route path="reset" element={<ShadowResetPage />} />
       </Route>
       <Route path="/onboarding-setup" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+      <Route path="/onboarding/welcome" element={<ProtectedRoute><SetupWizardPage /></ProtectedRoute>} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="profile" replace />} />
         <Route path="profile" element={<StepProfile />} />

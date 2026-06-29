@@ -9,6 +9,7 @@
  * add latency to — or fail — a real inference call. Call it without `await`.
  */
 import { supabase } from "@mondaily/db/client";
+import { recordCreditUsage } from "./credits";
 
 export type UsageMetrics = {
   prompt_tokens?: number;
@@ -31,6 +32,9 @@ export function recordAiUsage(
   const completion = Math.max(0, Math.round(usage.completion_tokens ?? 0));
   const total = Math.max(0, Math.round(usage.total_tokens ?? prompt + completion));
   if (prompt === 0 && completion === 0 && total === 0) return;
+
+  // Real-time credit deduction from the wallet (no-op for non-enrolled workspaces).
+  recordCreditUsage(workspaceId, total, `AI usage · ${model}`);
 
   // Monthly billing window — same shape the chat route used to write inline.
   const now = new Date();

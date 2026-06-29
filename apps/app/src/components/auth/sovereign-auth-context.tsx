@@ -34,6 +34,10 @@ interface SovereignAuthValue {
   requestActivation: (email: string) => Promise<void>;
   /** Legacy bridge step 2: set the password using the emailed token. */
   activate: (token: string, password: string) => Promise<void>;
+  /** Email a short-lived password-reset link to the address on file. */
+  requestPasswordReset: (email: string) => Promise<void>;
+  /** Set a new password using the emailed reset token (signs the user in). */
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
   /** Re-fetch /me and update the cached profile (e.g. after an avatar/name change). */
@@ -98,6 +102,20 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     throw new Error(r.data.error || "Activation failed.");
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    await authCall("/request-password-reset", { email });
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, password: string) => {
+    const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password });
+    if (r.status === 200 && (r.data as { ok?: boolean }).ok !== false) {
+      const me = await authCall<MeResp>("/me", undefined, "GET");
+      if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return; }
+      return;
+    }
+    throw new Error(r.data.error || "Could not reset your password.");
+  }, []);
+
   const logout = useCallback(async () => {
     await authCall("/logout").catch(() => {});
     setGuest();
@@ -108,7 +126,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     if (me.status === 200 && me.data.userId) setAuthed(toUser(me.data), me.data.workspaceId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <Ctx.Provider value={{ status, user, login, register, requestActivation, activate, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ status, user, login, register, requestActivation, activate, requestPasswordReset, resetPassword, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
 }
 
 export function useSovereignAuth(): SovereignAuthValue {

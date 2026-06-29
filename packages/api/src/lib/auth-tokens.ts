@@ -54,6 +54,22 @@ export async function verifyActivationToken(token: string): Promise<{ sub: strin
   }
 }
 
+// ── Password-reset tokens — short-lived, single-purpose, email-delivered ──────────
+const RESET_TTL_SECONDS = 30 * 60;
+export async function signResetToken(userId: string, email: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign({ sub: userId, email, type: "reset", iat: now, exp: now + RESET_TTL_SECONDS }, jwtSecret());
+}
+export async function verifyResetToken(token: string): Promise<{ sub: string; email: string } | null> {
+  try {
+    const p = (await verify(token, jwtSecret(), "HS256")) as Record<string, unknown>;
+    if (p.type !== "reset" || typeof p.sub !== "string" || typeof p.email !== "string") return null;
+    return { sub: p.sub, email: p.email };
+  } catch {
+    return null;
+  }
+}
+
 export function sha256(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
