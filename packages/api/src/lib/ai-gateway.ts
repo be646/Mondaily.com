@@ -604,8 +604,9 @@ export async function aiGatewayAgentStream(
     // reasoning-only round), recover with a clean non-streaming call so the user
     // never sees an empty "No response." — mirrors the non-streaming fallback.
     if (!r.reply || !r.reply.trim()) {
-      console.warn(`[gateway:agent-stream] empty streamed reply — recovering via non-streaming`);
-      const fb = await aiGatewayAgent(effectiveReq).catch(() => null);
+      console.warn(`[gateway:agent-stream] empty streamed reply — recovering on default model`);
+      const fbModel = resolveModel(CEREBRAS_DEFAULT_SPEC);
+      const fb = await runOpenAICompatAgent(fbModel.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
       if (fb?.reply?.trim()) {
         await onEvent({ type: "token", text: fb.reply });
         return { ...fb, usage: r.usage ?? fb.usage };
@@ -620,8 +621,12 @@ export async function aiGatewayAgentStream(
     return r;
   } catch (err: any) {
     lastGatewayError = { at: "agent-stream", message: err?.message ?? String(err), status: err?.status, when: new Date().toISOString() };
-    console.error(`[gateway:agent-stream] streaming failed: ${err?.message} — falling back to non-streaming`);
-    const r = await aiGatewayAgent(effectiveReq).catch(() => null);
+    console.error(`[gateway:agent-stream] streaming failed: ${err?.message} — recovering on default model`);
+    // Recover on the PROVEN default model directly (bypass routeAgentModel, which
+    // would re-pick the same failing fast model). This makes a broken/Preview
+    // AI_FAST_MODEL — e.g. one that 400s — non-fatal instead of breaking chat.
+    const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
+    const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
     const reply = r?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
     await onEvent({ type: "token", text: reply });
     return r ?? { reply, provider: "none", model: "none", rounds: 0 };
