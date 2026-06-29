@@ -1,4 +1,4 @@
-import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2, Square } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2, Square, Mic } from "lucide-react";
 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
@@ -18,6 +18,7 @@ import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
 import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
+import { useVoiceDictation } from "./use-voice";
 
 
 // ── Accent palette (same as home) ─────────────────────────────────────────────
@@ -84,6 +85,7 @@ const EMPTY_SUGGESTION_GROUPS = [
 export function AskMondaily() {
   const { threadId } = useParams();
   const [input, setInput] = useState("");
+  const voice = useVoiceDictation(setInput);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [promptPickerOpen, setPromptPickerOpen] = useState(false);
@@ -457,6 +459,13 @@ export function AskMondaily() {
               <Zap size={14}/>
             </button>
             <AttachButton attach={attach}/>
+            {voice.supported && (
+              <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
+                className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-[#f4f4f5] dark:hover:bg-[var(--surface-hover)]"}`}
+                style={{ color: voice.listening ? "var(--accent)" : "var(--text-muted)" }}>
+                <Mic size={14}/>
+              </button>
+            )}
             <textarea ref={inputRef} value={input} rows={1}
               onChange={e => { setInput(e.target.value); if (e.target.value.endsWith("@")) attach.setOpen(true); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}

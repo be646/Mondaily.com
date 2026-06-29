@@ -10,6 +10,7 @@ import {
   GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, friendlyAskError, TokenLedger, Markdown, sourcesToLinks,
 } from "../../components/ai/ask-shared";
 import { useAskEngine } from "../../components/ai/use-ask-engine";
+import { useVoiceDictation } from "../../components/ai/use-voice";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -153,6 +154,7 @@ export function HomePage() {
   const qc = useQueryClient();
   const askSectionRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const voice = useVoiceDictation(setInput);
   const [taskScope, setTaskScope] = useState<"mine" | "all">("mine");
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [taskWidgetInput, setTaskWidgetInput] = useState("");
@@ -806,9 +808,13 @@ export function HomePage() {
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-0.5" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
-            <button disabled title="Voice coming soon" className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full cursor-not-allowed opacity-40" style={{ color: "var(--text-faint)" }}>
-              <Mic size={15}/>
-            </button>
+            {voice.supported && (
+              <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
+                className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+                style={{ color: voice.listening ? "var(--accent)" : "var(--text-muted)" }}>
+                <Mic size={15}/>
+              </button>
+            )}
             {/* Send while idle; Stop (square) while generating */}
             <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
               title={loading ? "Stop generating" : "Send"}

@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2,
-  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain, Square, RotateCcw,
+  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain, Square, RotateCcw, Mic,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
@@ -14,6 +14,7 @@ import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { EvidenceStrip, SourceList, Markdown, TokenLedger, sourcesToLinks } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
+import { useVoiceDictation } from "./use-voice";
 
 // ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
 // main Ask page and Home: same endpoint, history/thread_id handling, real
@@ -23,6 +24,7 @@ import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-a
 function AskPanel({ onClose }: { onClose: () => void }) {
   const pageContext = useAskContextStore(s => s.context);
   const [input, setInput] = useState("");
+  const voice = useVoiceDictation(setInput);
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -269,6 +271,12 @@ function AskPanel({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex items-end gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
           <AttachButton attach={attach}/>
+          {voice.supported && (
+            <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
+              className={`shrink-0 transition-colors ${voice.listening ? "animate-pulse text-[var(--accent)]" : "text-stone-600 hover:text-stone-400"}`}>
+              <Mic size={12}/>
+            </button>
+          )}
           <textarea
             ref={taRef}
             value={input}
