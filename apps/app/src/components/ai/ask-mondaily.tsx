@@ -17,6 +17,7 @@ import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
 import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
+import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 
 // ── Markdown renderer — organized: ordered lists keep numbers, tables render as
 // real tables, headings/HR styled, tighter spacing. ─────────────────────────
@@ -188,10 +189,11 @@ export function AskMondaily() {
   // drawer): same endpoint, thread_id/history handling, agent inference,
   // and real sources. This page's context is general workspace scope
   // unless a thread is already open.
+  const attach = useAttachments();
   const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, streamStatus, doSend, loadThread, buildChipText, clear, stop } =
     useAskEngine({
       initialThreadId: threadId && threadId !== "new" ? threadId : null,
-      context: { scope_label: "the Ask Mondaily page (general workspace)" },
+      context: { scope_label: "the Ask Mondaily page (general workspace)", ...attach.attachContext },
       onAssistantMessage: startStreaming,
     });
 
@@ -260,7 +262,12 @@ export function AskMondaily() {
     if (stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading, streamedUpTo, streamingMsgIdx, messageMeta]);
 
-  const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
+  const send = () => {
+    const t = input.trim();
+    if (!t && attach.attachments.length === 0) return;
+    setInput(""); doSend(t || "Use the attached items.");
+    if (attach.attachments.length) attach.clear();
+  };
 
   const sendSuggestion = useCallback((text: string) => {
     setPromptPickerOpen(false);
@@ -525,14 +532,18 @@ export function AskMondaily() {
             </div>
           )}
 
+          <AttachPicker attach={attach}/>
+          <AttachChips attach={attach}/>
+
           {/* Input */}
           <div className="ask-input flex items-end gap-2 rounded-2xl px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
               <Zap size={14}/>
             </button>
+            <AttachButton attach={attach}/>
             <textarea ref={inputRef} value={input} rows={1}
-              onChange={e => { setInput(e.target.value); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; }}
+              onChange={e => { setInput(e.target.value); if (e.target.value.endsWith("@")) attach.setOpen(true); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; }}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={isChatting ? "Continue the conversation…" : "Ask the workspace graph anything…"}
               className="flex-1 resize-none self-center bg-transparent py-0.5 text-sm leading-6 outline-none placeholder:text-stone-400"

@@ -795,6 +795,7 @@ export function HomePage() {
             <textarea ref={inputRef} value={input} rows={1}
               onChange={e => {
                 setInput(e.target.value);
+                if (e.target.value.endsWith("@")) setAttachOpen(true); // @-mention → record picker
                 // Auto-expand up to a max height, then scroll inside.
                 const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
               }}

@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2,
-  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain, Square,
+  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain, Square, RotateCcw,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
@@ -13,6 +13,7 @@ import { getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { EvidenceStrip, SourceList, Markdown, TokenLedger, sourcesToLinks } from "./ask-shared";
+import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 
 // ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
 // main Ask page and Home: same endpoint, history/thread_id handling, real
@@ -29,8 +30,11 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { const el = taRef.current; if (el && input === "") el.style.height = "auto"; }, [input]);
 
-  const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText, stop } = useAskEngine({
-    context: pageContext ?? { scope_label: "the workspace (no page context)" },
+  const attach = useAttachments();
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const copyMsg = (text: string, i: number) => { navigator.clipboard?.writeText(text).then(() => { setCopiedIdx(i); setTimeout(() => setCopiedIdx(null), 1500); }).catch(() => {}); };
+  const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText, stop, regenerate } = useAskEngine({
+    context: { ...(pageContext ?? { scope_label: "the workspace (no page context)" }), ...attach.attachContext },
   });
 
   async function sendFeedback(userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) {
@@ -71,7 +75,12 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     if (stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading, messageMeta]);
 
-  const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
+  const send = () => {
+    const t = input.trim();
+    if (!t && attach.attachments.length === 0) return;
+    setInput(""); doSend(t || "Use the attached items.");
+    if (attach.attachments.length) attach.clear();
+  };
   const sendChip = (text: string) => doSend(text);
   const displayMessages = messages.length
     ? messages
@@ -170,6 +179,18 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                     <EvidenceStrip sources={meta.sources}/>
                   </div>
                 )}
+                {m.role === "assistant" && meta && !(loading && i === displayMessages.length - 1) && (
+                  <div className="flex items-center gap-0.5 ml-0.5">
+                    <button onClick={() => copyMsg(m.content, i)} title="Copy" className="rounded p-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: copiedIdx === i ? "var(--accent)" : "var(--text-faint)" }}>
+                      {copiedIdx === i ? <Check size={11}/> : <Copy size={11}/>}
+                    </button>
+                    {i === messages.length - 1 && !loading && (
+                      <button onClick={regenerate} title="Regenerate" className="rounded p-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-faint)" }}>
+                        <RotateCcw size={11}/>
+                      </button>
+                    )}
+                  </div>
+                )}
                 {m.role === "assistant" && meta?.usage && <TokenLedger usage={meta.usage}/>}
                 {m.role === "assistant" && meta && meta.sources.length > 0 && (
                   <div className="ml-1">
@@ -242,12 +263,17 @@ function AskPanel({ onClose }: { onClose: () => void }) {
 
       {/* Input */}
       <div className="border-t border-[var(--border-soft)] p-3 shrink-0">
+        <div className="relative">
+          <AttachPicker attach={attach}/>
+          <AttachChips attach={attach}/>
+        </div>
         <div className="flex items-end gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
+          <AttachButton attach={attach}/>
           <textarea
             ref={taRef}
             value={input}
             rows={1}
-            onChange={e => { setInput(e.target.value); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 120)}px`; }}
+            onChange={e => { setInput(e.target.value); if (e.target.value.endsWith("@")) attach.setOpen(true); const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 120)}px`; }}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask anything…"
             className="flex-1 resize-none self-center bg-transparent text-[12px] leading-5 text-[var(--text-primary)] placeholder-stone-600 outline-none"
