@@ -384,6 +384,11 @@ const TOOLS = [
     }
   },
   {
+    name: "list_workflows",
+    description: "List the workspace's workflows/automations with their on/off state. Use for 'what workflows do I have', 'list my automations', 'which workflows are active', or before enabling/disabling one so you know the exact name.",
+    input_schema: { type: "object", properties: {} }
+  },
+  {
     name: "set_workflow_enabled",
     description: "Enable (activate) or disable an EXISTING workflow by name. Use when the user explicitly says 'enable/activate/turn on the X workflow' or 'disable/pause/turn off X'. Enabling makes it run automatically on its trigger; disabling stops it. Only act on an explicit user instruction — never enable a workflow on your own initiative.",
     input_schema: {
@@ -428,7 +433,7 @@ const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
   { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
   { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
-  { tools: ["create_workflow_draft", "set_workflow_enabled"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
+  { tools: ["create_workflow_draft", "set_workflow_enabled", "list_workflows"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
   { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i },
 ];
 /** Pick the tools a query plausibly needs: CORE + any keyword-matched group.
@@ -1193,6 +1198,22 @@ async function executeTool(
           ? `with ${wfNodes.filter(n => n.kind === "trigger").length} trigger, ${wfNodes.filter(n => n.kind === "condition").length} condition(s), ${wfNodes.filter(n => n.kind === "action").length} action(s)`
           : "(empty — add steps in the builder)";
         return `Created a draft workflow "${input.name}" ${summary}. It's under Automations, saved as a draft. Open /automations/workflows/${data.id} to review and turn it on.`;
+      }
+
+      case "list_workflows": {
+        const { data: rows, error } = await supabase
+          .from("nodes").select("id, data")
+          .eq("workspace_id", workspaceId).eq("object_type", "automation").limit(100);
+        if (error) return `Error listing workflows: ${error.message}`;
+        const wfs = (rows ?? []).map(r => {
+          const d = (r.data ?? {}) as Record<string, unknown>;
+          const enabled = d.enabled === true || d.status === "active";
+          return { id: r.id, name: String(d.name ?? "Untitled workflow"), enabled };
+        });
+        if (!wfs.length) return "No workflows yet. Ask me to 'build a workflow that…' to create one.";
+        for (const w of wfs.slice(0, 8)) sources.push({ type: "workflow", title: w.name, node_id: w.id, object_type: "automation" });
+        const list = wfs.map(w => `- ${w.name} — ${w.enabled ? "🟢 active" : "⚪ disabled"}`).join("\n");
+        return `You have ${wfs.length} workflow(s):\n${list}`;
       }
 
       case "set_workflow_enabled": {
