@@ -1,5 +1,6 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
+import { createNotification } from "../lib/notify";
 
 /**
  * Proactive daily brief — a sovereign, in-house morning summary. Once a day it
@@ -48,10 +49,9 @@ export const dailyBrief = inngest.createFunction(
         if (pendingN > 0) parts.push(`${pendingN} pending decision${pendingN === 1 ? "" : "s"}`);
         if (recentN > 0) parts.push(`${recentN} record${recentN === 1 ? "" : "s"} updated`);
 
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId,
           type: "daily_brief",
-          is_read: false,
           title: "☀️ Your daily brief",
           body: `Today: ${parts.join(" · ")}. Ask "what should I focus on today?" for the full picture.`,
           metadata: { route: "/home", overdue, open: openCount, pending_decisions: pendingN, recent_records: recentN },

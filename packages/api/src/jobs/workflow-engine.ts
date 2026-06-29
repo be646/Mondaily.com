@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob } from "../lib/agent-logger";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
+import { createNotification } from "../lib/notify";
 
 /**
  * Workflow Agent execution engine.
@@ -229,7 +230,7 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
     return { action: action.type, mode: "executed", detail: "no field resolved" };
   }
   if (type === "notify") {
-    await supabase.from("notifications").insert({
+    await createNotification({
       workspace_id: workspaceId, type: "agent", title: `Workflow: ${action.label ?? "notification"}`,
       body: `Triggered for ${recName}`, metadata: { node_id: record.id, object_type: record.object_type },
     });

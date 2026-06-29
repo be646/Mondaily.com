@@ -1,5 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob } from "../lib/agent-logger";
+import { createNotification } from "../lib/notify";
 
 /**
  * Vertical agents — Opportunity, People, Portfolio, Asset.
@@ -35,7 +36,7 @@ function daysSince(iso?: string): number {
 }
 
 async function notify(workspaceId: string, title: string, body: string, metadata: Record<string, unknown> = {}) {
-  await supabase.from("notifications").insert({ workspace_id: workspaceId, type: "agent", title, body, metadata }).then(() => {}, () => {});
+  await createNotification({ workspace_id: workspaceId, type: "agent", title, body, metadata });
 }
 
 async function queueDecision(workspaceId: string, agent: string, recordId: string, title: string, summary: string, action: string, risk: "low" | "medium" | "high", evidenceTitle: string) {

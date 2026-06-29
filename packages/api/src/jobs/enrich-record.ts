@@ -1,6 +1,7 @@
 import { inngest, type Events } from "../lib/inngest";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { supabase } from "@mondaily/db/client";
+import { createNotification } from "../lib/notify";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 
 const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
@@ -273,7 +274,7 @@ export const enrichRecord = inngest.createFunction(
       // Create notification for the workspace — summarize the FLAT keys actually written.
       const flatKeys = Object.keys(flat);
       const summary = flatKeys.slice(0, 3).join(", ");
-      await supabase.from("notifications").insert({
+      await createNotification({
         workspace_id: workspaceId,
         type: "agent",
         title: "✦ Record enriched",

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
+import { createNotification } from "../lib/notify";
 
 const router = new Hono();
 
@@ -76,7 +77,7 @@ router.post("/nylas", async (c) => {
 
       if (conn) {
         // Notify workspace about new email
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: conn.workspace_id,
           type: "email",
           title: "New email received",

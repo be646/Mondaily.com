@@ -5,6 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
+import { createNotification } from "../lib/notify";
 
 type Variables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -48,17 +49,14 @@ async function notifyAdmins(workspaceId: string, title: string, body: string, cr
     .in("role", ["admin", "owner"]);
 
   if (!admins?.length) return;
-  await supabase.from("notifications").insert(
-    admins.map(a => ({
-      workspace_id: workspaceId,
-      user_id: a.user_id,
-      title,
-      body,
-      type: "credit_note",
-      is_read: false,
-      metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
-    }))
-  );
+  await Promise.all(admins.map(a => createNotification({
+    workspace_id: workspaceId,
+    user_id: a.user_id,
+    title,
+    body,
+    type: "credit_note",
+    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
+  })));
 }
 
 async function notifyReviewers(workspaceId: string, title: string, body: string, creditNoteId?: string) {
@@ -68,17 +66,14 @@ async function notifyReviewers(workspaceId: string, title: string, body: string,
     .eq("workspace_id", workspaceId)
     .in("finance_role" as never, ["reviewer", "approver"]);
   if (!reviewers?.length) return;
-  await supabase.from("notifications").insert(
-    reviewers.map((r) => ({
-      workspace_id: workspaceId,
-      user_id: r.user_id,
-      title,
-      body,
-      type: "credit_note",
-      is_read: false,
-      metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
-    }))
-  );
+  await Promise.all(reviewers.map((r) => createNotification({
+    workspace_id: workspaceId,
+    user_id: r.user_id,
+    title,
+    body,
+    type: "credit_note",
+    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
+  })));
 }
 
 async function getCreditNote(workspaceId: string, id: string) {
@@ -289,13 +284,12 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
     // Notify the creator
     const creatorId = node.created_by;
     if (creatorId) {
-      await supabase.from("notifications").insert({
+      await createNotification({
         workspace_id: workspaceId,
         user_id: creatorId,
         title: "Credit note rejected",
         body: `Your credit note has been rejected.`,
         type: "credit_note",
-        is_read: false,
         metadata: { credit_note_id: cnId, object_type: "credit_note" },
       });
     }

@@ -196,11 +196,12 @@ router.get("/objects", async (c) => {
 
 router.get("/notifications", async (c) => c.json(await rows("notifications", c.get("workspaceId"))));
 router.post("/notifications/:id/read", async (c) => {
-  await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id"));
+  // Set BOTH is_read + read_at so the bell's unread count (which keys on is_read) stays in sync.
+  await supabase.from("notifications").update({ is_read: true, read_at: new Date().toISOString() }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id"));
   return c.json({ ok: true });
 });
 router.post("/notifications/read-all", async (c) => {
-  await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("workspace_id", c.get("workspaceId")).is("read_at", null);
+  await supabase.from("notifications").update({ is_read: true, read_at: new Date().toISOString() }).eq("workspace_id", c.get("workspaceId")).eq("is_read", false);
   return c.json({ ok: true });
 });
 

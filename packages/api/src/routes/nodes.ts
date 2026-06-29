@@ -6,6 +6,7 @@ import { denyViewerWrites } from "../middleware/rbac";
 import * as ubc from "@mondaily/db/ubc";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
+import { createNotification } from "../lib/notify";
 
 /** Deal stage lives in data.deal_stage (fallbacks: stage, status). */
 function dealStageOf(data: unknown): string {
@@ -93,13 +94,12 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
     if (isDeal && newStage && oldStage !== newStage) {
       const d = (node.data ?? {}) as Record<string, unknown>;
       const name = String(d.name ?? d.title ?? "A deal");
-      await supabase.from("notifications").insert({
+      await createNotification({
         workspace_id: workspaceId,
         user_id: c.get("userId"),
         title: "Deal stage changed",
         body: `${name} moved${oldStage ? ` from ${oldStage}` : ""} to ${newStage}.`,
         type: "deal_stage",
-        is_read: false,
         metadata: { node_id: node.id, object_type: node.object_type, from: oldStage || null, to: newStage },
       });
     }

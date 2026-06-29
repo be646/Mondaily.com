@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
+import { createNotification } from "../lib/notify";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
 //    defenses never regress across model upgrades) ────────────────────────────
@@ -104,7 +105,7 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
           workspace_id: wsId, node_id: deal.id, alert_type: "cold_deal", days_inactive: daysInactive,
         });
         if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId, type: "alert", title: "🥶 Cold deal detected",
           body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
           metadata: { node_id: deal.id, object_type: "deal", days_inactive: daysInactive },
@@ -325,7 +326,7 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
           evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }],
         });
         steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId, type: "agent",
           title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
           body: `${days} days overdue · reminder #${chaseCount} drafted, awaiting your approval`,
@@ -396,7 +397,7 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
 
         const updatedNextDue = nextDueDateAfter(nextDue, invoice.data.recurring_frequency ?? "monthly");
         await supabase.from("nodes").update({ data: { ...invoice.data, next_due_date: updatedNextDue } }).eq("id", invoice.id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId, type: "agent", title: `Recurring invoice generated: ${newNumber}`,
           body: `Cloned from ${invoice.data.number ?? invoice.id} · Next due: ${updatedNextDue}`,
           metadata: { invoice_id: newInvoice.id, original_invoice_id: invoice.id, new_invoice_id: newInvoice.id, object_type: "invoice" },
@@ -484,7 +485,7 @@ export async function runEnrichWorkspace(workspaceId: string, limit = 10): Promi
       const added = await enrichOne(n.id, n.object_type, (n.data ?? {}) as Record<string, unknown>);
       if (added > 0) {
         enrichedCount++;
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: workspaceId, type: "agent", title: "✦ Record enriched",
           body: `AI filled in ${added} field(s)`, metadata: { nodeId: n.id, object_type: n.object_type, fields_added: added },
         });
