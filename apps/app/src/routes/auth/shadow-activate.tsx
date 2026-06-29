@@ -38,6 +38,7 @@ export function ShadowActivatePage() {
     try {
       await activate(email.trim(), password);
       setDone(true);
+      setTimeout(() => navigate("/home"), 900); // brief confirmation, then into the dashboard
     } catch (err) {
       setError(err instanceof Error ? err.message : "Activation failed.");
     } finally {
