@@ -1,9 +1,14 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { sendWorkspaceEmail } from "../lib/mail";
+
+// The invite-accept SPA route is /invite/:token (path param) — build links to match.
+const inviteUrl = (token: string) =>
+  `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -53,8 +58,7 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   // Deliver the invite to the incoming teammate from the workspace's connected
   // inbox. Best-effort: if no inbox is connected we still return the link so the
   // inviter can share it manually (email_sent flags which happened).
-  const appBase = process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com";
-  const inviteLink = `${appBase}/accept-invite?token=${data.token}`;
+  const inviteLink = inviteUrl(data.token as string);
   const emailSent = await sendWorkspaceEmail(c.get("workspaceId"), {
     to: [{ email: data.email }],
     subject: "You've been invited to a Mondaily workspace",
@@ -65,6 +69,27 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
       `<p>This invitation expires in 7 days.</p>`,
   });
   return c.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
+});
+
+// CREATE a shareable invite link — a tokenized invite NOT tied to a specific email, so the
+// "Copy invite link" button produces a real /invite/:token URL (accept() keys on the token).
+router.post("/link", requireAuth, async (c) => {
+  const callerRole = c.get("role");
+  if (!["admin", "owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
+  const { data, error } = await supabase
+    .from("workspace_invites")
+    .insert({
+      workspace_id: c.get("workspaceId"),
+      email: `link-${randomUUID().slice(0, 8)}@invite.local`, // placeholder; the unique key is (workspace,email)
+      role: "member",
+      finance_role: "none",
+      invited_by: c.get("userId"),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    .select("token")
+    .single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ invite_link: inviteUrl(data.token as string) }, 201);
 });
 
 // CANCEL invite

@@ -1135,13 +1135,6 @@ html[data-theme="dark"] .minimal-sparkline {
   }
 }
 
-/* ── Clerk auth overrides ─────────────────────────────────────────────── */
-.cl-logoBox, .cl-logoImage, .cl-badge, .cl-internal-badge,
-[data-localization-key="badge__dev_mode"],
-[data-localization-key="badge__secured_by_clerk"] {
-  display: none !important;
-}
-
 /* ── Global border & radius tokens ───────────────────────────────────────── */
 @layer base {
   .rounded-xl  { border-radius: 8px; }

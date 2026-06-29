@@ -546,12 +546,20 @@ router.post("/settings/integrations/mcp-token", async (c) => {
 });
 router.get("/settings/security", async (c) => {
   const settings = await workspaceSettings(c.get("workspaceId"));
+  // Real active sessions = the caller's live (non-revoked, unexpired) refresh tokens.
+  const { data: sessions } = await supabase
+    .from("auth_refresh_tokens")
+    .select("id, user_agent, created_at, expires_at")
+    .eq("user_id", c.get("userId"))
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
   return c.json({
     saml_enabled: settings.saml_enabled ?? false,
     saml_domain: settings.saml_domain ?? "",
     export_restricted: settings.export_restricted ?? false,
     protected_recipients: settings.protected_recipients ?? [],
-    sessions: []
+    sessions: sessions ?? [],
   });
 });
 router.patch("/settings/security", async (c) => {
@@ -559,7 +567,17 @@ router.patch("/settings/security", async (c) => {
   await mergeWorkspaceSettings(c.get("workspaceId"), updates);
   return c.json({ ok: true });
 });
-router.delete("/settings/security/sessions/:id", (c) => c.json({ ok: true }));
+// Revoke a specific session — delete the matching refresh-token row (scoped to the caller so
+// you can only kill your OWN sessions), instantly invalidating that device's refresh on next use.
+router.delete("/settings/security/sessions/:id", async (c) => {
+  const { error } = await supabase
+    .from("auth_refresh_tokens")
+    .delete()
+    .eq("id", c.req.param("id"))
+    .eq("user_id", c.get("userId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
 router.get("/settings/email", async (c) => {
   const settings = await workspaceSettings(c.get("workspaceId"));
   const integrations = (settings.integrations ?? {}) as Record<string, boolean>;

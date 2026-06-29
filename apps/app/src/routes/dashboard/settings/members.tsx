@@ -85,11 +85,16 @@ export function MembersSettings() {
   const myRole = data.members.find((m) => m.email?.toLowerCase() === myEmail)?.role ?? "member";
   const isAdmin = myRole === "owner" || myRole === "admin";
 
-  function copyInviteLink() {
-    const workspaceId = localStorage.getItem("mondaily_workspace_id") ?? "";
-    navigator.clipboard.writeText(`${window.location.origin}/invite/${workspaceId}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function copyInviteLink() {
+    try {
+      // Mint a real tokenized invite link (was incorrectly using the raw workspace id).
+      const { invite_link } = await apiClient.post<{ invite_link: string }>("/invites/link", {});
+      await navigator.clipboard.writeText(invite_link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("[invite-link]", e);
+    }
   }
 
   function addToTeam(teamId: string, memberId: string) {

@@ -11941,7 +11941,7 @@ function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto6.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url2((0, import_node_crypto7.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -11957,7 +11957,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto6.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -11965,11 +11965,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto6, b64url2;
+var import_node_crypto7, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto6 = require("crypto");
+    import_node_crypto7 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -60290,12 +60290,13 @@ router14.post("/settings/integrations/mcp-token", async (c2) => {
 });
 router14.get("/settings/security", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
+  const { data: sessions } = await supabase.from("auth_refresh_tokens").select("id, user_agent, created_at, expires_at").eq("user_id", c2.get("userId")).is("revoked_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
   return c2.json({
     saml_enabled: settings.saml_enabled ?? false,
     saml_domain: settings.saml_domain ?? "",
     export_restricted: settings.export_restricted ?? false,
     protected_recipients: settings.protected_recipients ?? [],
-    sessions: []
+    sessions: sessions ?? []
   });
 });
 router14.patch("/settings/security", async (c2) => {
@@ -60303,7 +60304,11 @@ router14.patch("/settings/security", async (c2) => {
   await mergeWorkspaceSettings(c2.get("workspaceId"), updates);
   return c2.json({ ok: true });
 });
-router14.delete("/settings/security/sessions/:id", (c2) => c2.json({ ok: true }));
+router14.delete("/settings/security/sessions/:id", async (c2) => {
+  const { error } = await supabase.from("auth_refresh_tokens").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId"));
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ ok: true });
+});
 router14.get("/settings/email", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const integrations = settings.integrations ?? {};
@@ -60428,6 +60433,8 @@ router14.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
+var import_node_crypto6 = require("crypto");
+var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
 var router15 = new Hono2();
 var inviteSchema = external_exports.object({
   email: external_exports.string().email(),
@@ -60452,14 +60459,28 @@ router15.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => 
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString()
   }, { onConflict: "workspace_id,email", ignoreDuplicates: false }).select("id,email,role,finance_role,token,expires_at,created_at").single();
   if (error) return c2.json({ error: error.message }, 500);
-  const appBase = process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com";
-  const inviteLink = `${appBase}/accept-invite?token=${data.token}`;
+  const inviteLink = inviteUrl(data.token);
   const emailSent = await sendWorkspaceEmail(c2.get("workspaceId"), {
     to: [{ email: data.email }],
     subject: "You've been invited to a Mondaily workspace",
     body: `<p>You've been invited to collaborate in a Mondaily workspace.</p><p><a href="${inviteLink}">Accept your invitation</a></p><p>If the button doesn't work, paste this link into your browser:<br/>${inviteLink}</p><p>This invitation expires in 7 days.</p>`
   });
   return c2.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
+});
+router15.post("/link", requireAuth, async (c2) => {
+  const callerRole = c2.get("role");
+  if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
+  const { data, error } = await supabase.from("workspace_invites").insert({
+    workspace_id: c2.get("workspaceId"),
+    email: `link-${(0, import_node_crypto6.randomUUID)().slice(0, 8)}@invite.local`,
+    // placeholder; the unique key is (workspace,email)
+    role: "member",
+    finance_role: "none",
+    invited_by: c2.get("userId"),
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString()
+  }).select("token").single();
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ invite_link: inviteUrl(data.token) }, 201);
 });
 router15.delete("/:id", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
@@ -64075,13 +64096,13 @@ router42.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto7 = require("crypto");
+var import_node_crypto8 = require("crypto");
 var router43 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto7.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto8.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -64089,10 +64110,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto7.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto8.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;

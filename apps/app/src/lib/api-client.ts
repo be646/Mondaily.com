@@ -10,9 +10,8 @@ export function setTokenProvider(fn: () => Promise<string | null>) {
   _getToken = fn;
 }
 
-// Returns Authorization + X-Workspace-Id headers using the Clerk token provider.
-// Use this everywhere instead of reading mondaily_session_token from localStorage
-// (that key is never written and will always be null).
+// Returns the X-Workspace-Id header (+ Content-Type). Auth itself rides on the HttpOnly
+// session cookie, so callers must also send credentials:"include" (use apiFetch, which does).
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const token = _getToken ? await _getToken() : null;
   const workspaceId = localStorage.getItem("mondaily_workspace_id");

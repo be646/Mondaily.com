@@ -3,9 +3,8 @@ import type { ReactNode } from "react";
 import { BASE_URL } from "../../lib/api-client";
 
 /**
- * Shadow-mode client for Sovereign Auth (/api/v1/auth/*). Runs ENTIRELY in parallel to Clerk:
- * its own cookie-based session, its own context — it never touches Clerk's hooks or session,
- * so the two coexist without collision. Cookies are HttpOnly, so we never read tokens in JS;
+ * Client for Sovereign Auth (/api/v1/auth/*) — the app's sole authentication runtime. Owns a
+ * cookie-based session via its own context. Cookies are HttpOnly, so we never read tokens in JS;
  * we just call the endpoints with credentials:"include" and trust the browser.
  */
 const AUTH_URL = `${BASE_URL}/api/v1/auth`;
@@ -118,7 +117,7 @@ export function useSovereignAuth(): SovereignAuthValue {
   return v;
 }
 
-/** Non-throwing accessor — returns null when the provider isn't mounted (Clerk mode).
+/** Non-throwing accessor — returns null when the provider isn't mounted.
  *  Lets the unified useCurrentUser() call it unconditionally without violating hook rules. */
 export function useSovereignAuthOptional(): SovereignAuthValue | null {
   return useContext(Ctx);
