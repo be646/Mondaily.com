@@ -1,14 +1,11 @@
 import type { ReactNode } from "react";
 import { useCurrentUser } from "./hooks/useCurrentUser";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
-import { SovereignAuthProvider } from "./components/auth/sovereign-auth-context";
 import { ShadowLoginPage } from "./routes/auth/shadow-login";
 import { ShadowActivatePage } from "./routes/auth/shadow-activate";
-import { SignInPage } from "./routes/auth/sign-in";
-import { SignUpPage } from "./routes/auth/sign-up";
+import { ShadowRegisterPage } from "./routes/auth/shadow-register";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { InviteAcceptPage } from "./routes/auth/invite-accept";
-import { SsoCallbackPage } from "./routes/auth/sso-callback";
 import { OnboardingLayout } from "./routes/onboarding/onboarding-layout";
 import { StepProfile } from "./routes/onboarding/step-profile";
 import { StepWorkspace } from "./routes/onboarding/step-workspace";
@@ -66,7 +63,7 @@ import { ExpensesPage } from "./routes/dashboard/finance/expenses";
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useCurrentUser();
   if (!isLoaded) return null;
-  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  if (!isSignedIn) return <Navigate to="/auth/shadow-login" replace />;
   return <>{children}</>;
 }
 
@@ -76,7 +73,7 @@ function DashboardRoute({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded, workspaceId } = useCurrentUser();
   const location = useLocation();
   if (!isLoaded) return null;
-  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  if (!isSignedIn) return <Navigate to="/auth/shadow-login" replace />;
   const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
   if (!hasWorkspace) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
   // New users (bootstrap returned is_new=true) go through onboarding before the dashboard
@@ -90,14 +87,16 @@ function DashboardRoute({ children }: { children: ReactNode }) {
 export function App() {
   return (
     <Routes>
-      <Route path="/sign-in/*" element={<SignInPage />} />
-      <Route path="/sign-up/*" element={<SignUpPage />} />
+      {/* Legacy Clerk auth paths → native login */}
+      <Route path="/sign-in/*" element={<Navigate to="/auth/shadow-login" replace />} />
+      <Route path="/sign-up/*" element={<Navigate to="/auth/register" replace />} />
+      <Route path="/sso-callback" element={<Navigate to="/auth/shadow-login" replace />} />
       <Route path="/workspaces" element={<WorkspaceSelectPage />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
-      <Route path="/sso-callback" element={<SsoCallbackPage />} />
-      {/* Sovereign Auth (shadow mode) — native cookie session, runs alongside Clerk */}
-      <Route path="/auth" element={<SovereignAuthProvider><Outlet /></SovereignAuthProvider>}>
+      {/* Sovereign Auth — native cookie session (the sole auth runtime) */}
+      <Route path="/auth" element={<Outlet />}>
         <Route path="shadow-login" element={<ShadowLoginPage />} />
+        <Route path="register" element={<ShadowRegisterPage />} />
         <Route path="shadow-activate" element={<ShadowActivatePage />} />
       </Route>
       <Route path="/onboarding-setup" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />

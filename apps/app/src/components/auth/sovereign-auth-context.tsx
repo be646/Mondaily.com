@@ -27,8 +27,10 @@ type Status = "loading" | "authenticated" | "unauthenticated";
 interface SovereignAuthValue {
   status: Status;
   user: SovereignUser | null;
-  /** Returns { requiresActivation: true } for legacy Clerk users with no password yet. */
+  /** Returns { requiresActivation: true } for legacy users with no password yet. */
   login: (email: string, password: string) => Promise<{ requiresActivation?: boolean }>;
+  /** New account: creates credentials + a fresh workspace (owner). */
+  register: (email: string, password: string, name?: string) => Promise<void>;
   activate: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
@@ -76,6 +78,12 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     throw new Error(r.data.error || "Invalid email or password.");
   }, []);
 
+  const register = useCallback(async (email: string, password: string, name?: string) => {
+    const r = await authCall<MeResp & { error?: string }>("/register", { email, password, name });
+    if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
+    throw new Error(r.data.error || "Registration failed.");
+  }, []);
+
   const activate = useCallback(async (email: string, password: string) => {
     const r = await authCall<MeResp & { error?: string }>("/activate", { email, password });
     if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
@@ -87,7 +95,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     setGuest();
   }, []);
 
-  return <Ctx.Provider value={{ status, user, login, activate, logout, refresh }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ status, user, login, register, activate, logout, refresh }}>{children}</Ctx.Provider>;
 }
 
 export function useSovereignAuth(): SovereignAuthValue {

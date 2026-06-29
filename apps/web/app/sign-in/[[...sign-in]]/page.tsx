@@ -1,9 +1,6 @@
-import { SignIn } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 
+// Auth lives in the app (native sovereign auth). Bounce the legacy marketing route there.
 export default function SignInPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <SignIn />
-    </div>
-  );
+  redirect("https://app.mondaily.com/auth/shadow-login");
 }

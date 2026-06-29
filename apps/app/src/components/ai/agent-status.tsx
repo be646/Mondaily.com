@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useUser, useClerk } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
@@ -356,8 +357,8 @@ function applyHeaderTheme(theme: "light" | "dark") {
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}) {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const me = useCurrentUser();
+  const sov = useSovereignAuthOptional();
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -365,9 +366,9 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   const [shareOpen, setShareOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => getCurrentTheme());
 
-  const initials = user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "U";
-  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Account";
-  const avatarUrl = user?.imageUrl;
+  const initials = (me.name || me.email)?.[0]?.toUpperCase() ?? "U";
+  const fullName = me.name || "Account";
+  const avatarUrl = me.imageUrl ?? undefined;
   const showShare = SHARE_PATHS.some(p => location.pathname.includes(p));
   const ThemeIcon = theme === "dark" ? Sun : Moon;
 
@@ -453,7 +454,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                     </div>
                     <div className="min-w-0">
                       <div className="truncate text-[12px] font-medium text-[var(--text-primary)]">{fullName}</div>
-                      <div className="truncate text-[10px] text-stone-600">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                      <div className="truncate text-[10px] text-stone-600">{me.email}</div>
                     </div>
                   </div>
                   <Link to="/settings/account" onClick={() => setUserMenuOpen(false)} className="dropdown-item">
@@ -464,7 +465,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
                   </Link>
                   <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
                   <button
-                    onClick={() => { setUserMenuOpen(false); signOut(() => navigate("/sign-in")); }}
+                    onClick={async () => { setUserMenuOpen(false); await sov?.logout(); localStorage.removeItem("mondaily_workspace_id"); navigate("/auth/shadow-login"); }}
                     className="dropdown-item text-stone-400 hover:text-stone-300"
                   >
                     <LogOut size={12}/> Sign out

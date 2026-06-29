@@ -1,7 +1,7 @@
-import { useOrganizationList, useAuth } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Building2, Plus, Database, ListChecks, CheckSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apiClient } from "../../lib/api-client";
 
 interface MyWorkspace {
   workspace_id: string; name: string; role: string;
@@ -9,52 +9,17 @@ interface MyWorkspace {
 }
 
 /**
- * Workspace picker — shows every real Supabase workspace this user has a
- * workspace_members row for (with real data counts), not only Clerk orgs.
- * Built after a production incident where a stale/empty workspace_id made
- * a user's real data look "missing" — this page exists so a user (or
- * support) can always see and pick the workspace that actually has data,
- * never guessing from a cached localStorage value. Read-only: selecting a
- * workspace below never creates or deletes anything.
+ * Workspace picker — shows every Supabase workspace this user has a workspace_members row for
+ * (with real data counts). Read-only: selecting one only sets the active workspace locally.
  */
 export function WorkspaceSelectPage() {
   const navigate = useNavigate();
-  const { getToken } = useAuth();
-  const { userMemberships, setActive } = useOrganizationList({ userMemberships: { infinite: true } });
-  const orgMemberships = userMemberships?.data ?? [];
 
   const myWorkspacesQuery = useQuery({
     queryKey: ["workspaces", "mine"],
-    queryFn: async () => {
-      const token = await getToken();
-      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-      const res = await fetch(`${apiBase}/api/v1/workspaces/mine`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error("Failed to load workspaces");
-      const data = await res.json() as { workspaces: MyWorkspace[] };
-      return data.workspaces;
-    },
+    queryFn: () => apiClient.get<{ workspaces: MyWorkspace[] }>("/workspaces/mine").then(d => d.workspaces),
   });
   const myWorkspaces = myWorkspacesQuery.data ?? [];
-
-  async function selectOrg(organizationId: string, orgName: string) {
-    await setActive?.({ organization: organizationId });
-    try {
-      const token = await getToken();
-      const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-      const res = await fetch(`${apiBase}/api/v1/onboarding/bootstrap`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ clerk_org_id: organizationId, name: orgName }),
-      });
-      if (res.ok) {
-        const { workspace_id } = (await res.json()) as { workspace_id: string };
-        localStorage.setItem("mondaily_workspace_id", workspace_id);
-      }
-    } catch { /* non-fatal */ }
-    navigate("/home");
-  }
 
   function selectWorkspaceId(workspaceId: string) {
     localStorage.setItem("mondaily_workspace_id", workspaceId);
@@ -90,24 +55,6 @@ export function WorkspaceSelectPage() {
             </button>
           ))}
         </div>
-
-        {orgMemberships.length > 0 && (
-          <>
-            <p className="mb-2 mt-5 text-[11px] uppercase tracking-widest text-stone-600">Organizations</p>
-            <div className="space-y-2">
-              {orgMemberships.map(({ organization, role }) => (
-                <button key={organization.id} onClick={() => selectOrg(organization.id, organization.name)} className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)]">
-                  <div className="grid h-9 w-9 place-items-center rounded-md bg-red-500/10 text-sm font-semibold text-red-400">{organization.name.charAt(0)}</div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{organization.name}</p>
-                    <p className="text-xs capitalize text-stone-500">{role.replace("org:", "")}</p>
-                  </div>
-                  <ArrowRight size={15} className="text-stone-600" />
-                </button>
-              ))}
-            </div>
-          </>
-        )}
 
         <button onClick={() => navigate("/onboarding/workspace")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-3 text-sm text-stone-400 hover:text-[var(--text-primary)]">
           <Plus size={15} /> Create new workspace

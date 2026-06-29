@@ -13,7 +13,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 function secret(): string {
-  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || process.env.CLERK_SECRET_KEY || "mondaily-dev-tracking-secret";
+  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 
 const b64url = (b: Buffer | string): string =>

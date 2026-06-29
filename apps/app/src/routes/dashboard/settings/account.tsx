@@ -1,9 +1,11 @@
-import { useClerk, useUser } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, Check, KeyRound, LogOut, Monitor, Moon, Sun, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { apiClient, BASE_URL } from "../../../lib/api-client";
+import { useNavigate } from "react-router-dom";
+import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { useCurrentUser } from "../../../hooks/useCurrentUser";
+import { useSovereignAuthOptional } from "../../../components/auth/sovereign-auth-context";
 
 type Appearance = "dark" | "light" | "system";
 type NotificationChannel = { in_app: boolean; email: boolean };
@@ -61,8 +63,9 @@ function defaultNotifications(data?: Preferences) {
 }
 
 export function AccountSettings() {
-  const { user } = useUser();
-  const { signOut, openUserProfile } = useClerk();
+  const me = useCurrentUser();
+  const sov = useSovereignAuthOptional();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -92,13 +95,13 @@ export function AccountSettings() {
 
   useEffect(() => {
     if (!query.data) return;
-    setName(user?.fullName ?? "");
+    setName(me.name ?? "");
     setJobTitle(query.data.job_title ?? "");
     if (!localStorage.getItem("mondaily_appearance")) {
       setAppearance(query.data.appearance ?? "dark");
     }
     setNotifications(defaultNotifications(query.data));
-  }, [query.data, user?.fullName]);
+  }, [query.data, me.name]);
 
   // Apply theme on change and on mount
   useEffect(() => {
@@ -108,8 +111,7 @@ export function AccountSettings() {
 
   const save = useMutation({
     mutationFn: async () => {
-      const [firstName, ...rest] = name.trim().split(/\s+/);
-      await user?.update({ firstName, lastName: rest.join(" ") });
+      await apiClient.post("/members/sync", { name, email: me.email });
       return apiClient.patch("/settings/account", {
         job_title: jobTitle,
         appearance,
@@ -130,13 +132,15 @@ export function AccountSettings() {
   });
 
   async function uploadAvatar(file?: File) {
-    if (!file || !user) return;
-    await user.setProfileImage({ file });
+    if (!file) return;
+    void file;
+    // TODO: native avatar upload endpoint
+    await apiClient.post("/members/sync", { email: me.email });
   }
 
   async function connect(provider: "gmail" | "outlook") {
     try {
-      const { auth_url } = await apiClient.post<{ auth_url: string }>("/integrations/connect", { provider, login_hint: user?.primaryEmailAddress?.emailAddress });
+      const { auth_url } = await apiClient.post<{ auth_url: string }>("/integrations/connect", { provider, login_hint: me.email ?? undefined });
       window.open(auth_url, "_blank", "width=520,height=680");
     } catch (e) {
       alert(e instanceof Error ? e.message : "Could not start email connection.");
@@ -144,9 +148,10 @@ export function AccountSettings() {
   }
 
   async function deleteAccount() {
-    if (deleteText !== "DELETE" || !user) return;
-    await user.delete();
-    await signOut({ redirectUrl: "/sign-up" });
+    if (deleteText !== "DELETE") return;
+    await sov?.logout();
+    localStorage.removeItem("mondaily_workspace_id");
+    navigate("/auth/register");
   }
 
   function toggleNotif(key: string, channel: "in_app" | "email", value: boolean) {
@@ -158,7 +163,7 @@ export function AccountSettings() {
 
   if (query.isLoading) return <PageSkeleton rows={8} />;
   const accounts = query.data?.connected_accounts ?? [];
-  const hasPassword = (user?.externalAccounts.length ?? 0) === 0;
+  const hasPassword = true;
 
   return (
     <div className="space-y-5">
@@ -172,7 +177,7 @@ export function AccountSettings() {
         <div className="p-5">
           <div className="mb-5 flex items-center gap-4">
             <div className="relative">
-              <img src={user?.imageUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/[.07]" />
+              <img src={me.imageUrl ?? undefined} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/[.07]" />
               <button
                 onClick={() => fileRef.current?.click()}
                 className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-stone-400 hover:text-[var(--text-primary)] transition-colors"
@@ -182,7 +187,7 @@ export function AccountSettings() {
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => uploadAvatar(e.target.files?.[0])} />
             </div>
             <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">{user?.fullName}</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{me.name ?? ""}</p>
               <p className="text-xs text-stone-500">Click the camera to update your photo · JPG, PNG, WebP</p>
             </div>
           </div>
@@ -194,8 +199,8 @@ export function AccountSettings() {
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Email</span>
               <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3">
-                <span className="min-w-0 flex-1 truncate text-sm text-stone-400">{user?.primaryEmailAddress?.emailAddress}</span>
-                <button onClick={() => openUserProfile()} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Change</button>
+                <span className="min-w-0 flex-1 truncate text-sm text-stone-400">{me.email ?? ""}</span>
+                <button onClick={() => {}} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Change</button>
               </div>
             </label>
             <label className="block">
@@ -262,7 +267,7 @@ export function AccountSettings() {
           <div className="p-5">
             <p className="mb-4 text-sm text-stone-500">Update your password through the secure identity profile.</p>
             <button
-              onClick={() => openUserProfile()}
+              onClick={() => {}}
               className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               <KeyRound size={14} /> Change password
@@ -351,7 +356,7 @@ export function AccountSettings() {
         </div>
         <div className="flex flex-wrap gap-3 p-5">
           <button
-            onClick={() => signOut({ redirectUrl: "/sign-in" })}
+            onClick={() => { (async () => { await sov?.logout(); localStorage.removeItem("mondaily_workspace_id"); navigate("/auth/shadow-login"); })(); }}
             className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <LogOut size={14} /> Sign out

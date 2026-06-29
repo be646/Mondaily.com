@@ -46,12 +46,12 @@ router.get("/", async (c) => {
     checks.push({ id: "database", label: "Supabase / database connection", state: "error", explanation: "Could not reach the database." });
   }
 
-  // Auth (Clerk)
-  const clerkConfigured = Boolean(process.env.CLERK_SECRET_KEY || process.env.CLERK_JWT_KEY);
+  // Auth (Sovereign — native email/password + cookie sessions)
+  const authConfigured = Boolean(process.env.AUTH_JWT_SECRET);
   checks.push({
-    id: "auth", label: "Clerk / auth configured",
-    state: clerkConfigured ? "operational" : "needs_setup",
-    explanation: clerkConfigured ? "CLERK_SECRET_KEY or CLERK_JWT_KEY is set — and this request itself passed Clerk auth." : "No Clerk key found in this environment.",
+    id: "auth", label: "Sovereign auth configured",
+    state: authConfigured ? "operational" : "needs_setup",
+    explanation: authConfigured ? "AUTH_JWT_SECRET is set — native session signing is active, and this request itself passed sovereign auth." : "AUTH_JWT_SECRET is not set — native auth cannot sign sessions.",
   });
 
   // Ask Mondaily (Cerebras openai-compat gateway)

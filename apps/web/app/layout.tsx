@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import { Orbitron, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -26,9 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${orbitron.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <ClerkProvider>
-          {children}
-        </ClerkProvider>
+        {children}
       </body>
     </html>
   );

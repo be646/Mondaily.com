@@ -8,9 +8,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiClient, USE_SOVEREIGN_AUTH } from "../../lib/api-client";
+import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
-import { useClerk, useUser } from "@clerk/react";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
 import { SidebarObjects } from "./sidebar-records";
@@ -351,21 +350,15 @@ function NavGroup({ label, items, unreadCount }: {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) {
   const navigate = useNavigate();
-  const { signOut } = useClerk();
-  const { user } = useUser();
-  const me = useCurrentUser(); // unified identity (sovereign or Clerk) for profile display
+  const me = useCurrentUser(); // unified (sovereign) identity for profile display
   const sov = useSovereignAuthOptional();
 
-  // Unified sign-out: native cookie-clear when the sovereign flag is on, else Clerk.
+  // Native sign-out: clear the cookie session + local workspace, return to login.
   async function handleSignOut() {
     setWorkspaceOpen(false);
-    if (USE_SOVEREIGN_AUTH) {
-      await sov?.logout();
-      localStorage.removeItem("mondaily_workspace_id");
-      navigate("/auth/shadow-login");
-    } else {
-      signOut(() => navigate("/sign-in"));
-    }
+    await sov?.logout();
+    localStorage.removeItem("mondaily_workspace_id");
+    navigate("/auth/shadow-login");
   }
   const { hasFinance } = useModules();
   const [collapsed, setCollapsed] = useState(false);
@@ -397,13 +390,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       setCreatingWs(false);
     }
   }
-
-  useEffect(() => {
-    const email = user?.primaryEmailAddress?.emailAddress;
-    const name = user?.fullName || user?.firstName;
-    if (!user?.id || !email) return;
-    apiClient.post("/members/sync", { email, name: name || email, avatar_url: user.imageUrl || undefined }).catch((e) => console.error("[bg-task] swallowed error:", e));
-  }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName]);
 
   // Workspace title from our own Postgres (workspace settings) — not Clerk's organization.
   const { data: wsSettings } = useQuery<{ name?: string }>({

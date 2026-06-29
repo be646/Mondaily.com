@@ -165,23 +165,17 @@ app.get("/api/cron/daily", async (c) => {
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.8.0-objreg" }));
 
 app.get("/api/debug-auth", async (c) => {
-  const token = c.req.header("Authorization")?.replace("Bearer ", "");
-  const clerkKey = process.env.CLERK_SECRET_KEY;
+  const { getCookie } = await import("hono/cookie");
+  const { verifyAccessToken, ACCESS_COOKIE } = await import("./lib/auth-tokens");
+  const at = getCookie(c, ACCESS_COOKIE);
   const info: Record<string, string> = {
-    clerk_key_set: clerkKey ? "yes" : "no",
-    clerk_key_prefix: clerkKey?.substring(0, 12) ?? "NOT SET",
-    token_received: token ? "yes" : "no",
-    token_prefix: token?.substring(0, 20) ?? "none",
+    auth_secret_set: process.env.AUTH_JWT_SECRET ? "yes" : "no",
+    access_cookie: at ? "present" : "absent",
   };
-  if (token && clerkKey) {
-    try {
-      const { verifyToken } = await import("@clerk/backend");
-      const verified = await verifyToken(token, { secretKey: clerkKey, skipJwksCache: true });
-      info.verify_result = "ok";
-      info.sub = verified.sub;
-    } catch (e: any) {
-      info.verify_error = e?.message ?? String(e);
-    }
+  if (at) {
+    const claims = await verifyAccessToken(at);
+    info.verify_result = claims ? "ok" : "invalid";
+    if (claims) info.sub = claims.sub;
   }
   return c.json(info);
 });

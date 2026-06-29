@@ -42,23 +42,9 @@ router.post("/sync", requireJwt, async (c) => {
   let body: { email?: string; name?: string; avatar_url?: string } = {};
   try { body = await c.req.json(); } catch {}
 
-  let email = body.email || "";
-  let name = body.name || "";
-  let avatar_url = body.avatar_url || null;
-
-  if (!email && process.env.CLERK_SECRET_KEY) {
-    try {
-      const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-        headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` }
-      });
-      if (res.ok) {
-        const clerkUser = await res.json() as any;
-        email = clerkUser.email_addresses?.[0]?.email_address || "";
-        name = `${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`.trim() || email;
-        avatar_url = clerkUser.image_url || null;
-      }
-    } catch {}
-  }
+  const email = body.email || "";
+  const name = body.name || "";
+  const avatar_url = body.avatar_url || null;
 
   const { error: wsError } = await supabase
     .from("workspaces")

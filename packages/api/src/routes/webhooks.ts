@@ -6,45 +6,6 @@ import { createNotification } from "../lib/notify";
 
 const router = new Hono();
 
-/* ── Clerk webhook — sync user creates/updates to workspace_members ────────── */
-router.post("/clerk", async (c) => {
-  const svixId        = c.req.header("svix-id") ?? "";
-  const svixTimestamp = c.req.header("svix-timestamp") ?? "";
-  const svixSignature = c.req.header("svix-signature") ?? "";
-  const rawBody       = await c.req.text();
-  const secret        = process.env.CLERK_WEBHOOK_SECRET ?? "";
-
-  if (secret) {
-    const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
-    const secretBytes   = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
-    const expected      = createHmac("sha256", secretBytes).update(signedContent).digest("base64");
-    const signatures    = svixSignature.split(" ").map(s => s.replace(/^v1,/, ""));
-    const valid         = signatures.some(sig => {
-      try { return timingSafeEqual(Buffer.from(sig, "base64"), Buffer.from(expected, "base64")); }
-      catch { return false; }
-    });
-    if (!valid) return c.json({ error: "invalid signature" }, 401);
-  }
-
-  const event = JSON.parse(rawBody) as { type: string; data: Record<string, unknown> };
-
-  if (event.type === "user.created" || event.type === "user.updated") {
-    const u = event.data;
-    const email = (u.email_addresses as { email_address: string }[])?.[0]?.email_address ?? "";
-    const name  = `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim();
-    const userId = u.id as string;
-    if (email && userId) {
-      // Update all workspace_members rows for this user
-      await supabase
-        .from("workspace_members")
-        .update({ email, name, avatar_url: u.image_url as string ?? null })
-        .eq("user_id", userId);
-    }
-  }
-
-  return c.json({ ok: true });
-});
-
 /* ── Nylas webhook — ingest email events ────────────────────────────────────── */
 router.post("/nylas", async (c) => {
   const challenge = c.req.query("challenge");

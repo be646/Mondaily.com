@@ -1,13 +1,14 @@
-import { useUser } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { apiClient } from "../../lib/api-client";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { usePanelState } from "./onboarding-context";
 
 export function StepProfile() {
-  const { user } = useUser();
+  const me = useCurrentUser();
   const navigate = useNavigate();
-  const [name,  setName]  = useState(user?.fullName ?? "");
+  const [name,  setName]  = useState(me.name ?? "");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,8 +16,7 @@ export function StepProfile() {
 
   async function continueSetup() {
     setLoading(true);
-    const [firstName, ...rest] = name.trim().split(/\s+/);
-    await user?.update({ firstName, lastName: rest.join(" ") });
+    await apiClient.post("/members/sync", { name, email: me.email });
     localStorage.setItem("mondaily_job_title", title);
     navigate("/onboarding/workspace");
   }

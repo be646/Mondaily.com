@@ -2,33 +2,20 @@ import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { getCookie } from "hono/cookie";
 import type { Context } from "hono";
-import { verifyToken } from "@clerk/backend";
 import { supabase } from "@mondaily/db/client";
 import { verifyAccessToken, ACCESS_COOKIE } from "../lib/auth-tokens";
 
 /**
- * Dual-auth gateway. With USE_SOVEREIGN_AUTH=true we read the native HS256 access token from
- * the HttpOnly cookie and verify it ourselves; otherwise we keep the exact Clerk pathway.
- * Either way we return the canonical user id — workspace + role resolution below is unchanged,
- * so flipping the flag swaps ONLY the identity source (fully reversible).
+ * Sovereign auth: read the native HS256 access token from the HttpOnly cookie and verify it
+ * with AUTH_JWT_SECRET. Returns the canonical user id; workspace + role resolution below is
+ * unchanged. (Clerk fully removed.)
  */
 async function resolveUserId(c: Context): Promise<string> {
-  if (process.env.USE_SOVEREIGN_AUTH === "true") {
-    const at = getCookie(c, ACCESS_COOKIE);
-    if (!at) throw new HTTPException(401, { message: "Unauthorized" });
-    const claims = await verifyAccessToken(at);
-    if (!claims?.sub) throw new HTTPException(401, { message: "Invalid or expired session" });
-    return claims.sub;
-  }
-  const token = c.req.header("Authorization")?.replace("Bearer ", "");
-  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
-  const verified = await verifyToken(token, {
-    jwtKey: process.env.CLERK_JWT_KEY,
-    secretKey: process.env.CLERK_JWT_KEY ? undefined : process.env.CLERK_SECRET_KEY!,
-    skipJwksCache: true,
-  });
-  if (!verified.sub) throw new HTTPException(401, { message: "Token has no subject" });
-  return verified.sub;
+  const at = getCookie(c, ACCESS_COOKIE);
+  if (!at) throw new HTTPException(401, { message: "Unauthorized" });
+  const claims = await verifyAccessToken(at);
+  if (!claims?.sub) throw new HTTPException(401, { message: "Invalid or expired session" });
+  return claims.sub;
 }
 
 export const requireAuth = createMiddleware<{

@@ -3,7 +3,7 @@ import {
   PointerSensor, useSensor, useSensors,
 } from "@dnd-kit/core";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
-import { useAuth } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bot, FileText, GitCommitHorizontal, Kanban, LayoutGrid,
@@ -437,7 +437,7 @@ function ModalShell({ title, subtitle, onClose, children }: { title: string; sub
 /* ── Main page ──────────────────────────────────────────────── */
 
 export function NotesPage() {
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
   const qc = useQueryClient();
 
   const [view, _setView] = useState<ViewMode>("list");

@@ -33,6 +33,1099 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/http-exception.js
+var HTTPException;
+var init_http_exception = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/http-exception.js"() {
+    "use strict";
+    HTTPException = class extends Error {
+      res;
+      status;
+      /**
+       * Creates an instance of `HTTPException`.
+       * @param status - HTTP status code for the exception. Defaults to 500.
+       * @param options - Additional options for the exception.
+       */
+      constructor(status = 500, options) {
+        super(options?.message, { cause: options?.cause });
+        this.res = options?.res;
+        this.status = status;
+      }
+      /**
+       * Returns the response object associated with the exception.
+       * If a response object is not provided, a new response is created with the error message and status code.
+       * @returns The response object.
+       */
+      getResponse() {
+        if (this.res) {
+          const newResponse = new Response(this.res.body, {
+            status: this.status,
+            headers: this.res.headers
+          });
+          return newResponse;
+        }
+        return new Response(this.message, {
+          status: this.status
+        });
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/request/constants.js
+var GET_MATCH_RESULT;
+var init_constants = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/request/constants.js"() {
+    "use strict";
+    GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/body.js
+async function parseFormData(request, options) {
+  const formData = await request.formData();
+  if (formData) {
+    return convertFormDataToBodyData(formData, options);
+  }
+  return {};
+}
+function convertFormDataToBodyData(formData, options) {
+  const form = /* @__PURE__ */ Object.create(null);
+  formData.forEach((value, key) => {
+    const shouldParseAllValues = options.all || key.endsWith("[]");
+    if (!shouldParseAllValues) {
+      form[key] = value;
+    } else {
+      handleParsingAllValues(form, key, value);
+    }
+  });
+  if (options.dot) {
+    Object.entries(form).forEach(([key, value]) => {
+      const shouldParseDotValues = key.includes(".");
+      if (shouldParseDotValues) {
+        handleParsingNestedValues(form, key, value);
+        delete form[key];
+      }
+    });
+  }
+  return form;
+}
+var parseBody, handleParsingAllValues, handleParsingNestedValues;
+var init_body = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/body.js"() {
+    "use strict";
+    init_request();
+    parseBody = async (request, options = /* @__PURE__ */ Object.create(null)) => {
+      const { all = false, dot = false } = options;
+      const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
+      const contentType2 = headers.get("Content-Type");
+      if (contentType2?.startsWith("multipart/form-data") || contentType2?.startsWith("application/x-www-form-urlencoded")) {
+        return parseFormData(request, { all, dot });
+      }
+      return {};
+    };
+    handleParsingAllValues = (form, key, value) => {
+      if (form[key] !== void 0) {
+        if (Array.isArray(form[key])) {
+          ;
+          form[key].push(value);
+        } else {
+          form[key] = [form[key], value];
+        }
+      } else {
+        if (!key.endsWith("[]")) {
+          form[key] = value;
+        } else {
+          form[key] = [value];
+        }
+      }
+    };
+    handleParsingNestedValues = (form, key, value) => {
+      if (/(?:^|\.)__proto__\./.test(key)) {
+        return;
+      }
+      let nestedForm = form;
+      const keys = key.split(".");
+      keys.forEach((key2, index) => {
+        if (index === keys.length - 1) {
+          nestedForm[key2] = value;
+        } else {
+          if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
+            nestedForm[key2] = /* @__PURE__ */ Object.create(null);
+          }
+          nestedForm = nestedForm[key2];
+        }
+      });
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/url.js
+var splitPath, splitRoutingPath, extractGroupsFromPath, replaceGroupMarks, patternCache, getPattern, tryDecode, tryDecodeURI, getPath, getPathNoStrict, mergePath, checkOptionalParameter, _decodeURI, _getQueryParam, getQueryParam, getQueryParams, decodeURIComponent_;
+var init_url = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/url.js"() {
+    "use strict";
+    splitPath = (path) => {
+      const paths = path.split("/");
+      if (paths[0] === "") {
+        paths.shift();
+      }
+      return paths;
+    };
+    splitRoutingPath = (routePath) => {
+      const { groups, path } = extractGroupsFromPath(routePath);
+      const paths = splitPath(path);
+      return replaceGroupMarks(paths, groups);
+    };
+    extractGroupsFromPath = (path) => {
+      const groups = [];
+      path = path.replace(/\{[^}]+\}/g, (match2, index) => {
+        const mark = `@${index}`;
+        groups.push([mark, match2]);
+        return mark;
+      });
+      return { groups, path };
+    };
+    replaceGroupMarks = (paths, groups) => {
+      for (let i2 = groups.length - 1; i2 >= 0; i2--) {
+        const [mark] = groups[i2];
+        for (let j2 = paths.length - 1; j2 >= 0; j2--) {
+          if (paths[j2].includes(mark)) {
+            paths[j2] = paths[j2].replace(mark, groups[i2][1]);
+            break;
+          }
+        }
+      }
+      return paths;
+    };
+    patternCache = {};
+    getPattern = (label, next) => {
+      if (label === "*") {
+        return "*";
+      }
+      const match2 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
+      if (match2) {
+        const cacheKey2 = `${label}#${next}`;
+        if (!patternCache[cacheKey2]) {
+          if (match2[2]) {
+            patternCache[cacheKey2] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey2, match2[1], new RegExp(`^${match2[2]}(?=/${next})`)] : [label, match2[1], new RegExp(`^${match2[2]}$`)];
+          } else {
+            patternCache[cacheKey2] = [label, match2[1], true];
+          }
+        }
+        return patternCache[cacheKey2];
+      }
+      return null;
+    };
+    tryDecode = (str2, decoder) => {
+      try {
+        return decoder(str2);
+      } catch {
+        return str2.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match2) => {
+          try {
+            return decoder(match2);
+          } catch {
+            return match2;
+          }
+        });
+      }
+    };
+    tryDecodeURI = (str2) => tryDecode(str2, decodeURI);
+    getPath = (request) => {
+      const url = request.url;
+      const start = url.indexOf("/", url.indexOf(":") + 4);
+      let i2 = start;
+      for (; i2 < url.length; i2++) {
+        const charCode = url.charCodeAt(i2);
+        if (charCode === 37) {
+          const queryIndex = url.indexOf("?", i2);
+          const hashIndex = url.indexOf("#", i2);
+          const end = queryIndex === -1 ? hashIndex === -1 ? void 0 : hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex);
+          const path = url.slice(start, end);
+          return tryDecodeURI(path.includes("%25") ? path.replace(/%25/g, "%2525") : path);
+        } else if (charCode === 63 || charCode === 35) {
+          break;
+        }
+      }
+      return url.slice(start, i2);
+    };
+    getPathNoStrict = (request) => {
+      const result = getPath(request);
+      return result.length > 1 && result.at(-1) === "/" ? result.slice(0, -1) : result;
+    };
+    mergePath = (base, sub, ...rest) => {
+      if (rest.length) {
+        sub = mergePath(sub, ...rest);
+      }
+      return `${base?.[0] === "/" ? "" : "/"}${base}${sub === "/" ? "" : `${base?.at(-1) === "/" ? "" : "/"}${sub?.[0] === "/" ? sub.slice(1) : sub}`}`;
+    };
+    checkOptionalParameter = (path) => {
+      if (path.charCodeAt(path.length - 1) !== 63 || !path.includes(":")) {
+        return null;
+      }
+      const segments = path.split("/");
+      const results = [];
+      let basePath = "";
+      segments.forEach((segment) => {
+        if (segment !== "" && !/\:/.test(segment)) {
+          basePath += "/" + segment;
+        } else if (/\:/.test(segment)) {
+          if (/\?/.test(segment)) {
+            if (results.length === 0 && basePath === "") {
+              results.push("/");
+            } else {
+              results.push(basePath);
+            }
+            const optionalSegment = segment.replace("?", "");
+            basePath += "/" + optionalSegment;
+            results.push(basePath);
+          } else {
+            basePath += "/" + segment;
+          }
+        }
+      });
+      return results.filter((v2, i2, a2) => a2.indexOf(v2) === i2);
+    };
+    _decodeURI = (value) => {
+      if (!/[%+]/.test(value)) {
+        return value;
+      }
+      if (value.indexOf("+") !== -1) {
+        value = value.replace(/\+/g, " ");
+      }
+      return value.indexOf("%") !== -1 ? tryDecode(value, decodeURIComponent_) : value;
+    };
+    _getQueryParam = (url, key, multiple) => {
+      let encoded;
+      if (!multiple && key && !/[%+]/.test(key)) {
+        let keyIndex2 = url.indexOf("?", 8);
+        if (keyIndex2 === -1) {
+          return void 0;
+        }
+        if (!url.startsWith(key, keyIndex2 + 1)) {
+          keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
+        }
+        while (keyIndex2 !== -1) {
+          const trailingKeyCode = url.charCodeAt(keyIndex2 + key.length + 1);
+          if (trailingKeyCode === 61) {
+            const valueIndex = keyIndex2 + key.length + 2;
+            const endIndex = url.indexOf("&", valueIndex);
+            return _decodeURI(url.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
+          } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
+            return "";
+          }
+          keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
+        }
+        encoded = /[%+]/.test(url);
+        if (!encoded) {
+          return void 0;
+        }
+      }
+      const results = {};
+      encoded ??= /[%+]/.test(url);
+      let keyIndex = url.indexOf("?", 8);
+      while (keyIndex !== -1) {
+        const nextKeyIndex = url.indexOf("&", keyIndex + 1);
+        let valueIndex = url.indexOf("=", keyIndex);
+        if (valueIndex > nextKeyIndex && nextKeyIndex !== -1) {
+          valueIndex = -1;
+        }
+        let name = url.slice(
+          keyIndex + 1,
+          valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
+        );
+        if (encoded) {
+          name = _decodeURI(name);
+        }
+        keyIndex = nextKeyIndex;
+        if (name === "") {
+          continue;
+        }
+        let value;
+        if (valueIndex === -1) {
+          value = "";
+        } else {
+          value = url.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
+          if (encoded) {
+            value = _decodeURI(value);
+          }
+        }
+        if (multiple) {
+          if (!(results[name] && Array.isArray(results[name]))) {
+            results[name] = [];
+          }
+          ;
+          results[name].push(value);
+        } else {
+          results[name] ??= value;
+        }
+      }
+      return key ? results[key] : results;
+    };
+    getQueryParam = _getQueryParam;
+    getQueryParams = (url, key) => {
+      return _getQueryParam(url, key, true);
+    };
+    decodeURIComponent_ = decodeURIComponent;
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/request.js
+var tryDecodeURIComponent, HonoRequest;
+var init_request = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/request.js"() {
+    "use strict";
+    init_http_exception();
+    init_constants();
+    init_body();
+    init_url();
+    tryDecodeURIComponent = (str2) => tryDecode(str2, decodeURIComponent_);
+    HonoRequest = class {
+      /**
+       * `.raw` can get the raw Request object.
+       *
+       * @see {@link https://hono.dev/docs/api/request#raw}
+       *
+       * @example
+       * ```ts
+       * // For Cloudflare Workers
+       * app.post('/', async (c) => {
+       *   const metadata = c.req.raw.cf?.hostMetadata?
+       *   ...
+       * })
+       * ```
+       */
+      raw;
+      #validatedData;
+      // Short name of validatedData
+      #matchResult;
+      routeIndex = 0;
+      /**
+       * `.path` can get the pathname of the request.
+       *
+       * @see {@link https://hono.dev/docs/api/request#path}
+       *
+       * @example
+       * ```ts
+       * app.get('/about/me', (c) => {
+       *   const pathname = c.req.path // `/about/me`
+       * })
+       * ```
+       */
+      path;
+      bodyCache = {};
+      constructor(request, path = "/", matchResult = [[]]) {
+        this.raw = request;
+        this.path = path;
+        this.#matchResult = matchResult;
+        this.#validatedData = {};
+      }
+      param(key) {
+        return key ? this.#getDecodedParam(key) : this.#getAllDecodedParams();
+      }
+      #getDecodedParam(key) {
+        const paramKey = this.#matchResult[0][this.routeIndex][1][key];
+        const param = this.#getParamValue(paramKey);
+        return param && /\%/.test(param) ? tryDecodeURIComponent(param) : param;
+      }
+      #getAllDecodedParams() {
+        const decoded = {};
+        const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
+        for (const key of keys) {
+          const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
+          if (value !== void 0) {
+            decoded[key] = /\%/.test(value) ? tryDecodeURIComponent(value) : value;
+          }
+        }
+        return decoded;
+      }
+      #getParamValue(paramKey) {
+        return this.#matchResult[1] ? this.#matchResult[1][paramKey] : paramKey;
+      }
+      query(key) {
+        return getQueryParam(this.url, key);
+      }
+      queries(key) {
+        return getQueryParams(this.url, key);
+      }
+      header(name) {
+        if (name) {
+          return this.raw.headers.get(name) ?? void 0;
+        }
+        const headerData = {};
+        this.raw.headers.forEach((value, key) => {
+          headerData[key] = value;
+        });
+        return headerData;
+      }
+      async parseBody(options) {
+        return parseBody(this, options);
+      }
+      #cachedBody = (key) => {
+        const { bodyCache, raw: raw2 } = this;
+        const cachedBody = bodyCache[key];
+        if (cachedBody) {
+          return cachedBody;
+        }
+        const anyCachedKey = Object.keys(bodyCache)[0];
+        if (anyCachedKey) {
+          return bodyCache[anyCachedKey].then((body) => {
+            if (anyCachedKey === "json") {
+              body = JSON.stringify(body);
+            }
+            return new Response(body)[key]();
+          });
+        }
+        return bodyCache[key] = raw2[key]();
+      };
+      /**
+       * `.json()` can parse Request body of type `application/json`
+       *
+       * @see {@link https://hono.dev/docs/api/request#json}
+       *
+       * @example
+       * ```ts
+       * app.post('/entry', async (c) => {
+       *   const body = await c.req.json()
+       * })
+       * ```
+       */
+      json() {
+        return this.#cachedBody("text").then((text) => JSON.parse(text));
+      }
+      /**
+       * `.text()` can parse Request body of type `text/plain`
+       *
+       * @see {@link https://hono.dev/docs/api/request#text}
+       *
+       * @example
+       * ```ts
+       * app.post('/entry', async (c) => {
+       *   const body = await c.req.text()
+       * })
+       * ```
+       */
+      text() {
+        return this.#cachedBody("text");
+      }
+      /**
+       * `.arrayBuffer()` parse Request body as an `ArrayBuffer`
+       *
+       * @see {@link https://hono.dev/docs/api/request#arraybuffer}
+       *
+       * @example
+       * ```ts
+       * app.post('/entry', async (c) => {
+       *   const body = await c.req.arrayBuffer()
+       * })
+       * ```
+       */
+      arrayBuffer() {
+        return this.#cachedBody("arrayBuffer");
+      }
+      /**
+       * `.bytes()` parses the request body as a `Uint8Array`.
+       *
+       * @see {@link https://hono.dev/docs/api/request#bytes}
+       *
+       * @example
+       * ```ts
+       * app.post('/entry', async (c) => {
+       *   const body = await c.req.bytes()
+       * })
+       * ```
+       */
+      bytes() {
+        return this.#cachedBody("arrayBuffer").then((buffer) => new Uint8Array(buffer));
+      }
+      /**
+       * Parses the request body as a `Blob`.
+       * @example
+       * ```ts
+       * app.post('/entry', async (c) => {
+       *   const body = await c.req.blob();
+       * });
+       * ```
+       * @see https://hono.dev/docs/api/request#blob
+       */
+      blob() {
+        return this.#cachedBody("blob");
+      }
+      /**
+       * Parses the request body as `FormData`.
+       * @example
+       * ```ts
+       * app.post('/entry', async (c) => {
+       *   const body = await c.req.formData();
+       * });
+       * ```
+       * @see https://hono.dev/docs/api/request#formdata
+       */
+      formData() {
+        return this.#cachedBody("formData");
+      }
+      /**
+       * Adds validated data to the request.
+       *
+       * @param target - The target of the validation.
+       * @param data - The validated data to add.
+       */
+      addValidatedData(target, data) {
+        this.#validatedData[target] = data;
+      }
+      valid(target) {
+        return this.#validatedData[target];
+      }
+      /**
+       * `.url()` can get the request url strings.
+       *
+       * @see {@link https://hono.dev/docs/api/request#url}
+       *
+       * @example
+       * ```ts
+       * app.get('/about/me', (c) => {
+       *   const url = c.req.url // `http://localhost:8787/about/me`
+       *   ...
+       * })
+       * ```
+       */
+      get url() {
+        return this.raw.url;
+      }
+      /**
+       * `.method()` can get the method name of the request.
+       *
+       * @see {@link https://hono.dev/docs/api/request#method}
+       *
+       * @example
+       * ```ts
+       * app.get('/about/me', (c) => {
+       *   const method = c.req.method // `GET`
+       * })
+       * ```
+       */
+      get method() {
+        return this.raw.method;
+      }
+      get [GET_MATCH_RESULT]() {
+        return this.#matchResult;
+      }
+      /**
+       * `.matchedRoutes()` can return a matched route in the handler
+       *
+       * @deprecated
+       *
+       * Use matchedRoutes helper defined in "hono/route" instead.
+       *
+       * @see {@link https://hono.dev/docs/api/request#matchedroutes}
+       *
+       * @example
+       * ```ts
+       * app.use('*', async function logger(c, next) {
+       *   await next()
+       *   c.req.matchedRoutes.forEach(({ handler, method, path }, i) => {
+       *     const name = handler.name || (handler.length < 2 ? '[handler]' : '[middleware]')
+       *     console.log(
+       *       method,
+       *       ' ',
+       *       path,
+       *       ' '.repeat(Math.max(10 - path.length, 0)),
+       *       name,
+       *       i === c.req.routeIndex ? '<- respond from here' : ''
+       *     )
+       *   })
+       * })
+       * ```
+       */
+      get matchedRoutes() {
+        return this.#matchResult[0].map(([[, route]]) => route);
+      }
+      /**
+       * `routePath()` can retrieve the path registered within the handler
+       *
+       * @deprecated
+       *
+       * Use routePath helper defined in "hono/route" instead.
+       *
+       * @see {@link https://hono.dev/docs/api/request#routepath}
+       *
+       * @example
+       * ```ts
+       * app.get('/posts/:id', (c) => {
+       *   return c.json({ path: c.req.routePath })
+       * })
+       * ```
+       */
+      get routePath() {
+        return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex].path;
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/html.js
+var HtmlEscapedCallbackPhase, raw, resolveCallback;
+var init_html = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/html.js"() {
+    "use strict";
+    HtmlEscapedCallbackPhase = {
+      Stringify: 1,
+      BeforeStream: 2,
+      Stream: 3
+    };
+    raw = (value, callbacks) => {
+      const escapedString = new String(value);
+      escapedString.isEscaped = true;
+      escapedString.callbacks = callbacks;
+      return escapedString;
+    };
+    resolveCallback = async (str2, phase, preserveCallbacks, context2, buffer) => {
+      if (typeof str2 === "object" && !(str2 instanceof String)) {
+        if (!(str2 instanceof Promise)) {
+          str2 = str2.toString();
+        }
+        if (str2 instanceof Promise) {
+          str2 = await str2;
+        }
+      }
+      const callbacks = str2.callbacks;
+      if (!callbacks?.length) {
+        return Promise.resolve(str2);
+      }
+      if (buffer) {
+        buffer[0] += str2;
+      } else {
+        buffer = [str2];
+      }
+      const resStr = Promise.all(callbacks.map((c2) => c2({ phase, buffer, context: context2 }))).then(
+        (res) => Promise.all(
+          res.filter(Boolean).map((str22) => resolveCallback(str22, phase, false, context2, buffer))
+        ).then(() => buffer[0])
+      );
+      if (preserveCallbacks) {
+        return raw(await resStr, callbacks);
+      } else {
+        return resStr;
+      }
+    };
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/context.js
+var TEXT_PLAIN, setDefaultContentType, createResponseInstance, Context;
+var init_context = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/context.js"() {
+    "use strict";
+    init_request();
+    init_html();
+    TEXT_PLAIN = "text/plain; charset=UTF-8";
+    setDefaultContentType = (contentType2, headers) => {
+      return {
+        "Content-Type": contentType2,
+        ...headers
+      };
+    };
+    createResponseInstance = (body, init2) => new Response(body, init2);
+    Context = class {
+      #rawRequest;
+      #req;
+      /**
+       * `.env` can get bindings (environment variables, secrets, KV namespaces, D1 database, R2 bucket etc.) in Cloudflare Workers.
+       *
+       * @see {@link https://hono.dev/docs/api/context#env}
+       *
+       * @example
+       * ```ts
+       * // Environment object for Cloudflare Workers
+       * app.get('*', async c => {
+       *   const counter = c.env.COUNTER
+       * })
+       * ```
+       */
+      env = {};
+      #var;
+      finalized = false;
+      /**
+       * `.error` can get the error object from the middleware if the Handler throws an error.
+       *
+       * @see {@link https://hono.dev/docs/api/context#error}
+       *
+       * @example
+       * ```ts
+       * app.use('*', async (c, next) => {
+       *   await next()
+       *   if (c.error) {
+       *     // do something...
+       *   }
+       * })
+       * ```
+       */
+      error;
+      #status;
+      #executionCtx;
+      #res;
+      #layout;
+      #renderer;
+      #notFoundHandler;
+      #preparedHeaders;
+      #matchResult;
+      #path;
+      /**
+       * Creates an instance of the Context class.
+       *
+       * @param req - The Request object.
+       * @param options - Optional configuration options for the context.
+       */
+      constructor(req, options) {
+        this.#rawRequest = req;
+        if (options) {
+          this.#executionCtx = options.executionCtx;
+          this.env = options.env;
+          this.#notFoundHandler = options.notFoundHandler;
+          this.#path = options.path;
+          this.#matchResult = options.matchResult;
+        }
+      }
+      /**
+       * `.req` is the instance of {@link HonoRequest}.
+       */
+      get req() {
+        this.#req ??= new HonoRequest(this.#rawRequest, this.#path, this.#matchResult);
+        return this.#req;
+      }
+      /**
+       * @see {@link https://hono.dev/docs/api/context#event}
+       * The FetchEvent associated with the current request.
+       *
+       * @throws Will throw an error if the context does not have a FetchEvent.
+       */
+      get event() {
+        if (this.#executionCtx && "respondWith" in this.#executionCtx) {
+          return this.#executionCtx;
+        } else {
+          throw Error("This context has no FetchEvent");
+        }
+      }
+      /**
+       * @see {@link https://hono.dev/docs/api/context#executionctx}
+       * The ExecutionContext associated with the current request.
+       *
+       * @throws Will throw an error if the context does not have an ExecutionContext.
+       */
+      get executionCtx() {
+        if (this.#executionCtx) {
+          return this.#executionCtx;
+        } else {
+          throw Error("This context has no ExecutionContext");
+        }
+      }
+      /**
+       * @see {@link https://hono.dev/docs/api/context#res}
+       * The Response object for the current request.
+       */
+      get res() {
+        return this.#res ||= createResponseInstance(null, {
+          headers: this.#preparedHeaders ??= new Headers()
+        });
+      }
+      /**
+       * Sets the Response object for the current request.
+       *
+       * @param _res - The Response object to set.
+       */
+      set res(_res) {
+        if (this.#res && _res) {
+          _res = createResponseInstance(_res.body, _res);
+          for (const [k2, v2] of this.#res.headers.entries()) {
+            if (k2 === "content-type") {
+              continue;
+            }
+            if (k2 === "set-cookie") {
+              const cookies = this.#res.headers.getSetCookie();
+              _res.headers.delete("set-cookie");
+              for (const cookie of cookies) {
+                _res.headers.append("set-cookie", cookie);
+              }
+            } else {
+              _res.headers.set(k2, v2);
+            }
+          }
+        }
+        this.#res = _res;
+        this.finalized = true;
+      }
+      /**
+       * `.render()` can create a response within a layout.
+       *
+       * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
+       *
+       * @example
+       * ```ts
+       * app.get('/', (c) => {
+       *   return c.render('Hello!')
+       * })
+       * ```
+       */
+      render = (...args) => {
+        this.#renderer ??= (content) => this.html(content);
+        return this.#renderer(...args);
+      };
+      /**
+       * Sets the layout for the response.
+       *
+       * @param layout - The layout to set.
+       * @returns The layout function.
+       */
+      setLayout = (layout) => this.#layout = layout;
+      /**
+       * Gets the current layout for the response.
+       *
+       * @returns The current layout function.
+       */
+      getLayout = () => this.#layout;
+      /**
+       * `.setRenderer()` can set the layout in the custom middleware.
+       *
+       * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
+       *
+       * @example
+       * ```tsx
+       * app.use('*', async (c, next) => {
+       *   c.setRenderer((content) => {
+       *     return c.html(
+       *       <html>
+       *         <body>
+       *           <p>{content}</p>
+       *         </body>
+       *       </html>
+       *     )
+       *   })
+       *   await next()
+       * })
+       * ```
+       */
+      setRenderer = (renderer) => {
+        this.#renderer = renderer;
+      };
+      /**
+       * `.header()` can set headers.
+       *
+       * @see {@link https://hono.dev/docs/api/context#header}
+       *
+       * @example
+       * ```ts
+       * app.get('/welcome', (c) => {
+       *   // Set headers
+       *   c.header('X-Message', 'Hello!')
+       *   c.header('Content-Type', 'text/plain')
+       *
+       *   return c.body('Thank you for coming')
+       * })
+       * ```
+       */
+      header = (name, value, options) => {
+        if (this.finalized) {
+          this.#res = createResponseInstance(this.#res.body, this.#res);
+        }
+        const headers = this.#res ? this.#res.headers : this.#preparedHeaders ??= new Headers();
+        if (value === void 0) {
+          headers.delete(name);
+        } else if (options?.append) {
+          headers.append(name, value);
+        } else {
+          headers.set(name, value);
+        }
+      };
+      status = (status) => {
+        this.#status = status;
+      };
+      /**
+       * `.set()` can set the value specified by the key.
+       *
+       * @see {@link https://hono.dev/docs/api/context#set-get}
+       *
+       * @example
+       * ```ts
+       * app.use('*', async (c, next) => {
+       *   c.set('message', 'Hono is hot!!')
+       *   await next()
+       * })
+       * ```
+       */
+      set = (key, value) => {
+        this.#var ??= /* @__PURE__ */ new Map();
+        this.#var.set(key, value);
+      };
+      /**
+       * `.get()` can use the value specified by the key.
+       *
+       * @see {@link https://hono.dev/docs/api/context#set-get}
+       *
+       * @example
+       * ```ts
+       * app.get('/', (c) => {
+       *   const message = c.get('message')
+       *   return c.text(`The message is "${message}"`)
+       * })
+       * ```
+       */
+      get = (key) => {
+        return this.#var ? this.#var.get(key) : void 0;
+      };
+      /**
+       * `.var` can access the value of a variable.
+       *
+       * @see {@link https://hono.dev/docs/api/context#var}
+       *
+       * @example
+       * ```ts
+       * const result = c.var.client.oneMethod()
+       * ```
+       */
+      // c.var.propName is a read-only
+      get var() {
+        if (!this.#var) {
+          return {};
+        }
+        return Object.fromEntries(this.#var);
+      }
+      #newResponse(data, arg, headers) {
+        const responseHeaders = this.#res ? new Headers(this.#res.headers) : this.#preparedHeaders ?? new Headers();
+        if (typeof arg === "object" && "headers" in arg) {
+          const argHeaders = arg.headers instanceof Headers ? arg.headers : new Headers(arg.headers);
+          for (const [key, value] of argHeaders) {
+            if (key.toLowerCase() === "set-cookie") {
+              responseHeaders.append(key, value);
+            } else {
+              responseHeaders.set(key, value);
+            }
+          }
+        }
+        if (headers) {
+          for (const [k2, v2] of Object.entries(headers)) {
+            if (typeof v2 === "string") {
+              responseHeaders.set(k2, v2);
+            } else {
+              responseHeaders.delete(k2);
+              for (const v22 of v2) {
+                responseHeaders.append(k2, v22);
+              }
+            }
+          }
+        }
+        const status = typeof arg === "number" ? arg : arg?.status ?? this.#status;
+        return createResponseInstance(data, { status, headers: responseHeaders });
+      }
+      newResponse = (...args) => this.#newResponse(...args);
+      /**
+       * `.body()` can return the HTTP response.
+       * You can set headers with `.header()` and set HTTP status code with `.status`.
+       * This can also be set in `.text()`, `.json()` and so on.
+       *
+       * @see {@link https://hono.dev/docs/api/context#body}
+       *
+       * @example
+       * ```ts
+       * app.get('/welcome', (c) => {
+       *   // Set headers
+       *   c.header('X-Message', 'Hello!')
+       *   c.header('Content-Type', 'text/plain')
+       *   // Set HTTP status code
+       *   c.status(201)
+       *
+       *   // Return the response body
+       *   return c.body('Thank you for coming')
+       * })
+       * ```
+       */
+      body = (data, arg, headers) => this.#newResponse(data, arg, headers);
+      /**
+       * `.text()` can render text as `Content-Type:text/plain`.
+       *
+       * @see {@link https://hono.dev/docs/api/context#text}
+       *
+       * @example
+       * ```ts
+       * app.get('/say', (c) => {
+       *   return c.text('Hello!')
+       * })
+       * ```
+       */
+      text = (text, arg, headers) => {
+        return !this.#preparedHeaders && !this.#status && !arg && !headers && !this.finalized ? new Response(text) : this.#newResponse(
+          text,
+          arg,
+          setDefaultContentType(TEXT_PLAIN, headers)
+        );
+      };
+      /**
+       * `.json()` can render JSON as `Content-Type:application/json`.
+       *
+       * @see {@link https://hono.dev/docs/api/context#json}
+       *
+       * @example
+       * ```ts
+       * app.get('/api', (c) => {
+       *   return c.json({ message: 'Hello!' })
+       * })
+       * ```
+       */
+      json = (object, arg, headers) => {
+        return this.#newResponse(
+          JSON.stringify(object),
+          arg,
+          setDefaultContentType("application/json", headers)
+        );
+      };
+      html = (html, arg, headers) => {
+        const res = (html2) => this.#newResponse(html2, arg, setDefaultContentType("text/html; charset=UTF-8", headers));
+        return typeof html === "object" ? resolveCallback(html, HtmlEscapedCallbackPhase.Stringify, false, {}).then(res) : res(html);
+      };
+      /**
+       * `.redirect()` can Redirect, default status code is 302.
+       *
+       * @see {@link https://hono.dev/docs/api/context#redirect}
+       *
+       * @example
+       * ```ts
+       * app.get('/redirect', (c) => {
+       *   return c.redirect('/')
+       * })
+       * app.get('/redirect-permanently', (c) => {
+       *   return c.redirect('/', 301)
+       * })
+       * ```
+       */
+      redirect = (location2, status) => {
+        const locationString = String(location2);
+        this.header(
+          "Location",
+          // Multibyes should be encoded
+          // eslint-disable-next-line no-control-regex
+          !/[^\x00-\xFF]/.test(locationString) ? locationString : encodeURI(locationString)
+        );
+        return this.newResponse(null, status ?? 302);
+      };
+      /**
+       * `.notFound()` can return the Not Found Response.
+       *
+       * @see {@link https://hono.dev/docs/api/context#notfound}
+       *
+       * @example
+       * ```ts
+       * app.get('/notfound', (c) => {
+       *   return c.notFound()
+       * })
+       * ```
+       */
+      notFound = () => {
+        this.#notFoundHandler ??= () => createResponseInstance();
+        return this.#notFoundHandler(this);
+      };
+    };
+  }
+});
+
 // ../../node_modules/.pnpm/color-name@1.1.4/node_modules/color-name/index.js
 var require_color_name = __commonJS({
   "../../node_modules/.pnpm/color-name@1.1.4/node_modules/color-name/index.js"(exports2, module2) {
@@ -241,7 +1334,7 @@ var require_conversions = __commonJS({
       const max = Math.max(r2, g2, b2);
       const delta = max - min;
       let h2;
-      let s3;
+      let s2;
       if (max === min) {
         h2 = 0;
       } else if (r2 === max) {
@@ -257,20 +1350,20 @@ var require_conversions = __commonJS({
       }
       const l2 = (min + max) / 2;
       if (max === min) {
-        s3 = 0;
+        s2 = 0;
       } else if (l2 <= 0.5) {
-        s3 = delta / (max + min);
+        s2 = delta / (max + min);
       } else {
-        s3 = delta / (2 - max - min);
+        s2 = delta / (2 - max - min);
       }
-      return [h2, s3 * 100, l2 * 100];
+      return [h2, s2 * 100, l2 * 100];
     };
     convert2.rgb.hsv = function(rgb) {
       let rdif;
       let gdif;
       let bdif;
       let h2;
-      let s3;
+      let s2;
       const r2 = rgb[0] / 255;
       const g2 = rgb[1] / 255;
       const b2 = rgb[2] / 255;
@@ -281,9 +1374,9 @@ var require_conversions = __commonJS({
       };
       if (diff === 0) {
         h2 = 0;
-        s3 = 0;
+        s2 = 0;
       } else {
-        s3 = diff / v2;
+        s2 = diff / v2;
         rdif = diffc(r2);
         gdif = diffc(g2);
         bdif = diffc(b2);
@@ -302,7 +1395,7 @@ var require_conversions = __commonJS({
       }
       return [
         h2 * 360,
-        s3 * 100,
+        s2 * 100,
         v2 * 100
       ];
     };
@@ -378,19 +1471,19 @@ var require_conversions = __commonJS({
     };
     convert2.hsl.rgb = function(hsl) {
       const h2 = hsl[0] / 360;
-      const s3 = hsl[1] / 100;
+      const s2 = hsl[1] / 100;
       const l2 = hsl[2] / 100;
       let t2;
       let t3;
       let val;
-      if (s3 === 0) {
+      if (s2 === 0) {
         val = l2 * 255;
         return [val, val, val];
       }
       if (l2 < 0.5) {
-        t2 = l2 * (1 + s3);
+        t2 = l2 * (1 + s2);
       } else {
-        t2 = l2 + s3 - l2 * s3;
+        t2 = l2 + s2 - l2 * s2;
       }
       const t1 = 2 * l2 - t2;
       const rgb = [0, 0, 0];
@@ -417,26 +1510,26 @@ var require_conversions = __commonJS({
     };
     convert2.hsl.hsv = function(hsl) {
       const h2 = hsl[0];
-      let s3 = hsl[1] / 100;
+      let s2 = hsl[1] / 100;
       let l2 = hsl[2] / 100;
-      let smin = s3;
+      let smin = s2;
       const lmin = Math.max(l2, 0.01);
       l2 *= 2;
-      s3 *= l2 <= 1 ? l2 : 2 - l2;
+      s2 *= l2 <= 1 ? l2 : 2 - l2;
       smin *= lmin <= 1 ? lmin : 2 - lmin;
-      const v2 = (l2 + s3) / 2;
-      const sv = l2 === 0 ? 2 * smin / (lmin + smin) : 2 * s3 / (l2 + s3);
+      const v2 = (l2 + s2) / 2;
+      const sv = l2 === 0 ? 2 * smin / (lmin + smin) : 2 * s2 / (l2 + s2);
       return [h2, sv * 100, v2 * 100];
     };
     convert2.hsv.rgb = function(hsv) {
       const h2 = hsv[0] / 60;
-      const s3 = hsv[1] / 100;
+      const s2 = hsv[1] / 100;
       let v2 = hsv[2] / 100;
       const hi = Math.floor(h2) % 6;
       const f2 = h2 - Math.floor(h2);
-      const p2 = 255 * v2 * (1 - s3);
-      const q2 = 255 * v2 * (1 - s3 * f2);
-      const t2 = 255 * v2 * (1 - s3 * (1 - f2));
+      const p2 = 255 * v2 * (1 - s2);
+      const q2 = 255 * v2 * (1 - s2 * f2);
+      const t2 = 255 * v2 * (1 - s2 * (1 - f2));
       v2 *= 255;
       switch (hi) {
         case 0:
@@ -455,14 +1548,14 @@ var require_conversions = __commonJS({
     };
     convert2.hsv.hsl = function(hsv) {
       const h2 = hsv[0];
-      const s3 = hsv[1] / 100;
+      const s2 = hsv[1] / 100;
       const v2 = hsv[2] / 100;
       const vmin = Math.max(v2, 0.01);
       let sl;
       let l2;
-      l2 = (2 - s3) * v2;
-      const lmin = (2 - s3) * vmin;
-      sl = s3 * vmin;
+      l2 = (2 - s2) * v2;
+      const lmin = (2 - s2) * vmin;
+      sl = s2 * vmin;
       sl /= lmin <= 1 ? lmin : 2 - lmin;
       sl = sl || 0;
       l2 /= 2;
@@ -675,12 +1768,12 @@ var require_conversions = __commonJS({
       return "000000".substring(string.length) + string;
     };
     convert2.hex.rgb = function(args) {
-      const match3 = args.toString(16).match(/[a-f0-9]{6}|[a-f0-9]{3}/i);
-      if (!match3) {
+      const match2 = args.toString(16).match(/[a-f0-9]{6}|[a-f0-9]{3}/i);
+      if (!match2) {
         return [0, 0, 0];
       }
-      let colorString = match3[0];
-      if (match3[0].length === 3) {
+      let colorString = match2[0];
+      if (match2[0].length === 3) {
         colorString = colorString.split("").map((char) => {
           return char + char;
         }).join("");
@@ -719,9 +1812,9 @@ var require_conversions = __commonJS({
       return [hue * 360, chroma * 100, grayscale * 100];
     };
     convert2.hsl.hcg = function(hsl) {
-      const s3 = hsl[1] / 100;
+      const s2 = hsl[1] / 100;
       const l2 = hsl[2] / 100;
-      const c2 = l2 < 0.5 ? 2 * s3 * l2 : 2 * s3 * (1 - l2);
+      const c2 = l2 < 0.5 ? 2 * s2 * l2 : 2 * s2 * (1 - l2);
       let f2 = 0;
       if (c2 < 1) {
         f2 = (l2 - 0.5 * c2) / (1 - c2);
@@ -729,9 +1822,9 @@ var require_conversions = __commonJS({
       return [hsl[0], c2 * 100, f2 * 100];
     };
     convert2.hsv.hcg = function(hsv) {
-      const s3 = hsv[1] / 100;
+      const s2 = hsv[1] / 100;
       const v2 = hsv[2] / 100;
-      const c2 = s3 * v2;
+      const c2 = s2 * v2;
       let f2 = 0;
       if (c2 < 1) {
         f2 = (v2 - c2) / (1 - c2);
@@ -802,13 +1895,13 @@ var require_conversions = __commonJS({
       const c2 = hcg[1] / 100;
       const g2 = hcg[2] / 100;
       const l2 = g2 * (1 - c2) + 0.5 * c2;
-      let s3 = 0;
+      let s2 = 0;
       if (l2 > 0 && l2 < 0.5) {
-        s3 = c2 / (2 * l2);
+        s2 = c2 / (2 * l2);
       } else if (l2 >= 0.5 && l2 < 1) {
-        s3 = c2 / (2 * (1 - l2));
+        s2 = c2 / (2 * (1 - l2));
       }
-      return [hcg[0], s3 * 100, l2 * 100];
+      return [hcg[0], s2 * 100, l2 * 100];
     };
     convert2.hcg.hwb = function(hcg) {
       const c2 = hcg[1] / 100;
@@ -1209,7 +2302,7 @@ var require_supports_color = __commonJS({
         return 1;
       }
       if ("CI" in env2) {
-        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign3) => sign3 in env2) || env2.CI_NAME === "codeship") {
+        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign5) => sign5 in env2) || env2.CI_NAME === "codeship") {
           return 1;
         }
         return min;
@@ -1325,13 +2418,13 @@ var require_templates = __commonJS({
     function parseArguments(name, arguments_) {
       const results = [];
       const chunks = arguments_.trim().split(/\s*,\s*/g);
-      let matches3;
+      let matches2;
       for (const chunk of chunks) {
         const number = Number(chunk);
         if (!Number.isNaN(number)) {
           results.push(number);
-        } else if (matches3 = chunk.match(STRING_REGEX)) {
-          results.push(matches3[2].replace(ESCAPE_REGEX, (m2, escape2, character) => escape2 ? unescape2(escape2) : character));
+        } else if (matches2 = chunk.match(STRING_REGEX)) {
+          results.push(matches2[2].replace(ESCAPE_REGEX, (m2, escape2, character) => escape2 ? unescape2(escape2) : character));
         } else {
           throw new Error(`Invalid Chalk template style argument: ${chunk} (in style '${name}')`);
         }
@@ -1341,11 +2434,11 @@ var require_templates = __commonJS({
     function parseStyle(style) {
       STYLE_REGEX.lastIndex = 0;
       const results = [];
-      let matches3;
-      while ((matches3 = STYLE_REGEX.exec(style)) !== null) {
-        const name = matches3[1];
-        if (matches3[2]) {
-          const args = parseArguments(name, matches3[2]);
+      let matches2;
+      while ((matches2 = STYLE_REGEX.exec(style)) !== null) {
+        const name = matches2[1];
+        if (matches2[2]) {
+          const args = parseArguments(name, matches2[2]);
           results.push([name].concat(args));
         } else {
           results.push([name]);
@@ -1977,12 +3070,12 @@ var require_common2 = __commonJS({
     "use strict";
     var utils = require_utils();
     var rotr32 = utils.rotr32;
-    function ft_1(s3, x2, y2, z2) {
-      if (s3 === 0)
+    function ft_1(s2, x2, y2, z2) {
+      if (s2 === 0)
         return ch32(x2, y2, z2);
-      if (s3 === 1 || s3 === 3)
+      if (s2 === 1 || s2 === 3)
         return p32(x2, y2, z2);
-      if (s3 === 2)
+      if (s2 === 2)
         return maj32(x2, y2, z2);
     }
     exports2.ft_1 = ft_1;
@@ -2055,19 +3148,19 @@ var require__ = __commonJS({
     SHA1.hmacStrength = 80;
     SHA1.padLength = 64;
     SHA1.prototype._update = function _update(msg, start) {
-      var W3 = this.W;
+      var W2 = this.W;
       for (var i2 = 0; i2 < 16; i2++)
-        W3[i2] = msg[start + i2];
-      for (; i2 < W3.length; i2++)
-        W3[i2] = rotl32(W3[i2 - 3] ^ W3[i2 - 8] ^ W3[i2 - 14] ^ W3[i2 - 16], 1);
+        W2[i2] = msg[start + i2];
+      for (; i2 < W2.length; i2++)
+        W2[i2] = rotl32(W2[i2 - 3] ^ W2[i2 - 8] ^ W2[i2 - 14] ^ W2[i2 - 16], 1);
       var a2 = this.h[0];
       var b2 = this.h[1];
       var c2 = this.h[2];
       var d2 = this.h[3];
       var e2 = this.h[4];
-      for (i2 = 0; i2 < W3.length; i2++) {
-        var s3 = ~~(i2 / 20);
-        var t2 = sum32_5(rotl32(a2, 5), ft_1(s3, b2, c2, d2), e2, W3[i2], sha1_K[s3]);
+      for (i2 = 0; i2 < W2.length; i2++) {
+        var s2 = ~~(i2 / 20);
+        var t2 = sum32_5(rotl32(a2, 5), ft_1(s2, b2, c2, d2), e2, W2[i2], sha1_K[s2]);
         e2 = d2;
         d2 = c2;
         c2 = rotl32(b2, 30);
@@ -2197,11 +3290,11 @@ var require__2 = __commonJS({
     SHA256.hmacStrength = 192;
     SHA256.padLength = 64;
     SHA256.prototype._update = function _update(msg, start) {
-      var W3 = this.W;
+      var W2 = this.W;
       for (var i2 = 0; i2 < 16; i2++)
-        W3[i2] = msg[start + i2];
-      for (; i2 < W3.length; i2++)
-        W3[i2] = sum32_4(g1_256(W3[i2 - 2]), W3[i2 - 7], g0_256(W3[i2 - 15]), W3[i2 - 16]);
+        W2[i2] = msg[start + i2];
+      for (; i2 < W2.length; i2++)
+        W2[i2] = sum32_4(g1_256(W2[i2 - 2]), W2[i2 - 7], g0_256(W2[i2 - 15]), W2[i2 - 16]);
       var a2 = this.h[0];
       var b2 = this.h[1];
       var c2 = this.h[2];
@@ -2210,9 +3303,9 @@ var require__2 = __commonJS({
       var f2 = this.h[5];
       var g2 = this.h[6];
       var h2 = this.h[7];
-      assert(this.k.length === W3.length);
-      for (i2 = 0; i2 < W3.length; i2++) {
-        var T1 = sum32_5(h2, s1_256(e2), ch32(e2, f2, g2), this.k[i2], W3[i2]);
+      assert(this.k.length === W2.length);
+      for (i2 = 0; i2 < W2.length; i2++) {
+        var T1 = sum32_5(h2, s1_256(e2), ch32(e2, f2, g2), this.k[i2], W2[i2]);
         var T2 = sum32(s0_256(a2), maj32(a2, b2, c2));
         h2 = g2;
         g2 = f2;
@@ -2490,19 +3583,19 @@ var require__4 = __commonJS({
     SHA512.hmacStrength = 192;
     SHA512.padLength = 128;
     SHA512.prototype._prepareBlock = function _prepareBlock(msg, start) {
-      var W3 = this.W;
+      var W2 = this.W;
       for (var i2 = 0; i2 < 32; i2++)
-        W3[i2] = msg[start + i2];
-      for (; i2 < W3.length; i2 += 2) {
-        var c0_hi = g1_512_hi(W3[i2 - 4], W3[i2 - 3]);
-        var c0_lo = g1_512_lo(W3[i2 - 4], W3[i2 - 3]);
-        var c1_hi = W3[i2 - 14];
-        var c1_lo = W3[i2 - 13];
-        var c2_hi = g0_512_hi(W3[i2 - 30], W3[i2 - 29]);
-        var c2_lo = g0_512_lo(W3[i2 - 30], W3[i2 - 29]);
-        var c3_hi = W3[i2 - 32];
-        var c3_lo = W3[i2 - 31];
-        W3[i2] = sum64_4_hi(
+        W2[i2] = msg[start + i2];
+      for (; i2 < W2.length; i2 += 2) {
+        var c0_hi = g1_512_hi(W2[i2 - 4], W2[i2 - 3]);
+        var c0_lo = g1_512_lo(W2[i2 - 4], W2[i2 - 3]);
+        var c1_hi = W2[i2 - 14];
+        var c1_lo = W2[i2 - 13];
+        var c2_hi = g0_512_hi(W2[i2 - 30], W2[i2 - 29]);
+        var c2_lo = g0_512_lo(W2[i2 - 30], W2[i2 - 29]);
+        var c3_hi = W2[i2 - 32];
+        var c3_lo = W2[i2 - 31];
+        W2[i2] = sum64_4_hi(
           c0_hi,
           c0_lo,
           c1_hi,
@@ -2512,7 +3605,7 @@ var require__4 = __commonJS({
           c3_hi,
           c3_lo
         );
-        W3[i2 + 1] = sum64_4_lo(
+        W2[i2 + 1] = sum64_4_lo(
           c0_hi,
           c0_lo,
           c1_hi,
@@ -2526,7 +3619,7 @@ var require__4 = __commonJS({
     };
     SHA512.prototype._update = function _update(msg, start) {
       this._prepareBlock(msg, start);
-      var W3 = this.W;
+      var W2 = this.W;
       var ah = this.h[0];
       var al = this.h[1];
       var bh = this.h[2];
@@ -2543,8 +3636,8 @@ var require__4 = __commonJS({
       var gl = this.h[13];
       var hh = this.h[14];
       var hl = this.h[15];
-      assert(this.k.length === W3.length);
-      for (var i2 = 0; i2 < W3.length; i2 += 2) {
+      assert(this.k.length === W2.length);
+      for (var i2 = 0; i2 < W2.length; i2 += 2) {
         var c0_hi = hh;
         var c0_lo = hl;
         var c1_hi = s1_512_hi(eh, el);
@@ -2553,8 +3646,8 @@ var require__4 = __commonJS({
         var c2_lo = ch64_lo(eh, el, fh, fl, gh, gl);
         var c3_hi = this.k[i2];
         var c3_lo = this.k[i2 + 1];
-        var c4_hi = W3[i2];
-        var c4_lo = W3[i2 + 1];
+        var c4_hi = W2[i2];
+        var c4_lo = W2[i2 + 1];
         var T1_hi = sum64_5_hi(
           c0_hi,
           c0_lo,
@@ -2800,24 +3893,24 @@ var require_ripemd = __commonJS({
       var A2 = this.h[0];
       var B2 = this.h[1];
       var C2 = this.h[2];
-      var D3 = this.h[3];
+      var D2 = this.h[3];
       var E2 = this.h[4];
       var Ah = A2;
       var Bh = B2;
       var Ch = C2;
-      var Dh = D3;
+      var Dh = D2;
       var Eh = E2;
       for (var j2 = 0; j2 < 80; j2++) {
         var T2 = sum32(
           rotl32(
-            sum32_4(A2, f2(j2, B2, C2, D3), msg[r2[j2] + start], K2(j2)),
-            s3[j2]
+            sum32_4(A2, f2(j2, B2, C2, D2), msg[r2[j2] + start], K2(j2)),
+            s2[j2]
           ),
           E2
         );
         A2 = E2;
-        E2 = D3;
-        D3 = rotl32(C2, 10);
+        E2 = D2;
+        D2 = rotl32(C2, 10);
         C2 = B2;
         B2 = T2;
         T2 = sum32(
@@ -2834,7 +3927,7 @@ var require_ripemd = __commonJS({
         Bh = T2;
       }
       T2 = sum32_3(this.h[1], C2, Dh);
-      this.h[1] = sum32_3(this.h[2], D3, Eh);
+      this.h[1] = sum32_3(this.h[2], D2, Eh);
       this.h[2] = sum32_3(this.h[3], E2, Ah);
       this.h[3] = sum32_3(this.h[4], A2, Bh);
       this.h[4] = sum32_3(this.h[0], B2, Ch);
@@ -3046,7 +4139,7 @@ var require_ripemd = __commonJS({
       9,
       11
     ];
-    var s3 = [
+    var s2 = [
       11,
       14,
       15,
@@ -3277,9 +4370,9 @@ var require_hash = __commonJS({
 var require_stringify = __commonJS({
   "../../node_modules/.pnpm/json-stringify-safe@5.0.1/node_modules/json-stringify-safe/stringify.js"(exports2, module2) {
     "use strict";
-    exports2 = module2.exports = stringify5;
+    exports2 = module2.exports = stringify4;
     exports2.getSerialize = serializer;
-    function stringify5(obj, replacer, spaces, cycleReplacer) {
+    function stringify4(obj, replacer, spaces, cycleReplacer) {
       return JSON.stringify(obj, serializer(replacer, cycleReplacer), spaces);
     }
     function serializer(replacer, cycleReplacer) {
@@ -3305,8 +4398,8 @@ var require_stringify = __commonJS({
 var require_ms = __commonJS({
   "../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js"(exports2, module2) {
     "use strict";
-    var s3 = 1e3;
-    var m2 = s3 * 60;
+    var s2 = 1e3;
+    var m2 = s2 * 60;
     var h2 = m2 * 60;
     var d2 = h2 * 24;
     var w2 = d2 * 7;
@@ -3315,7 +4408,7 @@ var require_ms = __commonJS({
       options = options || {};
       var type = typeof val;
       if (type === "string" && val.length > 0) {
-        return parse3(val);
+        return parse2(val);
       } else if (type === "number" && isFinite(val)) {
         return options.long ? fmtLong(val) : fmtShort(val);
       }
@@ -3323,19 +4416,19 @@ var require_ms = __commonJS({
         "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
       );
     };
-    function parse3(str2) {
+    function parse2(str2) {
       str2 = String(str2);
       if (str2.length > 100) {
         return;
       }
-      var match3 = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+      var match2 = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
         str2
       );
-      if (!match3) {
+      if (!match2) {
         return;
       }
-      var n2 = parseFloat(match3[1]);
-      var type = (match3[2] || "ms").toLowerCase();
+      var n2 = parseFloat(match2[1]);
+      var type = (match2[2] || "ms").toLowerCase();
       switch (type) {
         case "years":
         case "year":
@@ -3368,7 +4461,7 @@ var require_ms = __commonJS({
         case "secs":
         case "sec":
         case "s":
-          return n2 * s3;
+          return n2 * s2;
         case "milliseconds":
         case "millisecond":
         case "msecs":
@@ -3390,8 +4483,8 @@ var require_ms = __commonJS({
       if (msAbs >= m2) {
         return Math.round(ms5 / m2) + "m";
       }
-      if (msAbs >= s3) {
-        return Math.round(ms5 / s3) + "s";
+      if (msAbs >= s2) {
+        return Math.round(ms5 / s2) + "s";
       }
       return ms5 + "ms";
     }
@@ -3406,8 +4499,8 @@ var require_ms = __commonJS({
       if (msAbs >= m2) {
         return plural(ms5, msAbs, m2, "minute");
       }
-      if (msAbs >= s3) {
-        return plural(ms5, msAbs, s3, "second");
+      if (msAbs >= s2) {
+        return plural(ms5, msAbs, s2, "second");
       }
       return ms5 + " ms";
     }
@@ -3422,23 +4515,23 @@ var require_ms = __commonJS({
 var require_constructors = __commonJS({
   "../../node_modules/.pnpm/serialize-error-cjs@0.1.4/node_modules/serialize-error-cjs/dist/constructors.js"(exports2, module2) {
     "use strict";
-    var __defProp3 = Object.defineProperty;
-    var __getOwnPropDesc3 = Object.getOwnPropertyDescriptor;
-    var __getOwnPropNames3 = Object.getOwnPropertyNames;
-    var __hasOwnProp3 = Object.prototype.hasOwnProperty;
+    var __defProp2 = Object.defineProperty;
+    var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+    var __getOwnPropNames2 = Object.getOwnPropertyNames;
+    var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __export2 = (target, all) => {
       for (var name in all)
-        __defProp3(target, name, { get: all[name], enumerable: true });
+        __defProp2(target, name, { get: all[name], enumerable: true });
     };
-    var __copyProps3 = (to, from, except, desc) => {
+    var __copyProps2 = (to, from, except, desc) => {
       if (from && typeof from === "object" || typeof from === "function") {
-        for (let key of __getOwnPropNames3(from))
-          if (!__hasOwnProp3.call(to, key) && key !== except)
-            __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc3(from, key)) || desc.enumerable });
+        for (let key of __getOwnPropNames2(from))
+          if (!__hasOwnProp2.call(to, key) && key !== except)
+            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
       }
       return to;
     };
-    var __toCommonJS = (mod) => __copyProps3(__defProp3({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var constructors_exports = {};
     __export2(constructors_exports, {
       errorConstructors: () => errorConstructors3
@@ -3466,23 +4559,23 @@ var require_constructors = __commonJS({
 var require_dist = __commonJS({
   "../../node_modules/.pnpm/serialize-error-cjs@0.1.4/node_modules/serialize-error-cjs/dist/index.js"(exports2, module2) {
     "use strict";
-    var __defProp3 = Object.defineProperty;
-    var __getOwnPropDesc3 = Object.getOwnPropertyDescriptor;
-    var __getOwnPropNames3 = Object.getOwnPropertyNames;
-    var __hasOwnProp3 = Object.prototype.hasOwnProperty;
+    var __defProp2 = Object.defineProperty;
+    var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
+    var __getOwnPropNames2 = Object.getOwnPropertyNames;
+    var __hasOwnProp2 = Object.prototype.hasOwnProperty;
     var __export2 = (target, all) => {
       for (var name in all)
-        __defProp3(target, name, { get: all[name], enumerable: true });
+        __defProp2(target, name, { get: all[name], enumerable: true });
     };
-    var __copyProps3 = (to, from, except, desc) => {
+    var __copyProps2 = (to, from, except, desc) => {
       if (from && typeof from === "object" || typeof from === "function") {
-        for (let key of __getOwnPropNames3(from))
-          if (!__hasOwnProp3.call(to, key) && key !== except)
-            __defProp3(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc3(from, key)) || desc.enumerable });
+        for (let key of __getOwnPropNames2(from))
+          if (!__hasOwnProp2.call(to, key) && key !== except)
+            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
       }
       return to;
     };
-    var __toCommonJS = (mod) => __copyProps3(__defProp3({}, "__esModule", { value: true }), mod);
+    var __toCommonJS = (mod) => __copyProps2(__defProp2({}, "__esModule", { value: true }), mod);
     var index_exports = {};
     __export2(index_exports, {
       deserializeError: () => deserializeError2,
@@ -3580,30 +4673,30 @@ var require_common3 = __commonJS({
   "../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/common.js"(exports2, module2) {
     "use strict";
     function setup(env2) {
-      createDebug2.debug = createDebug2;
-      createDebug2.default = createDebug2;
-      createDebug2.coerce = coerce2;
-      createDebug2.disable = disable;
-      createDebug2.enable = enable;
-      createDebug2.enabled = enabled;
-      createDebug2.humanize = require_ms();
-      createDebug2.destroy = destroy;
+      createDebug.debug = createDebug;
+      createDebug.default = createDebug;
+      createDebug.coerce = coerce2;
+      createDebug.disable = disable;
+      createDebug.enable = enable;
+      createDebug.enabled = enabled;
+      createDebug.humanize = require_ms();
+      createDebug.destroy = destroy;
       Object.keys(env2).forEach((key) => {
-        createDebug2[key] = env2[key];
+        createDebug[key] = env2[key];
       });
-      createDebug2.names = [];
-      createDebug2.skips = [];
-      createDebug2.formatters = {};
+      createDebug.names = [];
+      createDebug.skips = [];
+      createDebug.formatters = {};
       function selectColor(namespace) {
         let hash = 0;
         for (let i2 = 0; i2 < namespace.length; i2++) {
           hash = (hash << 5) - hash + namespace.charCodeAt(i2);
           hash |= 0;
         }
-        return createDebug2.colors[Math.abs(hash) % createDebug2.colors.length];
+        return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
       }
-      createDebug2.selectColor = selectColor;
-      function createDebug2(namespace) {
+      createDebug.selectColor = selectColor;
+      function createDebug(namespace) {
         let prevTime;
         let enableOverride = null;
         let namespacesCache;
@@ -3619,34 +4712,34 @@ var require_common3 = __commonJS({
           self2.prev = prevTime;
           self2.curr = curr;
           prevTime = curr;
-          args[0] = createDebug2.coerce(args[0]);
+          args[0] = createDebug.coerce(args[0]);
           if (typeof args[0] !== "string") {
             args.unshift("%O");
           }
           let index = 0;
-          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match3, format) => {
-            if (match3 === "%%") {
+          args[0] = args[0].replace(/%([a-zA-Z%])/g, (match2, format) => {
+            if (match2 === "%%") {
               return "%";
             }
             index++;
-            const formatter = createDebug2.formatters[format];
+            const formatter = createDebug.formatters[format];
             if (typeof formatter === "function") {
               const val = args[index];
-              match3 = formatter.call(self2, val);
+              match2 = formatter.call(self2, val);
               args.splice(index, 1);
               index--;
             }
-            return match3;
+            return match2;
           });
-          createDebug2.formatArgs.call(self2, args);
-          const logFn = self2.log || createDebug2.log;
+          createDebug.formatArgs.call(self2, args);
+          const logFn = self2.log || createDebug.log;
           logFn.apply(self2, args);
         }
         debug5.namespace = namespace;
-        debug5.useColors = createDebug2.useColors();
-        debug5.color = createDebug2.selectColor(namespace);
+        debug5.useColors = createDebug.useColors();
+        debug5.color = createDebug.selectColor(namespace);
         debug5.extend = extend;
-        debug5.destroy = createDebug2.destroy;
+        debug5.destroy = createDebug.destroy;
         Object.defineProperty(debug5, "enabled", {
           enumerable: true,
           configurable: false,
@@ -3654,9 +4747,9 @@ var require_common3 = __commonJS({
             if (enableOverride !== null) {
               return enableOverride;
             }
-            if (namespacesCache !== createDebug2.namespaces) {
-              namespacesCache = createDebug2.namespaces;
-              enabledCache = createDebug2.enabled(namespace);
+            if (namespacesCache !== createDebug.namespaces) {
+              namespacesCache = createDebug.namespaces;
+              enabledCache = createDebug.enabled(namespace);
             }
             return enabledCache;
           },
@@ -3664,27 +4757,27 @@ var require_common3 = __commonJS({
             enableOverride = v2;
           }
         });
-        if (typeof createDebug2.init === "function") {
-          createDebug2.init(debug5);
+        if (typeof createDebug.init === "function") {
+          createDebug.init(debug5);
         }
         return debug5;
       }
       function extend(namespace, delimiter) {
-        const newDebug = createDebug2(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+        const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
         newDebug.log = this.log;
         return newDebug;
       }
       function enable(namespaces) {
-        createDebug2.save(namespaces);
-        createDebug2.namespaces = namespaces;
-        createDebug2.names = [];
-        createDebug2.skips = [];
-        const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
-        for (const ns of split2) {
+        createDebug.save(namespaces);
+        createDebug.namespaces = namespaces;
+        createDebug.names = [];
+        createDebug.skips = [];
+        const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+        for (const ns of split) {
           if (ns[0] === "-") {
-            createDebug2.skips.push(ns.slice(1));
+            createDebug.skips.push(ns.slice(1));
           } else {
-            createDebug2.names.push(ns);
+            createDebug.names.push(ns);
           }
         }
       }
@@ -3718,19 +4811,19 @@ var require_common3 = __commonJS({
       }
       function disable() {
         const namespaces = [
-          ...createDebug2.names,
-          ...createDebug2.skips.map((namespace) => "-" + namespace)
+          ...createDebug.names,
+          ...createDebug.skips.map((namespace) => "-" + namespace)
         ].join(",");
-        createDebug2.enable("");
+        createDebug.enable("");
         return namespaces;
       }
       function enabled(name) {
-        for (const skip of createDebug2.skips) {
+        for (const skip of createDebug.skips) {
           if (matchesTemplate(name, skip)) {
             return false;
           }
         }
-        for (const ns of createDebug2.names) {
+        for (const ns of createDebug.names) {
           if (matchesTemplate(name, ns)) {
             return true;
           }
@@ -3746,8 +4839,8 @@ var require_common3 = __commonJS({
       function destroy() {
         console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
       }
-      createDebug2.enable(createDebug2.load());
-      return createDebug2;
+      createDebug.enable(createDebug.load());
+      return createDebug;
     }
     module2.exports = setup;
   }
@@ -3872,12 +4965,12 @@ var require_browser = __commonJS({
       args.splice(1, 0, c2, "color: inherit");
       let index = 0;
       let lastC = 0;
-      args[0].replace(/%[a-zA-Z%]/g, (match3) => {
-        if (match3 === "%%") {
+      args[0].replace(/%[a-zA-Z%]/g, (match2) => {
+        if (match2 === "%%") {
           return;
         }
         index++;
-        if (match3 === "%c") {
+        if (match2 === "%c") {
           lastC = index;
         }
       });
@@ -4029,7 +5122,7 @@ var require_node = __commonJS({
     exports2.inspectOpts = Object.keys(process.env).filter((key) => {
       return /^debug_/i.test(key);
     }).reduce((obj, key) => {
-      const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_3, k2) => {
+      const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_2, k2) => {
         return k2.toUpperCase();
       });
       let val = process.env[key];
@@ -4308,7 +5401,7 @@ var require_anthropic2 = __commonJS({
         url: url.href,
         authKey,
         format: "anthropic",
-        onCall(_3, body) {
+        onCall(_2, body) {
           Object.assign(body, options.defaultParameters);
           body.model || (body.model = options.model);
         },
@@ -4324,14 +5417,14 @@ var require_anthropic2 = __commonJS({
 var require_gemini2 = __commonJS({
   "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/gemini.js"(exports2) {
     "use strict";
-    var __rest2 = exports2 && exports2.__rest || function(s3, e2) {
+    var __rest2 = exports2 && exports2.__rest || function(s2, e2) {
       var t2 = {};
-      for (var p2 in s3) if (Object.prototype.hasOwnProperty.call(s3, p2) && e2.indexOf(p2) < 0)
-        t2[p2] = s3[p2];
-      if (s3 != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i2 = 0, p2 = Object.getOwnPropertySymbols(s3); i2 < p2.length; i2++) {
-          if (e2.indexOf(p2[i2]) < 0 && Object.prototype.propertyIsEnumerable.call(s3, p2[i2]))
-            t2[p2[i2]] = s3[p2[i2]];
+      for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2) && e2.indexOf(p2) < 0)
+        t2[p2] = s2[p2];
+      if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i2 = 0, p2 = Object.getOwnPropertySymbols(s2); i2 < p2.length; i2++) {
+          if (e2.indexOf(p2[i2]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p2[i2]))
+            t2[p2[i2]] = s2[p2[i2]];
         }
       return t2;
     };
@@ -4350,7 +5443,7 @@ var require_gemini2 = __commonJS({
         url: url.href,
         authKey,
         format: "gemini",
-        onCall(_3, body) {
+        onCall(_2, body) {
           var _a2;
           if (!options.defaultParameters) {
             return;
@@ -4390,7 +5483,7 @@ var require_openai2 = __commonJS({
         url: url.href,
         authKey,
         format: "openai-chat",
-        onCall(_3, body) {
+        onCall(_2, body) {
           Object.assign(body, options.defaultParameters);
           body.model || (body.model = options.model);
         },
@@ -4425,7 +5518,7 @@ var require_azure_openai2 = __commonJS({
       return Object.assign(Object.assign({}, baseModel), {
         url: url.href,
         format: "azure-openai",
-        onCall(_3, body) {
+        onCall(_2, body) {
           Object.assign(body, options.defaultParameters);
           body.model || (body.model = options.model);
         },
@@ -4459,7 +5552,7 @@ var require_deepseek = __commonJS({
         url: url.href,
         authKey,
         format: "openai-chat",
-        onCall(_3, body) {
+        onCall(_2, body) {
           Object.assign(body, options.defaultParameters);
           body.model || (body.model = options.model);
         },
@@ -4512,7 +5605,7 @@ var require_openai_responses2 = __commonJS({
         url: url.href,
         authKey,
         format: "openai-responses",
-        onCall(_3, body) {
+        onCall(_2, body) {
           Object.assign(body, options.defaultParameters);
           body.model || (body.model = options.model);
         },
@@ -4776,13 +5869,70 @@ var init_index_esm = __esm({
   }
 });
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/adapter/index.js
+var env, knownUserAgents, getRuntimeKey, checkUserAgentEquals;
+var init_adapter = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/adapter/index.js"() {
+    "use strict";
+    env = (c2, runtime) => {
+      const global3 = globalThis;
+      const globalEnv = global3?.process?.env;
+      runtime ??= getRuntimeKey();
+      const runtimeEnvHandlers = {
+        bun: () => globalEnv,
+        node: () => globalEnv,
+        "edge-light": () => globalEnv,
+        deno: () => {
+          return Deno.env.toObject();
+        },
+        workerd: () => c2.env,
+        // On Fastly Compute, you can use the ConfigStore to manage user-defined data.
+        fastly: () => ({}),
+        other: () => ({})
+      };
+      return runtimeEnvHandlers[runtime]();
+    };
+    knownUserAgents = {
+      deno: "Deno",
+      bun: "Bun",
+      workerd: "Cloudflare-Workers",
+      node: "Node.js"
+    };
+    getRuntimeKey = () => {
+      const global3 = globalThis;
+      const userAgentSupported = typeof navigator !== "undefined" && typeof navigator.userAgent === "string";
+      if (userAgentSupported) {
+        for (const [runtimeKey, userAgent] of Object.entries(knownUserAgents)) {
+          if (checkUserAgentEquals(userAgent)) {
+            return runtimeKey;
+          }
+        }
+      }
+      if (typeof global3?.EdgeRuntime === "string") {
+        return "edge-light";
+      }
+      if (global3?.fastly !== void 0) {
+        return "fastly";
+      }
+      if (global3?.process?.release?.name === "node") {
+        return "node";
+      }
+      return "other";
+    };
+    checkUserAgentEquals = (platform) => {
+      const userAgent = navigator.userAgent;
+      return userAgent.startsWith(platform);
+    };
+  }
+});
+
 // ../../node_modules/.pnpm/webidl-conversions@3.0.1/node_modules/webidl-conversions/lib/index.js
 var require_lib = __commonJS({
   "../../node_modules/.pnpm/webidl-conversions@3.0.1/node_modules/webidl-conversions/lib/index.js"(exports2, module2) {
     "use strict";
     var conversions = {};
     module2.exports = conversions;
-    function sign3(x2) {
+    function sign5(x2) {
       return x2 < 0 ? -1 : 1;
     }
     function evenRound(x2) {
@@ -4807,7 +5957,7 @@ var require_lib = __commonJS({
           if (!Number.isFinite(x2)) {
             throw new TypeError("Argument is not a finite number");
           }
-          x2 = sign3(x2) * Math.floor(Math.abs(x2));
+          x2 = sign5(x2) * Math.floor(Math.abs(x2));
           if (x2 < lowerBound || x2 > upperBound) {
             throw new TypeError("Argument is not in byte range");
           }
@@ -4822,7 +5972,7 @@ var require_lib = __commonJS({
         if (!Number.isFinite(x2) || x2 === 0) {
           return 0;
         }
-        x2 = sign3(x2) * Math.floor(Math.abs(x2));
+        x2 = sign5(x2) * Math.floor(Math.abs(x2));
         x2 = x2 % moduloVal;
         if (!typeOpts.unsigned && x2 >= moduloBound) {
           return x2 - moduloVal;
@@ -4886,30 +6036,30 @@ var require_lib = __commonJS({
     conversions["USVString"] = function(V2) {
       const S2 = String(V2);
       const n2 = S2.length;
-      const U3 = [];
+      const U2 = [];
       for (let i2 = 0; i2 < n2; ++i2) {
         const c2 = S2.charCodeAt(i2);
         if (c2 < 55296 || c2 > 57343) {
-          U3.push(String.fromCodePoint(c2));
+          U2.push(String.fromCodePoint(c2));
         } else if (56320 <= c2 && c2 <= 57343) {
-          U3.push(String.fromCodePoint(65533));
+          U2.push(String.fromCodePoint(65533));
         } else {
           if (i2 === n2 - 1) {
-            U3.push(String.fromCodePoint(65533));
+            U2.push(String.fromCodePoint(65533));
           } else {
             const d2 = S2.charCodeAt(i2 + 1);
             if (56320 <= d2 && d2 <= 57343) {
               const a2 = c2 & 1023;
               const b2 = d2 & 1023;
-              U3.push(String.fromCodePoint((2 << 15) + (2 << 9) * a2 + b2));
+              U2.push(String.fromCodePoint((2 << 15) + (2 << 9) * a2 + b2));
               ++i2;
             } else {
-              U3.push(String.fromCodePoint(65533));
+              U2.push(String.fromCodePoint(65533));
             }
           }
         }
       }
-      return U3.join("");
+      return U2.join("");
     };
     conversions["Date"] = function(V2, opts) {
       if (!(V2 instanceof Date)) {
@@ -4968,8 +6118,8 @@ var require_tr46 = __commonJS({
       NONTRANSITIONAL: 1
     };
     function normalize2(str2) {
-      return str2.split("\0").map(function(s3) {
-        return s3.normalize("NFC");
+      return str2.split("\0").map(function(s2) {
+        return s2.normalize("NFC");
       }).join("\0");
     }
     function findStatus(val) {
@@ -5233,22 +6383,22 @@ var require_url_state_machine = __commonJS({
       return cStr;
     }
     function parseIPv4Number(input) {
-      let R2 = 10;
+      let R3 = 10;
       if (input.length >= 2 && input.charAt(0) === "0" && input.charAt(1).toLowerCase() === "x") {
         input = input.substring(2);
-        R2 = 16;
+        R3 = 16;
       } else if (input.length >= 2 && input.charAt(0) === "0") {
         input = input.substring(1);
-        R2 = 8;
+        R3 = 8;
       }
       if (input === "") {
         return 0;
       }
-      const regex = R2 === 10 ? /[^0-9]/ : R2 === 16 ? /[^0-9A-Fa-f]/ : /[^0-7]/;
+      const regex = R3 === 10 ? /[^0-9]/ : R3 === 16 ? /[^0-9A-Fa-f]/ : /[^0-7]/;
       if (regex.test(input)) {
         return failure;
       }
-      return parseInt(input, R2);
+      return parseInt(input, R3);
     }
     function parseIPv4(input) {
       const parts = input.split(".");
@@ -6796,14 +7946,14 @@ function ge(e2, t2) {
 }
 function we(e2, t2) {
   const r2 = t2.elementSize, o2 = t2.bytesFilled - t2.bytesFilled % r2, n2 = Math.min(e2._queueTotalSize, t2.byteLength - t2.bytesFilled), a2 = t2.bytesFilled + n2, i2 = a2 - a2 % r2;
-  let l2 = n2, s3 = false;
-  i2 > o2 && (l2 = i2 - t2.bytesFilled, s3 = true);
+  let l2 = n2, s2 = false;
+  i2 > o2 && (l2 = i2 - t2.bytesFilled, s2 = true);
   const u2 = e2._queue;
   for (; l2 > 0; ) {
     const r3 = u2.peek(), o3 = Math.min(l2, r3.byteLength), n3 = t2.byteOffset + t2.bytesFilled;
     ie(t2.buffer, n3, r3.buffer, r3.byteOffset, o3), r3.byteLength === o3 ? u2.shift() : (r3.byteOffset += o3, r3.byteLength -= o3), e2._queueTotalSize -= o3, Se(e2, o3, t2), l2 -= o3;
   }
-  return s3;
+  return s2;
 }
 function Se(e2, t2, r2) {
   r2.bytesFilled += t2;
@@ -7108,12 +8258,12 @@ function Et(e2) {
 function kt(e2, t2, r2, o2, n2, a2) {
   const i2 = e2.getReader(), l2 = t2.getWriter();
   Vt(e2) && (e2._disturbed = true);
-  let s3, _3, g2, w2 = false, S2 = false, v2 = "readable", R2 = "writable", T2 = false, q2 = false;
+  let s2, _2, g2, w2 = false, S2 = false, v2 = "readable", R3 = "writable", T2 = false, q2 = false;
   const C2 = u(((e3) => {
     g2 = e3;
   }));
   let E2 = Promise.resolve(void 0);
-  return u(((P3, W3) => {
+  return u(((P3, W2) => {
     let k2;
     function O2() {
       if (w2) return;
@@ -7128,27 +8278,27 @@ function kt(e2, t2, r2, o2, n2, a2) {
       m(e3);
     }
     function B2() {
-      return v2 = "closed", r2 ? L3() : z2((() => (Ge(t2) && (T2 = rt(t2), R2 = t2._state), T2 || "closed" === R2 ? c(void 0) : "erroring" === R2 || "errored" === R2 ? d(_3) : (T2 = true, l2.close()))), false, void 0), null;
+      return v2 = "closed", r2 ? L2() : z2((() => (Ge(t2) && (T2 = rt(t2), R3 = t2._state), T2 || "closed" === R3 ? c(void 0) : "erroring" === R3 || "errored" === R3 ? d(_2) : (T2 = true, l2.close()))), false, void 0), null;
     }
     function A2(e3) {
-      return w2 || (v2 = "errored", s3 = e3, o2 ? L3(true, e3) : z2((() => l2.abort(e3)), true, e3)), null;
+      return w2 || (v2 = "errored", s2 = e3, o2 ? L2(true, e3) : z2((() => l2.abort(e3)), true, e3)), null;
     }
     function j2(e3) {
-      return S2 || (R2 = "errored", _3 = e3, n2 ? L3(true, e3) : z2((() => i2.cancel(e3)), true, e3)), null;
+      return S2 || (R3 = "errored", _2 = e3, n2 ? L2(true, e3) : z2((() => i2.cancel(e3)), true, e3)), null;
     }
     if (void 0 !== a2 && (k2 = () => {
       const e3 = void 0 !== a2.reason ? a2.reason : new Wt("Aborted", "AbortError"), t3 = [];
-      o2 || t3.push((() => "writable" === R2 ? l2.abort(e3) : c(void 0))), n2 || t3.push((() => "readable" === v2 ? i2.cancel(e3) : c(void 0))), z2((() => Promise.all(t3.map(((e4) => e4())))), true, e3);
-    }, a2.aborted ? k2() : a2.addEventListener("abort", k2)), Vt(e2) && (v2 = e2._state, s3 = e2._storedError), Ge(t2) && (R2 = t2._state, _3 = t2._storedError, T2 = rt(t2)), Vt(e2) && Ge(t2) && (q2 = true, g2()), "errored" === v2) A2(s3);
-    else if ("erroring" === R2 || "errored" === R2) j2(_3);
+      o2 || t3.push((() => "writable" === R3 ? l2.abort(e3) : c(void 0))), n2 || t3.push((() => "readable" === v2 ? i2.cancel(e3) : c(void 0))), z2((() => Promise.all(t3.map(((e4) => e4())))), true, e3);
+    }, a2.aborted ? k2() : a2.addEventListener("abort", k2)), Vt(e2) && (v2 = e2._state, s2 = e2._storedError), Ge(t2) && (R3 = t2._state, _2 = t2._storedError, T2 = rt(t2)), Vt(e2) && Ge(t2) && (q2 = true, g2()), "errored" === v2) A2(s2);
+    else if ("erroring" === R3 || "errored" === R3) j2(_2);
     else if ("closed" === v2) B2();
-    else if (T2 || "closed" === R2) {
+    else if (T2 || "closed" === R3) {
       const e3 = new TypeError("the destination writable stream closed before all data could be piped to it");
-      n2 ? L3(true, e3) : z2((() => i2.cancel(e3)), true, e3);
+      n2 ? L2(true, e3) : z2((() => i2.cancel(e3)), true, e3);
     }
     function z2(e3, t3, r3) {
       function o3() {
-        return "writable" !== R2 || T2 ? n3() : h((function() {
+        return "writable" !== R3 || T2 ? n3() : h((function() {
           let e4;
           return c((function t4() {
             if (e4 !== E2) return e4 = E2, p(E2, t4, t4);
@@ -7156,18 +8306,18 @@ function kt(e2, t2, r2, o2, n2, a2) {
         })(), n3), null;
       }
       function n3() {
-        return e3 ? b(e3(), (() => F3(t3, r3)), ((e4) => F3(true, e4))) : F3(t3, r3), null;
+        return e3 ? b(e3(), (() => F2(t3, r3)), ((e4) => F2(true, e4))) : F2(t3, r3), null;
       }
       w2 || (w2 = true, q2 ? o3() : h(C2, o3));
     }
-    function L3(e3, t3) {
+    function L2(e3, t3) {
       z2(void 0, e3, t3);
     }
-    function F3(e3, t3) {
-      return S2 = true, l2.releaseLock(), i2.releaseLock(), void 0 !== a2 && a2.removeEventListener("abort", k2), e3 ? W3(t3) : P3(void 0), null;
+    function F2(e3, t3) {
+      return S2 = true, l2.releaseLock(), i2.releaseLock(), void 0 !== a2 && a2.removeEventListener("abort", k2), e3 ? W2(t3) : P3(void 0), null;
     }
     w2 || (b(i2.closed, B2, A2), b(l2.closed, (function() {
-      return S2 || (R2 = "closed"), null;
+      return S2 || (R3 = "closed"), null;
     }), j2)), q2 ? O2() : y((() => {
       q2 = true, g2(), O2();
     }));
@@ -7181,7 +8331,7 @@ function Ot(e2, t2) {
       return false;
     }
   })(e2) ? (function(e3) {
-    let t3, r2, o2, n2, a2, i2 = e3.getReader(), l2 = false, s3 = false, d2 = false, f2 = false, h2 = false, p2 = false;
+    let t3, r2, o2, n2, a2, i2 = e3.getReader(), l2 = false, s2 = false, d2 = false, f2 = false, h2 = false, p2 = false;
     const m2 = u(((e4) => {
       a2 = e4;
     }));
@@ -7199,8 +8349,8 @@ function Ot(e2, t2) {
         } catch (e5) {
           return o2.error(e5), n2.error(e5), a2(i2.cancel(e5)), null;
         }
-        return h2 || o2.enqueue(u2), p2 || n2.enqueue(c2), s3 = false, d2 ? S2() : f2 && v2(), null;
-      }), (() => (s3 = false, null)));
+        return h2 || o2.enqueue(u2), p2 || n2.enqueue(c2), s2 = false, d2 ? S2() : f2 && v2(), null;
+      }), (() => (s2 = false, null)));
     }
     function w2(t4, r3) {
       l2 || (i2.releaseLock(), i2 = e3.getReader({ mode: "byob" }), y2(i2), l2 = true);
@@ -7225,22 +8375,22 @@ function Ot(e2, t2) {
           }
           o3 || u2.byobRequest.respondWithNewView(l3), c2.enqueue(e5);
         }
-        return s3 = false, d2 ? S2() : f2 && v2(), null;
-      }), (() => (s3 = false, null)));
+        return s2 = false, d2 ? S2() : f2 && v2(), null;
+      }), (() => (s2 = false, null)));
     }
     function S2() {
-      if (s3) return d2 = true, c(void 0);
-      s3 = true;
+      if (s2) return d2 = true, c(void 0);
+      s2 = true;
       const e4 = o2.byobRequest;
       return null === e4 ? g2() : w2(e4.view, false), c(void 0);
     }
     function v2() {
-      if (s3) return f2 = true, c(void 0);
-      s3 = true;
+      if (s2) return f2 = true, c(void 0);
+      s2 = true;
       const e4 = n2.byobRequest;
       return null === e4 ? g2() : w2(e4.view, true), c(void 0);
     }
-    function R2(e4) {
+    function R3(e4) {
       if (h2 = true, t3 = e4, p2) {
         const e5 = [t3, r2], o3 = i2.cancel(e5);
         a2(o3);
@@ -7256,22 +8406,22 @@ function Ot(e2, t2) {
     }
     const q2 = new ReadableStream3({ type: "bytes", start(e4) {
       o2 = e4;
-    }, pull: S2, cancel: R2 }), C2 = new ReadableStream3({ type: "bytes", start(e4) {
+    }, pull: S2, cancel: R3 }), C2 = new ReadableStream3({ type: "bytes", start(e4) {
       n2 = e4;
     }, pull: v2, cancel: T2 });
     return y2(i2), [q2, C2];
   })(e2) : (function(e3, t3) {
     const r2 = e3.getReader();
-    let o2, n2, a2, i2, l2, s3 = false, d2 = false, f2 = false, h2 = false;
+    let o2, n2, a2, i2, l2, s2 = false, d2 = false, f2 = false, h2 = false;
     const p2 = u(((e4) => {
       l2 = e4;
     }));
     function m2() {
-      return s3 ? (d2 = true, c(void 0)) : (s3 = true, b(r2.read(), ((e4) => {
+      return s2 ? (d2 = true, c(void 0)) : (s2 = true, b(r2.read(), ((e4) => {
         if (d2 = false, e4.done) return f2 || a2.close(), h2 || i2.close(), f2 && h2 || l2(void 0), null;
         const t4 = e4.value, r3 = t4, o3 = t4;
-        return f2 || a2.enqueue(r3), h2 || i2.enqueue(o3), s3 = false, d2 && m2(), null;
-      }), (() => (s3 = false, null))), c(void 0));
+        return f2 || a2.enqueue(r3), h2 || i2.enqueue(o3), s2 = false, d2 && m2(), null;
+      }), (() => (s2 = false, null))), c(void 0));
     }
     function y2(e4) {
       if (f2 = true, o2 = e4, h2) {
@@ -7880,21 +9030,21 @@ var init_ponyfill = __esm({
         const a2 = Me(r2);
         !(function(e3, t3, r3, o3) {
           const n3 = Object.create(WritableStreamDefaultController.prototype);
-          let a3, i2, l2, s3;
+          let a3, i2, l2, s2;
           a3 = void 0 !== t3.start ? () => t3.start(n3) : () => {
           };
           i2 = void 0 !== t3.write ? (e4) => t3.write(e4, n3) : () => c(void 0);
           l2 = void 0 !== t3.close ? () => t3.close() : () => c(void 0);
-          s3 = void 0 !== t3.abort ? (e4) => t3.abort(e4) : () => c(void 0);
+          s2 = void 0 !== t3.abort ? (e4) => t3.abort(e4) : () => c(void 0);
           !(function(e4, t4, r4, o4, n4, a4, i3, l3) {
             t4._controlledWritableStream = e4, e4._writableStreamController = t4, t4._queue = void 0, t4._queueTotalSize = void 0, ce(t4), t4._abortReason = void 0, t4._abortController = (function() {
               if (Ue) return new AbortController();
             })(), t4._started = false, t4._strategySizeAlgorithm = l3, t4._strategyHWM = i3, t4._writeAlgorithm = o4, t4._closeAlgorithm = n4, t4._abortAlgorithm = a4;
-            const s4 = bt(t4);
-            nt(e4, s4);
+            const s3 = bt(t4);
+            nt(e4, s3);
             const u2 = r4();
             b(c(u2), (() => (t4._started = true, dt(t4), null)), ((r5) => (t4._started = true, Ze(e4, r5), null)));
-          })(e3, n3, a3, i2, l2, s3, r3, o3);
+          })(e3, n3, a3, i2, l2, s2, r3, o3);
         })(this, o2, $e(r2, 1), a2);
       }
       get locked() {
@@ -8217,7 +9367,7 @@ var init_ponyfill = __esm({
         })(e2, "First parameter");
         if (void 0 !== a2.readableType) throw new RangeError("Invalid readableType specified");
         if (void 0 !== a2.writableType) throw new RangeError("Invalid writableType specified");
-        const i2 = $e(n2, 0), l2 = Me(n2), s3 = $e(o2, 1), f2 = Me(o2);
+        const i2 = $e(n2, 0), l2 = Me(n2), s2 = $e(o2, 1), f2 = Me(o2);
         let b2;
         !(function(e3, t3, r3, o3, n3, a3) {
           function i3() {
@@ -8235,7 +9385,7 @@ var init_ponyfill = __esm({
               return pr(r4, t5);
             })(e3, t4);
           }
-          function s4(t4) {
+          function s3(t4) {
             return (function(e4, t5) {
               return cr(e4, t5), c(void 0);
             })(e3, t4);
@@ -8291,7 +9441,7 @@ var init_ponyfill = __esm({
                 e5._writableHasInFlightOperation = false, e5._writableState, Rr(e5, t6);
               })(e4, t5), t5;
             }))), abort: (t5) => (e4._writableState = "errored", e4._writableStoredError = t5, n4(t5)) }, { highWaterMark: a4, size: i4 });
-          })(e3, i3, l3, u2, s4, r3, o3), e3._readableState = "readable", e3._readableStoredError = void 0, e3._readableCloseRequested = false, e3._readablePulling = false, e3._readable = (function(e4, t4, r4, o4, n4, a4) {
+          })(e3, i3, l3, u2, s3, r3, o3), e3._readableState = "readable", e3._readableStoredError = void 0, e3._readableCloseRequested = false, e3._readablePulling = false, e3._readable = (function(e4, t4, r4, o4, n4, a4) {
             return new ReadableStream3({ start: (r5) => (e4._readableController = r5, t4().catch(((t5) => {
               Sr(e4, t5);
             }))), pull: () => (e4._readablePulling = true, r4().catch(((t5) => {
@@ -8300,7 +9450,7 @@ var init_ponyfill = __esm({
           })(e3, i3, d2, f3, n3, a3), e3._backpressure = void 0, e3._backpressureChangePromise = void 0, e3._backpressureChangePromise_resolve = void 0, fr(e3, true), e3._transformStreamController = void 0;
         })(this, u(((e3) => {
           b2 = e3;
-        })), s3, f2, i2, l2), (function(e3, t3) {
+        })), s2, f2, i2, l2), (function(e3, t3) {
           const r3 = Object.create(TransformStreamDefaultController.prototype);
           let o3, n3;
           o3 = void 0 !== t3.transform ? (e4) => t3.transform(e4, r3) : (e4) => {
@@ -9358,7 +10508,7 @@ var require_event_target_shim = __commonJS({
     var CAPTURE = 1;
     var BUBBLE = 2;
     var ATTRIBUTE = 3;
-    function isObject2(x2) {
+    function isObject(x2) {
       return x2 !== null && typeof x2 === "object";
     }
     function getListeners(eventTarget) {
@@ -9384,7 +10534,7 @@ var require_event_target_shim = __commonJS({
           return null;
         },
         set(listener) {
-          if (typeof listener !== "function" && !isObject2(listener)) {
+          if (typeof listener !== "function" && !isObject(listener)) {
             listener = null;
           }
           const listeners = getListeners(this);
@@ -9475,11 +10625,11 @@ var require_event_target_shim = __commonJS({
         if (listener == null) {
           return;
         }
-        if (typeof listener !== "function" && !isObject2(listener)) {
+        if (typeof listener !== "function" && !isObject(listener)) {
           throw new TypeError("'listener' should be a function or an object.");
         }
         const listeners = getListeners(this);
-        const optionsIsObj = isObject2(options);
+        const optionsIsObj = isObject(options);
         const capture = optionsIsObj ? Boolean(options.capture) : Boolean(options);
         const listenerType = capture ? CAPTURE : BUBBLE;
         const newNode = {
@@ -9516,7 +10666,7 @@ var require_event_target_shim = __commonJS({
           return;
         }
         const listeners = getListeners(this);
-        const capture = isObject2(options) ? Boolean(options.capture) : Boolean(options);
+        const capture = isObject(options) ? Boolean(options.capture) : Boolean(options);
         const listenerType = capture ? CAPTURE : BUBBLE;
         let prev = null;
         let node = listeners.get(eventName);
@@ -9830,8229 +10980,938 @@ var init_fileFromPath = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/getEnvVariable-CzO2lHzx.mjs
-var init_getEnvVariable_CzO2lHzx = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/getEnvVariable-CzO2lHzx.mjs"() {
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
+var algorithm, getCryptoKey, makeSignature, verifySignature, validCookieNameRegEx, validCookieValueRegEx, trimCookieWhitespace, parse, parseSigned, _serialize, serialize, serializeSigned;
+var init_cookie = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js"() {
     "use strict";
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/runtimeEnvironment-DHuMF-tN.mjs
-var automatedEnvironmentVariables, isTestEnvironment, isProductionEnvironment;
-var init_runtimeEnvironment_DHuMF_tN = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/runtimeEnvironment-DHuMF-tN.mjs"() {
-    "use strict";
-    init_getEnvVariable_CzO2lHzx();
-    automatedEnvironmentVariables = [
-      "CI",
-      "CONTINUOUS_INTEGRATION",
-      "GITHUB_ACTIONS",
-      "GITLAB_CI",
-      "CIRCLECI",
-      "TRAVIS",
-      "BUILDKITE",
-      "BITBUCKET_BUILD_NUMBER",
-      "APPVEYOR",
-      "CODEBUILD_BUILD_ID",
-      "TF_BUILD",
-      "TEAMCITY_VERSION",
-      "JENKINS_URL",
-      "HUDSON_URL",
-      "BAMBOO_BUILDKEY",
-      "CF_PAGES"
-    ];
-    isTestEnvironment = () => {
-      try {
-        return process.env.NODE_ENV === "test";
-      } catch {
-      }
-      return false;
-    };
-    isProductionEnvironment = () => {
-      try {
-        return process.env.NODE_ENV === "production";
-      } catch {
-      }
-      return false;
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/deprecated-D89ptCyg.mjs
-var displayedWarnings, deprecated;
-var init_deprecated_D89ptCyg = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/deprecated-D89ptCyg.mjs"() {
-    "use strict";
-    init_runtimeEnvironment_DHuMF_tN();
-    displayedWarnings = /* @__PURE__ */ new Set();
-    deprecated = (fnName, warning, key) => {
-      const hideWarning = isTestEnvironment() || isProductionEnvironment();
-      const messageId = key ?? fnName;
-      if (displayedWarnings.has(messageId) || hideWarning) return;
-      displayedWarnings.add(messageId);
-      console.warn(`Clerk - DEPRECATION WARNING: "${fnName}" is deprecated and will be removed in the next major release.
-${warning}`);
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/deprecated.mjs
-var init_deprecated = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/deprecated.mjs"() {
-    "use strict";
-    init_getEnvVariable_CzO2lHzx();
-    init_runtimeEnvironment_DHuMF_tN();
-    init_deprecated_D89ptCyg();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/constants-BVchI2jn.mjs
-var LEGACY_DEV_INSTANCE_SUFFIXES, CURRENT_DEV_INSTANCE_SUFFIXES, DEV_OR_STAGING_SUFFIXES;
-var init_constants_BVchI2jn = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/constants-BVchI2jn.mjs"() {
-    "use strict";
-    LEGACY_DEV_INSTANCE_SUFFIXES = [
-      ".lcl.dev",
-      ".lclstage.dev",
-      ".lclclerk.com"
-    ];
-    CURRENT_DEV_INSTANCE_SUFFIXES = [
-      ".accounts.dev",
-      ".accountsstage.dev",
-      ".accounts.lclclerk.com"
-    ];
-    DEV_OR_STAGING_SUFFIXES = [
-      ".lcl.dev",
-      ".stg.dev",
-      ".lclstage.dev",
-      ".stgstage.dev",
-      ".dev.lclclerk.com",
-      ".stg.lclclerk.com",
-      ".accounts.lclclerk.com",
-      "accountsstage.dev",
-      "accounts.dev"
-    ];
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicAtob-C1KQ5FtS.mjs
-var isomorphicAtob;
-var init_isomorphicAtob_C1KQ5FtS = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicAtob-C1KQ5FtS.mjs"() {
-    "use strict";
-    isomorphicAtob = (data) => {
-      if (typeof atob !== "undefined" && typeof atob === "function") return atob(data);
-      else if (typeof globalThis.Buffer !== "undefined") return globalThis.Buffer.from(data, "base64").toString();
-      return data;
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicBtoa-BBBfp_jr.mjs
-var isomorphicBtoa;
-var init_isomorphicBtoa_BBBfp_jr = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/isomorphicBtoa-BBBfp_jr.mjs"() {
-    "use strict";
-    isomorphicBtoa = (data) => {
-      if (typeof btoa !== "undefined" && typeof btoa === "function") return btoa(data);
-      else if (typeof globalThis.Buffer !== "undefined") return globalThis.Buffer.from(data).toString("base64");
-      return data;
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/keys-jlv3GIE3.mjs
-function isValidDecodedPublishableKey(decoded) {
-  if (!decoded.endsWith("$")) return false;
-  const withoutTrailing = decoded.slice(0, -1);
-  if (withoutTrailing.includes("$")) return false;
-  return withoutTrailing.includes(".");
-}
-function parsePublishableKey(key, options = {}) {
-  key = key || "";
-  if (!key || !isPublishableKey(key)) {
-    if (options.fatal && !key) throw new Error("Publishable key is missing. Ensure that your publishable key is correctly configured. Double-check your environment configuration for your keys, or access them here: https://dashboard.clerk.com/last-active?path=api-keys");
-    if (options.fatal && !isPublishableKey(key)) throw new Error("Publishable key not valid.");
-    return null;
-  }
-  const instanceType = key.startsWith(PUBLISHABLE_KEY_LIVE_PREFIX) ? "production" : "development";
-  let decodedFrontendApi;
-  try {
-    decodedFrontendApi = isomorphicAtob(key.split("_")[2]);
-  } catch {
-    if (options.fatal) throw new Error("Publishable key not valid: Failed to decode key.");
-    return null;
-  }
-  if (!isValidDecodedPublishableKey(decodedFrontendApi)) {
-    if (options.fatal) throw new Error("Publishable key not valid: Decoded key has invalid format.");
-    return null;
-  }
-  let frontendApi = decodedFrontendApi.slice(0, -1);
-  if (options.proxyUrl) frontendApi = options.proxyUrl;
-  else if (instanceType !== "development" && options.domain && options.isSatellite) frontendApi = `clerk.${options.domain}`;
-  return {
-    instanceType,
-    frontendApi
-  };
-}
-function isPublishableKey(key = "") {
-  try {
-    if (!(key.startsWith(PUBLISHABLE_KEY_LIVE_PREFIX) || key.startsWith(PUBLISHABLE_KEY_TEST_PREFIX))) return false;
-    const parts = key.split("_");
-    if (parts.length !== 3) return false;
-    const encodedPart = parts[2];
-    if (!encodedPart) return false;
-    return isValidDecodedPublishableKey(isomorphicAtob(encodedPart));
-  } catch {
-    return false;
-  }
-}
-function createDevOrStagingUrlCache() {
-  const devOrStagingUrlCache = /* @__PURE__ */ new Map();
-  return { isDevOrStagingUrl: (url) => {
-    if (!url) return false;
-    const hostname = typeof url === "string" ? url : url.hostname;
-    let res = devOrStagingUrlCache.get(hostname);
-    if (res === void 0) {
-      res = DEV_OR_STAGING_SUFFIXES.some((s3) => hostname.endsWith(s3));
-      devOrStagingUrlCache.set(hostname, res);
-    }
-    return res;
-  } };
-}
-function isProductionFromPublishableKey(apiKey) {
-  return apiKey.startsWith("live_") || apiKey.startsWith("pk_live_");
-}
-function isDevelopmentFromSecretKey(apiKey) {
-  return apiKey.startsWith("test_") || apiKey.startsWith("sk_test_");
-}
-async function getCookieSuffix(publishableKey, subtle = globalThis.crypto.subtle) {
-  const data = new TextEncoder().encode(publishableKey);
-  const digest = await subtle.digest("sha-1", data);
-  return isomorphicBtoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/gi, "-").replace(/\//gi, "_").substring(0, 8);
-}
-var PUBLISHABLE_KEY_LIVE_PREFIX, PUBLISHABLE_KEY_TEST_PREFIX, getSuffixedCookieName;
-var init_keys_jlv3GIE3 = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/keys-jlv3GIE3.mjs"() {
-    "use strict";
-    init_constants_BVchI2jn();
-    init_isomorphicAtob_C1KQ5FtS();
-    init_isomorphicBtoa_BBBfp_jr();
-    PUBLISHABLE_KEY_LIVE_PREFIX = "pk_live_";
-    PUBLISHABLE_KEY_TEST_PREFIX = "pk_test_";
-    getSuffixedCookieName = (cookieName, cookieSuffix) => {
-      return `${cookieName}_${cookieSuffix}`;
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/keys.mjs
-var init_keys = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/keys.mjs"() {
-    "use strict";
-    init_constants_BVchI2jn();
-    init_isomorphicAtob_C1KQ5FtS();
-    init_isomorphicBtoa_BBBfp_jr();
-    init_keys_jlv3GIE3();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/retry-NrE3SkPj.mjs
-var defaultOptions2, RETRY_IMMEDIATELY_DELAY, sleep4, applyJitter, createExponentialDelayAsyncFn, retry;
-var init_retry_NrE3SkPj = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/retry-NrE3SkPj.mjs"() {
-    "use strict";
-    defaultOptions2 = {
-      initialDelay: 125,
-      maxDelayBetweenRetries: 0,
-      factor: 2,
-      shouldRetry: (_3, iteration) => iteration < 5,
-      retryImmediately: false,
-      jitter: true
-    };
-    RETRY_IMMEDIATELY_DELAY = 100;
-    sleep4 = async (ms5) => new Promise((s3) => setTimeout(s3, ms5));
-    applyJitter = (delay, jitter) => {
-      return jitter ? delay * (1 + Math.random()) : delay;
-    };
-    createExponentialDelayAsyncFn = (opts) => {
-      let timesCalled = 0;
-      const calculateDelayInMs = () => {
-        const constant = opts.initialDelay;
-        const base = opts.factor;
-        let delay = constant * Math.pow(base, timesCalled);
-        delay = applyJitter(delay, opts.jitter);
-        return Math.min(opts.maxDelayBetweenRetries || delay, delay);
-      };
-      return async () => {
-        await sleep4(calculateDelayInMs());
-        timesCalled++;
-      };
-    };
-    retry = async (callback, options = {}) => {
-      let iterations = 0;
-      const { shouldRetry: shouldRetry2, initialDelay, maxDelayBetweenRetries, factor, retryImmediately, jitter, onBeforeRetry } = {
-        ...defaultOptions2,
-        ...options
-      };
-      const delay = createExponentialDelayAsyncFn({
-        initialDelay,
-        maxDelayBetweenRetries,
-        factor,
-        jitter
-      });
-      while (true) try {
-        return await callback();
-      } catch (e2) {
-        iterations++;
-        if (!shouldRetry2(e2, iterations)) throw e2;
-        if (onBeforeRetry) await onBeforeRetry(iterations);
-        if (retryImmediately && iterations === 1) await sleep4(applyJitter(RETRY_IMMEDIATELY_DELAY, jitter));
-        else await delay();
-      }
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/retry.mjs
-var init_retry = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/retry.mjs"() {
-    "use strict";
-    init_retry_NrE3SkPj();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/instance-oOmLJefy.mjs
-var init_instance_oOmLJefy = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/instance-oOmLJefy.mjs"() {
-    "use strict";
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/url-BwZwnCsF.mjs
-function isLegacyDevAccountPortalOrigin(host) {
-  return LEGACY_DEV_INSTANCE_SUFFIXES.some((legacyDevSuffix) => {
-    return host.startsWith("accounts.") && host.endsWith(legacyDevSuffix);
-  });
-}
-function isCurrentDevAccountPortalOrigin(host) {
-  return CURRENT_DEV_INSTANCE_SUFFIXES.some((currentDevSuffix) => {
-    return host.endsWith(currentDevSuffix) && !host.endsWith(".clerk" + currentDevSuffix);
-  });
-}
-var init_url_BwZwnCsF = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/url-BwZwnCsF.mjs"() {
-    "use strict";
-    init_constants_BVchI2jn();
-    init_instance_oOmLJefy();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/url.mjs
-var init_url = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/url.mjs"() {
-    "use strict";
-    init_constants_BVchI2jn();
-    init_instance_oOmLJefy();
-    init_url_BwZwnCsF();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/clerkRuntimeError-EpUpwIcY.mjs
-function createErrorTypeGuard(ErrorClass) {
-  function typeGuard(error) {
-    const target = error ?? this;
-    if (!target) throw new TypeError(`${ErrorClass.kind || ErrorClass.name} type guard requires an error object`);
-    if (ErrorClass.kind && typeof target === "object" && target !== null && "constructor" in target) {
-      if (target.constructor?.kind === ErrorClass.kind) return true;
-    }
-    return target instanceof ErrorClass;
-  }
-  return typeGuard;
-}
-var ClerkError, ClerkRuntimeError, isClerkRuntimeError;
-var init_clerkRuntimeError_EpUpwIcY = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/clerkRuntimeError-EpUpwIcY.mjs"() {
-    "use strict";
-    ClerkError = class ClerkError2 extends Error {
-      static kind = "ClerkError";
-      clerkError = true;
-      code;
-      longMessage;
-      docsUrl;
-      cause;
-      get name() {
-        return this.constructor.name;
-      }
-      constructor(opts) {
-        super(new.target.formatMessage(new.target.kind, opts.message, opts.code, opts.docsUrl), { cause: opts.cause });
-        Object.setPrototypeOf(this, ClerkError2.prototype);
-        this.code = opts.code;
-        this.docsUrl = opts.docsUrl;
-        this.longMessage = opts.longMessage;
-        this.cause = opts.cause;
-      }
-      toString() {
-        return `[${this.name}]
-Message:${this.message}`;
-      }
-      static formatMessage(name, msg, code, docsUrl) {
-        const prefix = "Clerk:";
-        const regex = new RegExp(prefix.replace(" ", "\\s*"), "i");
-        msg = msg.replace(regex, "");
-        msg = `${prefix} ${msg.trim()}
-
-(code="${code}")
-
-`;
-        if (docsUrl) msg += `
-
-Docs: ${docsUrl}`;
-        return msg;
-      }
-    };
-    ClerkRuntimeError = class ClerkRuntimeError2 extends ClerkError {
-      static kind = "ClerkRuntimeError";
-      /**
-      * @deprecated Use `clerkError` property instead. This property is maintained for backward compatibility.
-      */
-      clerkRuntimeError = true;
-      constructor(message, options) {
-        super({
-          ...options,
-          message
-        });
-        Object.setPrototypeOf(this, ClerkRuntimeError2.prototype);
-      }
-    };
-    isClerkRuntimeError = createErrorTypeGuard(ClerkRuntimeError);
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/error-DAG0ASPV.mjs
-function parseError(error) {
-  return new ClerkAPIError(error);
-}
-function buildErrorThrower({ packageName, customMessages }) {
-  let pkg = packageName;
-  function buildMessage(rawMessage, replacements) {
-    if (!replacements) return `${pkg}: ${rawMessage}`;
-    let msg = rawMessage;
-    const matches3 = rawMessage.matchAll(/{{([a-zA-Z0-9-_]+)}}/g);
-    for (const match3 of matches3) {
-      const replacement = (replacements[match3[1]] || "").toString();
-      msg = msg.replace(`{{${match3[1]}}}`, replacement);
-    }
-    return `${pkg}: ${msg}`;
-  }
-  const messages = {
-    ...DefaultMessages,
-    ...customMessages
-  };
-  return {
-    setPackageName({ packageName: packageName$1 }) {
-      if (typeof packageName$1 === "string") pkg = packageName$1;
-      return this;
-    },
-    setMessages({ customMessages: customMessages$1 }) {
-      Object.assign(messages, customMessages$1 || {});
-      return this;
-    },
-    throwInvalidPublishableKeyError(params) {
-      throw new Error(buildMessage(messages.InvalidPublishableKeyErrorMessage, params));
-    },
-    throwInvalidProxyUrl(params) {
-      throw new Error(buildMessage(messages.InvalidProxyUrlErrorMessage, params));
-    },
-    throwMissingPublishableKeyError() {
-      throw new Error(buildMessage(messages.MissingPublishableKeyErrorMessage));
-    },
-    throwMissingSecretKeyError() {
-      throw new Error(buildMessage(messages.MissingSecretKeyErrorMessage));
-    },
-    throwMissingClerkProviderError(params) {
-      throw new Error(buildMessage(messages.MissingClerkProvider, params));
-    },
-    throw(message) {
-      throw new Error(buildMessage(message));
-    }
-  };
-}
-var ClerkAPIError, isClerkAPIError, ClerkAPIResponseError, isClerkAPIResponseError, DefaultMessages;
-var init_error_DAG0ASPV = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/error-DAG0ASPV.mjs"() {
-    "use strict";
-    init_clerkRuntimeError_EpUpwIcY();
-    ClerkAPIError = class {
-      static kind = "ClerkAPIError";
-      code;
-      message;
-      longMessage;
-      meta;
-      constructor(json2) {
-        const parsedError = {
-          code: json2.code,
-          message: json2.message,
-          longMessage: json2.long_message,
-          meta: {
-            paramName: json2.meta?.param_name,
-            sessionId: json2.meta?.session_id,
-            emailAddresses: json2.meta?.email_addresses,
-            identifiers: json2.meta?.identifiers,
-            zxcvbn: json2.meta?.zxcvbn,
-            plan: json2.meta?.plan,
-            isPlanUpgradePossible: json2.meta?.is_plan_upgrade_possible
-          }
-        };
-        this.code = parsedError.code;
-        this.message = parsedError.message;
-        this.longMessage = parsedError.longMessage;
-        this.meta = parsedError.meta;
-      }
-    };
-    isClerkAPIError = createErrorTypeGuard(ClerkAPIError);
-    ClerkAPIResponseError = class ClerkAPIResponseError2 extends ClerkError {
-      static kind = "ClerkAPIResponseError";
-      status;
-      clerkTraceId;
-      retryAfter;
-      errors;
-      constructor(message, options) {
-        const { data: errorsJson, status, clerkTraceId, retryAfter } = options;
-        super({
-          ...options,
-          message,
-          code: "api_response_error"
-        });
-        Object.setPrototypeOf(this, ClerkAPIResponseError2.prototype);
-        this.status = status;
-        this.clerkTraceId = clerkTraceId;
-        this.retryAfter = retryAfter;
-        this.errors = (errorsJson || []).map((e2) => new ClerkAPIError(e2));
-      }
-      toString() {
-        let message = `[${this.name}]
-Message:${this.message}
-Status:${this.status}
-Serialized errors: ${this.errors.map((e2) => JSON.stringify(e2))}`;
-        if (this.clerkTraceId) message += `
-Clerk Trace ID: ${this.clerkTraceId}`;
-        return message;
-      }
-      static formatMessage(name, msg, _3, __) {
-        return msg;
-      }
-    };
-    isClerkAPIResponseError = createErrorTypeGuard(ClerkAPIResponseError);
-    DefaultMessages = Object.freeze({
-      InvalidProxyUrlErrorMessage: `The proxyUrl passed to Clerk is invalid. The expected value for proxyUrl is an absolute URL or a relative path with a leading '/'. (key={{url}})`,
-      InvalidPublishableKeyErrorMessage: `The publishableKey passed to Clerk is invalid. You can get your Publishable key at https://dashboard.clerk.com/last-active?path=api-keys. (key={{key}})`,
-      MissingPublishableKeyErrorMessage: `Missing publishableKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
-      MissingSecretKeyErrorMessage: `Missing secretKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.`,
-      MissingClerkProvider: `{{source}} can only be used within the <ClerkProvider /> component. Learn more: https://clerk.com/docs/components/clerk-provider`
-    });
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/error.mjs
-var init_error = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/error.mjs"() {
-    "use strict";
-    init_clerkRuntimeError_EpUpwIcY();
-    init_error_DAG0ASPV();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs
-var errorThrower, isDevOrStagingUrl;
-var init_chunk_YBVFDYDR = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-YBVFDYDR.mjs"() {
-    "use strict";
-    init_deprecated();
-    init_keys();
-    init_retry();
     init_url();
-    init_error();
-    init_keys();
-    errorThrower = buildErrorThrower({ packageName: "@clerk/backend" });
-    ({ isDevOrStagingUrl } = createDevOrStagingUrlCache());
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-RZ7A7F6X.mjs
-var TokenVerificationErrorCode, TokenVerificationErrorReason, TokenVerificationErrorAction, TokenVerificationError, MachineTokenVerificationErrorCode, _MachineTokenVerificationError, MachineTokenVerificationError;
-var init_chunk_RZ7A7F6X = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-RZ7A7F6X.mjs"() {
-    "use strict";
-    init_error();
-    init_error();
-    TokenVerificationErrorCode = {
-      InvalidSecretKey: "clerk_key_invalid"
+    algorithm = { name: "HMAC", hash: "SHA-256" };
+    getCryptoKey = async (secret3) => {
+      const secretBuf = typeof secret3 === "string" ? new TextEncoder().encode(secret3) : secret3;
+      return await crypto.subtle.importKey("raw", secretBuf, algorithm, false, ["sign", "verify"]);
     };
-    TokenVerificationErrorReason = {
-      TokenExpired: "token-expired",
-      TokenInvalid: "token-invalid",
-      TokenInvalidAlgorithm: "token-invalid-algorithm",
-      TokenInvalidAuthorizedParties: "token-invalid-authorized-parties",
-      TokenInvalidSignature: "token-invalid-signature",
-      TokenNotActiveYet: "token-not-active-yet",
-      TokenIatInTheFuture: "token-iat-in-the-future",
-      TokenVerificationFailed: "token-verification-failed",
-      InvalidSecretKey: "secret-key-invalid",
-      LocalJWKMissing: "jwk-local-missing",
-      RemoteJWKFailedToLoad: "jwk-remote-failed-to-load",
-      RemoteJWKInvalid: "jwk-remote-invalid",
-      RemoteJWKMissing: "jwk-remote-missing",
-      JWKFailedToResolve: "jwk-failed-to-resolve",
-      JWKKidMismatch: "jwk-kid-mismatch"
+    makeSignature = async (value, secret3) => {
+      const key = await getCryptoKey(secret3);
+      const signature = await crypto.subtle.sign(algorithm.name, key, new TextEncoder().encode(value));
+      return btoa(String.fromCharCode(...new Uint8Array(signature)));
     };
-    TokenVerificationErrorAction = {
-      ContactSupport: "Contact support@clerk.com",
-      EnsureClerkJWT: "Make sure that this is a valid Clerk-generated JWT.",
-      SetClerkJWTKey: "Set the CLERK_JWT_KEY environment variable.",
-      SetClerkSecretKey: "Set the CLERK_SECRET_KEY environment variable.",
-      EnsureClockSync: "Make sure your system clock is in sync (e.g. turn off and on automatic time synchronization)."
-    };
-    TokenVerificationError = class _TokenVerificationError extends Error {
-      constructor({
-        action,
-        message,
-        reason
-      }) {
-        super(message);
-        Object.setPrototypeOf(this, _TokenVerificationError.prototype);
-        this.reason = reason;
-        this.message = message;
-        this.action = action;
-      }
-      getFullMessage() {
-        return `${[this.message, this.action].filter((m2) => m2).join(" ")} (reason=${this.reason}, token-carrier=${this.tokenCarrier})`;
-      }
-    };
-    MachineTokenVerificationErrorCode = {
-      TokenInvalid: "token-invalid",
-      InvalidSecretKey: "secret-key-invalid",
-      UnexpectedError: "unexpected-error",
-      TokenVerificationFailed: "token-verification-failed"
-    };
-    _MachineTokenVerificationError = class _MachineTokenVerificationError2 extends ClerkError {
-      constructor({
-        message,
-        code,
-        status,
-        action
-      }) {
-        super({ message, code });
-        Object.setPrototypeOf(this, _MachineTokenVerificationError2.prototype);
-        this.status = status;
-        this.action = action;
-      }
-      // Keep message unformatted, matching ClerkAPIResponseError's approach
-      static formatMessage(_name, msg, _code, _docsUrl) {
-        return msg;
-      }
-      getFullMessage() {
-        return `${this.message} (code=${this.code}, status=${this.status || "n/a"})`;
-      }
-    };
-    _MachineTokenVerificationError.kind = "MachineTokenVerificationError";
-    MachineTokenVerificationError = _MachineTokenVerificationError;
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/runtime/node/crypto.mjs
-var import_node_crypto;
-var init_crypto = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/runtime/node/crypto.mjs"() {
-    "use strict";
-    import_node_crypto = require("crypto");
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/isomorphicAtob.mjs
-var init_isomorphicAtob = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/isomorphicAtob.mjs"() {
-    "use strict";
-    init_isomorphicAtob_C1KQ5FtS();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-J2CDX2WG.mjs
-function parse2(string, encoding, opts = {}) {
-  if (!encoding.codes) {
-    encoding.codes = {};
-    for (let i2 = 0; i2 < encoding.chars.length; ++i2) {
-      encoding.codes[encoding.chars[i2]] = i2;
-    }
-  }
-  if (!opts.loose && string.length * encoding.bits & 7) {
-    throw new SyntaxError("Invalid padding");
-  }
-  let end = string.length;
-  while (string[end - 1] === "=") {
-    --end;
-    if (!opts.loose && !((string.length - end) * encoding.bits & 7)) {
-      throw new SyntaxError("Invalid padding");
-    }
-  }
-  const out = new (opts.out ?? Uint8Array)(end * encoding.bits / 8 | 0);
-  let bits = 0;
-  let buffer = 0;
-  let written = 0;
-  for (let i2 = 0; i2 < end; ++i2) {
-    const value = encoding.codes[string[i2]];
-    if (value === void 0) {
-      throw new SyntaxError("Invalid character " + string[i2]);
-    }
-    buffer = buffer << encoding.bits | value;
-    bits += encoding.bits;
-    if (bits >= 8) {
-      bits -= 8;
-      out[written++] = 255 & buffer >> bits;
-    }
-  }
-  if (bits >= encoding.bits || 255 & buffer << 8 - bits) {
-    throw new SyntaxError("Unexpected end of data");
-  }
-  return out;
-}
-function stringify4(data, encoding, opts = {}) {
-  const { pad = true } = opts;
-  const mask = (1 << encoding.bits) - 1;
-  let out = "";
-  let bits = 0;
-  let buffer = 0;
-  for (let i2 = 0; i2 < data.length; ++i2) {
-    buffer = buffer << 8 | 255 & data[i2];
-    bits += 8;
-    while (bits > encoding.bits) {
-      bits -= encoding.bits;
-      out += encoding.chars[mask & buffer >> bits];
-    }
-  }
-  if (bits) {
-    out += encoding.chars[mask & buffer << encoding.bits - bits];
-  }
-  if (pad) {
-    while (out.length * encoding.bits & 7) {
-      out += "=";
-    }
-  }
-  return out;
-}
-function getCryptoAlgorithm(algorithmName) {
-  const hash = algToHash[algorithmName];
-  const name = jwksAlgToCryptoAlg[algorithmName];
-  if (!hash || !name) {
-    throw new Error(`Unsupported algorithm ${algorithmName}, expected one of ${algs.join(",")}.`);
-  }
-  return {
-    hash: { name: algToHash[algorithmName] },
-    name: jwksAlgToCryptoAlg[algorithmName]
-  };
-}
-function pemToBuffer(secret3) {
-  const trimmed = secret3.replace(/-----BEGIN.*?-----/g, "").replace(/-----END.*?-----/g, "").replace(/\s/g, "");
-  const decoded = isomorphicAtob(trimmed);
-  const buffer = new ArrayBuffer(decoded.length);
-  const bufView = new Uint8Array(buffer);
-  for (let i2 = 0, strLen = decoded.length; i2 < strLen; i2++) {
-    bufView[i2] = decoded.charCodeAt(i2);
-  }
-  return bufView;
-}
-function importKey(key, algorithm, keyUsage) {
-  if (typeof key === "object") {
-    return runtime.crypto.subtle.importKey("jwk", key, algorithm, false, [keyUsage]);
-  }
-  const keyData = pemToBuffer(key);
-  const format = keyUsage === "sign" ? "pkcs8" : "spki";
-  return runtime.crypto.subtle.importKey(format, keyData, algorithm, false, [keyUsage]);
-}
-async function hasValidSignature(jwt, key) {
-  const { header: header2, signature, raw: raw2 } = jwt;
-  const encoder = new TextEncoder();
-  const data = encoder.encode([raw2.header, raw2.payload].join("."));
-  const algorithm = getCryptoAlgorithm(header2.alg);
-  try {
-    const cryptoKey = await importKey(key, algorithm, "verify");
-    const verified = await runtime.crypto.subtle.verify(algorithm.name, cryptoKey, signature, data);
-    return { data: verified };
-  } catch (error) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalidSignature,
-          message: error?.message
-        })
-      ]
-    };
-  }
-}
-function decodeJwt(token) {
-  const tokenParts = (token || "").toString().split(".");
-  if (tokenParts.length !== 3) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalid,
-          message: `Invalid JWT form. A JWT consists of three parts separated by dots.`
-        })
-      ]
-    };
-  }
-  const [rawHeader, rawPayload, rawSignature] = tokenParts;
-  const decoder = new TextDecoder();
-  const header2 = JSON.parse(decoder.decode(base64url.parse(rawHeader, { loose: true })));
-  const payload = JSON.parse(decoder.decode(base64url.parse(rawPayload, { loose: true })));
-  const signature = base64url.parse(rawSignature, { loose: true });
-  const data = {
-    header: header2,
-    payload,
-    signature,
-    raw: {
-      header: rawHeader,
-      payload: rawPayload,
-      signature: rawSignature,
-      text: token
-    }
-  };
-  return { data };
-}
-async function verifyJwt(token, options) {
-  const { audience, authorizedParties, clockSkewInMs, key, headerType } = options;
-  const clockSkew = typeof clockSkewInMs === "number" && Number.isFinite(clockSkewInMs) ? clockSkewInMs : DEFAULT_CLOCK_SKEW_IN_MS;
-  const { data: decoded, errors } = decodeJwt(token);
-  if (errors) {
-    return { errors };
-  }
-  const { header: header2, payload } = decoded;
-  try {
-    const { typ, alg } = header2;
-    assertHeaderType(typ, headerType);
-    assertHeaderAlgorithm(alg);
-  } catch (err2) {
-    return { errors: [err2] };
-  }
-  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
-  if (signatureErrors) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenVerificationFailed,
-          message: `Error verifying JWT signature. ${signatureErrors[0]}`
-        })
-      ]
-    };
-  }
-  if (!signatureValid) {
-    return {
-      errors: [
-        new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalidSignature,
-          message: "JWT signature is invalid."
-        })
-      ]
-    };
-  }
-  try {
-    const { azp, sub, aud, iat, exp, nbf } = payload;
-    assertSubClaim(sub);
-    assertAudienceClaim(aud, audience);
-    assertAuthorizedPartiesClaim(azp, authorizedParties);
-    assertExpirationClaim(exp, clockSkew);
-    assertActivationClaim(nbf, clockSkew);
-    assertIssuedAtClaim(iat, clockSkew);
-  } catch (err2) {
-    return { errors: [err2] };
-  }
-  return { data: payload };
-}
-var globalFetch2, runtime, base64url, base64UrlEncoding, algToHash, RSA_ALGORITHM_NAME, jwksAlgToCryptoAlg, algs, isArrayString, assertAudienceClaim, assertHeaderType, assertHeaderAlgorithm, assertSubClaim, assertAuthorizedPartiesClaim, assertExpirationClaim, assertActivationClaim, assertIssuedAtClaim, DEFAULT_CLOCK_SKEW_IN_MS;
-var init_chunk_J2CDX2WG = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-J2CDX2WG.mjs"() {
-    "use strict";
-    init_chunk_RZ7A7F6X();
-    init_crypto();
-    init_isomorphicAtob();
-    globalFetch2 = fetch.bind(globalThis);
-    runtime = {
-      crypto: import_node_crypto.webcrypto,
-      get fetch() {
-        return process.env.NODE_ENV === "test" ? fetch : globalFetch2;
-      },
-      AbortController: globalThis.AbortController,
-      Blob: globalThis.Blob,
-      FormData: globalThis.FormData,
-      Headers: globalThis.Headers,
-      Request: globalThis.Request,
-      Response: globalThis.Response
-    };
-    base64url = {
-      parse(string, opts) {
-        return parse2(string, base64UrlEncoding, opts);
-      },
-      stringify(data, opts) {
-        return stringify4(data, base64UrlEncoding, opts);
-      }
-    };
-    base64UrlEncoding = {
-      chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
-      bits: 6
-    };
-    algToHash = {
-      RS256: "SHA-256",
-      RS384: "SHA-384",
-      RS512: "SHA-512"
-    };
-    RSA_ALGORITHM_NAME = "RSASSA-PKCS1-v1_5";
-    jwksAlgToCryptoAlg = {
-      RS256: RSA_ALGORITHM_NAME,
-      RS384: RSA_ALGORITHM_NAME,
-      RS512: RSA_ALGORITHM_NAME
-    };
-    algs = Object.keys(algToHash);
-    isArrayString = (s3) => {
-      return Array.isArray(s3) && s3.length > 0 && s3.every((a2) => typeof a2 === "string");
-    };
-    assertAudienceClaim = (aud, audience) => {
-      const audienceList = [audience].flat().filter((a2) => !!a2);
-      const audList = [aud].flat().filter((a2) => !!a2);
-      const shouldVerifyAudience = audienceList.length > 0 && audList.length > 0;
-      if (!shouldVerifyAudience) {
-        return;
-      }
-      if (typeof aud === "string") {
-        if (!audienceList.includes(aud)) {
-          throw new TokenVerificationError({
-            action: TokenVerificationErrorAction.EnsureClerkJWT,
-            reason: TokenVerificationErrorReason.TokenVerificationFailed,
-            message: `Invalid JWT audience claim (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
-              audienceList
-            )}".`
-          });
+    verifySignature = async (base64Signature, value, secret3) => {
+      try {
+        const signatureBinStr = atob(base64Signature);
+        const signature = new Uint8Array(signatureBinStr.length);
+        for (let i2 = 0, len = signatureBinStr.length; i2 < len; i2++) {
+          signature[i2] = signatureBinStr.charCodeAt(i2);
         }
-      } else if (isArrayString(aud)) {
-        if (!aud.some((a2) => audienceList.includes(a2))) {
-          throw new TokenVerificationError({
-            action: TokenVerificationErrorAction.EnsureClerkJWT,
-            reason: TokenVerificationErrorReason.TokenVerificationFailed,
-            message: `Invalid JWT audience claim array (aud) ${JSON.stringify(aud)}. Is not included in "${JSON.stringify(
-              audienceList
-            )}".`
-          });
-        }
+        return await crypto.subtle.verify(algorithm, secret3, signature, new TextEncoder().encode(value));
+      } catch {
+        return false;
       }
     };
-    assertHeaderType = (typ, allowedTypes) => {
-      if (typeof typ === "undefined" && typeof allowedTypes === "undefined") {
-        return;
-      }
-      const expectedTypes = allowedTypes ?? "JWT";
-      const allowed = Array.isArray(expectedTypes) ? expectedTypes : [expectedTypes];
-      if (!allowed.includes(typ)) {
-        throw new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenInvalid,
-          message: `Invalid JWT type ${JSON.stringify(typ)}. Expected "${allowed.join(", ")}".`
-        });
-      }
-    };
-    assertHeaderAlgorithm = (alg) => {
-      if (!algs.includes(alg)) {
-        throw new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenInvalidAlgorithm,
-          message: `Invalid JWT algorithm ${JSON.stringify(alg)}. Supported: ${algs}.`
-        });
-      }
-    };
-    assertSubClaim = (sub) => {
-      if (typeof sub !== "string") {
-        throw new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenVerificationFailed,
-          message: `Subject claim (sub) is required and must be a string. Received ${JSON.stringify(sub)}.`
-        });
-      }
-    };
-    assertAuthorizedPartiesClaim = (azp, authorizedParties) => {
-      if (!azp || !authorizedParties || authorizedParties.length === 0) {
-        return;
-      }
-      if (!authorizedParties.includes(azp)) {
-        throw new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenInvalidAuthorizedParties,
-          message: `Invalid JWT Authorized party claim (azp) ${JSON.stringify(azp)}. Expected "${authorizedParties}".`
-        });
-      }
-    };
-    assertExpirationClaim = (exp, clockSkewInMs) => {
-      if (typeof exp !== "number") {
-        throw new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenVerificationFailed,
-          message: `Invalid JWT expiry date claim (exp) ${JSON.stringify(exp)}. Expected number.`
-        });
-      }
-      const currentDate = new Date(Date.now());
-      const expiryDate = /* @__PURE__ */ new Date(0);
-      expiryDate.setUTCSeconds(exp);
-      const expired = expiryDate.getTime() <= currentDate.getTime() - clockSkewInMs;
-      if (expired) {
-        throw new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenExpired,
-          message: `JWT is expired. Expiry date: ${expiryDate.toUTCString()}, Current date: ${currentDate.toUTCString()}.`
-        });
-      }
-    };
-    assertActivationClaim = (nbf, clockSkewInMs) => {
-      if (typeof nbf === "undefined") {
-        return;
-      }
-      if (typeof nbf !== "number") {
-        throw new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenVerificationFailed,
-          message: `Invalid JWT not before date claim (nbf) ${JSON.stringify(nbf)}. Expected number.`
-        });
-      }
-      const currentDate = new Date(Date.now());
-      const notBeforeDate = /* @__PURE__ */ new Date(0);
-      notBeforeDate.setUTCSeconds(nbf);
-      const early = notBeforeDate.getTime() > currentDate.getTime() + clockSkewInMs;
-      if (early) {
-        throw new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenNotActiveYet,
-          message: `JWT cannot be used prior to not before date claim (nbf). Not before date: ${notBeforeDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
-        });
-      }
-    };
-    assertIssuedAtClaim = (iat, clockSkewInMs) => {
-      if (typeof iat === "undefined") {
-        return;
-      }
-      if (typeof iat !== "number") {
-        throw new TokenVerificationError({
-          action: TokenVerificationErrorAction.EnsureClerkJWT,
-          reason: TokenVerificationErrorReason.TokenVerificationFailed,
-          message: `Invalid JWT issued at date claim (iat) ${JSON.stringify(iat)}. Expected number.`
-        });
-      }
-      const currentDate = new Date(Date.now());
-      const issuedAtDate = /* @__PURE__ */ new Date(0);
-      issuedAtDate.setUTCSeconds(iat);
-      const postIssued = issuedAtDate.getTime() > currentDate.getTime() + clockSkewInMs;
-      if (postIssued) {
-        throw new TokenVerificationError({
-          reason: TokenVerificationErrorReason.TokenIatInTheFuture,
-          message: `JWT issued at date claim (iat) is in the future. Issued at date: ${issuedAtDate.toUTCString()}; Current date: ${currentDate.toUTCString()};`
-        });
-      }
-    };
-    DEFAULT_CLOCK_SKEW_IN_MS = 5 * 1e3;
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-TOROEX6P.mjs
-var __create2, __defProp2, __getOwnPropDesc2, __getOwnPropNames2, __getProtoOf2, __hasOwnProp2, __typeError, __commonJS2, __copyProps2, __toESM2, __accessCheck, __privateGet, __privateAdd, __privateSet, __privateMethod;
-var init_chunk_TOROEX6P = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-TOROEX6P.mjs"() {
-    "use strict";
-    __create2 = Object.create;
-    __defProp2 = Object.defineProperty;
-    __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
-    __getOwnPropNames2 = Object.getOwnPropertyNames;
-    __getProtoOf2 = Object.getPrototypeOf;
-    __hasOwnProp2 = Object.prototype.hasOwnProperty;
-    __typeError = (msg) => {
-      throw TypeError(msg);
-    };
-    __commonJS2 = (cb, mod) => function __require2() {
-      return mod || (0, cb[__getOwnPropNames2(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
-    };
-    __copyProps2 = (to, from, except, desc) => {
-      if (from && typeof from === "object" || typeof from === "function") {
-        for (let key of __getOwnPropNames2(from))
-          if (!__hasOwnProp2.call(to, key) && key !== except)
-            __defProp2(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc2(from, key)) || desc.enumerable });
-      }
-      return to;
-    };
-    __toESM2 = (mod, isNodeMode, target) => (target = mod != null ? __create2(__getProtoOf2(mod)) : {}, __copyProps2(
-      // If the importer is in node compatibility mode or this is not an ESM
-      // file that has been converted to a CommonJS file using a Babel-
-      // compatible transform (i.e. "__esModule" has not been set), then set
-      // "default" to the CommonJS "module.exports" for node compatibility.
-      isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target,
-      mod
-    ));
-    __accessCheck = (obj, member, msg) => member.has(obj) || __typeError("Cannot " + msg);
-    __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read from private field"), getter ? getter.call(obj) : member.get(obj));
-    __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
-    __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
-    __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "access private method"), method);
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/buildAccountsBaseUrl.mjs
-function buildAccountsBaseUrl(frontendApi) {
-  if (!frontendApi) return "";
-  return `https://${frontendApi.replace(/clerk\.accountsstage\./, "accountsstage.").replace(/clerk\.accounts\.|clerk\./, "accounts.")}`;
-}
-var init_buildAccountsBaseUrl = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/buildAccountsBaseUrl.mjs"() {
-    "use strict";
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/logger-C6joC6-q.mjs
-var loggedMessages, logger2;
-var init_logger_C6joC6_q = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/logger-C6joC6-q.mjs"() {
-    "use strict";
-    loggedMessages = /* @__PURE__ */ new Set();
-    logger2 = {
-      warnOnce: (msg) => {
-        if (loggedMessages.has(msg)) return;
-        loggedMessages.add(msg);
-        console.warn(msg);
-      },
-      logOnce: (msg) => {
-        if (loggedMessages.has(msg)) return;
-        console.log(msg);
-        loggedMessages.add(msg);
-      }
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/logger.mjs
-var init_logger = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/logger.mjs"() {
-    "use strict";
-    init_logger_C6joC6_q();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/proxy-6sFESt4u.mjs
-function shouldAutoProxy(hostname) {
-  return AUTO_PROXY_HOST_SUFFIXES.some((hostSuffix) => hostname?.endsWith(hostSuffix)) ?? false;
-}
-function getDefaultEnvironment() {
-  return typeof process !== "undefined" && process.env ? process.env : {};
-}
-function normalizeHostname(hostnameOrUrl) {
-  if (hostnameOrUrl.startsWith("http://") || hostnameOrUrl.startsWith("https://")) try {
-    return new URL(hostnameOrUrl).hostname;
-  } catch {
-    return "";
-  }
-  return hostnameOrUrl.split("/")[0] || "";
-}
-function getAutoProxyUrlFromEnvironment({ publishableKey, hasDomain = false, hasProxyUrl = false, environment = getDefaultEnvironment() }) {
-  if (hasProxyUrl || hasDomain || !isProductionFromPublishableKey(publishableKey)) return "";
-  if (environment.VERCEL_TARGET_ENV !== "production") return "";
-  const vercelProductionHostname = environment.VERCEL_PROJECT_PRODUCTION_URL;
-  if (!vercelProductionHostname || !shouldAutoProxy(normalizeHostname(vercelProductionHostname))) return "";
-  return AUTO_PROXY_PATH;
-}
-var AUTO_PROXY_HOST_SUFFIXES, AUTO_PROXY_PATH;
-var init_proxy_6sFESt4u = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/proxy-6sFESt4u.mjs"() {
-    "use strict";
-    init_keys_jlv3GIE3();
-    AUTO_PROXY_HOST_SUFFIXES = [".vercel.app"];
-    AUTO_PROXY_PATH = "/__clerk";
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/proxy.mjs
-var init_proxy = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/proxy.mjs"() {
-    "use strict";
-    init_constants_BVchI2jn();
-    init_isomorphicAtob_C1KQ5FtS();
-    init_isomorphicBtoa_BBBfp_jr();
-    init_keys_jlv3GIE3();
-    init_proxy_6sFESt4u();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-D10DwNv6.mjs
-var TYPES_TO_OBJECTS, ALLOWED_LEVELS, ALLOWED_TYPES, ORG_SCOPES, USER_SCOPES, isValidMaxAge, isValidLevel, isValidVerificationType, isValidFactorAge, prefixWithOrg, checkOrgAuthorization, checkForFeatureOrPlan, checkBillingAuthorization, splitByScope, validateReverificationConfig, checkReverificationAuthorization, combine, createCheckAuthorization;
-var init_authorization_D10DwNv6 = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-D10DwNv6.mjs"() {
-    "use strict";
-    TYPES_TO_OBJECTS = {
-      strict_mfa: {
-        afterMinutes: 10,
-        level: "multi_factor"
-      },
-      strict: {
-        afterMinutes: 10,
-        level: "second_factor"
-      },
-      moderate: {
-        afterMinutes: 60,
-        level: "second_factor"
-      },
-      lax: {
-        afterMinutes: 1440,
-        level: "second_factor"
-      }
-    };
-    ALLOWED_LEVELS = /* @__PURE__ */ new Set([
-      "first_factor",
-      "second_factor",
-      "multi_factor"
-    ]);
-    ALLOWED_TYPES = /* @__PURE__ */ new Set([
-      "strict_mfa",
-      "strict",
-      "moderate",
-      "lax"
-    ]);
-    ORG_SCOPES = /* @__PURE__ */ new Set([
-      "o",
-      "org",
-      "organization"
-    ]);
-    USER_SCOPES = /* @__PURE__ */ new Set(["u", "user"]);
-    isValidMaxAge = (maxAge) => typeof maxAge === "number" && maxAge > 0;
-    isValidLevel = (level) => ALLOWED_LEVELS.has(level);
-    isValidVerificationType = (type) => ALLOWED_TYPES.has(type);
-    isValidFactorAge = (x2) => typeof x2 === "number" && Number.isFinite(x2) && (x2 === -1 || x2 >= 0);
-    prefixWithOrg = (value) => value.replace(/^(org:)*/, "org:");
-    checkOrgAuthorization = (params, options) => {
-      const { orgId, orgRole, orgPermissions } = options;
-      const roleAsked = params.role !== void 0;
-      const permissionAsked = params.permission !== void 0;
-      if (!roleAsked && !permissionAsked) return "skip";
-      if (roleAsked && typeof params.role !== "string") return "fail";
-      if (permissionAsked && typeof params.permission !== "string") return "fail";
-      if (!orgId) return "fail";
-      if (roleAsked) {
-        if (typeof orgRole !== "string" || !orgRole) return "fail";
-        if (prefixWithOrg(orgRole) !== prefixWithOrg(params.role)) return "fail";
-      }
-      if (permissionAsked) {
-        if (!Array.isArray(orgPermissions)) return "fail";
-        if (!orgPermissions.includes(prefixWithOrg(params.permission))) return "fail";
-      }
-      return "pass";
-    };
-    checkForFeatureOrPlan = (claim, featureOrPlan) => {
-      const { org: orgFeatures, user: userFeatures } = splitByScope(claim);
-      const [rawScope, rawId] = featureOrPlan.split(":");
-      const hasExplicitScope = rawId !== void 0;
-      const scope = rawScope;
-      const id = rawId || rawScope;
-      if (hasExplicitScope && !ORG_SCOPES.has(scope) && !USER_SCOPES.has(scope)) throw new Error(`Invalid scope: ${scope}`);
-      if (hasExplicitScope) {
-        if (ORG_SCOPES.has(scope)) return orgFeatures.includes(id);
-        if (USER_SCOPES.has(scope)) return userFeatures.includes(id);
-      }
-      return [...orgFeatures, ...userFeatures].includes(id);
-    };
-    checkBillingAuthorization = (params, options) => {
-      const { features, plans } = options;
-      const featureAsked = params.feature !== void 0;
-      const planAsked = params.plan !== void 0;
-      if (!featureAsked && !planAsked) return "skip";
-      if (featureAsked && typeof params.feature !== "string") return "fail";
-      if (planAsked && typeof params.plan !== "string") return "fail";
-      if (featureAsked) {
-        if (typeof features !== "string" || !features) return "fail";
-        try {
-          if (!checkForFeatureOrPlan(features, params.feature)) return "fail";
-        } catch {
-          return "fail";
-        }
-      }
-      if (planAsked) {
-        if (typeof plans !== "string" || !plans) return "fail";
-        try {
-          if (!checkForFeatureOrPlan(plans, params.plan)) return "fail";
-        } catch {
-          return "fail";
-        }
-      }
-      return "pass";
-    };
-    splitByScope = (fea) => {
-      const org = [];
-      const user = [];
-      if (!fea) return {
-        org,
-        user
-      };
-      const parts = fea.split(",");
-      for (let i2 = 0; i2 < parts.length; i2++) {
-        const part = parts[i2].trim();
-        const colonIndex = part.indexOf(":");
-        if (colonIndex === -1) throw new Error(`Invalid claim element (missing colon): ${part}`);
-        const scope = part.slice(0, colonIndex);
-        const value = part.slice(colonIndex + 1);
-        if (scope === "o") org.push(value);
-        else if (scope === "u") user.push(value);
-        else if (scope === "ou" || scope === "uo") {
-          org.push(value);
-          user.push(value);
-        }
-      }
-      return {
-        org,
-        user
-      };
-    };
-    validateReverificationConfig = (config) => {
-      if (!config) return false;
-      const convertConfigToObject = (config$1) => {
-        if (typeof config$1 === "string") return TYPES_TO_OBJECTS[config$1];
-        return config$1;
-      };
-      const isValidStringValue = typeof config === "string" && isValidVerificationType(config);
-      const isValidObjectValue = typeof config === "object" && isValidLevel(config.level) && isValidMaxAge(config.afterMinutes);
-      if (isValidStringValue || isValidObjectValue) return convertConfigToObject.bind(null, config);
-      return false;
-    };
-    checkReverificationAuthorization = (params, { factorVerificationAge }) => {
-      if (params.reverification === void 0) return "skip";
-      if (!factorVerificationAge) return "fail";
-      if (!Array.isArray(factorVerificationAge) || factorVerificationAge.length !== 2 || !isValidFactorAge(factorVerificationAge[0]) || !isValidFactorAge(factorVerificationAge[1])) return "fail";
-      const getConfig = validateReverificationConfig(params.reverification);
-      if (!getConfig) return "fail";
-      const { level, afterMinutes } = getConfig();
-      const [factor1Age, factor2Age] = factorVerificationAge;
-      if (factor1Age === -1 && factor2Age === -1) return "fail";
-      const factor1FreshEnough = factor1Age !== -1 && afterMinutes > factor1Age;
-      const factor2FreshEnough = factor2Age !== -1 && afterMinutes > factor2Age;
-      switch (level) {
-        case "first_factor":
-          return factor1FreshEnough ? "pass" : "fail";
-        case "second_factor":
-          if (factor2Age === -1) return factor1FreshEnough ? "pass" : "fail";
-          if (factor1Age === -1) return factor2FreshEnough ? "pass" : "fail";
-          return factor2FreshEnough ? "pass" : "fail";
-        case "multi_factor":
-          if (factor2Age === -1) return factor1FreshEnough ? "pass" : "fail";
-          if (factor1Age === -1) return "fail";
-          return factor1FreshEnough && factor2FreshEnough ? "pass" : "fail";
-      }
-    };
-    combine = (results) => results.some((r2) => r2 === "pass") && results.every((r2) => r2 === "pass" || r2 === "skip");
-    createCheckAuthorization = (options) => {
-      return (params) => {
-        if (!options.userId) return false;
-        return combine([
-          checkOrgAuthorization(params, options),
-          checkBillingAuthorization(params, options),
-          checkReverificationAuthorization(params, options)
-        ]);
-      };
-    };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization.mjs
-var init_authorization = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization.mjs"() {
-    "use strict";
-    init_authorization_D10DwNv6();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/jwtPayloadParser.mjs
-function buildOrgPermissions({ features, permissions, featurePermissionMap }) {
-  if (!features || !permissions || !featurePermissionMap) return [];
-  const orgPermissions = [];
-  for (let featureIndex = 0; featureIndex < features.length; featureIndex++) {
-    const feature = features[featureIndex];
-    if (featureIndex >= featurePermissionMap.length) continue;
-    const permissionBits = featurePermissionMap[featureIndex];
-    if (!permissionBits) continue;
-    for (let permIndex = 0; permIndex < permissionBits.length; permIndex++) if (permissionBits[permIndex] === 1) orgPermissions.push(`org:${feature}:${permissions[permIndex]}`);
-  }
-  return orgPermissions;
-}
-var parsePermissions, __experimental_JWTPayloadToAuthObjectProperties;
-var init_jwtPayloadParser = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/jwtPayloadParser.mjs"() {
-    "use strict";
-    init_authorization_D10DwNv6();
-    parsePermissions = ({ per, fpm }) => {
-      if (!per || !fpm) return {
-        permissions: [],
-        featurePermissionMap: []
-      };
-      const permissions = per.split(",").map((p2) => p2.trim());
-      return {
-        permissions,
-        featurePermissionMap: fpm.split(",").map((permission) => Number.parseInt(permission.trim(), 10)).map((permission) => permission.toString(2).padStart(permissions.length, "0").split("").map((bit) => Number.parseInt(bit, 10)).reverse()).filter(Boolean)
-      };
-    };
-    __experimental_JWTPayloadToAuthObjectProperties = (claims) => {
-      let orgId;
-      let orgRole;
-      let orgSlug;
-      let orgPermissions;
-      const factorVerificationAge = claims.fva ?? null;
-      const sessionStatus = claims.sts ?? null;
-      switch (claims.v) {
-        case 2:
-          if (claims.o) {
-            orgId = claims.o?.id;
-            orgSlug = claims.o?.slg;
-            if (claims.o?.rol) orgRole = `org:${claims.o?.rol}`;
-            const { org } = splitByScope(claims.fea);
-            const { permissions, featurePermissionMap } = parsePermissions({
-              per: claims.o?.per,
-              fpm: claims.o?.fpm
-            });
-            orgPermissions = buildOrgPermissions({
-              features: org,
-              featurePermissionMap,
-              permissions
-            });
-          }
+    validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
+    validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
+    trimCookieWhitespace = (value) => {
+      let start = 0;
+      let end = value.length;
+      while (start < end) {
+        const charCode = value.charCodeAt(start);
+        if (charCode !== 32 && charCode !== 9) {
           break;
-        default:
-          orgId = claims.org_id;
-          orgRole = claims.org_role;
-          orgSlug = claims.org_slug;
-          orgPermissions = claims.org_permissions;
-          break;
+        }
+        start++;
       }
-      return {
-        sessionClaims: claims,
-        sessionId: claims.sid,
-        sessionStatus,
-        actor: claims.act,
-        userId: claims.sub,
-        orgId,
-        orgRole,
-        orgSlug,
-        orgPermissions,
-        factorVerificationAge
-      };
+      while (end > start) {
+        const charCode = value.charCodeAt(end - 1);
+        if (charCode !== 32 && charCode !== 9) {
+          break;
+        }
+        end--;
+      }
+      return start === 0 && end === value.length ? value : value.slice(start, end);
     };
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/pathToRegexp-CNkSDpje.mjs
-function _2(r2) {
-  for (var n2 = [], e2 = 0; e2 < r2.length; ) {
-    var a2 = r2[e2];
-    if (a2 === "*" || a2 === "+" || a2 === "?") {
-      n2.push({
-        type: "MODIFIER",
-        index: e2,
-        value: r2[e2++]
-      });
-      continue;
-    }
-    if (a2 === "\\") {
-      n2.push({
-        type: "ESCAPED_CHAR",
-        index: e2++,
-        value: r2[e2++]
-      });
-      continue;
-    }
-    if (a2 === "{") {
-      n2.push({
-        type: "OPEN",
-        index: e2,
-        value: r2[e2++]
-      });
-      continue;
-    }
-    if (a2 === "}") {
-      n2.push({
-        type: "CLOSE",
-        index: e2,
-        value: r2[e2++]
-      });
-      continue;
-    }
-    if (a2 === ":") {
-      for (var u2 = "", t2 = e2 + 1; t2 < r2.length; ) {
-        var c2 = r2.charCodeAt(t2);
-        if (c2 >= 48 && c2 <= 57 || c2 >= 65 && c2 <= 90 || c2 >= 97 && c2 <= 122 || c2 === 95) {
-          u2 += r2[t2++];
+    parse = (cookie, name) => {
+      if (name && cookie.indexOf(name) === -1) {
+        return {};
+      }
+      const pairs = cookie.split(";");
+      const parsedCookie = /* @__PURE__ */ Object.create(null);
+      for (const pairStr of pairs) {
+        const valueStartPos = pairStr.indexOf("=");
+        if (valueStartPos === -1) {
           continue;
         }
-        break;
-      }
-      if (!u2) throw new TypeError("Missing parameter name at ".concat(e2));
-      n2.push({
-        type: "NAME",
-        index: e2,
-        value: u2
-      }), e2 = t2;
-      continue;
-    }
-    if (a2 === "(") {
-      var o2 = 1, m2 = "", t2 = e2 + 1;
-      if (r2[t2] === "?") throw new TypeError('Pattern cannot start with "?" at '.concat(t2));
-      for (; t2 < r2.length; ) {
-        if (r2[t2] === "\\") {
-          m2 += r2[t2++] + r2[t2++];
+        const cookieName = trimCookieWhitespace(pairStr.substring(0, valueStartPos));
+        if (name && name !== cookieName || !validCookieNameRegEx.test(cookieName) || cookieName in parsedCookie) {
           continue;
         }
-        if (r2[t2] === ")") {
-          if (o2--, o2 === 0) {
-            t2++;
+        let cookieValue = trimCookieWhitespace(pairStr.substring(valueStartPos + 1));
+        if (cookieValue.startsWith('"') && cookieValue.endsWith('"')) {
+          cookieValue = cookieValue.slice(1, -1);
+        }
+        if (validCookieValueRegEx.test(cookieValue)) {
+          parsedCookie[cookieName] = cookieValue.indexOf("%") !== -1 ? tryDecode(cookieValue, decodeURIComponent_) : cookieValue;
+          if (name) {
             break;
           }
-        } else if (r2[t2] === "(" && (o2++, r2[t2 + 1] !== "?")) throw new TypeError("Capturing groups are not allowed at ".concat(t2));
-        m2 += r2[t2++];
+        }
       }
-      if (o2) throw new TypeError("Unbalanced pattern at ".concat(e2));
-      if (!m2) throw new TypeError("Missing pattern at ".concat(e2));
-      n2.push({
-        type: "PATTERN",
-        index: e2,
-        value: m2
-      }), e2 = t2;
-      continue;
-    }
-    n2.push({
-      type: "CHAR",
-      index: e2,
-      value: r2[e2++]
-    });
-  }
-  return n2.push({
-    type: "END",
-    index: e2,
-    value: ""
-  }), n2;
-}
-function F2(r2, n2) {
-  n2 === void 0 && (n2 = {});
-  for (var e2 = _2(r2), a2 = n2.prefixes, u2 = a2 === void 0 ? "./" : a2, t2 = n2.delimiter, c2 = t2 === void 0 ? "/#?" : t2, o2 = [], m2 = 0, h2 = 0, p2 = "", f2 = function(l2) {
-    if (h2 < e2.length && e2[h2].type === l2) return e2[h2++].value;
-  }, w2 = function(l2) {
-    var v2 = f2(l2);
-    if (v2 !== void 0) return v2;
-    var E2 = e2[h2], N2 = E2.type, S2 = E2.index;
-    throw new TypeError("Unexpected ".concat(N2, " at ").concat(S2, ", expected ").concat(l2));
-  }, d2 = function() {
-    for (var l2 = "", v2; v2 = f2("CHAR") || f2("ESCAPED_CHAR"); ) l2 += v2;
-    return l2;
-  }, M2 = function(l2) {
-    for (var v2 = 0, E2 = c2; v2 < E2.length; v2++) {
-      var N2 = E2[v2];
-      if (l2.indexOf(N2) > -1) return true;
-    }
-    return false;
-  }, A2 = function(l2) {
-    var v2 = o2[o2.length - 1], E2 = l2 || (v2 && typeof v2 == "string" ? v2 : "");
-    if (v2 && !E2) throw new TypeError('Must have text between two parameters, missing text after "'.concat(v2.name, '"'));
-    return !E2 || M2(E2) ? "[^".concat(s2(c2), "]+?") : "(?:(?!".concat(s2(E2), ")[^").concat(s2(c2), "])+?");
-  }; h2 < e2.length; ) {
-    var T2 = f2("CHAR"), x2 = f2("NAME"), C2 = f2("PATTERN");
-    if (x2 || C2) {
-      var g2 = T2 || "";
-      u2.indexOf(g2) === -1 && (p2 += g2, g2 = ""), p2 && (o2.push(p2), p2 = ""), o2.push({
-        name: x2 || m2++,
-        prefix: g2,
-        suffix: "",
-        pattern: C2 || A2(g2),
-        modifier: f2("MODIFIER") || ""
-      });
-      continue;
-    }
-    var i2 = T2 || f2("ESCAPED_CHAR");
-    if (i2) {
-      p2 += i2;
-      continue;
-    }
-    p2 && (o2.push(p2), p2 = "");
-    if (f2("OPEN")) {
-      var g2 = d2(), y2 = f2("NAME") || "", O2 = f2("PATTERN") || "", b2 = d2();
-      w2("CLOSE"), o2.push({
-        name: y2 || (O2 ? m2++ : ""),
-        pattern: y2 && !O2 ? A2(g2) : O2,
-        prefix: g2,
-        suffix: b2,
-        modifier: f2("MODIFIER") || ""
-      });
-      continue;
-    }
-    w2("END");
-  }
-  return o2;
-}
-function H2(r2, n2) {
-  var e2 = [];
-  return I2(P2(r2, e2, n2), e2, n2);
-}
-function I2(r2, n2, e2) {
-  e2 === void 0 && (e2 = {});
-  var a2 = e2.decode, u2 = a2 === void 0 ? function(t2) {
-    return t2;
-  } : a2;
-  return function(t2) {
-    var c2 = r2.exec(t2);
-    if (!c2) return false;
-    for (var o2 = c2[0], m2 = c2.index, h2 = /* @__PURE__ */ Object.create(null), p2 = function(w2) {
-      if (c2[w2] === void 0) return "continue";
-      var d2 = n2[w2 - 1];
-      d2.modifier === "*" || d2.modifier === "+" ? h2[d2.name] = c2[w2].split(d2.prefix + d2.suffix).map(function(M2) {
-        return u2(M2, d2);
-      }) : h2[d2.name] = u2(c2[w2], d2);
-    }, f2 = 1; f2 < c2.length; f2++) p2(f2);
-    return {
-      path: o2,
-      index: m2,
-      params: h2
+      return parsedCookie;
     };
-  };
-}
-function s2(r2) {
-  return r2.replace(/([.+*?=^!:${}()[\]|/\\])/g, "\\$1");
-}
-function D2(r2) {
-  return r2 && r2.sensitive ? "" : "i";
-}
-function $2(r2, n2) {
-  if (!n2) return r2;
-  for (var e2 = /\((?:\?<(.*?)>)?(?!\?)/g, a2 = 0, u2 = e2.exec(r2.source); u2; ) n2.push({
-    name: u2[1] || a2++,
-    prefix: "",
-    suffix: "",
-    modifier: "",
-    pattern: ""
-  }), u2 = e2.exec(r2.source);
-  return r2;
-}
-function W2(r2, n2, e2) {
-  var a2 = r2.map(function(u2) {
-    return P2(u2, n2, e2).source;
-  });
-  return new RegExp("(?:".concat(a2.join("|"), ")"), D2(e2));
-}
-function L2(r2, n2, e2) {
-  return U2(F2(r2, e2), n2, e2);
-}
-function U2(r2, n2, e2) {
-  e2 === void 0 && (e2 = {});
-  for (var a2 = e2.strict, u2 = a2 === void 0 ? false : a2, t2 = e2.start, c2 = t2 === void 0 ? true : t2, o2 = e2.end, m2 = o2 === void 0 ? true : o2, h2 = e2.encode, p2 = h2 === void 0 ? function(v2) {
-    return v2;
-  } : h2, f2 = e2.delimiter, w2 = f2 === void 0 ? "/#?" : f2, d2 = e2.endsWith, M2 = d2 === void 0 ? "" : d2, A2 = "[".concat(s2(M2), "]|$"), T2 = "[".concat(s2(w2), "]"), x2 = c2 ? "^" : "", C2 = 0, g2 = r2; C2 < g2.length; C2++) {
-    var i2 = g2[C2];
-    if (typeof i2 == "string") x2 += s2(p2(i2));
-    else {
-      var R2 = s2(p2(i2.prefix)), y2 = s2(p2(i2.suffix));
-      if (i2.pattern) if (n2 && n2.push(i2), R2 || y2) if (i2.modifier === "+" || i2.modifier === "*") {
-        var O2 = i2.modifier === "*" ? "?" : "";
-        x2 += "(?:".concat(R2, "((?:").concat(i2.pattern, ")(?:").concat(y2).concat(R2, "(?:").concat(i2.pattern, "))*)").concat(y2, ")").concat(O2);
-      } else x2 += "(?:".concat(R2, "(").concat(i2.pattern, ")").concat(y2, ")").concat(i2.modifier);
-      else {
-        if (i2.modifier === "+" || i2.modifier === "*") throw new TypeError('Can not repeat "'.concat(i2.name, '" without a prefix and suffix'));
-        x2 += "(".concat(i2.pattern, ")").concat(i2.modifier);
+    parseSigned = async (cookie, secret3, name) => {
+      const parsedCookie = /* @__PURE__ */ Object.create(null);
+      const secretKey = await getCryptoKey(secret3);
+      for (const [key, value] of Object.entries(parse(cookie, name))) {
+        const signatureStartPos = value.lastIndexOf(".");
+        if (signatureStartPos < 1) {
+          continue;
+        }
+        const signedValue = value.substring(0, signatureStartPos);
+        const signature = value.substring(signatureStartPos + 1);
+        if (signature.length !== 44 || !signature.endsWith("=")) {
+          continue;
+        }
+        const isVerified = await verifySignature(signature, signedValue, secretKey);
+        parsedCookie[key] = isVerified ? signedValue : false;
       }
-      else x2 += "(?:".concat(R2).concat(y2, ")").concat(i2.modifier);
-    }
-  }
-  if (m2) u2 || (x2 += "".concat(T2, "?")), x2 += e2.endsWith ? "(?=".concat(A2, ")") : "$";
-  else {
-    var b2 = r2[r2.length - 1], l2 = typeof b2 == "string" ? T2.indexOf(b2[b2.length - 1]) > -1 : b2 === void 0;
-    u2 || (x2 += "(?:".concat(T2, "(?=").concat(A2, "))?")), l2 || (x2 += "(?=".concat(T2, "|").concat(A2, ")"));
-  }
-  return new RegExp(x2, D2(e2));
-}
-function P2(r2, n2, e2) {
-  return r2 instanceof RegExp ? $2(r2, n2) : Array.isArray(r2) ? W2(r2, n2, e2) : L2(r2, n2, e2);
-}
-function match2(str2, options) {
-  try {
-    return H2(str2, options);
-  } catch (e2) {
-    throw new Error(`Invalid path and options: Consult the documentation of path-to-regexp here: https://github.com/pillarjs/path-to-regexp/tree/6.x
-${e2.message}`);
-  }
-}
-var init_pathToRegexp_CNkSDpje = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/pathToRegexp-CNkSDpje.mjs"() {
-    "use strict";
+      return parsedCookie;
+    };
+    _serialize = (name, value, opt = {}) => {
+      if (!validCookieNameRegEx.test(name)) {
+        throw new Error("Invalid cookie name");
+      }
+      let cookie = `${name}=${value}`;
+      if (name.startsWith("__Secure-") && !opt.secure) {
+        throw new Error("__Secure- Cookie must have Secure attributes");
+      }
+      if (name.startsWith("__Host-")) {
+        if (!opt.secure) {
+          throw new Error("__Host- Cookie must have Secure attributes");
+        }
+        if (opt.path !== "/") {
+          throw new Error('__Host- Cookie must have Path attributes with "/"');
+        }
+        if (opt.domain) {
+          throw new Error("__Host- Cookie must not have Domain attributes");
+        }
+      }
+      for (const key of ["domain", "path", "sameSite", "priority"]) {
+        if (opt[key] && /[;\r\n]/.test(opt[key])) {
+          throw new Error(`${key} must not contain ";", "\\r", or "\\n"`);
+        }
+      }
+      if (opt && typeof opt.maxAge === "number" && opt.maxAge >= 0) {
+        if (opt.maxAge > 3456e4) {
+          throw new Error(
+            "Cookies Max-Age SHOULD NOT be greater than 400 days (34560000 seconds) in duration."
+          );
+        }
+        cookie += `; Max-Age=${opt.maxAge | 0}`;
+      }
+      if (opt.domain && opt.prefix !== "host") {
+        cookie += `; Domain=${opt.domain}`;
+      }
+      if (opt.path) {
+        cookie += `; Path=${opt.path}`;
+      }
+      if (opt.expires) {
+        if (opt.expires.getTime() - Date.now() > 3456e7) {
+          throw new Error(
+            "Cookies Expires SHOULD NOT be greater than 400 days (34560000 seconds) in the future."
+          );
+        }
+        cookie += `; Expires=${opt.expires.toUTCString()}`;
+      }
+      if (opt.httpOnly) {
+        cookie += "; HttpOnly";
+      }
+      if (opt.secure) {
+        cookie += "; Secure";
+      }
+      if (opt.sameSite) {
+        cookie += `; SameSite=${opt.sameSite.charAt(0).toUpperCase() + opt.sameSite.slice(1)}`;
+      }
+      if (opt.priority) {
+        cookie += `; Priority=${opt.priority.charAt(0).toUpperCase() + opt.priority.slice(1)}`;
+      }
+      if (opt.partitioned) {
+        if (!opt.secure) {
+          throw new Error("Partitioned Cookie must have Secure attributes");
+        }
+        cookie += "; Partitioned";
+      }
+      return cookie;
+    };
+    serialize = (name, value, opt) => {
+      value = encodeURIComponent(value);
+      return _serialize(name, value, opt);
+    };
+    serializeSigned = async (name, value, secret3, opt = {}) => {
+      const signature = await makeSignature(value, secret3);
+      value = `${value}.${signature}`;
+      value = encodeURIComponent(value);
+      return _serialize(name, value, opt);
+    };
   }
 });
 
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/pathToRegexp.mjs
-var init_pathToRegexp = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/pathToRegexp.mjs"() {
-    "use strict";
-    init_pathToRegexp_CNkSDpje();
-  }
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/cookie/index.js
+var cookie_exports = {};
+__export(cookie_exports, {
+  deleteCookie: () => deleteCookie,
+  generateCookie: () => generateCookie,
+  generateSignedCookie: () => generateSignedCookie,
+  getCookie: () => getCookie,
+  getSignedCookie: () => getSignedCookie,
+  setCookie: () => setCookie,
+  setSignedCookie: () => setSignedCookie
 });
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-errors-B05708zx.mjs
-var init_authorization_errors_B05708zx = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/authorization-errors-B05708zx.mjs"() {
+var getCookie, getSignedCookie, generateCookie, setCookie, generateSignedCookie, setSignedCookie, deleteCookie;
+var init_cookie2 = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/cookie/index.js"() {
     "use strict";
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization-errors.mjs
-var init_authorization_errors = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/authorization-errors.mjs"() {
-    "use strict";
-    init_authorization_errors_B05708zx();
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-H3NCOZAT.mjs
-function mergePreDefinedOptions(preDefinedOptions, options) {
-  return Object.keys(preDefinedOptions).reduce(
-    (obj, key) => {
-      return { ...obj, [key]: options[key] || obj[key] };
-    },
-    { ...preDefinedOptions }
-  );
-}
-function assertValidSecretKey(val) {
-  if (!val || typeof val !== "string") {
-    throw Error("Missing Clerk Secret Key. Go to https://dashboard.clerk.com and get your key for your instance.");
-  }
-}
-function assertValidPublishableKey(val) {
-  parsePublishableKey(val, { fatal: true });
-}
-function isDotSegment(segment) {
-  let candidate = segment;
-  for (let i2 = 0; i2 <= MAX_DECODES; i2++) {
-    if (candidate.split(/[/\\]/).some((p2) => p2 === "." || p2 === "..")) {
-      return true;
-    }
-    if (i2 === MAX_DECODES) {
-      throw new Error(`joinPaths: too many layers of encoding in ${segment}`);
-    }
-    try {
-      const next = decodeURIComponent(candidate);
-      if (next === candidate) {
-        break;
-      }
-      candidate = next;
-    } catch {
-      break;
-    }
-  }
-  return false;
-}
-function joinPaths(...args) {
-  const result = args.filter((p2) => p2).join(SEPARATOR).replace(MULTIPLE_SEPARATOR_REGEX, SEPARATOR);
-  for (const segment of result.split(SEPARATOR)) {
-    if (isDotSegment(segment)) {
-      throw new Error(`joinPaths: "." and ".." path segments are not allowed (received "${result}")`);
-    }
-  }
-  return result;
-}
-function extractCustomClaims(payload) {
-  const claims = {};
-  for (const key of Object.keys(payload)) {
-    if (!M2M_RESERVED_JWT_CLAIMS.has(key)) {
-      claims[key] = payload[key];
-    }
-  }
-  return Object.keys(claims).length > 0 ? claims : null;
-}
-function getFromCache(kid) {
-  return cache[kid];
-}
-function getCacheValues() {
-  return Object.values(cache);
-}
-function setInCache(cacheKey2, jwk, shouldExpire = true) {
-  cache[cacheKey2] = jwk;
-  lastUpdatedAt = shouldExpire ? Date.now() : -1;
-}
-function loadClerkJwkFromPem(params) {
-  const { kid, pem } = params;
-  const prefixedKid = `local-${kid}`;
-  const cachedJwk = getFromCache(prefixedKid);
-  if (cachedJwk) {
-    return cachedJwk;
-  }
-  if (!pem) {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.SetClerkJWTKey,
-      message: "Missing local JWK.",
-      reason: TokenVerificationErrorReason.LocalJWKMissing
-    });
-  }
-  const modulus = pem.replace(/\r\n|\n|\r/g, "").replace(PEM_HEADER, "").replace(PEM_TRAILER, "").replace(RSA_PREFIX, "").replace(RSA_SUFFIX, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const jwk = { kid: prefixedKid, kty: "RSA", alg: "RS256", n: modulus, e: "AQAB" };
-  setInCache(prefixedKid, jwk, false);
-  return jwk;
-}
-async function loadClerkJWKFromRemote(params) {
-  const { secretKey, apiUrl = API_URL, apiVersion = API_VERSION, kid, skipJwksCache } = params;
-  if (skipJwksCache || cacheHasExpired() || !getFromCache(kid)) {
-    if (!secretKey) {
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.ContactSupport,
-        message: "Failed to load JWKS from Clerk Backend or Frontend API.",
-        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-      });
-    }
-    const fetcher = () => fetchJWKSFromBAPI(apiUrl, secretKey, apiVersion);
-    const { keys } = await retry(fetcher);
-    if (!keys || !keys.length) {
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.ContactSupport,
-        message: "The JWKS endpoint did not contain any signing keys. Contact support@clerk.com.",
-        reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-      });
-    }
-    keys.forEach((key) => setInCache(key.kid, key));
-  }
-  const jwk = getFromCache(kid);
-  if (!jwk) {
-    const cacheValues = getCacheValues();
-    const jwkKeys = cacheValues.map((jwk2) => jwk2.kid).sort().join(", ");
-    throw new TokenVerificationError({
-      action: `Go to your Dashboard and validate your secret and public keys are correct. ${TokenVerificationErrorAction.ContactSupport} if the issue persists.`,
-      message: `Unable to find a signing key in JWKS that matches the kid='${kid}' of the provided session token. Please make sure that the __session cookie or the HTTP authorization header contain a Clerk-generated session JWT. The following kid is available: ${jwkKeys}`,
-      reason: TokenVerificationErrorReason.JWKKidMismatch
-    });
-  }
-  return jwk;
-}
-async function fetchJWKSFromBAPI(apiUrl, key, apiVersion) {
-  if (!key) {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.SetClerkSecretKey,
-      message: "Missing Clerk Secret Key or API Key. Go to https://dashboard.clerk.com and get your key for your instance.",
-      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-    });
-  }
-  const url = new URL(apiUrl);
-  url.pathname = joinPaths(url.pathname, apiVersion, "/jwks");
-  const response3 = await runtime.fetch(url.href, {
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
-      "Content-Type": "application/json",
-      "User-Agent": USER_AGENT
-    }
-  });
-  if (!response3.ok) {
-    const json2 = await response3.json();
-    const invalidSecretKeyError = getErrorObjectByCode(json2?.errors, TokenVerificationErrorCode.InvalidSecretKey);
-    if (invalidSecretKeyError) {
-      const reason = TokenVerificationErrorReason.InvalidSecretKey;
-      throw new TokenVerificationError({
-        action: TokenVerificationErrorAction.ContactSupport,
-        message: invalidSecretKeyError.message,
-        reason
-      });
-    }
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.ContactSupport,
-      message: `Error loading Clerk JWKS from ${url.href} with code=${response3.status}`,
-      reason: TokenVerificationErrorReason.RemoteJWKFailedToLoad
-    });
-  }
-  return response3.json();
-}
-function cacheHasExpired() {
-  if (lastUpdatedAt === -1) {
-    return false;
-  }
-  const isExpired = Date.now() - lastUpdatedAt >= MAX_CACHE_LAST_UPDATED_AT_SECONDS * 1e3;
-  if (isExpired) {
-    cache = {};
-  }
-  return isExpired;
-}
-function isJwtFormat(token) {
-  return JwtFormatRegExp.test(token);
-}
-function isOAuthJwt(token) {
-  if (!isJwtFormat(token)) {
-    return false;
-  }
-  try {
-    const { data, errors } = decodeJwt(token);
-    return !errors && !!data && OAUTH_ACCESS_TOKEN_TYPES.includes(data.header.typ);
-  } catch {
-    return false;
-  }
-}
-function isM2MJwt(token) {
-  if (!isJwtFormat(token)) {
-    return false;
-  }
-  try {
-    const { data, errors } = decodeJwt(token);
-    return !errors && !!data && typeof data.payload.sub === "string" && data.payload.sub.startsWith(M2M_SUBJECT_PREFIX);
-  } catch {
-    return false;
-  }
-}
-function isMachineJwt(token) {
-  return isOAuthJwt(token) || isM2MJwt(token);
-}
-function isMachineTokenByPrefix(token) {
-  return MACHINE_TOKEN_PREFIXES.some((prefix) => token.startsWith(prefix));
-}
-function isMachineToken(token) {
-  return isMachineTokenByPrefix(token) || isOAuthJwt(token) || isM2MJwt(token);
-}
-function getMachineTokenType(token) {
-  if (token.startsWith(M2M_TOKEN_PREFIX) || isM2MJwt(token)) {
-    return TokenType.M2MToken;
-  }
-  if (token.startsWith(OAUTH_TOKEN_PREFIX) || isOAuthJwt(token)) {
-    return TokenType.OAuthToken;
-  }
-  if (token.startsWith(API_KEY_PREFIX)) {
-    return TokenType.ApiKey;
-  }
-  throw new Error("Unknown machine token type");
-}
-async function resolveKeyAndVerifyJwt(token, kid, options, headerType) {
-  try {
-    let key;
-    if (options.jwtKey) {
-      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
-    } else if (options.secretKey) {
-      key = await loadClerkJWKFromRemote({ ...options, kid });
-    } else {
-      return {
-        error: new MachineTokenVerificationError({
-          action: TokenVerificationErrorAction.SetClerkJWTKey,
-          message: "Failed to resolve JWK during verification.",
-          code: MachineTokenVerificationErrorCode.TokenVerificationFailed
-        })
-      };
-    }
-    const { data: payload, errors: verifyErrors } = await verifyJwt(token, {
-      ...options,
-      key,
-      ...headerType ? { headerType } : {}
-    });
-    if (verifyErrors) {
-      return {
-        error: new MachineTokenVerificationError({
-          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
-          message: verifyErrors[0].message
-        })
-      };
-    }
-    return { payload };
-  } catch (error) {
-    return {
-      error: new MachineTokenVerificationError({
-        code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
-        message: error.message
-      })
-    };
-  }
-}
-async function verifyM2MJwt(token, decoded, options) {
-  const result = await resolveKeyAndVerifyJwt(token, decoded.header.kid, options);
-  if ("error" in result) {
-    return { data: void 0, tokenType: TokenType.M2MToken, errors: [result.error] };
-  }
-  return {
-    data: M2MToken.fromJwtPayload(result.payload, options.clockSkewInMs),
-    tokenType: TokenType.M2MToken,
-    errors: void 0
-  };
-}
-async function verifyOAuthJwt(token, decoded, options) {
-  const result = await resolveKeyAndVerifyJwt(token, decoded.header.kid, options, OAUTH_ACCESS_TOKEN_TYPES);
-  if ("error" in result) {
-    return { data: void 0, tokenType: TokenType.OAuthToken, errors: [result.error] };
-  }
-  return {
-    data: IdPOAuthAccessToken.fromJwtPayload(result.payload, options.clockSkewInMs),
-    tokenType: TokenType.OAuthToken,
-    errors: void 0
-  };
-}
-function mapObject(object, mapper, options) {
-  if (!isObject(object)) {
-    throw new TypeError(`Expected an object, got \`${object}\` (${typeof object})`);
-  }
-  if (Array.isArray(object)) {
-    throw new TypeError("Expected an object, got an array");
-  }
-  return _mapObject(object, mapper, options);
-}
-function split(value) {
-  let result = value.trim();
-  result = result.replace(SPLIT_LOWER_UPPER_RE, SPLIT_REPLACE_VALUE).replace(SPLIT_UPPER_UPPER_RE, SPLIT_REPLACE_VALUE);
-  result = result.replace(DEFAULT_STRIP_REGEXP, "\0");
-  let start = 0;
-  let end = result.length;
-  while (result.charAt(start) === "\0")
-    start++;
-  if (start === end)
-    return [];
-  while (result.charAt(end - 1) === "\0")
-    end--;
-  return result.slice(start, end).split(/\0/g);
-}
-function splitSeparateNumbers(value) {
-  const words = split(value);
-  for (let i2 = 0; i2 < words.length; i2++) {
-    const word = words[i2];
-    const match22 = SPLIT_SEPARATE_NUMBER_RE.exec(word);
-    if (match22) {
-      const offset = match22.index + (match22[1] ?? match22[2]).length;
-      words.splice(i2, 1, word.slice(0, offset), word.slice(offset));
-    }
-  }
-  return words;
-}
-function noCase(input, options) {
-  const [prefix, words, suffix] = splitPrefixSuffix(input, options);
-  return prefix + words.map(lowerFactory(options?.locale)).join(options?.delimiter ?? " ") + suffix;
-}
-function snakeCase(input, options) {
-  return noCase(input, { delimiter: "_", ...options });
-}
-function lowerFactory(locale) {
-  return locale === false ? (input) => input.toLowerCase() : (input) => input.toLocaleLowerCase(locale);
-}
-function splitPrefixSuffix(input, options = {}) {
-  const splitFn = options.split ?? (options.separateNumbers ? splitSeparateNumbers : split);
-  const prefixCharacters = options.prefixCharacters ?? DEFAULT_PREFIX_SUFFIX_CHARACTERS;
-  const suffixCharacters = options.suffixCharacters ?? DEFAULT_PREFIX_SUFFIX_CHARACTERS;
-  let prefixIndex = 0;
-  let suffixIndex = input.length;
-  while (prefixIndex < input.length) {
-    const char = input.charAt(prefixIndex);
-    if (!prefixCharacters.includes(char))
-      break;
-    prefixIndex++;
-  }
-  while (suffixIndex > prefixIndex) {
-    const index = suffixIndex - 1;
-    const char = input.charAt(index);
-    if (!suffixCharacters.includes(char))
-      break;
-    suffixIndex = index;
-  }
-  return [
-    input.slice(0, prefixIndex),
-    splitFn(input.slice(prefixIndex, suffixIndex)),
-    input.slice(suffixIndex)
-  ];
-}
-function snakecaseKeys(obj, options) {
-  if (Array.isArray(obj)) {
-    if (obj.some((item) => item.constructor !== PlainObjectConstructor)) {
-      throw new Error("obj must be array of plain objects");
-    }
-    options = { deep: true, exclude: [], parsingOptions: {}, ...options };
-    const convertCase2 = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
-    return obj.map((item) => {
-      return mapObject(item, (key, val) => {
-        return [
-          matches2(options.exclude, key) ? key : convertCase2(key),
-          val,
-          mapperOptions(key, val, options)
-        ];
-      }, options);
-    });
-  } else {
-    if (obj.constructor !== PlainObjectConstructor) {
-      throw new Error("obj must be an plain object");
-    }
-  }
-  options = { deep: true, exclude: [], parsingOptions: {}, ...options };
-  const convertCase = options.snakeCase || ((key) => snakeCase(key, options.parsingOptions));
-  return mapObject(obj, (key, val) => {
-    return [
-      matches2(options.exclude, key) ? key : convertCase(key),
-      val,
-      mapperOptions(key, val, options)
-    ];
-  }, options);
-}
-function matches2(patterns, value) {
-  return patterns.some((pattern) => {
-    return typeof pattern === "string" ? pattern === value : pattern.test(value);
-  });
-}
-function mapperOptions(key, val, options) {
-  return options.shouldRecurse ? { shouldRecurse: options.shouldRecurse(key, val) } : void 0;
-}
-function deserialize(payload) {
-  let data, totalCount;
-  if (Array.isArray(payload)) {
-    const data2 = payload.map((item) => jsonToObject(item));
-    return { data: data2 };
-  } else if (isM2MTokenResponse(payload)) {
-    data = payload.m2m_tokens.map((item) => jsonToObject(item));
-    totalCount = payload.total_count;
-    return { data, totalCount };
-  } else if (isPaginated(payload)) {
-    data = payload.data.map((item) => jsonToObject(item));
-    totalCount = payload.total_count;
-    return { data, totalCount };
-  } else {
-    return { data: jsonToObject(payload) };
-  }
-}
-function isPaginated(payload) {
-  if (!payload || typeof payload !== "object" || !("data" in payload)) {
-    return false;
-  }
-  return Array.isArray(payload.data) && payload.data !== void 0;
-}
-function isM2MTokenResponse(payload) {
-  if (!payload || typeof payload !== "object" || !("m2m_tokens" in payload)) {
-    return false;
-  }
-  return Array.isArray(payload.m2m_tokens);
-}
-function getCount(item) {
-  return item.total_count;
-}
-function jsonToObject(item) {
-  if (typeof item !== "string" && "object" in item && "deleted" in item) {
-    return DeletedObject.fromJSON(item);
-  }
-  switch (item.object) {
-    case ObjectType.AccountlessApplication:
-      return AccountlessApplication.fromJSON(item);
-    case ObjectType.ActorToken:
-      return ActorToken.fromJSON(item);
-    case ObjectType.AllowlistIdentifier:
-      return AllowlistIdentifier.fromJSON(item);
-    case ObjectType.ApiKey:
-      return APIKey.fromJSON(item);
-    case ObjectType.BlocklistIdentifier:
-      return BlocklistIdentifier.fromJSON(item);
-    case ObjectType.Client:
-      return Client.fromJSON(item);
-    case ObjectType.Cookies:
-      return Cookies2.fromJSON(item);
-    case ObjectType.Domain:
-      return Domain.fromJSON(item);
-    case ObjectType.EmailAddress:
-      return EmailAddress.fromJSON(item);
-    case ObjectType.EnterpriseAccount:
-      return EnterpriseAccount.fromJSON(item);
-    case ObjectType.Email:
-      return Email.fromJSON(item);
-    case ObjectType.IdpOAuthAccessToken:
-      return IdPOAuthAccessToken.fromJSON(item);
-    case ObjectType.Instance:
-      return Instance.fromJSON(item);
-    case ObjectType.InstanceRestrictions:
-      return InstanceRestrictions.fromJSON(item);
-    case ObjectType.InstanceSettings:
-      return InstanceSettings.fromJSON(item);
-    case ObjectType.Invitation:
-      return Invitation.fromJSON(item);
-    case ObjectType.JwtTemplate:
-      return JwtTemplate.fromJSON(item);
-    case ObjectType.Machine:
-      return Machine.fromJSON(item);
-    case ObjectType.MachineScope:
-      return MachineScope.fromJSON(item);
-    case ObjectType.MachineSecretKey:
-      return MachineSecretKey.fromJSON(item);
-    case ObjectType.M2MToken:
-      return M2MToken.fromJSON(item);
-    case ObjectType.OauthAccessToken:
-      return OauthAccessToken.fromJSON(item);
-    case ObjectType.OAuthApplication:
-      return OAuthApplication.fromJSON(item);
-    case ObjectType.Organization:
-      return Organization.fromJSON(item);
-    case ObjectType.OrganizationInvitation:
-      return OrganizationInvitation.fromJSON(item);
-    case ObjectType.OrganizationMembership:
-      return OrganizationMembership.fromJSON(item);
-    case ObjectType.OrganizationSettings:
-      return OrganizationSettings.fromJSON(item);
-    case ObjectType.PhoneNumber:
-      return PhoneNumber.fromJSON(item);
-    case ObjectType.ProxyCheck:
-      return ProxyCheck.fromJSON(item);
-    case ObjectType.RedirectUrl:
-      return RedirectUrl.fromJSON(item);
-    case ObjectType.EnterpriseConnection:
-      return EnterpriseConnection.fromJSON(item);
-    case ObjectType.SamlConnection:
-      return SamlConnection.fromJSON(item);
-    case ObjectType.SignInToken:
-      return SignInToken.fromJSON(item);
-    case ObjectType.AgentTask:
-      return AgentTask.fromJSON(item);
-    case ObjectType.SignUpAttempt:
-      return SignUpAttempt.fromJSON(item);
-    case ObjectType.Session:
-      return Session.fromJSON(item);
-    case ObjectType.SmsMessage:
-      return SMSMessage.fromJSON(item);
-    case ObjectType.Token:
-      return Token.fromJSON(item);
-    case ObjectType.TotalCount:
-      return getCount(item);
-    case ObjectType.User:
-      return User.fromJSON(item);
-    case ObjectType.WaitlistEntry:
-      return WaitlistEntry.fromJSON(item);
-    case ObjectType.BillingPlan:
-      return BillingPlan.fromJSON(item);
-    case ObjectType.BillingSubscription:
-      return BillingSubscription.fromJSON(item);
-    case ObjectType.BillingSubscriptionItem:
-      return BillingSubscriptionItem.fromJSON(item);
-    case ObjectType.Feature:
-      return Feature.fromJSON(item);
-    default:
-      return item;
-  }
-}
-function buildRequest(options) {
-  const requestFn = async (requestOptions) => {
-    const {
-      secretKey,
-      machineSecretKey,
-      useMachineSecretKey = false,
-      requireSecretKey = true,
-      apiUrl = API_URL,
-      apiVersion = API_VERSION,
-      userAgent = USER_AGENT,
-      skipApiVersionInUrl = false
-    } = options;
-    const { path, method, queryParams, headerParams, bodyParams, formData, options: opts } = requestOptions;
-    const { deepSnakecaseBodyParamKeys = false } = opts || {};
-    if (requireSecretKey) {
-      assertValidSecretKey(secretKey);
-    }
-    const url = skipApiVersionInUrl ? joinPaths(apiUrl, path) : joinPaths(apiUrl, apiVersion, path);
-    const finalUrl = new URL(url);
-    if (queryParams) {
-      const snakecasedQueryParams = snakecase_keys_default({ ...queryParams });
-      for (const [key, val] of Object.entries(snakecasedQueryParams)) {
-        if (val) {
-          [val].flat().forEach((v2) => finalUrl.searchParams.append(key, v2));
-        }
-      }
-    }
-    const headers = new Headers({
-      "Clerk-API-Version": SUPPORTED_BAPI_VERSION,
-      [constants2.Headers.UserAgent]: userAgent,
-      ...headerParams
-    });
-    const authorizationHeader = constants2.Headers.Authorization;
-    if (!headers.has(authorizationHeader)) {
-      if (useMachineSecretKey && machineSecretKey) {
-        headers.set(authorizationHeader, `Bearer ${machineSecretKey}`);
-      } else if (secretKey) {
-        headers.set(authorizationHeader, `Bearer ${secretKey}`);
-      }
-    }
-    let res;
-    try {
-      if (formData) {
-        res = await runtime.fetch(finalUrl.href, {
-          method,
-          headers,
-          body: formData
-        });
-      } else {
-        headers.set("Content-Type", "application/json");
-        const buildBody = () => {
-          const hasBody = method !== "GET" && bodyParams && Object.keys(bodyParams).length > 0;
-          if (!hasBody) {
-            return null;
-          }
-          const formatKeys = (object) => snakecase_keys_default(object, { deep: deepSnakecaseBodyParamKeys });
-          return {
-            body: JSON.stringify(Array.isArray(bodyParams) ? bodyParams.map(formatKeys) : formatKeys(bodyParams))
-          };
-        };
-        res = await runtime.fetch(finalUrl.href, {
-          method,
-          headers,
-          ...buildBody()
-        });
-      }
-      const isJSONResponse = res?.headers && res.headers?.get(constants2.Headers.ContentType) === constants2.ContentTypes.Json;
-      const responseBody = await (isJSONResponse ? res.json() : res.text());
-      if (!res.ok) {
-        return {
-          data: null,
-          errors: parseErrors2(responseBody),
-          status: res?.status,
-          statusText: res?.statusText,
-          clerkTraceId: getTraceId(responseBody, res?.headers),
-          retryAfter: getRetryAfter(res?.headers)
-        };
-      }
-      return {
-        ...deserialize(responseBody),
-        errors: null
-      };
-    } catch (err2) {
-      if (err2 instanceof Error) {
-        return {
-          data: null,
-          errors: [
-            {
-              code: "unexpected_error",
-              message: err2.message || "Unexpected error"
-            }
-          ],
-          clerkTraceId: getTraceId(err2, res?.headers)
-        };
-      }
-      return {
-        data: null,
-        errors: parseErrors2(err2),
-        status: res?.status,
-        statusText: res?.statusText,
-        clerkTraceId: getTraceId(err2, res?.headers),
-        retryAfter: getRetryAfter(res?.headers)
-      };
-    }
-  };
-  return withLegacyRequestReturn(requestFn);
-}
-function getTraceId(data, headers) {
-  if (data && typeof data === "object" && "clerk_trace_id" in data && typeof data.clerk_trace_id === "string") {
-    return data.clerk_trace_id;
-  }
-  const cfRay = headers?.get("cf-ray");
-  return cfRay || "";
-}
-function getRetryAfter(headers) {
-  const retryAfter = headers?.get("Retry-After");
-  if (!retryAfter) {
-    return;
-  }
-  const value = parseInt(retryAfter, 10);
-  if (isNaN(value)) {
-    return;
-  }
-  return value;
-}
-function parseErrors2(data) {
-  if (!!data && typeof data === "object" && "errors" in data) {
-    const errors = data.errors;
-    return errors.length > 0 ? errors.map(parseError) : [];
-  }
-  return [];
-}
-function withLegacyRequestReturn(cb) {
-  return async (...args) => {
-    const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
-    if (errors) {
-      const error = new ClerkAPIResponseError(statusText || "", {
-        data: [],
-        status,
-        clerkTraceId,
-        retryAfter
-      });
-      error.errors = errors;
-      throw error;
-    }
-    if (typeof totalCount !== "undefined") {
-      return { data, totalCount };
-    }
-    return data;
-  };
-}
-function createBackendApiClient(options) {
-  const request = buildRequest(options);
-  return {
-    __experimental_accountlessApplications: new AccountlessApplicationAPI(
-      buildRequest({ ...options, requireSecretKey: false })
-    ),
-    actorTokens: new ActorTokenAPI(request),
-    /**
-     * @experimental This is an experimental API for the Agent Tasks feature that is available under a private beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-     */
-    agentTasks: new AgentTaskAPI(request),
-    allowlistIdentifiers: new AllowlistIdentifierAPI(request),
-    apiKeys: new APIKeysAPI(
-      buildRequest({
-        ...options,
-        skipApiVersionInUrl: true
-      })
-    ),
-    betaFeatures: new BetaFeaturesAPI(request),
-    blocklistIdentifiers: new BlocklistIdentifierAPI(request),
-    /**
-     * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-     */
-    billing: new BillingAPI(request),
-    clients: new ClientAPI(request),
-    domains: new DomainAPI(request),
-    emailAddresses: new EmailAddressAPI(request),
-    enterpriseConnections: new EnterpriseConnectionAPI(request),
-    idPOAuthAccessToken: new IdPOAuthAccessTokenApi(
-      buildRequest({
-        ...options,
-        skipApiVersionInUrl: true
-      })
-    ),
-    instance: new InstanceAPI(request),
-    invitations: new InvitationAPI(request),
-    jwks: new JwksAPI(request),
-    jwtTemplates: new JwtTemplatesApi(request),
-    machines: new MachineApi(request),
-    m2m: new M2MTokenApi(
-      buildRequest({
-        ...options,
-        skipApiVersionInUrl: true,
-        requireSecretKey: false,
-        useMachineSecretKey: true
-      }),
-      {
-        secretKey: options.secretKey,
-        apiUrl: options.apiUrl,
-        jwtKey: options.jwtKey
-      }
-    ),
-    oauthApplications: new OAuthApplicationsApi(request),
-    organizations: new OrganizationAPI(request),
-    phoneNumbers: new PhoneNumberAPI(request),
-    proxyChecks: new ProxyCheckAPI(request),
-    redirectUrls: new RedirectUrlAPI(request),
-    sessions: new SessionAPI(request),
-    signInTokens: new SignInTokenAPI(request),
-    signUps: new SignUpAPI(request),
-    testingTokens: new TestingTokenAPI(request),
-    users: new UserAPI(request),
-    waitlistEntries: new WaitlistEntryAPI(request),
-    webhooks: new WebhookAPI(request),
-    /**
-     * @deprecated Use `enterpriseConnections` instead.
-     */
-    samlConnections: new SamlConnectionAPI(request)
-  };
-}
-function signedInAuthObject(authenticateContext, sessionToken, sessionClaims) {
-  const { actor, sessionId, sessionStatus, userId, orgId, orgRole, orgSlug, orgPermissions, factorVerificationAge } = __experimental_JWTPayloadToAuthObjectProperties(sessionClaims);
-  const apiClient = createBackendApiClient(authenticateContext);
-  const getToken = createGetToken({
-    sessionId,
-    sessionToken,
-    fetcher: async (sessionId2, template, expiresInSeconds) => (await apiClient.sessions.getToken(sessionId2, template || "", expiresInSeconds)).jwt
-  });
-  return {
-    tokenType: TokenType.SessionToken,
-    actor,
-    sessionClaims,
-    sessionId,
-    sessionStatus,
-    userId,
-    orgId,
-    orgRole,
-    orgSlug,
-    orgPermissions,
-    factorVerificationAge,
-    getToken,
-    has: createCheckAuthorization({
-      orgId,
-      orgRole,
-      orgPermissions,
-      userId,
-      factorVerificationAge,
-      features: sessionClaims.fea || "",
-      plans: sessionClaims.pla || ""
-    }),
-    debug: createDebug({ ...authenticateContext, sessionToken }),
-    isAuthenticated: true
-  };
-}
-function signedOutAuthObject(debugData, initialSessionStatus) {
-  return {
-    tokenType: TokenType.SessionToken,
-    sessionClaims: null,
-    sessionId: null,
-    sessionStatus: initialSessionStatus ?? null,
-    userId: null,
-    actor: null,
-    orgId: null,
-    orgRole: null,
-    orgSlug: null,
-    orgPermissions: null,
-    factorVerificationAge: null,
-    getToken: () => Promise.resolve(null),
-    has: () => false,
-    debug: createDebug(debugData),
-    isAuthenticated: false
-  };
-}
-function authenticatedMachineObject(tokenType, token, verificationResult, debugData) {
-  const baseObject = {
-    id: verificationResult.id,
-    subject: verificationResult.subject,
-    getToken: () => Promise.resolve(token),
-    has: () => false,
-    debug: createDebug(debugData),
-    isAuthenticated: true
-  };
-  switch (tokenType) {
-    case TokenType.ApiKey: {
-      const result = verificationResult;
-      return {
-        ...baseObject,
-        tokenType,
-        name: result.name,
-        claims: result.claims,
-        scopes: result.scopes,
-        userId: result.subject.startsWith("user_") ? result.subject : null,
-        orgId: result.subject.startsWith("org_") ? result.subject : null
-      };
-    }
-    case TokenType.M2MToken: {
-      const result = verificationResult;
-      return {
-        ...baseObject,
-        tokenType,
-        claims: result.claims,
-        scopes: result.scopes,
-        machineId: result.subject
-      };
-    }
-    case TokenType.OAuthToken: {
-      const result = verificationResult;
-      return {
-        ...baseObject,
-        tokenType,
-        scopes: result.scopes,
-        userId: result.subject,
-        clientId: result.clientId
-      };
-    }
-    default:
-      throw new Error(`Invalid token type: ${tokenType}`);
-  }
-}
-function unauthenticatedMachineObject(tokenType, debugData) {
-  const baseObject = {
-    id: null,
-    subject: null,
-    scopes: null,
-    has: () => false,
-    getToken: () => Promise.resolve(null),
-    debug: createDebug(debugData),
-    isAuthenticated: false
-  };
-  switch (tokenType) {
-    case TokenType.ApiKey: {
-      return {
-        ...baseObject,
-        tokenType,
-        name: null,
-        claims: null,
-        scopes: null,
-        userId: null,
-        orgId: null
-      };
-    }
-    case TokenType.M2MToken: {
-      return {
-        ...baseObject,
-        tokenType,
-        claims: null,
-        scopes: null,
-        machineId: null
-      };
-    }
-    case TokenType.OAuthToken: {
-      return {
-        ...baseObject,
-        tokenType,
-        scopes: null,
-        userId: null,
-        clientId: null
-      };
-    }
-    default:
-      throw new Error(`Invalid token type: ${tokenType}`);
-  }
-}
-function invalidTokenAuthObject() {
-  return {
-    isAuthenticated: false,
-    tokenType: null,
-    getToken: () => Promise.resolve(null),
-    has: () => false,
-    debug: () => ({})
-  };
-}
-function signedIn(params) {
-  const { authenticateContext, headers = new Headers(), token } = params;
-  const toAuth = (({ treatPendingAsSignedOut = true } = {}) => {
-    if (params.tokenType === TokenType.SessionToken) {
-      const { sessionClaims } = params;
-      const authObject = signedInAuthObject(authenticateContext, token, sessionClaims);
-      if (treatPendingAsSignedOut && authObject.sessionStatus === "pending") {
-        return signedOutAuthObject(void 0, authObject.sessionStatus);
-      }
-      return authObject;
-    }
-    const { machineData } = params;
-    return authenticatedMachineObject(params.tokenType, token, machineData, authenticateContext);
-  });
-  return {
-    status: AuthStatus.SignedIn,
-    reason: null,
-    message: null,
-    proxyUrl: authenticateContext.proxyUrl || "",
-    publishableKey: authenticateContext.publishableKey || "",
-    isSatellite: authenticateContext.isSatellite || false,
-    domain: authenticateContext.domain || "",
-    signInUrl: authenticateContext.signInUrl || "",
-    signUpUrl: authenticateContext.signUpUrl || "",
-    afterSignInUrl: authenticateContext.afterSignInUrl || "",
-    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
-    isSignedIn: true,
-    isAuthenticated: true,
-    tokenType: params.tokenType,
-    toAuth,
-    headers,
-    token
-  };
-}
-function signedOut(params) {
-  const { authenticateContext, headers = new Headers(), reason, message = "", tokenType } = params;
-  const toAuth = (() => {
-    if (tokenType === TokenType.SessionToken) {
-      return signedOutAuthObject({ ...authenticateContext, status: AuthStatus.SignedOut, reason, message });
-    }
-    return unauthenticatedMachineObject(tokenType, { reason, message, headers });
-  });
-  return withDebugHeaders({
-    status: AuthStatus.SignedOut,
-    reason,
-    message,
-    proxyUrl: authenticateContext.proxyUrl || "",
-    publishableKey: authenticateContext.publishableKey || "",
-    isSatellite: authenticateContext.isSatellite || false,
-    domain: authenticateContext.domain || "",
-    signInUrl: authenticateContext.signInUrl || "",
-    signUpUrl: authenticateContext.signUpUrl || "",
-    afterSignInUrl: authenticateContext.afterSignInUrl || "",
-    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
-    isSignedIn: false,
-    isAuthenticated: false,
-    tokenType,
-    toAuth,
-    headers,
-    token: null
-  });
-}
-function handshake(authenticateContext, reason, message = "", headers) {
-  return withDebugHeaders({
-    status: AuthStatus.Handshake,
-    reason,
-    message,
-    publishableKey: authenticateContext.publishableKey || "",
-    isSatellite: authenticateContext.isSatellite || false,
-    domain: authenticateContext.domain || "",
-    proxyUrl: authenticateContext.proxyUrl || "",
-    signInUrl: authenticateContext.signInUrl || "",
-    signUpUrl: authenticateContext.signUpUrl || "",
-    afterSignInUrl: authenticateContext.afterSignInUrl || "",
-    afterSignUpUrl: authenticateContext.afterSignUpUrl || "",
-    isSignedIn: false,
-    isAuthenticated: false,
-    tokenType: TokenType.SessionToken,
-    toAuth: () => null,
-    headers,
-    token: null
-  });
-}
-function signedOutInvalidToken() {
-  const authObject = invalidTokenAuthObject();
-  return withDebugHeaders({
-    status: AuthStatus.SignedOut,
-    reason: AuthErrorReason.TokenTypeMismatch,
-    message: "",
-    proxyUrl: "",
-    publishableKey: "",
-    isSatellite: false,
-    domain: "",
-    signInUrl: "",
-    signUpUrl: "",
-    afterSignInUrl: "",
-    afterSignUpUrl: "",
-    isSignedIn: false,
-    isAuthenticated: false,
-    tokenType: null,
-    toAuth: () => authObject,
-    headers: new Headers(),
-    token: null
-  });
-}
-async function verifyToken(token, options) {
-  const { data: decodedResult, errors } = decodeJwt(token);
-  if (errors) {
-    return { errors };
-  }
-  const { header: header2 } = decodedResult;
-  const { kid } = header2;
-  try {
-    let key;
-    if (options.jwtKey) {
-      key = loadClerkJwkFromPem({ kid, pem: options.jwtKey });
-    } else if (options.secretKey) {
-      key = await loadClerkJWKFromRemote({ ...options, kid });
-    } else {
-      return {
-        errors: [
-          new TokenVerificationError({
-            action: TokenVerificationErrorAction.SetClerkJWTKey,
-            message: "Failed to resolve JWK during verification.",
-            reason: TokenVerificationErrorReason.JWKFailedToResolve
-          })
-        ]
-      };
-    }
-    return await verifyJwt(token, { ...options, key });
-  } catch (error) {
-    return { errors: [error] };
-  }
-}
-function handleClerkAPIError(tokenType, err2, notFoundMessage) {
-  if (isClerkAPIResponseError(err2)) {
-    let code;
-    let message;
-    switch (err2.status) {
-      case 401:
-        code = MachineTokenVerificationErrorCode.InvalidSecretKey;
-        message = err2.errors[0]?.message || "Invalid secret key";
-        break;
-      case 404:
-        code = MachineTokenVerificationErrorCode.TokenInvalid;
-        message = notFoundMessage;
-        break;
-      default:
-        code = MachineTokenVerificationErrorCode.UnexpectedError;
-        message = "Unexpected error";
-    }
-    return {
-      data: void 0,
-      tokenType,
-      errors: [
-        new MachineTokenVerificationError({
-          message,
-          code,
-          status: err2.status
-        })
-      ]
-    };
-  }
-  return {
-    data: void 0,
-    tokenType,
-    errors: [
-      new MachineTokenVerificationError({
-        message: "Unexpected error",
-        code: MachineTokenVerificationErrorCode.UnexpectedError,
-        status: err2.status
-      })
-    ]
-  };
-}
-async function verifyM2MToken(token, options) {
-  try {
-    const client = createBackendApiClient(options);
-    const verifiedToken = await client.m2m.verify({ token });
-    return { data: verifiedToken, tokenType: TokenType.M2MToken, errors: void 0 };
-  } catch (err2) {
-    return handleClerkAPIError(TokenType.M2MToken, err2, "Machine token not found");
-  }
-}
-async function verifyOAuthToken(accessToken, options) {
-  try {
-    const client = createBackendApiClient(options);
-    const verifiedToken = await client.idPOAuthAccessToken.verify(accessToken);
-    return { data: verifiedToken, tokenType: TokenType.OAuthToken, errors: void 0 };
-  } catch (err2) {
-    return handleClerkAPIError(TokenType.OAuthToken, err2, "OAuth token not found");
-  }
-}
-async function verifyAPIKey(secret3, options) {
-  try {
-    const client = createBackendApiClient(options);
-    const verifiedToken = await client.apiKeys.verify(secret3);
-    return { data: verifiedToken, tokenType: TokenType.ApiKey, errors: void 0 };
-  } catch (err2) {
-    return handleClerkAPIError(TokenType.ApiKey, err2, "API key not found");
-  }
-}
-async function verifyMachineAuthToken(token, options) {
-  if (isJwtFormat(token)) {
-    let decodedResult;
-    try {
-      const { data, errors: decodeErrors } = decodeJwt(token);
-      if (decodeErrors) {
-        throw decodeErrors[0];
-      }
-      decodedResult = data;
-    } catch (e2) {
-      return {
-        data: void 0,
-        tokenType: TokenType.M2MToken,
-        errors: [
-          new MachineTokenVerificationError({
-            code: MachineTokenVerificationErrorCode.TokenInvalid,
-            message: e2.message
-          })
-        ]
-      };
-    }
-    if (decodedResult.payload.sub.startsWith(M2M_SUBJECT_PREFIX)) {
-      return verifyM2MJwt(token, decodedResult, options);
-    }
-    if (OAUTH_ACCESS_TOKEN_TYPES.includes(decodedResult.header.typ)) {
-      return verifyOAuthJwt(token, decodedResult, options);
-    }
-    return {
-      data: void 0,
-      tokenType: TokenType.OAuthToken,
-      errors: [
-        new MachineTokenVerificationError({
-          code: MachineTokenVerificationErrorCode.TokenVerificationFailed,
-          message: `Invalid JWT type: ${decodedResult.header.typ ?? "missing"}. Expected one of: ${OAUTH_ACCESS_TOKEN_TYPES.join(", ")} for OAuth, or sub starting with 'mch_' for M2M`
-        })
-      ]
-    };
-  }
-  if (token.startsWith(M2M_TOKEN_PREFIX)) {
-    return verifyM2MToken(token, options);
-  }
-  if (token.startsWith(OAUTH_TOKEN_PREFIX)) {
-    return verifyOAuthToken(token, options);
-  }
-  if (token.startsWith(API_KEY_PREFIX)) {
-    return verifyAPIKey(token, options);
-  }
-  throw new Error("Unknown machine token type");
-}
-async function verifyHandshakeJwt(token, { key }) {
-  const { data: decoded, errors } = decodeJwt(token);
-  if (errors) {
-    throw errors[0];
-  }
-  const { header: header2, payload } = decoded;
-  const { typ, alg } = header2;
-  assertHeaderType(typ);
-  assertHeaderAlgorithm(alg);
-  const { data: signatureValid, errors: signatureErrors } = await hasValidSignature(decoded, key);
-  if (signatureErrors) {
-    throw new TokenVerificationError({
-      reason: TokenVerificationErrorReason.TokenVerificationFailed,
-      message: `Error verifying handshake token. ${signatureErrors[0]}`
-    });
-  }
-  if (!signatureValid) {
-    throw new TokenVerificationError({
-      reason: TokenVerificationErrorReason.TokenInvalidSignature,
-      message: "Handshake signature is invalid."
-    });
-  }
-  return payload;
-}
-async function verifyHandshakeToken(token, options) {
-  const { secretKey, apiUrl, apiVersion, jwksCacheTtlInMs, jwtKey, skipJwksCache } = options;
-  const { data, errors } = decodeJwt(token);
-  if (errors) {
-    throw errors[0];
-  }
-  const { kid } = data.header;
-  let key;
-  if (jwtKey) {
-    key = loadClerkJwkFromPem({ kid, pem: jwtKey });
-  } else if (secretKey) {
-    key = await loadClerkJWKFromRemote({ secretKey, apiUrl, apiVersion, kid, jwksCacheTtlInMs, skipJwksCache });
-  } else {
-    throw new TokenVerificationError({
-      action: TokenVerificationErrorAction.SetClerkJWTKey,
-      message: "Failed to resolve JWK during handshake verification.",
-      reason: TokenVerificationErrorReason.JWKFailedToResolve
-    });
-  }
-  return verifyHandshakeJwt(token, { key });
-}
-function assertSignInUrlExists(signInUrl, key) {
-  if (!signInUrl && isDevelopmentFromSecretKey(key)) {
-    throw new Error(`Missing signInUrl. Pass a signInUrl for dev instances if an app is satellite`);
-  }
-}
-function assertProxyUrlOrDomain(proxyUrlOrDomain) {
-  if (!proxyUrlOrDomain) {
-    throw new Error(`Missing domain and proxyUrl. A satellite application needs to specify a domain or a proxyUrl`);
-  }
-}
-function assertSignInUrlFormatAndOrigin(_signInUrl, origin) {
-  let signInUrl;
-  try {
-    signInUrl = new URL(_signInUrl);
-  } catch {
-    throw new Error(`The signInUrl needs to have a absolute url format.`);
-  }
-  if (signInUrl.origin === origin) {
-    throw new Error(`The signInUrl needs to be on a different origin than your satellite application.`);
-  }
-}
-function assertMachineSecretOrSecretKey(authenticateContext) {
-  if (!authenticateContext.machineSecretKey && !authenticateContext.secretKey) {
-    throw new Error(
-      "Machine token authentication requires either a Machine secret key or a Clerk secret key. Ensure a Clerk secret key or Machine secret key is set."
-    );
-  }
-}
-function isRequestEligibleForRefresh(err2, authenticateContext, request) {
-  return err2.reason === TokenVerificationErrorReason.TokenExpired && !!authenticateContext.refreshTokenInCookie && request.method === "GET";
-}
-function checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext) {
-  const mismatch = !isTokenTypeAccepted(parsedTokenType, acceptsToken);
-  if (mismatch) {
-    const tokenTypeToReturn = typeof acceptsToken === "string" ? acceptsToken : parsedTokenType;
-    return signedOut({
-      tokenType: tokenTypeToReturn,
-      authenticateContext,
-      reason: AuthErrorReason.TokenTypeMismatch
-    });
-  }
-  return null;
-}
-function isTokenTypeInAcceptedArray(acceptsToken, authenticateContext) {
-  let parsedTokenType = null;
-  const { tokenInHeader } = authenticateContext;
-  if (tokenInHeader) {
-    if (isMachineToken(tokenInHeader)) {
-      parsedTokenType = getMachineTokenType(tokenInHeader);
-    } else {
-      parsedTokenType = TokenType.SessionToken;
-    }
-  }
-  const typeToCheck = parsedTokenType ?? TokenType.SessionToken;
-  return isTokenTypeAccepted(typeToCheck, acceptsToken);
-}
-function createAuthenticateRequest(params) {
-  const buildTimeOptions = mergePreDefinedOptions(defaultOptions3, params.options);
-  const apiClient = params.apiClient;
-  const authenticateRequest2 = (request, options = {}) => {
-    const { apiUrl, apiVersion } = buildTimeOptions;
-    const runTimeOptions = mergePreDefinedOptions(buildTimeOptions, options);
-    return authenticateRequest(request, {
-      ...options,
-      ...runTimeOptions,
-      // We should add all the omitted props from options here (eg apiUrl / apiVersion)
-      // to avoid runtime options override them.
-      apiUrl,
-      apiVersion,
-      apiClient
-    });
-  };
-  return {
-    authenticateRequest: authenticateRequest2,
-    debugRequestState
-  };
-}
-var require_dist3, API_URL, API_VERSION, USER_AGENT, MAX_CACHE_LAST_UPDATED_AT_SECONDS, SUPPORTED_BAPI_VERSION, Attributes, Cookies, QueryParameters, Headers22, ContentTypes, ClerkSyncStatus, constants2, TokenType, AuthenticateContext, createAuthenticateContext, SEPARATOR, MULTIPLE_SEPARATOR_REGEX, MAX_DECODES, AbstractAPI, basePath, ActorTokenAPI, basePath2, AgentTaskAPI, basePath3, AccountlessApplicationAPI, basePath4, AllowlistIdentifierAPI, basePath5, APIKeysAPI, basePath6, BetaFeaturesAPI, basePath7, BlocklistIdentifierAPI, basePath8, ClientAPI, basePath9, DomainAPI, basePath10, EmailAddressAPI, basePath11, EnterpriseConnectionAPI, basePath12, IdPOAuthAccessTokenApi, basePath13, InstanceAPI, basePath14, InvitationAPI, basePath15, MachineApi, IdPOAuthAccessToken, M2M_RESERVED_JWT_CLAIMS, M2MToken, cache, lastUpdatedAt, PEM_HEADER, PEM_TRAILER, RSA_PREFIX, RSA_SUFFIX, getErrorObjectByCode, M2M_TOKEN_PREFIX, M2M_SUBJECT_PREFIX, OAUTH_TOKEN_PREFIX, API_KEY_PREFIX, MACHINE_TOKEN_PREFIXES, JwtFormatRegExp, OAUTH_ACCESS_TOKEN_TYPES, isTokenTypeAccepted, MACHINE_TOKEN_TYPES, basePath16, _verifyOptions, _M2MTokenApi_instances, createRequestOptions_fn, verifyJwtFormat_fn, M2MTokenApi, basePath17, JwksAPI, basePath18, JwtTemplatesApi, basePath19, OrganizationAPI, basePath20, OAuthApplicationsApi, basePath21, PhoneNumberAPI, basePath22, ProxyCheckAPI, basePath23, RedirectUrlAPI, basePath24, SamlConnectionAPI, basePath25, SessionAPI, basePath26, SignInTokenAPI, basePath27, SignUpAPI, basePath28, TestingTokenAPI, basePath29, UserAPI, basePath30, WaitlistEntryAPI, basePath31, WebhookAPI, basePath32, organizationBasePath, userBasePath, BillingAPI, isObject, isObjectCustom, mapObjectSkip, _mapObject, SPLIT_LOWER_UPPER_RE, SPLIT_UPPER_UPPER_RE, SPLIT_SEPARATE_NUMBER_RE, DEFAULT_STRIP_REGEXP, SPLIT_REPLACE_VALUE, DEFAULT_PREFIX_SUFFIX_CHARACTERS, PlainObjectConstructor, snakecase_keys_default, AccountlessApplication, AgentTask, ActorToken, AllowlistIdentifier, APIKey, BlocklistIdentifier, SessionActivity, Session, Client, CnameTarget, Cookies2, DeletedObject, Domain, Email, IdentificationLink, Verification, EmailAddress, Feature, BillingPlan, BillingSubscriptionItem, BillingSubscription, EnterpriseAccountConnection, EnterpriseAccount, EnterpriseConnectionSamlConnection, EnterpriseConnectionOauthConfig, EnterpriseConnection, ExternalAccount, Instance, InstanceRestrictions, InstanceSettings, Invitation, ObjectType, JwtTemplate, Machine, MachineScope, MachineSecretKey, OauthAccessToken, OAuthApplication, Organization, OrganizationInvitation, OrganizationMembership, OrganizationMembershipPublicUserData, OrganizationSettings, PhoneNumber, ProxyCheck, RedirectUrl, SamlConnection, AttributeMapping, SignInToken, SignUpAttemptVerification, SignUpAttemptVerifications, SignUpAttempt, SMSMessage, Token, Web3Wallet, User, WaitlistEntry, createDebug, createGetToken, AuthStatus, AuthErrorReason, withDebugHeaders, import_cookie3, ClerkUrl, createClerkUrl, ClerkRequest, createClerkRequest, getCookieName, getCookieValue, HandshakeService, OrganizationMatcher, RefreshTokenErrorReason, authenticateRequest, debugRequestState, convertTokenVerificationErrorReasonToAuthErrorReason, defaultOptions3;
-var init_chunk_H3NCOZAT = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-H3NCOZAT.mjs"() {
-    "use strict";
-    init_chunk_YBVFDYDR();
-    init_chunk_J2CDX2WG();
-    init_chunk_RZ7A7F6X();
-    init_chunk_TOROEX6P();
-    init_buildAccountsBaseUrl();
-    init_logger();
-    init_buildAccountsBaseUrl();
-    init_proxy();
-    init_url();
-    init_authorization();
-    init_jwtPayloadParser();
-    init_error();
-    init_error();
-    init_pathToRegexp();
-    init_authorization_errors();
-    require_dist3 = __commonJS2({
-      "../../node_modules/.pnpm/cookie@1.1.1/node_modules/cookie/dist/index.js"(exports2) {
-        "use strict";
-        Object.defineProperty(exports2, "__esModule", { value: true });
-        exports2.parseCookie = parseCookie;
-        exports2.parse = parseCookie;
-        exports2.stringifyCookie = stringifyCookie;
-        exports2.stringifySetCookie = stringifySetCookie;
-        exports2.serialize = stringifySetCookie;
-        exports2.parseSetCookie = parseSetCookie;
-        exports2.stringifySetCookie = stringifySetCookie;
-        exports2.serialize = stringifySetCookie;
-        var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
-        var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
-        var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
-        var pathValueRegExp = /^[\u0020-\u003A\u003D-\u007E]*$/;
-        var maxAgeRegExp = /^-?\d+$/;
-        var __toString = Object.prototype.toString;
-        var NullObject = /* @__PURE__ */ (() => {
-          const C2 = function() {
-          };
-          C2.prototype = /* @__PURE__ */ Object.create(null);
-          return C2;
-        })();
-        function parseCookie(str2, options) {
-          const obj = new NullObject();
-          const len = str2.length;
-          if (len < 2)
-            return obj;
-          const dec = options?.decode || decode;
-          let index = 0;
-          do {
-            const eqIdx = eqIndex(str2, index, len);
-            if (eqIdx === -1)
-              break;
-            const endIdx = endIndex(str2, index, len);
-            if (eqIdx > endIdx) {
-              index = str2.lastIndexOf(";", eqIdx - 1) + 1;
-              continue;
-            }
-            const key = valueSlice(str2, index, eqIdx);
-            if (obj[key] === void 0) {
-              obj[key] = dec(valueSlice(str2, eqIdx + 1, endIdx));
-            }
-            index = endIdx + 1;
-          } while (index < len);
-          return obj;
-        }
-        function stringifyCookie(cookie, options) {
-          const enc = options?.encode || encodeURIComponent;
-          const cookieStrings = [];
-          for (const name of Object.keys(cookie)) {
-            const val = cookie[name];
-            if (val === void 0)
-              continue;
-            if (!cookieNameRegExp.test(name)) {
-              throw new TypeError(`cookie name is invalid: ${name}`);
-            }
-            const value = enc(val);
-            if (!cookieValueRegExp.test(value)) {
-              throw new TypeError(`cookie val is invalid: ${val}`);
-            }
-            cookieStrings.push(`${name}=${value}`);
-          }
-          return cookieStrings.join("; ");
-        }
-        function stringifySetCookie(_name, _val, _opts) {
-          const cookie = typeof _name === "object" ? _name : { ..._opts, name: _name, value: String(_val) };
-          const options = typeof _val === "object" ? _val : _opts;
-          const enc = options?.encode || encodeURIComponent;
-          if (!cookieNameRegExp.test(cookie.name)) {
-            throw new TypeError(`argument name is invalid: ${cookie.name}`);
-          }
-          const value = cookie.value ? enc(cookie.value) : "";
-          if (!cookieValueRegExp.test(value)) {
-            throw new TypeError(`argument val is invalid: ${cookie.value}`);
-          }
-          let str2 = cookie.name + "=" + value;
-          if (cookie.maxAge !== void 0) {
-            if (!Number.isInteger(cookie.maxAge)) {
-              throw new TypeError(`option maxAge is invalid: ${cookie.maxAge}`);
-            }
-            str2 += "; Max-Age=" + cookie.maxAge;
-          }
-          if (cookie.domain) {
-            if (!domainValueRegExp.test(cookie.domain)) {
-              throw new TypeError(`option domain is invalid: ${cookie.domain}`);
-            }
-            str2 += "; Domain=" + cookie.domain;
-          }
-          if (cookie.path) {
-            if (!pathValueRegExp.test(cookie.path)) {
-              throw new TypeError(`option path is invalid: ${cookie.path}`);
-            }
-            str2 += "; Path=" + cookie.path;
-          }
-          if (cookie.expires) {
-            if (!isDate(cookie.expires) || !Number.isFinite(cookie.expires.valueOf())) {
-              throw new TypeError(`option expires is invalid: ${cookie.expires}`);
-            }
-            str2 += "; Expires=" + cookie.expires.toUTCString();
-          }
-          if (cookie.httpOnly) {
-            str2 += "; HttpOnly";
-          }
-          if (cookie.secure) {
-            str2 += "; Secure";
-          }
-          if (cookie.partitioned) {
-            str2 += "; Partitioned";
-          }
-          if (cookie.priority) {
-            const priority = typeof cookie.priority === "string" ? cookie.priority.toLowerCase() : void 0;
-            switch (priority) {
-              case "low":
-                str2 += "; Priority=Low";
-                break;
-              case "medium":
-                str2 += "; Priority=Medium";
-                break;
-              case "high":
-                str2 += "; Priority=High";
-                break;
-              default:
-                throw new TypeError(`option priority is invalid: ${cookie.priority}`);
-            }
-          }
-          if (cookie.sameSite) {
-            const sameSite = typeof cookie.sameSite === "string" ? cookie.sameSite.toLowerCase() : cookie.sameSite;
-            switch (sameSite) {
-              case true:
-              case "strict":
-                str2 += "; SameSite=Strict";
-                break;
-              case "lax":
-                str2 += "; SameSite=Lax";
-                break;
-              case "none":
-                str2 += "; SameSite=None";
-                break;
-              default:
-                throw new TypeError(`option sameSite is invalid: ${cookie.sameSite}`);
-            }
-          }
-          return str2;
-        }
-        function parseSetCookie(str2, options) {
-          const dec = options?.decode || decode;
-          const len = str2.length;
-          const endIdx = endIndex(str2, 0, len);
-          const eqIdx = eqIndex(str2, 0, endIdx);
-          const setCookie = eqIdx === -1 ? { name: "", value: dec(valueSlice(str2, 0, endIdx)) } : {
-            name: valueSlice(str2, 0, eqIdx),
-            value: dec(valueSlice(str2, eqIdx + 1, endIdx))
-          };
-          let index = endIdx + 1;
-          while (index < len) {
-            const endIdx2 = endIndex(str2, index, len);
-            const eqIdx2 = eqIndex(str2, index, endIdx2);
-            const attr = eqIdx2 === -1 ? valueSlice(str2, index, endIdx2) : valueSlice(str2, index, eqIdx2);
-            const val = eqIdx2 === -1 ? void 0 : valueSlice(str2, eqIdx2 + 1, endIdx2);
-            switch (attr.toLowerCase()) {
-              case "httponly":
-                setCookie.httpOnly = true;
-                break;
-              case "secure":
-                setCookie.secure = true;
-                break;
-              case "partitioned":
-                setCookie.partitioned = true;
-                break;
-              case "domain":
-                setCookie.domain = val;
-                break;
-              case "path":
-                setCookie.path = val;
-                break;
-              case "max-age":
-                if (val && maxAgeRegExp.test(val))
-                  setCookie.maxAge = Number(val);
-                break;
-              case "expires":
-                if (!val)
-                  break;
-                const date = new Date(val);
-                if (Number.isFinite(date.valueOf()))
-                  setCookie.expires = date;
-                break;
-              case "priority":
-                if (!val)
-                  break;
-                const priority = val.toLowerCase();
-                if (priority === "low" || priority === "medium" || priority === "high") {
-                  setCookie.priority = priority;
-                }
-                break;
-              case "samesite":
-                if (!val)
-                  break;
-                const sameSite = val.toLowerCase();
-                if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") {
-                  setCookie.sameSite = sameSite;
-                }
-                break;
-            }
-            index = endIdx2 + 1;
-          }
-          return setCookie;
-        }
-        function endIndex(str2, min, len) {
-          const index = str2.indexOf(";", min);
-          return index === -1 ? len : index;
-        }
-        function eqIndex(str2, min, max) {
-          const index = str2.indexOf("=", min);
-          return index < max ? index : -1;
-        }
-        function valueSlice(str2, min, max) {
-          let start = min;
-          let end = max;
-          do {
-            const code = str2.charCodeAt(start);
-            if (code !== 32 && code !== 9)
-              break;
-          } while (++start < end);
-          while (end > start) {
-            const code = str2.charCodeAt(end - 1);
-            if (code !== 32 && code !== 9)
-              break;
-            end--;
-          }
-          return str2.slice(start, end);
-        }
-        function decode(str2) {
-          if (str2.indexOf("%") === -1)
-            return str2;
-          try {
-            return decodeURIComponent(str2);
-          } catch (e2) {
-            return str2;
-          }
-        }
-        function isDate(val) {
-          return __toString.call(val) === "[object Date]";
-        }
-      }
-    });
-    API_URL = "https://api.clerk.com";
-    API_VERSION = "v1";
-    USER_AGENT = `${"@clerk/backend"}@${"3.5.0"}`;
-    MAX_CACHE_LAST_UPDATED_AT_SECONDS = 5 * 60;
-    SUPPORTED_BAPI_VERSION = "2025-11-10";
-    Attributes = {
-      AuthToken: "__clerkAuthToken",
-      AuthSignature: "__clerkAuthSignature",
-      AuthStatus: "__clerkAuthStatus",
-      AuthReason: "__clerkAuthReason",
-      AuthMessage: "__clerkAuthMessage",
-      ClerkUrl: "__clerkUrl"
-    };
-    Cookies = {
-      Session: "__session",
-      Refresh: "__refresh",
-      ClientUat: "__client_uat",
-      Handshake: "__clerk_handshake",
-      DevBrowser: "__clerk_db_jwt",
-      RedirectCount: "__clerk_redirect_count",
-      HandshakeNonce: "__clerk_handshake_nonce"
-    };
-    QueryParameters = {
-      ClerkSynced: "__clerk_synced",
-      SuffixedCookies: "suffixed_cookies",
-      ClerkRedirectUrl: "__clerk_redirect_url",
-      // use the reference to Cookies to indicate that it's the same value
-      DevBrowser: Cookies.DevBrowser,
-      Handshake: Cookies.Handshake,
-      HandshakeHelp: "__clerk_help",
-      LegacyDevBrowser: "__dev_session",
-      HandshakeReason: "__clerk_hs_reason",
-      HandshakeNonce: Cookies.HandshakeNonce,
-      HandshakeFormat: "format",
-      Session: "__session"
-    };
-    Headers22 = {
-      Accept: "accept",
-      AuthMessage: "x-clerk-auth-message",
-      Authorization: "authorization",
-      AuthReason: "x-clerk-auth-reason",
-      AuthSignature: "x-clerk-auth-signature",
-      AuthStatus: "x-clerk-auth-status",
-      AuthToken: "x-clerk-auth-token",
-      CacheControl: "cache-control",
-      ClerkRedirectTo: "x-clerk-redirect-to",
-      ClerkRequestData: "x-clerk-request-data",
-      ClerkUrl: "x-clerk-clerk-url",
-      CloudFrontForwardedProto: "cloudfront-forwarded-proto",
-      ContentType: "content-type",
-      ContentSecurityPolicy: "content-security-policy",
-      ContentSecurityPolicyReportOnly: "content-security-policy-report-only",
-      EnableDebug: "x-clerk-debug",
-      ForwardedHost: "x-forwarded-host",
-      ForwardedPort: "x-forwarded-port",
-      ForwardedProto: "x-forwarded-proto",
-      Host: "host",
-      Location: "location",
-      Nonce: "x-nonce",
-      Origin: "origin",
-      Referrer: "referer",
-      SecFetchDest: "sec-fetch-dest",
-      SecFetchSite: "sec-fetch-site",
-      UserAgent: "user-agent",
-      ReportingEndpoints: "reporting-endpoints"
-    };
-    ContentTypes = {
-      Json: "application/json"
-    };
-    ClerkSyncStatus = {
-      /** Not synced - satellite needs handshake after returning from primary sign-in */
-      NeedsSync: "false",
-      /** Sync completed - prevents re-sync loop after handshake completes */
-      Completed: "true"
-    };
-    constants2 = {
-      Attributes,
-      Cookies,
-      Headers: Headers22,
-      ContentTypes,
-      QueryParameters,
-      ClerkSyncStatus
-    };
-    TokenType = {
-      SessionToken: "session_token",
-      ApiKey: "api_key",
-      M2MToken: "m2m_token",
-      OAuthToken: "oauth_token"
-    };
-    AuthenticateContext = class {
-      constructor(cookieSuffix, clerkRequest, options) {
-        this.cookieSuffix = cookieSuffix;
-        this.clerkRequest = clerkRequest;
-        this.originalFrontendApi = "";
-        const autoProxyPath = getAutoProxyUrlFromEnvironment({
-          publishableKey: options.publishableKey ?? "",
-          hasProxyUrl: !!options.proxyUrl,
-          hasDomain: !!options.domain
-        });
-        if (autoProxyPath) {
-          options = { ...options, proxyUrl: `${clerkRequest.clerkUrl.origin}${autoProxyPath}` };
-        }
-        if (options.acceptsToken === TokenType.M2MToken || options.acceptsToken === TokenType.ApiKey) {
-          this.initHeaderValues();
-        } else {
-          this.initPublishableKeyValues(options);
-          this.initHeaderValues();
-          this.initCookieValues();
-          this.initHandshakeValues();
-        }
-        Object.assign(this, options);
-        this.clerkUrl = this.clerkRequest.clerkUrl;
-        if (this.proxyUrl?.startsWith("/")) {
-          this.proxyUrl = `${this.clerkUrl.origin}${this.proxyUrl}`;
-        }
-      }
-      /**
-       * Retrieves the session token from either the cookie or the header.
-       *
-       * @returns {string | undefined} The session token if available, otherwise undefined.
-       */
-      get sessionToken() {
-        return this.sessionTokenInCookie || this.tokenInHeader;
-      }
-      usesSuffixedCookies() {
-        const suffixedClientUat = this.getSuffixedCookie(constants2.Cookies.ClientUat);
-        const clientUat = this.getCookie(constants2.Cookies.ClientUat);
-        const suffixedSession = this.getSuffixedCookie(constants2.Cookies.Session) || "";
-        const session = this.getCookie(constants2.Cookies.Session) || "";
-        if (session && !this.tokenHasIssuer(session)) {
-          return false;
-        }
-        if (session && !this.tokenBelongsToInstance(session)) {
-          return true;
-        }
-        if (!suffixedClientUat && !suffixedSession) {
-          return false;
-        }
-        const { data: sessionData } = decodeJwt(session);
-        const sessionIat = sessionData?.payload.iat || 0;
-        const { data: suffixedSessionData } = decodeJwt(suffixedSession);
-        const suffixedSessionIat = suffixedSessionData?.payload.iat || 0;
-        if (suffixedClientUat !== "0" && clientUat !== "0" && sessionIat > suffixedSessionIat) {
-          return false;
-        }
-        if (suffixedClientUat === "0" && clientUat !== "0") {
-          return false;
-        }
-        if (this.instanceType !== "production") {
-          const isSuffixedSessionExpired = this.sessionExpired(suffixedSessionData);
-          if (suffixedClientUat !== "0" && clientUat === "0" && isSuffixedSessionExpired) {
-            return false;
-          }
-        }
-        if (!suffixedClientUat && suffixedSession) {
-          return false;
-        }
-        return true;
-      }
-      /**
-       * Determines if the request came from a different origin based on the referrer header.
-       * Used for cross-origin detection in multi-domain authentication flows.
-       *
-       * @returns {boolean} True if referrer exists and is from a different origin, false otherwise.
-       */
-      isCrossOriginReferrer() {
-        if (!this.referrer || !this.clerkUrl.origin) {
-          return false;
-        }
-        try {
-          const referrerOrigin = new URL(this.referrer).origin;
-          return referrerOrigin !== this.clerkUrl.origin;
-        } catch {
-          return false;
-        }
-      }
-      /**
-       * Determines if the referrer URL is from a Clerk domain (accounts portal or FAPI).
-       * This includes both development and production account portal domains, as well as FAPI domains
-       * used for redirect-based authentication flows.
-       *
-       * @returns {boolean} True if the referrer is from a Clerk accounts portal or FAPI domain, false otherwise
-       */
-      isKnownClerkReferrer() {
-        if (!this.referrer) {
-          return false;
-        }
-        try {
-          const referrerOrigin = new URL(this.referrer);
-          const referrerHost = referrerOrigin.hostname;
-          if (this.frontendApi) {
-            const fapiHost = this.frontendApi.startsWith("http") ? new URL(this.frontendApi).hostname : this.frontendApi;
-            if (referrerHost === fapiHost) {
-              return true;
-            }
-          }
-          if (isLegacyDevAccountPortalOrigin(referrerHost) || isCurrentDevAccountPortalOrigin(referrerHost)) {
-            return true;
-          }
-          const expectedAccountsUrl = buildAccountsBaseUrl(this.frontendApi);
-          if (expectedAccountsUrl) {
-            const expectedAccountsOrigin = new URL(expectedAccountsUrl).origin;
-            if (referrerOrigin.origin === expectedAccountsOrigin) {
-              return true;
-            }
-          }
-          if (referrerHost.startsWith("accounts.")) {
-            return true;
-          }
-          return false;
-        } catch {
-          return false;
-        }
-      }
-      initPublishableKeyValues(options) {
-        assertValidPublishableKey(options.publishableKey);
-        this.publishableKey = options.publishableKey;
-        let resolvedProxyUrl = options.proxyUrl;
-        if (resolvedProxyUrl?.startsWith("/")) {
-          resolvedProxyUrl = `${this.clerkRequest.clerkUrl.origin}${resolvedProxyUrl}`;
-        }
-        const originalPk = parsePublishableKey(this.publishableKey, {
-          fatal: true,
-          domain: options.domain,
-          isSatellite: options.isSatellite
-        });
-        this.originalFrontendApi = originalPk.frontendApi;
-        const pk = parsePublishableKey(this.publishableKey, {
-          fatal: true,
-          proxyUrl: resolvedProxyUrl,
-          domain: options.domain,
-          isSatellite: options.isSatellite
-        });
-        this.instanceType = pk.instanceType;
-        this.frontendApi = pk.frontendApi;
-      }
-      initHeaderValues() {
-        this.method = this.clerkRequest.method;
-        this.tokenInHeader = this.parseAuthorizationHeader(this.getHeader(constants2.Headers.Authorization));
-        this.origin = this.getHeader(constants2.Headers.Origin);
-        this.host = this.getHeader(constants2.Headers.Host);
-        this.forwardedHost = this.getHeader(constants2.Headers.ForwardedHost);
-        this.forwardedProto = this.getHeader(constants2.Headers.CloudFrontForwardedProto) || this.getHeader(constants2.Headers.ForwardedProto);
-        this.referrer = this.getHeader(constants2.Headers.Referrer);
-        this.userAgent = this.getHeader(constants2.Headers.UserAgent);
-        this.secFetchDest = this.getHeader(constants2.Headers.SecFetchDest);
-        this.accept = this.getHeader(constants2.Headers.Accept);
-      }
-      initCookieValues() {
-        this.sessionTokenInCookie = this.getSuffixedOrUnSuffixedCookie(constants2.Cookies.Session);
-        this.refreshTokenInCookie = this.getSuffixedCookie(constants2.Cookies.Refresh);
-        this.clientUat = Number.parseInt(this.getSuffixedOrUnSuffixedCookie(constants2.Cookies.ClientUat) || "") || 0;
-      }
-      initHandshakeValues() {
-        this.devBrowserToken = this.getQueryParam(constants2.QueryParameters.DevBrowser) || this.getSuffixedOrUnSuffixedCookie(constants2.Cookies.DevBrowser);
-        this.handshakeToken = this.getQueryParam(constants2.QueryParameters.Handshake) || this.getCookie(constants2.Cookies.Handshake);
-        this.handshakeRedirectLoopCounter = Number(this.getCookie(constants2.Cookies.RedirectCount)) || 0;
-        this.handshakeNonce = this.getQueryParam(constants2.QueryParameters.HandshakeNonce) || this.getCookie(constants2.Cookies.HandshakeNonce);
-      }
-      getQueryParam(name) {
-        return this.clerkRequest.clerkUrl.searchParams.get(name);
-      }
-      getHeader(name) {
-        return this.clerkRequest.headers.get(name) || void 0;
-      }
-      getCookie(name) {
-        return this.clerkRequest.cookies.get(name) || void 0;
-      }
-      getSuffixedCookie(name) {
-        return this.getCookie(getSuffixedCookieName(name, this.cookieSuffix)) || void 0;
-      }
-      getSuffixedOrUnSuffixedCookie(cookieName) {
-        if (this.usesSuffixedCookies()) {
-          return this.getSuffixedCookie(cookieName);
-        }
-        return this.getCookie(cookieName);
-      }
-      parseAuthorizationHeader(authorizationHeader) {
-        if (!authorizationHeader) {
+    init_cookie();
+    getCookie = (c2, key, prefix) => {
+      const cookie = c2.req.raw.headers.get("Cookie");
+      if (typeof key === "string") {
+        if (!cookie) {
           return void 0;
         }
-        const [scheme, token] = authorizationHeader.split(" ", 2);
-        if (!token) {
-          return scheme;
-        }
-        if (scheme === "Bearer") {
-          return token;
-        }
-        return void 0;
-      }
-      tokenHasIssuer(token) {
-        const { data, errors } = decodeJwt(token);
-        if (errors) {
-          return false;
-        }
-        return !!data.payload.iss;
-      }
-      tokenBelongsToInstance(token) {
-        if (!token) {
-          return false;
-        }
-        const { data, errors } = decodeJwt(token);
-        if (errors) {
-          return false;
-        }
-        const tokenIssuer = data.payload.iss.replace(/https?:\/\//gi, "");
-        return this.originalFrontendApi === tokenIssuer;
-      }
-      sessionExpired(jwt) {
-        return !!jwt && jwt?.payload.exp <= Date.now() / 1e3 >> 0;
-      }
-    };
-    createAuthenticateContext = async (clerkRequest, options) => {
-      const cookieSuffix = options.publishableKey ? await getCookieSuffix(options.publishableKey, runtime.crypto.subtle) : "";
-      return new AuthenticateContext(cookieSuffix, clerkRequest, options);
-    };
-    SEPARATOR = "/";
-    MULTIPLE_SEPARATOR_REGEX = new RegExp("(?<!:)" + SEPARATOR + "{1,}", "g");
-    MAX_DECODES = 10;
-    AbstractAPI = class {
-      constructor(request) {
-        this.request = request;
-      }
-      requireId(id) {
-        if (!id) {
-          throw new Error("A valid resource ID is required.");
-        }
-      }
-    };
-    basePath = "/actor_tokens";
-    ActorTokenAPI = class extends AbstractAPI {
-      async create(params) {
-        return this.request({
-          method: "POST",
-          path: basePath,
-          bodyParams: params
-        });
-      }
-      async revoke(actorTokenId) {
-        this.requireId(actorTokenId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath, actorTokenId, "revoke")
-        });
-      }
-    };
-    basePath2 = "/agents/tasks";
-    AgentTaskAPI = class extends AbstractAPI {
-      async create(params) {
-        return this.request({
-          method: "POST",
-          path: basePath2,
-          bodyParams: params,
-          options: {
-            deepSnakecaseBodyParamKeys: true
-          }
-        });
-      }
-      async revoke(agentTaskId) {
-        this.requireId(agentTaskId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath2, agentTaskId, "revoke")
-        });
-      }
-    };
-    basePath3 = "/accountless_applications";
-    AccountlessApplicationAPI = class extends AbstractAPI {
-      async createAccountlessApplication(params) {
-        const headerParams = params?.requestHeaders ? Object.fromEntries(params.requestHeaders.entries()) : void 0;
-        return this.request({
-          method: "POST",
-          path: basePath3,
-          headerParams,
-          queryParams: {
-            source: params?.source
-          }
-        });
-      }
-      async completeAccountlessApplicationOnboarding(params) {
-        const headerParams = params?.requestHeaders ? Object.fromEntries(params.requestHeaders.entries()) : void 0;
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath3, "complete"),
-          headerParams,
-          queryParams: {
-            source: params?.source
-          }
-        });
-      }
-    };
-    basePath4 = "/allowlist_identifiers";
-    AllowlistIdentifierAPI = class extends AbstractAPI {
-      async getAllowlistIdentifierList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath4,
-          queryParams: { ...params, paginated: true }
-        });
-      }
-      async createAllowlistIdentifier(params) {
-        return this.request({
-          method: "POST",
-          path: basePath4,
-          bodyParams: params
-        });
-      }
-      async deleteAllowlistIdentifier(allowlistIdentifierId) {
-        this.requireId(allowlistIdentifierId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath4, allowlistIdentifierId)
-        });
-      }
-    };
-    basePath5 = "/api_keys";
-    APIKeysAPI = class extends AbstractAPI {
-      async list(queryParams) {
-        return this.request({
-          method: "GET",
-          path: basePath5,
-          queryParams
-        });
-      }
-      async create(params) {
-        return this.request({
-          method: "POST",
-          path: basePath5,
-          bodyParams: params
-        });
-      }
-      async get(apiKeyId) {
-        this.requireId(apiKeyId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath5, apiKeyId)
-        });
-      }
-      async update(params) {
-        const { apiKeyId, ...bodyParams } = params;
-        this.requireId(apiKeyId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath5, apiKeyId),
-          bodyParams
-        });
-      }
-      async delete(apiKeyId) {
-        this.requireId(apiKeyId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath5, apiKeyId)
-        });
-      }
-      async revoke(params) {
-        const { apiKeyId, revocationReason = null } = params;
-        this.requireId(apiKeyId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath5, apiKeyId, "revoke"),
-          bodyParams: { revocationReason }
-        });
-      }
-      async getSecret(apiKeyId) {
-        this.requireId(apiKeyId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath5, apiKeyId, "secret")
-        });
-      }
-      async verify(secret3) {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath5, "verify"),
-          bodyParams: { secret: secret3 }
-        });
-      }
-    };
-    basePath6 = "/beta_features";
-    BetaFeaturesAPI = class extends AbstractAPI {
-      /**
-       * Change the domain of a production instance.
-       *
-       * Changing the domain requires updating the DNS records accordingly, deploying new SSL certificates,
-       * updating your Social Connection's redirect URLs and setting the new keys in your code.
-       *
-       * @remarks
-       * WARNING: Changing your domain will invalidate all current user sessions (i.e. users will be logged out).
-       *          Also, while your application is being deployed, a small downtime is expected to occur.
-       */
-      async changeDomain(params) {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath6, "change_domain"),
-          bodyParams: params
-        });
-      }
-    };
-    basePath7 = "/blocklist_identifiers";
-    BlocklistIdentifierAPI = class extends AbstractAPI {
-      async getBlocklistIdentifierList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath7,
-          queryParams: params
-        });
-      }
-      async createBlocklistIdentifier(params) {
-        return this.request({
-          method: "POST",
-          path: basePath7,
-          bodyParams: params
-        });
-      }
-      async deleteBlocklistIdentifier(blocklistIdentifierId) {
-        this.requireId(blocklistIdentifierId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath7, blocklistIdentifierId)
-        });
-      }
-    };
-    basePath8 = "/clients";
-    ClientAPI = class extends AbstractAPI {
-      async getClientList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath8,
-          queryParams: { ...params, paginated: true }
-        });
-      }
-      async getClient(clientId) {
-        this.requireId(clientId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath8, clientId)
-        });
-      }
-      verifyClient(token) {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath8, "verify"),
-          bodyParams: { token }
-        });
-      }
-      async getHandshakePayload(queryParams) {
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath8, "handshake_payload"),
-          queryParams
-        });
-      }
-    };
-    basePath9 = "/domains";
-    DomainAPI = class extends AbstractAPI {
-      async list() {
-        return this.request({
-          method: "GET",
-          path: basePath9
-        });
-      }
-      async add(params) {
-        return this.request({
-          method: "POST",
-          path: basePath9,
-          bodyParams: params
-        });
-      }
-      async update(params) {
-        const { domainId, ...bodyParams } = params;
-        this.requireId(domainId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath9, domainId),
-          bodyParams
-        });
-      }
-      /**
-       * Deletes a satellite domain for the instance.
-       * It is currently not possible to delete the instance's primary domain.
-       */
-      async delete(satelliteDomainId) {
-        return this.deleteDomain(satelliteDomainId);
-      }
-      /**
-       * @deprecated Use `delete` instead
-       */
-      async deleteDomain(satelliteDomainId) {
-        this.requireId(satelliteDomainId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath9, satelliteDomainId)
-        });
-      }
-    };
-    basePath10 = "/email_addresses";
-    EmailAddressAPI = class extends AbstractAPI {
-      async getEmailAddress(emailAddressId) {
-        this.requireId(emailAddressId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath10, emailAddressId)
-        });
-      }
-      async createEmailAddress(params) {
-        return this.request({
-          method: "POST",
-          path: basePath10,
-          bodyParams: params
-        });
-      }
-      async updateEmailAddress(emailAddressId, params = {}) {
-        this.requireId(emailAddressId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath10, emailAddressId),
-          bodyParams: params
-        });
-      }
-      async deleteEmailAddress(emailAddressId) {
-        this.requireId(emailAddressId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath10, emailAddressId)
-        });
-      }
-    };
-    basePath11 = "/enterprise_connections";
-    EnterpriseConnectionAPI = class extends AbstractAPI {
-      async createEnterpriseConnection(params) {
-        return this.request({
-          method: "POST",
-          path: basePath11,
-          bodyParams: params,
-          options: {
-            deepSnakecaseBodyParamKeys: true
-          }
-        });
-      }
-      async updateEnterpriseConnection(enterpriseConnectionId, params) {
-        this.requireId(enterpriseConnectionId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath11, enterpriseConnectionId),
-          bodyParams: params,
-          options: {
-            deepSnakecaseBodyParamKeys: true
-          }
-        });
-      }
-      async getEnterpriseConnectionList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath11,
-          queryParams: params
-        });
-      }
-      async getEnterpriseConnection(enterpriseConnectionId) {
-        this.requireId(enterpriseConnectionId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath11, enterpriseConnectionId)
-        });
-      }
-      async deleteEnterpriseConnection(enterpriseConnectionId) {
-        this.requireId(enterpriseConnectionId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath11, enterpriseConnectionId)
-        });
-      }
-    };
-    basePath12 = "/oauth_applications/access_tokens";
-    IdPOAuthAccessTokenApi = class extends AbstractAPI {
-      async verify(accessToken) {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath12, "verify"),
-          bodyParams: { access_token: accessToken }
-        });
-      }
-    };
-    basePath13 = "/instance";
-    InstanceAPI = class extends AbstractAPI {
-      async get() {
-        return this.request({
-          method: "GET",
-          path: basePath13
-        });
-      }
-      async update(params) {
-        return this.request({
-          method: "PATCH",
-          path: basePath13,
-          bodyParams: params
-        });
-      }
-      async updateRestrictions(params) {
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath13, "restrictions"),
-          bodyParams: params
-        });
-      }
-      async getOrganizationSettings() {
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath13, "organization_settings")
-        });
-      }
-      async updateOrganizationSettings(params) {
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath13, "organization_settings"),
-          bodyParams: params
-        });
-      }
-    };
-    basePath14 = "/invitations";
-    InvitationAPI = class extends AbstractAPI {
-      async getInvitationList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath14,
-          queryParams: { ...params, paginated: true }
-        });
-      }
-      async createInvitation(params) {
-        return this.request({
-          method: "POST",
-          path: basePath14,
-          bodyParams: params
-        });
-      }
-      async createInvitationBulk(params) {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath14, "bulk"),
-          bodyParams: params
-        });
-      }
-      async revokeInvitation(invitationId) {
-        this.requireId(invitationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath14, invitationId, "revoke")
-        });
-      }
-    };
-    basePath15 = "/machines";
-    MachineApi = class extends AbstractAPI {
-      async get(machineId) {
-        this.requireId(machineId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath15, machineId)
-        });
-      }
-      async list(queryParams = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath15,
-          queryParams
-        });
-      }
-      async create(bodyParams) {
-        return this.request({
-          method: "POST",
-          path: basePath15,
-          bodyParams
-        });
-      }
-      async update(params) {
-        const { machineId, ...bodyParams } = params;
-        this.requireId(machineId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath15, machineId),
-          bodyParams
-        });
-      }
-      async delete(machineId) {
-        this.requireId(machineId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath15, machineId)
-        });
-      }
-      async getSecretKey(machineId) {
-        this.requireId(machineId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath15, machineId, "secret_key")
-        });
-      }
-      async rotateSecretKey(params) {
-        const { machineId, previousTokenTtl } = params;
-        this.requireId(machineId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath15, machineId, "secret_key", "rotate"),
-          bodyParams: {
-            previousTokenTtl
-          }
-        });
-      }
-      /**
-       * Creates a new machine scope, allowing the specified machine to access another machine.
-       *
-       * @param machineId - The ID of the machine that will have access to another machine.
-       * @param toMachineId - The ID of the machine that will be scoped to the current machine.
-       */
-      async createScope(machineId, toMachineId) {
-        this.requireId(machineId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath15, machineId, "scopes"),
-          bodyParams: {
-            toMachineId
-          }
-        });
-      }
-      /**
-       * Deletes a machine scope, removing access from one machine to another.
-       *
-       * @param machineId - The ID of the machine that has access to another machine.
-       * @param otherMachineId - The ID of the machine that is being accessed.
-       */
-      async deleteScope(machineId, otherMachineId) {
-        this.requireId(machineId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath15, machineId, "scopes", otherMachineId)
-        });
-      }
-    };
-    IdPOAuthAccessToken = class _IdPOAuthAccessToken {
-      constructor(id, clientId, type, subject, scopes, revoked, revocationReason, expired, expiration, createdAt, updatedAt) {
-        this.id = id;
-        this.clientId = clientId;
-        this.type = type;
-        this.subject = subject;
-        this.scopes = scopes;
-        this.revoked = revoked;
-        this.revocationReason = revocationReason;
-        this.expired = expired;
-        this.expiration = expiration;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _IdPOAuthAccessToken(
-          data.id,
-          data.client_id,
-          data.type,
-          data.subject,
-          data.scopes,
-          data.revoked,
-          data.revocation_reason,
-          data.expired,
-          data.expiration,
-          data.created_at,
-          data.updated_at
-        );
-      }
-      /**
-       * Creates an IdPOAuthAccessToken from a JWT payload.
-       * Maps standard JWT claims and OAuth-specific fields to token properties.
-       */
-      static fromJwtPayload(payload, clockSkewInMs = 5e3) {
-        const oauthPayload = payload;
-        return new _IdPOAuthAccessToken(
-          oauthPayload.jti ?? "",
-          oauthPayload.client_id ?? "",
-          "oauth_token",
-          payload.sub,
-          oauthPayload.scp ?? oauthPayload.scope?.split(" ") ?? [],
-          false,
-          null,
-          payload.exp * 1e3 <= Date.now() - clockSkewInMs,
-          payload.exp,
-          payload.iat,
-          payload.iat
-        );
-      }
-    };
-    M2M_RESERVED_JWT_CLAIMS = /* @__PURE__ */ new Set(["iss", "sub", "exp", "nbf", "iat", "jti"]);
-    M2MToken = class _M2MToken {
-      constructor(id, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdAt, updatedAt, token) {
-        this.id = id;
-        this.subject = subject;
-        this.scopes = scopes;
-        this.claims = claims;
-        this.revoked = revoked;
-        this.revocationReason = revocationReason;
-        this.expired = expired;
-        this.expiration = expiration;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.token = token;
-      }
-      static fromJSON(data) {
-        return new _M2MToken(
-          data.id,
-          data.subject,
-          data.scopes,
-          data.claims,
-          data.revoked,
-          data.revocation_reason,
-          data.expired,
-          data.expiration,
-          data.created_at,
-          data.updated_at,
-          data.token
-        );
-      }
-      static fromJwtPayload(payload, clockSkewInMs = 5e3) {
-        return new _M2MToken(
-          payload.jti ?? "",
-          // jti should always be present in Clerk-issued M2M JWTs
-          payload.sub,
-          payload.scopes?.split(" ") ?? payload.aud ?? [],
-          extractCustomClaims(payload),
-          false,
-          null,
-          payload.exp * 1e3 <= Date.now() - clockSkewInMs,
-          payload.exp * 1e3,
-          // milliseconds — expiration, converted from JWT exp claim
-          payload.iat * 1e3,
-          // milliseconds — createdAt, converted from JWT iat claim
-          payload.iat * 1e3
-          // milliseconds — updatedAt, no JWT equivalent; defaults to iat
-        );
-      }
-    };
-    cache = {};
-    lastUpdatedAt = 0;
-    PEM_HEADER = "-----BEGIN PUBLIC KEY-----";
-    PEM_TRAILER = "-----END PUBLIC KEY-----";
-    RSA_PREFIX = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA";
-    RSA_SUFFIX = "IDAQAB";
-    getErrorObjectByCode = (errors, code) => {
-      if (!errors) {
-        return null;
-      }
-      return errors.find((err2) => err2.code === code);
-    };
-    M2M_TOKEN_PREFIX = "mt_";
-    M2M_SUBJECT_PREFIX = "mch_";
-    OAUTH_TOKEN_PREFIX = "oat_";
-    API_KEY_PREFIX = "ak_";
-    MACHINE_TOKEN_PREFIXES = [M2M_TOKEN_PREFIX, OAUTH_TOKEN_PREFIX, API_KEY_PREFIX];
-    JwtFormatRegExp = /^[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+\.[a-zA-Z0-9\-_]+$/;
-    OAUTH_ACCESS_TOKEN_TYPES = ["at+jwt", "application/at+jwt"];
-    isTokenTypeAccepted = (tokenType, acceptsToken) => {
-      if (!tokenType) {
-        return false;
-      }
-      if (acceptsToken === "any") {
-        return true;
-      }
-      const tokenTypes = Array.isArray(acceptsToken) ? acceptsToken : [acceptsToken];
-      return tokenTypes.includes(tokenType);
-    };
-    MACHINE_TOKEN_TYPES = /* @__PURE__ */ new Set([TokenType.ApiKey, TokenType.M2MToken, TokenType.OAuthToken]);
-    basePath16 = "/m2m_tokens";
-    M2MTokenApi = class extends AbstractAPI {
-      /**
-       * @param verifyOptions - JWT verification options (secretKey, apiUrl, etc.).
-       * Passed explicitly because BuildRequestOptions are captured inside the buildRequest closure
-       * and are not accessible from the RequestFunction itself.
-       */
-      constructor(request, verifyOptions = {}) {
-        super(request);
-        __privateAdd(this, _M2MTokenApi_instances);
-        __privateAdd(this, _verifyOptions);
-        __privateSet(this, _verifyOptions, verifyOptions);
-      }
-      async list(queryParams) {
-        const { machineSecretKey, ...params } = queryParams;
-        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
-          method: "GET",
-          path: basePath16,
-          queryParams: params
-        }, machineSecretKey);
-        return this.request(requestOptions);
-      }
-      async createToken(params) {
-        const {
-          claims = null,
-          machineSecretKey,
-          minRemainingTtlSeconds,
-          secondsUntilExpiration = null,
-          tokenFormat = "opaque"
-        } = params || {};
-        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
-          method: "POST",
-          path: basePath16,
-          bodyParams: {
-            secondsUntilExpiration,
-            claims,
-            minRemainingTtlSeconds,
-            tokenFormat
-          }
-        }, machineSecretKey);
-        return this.request(requestOptions);
-      }
-      async revokeToken(params) {
-        const { m2mTokenId, revocationReason = null, machineSecretKey } = params;
-        this.requireId(m2mTokenId);
-        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
-          method: "POST",
-          path: joinPaths(basePath16, m2mTokenId, "revoke"),
-          bodyParams: {
-            revocationReason
-          }
-        }, machineSecretKey);
-        return this.request(requestOptions);
-      }
-      async verify(params) {
-        const { token, machineSecretKey } = params;
-        if (isM2MJwt(token)) {
-          return __privateMethod(this, _M2MTokenApi_instances, verifyJwtFormat_fn).call(this, token);
-        }
-        const requestOptions = __privateMethod(this, _M2MTokenApi_instances, createRequestOptions_fn).call(this, {
-          method: "POST",
-          path: joinPaths(basePath16, "verify"),
-          bodyParams: { token }
-        }, machineSecretKey);
-        return this.request(requestOptions);
-      }
-    };
-    _verifyOptions = /* @__PURE__ */ new WeakMap();
-    _M2MTokenApi_instances = /* @__PURE__ */ new WeakSet();
-    createRequestOptions_fn = function(options, machineSecretKey) {
-      if (machineSecretKey) {
-        return {
-          ...options,
-          headerParams: {
-            ...options.headerParams,
-            Authorization: `Bearer ${machineSecretKey}`
-          }
-        };
-      }
-      return options;
-    };
-    verifyJwtFormat_fn = async function(token) {
-      let decoded;
-      try {
-        const { data, errors } = decodeJwt(token);
-        if (errors) {
-          throw errors[0];
-        }
-        decoded = data;
-      } catch (e2) {
-        throw new MachineTokenVerificationError({
-          code: MachineTokenVerificationErrorCode.TokenInvalid,
-          message: e2.message
-        });
-      }
-      const result = await verifyM2MJwt(token, decoded, __privateGet(this, _verifyOptions));
-      if (result.errors) {
-        throw result.errors[0];
-      }
-      return result.data;
-    };
-    basePath17 = "/jwks";
-    JwksAPI = class extends AbstractAPI {
-      async getJwks() {
-        return this.request({
-          method: "GET",
-          path: basePath17
-        });
-      }
-    };
-    basePath18 = "/jwt_templates";
-    JwtTemplatesApi = class extends AbstractAPI {
-      async list(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath18,
-          queryParams: { ...params, paginated: true }
-        });
-      }
-      async get(templateId) {
-        this.requireId(templateId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath18, templateId)
-        });
-      }
-      async create(params) {
-        return this.request({
-          method: "POST",
-          path: basePath18,
-          bodyParams: params
-        });
-      }
-      async update(params) {
-        const { templateId, ...bodyParams } = params;
-        this.requireId(templateId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath18, templateId),
-          bodyParams
-        });
-      }
-      async delete(templateId) {
-        this.requireId(templateId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath18, templateId)
-        });
-      }
-    };
-    basePath19 = "/organizations";
-    OrganizationAPI = class extends AbstractAPI {
-      async getOrganizationList(params) {
-        return this.request({
-          method: "GET",
-          path: basePath19,
-          queryParams: params
-        });
-      }
-      async createOrganization(params) {
-        return this.request({
-          method: "POST",
-          path: basePath19,
-          bodyParams: params
-        });
-      }
-      async getOrganization(params) {
-        const { includeMembersCount } = params;
-        const organizationIdOrSlug = "organizationId" in params ? params.organizationId : params.slug;
-        this.requireId(organizationIdOrSlug);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath19, organizationIdOrSlug),
-          queryParams: {
-            includeMembersCount
-          }
-        });
-      }
-      async updateOrganization(organizationId, params) {
-        this.requireId(organizationId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath19, organizationId),
-          bodyParams: params
-        });
-      }
-      async updateOrganizationLogo(organizationId, params) {
-        this.requireId(organizationId);
-        const formData = new runtime.FormData();
-        formData.append("file", params?.file);
-        if (params?.uploaderUserId) {
-          formData.append("uploader_user_id", params?.uploaderUserId);
-        }
-        return this.request({
-          method: "PUT",
-          path: joinPaths(basePath19, organizationId, "logo"),
-          formData
-        });
-      }
-      async deleteOrganizationLogo(organizationId) {
-        this.requireId(organizationId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath19, organizationId, "logo")
-        });
-      }
-      async updateOrganizationMetadata(organizationId, params) {
-        this.requireId(organizationId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath19, organizationId, "metadata"),
-          bodyParams: params
-        });
-      }
-      async deleteOrganization(organizationId) {
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath19, organizationId)
-        });
-      }
-      async getOrganizationMembershipList(params) {
-        const { organizationId, ...queryParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath19, organizationId, "memberships"),
-          queryParams
-        });
-      }
-      async getInstanceOrganizationMembershipList(params) {
-        return this.request({
-          method: "GET",
-          path: "/organization_memberships",
-          queryParams: params
-        });
-      }
-      async createOrganizationMembership(params) {
-        const { organizationId, ...bodyParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath19, organizationId, "memberships"),
-          bodyParams
-        });
-      }
-      async updateOrganizationMembership(params) {
-        const { organizationId, userId, ...bodyParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath19, organizationId, "memberships", userId),
-          bodyParams
-        });
-      }
-      async updateOrganizationMembershipMetadata(params) {
-        const { organizationId, userId, ...bodyParams } = params;
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath19, organizationId, "memberships", userId, "metadata"),
-          bodyParams
-        });
-      }
-      async deleteOrganizationMembership(params) {
-        const { organizationId, userId } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath19, organizationId, "memberships", userId)
-        });
-      }
-      async getOrganizationInvitationList(params) {
-        const { organizationId, ...queryParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath19, organizationId, "invitations"),
-          queryParams
-        });
-      }
-      async createOrganizationInvitation(params) {
-        const { organizationId, ...bodyParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath19, organizationId, "invitations"),
-          bodyParams
-        });
-      }
-      async createOrganizationInvitationBulk(organizationId, params) {
-        this.requireId(organizationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath19, organizationId, "invitations", "bulk"),
-          bodyParams: params
-        });
-      }
-      async getOrganizationInvitation(params) {
-        const { organizationId, invitationId } = params;
-        this.requireId(organizationId);
-        this.requireId(invitationId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath19, organizationId, "invitations", invitationId)
-        });
-      }
-      async revokeOrganizationInvitation(params) {
-        const { organizationId, invitationId, ...bodyParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath19, organizationId, "invitations", invitationId, "revoke"),
-          bodyParams
-        });
-      }
-      async getOrganizationDomainList(params) {
-        const { organizationId, ...queryParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath19, organizationId, "domains"),
-          queryParams
-        });
-      }
-      async createOrganizationDomain(params) {
-        const { organizationId, ...bodyParams } = params;
-        this.requireId(organizationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath19, organizationId, "domains"),
-          bodyParams: {
-            ...bodyParams,
-            verified: bodyParams.verified ?? true
-          }
-        });
-      }
-      async updateOrganizationDomain(params) {
-        const { organizationId, domainId, ...bodyParams } = params;
-        this.requireId(organizationId);
-        this.requireId(domainId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath19, organizationId, "domains", domainId),
-          bodyParams
-        });
-      }
-      async deleteOrganizationDomain(params) {
-        const { organizationId, domainId } = params;
-        this.requireId(organizationId);
-        this.requireId(domainId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath19, organizationId, "domains", domainId)
-        });
-      }
-    };
-    basePath20 = "/oauth_applications";
-    OAuthApplicationsApi = class extends AbstractAPI {
-      async list(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath20,
-          queryParams: params
-        });
-      }
-      async get(oauthApplicationId) {
-        this.requireId(oauthApplicationId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath20, oauthApplicationId)
-        });
-      }
-      async create(params) {
-        return this.request({
-          method: "POST",
-          path: basePath20,
-          bodyParams: params
-        });
-      }
-      async update(params) {
-        const { oauthApplicationId, ...bodyParams } = params;
-        this.requireId(oauthApplicationId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath20, oauthApplicationId),
-          bodyParams
-        });
-      }
-      async delete(oauthApplicationId) {
-        this.requireId(oauthApplicationId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath20, oauthApplicationId)
-        });
-      }
-      async rotateSecret(oauthApplicationId) {
-        this.requireId(oauthApplicationId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath20, oauthApplicationId, "rotate_secret")
-        });
-      }
-    };
-    basePath21 = "/phone_numbers";
-    PhoneNumberAPI = class extends AbstractAPI {
-      async getPhoneNumber(phoneNumberId) {
-        this.requireId(phoneNumberId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath21, phoneNumberId)
-        });
-      }
-      async createPhoneNumber(params) {
-        return this.request({
-          method: "POST",
-          path: basePath21,
-          bodyParams: params
-        });
-      }
-      async updatePhoneNumber(phoneNumberId, params = {}) {
-        this.requireId(phoneNumberId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath21, phoneNumberId),
-          bodyParams: params
-        });
-      }
-      async deletePhoneNumber(phoneNumberId) {
-        this.requireId(phoneNumberId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath21, phoneNumberId)
-        });
-      }
-    };
-    basePath22 = "/proxy_checks";
-    ProxyCheckAPI = class extends AbstractAPI {
-      async verify(params) {
-        return this.request({
-          method: "POST",
-          path: basePath22,
-          bodyParams: params
-        });
-      }
-    };
-    basePath23 = "/redirect_urls";
-    RedirectUrlAPI = class extends AbstractAPI {
-      async getRedirectUrlList() {
-        return this.request({
-          method: "GET",
-          path: basePath23,
-          queryParams: { paginated: true }
-        });
-      }
-      async getRedirectUrl(redirectUrlId) {
-        this.requireId(redirectUrlId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath23, redirectUrlId)
-        });
-      }
-      async createRedirectUrl(params) {
-        return this.request({
-          method: "POST",
-          path: basePath23,
-          bodyParams: params
-        });
-      }
-      async deleteRedirectUrl(redirectUrlId) {
-        this.requireId(redirectUrlId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath23, redirectUrlId)
-        });
-      }
-    };
-    basePath24 = "/saml_connections";
-    SamlConnectionAPI = class extends AbstractAPI {
-      async getSamlConnectionList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath24,
-          queryParams: params
-        });
-      }
-      async createSamlConnection(params) {
-        return this.request({
-          method: "POST",
-          path: basePath24,
-          bodyParams: params,
-          options: {
-            deepSnakecaseBodyParamKeys: true
-          }
-        });
-      }
-      async getSamlConnection(samlConnectionId) {
-        this.requireId(samlConnectionId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath24, samlConnectionId)
-        });
-      }
-      async updateSamlConnection(samlConnectionId, params = {}) {
-        this.requireId(samlConnectionId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath24, samlConnectionId),
-          bodyParams: params,
-          options: {
-            deepSnakecaseBodyParamKeys: true
-          }
-        });
-      }
-      async deleteSamlConnection(samlConnectionId) {
-        this.requireId(samlConnectionId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath24, samlConnectionId)
-        });
-      }
-    };
-    basePath25 = "/sessions";
-    SessionAPI = class extends AbstractAPI {
-      async getSessionList(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath25,
-          queryParams: { ...params, paginated: true }
-        });
-      }
-      async getSession(sessionId) {
-        this.requireId(sessionId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath25, sessionId)
-        });
-      }
-      async createSession(params) {
-        return this.request({
-          method: "POST",
-          path: basePath25,
-          bodyParams: params
-        });
-      }
-      async revokeSession(sessionId) {
-        this.requireId(sessionId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath25, sessionId, "revoke")
-        });
-      }
-      async verifySession(sessionId, token) {
-        this.requireId(sessionId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath25, sessionId, "verify"),
-          bodyParams: { token }
-        });
-      }
-      /**
-       * Retrieves a session token or generates a JWT using a specified template.
-       *
-       * @param sessionId - The ID of the session for which to generate the token
-       * @param template - Optional name of the JWT template configured in the Clerk Dashboard.
-       * @param expiresInSeconds - Optional expiration time for the token in seconds.
-       *   If not provided, uses the default expiration.
-       *
-       * @returns A promise that resolves to the generated token
-       *
-       * @throws {Error} When sessionId is invalid or empty
-       */
-      async getToken(sessionId, template, expiresInSeconds) {
-        this.requireId(sessionId);
-        const path = template ? joinPaths(basePath25, sessionId, "tokens", template) : joinPaths(basePath25, sessionId, "tokens");
-        const requestOptions = {
-          method: "POST",
-          path
-        };
-        if (expiresInSeconds !== void 0) {
-          requestOptions.bodyParams = { expires_in_seconds: expiresInSeconds };
-        }
-        return this.request(requestOptions);
-      }
-      async refreshSession(sessionId, params) {
-        this.requireId(sessionId);
-        const { suffixed_cookies, ...restParams } = params;
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath25, sessionId, "refresh"),
-          bodyParams: restParams,
-          queryParams: { suffixed_cookies }
-        });
-      }
-    };
-    basePath26 = "/sign_in_tokens";
-    SignInTokenAPI = class extends AbstractAPI {
-      async createSignInToken(params) {
-        return this.request({
-          method: "POST",
-          path: basePath26,
-          bodyParams: params
-        });
-      }
-      async revokeSignInToken(signInTokenId) {
-        this.requireId(signInTokenId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath26, signInTokenId, "revoke")
-        });
-      }
-    };
-    basePath27 = "/sign_ups";
-    SignUpAPI = class extends AbstractAPI {
-      async get(signUpAttemptId) {
-        this.requireId(signUpAttemptId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath27, signUpAttemptId)
-        });
-      }
-      async update(params) {
-        const { signUpAttemptId, ...bodyParams } = params;
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath27, signUpAttemptId),
-          bodyParams
-        });
-      }
-    };
-    basePath28 = "/testing_tokens";
-    TestingTokenAPI = class extends AbstractAPI {
-      async createTestingToken() {
-        return this.request({
-          method: "POST",
-          path: basePath28
-        });
-      }
-    };
-    basePath29 = "/users";
-    UserAPI = class extends AbstractAPI {
-      async getUserList(params = {}) {
-        const { limit: limit2, offset, orderBy, ...userCountParams } = params;
-        const [data, totalCount] = await Promise.all([
-          this.request({
-            method: "GET",
-            path: basePath29,
-            queryParams: params
-          }),
-          this.getCount(userCountParams)
-        ]);
-        return { data, totalCount };
-      }
-      async getUser(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath29, userId)
-        });
-      }
-      async createUser(params) {
-        return this.request({
-          method: "POST",
-          path: basePath29,
-          bodyParams: params
-        });
-      }
-      async updateUser(userId, params = {}) {
-        this.requireId(userId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath29, userId),
-          bodyParams: params
-        });
-      }
-      async replaceUserEmailAddress(userId, params) {
-        this.requireId(userId);
-        return this.request({
-          method: "PUT",
-          path: joinPaths(basePath29, userId, "email_address"),
-          bodyParams: params
-        });
-      }
-      async replaceUserPhoneNumber(userId, params) {
-        this.requireId(userId);
-        return this.request({
-          method: "PUT",
-          path: joinPaths(basePath29, userId, "phone_number"),
-          bodyParams: params
-        });
-      }
-      async updateUserProfileImage(userId, params) {
-        this.requireId(userId);
-        const formData = new runtime.FormData();
-        formData.append("file", params?.file);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "profile_image"),
-          formData
-        });
-      }
-      async updateUserMetadata(userId, params) {
-        this.requireId(userId);
-        return this.request({
-          method: "PATCH",
-          path: joinPaths(basePath29, userId, "metadata"),
-          bodyParams: params
-        });
-      }
-      async deleteUser(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, userId)
-        });
-      }
-      async getCount(params = {}) {
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath29, "count"),
-          queryParams: params
-        });
-      }
-      async getUserOauthAccessToken(userId, provider) {
-        this.requireId(userId);
-        const hasPrefix = provider.startsWith("oauth_");
-        const _provider = hasPrefix ? provider : `oauth_${provider}`;
-        if (hasPrefix) {
-          deprecated(
-            "getUserOauthAccessToken(userId, provider)",
-            "Remove the `oauth_` prefix from the `provider` argument."
-          );
-        }
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath29, userId, "oauth_access_tokens", _provider),
-          queryParams: { paginated: true }
-        });
-      }
-      async disableUserMFA(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, userId, "mfa")
-        });
-      }
-      async getOrganizationMembershipList(params) {
-        const { userId, limit: limit2, offset } = params;
-        this.requireId(userId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath29, userId, "organization_memberships"),
-          queryParams: { limit: limit2, offset }
-        });
-      }
-      async getOrganizationInvitationList(params) {
-        const { userId, ...queryParams } = params;
-        this.requireId(userId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath29, userId, "organization_invitations"),
-          queryParams
-        });
-      }
-      async verifyPassword(params) {
-        const { userId, password } = params;
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "verify_password"),
-          bodyParams: { password }
-        });
-      }
-      async verifyTOTP(params) {
-        const { userId, code } = params;
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "verify_totp"),
-          bodyParams: { code }
-        });
-      }
-      async banUser(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "ban")
-        });
-      }
-      async unbanUser(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "unban")
-        });
-      }
-      async lockUser(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "lock")
-        });
-      }
-      async unlockUser(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "unlock")
-        });
-      }
-      async deleteUserProfileImage(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, userId, "profile_image")
-        });
-      }
-      async deleteUserPasskey(params) {
-        this.requireId(params.userId);
-        this.requireId(params.passkeyIdentificationId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, params.userId, "passkeys", params.passkeyIdentificationId)
-        });
-      }
-      async deleteUserWeb3Wallet(params) {
-        this.requireId(params.userId);
-        this.requireId(params.web3WalletIdentificationId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, params.userId, "web3_wallets", params.web3WalletIdentificationId)
-        });
-      }
-      async deleteUserExternalAccount(params) {
-        this.requireId(params.userId);
-        this.requireId(params.externalAccountId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, params.userId, "external_accounts", params.externalAccountId)
-        });
-      }
-      async deleteUserBackupCodes(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, userId, "backup_code")
-        });
-      }
-      async deleteUserTOTP(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath29, userId, "totp")
-        });
-      }
-      async setPasswordCompromised(userId, params = {
-        revokeAllSessions: false
-      }) {
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "password", "set_compromised"),
-          bodyParams: params
-        });
-      }
-      async unsetPasswordCompromised(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath29, userId, "password", "unset_compromised")
-        });
-      }
-    };
-    basePath30 = "/waitlist_entries";
-    WaitlistEntryAPI = class extends AbstractAPI {
-      /**
-       * List waitlist entries.
-       * @param params Optional parameters (e.g., `query`, `status`, `orderBy`).
-       */
-      async list(params = {}) {
-        return this.request({
-          method: "GET",
-          path: basePath30,
-          queryParams: params
-        });
-      }
-      /**
-       * Create a waitlist entry.
-       * @param params The parameters for creating a waitlist entry.
-       */
-      async create(params) {
-        return this.request({
-          method: "POST",
-          path: basePath30,
-          bodyParams: params
-        });
-      }
-      /**
-       * Bulk create waitlist entries.
-       * @param params An array of parameters for creating waitlist entries.
-       */
-      async createBulk(params) {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath30, "bulk"),
-          bodyParams: params
-        });
-      }
-      /**
-       * Invite a waitlist entry.
-       * @param id The waitlist entry ID.
-       * @param params Optional parameters (e.g., `ignoreExisting`).
-       */
-      async invite(id, params = {}) {
-        this.requireId(id);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath30, id, "invite"),
-          bodyParams: params
-        });
-      }
-      /**
-       * Reject a waitlist entry.
-       * @param id The waitlist entry ID.
-       */
-      async reject(id) {
-        this.requireId(id);
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath30, id, "reject")
-        });
-      }
-      /**
-       * Delete a waitlist entry.
-       * @param id The waitlist entry ID.
-       */
-      async delete(id) {
-        this.requireId(id);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath30, id)
-        });
-      }
-    };
-    basePath31 = "/webhooks";
-    WebhookAPI = class extends AbstractAPI {
-      async createSvixApp() {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath31, "svix")
-        });
-      }
-      async generateSvixAuthURL() {
-        return this.request({
-          method: "POST",
-          path: joinPaths(basePath31, "svix_url")
-        });
-      }
-      async deleteSvixApp() {
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath31, "svix")
-        });
-      }
-    };
-    basePath32 = "/billing";
-    organizationBasePath = "/organizations";
-    userBasePath = "/users";
-    BillingAPI = class extends AbstractAPI {
-      /**
-       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-       */
-      async getPlanList(params) {
-        return this.request({
-          method: "GET",
-          path: joinPaths(basePath32, "plans"),
-          queryParams: params
-        });
-      }
-      /**
-       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-       */
-      async cancelSubscriptionItem(subscriptionItemId, params) {
-        this.requireId(subscriptionItemId);
-        return this.request({
-          method: "DELETE",
-          path: joinPaths(basePath32, "subscription_items", subscriptionItemId),
-          queryParams: params
-        });
-      }
-      /**
-       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-       */
-      async extendSubscriptionItemFreeTrial(subscriptionItemId, params) {
-        this.requireId(subscriptionItemId);
-        return this.request({
-          method: "POST",
-          path: joinPaths("/billing", "subscription_items", subscriptionItemId, "extend_free_trial"),
-          bodyParams: params
-        });
-      }
-      /**
-       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-       */
-      async getOrganizationBillingSubscription(organizationId) {
-        this.requireId(organizationId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(organizationBasePath, organizationId, "billing", "subscription")
-        });
-      }
-      /**
-       * @experimental This is an experimental API for the Billing feature that is available under a public beta, and the API is subject to change. It is advised to [pin](https://clerk.com/docs/pinning) the SDK version and the clerk-js version to avoid breaking changes.
-       */
-      async getUserBillingSubscription(userId) {
-        this.requireId(userId);
-        return this.request({
-          method: "GET",
-          path: joinPaths(userBasePath, userId, "billing", "subscription")
-        });
-      }
-    };
-    isObject = (value) => typeof value === "object" && value !== null;
-    isObjectCustom = (value) => isObject(value) && !(value instanceof RegExp) && !(value instanceof Error) && !(value instanceof Date) && !(globalThis.Blob && value instanceof globalThis.Blob);
-    mapObjectSkip = /* @__PURE__ */ Symbol("mapObjectSkip");
-    _mapObject = (object, mapper, options, isSeen = /* @__PURE__ */ new WeakMap()) => {
-      options = {
-        deep: false,
-        target: {},
-        ...options
-      };
-      if (isSeen.has(object)) {
-        return isSeen.get(object);
-      }
-      isSeen.set(object, options.target);
-      const { target } = options;
-      delete options.target;
-      const mapArray = (array) => array.map((element) => isObjectCustom(element) ? _mapObject(element, mapper, options, isSeen) : element);
-      if (Array.isArray(object)) {
-        return mapArray(object);
-      }
-      for (const [key, value] of Object.entries(object)) {
-        const mapResult = mapper(key, value, object);
-        if (mapResult === mapObjectSkip) {
-          continue;
-        }
-        let [newKey, newValue, { shouldRecurse = true } = {}] = mapResult;
-        if (newKey === "__proto__") {
-          continue;
-        }
-        if (options.deep && shouldRecurse && isObjectCustom(newValue)) {
-          newValue = Array.isArray(newValue) ? mapArray(newValue) : _mapObject(newValue, mapper, options, isSeen);
-        }
-        target[newKey] = newValue;
-      }
-      return target;
-    };
-    SPLIT_LOWER_UPPER_RE = new RegExp("([\\p{Ll}\\d])(\\p{Lu})", "gu");
-    SPLIT_UPPER_UPPER_RE = new RegExp("(\\p{Lu})([\\p{Lu}][\\p{Ll}])", "gu");
-    SPLIT_SEPARATE_NUMBER_RE = new RegExp("(\\d)\\p{Ll}|(\\p{L})\\d", "u");
-    DEFAULT_STRIP_REGEXP = /[^\p{L}\d]+/giu;
-    SPLIT_REPLACE_VALUE = "$1\0$2";
-    DEFAULT_PREFIX_SUFFIX_CHARACTERS = "";
-    PlainObjectConstructor = {}.constructor;
-    snakecase_keys_default = snakecaseKeys;
-    AccountlessApplication = class _AccountlessApplication {
-      constructor(publishableKey, secretKey, claimUrl, apiKeysUrl) {
-        this.publishableKey = publishableKey;
-        this.secretKey = secretKey;
-        this.claimUrl = claimUrl;
-        this.apiKeysUrl = apiKeysUrl;
-      }
-      static fromJSON(data) {
-        return new _AccountlessApplication(data.publishable_key, data.secret_key, data.claim_url, data.api_keys_url);
-      }
-    };
-    AgentTask = class _AgentTask {
-      constructor(agentId, taskId, agentTaskId, url) {
-        this.agentId = agentId;
-        this.taskId = taskId;
-        this.agentTaskId = agentTaskId;
-        this.url = url;
-      }
-      /**
-       * Creates a AgentTask instance from a JSON object.
-       *
-       * @param data - The JSON object containing agent task data
-       * @returns A new AgentTask instance
-       */
-      static fromJSON(data) {
-        const agentTaskId = data.agent_task_id ?? data.task_id ?? "";
-        return new _AgentTask(data.agent_id, agentTaskId, agentTaskId, data.url);
-      }
-    };
-    ActorToken = class _ActorToken {
-      constructor(id, status, userId, actor, token, url, createdAt, updatedAt) {
-        this.id = id;
-        this.status = status;
-        this.userId = userId;
-        this.actor = actor;
-        this.token = token;
-        this.url = url;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _ActorToken(
-          data.id,
-          data.status,
-          data.user_id,
-          data.actor,
-          data.token,
-          data.url,
-          data.created_at,
-          data.updated_at
-        );
-      }
-    };
-    AllowlistIdentifier = class _AllowlistIdentifier {
-      constructor(id, identifier, identifierType, createdAt, updatedAt, instanceId, invitationId) {
-        this.id = id;
-        this.identifier = identifier;
-        this.identifierType = identifierType;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.instanceId = instanceId;
-        this.invitationId = invitationId;
-      }
-      static fromJSON(data) {
-        return new _AllowlistIdentifier(
-          data.id,
-          data.identifier,
-          data.identifier_type,
-          data.created_at,
-          data.updated_at,
-          data.instance_id,
-          data.invitation_id
-        );
-      }
-    };
-    APIKey = class _APIKey {
-      constructor(id, type, name, subject, scopes, claims, revoked, revocationReason, expired, expiration, createdBy, description, lastUsedAt, createdAt, updatedAt, secret3) {
-        this.id = id;
-        this.type = type;
-        this.name = name;
-        this.subject = subject;
-        this.scopes = scopes;
-        this.claims = claims;
-        this.revoked = revoked;
-        this.revocationReason = revocationReason;
-        this.expired = expired;
-        this.expiration = expiration;
-        this.createdBy = createdBy;
-        this.description = description;
-        this.lastUsedAt = lastUsedAt;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.secret = secret3;
-      }
-      static fromJSON(data) {
-        return new _APIKey(
-          data.id,
-          data.type,
-          data.name,
-          data.subject,
-          data.scopes,
-          data.claims,
-          data.revoked,
-          data.revocation_reason,
-          data.expired,
-          data.expiration,
-          data.created_by,
-          data.description,
-          data.last_used_at,
-          data.created_at,
-          data.updated_at,
-          data.secret
-        );
-      }
-    };
-    BlocklistIdentifier = class _BlocklistIdentifier {
-      constructor(id, identifier, identifierType, createdAt, updatedAt, instanceId) {
-        this.id = id;
-        this.identifier = identifier;
-        this.identifierType = identifierType;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.instanceId = instanceId;
-      }
-      static fromJSON(data) {
-        return new _BlocklistIdentifier(
-          data.id,
-          data.identifier,
-          data.identifier_type,
-          data.created_at,
-          data.updated_at,
-          data.instance_id
-        );
-      }
-    };
-    SessionActivity = class _SessionActivity {
-      constructor(id, isMobile, ipAddress, city, country, browserVersion, browserName, deviceType) {
-        this.id = id;
-        this.isMobile = isMobile;
-        this.ipAddress = ipAddress;
-        this.city = city;
-        this.country = country;
-        this.browserVersion = browserVersion;
-        this.browserName = browserName;
-        this.deviceType = deviceType;
-      }
-      static fromJSON(data) {
-        return new _SessionActivity(
-          data.id,
-          data.is_mobile,
-          data.ip_address,
-          data.city,
-          data.country,
-          data.browser_version,
-          data.browser_name,
-          data.device_type
-        );
-      }
-    };
-    Session = class _Session {
-      constructor(id, clientId, userId, status, lastActiveAt, expireAt, abandonAt, createdAt, updatedAt, lastActiveOrganizationId, latestActivity, actor = null) {
-        this.id = id;
-        this.clientId = clientId;
-        this.userId = userId;
-        this.status = status;
-        this.lastActiveAt = lastActiveAt;
-        this.expireAt = expireAt;
-        this.abandonAt = abandonAt;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.lastActiveOrganizationId = lastActiveOrganizationId;
-        this.latestActivity = latestActivity;
-        this.actor = actor;
-      }
-      static fromJSON(data) {
-        return new _Session(
-          data.id,
-          data.client_id,
-          data.user_id,
-          data.status,
-          data.last_active_at,
-          data.expire_at,
-          data.abandon_at,
-          data.created_at,
-          data.updated_at,
-          data.last_active_organization_id,
-          data.latest_activity && SessionActivity.fromJSON(data.latest_activity),
-          data.actor
-        );
-      }
-    };
-    Client = class _Client {
-      constructor(id, sessionIds, sessions, signInId, signUpId, lastActiveSessionId, lastAuthenticationStrategy, createdAt, updatedAt) {
-        this.id = id;
-        this.sessionIds = sessionIds;
-        this.sessions = sessions;
-        this.signInId = signInId;
-        this.signUpId = signUpId;
-        this.lastActiveSessionId = lastActiveSessionId;
-        this.lastAuthenticationStrategy = lastAuthenticationStrategy;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _Client(
-          data.id,
-          data.session_ids,
-          data.sessions.map((x2) => Session.fromJSON(x2)),
-          data.sign_in_id,
-          data.sign_up_id,
-          data.last_active_session_id,
-          data.last_authentication_strategy,
-          data.created_at,
-          data.updated_at
-        );
-      }
-    };
-    CnameTarget = class _CnameTarget {
-      constructor(host, value, required) {
-        this.host = host;
-        this.value = value;
-        this.required = required;
-      }
-      static fromJSON(data) {
-        return new _CnameTarget(data.host, data.value, data.required);
-      }
-    };
-    Cookies2 = class _Cookies {
-      constructor(cookies) {
-        this.cookies = cookies;
-      }
-      static fromJSON(data) {
-        return new _Cookies(data.cookies);
-      }
-    };
-    DeletedObject = class _DeletedObject {
-      constructor(object, id, slug, deleted) {
-        this.object = object;
-        this.id = id;
-        this.slug = slug;
-        this.deleted = deleted;
-      }
-      static fromJSON(data) {
-        return new _DeletedObject(data.object, data.id || null, data.slug || null, data.deleted);
-      }
-    };
-    Domain = class _Domain {
-      constructor(id, name, isSatellite, frontendApiUrl, developmentOrigin, cnameTargets, accountsPortalUrl, proxyUrl) {
-        this.id = id;
-        this.name = name;
-        this.isSatellite = isSatellite;
-        this.frontendApiUrl = frontendApiUrl;
-        this.developmentOrigin = developmentOrigin;
-        this.cnameTargets = cnameTargets;
-        this.accountsPortalUrl = accountsPortalUrl;
-        this.proxyUrl = proxyUrl;
-      }
-      static fromJSON(data) {
-        return new _Domain(
-          data.id,
-          data.name,
-          data.is_satellite,
-          data.frontend_api_url,
-          data.development_origin,
-          data.cname_targets && data.cname_targets.map((x2) => CnameTarget.fromJSON(x2)),
-          data.accounts_portal_url,
-          data.proxy_url
-        );
-      }
-    };
-    Email = class _Email {
-      constructor(id, fromEmailName, emailAddressId, toEmailAddress, subject, body, bodyPlain, status, slug, data, deliveredByClerk) {
-        this.id = id;
-        this.fromEmailName = fromEmailName;
-        this.emailAddressId = emailAddressId;
-        this.toEmailAddress = toEmailAddress;
-        this.subject = subject;
-        this.body = body;
-        this.bodyPlain = bodyPlain;
-        this.status = status;
-        this.slug = slug;
-        this.data = data;
-        this.deliveredByClerk = deliveredByClerk;
-      }
-      static fromJSON(data) {
-        return new _Email(
-          data.id,
-          data.from_email_name,
-          data.email_address_id,
-          data.to_email_address,
-          data.subject,
-          data.body,
-          data.body_plain,
-          data.status,
-          data.slug,
-          data.data,
-          data.delivered_by_clerk
-        );
-      }
-    };
-    IdentificationLink = class _IdentificationLink {
-      constructor(id, type) {
-        this.id = id;
-        this.type = type;
-      }
-      static fromJSON(data) {
-        return new _IdentificationLink(data.id, data.type);
-      }
-    };
-    Verification = class _Verification {
-      constructor(status, strategy, externalVerificationRedirectURL = null, attempts = null, expireAt = null, nonce = null, message = null) {
-        this.status = status;
-        this.strategy = strategy;
-        this.externalVerificationRedirectURL = externalVerificationRedirectURL;
-        this.attempts = attempts;
-        this.expireAt = expireAt;
-        this.nonce = nonce;
-        this.message = message;
-      }
-      static fromJSON(data) {
-        return new _Verification(
-          data.status,
-          data.strategy,
-          data.external_verification_redirect_url ? new URL(data.external_verification_redirect_url) : null,
-          data.attempts,
-          data.expire_at,
-          data.nonce
-        );
-      }
-    };
-    EmailAddress = class _EmailAddress {
-      constructor(id, emailAddress, verification, linkedTo) {
-        this.id = id;
-        this.emailAddress = emailAddress;
-        this.verification = verification;
-        this.linkedTo = linkedTo;
-      }
-      static fromJSON(data) {
-        return new _EmailAddress(
-          data.id,
-          data.email_address,
-          data.verification && Verification.fromJSON(data.verification),
-          data.linked_to.map((link) => IdentificationLink.fromJSON(link))
-        );
-      }
-    };
-    Feature = class _Feature {
-      constructor(id, name, description, slug, avatarUrl) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.slug = slug;
-        this.avatarUrl = avatarUrl;
-      }
-      static fromJSON(data) {
-        return new _Feature(data.id, data.name, data.description ?? null, data.slug, data.avatar_url ?? null);
-      }
-    };
-    BillingPlan = class _BillingPlan {
-      constructor(id, name, slug, description, isDefault, isRecurring, hasBaseFee, publiclyVisible, fee, annualFee, annualMonthlyFee, forPayerType, features, avatarUrl, freeTrialDays, freeTrialEnabled) {
-        this.id = id;
-        this.name = name;
-        this.slug = slug;
-        this.description = description;
-        this.isDefault = isDefault;
-        this.isRecurring = isRecurring;
-        this.hasBaseFee = hasBaseFee;
-        this.publiclyVisible = publiclyVisible;
-        this.fee = fee;
-        this.annualFee = annualFee;
-        this.annualMonthlyFee = annualMonthlyFee;
-        this.forPayerType = forPayerType;
-        this.features = features;
-        this.avatarUrl = avatarUrl;
-        this.freeTrialDays = freeTrialDays;
-        this.freeTrialEnabled = freeTrialEnabled;
-      }
-      static fromJSON(data) {
-        const formatAmountJSON = (fee) => {
-          return fee ? {
-            amount: fee.amount,
-            amountFormatted: fee.amount_formatted,
-            currency: fee.currency,
-            currencySymbol: fee.currency_symbol
-          } : null;
-        };
-        return new _BillingPlan(
-          data.id,
-          data.name,
-          data.slug,
-          data.description ?? null,
-          data.is_default,
-          data.is_recurring,
-          data.has_base_fee,
-          data.publicly_visible,
-          formatAmountJSON(data.fee),
-          formatAmountJSON(data.annual_fee),
-          formatAmountJSON(data.annual_monthly_fee),
-          data.for_payer_type,
-          (data.features ?? []).map((feature) => Feature.fromJSON(feature)),
-          data.avatar_url,
-          data.free_trial_days,
-          data.free_trial_enabled
-        );
-      }
-    };
-    BillingSubscriptionItem = class _BillingSubscriptionItem {
-      constructor(id, status, planPeriod, periodStart, nextPayment, amount, plan, planId, createdAt, updatedAt, periodEnd, canceledAt, pastDueAt, endedAt, payerId, isFreeTrial, lifetimePaid) {
-        this.id = id;
-        this.status = status;
-        this.planPeriod = planPeriod;
-        this.periodStart = periodStart;
-        this.nextPayment = nextPayment;
-        this.amount = amount;
-        this.plan = plan;
-        this.planId = planId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.periodEnd = periodEnd;
-        this.canceledAt = canceledAt;
-        this.pastDueAt = pastDueAt;
-        this.endedAt = endedAt;
-        this.payerId = payerId;
-        this.isFreeTrial = isFreeTrial;
-        this.lifetimePaid = lifetimePaid;
-      }
-      static fromJSON(data) {
-        function formatAmountJSON(amount) {
-          if (!amount) {
-            return amount;
-          }
-          return {
-            amount: amount.amount,
-            amountFormatted: amount.amount_formatted,
-            currency: amount.currency,
-            currencySymbol: amount.currency_symbol
-          };
-        }
-        return new _BillingSubscriptionItem(
-          data.id,
-          data.status,
-          data.plan_period,
-          data.period_start,
-          data.next_payment,
-          formatAmountJSON(data.amount) ?? void 0,
-          data.plan ? BillingPlan.fromJSON(data.plan) : null,
-          data.plan_id ?? null,
-          data.created_at,
-          data.updated_at,
-          data.period_end,
-          data.canceled_at,
-          data.past_due_at,
-          data.ended_at,
-          data.payer_id,
-          data.is_free_trial,
-          formatAmountJSON(data.lifetime_paid) ?? void 0
-        );
-      }
-    };
-    BillingSubscription = class _BillingSubscription {
-      constructor(id, status, payerId, createdAt, updatedAt, activeAt, pastDueAt, subscriptionItems, nextPayment, eligibleForFreeTrial) {
-        this.id = id;
-        this.status = status;
-        this.payerId = payerId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.activeAt = activeAt;
-        this.pastDueAt = pastDueAt;
-        this.subscriptionItems = subscriptionItems;
-        this.nextPayment = nextPayment;
-        this.eligibleForFreeTrial = eligibleForFreeTrial;
-      }
-      static fromJSON(data) {
-        const nextPayment = data.next_payment ? {
-          date: data.next_payment.date,
-          amount: {
-            amount: data.next_payment.amount.amount,
-            amountFormatted: data.next_payment.amount.amount_formatted,
-            currency: data.next_payment.amount.currency,
-            currencySymbol: data.next_payment.amount.currency_symbol
-          }
-        } : null;
-        return new _BillingSubscription(
-          data.id,
-          data.status,
-          data.payer_id,
-          data.created_at,
-          data.updated_at,
-          data.active_at ?? null,
-          data.past_due_at ?? null,
-          (data.subscription_items ?? []).map((item) => BillingSubscriptionItem.fromJSON(item)),
-          nextPayment,
-          data.eligible_for_free_trial ?? false
-        );
-      }
-    };
-    EnterpriseAccountConnection = class _EnterpriseAccountConnection {
-      constructor(id, active, allowIdpInitiated, allowSubdomains, disableAdditionalIdentifications, domain, logoPublicUrl, name, protocol, provider, syncUserAttributes, createdAt, updatedAt) {
-        this.id = id;
-        this.active = active;
-        this.allowIdpInitiated = allowIdpInitiated;
-        this.allowSubdomains = allowSubdomains;
-        this.disableAdditionalIdentifications = disableAdditionalIdentifications;
-        this.domain = domain;
-        this.logoPublicUrl = logoPublicUrl;
-        this.name = name;
-        this.protocol = protocol;
-        this.provider = provider;
-        this.syncUserAttributes = syncUserAttributes;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _EnterpriseAccountConnection(
-          data.id,
-          data.active,
-          data.allow_idp_initiated,
-          data.allow_subdomains,
-          data.disable_additional_identifications,
-          data.domain,
-          data.logo_public_url,
-          data.name,
-          data.protocol,
-          data.provider,
-          data.sync_user_attributes,
-          data.created_at,
-          data.updated_at
-        );
-      }
-    };
-    EnterpriseAccount = class _EnterpriseAccount {
-      constructor(id, active, emailAddress, enterpriseConnection, firstName, lastName, protocol, provider, providerUserId, publicMetadata, verification, lastAuthenticatedAt, enterpriseConnectionId) {
-        this.id = id;
-        this.active = active;
-        this.emailAddress = emailAddress;
-        this.enterpriseConnection = enterpriseConnection;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.protocol = protocol;
-        this.provider = provider;
-        this.providerUserId = providerUserId;
-        this.publicMetadata = publicMetadata;
-        this.verification = verification;
-        this.lastAuthenticatedAt = lastAuthenticatedAt;
-        this.enterpriseConnectionId = enterpriseConnectionId;
-      }
-      static fromJSON(data) {
-        return new _EnterpriseAccount(
-          data.id,
-          data.active,
-          data.email_address,
-          data.enterprise_connection && EnterpriseAccountConnection.fromJSON(data.enterprise_connection),
-          data.first_name,
-          data.last_name,
-          data.protocol,
-          data.provider,
-          data.provider_user_id,
-          data.public_metadata,
-          data.verification && Verification.fromJSON(data.verification),
-          data.last_authenticated_at,
-          data.enterprise_connection_id
-        );
-      }
-    };
-    EnterpriseConnectionSamlConnection = class _EnterpriseConnectionSamlConnection {
-      constructor(id, name, idpEntityId, idpSsoUrl, idpCertificate, idpMetadataUrl, idpMetadata, acsUrl, spEntityId, spMetadataUrl, syncUserAttributes, allowSubdomains, allowIdpInitiated) {
-        this.id = id;
-        this.name = name;
-        this.idpEntityId = idpEntityId;
-        this.idpSsoUrl = idpSsoUrl;
-        this.idpCertificate = idpCertificate;
-        this.idpMetadataUrl = idpMetadataUrl;
-        this.idpMetadata = idpMetadata;
-        this.acsUrl = acsUrl;
-        this.spEntityId = spEntityId;
-        this.spMetadataUrl = spMetadataUrl;
-        this.syncUserAttributes = syncUserAttributes;
-        this.allowSubdomains = allowSubdomains;
-        this.allowIdpInitiated = allowIdpInitiated;
-      }
-      static fromJSON(data) {
-        return new _EnterpriseConnectionSamlConnection(
-          data.id,
-          data.name,
-          data.idp_entity_id,
-          data.idp_sso_url,
-          data.idp_certificate,
-          data.idp_metadata_url,
-          data.idp_metadata,
-          data.acs_url,
-          data.sp_entity_id,
-          data.sp_metadata_url,
-          data.sync_user_attributes,
-          data.allow_subdomains,
-          data.allow_idp_initiated
-        );
-      }
-    };
-    EnterpriseConnectionOauthConfig = class _EnterpriseConnectionOauthConfig {
-      constructor(id, name, clientId, discoveryUrl, logoPublicUrl, createdAt, updatedAt) {
-        this.id = id;
-        this.name = name;
-        this.clientId = clientId;
-        this.discoveryUrl = discoveryUrl;
-        this.logoPublicUrl = logoPublicUrl;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _EnterpriseConnectionOauthConfig(
-          data.id,
-          data.name,
-          data.client_id,
-          data.discovery_url,
-          data.logo_public_url,
-          data.created_at,
-          data.updated_at
-        );
-      }
-    };
-    EnterpriseConnection = class _EnterpriseConnection {
-      constructor(id, name, domains, organizationId, active, syncUserAttributes, allowSubdomains, disableAdditionalIdentifications, createdAt, updatedAt, samlConnection, oauthConfig) {
-        this.id = id;
-        this.name = name;
-        this.domains = domains;
-        this.organizationId = organizationId;
-        this.active = active;
-        this.syncUserAttributes = syncUserAttributes;
-        this.allowSubdomains = allowSubdomains;
-        this.disableAdditionalIdentifications = disableAdditionalIdentifications;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.samlConnection = samlConnection;
-        this.oauthConfig = oauthConfig;
-      }
-      static fromJSON(data) {
-        return new _EnterpriseConnection(
-          data.id,
-          data.name,
-          data.domains,
-          data.organization_id,
-          data.active,
-          data.sync_user_attributes,
-          data.allow_subdomains,
-          data.disable_additional_identifications,
-          data.created_at,
-          data.updated_at,
-          data.saml_connection != null ? EnterpriseConnectionSamlConnection.fromJSON(data.saml_connection) : null,
-          data.oauth_config != null ? EnterpriseConnectionOauthConfig.fromJSON(data.oauth_config) : null
-        );
-      }
-    };
-    ExternalAccount = class _ExternalAccount {
-      constructor(id, provider, providerUserId, identificationId, externalId, approvedScopes, emailAddress, firstName, lastName, imageUrl, username, phoneNumber, publicMetadata = {}, label, verification) {
-        this.id = id;
-        this.provider = provider;
-        this.providerUserId = providerUserId;
-        this.identificationId = identificationId;
-        this.externalId = externalId;
-        this.approvedScopes = approvedScopes;
-        this.emailAddress = emailAddress;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.imageUrl = imageUrl;
-        this.username = username;
-        this.phoneNumber = phoneNumber;
-        this.publicMetadata = publicMetadata;
-        this.label = label;
-        this.verification = verification;
-      }
-      static fromJSON(data) {
-        return new _ExternalAccount(
-          data.id,
-          data.provider,
-          data.provider_user_id,
-          data.identification_id,
-          data.provider_user_id,
-          data.approved_scopes,
-          data.email_address,
-          data.first_name,
-          data.last_name,
-          data.image_url || "",
-          data.username,
-          data.phone_number,
-          data.public_metadata,
-          data.label,
-          data.verification && Verification.fromJSON(data.verification)
-        );
-      }
-    };
-    Instance = class _Instance {
-      constructor(id, environmentType, allowedOrigins) {
-        this.id = id;
-        this.environmentType = environmentType;
-        this.allowedOrigins = allowedOrigins;
-      }
-      static fromJSON(data) {
-        return new _Instance(data.id, data.environment_type, data.allowed_origins);
-      }
-    };
-    InstanceRestrictions = class _InstanceRestrictions {
-      constructor(allowlist, blocklist, blockEmailSubaddresses, blockDisposableEmailDomains, ignoreDotsForGmailAddresses) {
-        this.allowlist = allowlist;
-        this.blocklist = blocklist;
-        this.blockEmailSubaddresses = blockEmailSubaddresses;
-        this.blockDisposableEmailDomains = blockDisposableEmailDomains;
-        this.ignoreDotsForGmailAddresses = ignoreDotsForGmailAddresses;
-      }
-      static fromJSON(data) {
-        return new _InstanceRestrictions(
-          data.allowlist,
-          data.blocklist,
-          data.block_email_subaddresses,
-          data.block_disposable_email_domains,
-          data.ignore_dots_for_gmail_addresses
-        );
-      }
-    };
-    InstanceSettings = class _InstanceSettings {
-      constructor(id, restrictedToAllowlist, fromEmailAddress, progressiveSignUp, enhancedEmailDeliverability) {
-        this.id = id;
-        this.restrictedToAllowlist = restrictedToAllowlist;
-        this.fromEmailAddress = fromEmailAddress;
-        this.progressiveSignUp = progressiveSignUp;
-        this.enhancedEmailDeliverability = enhancedEmailDeliverability;
-      }
-      static fromJSON(data) {
-        return new _InstanceSettings(
-          data.id,
-          data.restricted_to_allowlist,
-          data.from_email_address,
-          data.progressive_sign_up,
-          data.enhanced_email_deliverability
-        );
-      }
-    };
-    Invitation = class _Invitation {
-      constructor(id, emailAddress, publicMetadata, createdAt, updatedAt, status, url, revoked) {
-        this.id = id;
-        this.emailAddress = emailAddress;
-        this.publicMetadata = publicMetadata;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.status = status;
-        this.url = url;
-        this.revoked = revoked;
-        this._raw = null;
-      }
-      get raw() {
-        return this._raw;
-      }
-      static fromJSON(data) {
-        const res = new _Invitation(
-          data.id,
-          data.email_address,
-          data.public_metadata,
-          data.created_at,
-          data.updated_at,
-          data.status,
-          data.url,
-          data.revoked
-        );
-        res._raw = data;
-        return res;
-      }
-    };
-    ObjectType = {
-      AccountlessApplication: "accountless_application",
-      ActorToken: "actor_token",
-      AgentTask: "agent_task",
-      AllowlistIdentifier: "allowlist_identifier",
-      ApiKey: "api_key",
-      BlocklistIdentifier: "blocklist_identifier",
-      Client: "client",
-      Cookies: "cookies",
-      Domain: "domain",
-      Email: "email",
-      EnterpriseAccount: "enterprise_account",
-      EnterpriseConnection: "enterprise_connection",
-      EmailAddress: "email_address",
-      ExternalAccount: "external_account",
-      FacebookAccount: "facebook_account",
-      GoogleAccount: "google_account",
-      Instance: "instance",
-      InstanceRestrictions: "instance_restrictions",
-      InstanceSettings: "instance_settings",
-      Invitation: "invitation",
-      Machine: "machine",
-      MachineScope: "machine_scope",
-      MachineSecretKey: "machine_secret_key",
-      M2MToken: "machine_to_machine_token",
-      JwtTemplate: "jwt_template",
-      OauthAccessToken: "oauth_access_token",
-      IdpOAuthAccessToken: "clerk_idp_oauth_access_token",
-      OAuthApplication: "oauth_application",
-      Organization: "organization",
-      OrganizationDomain: "organization_domain",
-      OrganizationInvitation: "organization_invitation",
-      OrganizationMembership: "organization_membership",
-      OrganizationSettings: "organization_settings",
-      PhoneNumber: "phone_number",
-      ProxyCheck: "proxy_check",
-      RedirectUrl: "redirect_url",
-      SamlConnection: "saml_connection",
-      Session: "session",
-      SignInAttempt: "sign_in_attempt",
-      SignInToken: "sign_in_token",
-      SignUpAttempt: "sign_up_attempt",
-      SmsMessage: "sms_message",
-      User: "user",
-      WaitlistEntry: "waitlist_entry",
-      Web3Wallet: "web3_wallet",
-      Token: "token",
-      TotalCount: "total_count",
-      TestingToken: "testing_token",
-      Role: "role",
-      RoleSet: "role_set",
-      RoleSetItem: "role_set_item",
-      RoleSetMigration: "role_set_migration",
-      Permission: "permission",
-      BillingPayer: "commerce_payer",
-      BillingPaymentAttempt: "commerce_payment_attempt",
-      BillingSubscription: "commerce_subscription",
-      BillingSubscriptionItem: "commerce_subscription_item",
-      BillingPlan: "commerce_plan",
-      Feature: "feature"
-    };
-    JwtTemplate = class _JwtTemplate {
-      constructor(id, name, claims, lifetime, allowedClockSkew, customSigningKey, signingAlgorithm, createdAt, updatedAt) {
-        this.id = id;
-        this.name = name;
-        this.claims = claims;
-        this.lifetime = lifetime;
-        this.allowedClockSkew = allowedClockSkew;
-        this.customSigningKey = customSigningKey;
-        this.signingAlgorithm = signingAlgorithm;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _JwtTemplate(
-          data.id,
-          data.name,
-          data.claims,
-          data.lifetime,
-          data.allowed_clock_skew,
-          data.custom_signing_key,
-          data.signing_algorithm,
-          data.created_at,
-          data.updated_at
-        );
-      }
-    };
-    Machine = class _Machine {
-      constructor(id, name, instanceId, createdAt, updatedAt, scopedMachines, defaultTokenTtl, secretKey) {
-        this.id = id;
-        this.name = name;
-        this.instanceId = instanceId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.scopedMachines = scopedMachines;
-        this.defaultTokenTtl = defaultTokenTtl;
-        this.secretKey = secretKey;
-      }
-      static fromJSON(data) {
-        return new _Machine(
-          data.id,
-          data.name,
-          data.instance_id,
-          data.created_at,
-          data.updated_at,
-          data.scoped_machines.map(
-            (m2) => new _Machine(
-              m2.id,
-              m2.name,
-              m2.instance_id,
-              m2.created_at,
-              m2.updated_at,
-              [],
-              // Nested machines don't have scoped_machines
-              m2.default_token_ttl
-            )
-          ),
-          data.default_token_ttl,
-          data.secret_key
-        );
-      }
-    };
-    MachineScope = class _MachineScope {
-      constructor(fromMachineId, toMachineId, createdAt, deleted) {
-        this.fromMachineId = fromMachineId;
-        this.toMachineId = toMachineId;
-        this.createdAt = createdAt;
-        this.deleted = deleted;
-      }
-      static fromJSON(data) {
-        return new _MachineScope(data.from_machine_id, data.to_machine_id, data.created_at, data.deleted);
-      }
-    };
-    MachineSecretKey = class _MachineSecretKey {
-      constructor(secret3) {
-        this.secret = secret3;
-      }
-      static fromJSON(data) {
-        return new _MachineSecretKey(data.secret);
-      }
-    };
-    OauthAccessToken = class _OauthAccessToken {
-      constructor(externalAccountId, provider, token, publicMetadata = {}, label, scopes, tokenSecret, expiresAt2, idToken) {
-        this.externalAccountId = externalAccountId;
-        this.provider = provider;
-        this.token = token;
-        this.publicMetadata = publicMetadata;
-        this.label = label;
-        this.scopes = scopes;
-        this.tokenSecret = tokenSecret;
-        this.expiresAt = expiresAt2;
-        this.idToken = idToken;
-      }
-      static fromJSON(data) {
-        return new _OauthAccessToken(
-          data.external_account_id,
-          data.provider,
-          data.token,
-          data.public_metadata,
-          data.label || "",
-          data.scopes,
-          data.token_secret,
-          data.expires_at,
-          data.id_token
-        );
-      }
-    };
-    OAuthApplication = class _OAuthApplication {
-      constructor(id, instanceId, name, clientId, clientUri, clientImageUrl, dynamicallyRegistered, consentScreenEnabled, pkceRequired, isPublic, scopes, redirectUris, authorizeUrl, tokenFetchUrl, userInfoUrl, discoveryUrl, tokenIntrospectionUrl, createdAt, updatedAt, clientSecret) {
-        this.id = id;
-        this.instanceId = instanceId;
-        this.name = name;
-        this.clientId = clientId;
-        this.clientUri = clientUri;
-        this.clientImageUrl = clientImageUrl;
-        this.dynamicallyRegistered = dynamicallyRegistered;
-        this.consentScreenEnabled = consentScreenEnabled;
-        this.pkceRequired = pkceRequired;
-        this.isPublic = isPublic;
-        this.scopes = scopes;
-        this.redirectUris = redirectUris;
-        this.authorizeUrl = authorizeUrl;
-        this.tokenFetchUrl = tokenFetchUrl;
-        this.userInfoUrl = userInfoUrl;
-        this.discoveryUrl = discoveryUrl;
-        this.tokenIntrospectionUrl = tokenIntrospectionUrl;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.clientSecret = clientSecret;
-      }
-      static fromJSON(data) {
-        return new _OAuthApplication(
-          data.id,
-          data.instance_id,
-          data.name,
-          data.client_id,
-          data.client_uri,
-          data.client_image_url,
-          data.dynamically_registered,
-          data.consent_screen_enabled,
-          data.pkce_required,
-          data.public,
-          data.scopes,
-          data.redirect_uris,
-          data.authorize_url,
-          data.token_fetch_url,
-          data.user_info_url,
-          data.discovery_url,
-          data.token_introspection_url,
-          data.created_at,
-          data.updated_at,
-          data.client_secret
-        );
-      }
-    };
-    Organization = class _Organization {
-      constructor(id, name, slug, imageUrl, hasImage, createdAt, updatedAt, publicMetadata = {}, privateMetadata = {}, maxAllowedMemberships, adminDeleteEnabled, membersCount, createdBy) {
-        this.id = id;
-        this.name = name;
-        this.slug = slug;
-        this.imageUrl = imageUrl;
-        this.hasImage = hasImage;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.publicMetadata = publicMetadata;
-        this.privateMetadata = privateMetadata;
-        this.maxAllowedMemberships = maxAllowedMemberships;
-        this.adminDeleteEnabled = adminDeleteEnabled;
-        this.membersCount = membersCount;
-        this.createdBy = createdBy;
-        this._raw = null;
-      }
-      get raw() {
-        return this._raw;
-      }
-      static fromJSON(data) {
-        const res = new _Organization(
-          data.id,
-          data.name,
-          data.slug,
-          data.image_url || "",
-          data.has_image,
-          data.created_at,
-          data.updated_at,
-          data.public_metadata,
-          data.private_metadata,
-          data.max_allowed_memberships,
-          data.admin_delete_enabled,
-          data.members_count,
-          data.created_by
-        );
-        res._raw = data;
-        return res;
-      }
-    };
-    OrganizationInvitation = class _OrganizationInvitation {
-      constructor(id, emailAddress, role, roleName, organizationId, createdAt, updatedAt, expiresAt2, url, status, publicMetadata = {}, privateMetadata = {}, publicOrganizationData) {
-        this.id = id;
-        this.emailAddress = emailAddress;
-        this.role = role;
-        this.roleName = roleName;
-        this.organizationId = organizationId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.expiresAt = expiresAt2;
-        this.url = url;
-        this.status = status;
-        this.publicMetadata = publicMetadata;
-        this.privateMetadata = privateMetadata;
-        this.publicOrganizationData = publicOrganizationData;
-        this._raw = null;
-      }
-      get raw() {
-        return this._raw;
-      }
-      static fromJSON(data) {
-        const res = new _OrganizationInvitation(
-          data.id,
-          data.email_address,
-          data.role,
-          data.role_name,
-          data.organization_id,
-          data.created_at,
-          data.updated_at,
-          data.expires_at,
-          data.url,
-          data.status,
-          data.public_metadata,
-          data.private_metadata,
-          data.public_organization_data
-        );
-        res._raw = data;
-        return res;
-      }
-    };
-    OrganizationMembership = class _OrganizationMembership {
-      constructor(id, role, permissions, publicMetadata = {}, privateMetadata = {}, createdAt, updatedAt, organization, publicUserData) {
-        this.id = id;
-        this.role = role;
-        this.permissions = permissions;
-        this.publicMetadata = publicMetadata;
-        this.privateMetadata = privateMetadata;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.organization = organization;
-        this.publicUserData = publicUserData;
-        this._raw = null;
-      }
-      get raw() {
-        return this._raw;
-      }
-      static fromJSON(data) {
-        const res = new _OrganizationMembership(
-          data.id,
-          data.role,
-          data.permissions,
-          data.public_metadata,
-          data.private_metadata,
-          data.created_at,
-          data.updated_at,
-          Organization.fromJSON(data.organization),
-          OrganizationMembershipPublicUserData.fromJSON(data.public_user_data)
-        );
-        res._raw = data;
-        return res;
-      }
-    };
-    OrganizationMembershipPublicUserData = class _OrganizationMembershipPublicUserData {
-      constructor(identifier, firstName, lastName, imageUrl, hasImage, userId) {
-        this.identifier = identifier;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.imageUrl = imageUrl;
-        this.hasImage = hasImage;
-        this.userId = userId;
-      }
-      static fromJSON(data) {
-        return new _OrganizationMembershipPublicUserData(
-          data.identifier,
-          data.first_name,
-          data.last_name,
-          data.image_url,
-          data.has_image,
-          data.user_id
-        );
-      }
-    };
-    OrganizationSettings = class _OrganizationSettings {
-      constructor(enabled, maxAllowedMemberships, maxAllowedRoles, maxAllowedPermissions, creatorRole, adminDeleteEnabled, domainsEnabled, slugDisabled, domainsEnrollmentModes, domainsDefaultRole) {
-        this.enabled = enabled;
-        this.maxAllowedMemberships = maxAllowedMemberships;
-        this.maxAllowedRoles = maxAllowedRoles;
-        this.maxAllowedPermissions = maxAllowedPermissions;
-        this.creatorRole = creatorRole;
-        this.adminDeleteEnabled = adminDeleteEnabled;
-        this.domainsEnabled = domainsEnabled;
-        this.slugDisabled = slugDisabled;
-        this.domainsEnrollmentModes = domainsEnrollmentModes;
-        this.domainsDefaultRole = domainsDefaultRole;
-      }
-      static fromJSON(data) {
-        return new _OrganizationSettings(
-          data.enabled,
-          data.max_allowed_memberships,
-          data.max_allowed_roles,
-          data.max_allowed_permissions,
-          data.creator_role,
-          data.admin_delete_enabled,
-          data.domains_enabled,
-          data.slug_disabled,
-          data.domains_enrollment_modes,
-          data.domains_default_role
-        );
-      }
-    };
-    PhoneNumber = class _PhoneNumber {
-      constructor(id, phoneNumber, reservedForSecondFactor, defaultSecondFactor, verification, linkedTo) {
-        this.id = id;
-        this.phoneNumber = phoneNumber;
-        this.reservedForSecondFactor = reservedForSecondFactor;
-        this.defaultSecondFactor = defaultSecondFactor;
-        this.verification = verification;
-        this.linkedTo = linkedTo;
-      }
-      static fromJSON(data) {
-        return new _PhoneNumber(
-          data.id,
-          data.phone_number,
-          data.reserved_for_second_factor,
-          data.default_second_factor,
-          data.verification && Verification.fromJSON(data.verification),
-          data.linked_to.map((link) => IdentificationLink.fromJSON(link))
-        );
-      }
-    };
-    ProxyCheck = class _ProxyCheck {
-      constructor(id, domainId, lastRunAt, proxyUrl, successful, createdAt, updatedAt) {
-        this.id = id;
-        this.domainId = domainId;
-        this.lastRunAt = lastRunAt;
-        this.proxyUrl = proxyUrl;
-        this.successful = successful;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _ProxyCheck(
-          data.id,
-          data.domain_id,
-          data.last_run_at,
-          data.proxy_url,
-          data.successful,
-          data.created_at,
-          data.updated_at
-        );
-      }
-    };
-    RedirectUrl = class _RedirectUrl {
-      constructor(id, url, createdAt, updatedAt) {
-        this.id = id;
-        this.url = url;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _RedirectUrl(data.id, data.url, data.created_at, data.updated_at);
-      }
-    };
-    SamlConnection = class _SamlConnection {
-      constructor(id, name, domain, organizationId, idpEntityId, idpSsoUrl, idpCertificate, idpMetadataUrl, idpMetadata, acsUrl, spEntityId, spMetadataUrl, active, provider, userCount, syncUserAttributes, allowSubdomains, allowIdpInitiated, createdAt, updatedAt, attributeMapping) {
-        this.id = id;
-        this.name = name;
-        this.domain = domain;
-        this.organizationId = organizationId;
-        this.idpEntityId = idpEntityId;
-        this.idpSsoUrl = idpSsoUrl;
-        this.idpCertificate = idpCertificate;
-        this.idpMetadataUrl = idpMetadataUrl;
-        this.idpMetadata = idpMetadata;
-        this.acsUrl = acsUrl;
-        this.spEntityId = spEntityId;
-        this.spMetadataUrl = spMetadataUrl;
-        this.active = active;
-        this.provider = provider;
-        this.userCount = userCount;
-        this.syncUserAttributes = syncUserAttributes;
-        this.allowSubdomains = allowSubdomains;
-        this.allowIdpInitiated = allowIdpInitiated;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.attributeMapping = attributeMapping;
-      }
-      static fromJSON(data) {
-        return new _SamlConnection(
-          data.id,
-          data.name,
-          data.domain,
-          data.organization_id,
-          data.idp_entity_id,
-          data.idp_sso_url,
-          data.idp_certificate,
-          data.idp_metadata_url,
-          data.idp_metadata,
-          data.acs_url,
-          data.sp_entity_id,
-          data.sp_metadata_url,
-          data.active,
-          data.provider,
-          data.user_count,
-          data.sync_user_attributes,
-          data.allow_subdomains,
-          data.allow_idp_initiated,
-          data.created_at,
-          data.updated_at,
-          data.attribute_mapping && AttributeMapping.fromJSON(data.attribute_mapping)
-        );
-      }
-    };
-    AttributeMapping = class _AttributeMapping {
-      constructor(userId, emailAddress, firstName, lastName) {
-        this.userId = userId;
-        this.emailAddress = emailAddress;
-        this.firstName = firstName;
-        this.lastName = lastName;
-      }
-      static fromJSON(data) {
-        return new _AttributeMapping(data.user_id, data.email_address, data.first_name, data.last_name);
-      }
-    };
-    SignInToken = class _SignInToken {
-      constructor(id, userId, token, status, url, createdAt, updatedAt) {
-        this.id = id;
-        this.userId = userId;
-        this.token = token;
-        this.status = status;
-        this.url = url;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-      }
-      static fromJSON(data) {
-        return new _SignInToken(data.id, data.user_id, data.token, data.status, data.url, data.created_at, data.updated_at);
-      }
-    };
-    SignUpAttemptVerification = class _SignUpAttemptVerification {
-      constructor(nextAction, supportedStrategies) {
-        this.nextAction = nextAction;
-        this.supportedStrategies = supportedStrategies;
-      }
-      static fromJSON(data) {
-        return new _SignUpAttemptVerification(data.next_action, data.supported_strategies);
-      }
-    };
-    SignUpAttemptVerifications = class _SignUpAttemptVerifications {
-      constructor(emailAddress, phoneNumber, web3Wallet, externalAccount) {
-        this.emailAddress = emailAddress;
-        this.phoneNumber = phoneNumber;
-        this.web3Wallet = web3Wallet;
-        this.externalAccount = externalAccount;
-      }
-      static fromJSON(data) {
-        return new _SignUpAttemptVerifications(
-          data.email_address && SignUpAttemptVerification.fromJSON(data.email_address),
-          data.phone_number && SignUpAttemptVerification.fromJSON(data.phone_number),
-          data.web3_wallet && SignUpAttemptVerification.fromJSON(data.web3_wallet),
-          data.external_account
-        );
-      }
-    };
-    SignUpAttempt = class _SignUpAttempt {
-      constructor(id, status, requiredFields, optionalFields, missingFields, unverifiedFields, verifications, username, emailAddress, phoneNumber, web3Wallet, passwordEnabled, firstName, lastName, customAction, externalId, createdSessionId, createdUserId, abandonAt, legalAcceptedAt, publicMetadata, unsafeMetadata) {
-        this.id = id;
-        this.status = status;
-        this.requiredFields = requiredFields;
-        this.optionalFields = optionalFields;
-        this.missingFields = missingFields;
-        this.unverifiedFields = unverifiedFields;
-        this.verifications = verifications;
-        this.username = username;
-        this.emailAddress = emailAddress;
-        this.phoneNumber = phoneNumber;
-        this.web3Wallet = web3Wallet;
-        this.passwordEnabled = passwordEnabled;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.customAction = customAction;
-        this.externalId = externalId;
-        this.createdSessionId = createdSessionId;
-        this.createdUserId = createdUserId;
-        this.abandonAt = abandonAt;
-        this.legalAcceptedAt = legalAcceptedAt;
-        this.publicMetadata = publicMetadata;
-        this.unsafeMetadata = unsafeMetadata;
-      }
-      static fromJSON(data) {
-        return new _SignUpAttempt(
-          data.id,
-          data.status,
-          data.required_fields,
-          data.optional_fields,
-          data.missing_fields,
-          data.unverified_fields,
-          data.verifications ? SignUpAttemptVerifications.fromJSON(data.verifications) : null,
-          data.username,
-          data.email_address,
-          data.phone_number,
-          data.web3_wallet,
-          data.password_enabled,
-          data.first_name,
-          data.last_name,
-          data.custom_action,
-          data.external_id,
-          data.created_session_id,
-          data.created_user_id,
-          data.abandon_at,
-          data.legal_accepted_at,
-          data.public_metadata,
-          data.unsafe_metadata
-        );
-      }
-    };
-    SMSMessage = class _SMSMessage {
-      constructor(id, fromPhoneNumber, toPhoneNumber, message, status, phoneNumberId, data) {
-        this.id = id;
-        this.fromPhoneNumber = fromPhoneNumber;
-        this.toPhoneNumber = toPhoneNumber;
-        this.message = message;
-        this.status = status;
-        this.phoneNumberId = phoneNumberId;
-        this.data = data;
-      }
-      static fromJSON(data) {
-        return new _SMSMessage(
-          data.id,
-          data.from_phone_number,
-          data.to_phone_number,
-          data.message,
-          data.status,
-          data.phone_number_id,
-          data.data
-        );
-      }
-    };
-    Token = class _Token {
-      constructor(jwt) {
-        this.jwt = jwt;
-      }
-      static fromJSON(data) {
-        return new _Token(data.jwt);
-      }
-    };
-    Web3Wallet = class _Web3Wallet {
-      constructor(id, web3Wallet, verification) {
-        this.id = id;
-        this.web3Wallet = web3Wallet;
-        this.verification = verification;
-      }
-      static fromJSON(data) {
-        return new _Web3Wallet(data.id, data.web3_wallet, data.verification && Verification.fromJSON(data.verification));
-      }
-    };
-    User = class _User {
-      constructor(id, passwordEnabled, totpEnabled, backupCodeEnabled, twoFactorEnabled, banned, locked, createdAt, updatedAt, imageUrl, hasImage, primaryEmailAddressId, primaryPhoneNumberId, primaryWeb3WalletId, lastSignInAt, externalId, username, firstName, lastName, publicMetadata = {}, privateMetadata = {}, unsafeMetadata = {}, emailAddresses = [], phoneNumbers = [], web3Wallets = [], externalAccounts = [], enterpriseAccounts = [], lastActiveAt, createOrganizationEnabled, createOrganizationsLimit = null, deleteSelfEnabled, legalAcceptedAt, locale) {
-        this.id = id;
-        this.passwordEnabled = passwordEnabled;
-        this.totpEnabled = totpEnabled;
-        this.backupCodeEnabled = backupCodeEnabled;
-        this.twoFactorEnabled = twoFactorEnabled;
-        this.banned = banned;
-        this.locked = locked;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.imageUrl = imageUrl;
-        this.hasImage = hasImage;
-        this.primaryEmailAddressId = primaryEmailAddressId;
-        this.primaryPhoneNumberId = primaryPhoneNumberId;
-        this.primaryWeb3WalletId = primaryWeb3WalletId;
-        this.lastSignInAt = lastSignInAt;
-        this.externalId = externalId;
-        this.username = username;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.publicMetadata = publicMetadata;
-        this.privateMetadata = privateMetadata;
-        this.unsafeMetadata = unsafeMetadata;
-        this.emailAddresses = emailAddresses;
-        this.phoneNumbers = phoneNumbers;
-        this.web3Wallets = web3Wallets;
-        this.externalAccounts = externalAccounts;
-        this.enterpriseAccounts = enterpriseAccounts;
-        this.lastActiveAt = lastActiveAt;
-        this.createOrganizationEnabled = createOrganizationEnabled;
-        this.createOrganizationsLimit = createOrganizationsLimit;
-        this.deleteSelfEnabled = deleteSelfEnabled;
-        this.legalAcceptedAt = legalAcceptedAt;
-        this.locale = locale;
-        this._raw = null;
-      }
-      get raw() {
-        return this._raw;
-      }
-      static fromJSON(data) {
-        const res = new _User(
-          data.id,
-          data.password_enabled,
-          data.totp_enabled,
-          data.backup_code_enabled,
-          data.two_factor_enabled,
-          data.banned,
-          data.locked,
-          data.created_at,
-          data.updated_at,
-          data.image_url,
-          data.has_image,
-          data.primary_email_address_id,
-          data.primary_phone_number_id,
-          data.primary_web3_wallet_id,
-          data.last_sign_in_at,
-          data.external_id,
-          data.username,
-          data.first_name,
-          data.last_name,
-          data.public_metadata,
-          data.private_metadata,
-          data.unsafe_metadata,
-          (data.email_addresses || []).map((x2) => EmailAddress.fromJSON(x2)),
-          (data.phone_numbers || []).map((x2) => PhoneNumber.fromJSON(x2)),
-          (data.web3_wallets || []).map((x2) => Web3Wallet.fromJSON(x2)),
-          (data.external_accounts || []).map((x2) => ExternalAccount.fromJSON(x2)),
-          (data.enterprise_accounts || []).map((x2) => EnterpriseAccount.fromJSON(x2)),
-          data.last_active_at,
-          data.create_organization_enabled,
-          data.create_organizations_limit,
-          data.delete_self_enabled,
-          data.legal_accepted_at,
-          data.locale
-        );
-        res._raw = data;
-        return res;
-      }
-      /**
-       * The primary email address of the user.
-       */
-      get primaryEmailAddress() {
-        return this.emailAddresses.find(({ id }) => id === this.primaryEmailAddressId) ?? null;
-      }
-      /**
-       * The primary phone number of the user.
-       */
-      get primaryPhoneNumber() {
-        return this.phoneNumbers.find(({ id }) => id === this.primaryPhoneNumberId) ?? null;
-      }
-      /**
-       * The primary web3 wallet of the user.
-       */
-      get primaryWeb3Wallet() {
-        return this.web3Wallets.find(({ id }) => id === this.primaryWeb3WalletId) ?? null;
-      }
-      /**
-       * The full name of the user.
-       */
-      get fullName() {
-        return [this.firstName, this.lastName].join(" ").trim() || null;
-      }
-    };
-    WaitlistEntry = class _WaitlistEntry {
-      constructor(id, emailAddress, status, invitation, createdAt, updatedAt, isLocked) {
-        this.id = id;
-        this.emailAddress = emailAddress;
-        this.status = status;
-        this.invitation = invitation;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.isLocked = isLocked;
-      }
-      static fromJSON(data) {
-        return new _WaitlistEntry(
-          data.id,
-          data.email_address,
-          data.status,
-          data.invitation && Invitation.fromJSON(data.invitation),
-          data.created_at,
-          data.updated_at,
-          data.is_locked
-        );
-      }
-    };
-    createDebug = (data) => {
-      return () => {
-        const res = { ...data };
-        res.secretKey = (res.secretKey || "").substring(0, 7);
-        res.jwtKey = (res.jwtKey || "").substring(0, 7);
-        return { ...res };
-      };
-    };
-    createGetToken = (params) => {
-      const { fetcher, sessionToken, sessionId } = params || {};
-      return async (options = {}) => {
-        if (!sessionId) {
-          return null;
-        }
-        if (options.template || options.expiresInSeconds !== void 0) {
-          return fetcher(sessionId, options.template, options.expiresInSeconds);
-        }
-        return sessionToken;
-      };
-    };
-    AuthStatus = {
-      SignedIn: "signed-in",
-      SignedOut: "signed-out",
-      Handshake: "handshake"
-    };
-    AuthErrorReason = {
-      ClientUATWithoutSessionToken: "client-uat-but-no-session-token",
-      DevBrowserMissing: "dev-browser-missing",
-      DevBrowserSync: "dev-browser-sync",
-      PrimaryRespondsToSyncing: "primary-responds-to-syncing",
-      PrimaryDomainCrossOriginSync: "primary-domain-cross-origin-sync",
-      SatelliteCookieNeedsSyncing: "satellite-needs-syncing",
-      SessionTokenAndUATMissing: "session-token-and-uat-missing",
-      SessionTokenMissing: "session-token-missing",
-      SessionTokenExpired: "session-token-expired",
-      SessionTokenIATBeforeClientUAT: "session-token-iat-before-client-uat",
-      SessionTokenNBF: "session-token-nbf",
-      SessionTokenIatInTheFuture: "session-token-iat-in-the-future",
-      SessionTokenWithoutClientUAT: "session-token-but-no-client-uat",
-      ActiveOrganizationMismatch: "active-organization-mismatch",
-      TokenTypeMismatch: "token-type-mismatch",
-      UnexpectedError: "unexpected-error"
-    };
-    withDebugHeaders = (requestState) => {
-      const headers = new Headers(requestState.headers || {});
-      if (requestState.message) {
-        try {
-          headers.set(constants2.Headers.AuthMessage, requestState.message);
-        } catch {
-        }
-      }
-      if (requestState.reason) {
-        try {
-          headers.set(constants2.Headers.AuthReason, requestState.reason);
-        } catch {
-        }
-      }
-      if (requestState.status) {
-        try {
-          headers.set(constants2.Headers.AuthStatus, requestState.status);
-        } catch {
-        }
-      }
-      requestState.headers = headers;
-      return requestState;
-    };
-    import_cookie3 = __toESM2(require_dist3());
-    ClerkUrl = class extends URL {
-      isCrossOrigin(other) {
-        return this.origin !== new URL(other.toString()).origin;
-      }
-    };
-    createClerkUrl = (...args) => {
-      return new ClerkUrl(...args);
-    };
-    ClerkRequest = class extends Request {
-      constructor(input, init2) {
-        const url = typeof input !== "string" && "url" in input ? input.url : String(input);
-        let cloneInit;
-        if (init2) {
-          cloneInit = init2;
-        } else if (typeof input !== "string") {
-          cloneInit = new Proxy(input, {
-            get(target, prop) {
-              if (prop === "signal" || prop === "body") {
-                return void 0;
-              }
-              return Reflect.get(target, prop, target);
-            }
-          });
-        }
-        super(url, cloneInit);
-        this.clerkUrl = this.deriveUrlFromHeaders(this);
-        this.cookies = this.parseCookies(this);
-      }
-      toJSON() {
-        return {
-          url: this.clerkUrl.href,
-          method: this.method,
-          headers: JSON.stringify(Object.fromEntries(this.headers)),
-          clerkUrl: this.clerkUrl.toString(),
-          cookies: JSON.stringify(Object.fromEntries(this.cookies))
-        };
-      }
-      /**
-       * Used to fix request.url using the x-forwarded-* headers
-       * TODO add detailed description of the issues this solves
-       */
-      deriveUrlFromHeaders(req) {
-        const initialUrl = new URL(req.url);
-        const forwardedProto = req.headers.get(constants2.Headers.ForwardedProto);
-        const forwardedHost = req.headers.get(constants2.Headers.ForwardedHost);
-        const host = req.headers.get(constants2.Headers.Host);
-        const protocol = initialUrl.protocol;
-        const resolvedHost = this.getFirstValueFromHeader(forwardedHost) ?? host;
-        const resolvedProtocol = this.getFirstValueFromHeader(forwardedProto) ?? protocol?.replace(/[:/]/, "");
-        const origin = resolvedHost && resolvedProtocol ? `${resolvedProtocol}://${resolvedHost}` : initialUrl.origin;
-        if (origin === initialUrl.origin) {
-          return createClerkUrl(initialUrl);
-        }
-        try {
-          return createClerkUrl(initialUrl.pathname + initialUrl.search, origin);
-        } catch {
-          return createClerkUrl(initialUrl);
-        }
-      }
-      getFirstValueFromHeader(value) {
-        return value?.split(",")[0];
-      }
-      parseCookies(req) {
-        const cookiesRecord = (0, import_cookie3.parse)(this.decodeCookieValue(req.headers.get("cookie") || ""));
-        return new Map(Object.entries(cookiesRecord));
-      }
-      decodeCookieValue(str2) {
-        return str2 ? str2.replace(/(%[0-9A-Z]{2})+/g, decodeURIComponent) : str2;
-      }
-    };
-    createClerkRequest = (...args) => {
-      const isClerkRequest = args[0] && typeof args[0] === "object" && "clerkUrl" in args[0] && "cookies" in args[0];
-      return isClerkRequest ? args[0] : new ClerkRequest(...args);
-    };
-    getCookieName = (cookieDirective) => {
-      return cookieDirective.split(";")[0]?.split("=")[0];
-    };
-    getCookieValue = (cookieDirective) => {
-      return cookieDirective.split(";")[0]?.split("=")[1];
-    };
-    HandshakeService = class {
-      constructor(authenticateContext, options, organizationMatcher) {
-        this.authenticateContext = authenticateContext;
-        this.options = options;
-        this.organizationMatcher = organizationMatcher;
-      }
-      /**
-       * Determines if a request is eligible for handshake based on its headers
-       *
-       * Currently, a request is only eligible for a handshake if we can say it's *probably* a request for a document, not a fetch or some other exotic request.
-       * This heuristic should give us a reliable enough signal for browsers that support `Sec-Fetch-Dest` and for those that don't.
-       *
-       * @returns boolean indicating if the request is eligible for handshake
-       */
-      isRequestEligibleForHandshake() {
-        const { accept, method, secFetchDest } = this.authenticateContext;
-        if (method !== "GET") {
-          return false;
-        }
-        if (secFetchDest === "document" || secFetchDest === "iframe") {
-          return true;
-        }
-        if (!secFetchDest && accept?.startsWith("text/html")) {
-          return true;
-        }
-        return false;
-      }
-      /**
-       * Builds the redirect headers for a handshake request
-       * @param reason - The reason for the handshake (e.g. 'session-token-expired')
-       * @returns Headers object containing the Location header for redirect
-       * @throws Error if clerkUrl is missing in authenticateContext
-       */
-      buildRedirectToHandshake(reason) {
-        if (!this.authenticateContext?.clerkUrl) {
-          throw new Error("Missing clerkUrl in authenticateContext");
-        }
-        const redirectUrl = this.removeDevBrowserFromURL(this.authenticateContext.clerkUrl);
-        let baseUrl = this.authenticateContext.frontendApi.startsWith("http") ? this.authenticateContext.frontendApi : `https://${this.authenticateContext.frontendApi}`;
-        baseUrl = baseUrl.replace(/\/+$/, "") + "/";
-        const url = new URL("v1/client/handshake", baseUrl);
-        url.searchParams.append("redirect_url", redirectUrl?.href || "");
-        url.searchParams.append("__clerk_api_version", SUPPORTED_BAPI_VERSION);
-        url.searchParams.append(
-          constants2.QueryParameters.SuffixedCookies,
-          this.authenticateContext.usesSuffixedCookies().toString()
-        );
-        url.searchParams.append(constants2.QueryParameters.HandshakeReason, reason);
-        url.searchParams.append(constants2.QueryParameters.HandshakeFormat, "nonce");
-        if (this.authenticateContext.sessionToken) {
-          url.searchParams.append(constants2.QueryParameters.Session, this.authenticateContext.sessionToken);
-        }
-        if (this.authenticateContext.instanceType === "development" && this.authenticateContext.devBrowserToken) {
-          url.searchParams.append(constants2.QueryParameters.DevBrowser, this.authenticateContext.devBrowserToken);
-        }
-        const toActivate = this.getOrganizationSyncTarget(this.authenticateContext.clerkUrl, this.organizationMatcher);
-        if (toActivate) {
-          const params = this.getOrganizationSyncQueryParams(toActivate);
-          params.forEach((value, key) => {
-            url.searchParams.append(key, value);
-          });
-        }
-        return new Headers({ [constants2.Headers.Location]: url.href });
-      }
-      /**
-       * Gets cookies from either a handshake nonce or a handshake token
-       * @returns Promise resolving to string array of cookie directives
-       */
-      async getCookiesFromHandshake() {
-        const cookiesToSet = [];
-        if (this.authenticateContext.handshakeNonce) {
-          try {
-            const handshakePayload = await this.authenticateContext.apiClient?.clients.getHandshakePayload({
-              nonce: this.authenticateContext.handshakeNonce
-            });
-            if (handshakePayload) {
-              cookiesToSet.push(...handshakePayload.directives);
-            }
-          } catch (error) {
-            console.error("Clerk: HandshakeService: error getting handshake payload:", error);
-          }
-        } else if (this.authenticateContext.handshakeToken) {
-          const handshakePayload = await verifyHandshakeToken(
-            this.authenticateContext.handshakeToken,
-            this.authenticateContext
-          );
-          if (handshakePayload && Array.isArray(handshakePayload.handshake)) {
-            cookiesToSet.push(...handshakePayload.handshake);
-          }
-        }
-        return cookiesToSet;
-      }
-      /**
-       * Resolves a handshake request by verifying the handshake token and setting appropriate cookies
-       * @returns Promise resolving to either a SignedInState or SignedOutState
-       * @throws Error if handshake verification fails or if there are issues with the session token
-       */
-      async resolveHandshake() {
-        const headers = new Headers({
-          "Access-Control-Allow-Origin": "null",
-          "Access-Control-Allow-Credentials": "true"
-        });
-        const cookiesToSet = await this.getCookiesFromHandshake();
-        let sessionToken = "";
-        cookiesToSet.forEach((x2) => {
-          headers.append("Set-Cookie", x2);
-          if (getCookieName(x2).startsWith(constants2.Cookies.Session)) {
-            sessionToken = getCookieValue(x2);
-          }
-        });
-        if (this.authenticateContext.instanceType === "development") {
-          const newUrl = new URL(this.authenticateContext.clerkUrl);
-          newUrl.searchParams.delete(constants2.QueryParameters.Handshake);
-          newUrl.searchParams.delete(constants2.QueryParameters.HandshakeHelp);
-          newUrl.searchParams.delete(constants2.QueryParameters.DevBrowser);
-          newUrl.searchParams.delete(constants2.QueryParameters.HandshakeNonce);
-          headers.append(constants2.Headers.Location, newUrl.toString());
-          headers.set(constants2.Headers.CacheControl, "no-store");
-        }
-        if (sessionToken === "") {
-          return signedOut({
-            tokenType: TokenType.SessionToken,
-            authenticateContext: this.authenticateContext,
-            reason: AuthErrorReason.SessionTokenMissing,
-            message: "",
-            headers
-          });
-        }
-        const { data, errors: [error] = [] } = await verifyToken(sessionToken, this.authenticateContext);
-        if (data) {
-          return signedIn({
-            tokenType: TokenType.SessionToken,
-            authenticateContext: this.authenticateContext,
-            sessionClaims: data,
-            headers,
-            token: sessionToken
-          });
-        }
-        if (this.authenticateContext.instanceType === "development" && (error?.reason === TokenVerificationErrorReason.TokenExpired || error?.reason === TokenVerificationErrorReason.TokenNotActiveYet || error?.reason === TokenVerificationErrorReason.TokenIatInTheFuture)) {
-          const developmentError = new TokenVerificationError({
-            action: error.action,
-            message: error.message,
-            reason: error.reason
-          });
-          developmentError.tokenCarrier = "cookie";
-          console.error(
-            `Clerk: Clock skew detected. This usually means that your system clock is inaccurate. Clerk will attempt to account for the clock skew in development.
-
-To resolve this issue, make sure your system's clock is set to the correct time (e.g. turn off and on automatic time synchronization).
-
----
-
-${developmentError.getFullMessage()}`
-          );
-          const { data: retryResult, errors: [retryError] = [] } = await verifyToken(sessionToken, {
-            ...this.authenticateContext,
-            clockSkewInMs: 864e5
-          });
-          if (retryResult) {
-            return signedIn({
-              tokenType: TokenType.SessionToken,
-              authenticateContext: this.authenticateContext,
-              sessionClaims: retryResult,
-              headers,
-              token: sessionToken
-            });
-          }
-          throw new Error(retryError?.message || "Clerk: Handshake retry failed.");
-        }
-        throw new Error(error?.message || "Clerk: Handshake failed.");
-      }
-      /**
-       * Handles handshake token verification errors in development mode
-       * @param error - The TokenVerificationError that occurred
-       * @throws Error with a descriptive message about the verification failure
-       */
-      handleTokenVerificationErrorInDevelopment(error) {
-        if (error.reason === TokenVerificationErrorReason.TokenInvalidSignature) {
-          const msg = `Clerk: Handshake token verification failed due to an invalid signature. If you have switched Clerk keys locally, clear your cookies and try again.`;
-          throw new Error(msg);
-        }
-        throw new Error(`Clerk: Handshake token verification failed: ${error.getFullMessage()}.`);
-      }
-      /**
-       * Checks if a redirect loop is detected and sets headers to track redirect count
-       * @param headers - The Headers object to modify
-       * @returns boolean indicating if a redirect loop was detected (true) or if the request can proceed (false)
-       */
-      checkAndTrackRedirectLoop(headers) {
-        if (this.authenticateContext.handshakeRedirectLoopCounter === 3) {
-          return true;
-        }
-        const newCounterValue = this.authenticateContext.handshakeRedirectLoopCounter + 1;
-        const cookieName = constants2.Cookies.RedirectCount;
-        headers.append("Set-Cookie", `${cookieName}=${newCounterValue}; SameSite=Lax; HttpOnly; Max-Age=2`);
-        return false;
-      }
-      removeDevBrowserFromURL(url) {
-        const updatedURL = new URL(url);
-        updatedURL.searchParams.delete(constants2.QueryParameters.DevBrowser);
-        updatedURL.searchParams.delete(constants2.QueryParameters.LegacyDevBrowser);
-        return updatedURL;
-      }
-      getOrganizationSyncTarget(url, matchers) {
-        return matchers.findTarget(url);
-      }
-      getOrganizationSyncQueryParams(toActivate) {
-        const ret = /* @__PURE__ */ new Map();
-        if (toActivate.type === "personalAccount") {
-          ret.set("organization_id", "");
-        }
-        if (toActivate.type === "organization") {
-          if (toActivate.organizationId) {
-            ret.set("organization_id", toActivate.organizationId);
-          }
-          if (toActivate.organizationSlug) {
-            ret.set("organization_id", toActivate.organizationSlug);
-          }
-        }
-        return ret;
-      }
-    };
-    OrganizationMatcher = class {
-      constructor(options) {
-        this.organizationPattern = this.createMatcher(options?.organizationPatterns);
-        this.personalAccountPattern = this.createMatcher(options?.personalAccountPatterns);
-      }
-      createMatcher(pattern) {
-        if (!pattern) {
-          return null;
-        }
-        try {
-          return match2(pattern);
-        } catch (e2) {
-          throw new Error(`Invalid pattern "${pattern}": ${e2}`);
-        }
-      }
-      findTarget(url) {
-        const orgTarget = this.findOrganizationTarget(url);
-        if (orgTarget) {
-          return orgTarget;
-        }
-        return this.findPersonalAccountTarget(url);
-      }
-      findOrganizationTarget(url) {
-        if (!this.organizationPattern) {
-          return null;
-        }
-        try {
-          const result = this.organizationPattern(url.pathname);
-          if (!result || !("params" in result)) {
-            return null;
-          }
-          const params = result.params;
-          if (params.id) {
-            return { type: "organization", organizationId: params.id };
-          }
-          if (params.slug) {
-            return { type: "organization", organizationSlug: params.slug };
-          }
-          return null;
-        } catch (e2) {
-          console.error("Failed to match organization pattern:", e2);
-          return null;
-        }
-      }
-      findPersonalAccountTarget(url) {
-        if (!this.personalAccountPattern) {
-          return null;
-        }
-        try {
-          const result = this.personalAccountPattern(url.pathname);
-          return result ? { type: "personalAccount" } : null;
-        } catch (e2) {
-          console.error("Failed to match personal account pattern:", e2);
-          return null;
-        }
-      }
-    };
-    RefreshTokenErrorReason = {
-      NonEligibleNoCookie: "non-eligible-no-refresh-cookie",
-      NonEligibleNonGet: "non-eligible-non-get",
-      InvalidSessionToken: "invalid-session-token",
-      MissingApiClient: "missing-api-client",
-      MissingSessionToken: "missing-session-token",
-      MissingRefreshToken: "missing-refresh-token",
-      ExpiredSessionTokenDecodeFailed: "expired-session-token-decode-failed",
-      ExpiredSessionTokenMissingSidClaim: "expired-session-token-missing-sid-claim",
-      FetchError: "fetch-error",
-      UnexpectedSDKError: "unexpected-sdk-error",
-      UnexpectedBAPIError: "unexpected-bapi-error"
-    };
-    authenticateRequest = (async (request, options) => {
-      const authenticateContext = await createAuthenticateContext(createClerkRequest(request), options);
-      const acceptsToken = options.acceptsToken ?? TokenType.SessionToken;
-      if (acceptsToken !== TokenType.M2MToken) {
-        assertValidSecretKey(authenticateContext.secretKey);
-        if (authenticateContext.isSatellite) {
-          assertSignInUrlExists(authenticateContext.signInUrl, authenticateContext.secretKey);
-          if (authenticateContext.signInUrl && authenticateContext.origin) {
-            assertSignInUrlFormatAndOrigin(authenticateContext.signInUrl, authenticateContext.origin);
-          }
-          assertProxyUrlOrDomain(authenticateContext.proxyUrl || authenticateContext.domain);
-        }
-      }
-      if (acceptsToken === TokenType.M2MToken) {
-        assertMachineSecretOrSecretKey(authenticateContext);
-      }
-      const organizationMatcher = new OrganizationMatcher(options.organizationSyncOptions);
-      const handshakeService = new HandshakeService(
-        authenticateContext,
-        { organizationSyncOptions: options.organizationSyncOptions },
-        organizationMatcher
-      );
-      async function refreshToken(authenticateContext2) {
-        if (!options.apiClient) {
-          return {
-            data: null,
-            error: {
-              message: "An apiClient is needed to perform token refresh.",
-              cause: { reason: RefreshTokenErrorReason.MissingApiClient }
-            }
-          };
-        }
-        const { sessionToken: expiredSessionToken, refreshTokenInCookie: refreshToken2 } = authenticateContext2;
-        if (!expiredSessionToken) {
-          return {
-            data: null,
-            error: {
-              message: "Session token must be provided.",
-              cause: { reason: RefreshTokenErrorReason.MissingSessionToken }
-            }
-          };
-        }
-        if (!refreshToken2) {
-          return {
-            data: null,
-            error: {
-              message: "Refresh token must be provided.",
-              cause: { reason: RefreshTokenErrorReason.MissingRefreshToken }
-            }
-          };
-        }
-        const { data: decodeResult, errors: decodedErrors } = decodeJwt(expiredSessionToken);
-        if (!decodeResult || decodedErrors) {
-          return {
-            data: null,
-            error: {
-              message: "Unable to decode the expired session token.",
-              cause: { reason: RefreshTokenErrorReason.ExpiredSessionTokenDecodeFailed, errors: decodedErrors }
-            }
-          };
-        }
-        if (!decodeResult?.payload?.sid) {
-          return {
-            data: null,
-            error: {
-              message: "Expired session token is missing the `sid` claim.",
-              cause: { reason: RefreshTokenErrorReason.ExpiredSessionTokenMissingSidClaim }
-            }
-          };
-        }
-        try {
-          const response3 = await options.apiClient.sessions.refreshSession(decodeResult.payload.sid, {
-            format: "cookie",
-            suffixed_cookies: authenticateContext2.usesSuffixedCookies(),
-            expired_token: expiredSessionToken || "",
-            refresh_token: refreshToken2 || "",
-            request_origin: authenticateContext2.clerkUrl.origin,
-            // The refresh endpoint expects headers as Record<string, string[]>, so we need to transform it.
-            request_headers: Object.fromEntries(Array.from(request.headers.entries()).map(([k2, v2]) => [k2, [v2]]))
-          });
-          return { data: response3.cookies, error: null };
-        } catch (err2) {
-          if (err2?.errors?.length) {
-            if (err2.errors[0].code === "unexpected_error") {
-              return {
-                data: null,
-                error: {
-                  message: `Fetch unexpected error`,
-                  cause: { reason: RefreshTokenErrorReason.FetchError, errors: err2.errors }
-                }
-              };
-            }
-            return {
-              data: null,
-              error: {
-                message: err2.errors[0].code,
-                cause: { reason: err2.errors[0].code, errors: err2.errors }
-              }
-            };
-          } else {
-            return {
-              data: null,
-              error: {
-                message: `Unexpected Server/BAPI error`,
-                cause: { reason: RefreshTokenErrorReason.UnexpectedBAPIError, errors: [err2] }
-              }
-            };
-          }
-        }
-      }
-      async function attemptRefresh(authenticateContext2) {
-        const { data: cookiesToSet, error } = await refreshToken(authenticateContext2);
-        if (!cookiesToSet || cookiesToSet.length === 0) {
-          return { data: null, error };
-        }
-        const headers = new Headers();
-        let sessionToken = "";
-        cookiesToSet.forEach((x2) => {
-          headers.append("Set-Cookie", x2);
-          if (getCookieName(x2).startsWith(constants2.Cookies.Session)) {
-            sessionToken = getCookieValue(x2);
-          }
-        });
-        const { data: jwtPayload, errors } = await verifyToken(sessionToken, authenticateContext2);
-        if (errors) {
-          return {
-            data: null,
-            error: {
-              message: `Clerk: unable to verify refreshed session token.`,
-              cause: { reason: RefreshTokenErrorReason.InvalidSessionToken, errors }
-            }
-          };
-        }
-        return { data: { jwtPayload, sessionToken, headers }, error: null };
-      }
-      function handleMaybeHandshakeStatus(authenticateContext2, reason, message, headers) {
-        if (!handshakeService.isRequestEligibleForHandshake()) {
-          return signedOut({
-            tokenType: TokenType.SessionToken,
-            authenticateContext: authenticateContext2,
-            reason,
-            message
-          });
-        }
-        const handshakeHeaders = headers ?? handshakeService.buildRedirectToHandshake(reason);
-        if (handshakeHeaders.get(constants2.Headers.Location)) {
-          handshakeHeaders.set(constants2.Headers.CacheControl, "no-store");
-        }
-        const isRedirectLoop = handshakeService.checkAndTrackRedirectLoop(handshakeHeaders);
-        if (isRedirectLoop) {
-          const msg = `Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.`;
-          console.log(msg);
-          return signedOut({
-            tokenType: TokenType.SessionToken,
-            authenticateContext: authenticateContext2,
-            reason,
-            message
-          });
-        }
-        return handshake(authenticateContext2, reason, message, handshakeHeaders);
-      }
-      function handleMaybeOrganizationSyncHandshake(authenticateContext2, auth) {
-        const organizationSyncTarget = organizationMatcher.findTarget(authenticateContext2.clerkUrl);
-        if (!organizationSyncTarget) {
-          return null;
-        }
-        let mustActivate = false;
-        if (organizationSyncTarget.type === "organization") {
-          if (organizationSyncTarget.organizationSlug && organizationSyncTarget.organizationSlug !== auth.orgSlug) {
-            mustActivate = true;
-          }
-          if (organizationSyncTarget.organizationId && organizationSyncTarget.organizationId !== auth.orgId) {
-            mustActivate = true;
-          }
-        }
-        if (organizationSyncTarget.type === "personalAccount" && auth.orgId) {
-          mustActivate = true;
-        }
-        if (!mustActivate) {
-          return null;
-        }
-        if (authenticateContext2.handshakeRedirectLoopCounter >= 3) {
-          console.warn(
-            "Clerk: Organization activation handshake loop detected. This is likely due to an invalid organization ID or slug. Skipping organization activation."
-          );
-          return null;
-        }
-        const handshakeState = handleMaybeHandshakeStatus(
-          authenticateContext2,
-          AuthErrorReason.ActiveOrganizationMismatch,
-          ""
-        );
-        if (handshakeState.status !== "handshake") {
-          return null;
-        }
-        return handshakeState;
-      }
-      async function authenticateRequestWithTokenInHeader() {
-        const { tokenInHeader } = authenticateContext;
-        if (isMachineJwt(tokenInHeader)) {
-          return signedOut({
-            tokenType: TokenType.SessionToken,
-            authenticateContext,
-            reason: AuthErrorReason.TokenTypeMismatch,
-            message: ""
-          });
-        }
-        try {
-          const { data, errors } = await verifyToken(tokenInHeader, authenticateContext);
-          if (errors) {
-            throw errors[0];
-          }
-          return signedIn({
-            tokenType: TokenType.SessionToken,
-            authenticateContext,
-            sessionClaims: data,
-            headers: new Headers(),
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            token: tokenInHeader
-          });
-        } catch (err2) {
-          return handleSessionTokenError(err2, "header");
-        }
-      }
-      async function authenticateRequestWithTokenInCookie() {
-        const hasActiveClient = authenticateContext.clientUat;
-        const hasSessionToken = !!authenticateContext.sessionTokenInCookie;
-        const hasDevBrowserToken = !!authenticateContext.devBrowserToken;
-        if (authenticateContext.handshakeNonce || authenticateContext.handshakeToken) {
-          try {
-            return await handshakeService.resolveHandshake();
-          } catch (error) {
-            if (error instanceof TokenVerificationError && authenticateContext.instanceType === "development") {
-              handshakeService.handleTokenVerificationErrorInDevelopment(error);
-            } else {
-              console.error("Clerk: unable to resolve handshake:", error);
-            }
-          }
-        }
-        const isRequestEligibleForMultiDomainSync = authenticateContext.isSatellite && authenticateContext.secFetchDest === "document" && authenticateContext.method === "GET";
-        const syncedParam = authenticateContext.clerkUrl.searchParams.get(constants2.QueryParameters.ClerkSynced);
-        const needsSync = syncedParam === constants2.ClerkSyncStatus.NeedsSync;
-        const syncCompleted = syncedParam === constants2.ClerkSyncStatus.Completed;
-        const hasCookies = hasSessionToken || hasActiveClient;
-        const shouldSkipSatelliteHandshake = authenticateContext.satelliteAutoSync !== true && !hasCookies && !needsSync;
-        if (authenticateContext.instanceType === "production" && isRequestEligibleForMultiDomainSync && !syncCompleted) {
-          if (shouldSkipSatelliteHandshake) {
-            return signedOut({
-              tokenType: TokenType.SessionToken,
-              authenticateContext,
-              reason: AuthErrorReason.SessionTokenAndUATMissing
-            });
-          }
-          if (!hasCookies || needsSync) {
-            return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SatelliteCookieNeedsSyncing, "");
-          }
-        }
-        if (authenticateContext.instanceType === "development" && isRequestEligibleForMultiDomainSync && !syncCompleted) {
-          if (shouldSkipSatelliteHandshake) {
-            return signedOut({
-              tokenType: TokenType.SessionToken,
-              authenticateContext,
-              reason: AuthErrorReason.SessionTokenAndUATMissing
-            });
-          }
-          if (!hasCookies || needsSync) {
-            const redirectURL = new URL(authenticateContext.signInUrl);
-            redirectURL.searchParams.append(
-              constants2.QueryParameters.ClerkRedirectUrl,
-              authenticateContext.clerkUrl.toString()
-            );
-            const headers = new Headers({ [constants2.Headers.Location]: redirectURL.toString() });
-            return handleMaybeHandshakeStatus(
-              authenticateContext,
-              AuthErrorReason.SatelliteCookieNeedsSyncing,
-              "",
-              headers
-            );
-          }
-        }
-        const redirectUrl = new URL(authenticateContext.clerkUrl).searchParams.get(
-          constants2.QueryParameters.ClerkRedirectUrl
-        );
-        if (authenticateContext.instanceType === "development" && !authenticateContext.isSatellite && redirectUrl) {
-          const redirectBackToSatelliteUrl = new URL(redirectUrl);
-          if (authenticateContext.devBrowserToken) {
-            redirectBackToSatelliteUrl.searchParams.append(
-              constants2.QueryParameters.DevBrowser,
-              authenticateContext.devBrowserToken
-            );
-          }
-          redirectBackToSatelliteUrl.searchParams.set(
-            constants2.QueryParameters.ClerkSynced,
-            constants2.ClerkSyncStatus.Completed
-          );
-          const headers = new Headers({ [constants2.Headers.Location]: redirectBackToSatelliteUrl.toString() });
-          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.PrimaryRespondsToSyncing, "", headers);
-        }
-        if (authenticateContext.instanceType === "development" && authenticateContext.clerkUrl.searchParams.has(constants2.QueryParameters.DevBrowser)) {
-          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.DevBrowserSync, "");
-        }
-        if (authenticateContext.instanceType === "development" && !hasDevBrowserToken) {
-          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.DevBrowserMissing, "");
-        }
-        if (!hasActiveClient && !hasSessionToken) {
-          return signedOut({
-            tokenType: TokenType.SessionToken,
-            authenticateContext,
-            reason: AuthErrorReason.SessionTokenAndUATMissing
-          });
-        }
-        if (!hasActiveClient && hasSessionToken) {
-          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SessionTokenWithoutClientUAT, "");
-        }
-        if (hasActiveClient && !hasSessionToken) {
-          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.ClientUATWithoutSessionToken, "");
-        }
-        const { data: decodeResult, errors: decodedErrors } = decodeJwt(authenticateContext.sessionTokenInCookie);
-        if (decodedErrors) {
-          return handleSessionTokenError(decodedErrors[0], "cookie");
-        }
-        if (decodeResult.payload.iat < authenticateContext.clientUat) {
-          return handleMaybeHandshakeStatus(authenticateContext, AuthErrorReason.SessionTokenIATBeforeClientUAT, "");
-        }
-        try {
-          const { data, errors } = await verifyToken(authenticateContext.sessionTokenInCookie, authenticateContext);
-          if (errors) {
-            throw errors[0];
-          }
-          if (!data.azp) {
-            logger2.warnOnce(
-              "Clerk: Session token from cookie is missing the azp claim. In a future version of Clerk, this token will be considered invalid. Please contact Clerk support if you see this warning."
-            );
-          }
-          const signedInRequestState = signedIn({
-            tokenType: TokenType.SessionToken,
-            authenticateContext,
-            sessionClaims: data,
-            headers: new Headers(),
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            token: authenticateContext.sessionTokenInCookie
-          });
-          const shouldForceHandshakeForCrossDomain = !authenticateContext.isSatellite && // We're on primary
-          authenticateContext.method === "GET" && // Only GET navigations (POST form submissions set sec-fetch-dest: document too)
-          authenticateContext.secFetchDest === "document" && // Document navigation
-          authenticateContext.isCrossOriginReferrer() && // Came from different domain
-          !authenticateContext.isKnownClerkReferrer() && // Not from Clerk accounts portal or FAPI
-          authenticateContext.handshakeRedirectLoopCounter === 0;
-          if (shouldForceHandshakeForCrossDomain) {
-            return handleMaybeHandshakeStatus(
-              authenticateContext,
-              AuthErrorReason.PrimaryDomainCrossOriginSync,
-              "Cross-origin request from satellite domain requires handshake"
-            );
-          }
-          const authObject = signedInRequestState.toAuth();
-          if (authObject.userId) {
-            const handshakeRequestState = handleMaybeOrganizationSyncHandshake(authenticateContext, authObject);
-            if (handshakeRequestState) {
-              return handshakeRequestState;
-            }
-          }
-          return signedInRequestState;
-        } catch (err2) {
-          return handleSessionTokenError(err2, "cookie");
-        }
-        return signedOut({
-          tokenType: TokenType.SessionToken,
-          authenticateContext,
-          reason: AuthErrorReason.UnexpectedError
-        });
-      }
-      async function handleSessionTokenError(err2, tokenCarrier) {
-        if (!(err2 instanceof TokenVerificationError)) {
-          return signedOut({
-            tokenType: TokenType.SessionToken,
-            authenticateContext,
-            reason: AuthErrorReason.UnexpectedError
-          });
-        }
-        let refreshError;
-        if (isRequestEligibleForRefresh(err2, authenticateContext, request)) {
-          const { data, error } = await attemptRefresh(authenticateContext);
-          if (data) {
-            return signedIn({
-              tokenType: TokenType.SessionToken,
-              authenticateContext,
-              sessionClaims: data.jwtPayload,
-              headers: data.headers,
-              token: data.sessionToken
-            });
-          }
-          if (error?.cause?.reason) {
-            refreshError = error.cause.reason;
-          } else {
-            refreshError = RefreshTokenErrorReason.UnexpectedSDKError;
-          }
-        } else {
-          if (request.method !== "GET") {
-            refreshError = RefreshTokenErrorReason.NonEligibleNonGet;
-          } else if (!authenticateContext.refreshTokenInCookie) {
-            refreshError = RefreshTokenErrorReason.NonEligibleNoCookie;
-          } else {
-            refreshError = null;
-          }
-        }
-        err2.tokenCarrier = tokenCarrier;
-        const reasonToHandshake = [
-          TokenVerificationErrorReason.TokenExpired,
-          TokenVerificationErrorReason.TokenNotActiveYet,
-          TokenVerificationErrorReason.TokenIatInTheFuture
-        ].includes(err2.reason);
-        if (reasonToHandshake) {
-          return handleMaybeHandshakeStatus(
-            authenticateContext,
-            convertTokenVerificationErrorReasonToAuthErrorReason({ tokenError: err2.reason, refreshError }),
-            err2.getFullMessage()
-          );
-        }
-        return signedOut({
-          tokenType: TokenType.SessionToken,
-          authenticateContext,
-          reason: err2.reason,
-          message: err2.getFullMessage()
-        });
-      }
-      function handleMachineError(tokenType, err2) {
-        if (!(err2 instanceof MachineTokenVerificationError)) {
-          return signedOut({
-            tokenType,
-            authenticateContext,
-            reason: AuthErrorReason.UnexpectedError
-          });
-        }
-        return signedOut({
-          tokenType,
-          authenticateContext,
-          reason: err2.code,
-          message: err2.getFullMessage()
-        });
-      }
-      async function authenticateMachineRequestWithTokenInHeader() {
-        const { tokenInHeader } = authenticateContext;
-        if (!tokenInHeader) {
-          return handleSessionTokenError(new Error("Missing token in header"), "header");
-        }
-        if (!isMachineToken(tokenInHeader)) {
-          return signedOut({
-            tokenType: acceptsToken,
-            authenticateContext,
-            reason: AuthErrorReason.TokenTypeMismatch,
-            message: ""
-          });
-        }
-        const parsedTokenType = getMachineTokenType(tokenInHeader);
-        const mismatchState = checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext);
-        if (mismatchState) {
-          return mismatchState;
-        }
-        const { data, tokenType, errors } = await verifyMachineAuthToken(tokenInHeader, authenticateContext);
-        if (errors) {
-          return handleMachineError(tokenType, errors[0]);
-        }
-        return signedIn({
-          tokenType,
-          authenticateContext,
-          machineData: data,
-          token: tokenInHeader
-        });
-      }
-      async function authenticateAnyRequestWithTokenInHeader() {
-        const { tokenInHeader } = authenticateContext;
-        if (!tokenInHeader) {
-          return handleSessionTokenError(new Error("Missing token in header"), "header");
-        }
-        if (isMachineToken(tokenInHeader)) {
-          const parsedTokenType = getMachineTokenType(tokenInHeader);
-          const mismatchState = checkTokenTypeMismatch(parsedTokenType, acceptsToken, authenticateContext);
-          if (mismatchState) {
-            return mismatchState;
-          }
-          const { data: data2, tokenType, errors: errors2 } = await verifyMachineAuthToken(tokenInHeader, authenticateContext);
-          if (errors2) {
-            return handleMachineError(tokenType, errors2[0]);
-          }
-          return signedIn({
-            tokenType,
-            authenticateContext,
-            machineData: data2,
-            token: tokenInHeader
-          });
-        }
-        const { data, errors } = await verifyToken(tokenInHeader, authenticateContext);
-        if (errors) {
-          return handleSessionTokenError(errors[0], "header");
-        }
-        return signedIn({
-          tokenType: TokenType.SessionToken,
-          authenticateContext,
-          sessionClaims: data,
-          token: tokenInHeader
-        });
-      }
-      if (Array.isArray(acceptsToken)) {
-        if (!isTokenTypeInAcceptedArray(acceptsToken, authenticateContext)) {
-          return signedOutInvalidToken();
-        }
-      }
-      if (authenticateContext.tokenInHeader) {
-        if (acceptsToken === "any" || Array.isArray(acceptsToken)) {
-          return authenticateAnyRequestWithTokenInHeader();
-        }
-        if (acceptsToken === TokenType.SessionToken) {
-          return authenticateRequestWithTokenInHeader();
-        }
-        return authenticateMachineRequestWithTokenInHeader();
-      }
-      if (acceptsToken === TokenType.OAuthToken || acceptsToken === TokenType.ApiKey || acceptsToken === TokenType.M2MToken) {
-        return signedOut({
-          tokenType: acceptsToken,
-          authenticateContext,
-          reason: "No token in header"
-        });
-      }
-      return authenticateRequestWithTokenInCookie();
-    });
-    debugRequestState = (params) => {
-      const { isSignedIn, isAuthenticated, proxyUrl, reason, message, publishableKey, isSatellite, domain } = params;
-      return { isSignedIn, isAuthenticated, proxyUrl, reason, message, publishableKey, isSatellite, domain };
-    };
-    convertTokenVerificationErrorReasonToAuthErrorReason = ({
-      tokenError,
-      refreshError
-    }) => {
-      switch (tokenError) {
-        case TokenVerificationErrorReason.TokenExpired:
-          return `${AuthErrorReason.SessionTokenExpired}-refresh-${refreshError}`;
-        case TokenVerificationErrorReason.TokenNotActiveYet:
-          return AuthErrorReason.SessionTokenNBF;
-        case TokenVerificationErrorReason.TokenIatInTheFuture:
-          return AuthErrorReason.SessionTokenIatInTheFuture;
-        default:
-          return AuthErrorReason.UnexpectedError;
-      }
-    };
-    defaultOptions3 = {
-      secretKey: "",
-      machineSecretKey: "",
-      jwtKey: "",
-      apiUrl: void 0,
-      apiVersion: void 0,
-      proxyUrl: "",
-      publishableKey: "",
-      isSatellite: false,
-      domain: "",
-      audience: ""
+        let finalKey = key;
+        if (prefix === "secure") {
+          finalKey = "__Secure-" + key;
+        } else if (prefix === "host") {
+          finalKey = "__Host-" + key;
+        }
+        const obj2 = parse(cookie, finalKey);
+        return obj2[finalKey];
+      }
+      if (!cookie) {
+        return {};
+      }
+      const obj = parse(cookie);
+      return obj;
+    };
+    getSignedCookie = async (c2, secret3, key, prefix) => {
+      const cookie = c2.req.raw.headers.get("Cookie");
+      if (typeof key === "string") {
+        if (!cookie) {
+          return void 0;
+        }
+        let finalKey = key;
+        if (prefix === "secure") {
+          finalKey = "__Secure-" + key;
+        } else if (prefix === "host") {
+          finalKey = "__Host-" + key;
+        }
+        const obj2 = await parseSigned(cookie, secret3, finalKey);
+        return obj2[finalKey];
+      }
+      if (!cookie) {
+        return {};
+      }
+      const obj = await parseSigned(cookie, secret3);
+      return obj;
+    };
+    generateCookie = (name, value, opt) => {
+      let cookie;
+      if (opt?.prefix === "secure") {
+        cookie = serialize("__Secure-" + name, value, { path: "/", ...opt, secure: true });
+      } else if (opt?.prefix === "host") {
+        cookie = serialize("__Host-" + name, value, {
+          ...opt,
+          path: "/",
+          secure: true,
+          domain: void 0
+        });
+      } else {
+        cookie = serialize(name, value, { path: "/", ...opt });
+      }
+      return cookie;
+    };
+    setCookie = (c2, name, value, opt) => {
+      const cookie = generateCookie(name, value, opt);
+      c2.header("Set-Cookie", cookie, { append: true });
+    };
+    generateSignedCookie = async (name, value, secret3, opt) => {
+      let cookie;
+      if (opt?.prefix === "secure") {
+        cookie = await serializeSigned("__Secure-" + name, value, secret3, {
+          path: "/",
+          ...opt,
+          secure: true
+        });
+      } else if (opt?.prefix === "host") {
+        cookie = await serializeSigned("__Host-" + name, value, secret3, {
+          ...opt,
+          path: "/",
+          secure: true,
+          domain: void 0
+        });
+      } else {
+        cookie = await serializeSigned(name, value, secret3, { path: "/", ...opt });
+      }
+      return cookie;
+    };
+    setSignedCookie = async (c2, name, value, secret3, opt) => {
+      const cookie = await generateSignedCookie(name, value, secret3, opt);
+      c2.header("set-cookie", cookie, { append: true });
+    };
+    deleteCookie = (c2, name, opt) => {
+      const deletedCookie = getCookie(c2, name, opt?.prefix);
+      setCookie(c2, name, "", { ...opt, maxAge: 0 });
+      return deletedCookie;
     };
   }
 });
 
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs
-function withLegacyReturn(cb) {
-  return async (...args) => {
-    const { data, errors } = await cb(...args);
-    if (errors) {
-      throw errors[0];
-    }
-    return data;
-  };
-}
-var init_chunk_P263NW7Z = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/chunk-P263NW7Z.mjs"() {
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/encode.js
+var decodeBase64Url, encodeBase64Url, encodeBase64, decodeBase64;
+var init_encode = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/encode.js"() {
     "use strict";
+    decodeBase64Url = (str2) => {
+      return decodeBase64(str2.replace(/_|-/g, (m2) => ({ _: "/", "-": "+" })[m2] ?? m2));
+    };
+    encodeBase64Url = (buf) => encodeBase64(buf).replace(/\/|\+/g, (m2) => ({ "/": "_", "+": "-" })[m2] ?? m2);
+    encodeBase64 = (buf) => {
+      let binary = "";
+      const bytes = new Uint8Array(buf);
+      for (let i2 = 0, len = bytes.length; i2 < len; i2++) {
+        binary += String.fromCharCode(bytes[i2]);
+      }
+      return btoa(binary);
+    };
+    decodeBase64 = (str2) => {
+      const binary = atob(str2);
+      const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+      const half = binary.length / 2;
+      for (let i2 = 0, j2 = binary.length - 1; i2 <= half; i2++, j2--) {
+        bytes[i2] = binary.charCodeAt(i2);
+        bytes[j2] = binary.charCodeAt(j2);
+      }
+      return bytes;
+    };
   }
 });
 
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/underscore-CPJSkOtE.mjs
-function snakeToCamel(str2) {
-  return str2 ? str2.replace(/([-_][a-z])/g, (match3) => match3.toUpperCase().replace(/-|_/, "")) : "";
-}
-function camelToSnake(str2) {
-  return str2 ? str2.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`) : "";
-}
-function isTruthy(value) {
-  if (typeof value === `boolean`) return value;
-  if (value === void 0 || value === null) return false;
-  if (typeof value === `string`) {
-    if (value.toLowerCase() === `true`) return true;
-    if (value.toLowerCase() === `false`) return false;
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/jwa.js
+var AlgorithmTypes;
+var init_jwa = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/jwa.js"() {
+    "use strict";
+    AlgorithmTypes = /* @__PURE__ */ ((AlgorithmTypes2) => {
+      AlgorithmTypes2["HS256"] = "HS256";
+      AlgorithmTypes2["HS384"] = "HS384";
+      AlgorithmTypes2["HS512"] = "HS512";
+      AlgorithmTypes2["RS256"] = "RS256";
+      AlgorithmTypes2["RS384"] = "RS384";
+      AlgorithmTypes2["RS512"] = "RS512";
+      AlgorithmTypes2["PS256"] = "PS256";
+      AlgorithmTypes2["PS384"] = "PS384";
+      AlgorithmTypes2["PS512"] = "PS512";
+      AlgorithmTypes2["ES256"] = "ES256";
+      AlgorithmTypes2["ES384"] = "ES384";
+      AlgorithmTypes2["ES512"] = "ES512";
+      AlgorithmTypes2["EdDSA"] = "EdDSA";
+      return AlgorithmTypes2;
+    })(AlgorithmTypes || {});
   }
-  const number = parseInt(value, 10);
-  if (isNaN(number)) return false;
-  if (number > 0) return true;
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/types.js
+var JwtAlgorithmNotImplemented, JwtAlgorithmRequired, JwtAlgorithmMismatch, JwtTokenInvalid, JwtTokenNotBefore, JwtTokenExpired, JwtTokenIssuedAt, JwtTokenIssuer, JwtHeaderInvalid, JwtHeaderRequiresKid, JwtSymmetricAlgorithmNotAllowed, JwtAlgorithmNotAllowed, JwtTokenSignatureMismatched, JwtPayloadRequiresAud, JwtTokenAudience, CryptoKeyUsage;
+var init_types = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/types.js"() {
+    "use strict";
+    JwtAlgorithmNotImplemented = class extends Error {
+      constructor(alg) {
+        super(`${alg} is not an implemented algorithm`);
+        this.name = "JwtAlgorithmNotImplemented";
+      }
+    };
+    JwtAlgorithmRequired = class extends Error {
+      constructor() {
+        super('JWT verification requires "alg" option to be specified');
+        this.name = "JwtAlgorithmRequired";
+      }
+    };
+    JwtAlgorithmMismatch = class extends Error {
+      constructor(expected, actual) {
+        super(`JWT algorithm mismatch: expected "${expected}", got "${actual}"`);
+        this.name = "JwtAlgorithmMismatch";
+      }
+    };
+    JwtTokenInvalid = class extends Error {
+      constructor(token) {
+        super(`invalid JWT token: ${token}`);
+        this.name = "JwtTokenInvalid";
+      }
+    };
+    JwtTokenNotBefore = class extends Error {
+      constructor(token) {
+        super(`token (${token}) is being used before it's valid`);
+        this.name = "JwtTokenNotBefore";
+      }
+    };
+    JwtTokenExpired = class extends Error {
+      constructor(token) {
+        super(`token (${token}) expired`);
+        this.name = "JwtTokenExpired";
+      }
+    };
+    JwtTokenIssuedAt = class extends Error {
+      constructor(currentTimestamp, iat) {
+        super(
+          `Invalid "iat" claim, must be a valid number lower than "${currentTimestamp}" (iat: "${iat}")`
+        );
+        this.name = "JwtTokenIssuedAt";
+      }
+    };
+    JwtTokenIssuer = class extends Error {
+      constructor(expected, iss) {
+        super(`expected issuer "${expected}", got ${iss ? `"${iss}"` : "none"} `);
+        this.name = "JwtTokenIssuer";
+      }
+    };
+    JwtHeaderInvalid = class extends Error {
+      constructor(header2) {
+        super(`jwt header is invalid: ${JSON.stringify(header2)}`);
+        this.name = "JwtHeaderInvalid";
+      }
+    };
+    JwtHeaderRequiresKid = class extends Error {
+      constructor(header2) {
+        super(`required "kid" in jwt header: ${JSON.stringify(header2)}`);
+        this.name = "JwtHeaderRequiresKid";
+      }
+    };
+    JwtSymmetricAlgorithmNotAllowed = class extends Error {
+      constructor(alg) {
+        super(`symmetric algorithm "${alg}" is not allowed for JWK verification`);
+        this.name = "JwtSymmetricAlgorithmNotAllowed";
+      }
+    };
+    JwtAlgorithmNotAllowed = class extends Error {
+      constructor(alg, allowedAlgorithms) {
+        super(`algorithm "${alg}" is not in the allowed list: [${allowedAlgorithms.join(", ")}]`);
+        this.name = "JwtAlgorithmNotAllowed";
+      }
+    };
+    JwtTokenSignatureMismatched = class extends Error {
+      constructor(token) {
+        super(`token(${token}) signature mismatched`);
+        this.name = "JwtTokenSignatureMismatched";
+      }
+    };
+    JwtPayloadRequiresAud = class extends Error {
+      constructor(payload) {
+        super(`required "aud" in jwt payload: ${JSON.stringify(payload)}`);
+        this.name = "JwtPayloadRequiresAud";
+      }
+    };
+    JwtTokenAudience = class extends Error {
+      constructor(expected, aud) {
+        super(
+          `expected audience "${Array.isArray(expected) ? expected.join(", ") : expected}", got "${aud}"`
+        );
+        this.name = "JwtTokenAudience";
+      }
+    };
+    CryptoKeyUsage = /* @__PURE__ */ ((CryptoKeyUsage2) => {
+      CryptoKeyUsage2["Encrypt"] = "encrypt";
+      CryptoKeyUsage2["Decrypt"] = "decrypt";
+      CryptoKeyUsage2["Sign"] = "sign";
+      CryptoKeyUsage2["Verify"] = "verify";
+      CryptoKeyUsage2["DeriveKey"] = "deriveKey";
+      CryptoKeyUsage2["DeriveBits"] = "deriveBits";
+      CryptoKeyUsage2["WrapKey"] = "wrapKey";
+      CryptoKeyUsage2["UnwrapKey"] = "unwrapKey";
+      return CryptoKeyUsage2;
+    })(CryptoKeyUsage || {});
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/utf8.js
+var utf8Encoder, utf8Decoder;
+var init_utf8 = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/utf8.js"() {
+    "use strict";
+    utf8Encoder = new TextEncoder();
+    utf8Decoder = new TextDecoder();
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/jws.js
+async function signing(privateKey, alg, data) {
+  const algorithm2 = getKeyAlgorithm(alg);
+  const cryptoKey = await importPrivateKey(privateKey, algorithm2);
+  return await crypto.subtle.sign(algorithm2, cryptoKey, data);
+}
+async function verifying(publicKey, alg, signature, data) {
+  const algorithm2 = getKeyAlgorithm(alg);
+  const cryptoKey = await importPublicKey(publicKey, algorithm2);
+  return await crypto.subtle.verify(algorithm2, cryptoKey, signature, data);
+}
+function pemToBinary(pem) {
+  return decodeBase64(pem.replace(/-+(BEGIN|END).*?-+/g, "").replace(/\s/g, ""));
+}
+async function importPrivateKey(key, alg) {
+  if (!crypto.subtle || !crypto.subtle.importKey) {
+    throw new Error("`crypto.subtle.importKey` is undefined. JWT auth middleware requires it.");
+  }
+  if (isCryptoKey(key)) {
+    if (key.type !== "private" && key.type !== "secret") {
+      throw new Error(
+        `unexpected key type: CryptoKey.type is ${key.type}, expected private or secret`
+      );
+    }
+    return key;
+  }
+  const usages = [CryptoKeyUsage.Sign];
+  if (typeof key === "object") {
+    return await crypto.subtle.importKey("jwk", key, alg, false, usages);
+  }
+  if (key.includes("PRIVATE")) {
+    return await crypto.subtle.importKey("pkcs8", pemToBinary(key), alg, false, usages);
+  }
+  return await crypto.subtle.importKey("raw", utf8Encoder.encode(key), alg, false, usages);
+}
+async function importPublicKey(key, alg) {
+  if (!crypto.subtle || !crypto.subtle.importKey) {
+    throw new Error("`crypto.subtle.importKey` is undefined. JWT auth middleware requires it.");
+  }
+  if (isCryptoKey(key)) {
+    if (key.type === "public" || key.type === "secret") {
+      return key;
+    }
+    key = await exportPublicJwkFrom(key);
+  }
+  if (typeof key === "string" && key.includes("PRIVATE")) {
+    const privateKey = await crypto.subtle.importKey("pkcs8", pemToBinary(key), alg, true, [
+      CryptoKeyUsage.Sign
+    ]);
+    key = await exportPublicJwkFrom(privateKey);
+  }
+  const usages = [CryptoKeyUsage.Verify];
+  if (typeof key === "object") {
+    return await crypto.subtle.importKey("jwk", key, alg, false, usages);
+  }
+  if (key.includes("PUBLIC")) {
+    return await crypto.subtle.importKey("spki", pemToBinary(key), alg, false, usages);
+  }
+  return await crypto.subtle.importKey("raw", utf8Encoder.encode(key), alg, false, usages);
+}
+async function exportPublicJwkFrom(privateKey) {
+  if (privateKey.type !== "private") {
+    throw new Error(`unexpected key type: ${privateKey.type}`);
+  }
+  if (!privateKey.extractable) {
+    throw new Error("unexpected private key is unextractable");
+  }
+  const jwk = await crypto.subtle.exportKey("jwk", privateKey);
+  const { kty } = jwk;
+  const { alg, e: e2, n: n2 } = jwk;
+  const { crv, x: x2, y: y2 } = jwk;
+  return { kty, alg, e: e2, n: n2, crv, x: x2, y: y2, key_ops: [CryptoKeyUsage.Verify] };
+}
+function getKeyAlgorithm(name) {
+  switch (name) {
+    case "HS256":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-256"
+        }
+      };
+    case "HS384":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-384"
+        }
+      };
+    case "HS512":
+      return {
+        name: "HMAC",
+        hash: {
+          name: "SHA-512"
+        }
+      };
+    case "RS256":
+      return {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: {
+          name: "SHA-256"
+        }
+      };
+    case "RS384":
+      return {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: {
+          name: "SHA-384"
+        }
+      };
+    case "RS512":
+      return {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: {
+          name: "SHA-512"
+        }
+      };
+    case "PS256":
+      return {
+        name: "RSA-PSS",
+        hash: {
+          name: "SHA-256"
+        },
+        saltLength: 32
+        // 256 >> 3
+      };
+    case "PS384":
+      return {
+        name: "RSA-PSS",
+        hash: {
+          name: "SHA-384"
+        },
+        saltLength: 48
+        // 384 >> 3
+      };
+    case "PS512":
+      return {
+        name: "RSA-PSS",
+        hash: {
+          name: "SHA-512"
+        },
+        saltLength: 64
+        // 512 >> 3,
+      };
+    case "ES256":
+      return {
+        name: "ECDSA",
+        hash: {
+          name: "SHA-256"
+        },
+        namedCurve: "P-256"
+      };
+    case "ES384":
+      return {
+        name: "ECDSA",
+        hash: {
+          name: "SHA-384"
+        },
+        namedCurve: "P-384"
+      };
+    case "ES512":
+      return {
+        name: "ECDSA",
+        hash: {
+          name: "SHA-512"
+        },
+        namedCurve: "P-521"
+      };
+    case "EdDSA":
+      return {
+        name: "Ed25519",
+        namedCurve: "Ed25519"
+      };
+    default:
+      throw new JwtAlgorithmNotImplemented(name);
+  }
+}
+function isCryptoKey(key) {
+  const runtime = getRuntimeKey();
+  if (runtime === "node" && !!crypto.webcrypto) {
+    return key instanceof crypto.webcrypto.CryptoKey;
+  }
+  return key instanceof CryptoKey;
+}
+var init_jws = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/jws.js"() {
+    "use strict";
+    init_adapter();
+    init_encode();
+    init_types();
+    init_utf8();
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/jwt.js
+function isTokenHeader(obj) {
+  if (typeof obj === "object" && obj !== null) {
+    const objWithAlg = obj;
+    return "alg" in objWithAlg && Object.values(AlgorithmTypes).includes(objWithAlg.alg) && (!("typ" in objWithAlg) || objWithAlg.typ === "JWT");
+  }
   return false;
 }
-var createDeepObjectTransformer, deepCamelToSnake, deepSnakeToCamel;
-var init_underscore_CPJSkOtE = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/underscore-CPJSkOtE.mjs"() {
+var encodeJwtPart, encodeSignaturePart, decodeJwtPart, sign, verify, symmetricAlgorithms, verifyWithJwks, decode, decodeHeader;
+var init_jwt = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/jwt.js"() {
     "use strict";
-    createDeepObjectTransformer = (transform) => {
-      const deepTransform = (obj) => {
-        if (!obj) return obj;
-        if (Array.isArray(obj)) return obj.map((el) => {
-          if (typeof el === "object" || Array.isArray(el)) return deepTransform(el);
-          return el;
-        });
-        const copy = { ...obj };
-        const keys = Object.keys(copy);
-        for (const oldName of keys) {
-          const newName = transform(oldName.toString());
-          if (newName !== oldName) {
-            copy[newName] = copy[oldName];
-            delete copy[oldName];
-          }
-          if (typeof copy[newName] === "object") copy[newName] = deepTransform(copy[newName]);
-        }
-        return copy;
-      };
-      return deepTransform;
+    init_encode();
+    init_jwa();
+    init_jws();
+    init_types();
+    init_utf8();
+    encodeJwtPart = (part) => encodeBase64Url(utf8Encoder.encode(JSON.stringify(part)).buffer).replace(/=/g, "");
+    encodeSignaturePart = (buf) => encodeBase64Url(buf).replace(/=/g, "");
+    decodeJwtPart = (part) => JSON.parse(utf8Decoder.decode(decodeBase64Url(part)));
+    sign = async (payload, privateKey, alg = "HS256") => {
+      const encodedPayload = encodeJwtPart(payload);
+      let encodedHeader;
+      if (typeof privateKey === "object" && "alg" in privateKey) {
+        alg = privateKey.alg;
+        encodedHeader = encodeJwtPart({ alg, typ: "JWT", kid: privateKey.kid });
+      } else {
+        encodedHeader = encodeJwtPart({ alg, typ: "JWT" });
+      }
+      const partialToken = `${encodedHeader}.${encodedPayload}`;
+      const signaturePart = await signing(privateKey, alg, utf8Encoder.encode(partialToken));
+      const signature = encodeSignaturePart(signaturePart);
+      return `${partialToken}.${signature}`;
     };
-    deepCamelToSnake = createDeepObjectTransformer(camelToSnake);
-    deepSnakeToCamel = createDeepObjectTransformer(snakeToCamel);
-  }
-});
-
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/telemetry-DmiY4LSf.mjs
-function isServerRuntime() {
-  if (typeof window !== "undefined") return false;
-  if (typeof globalThis.EdgeRuntime !== "undefined") return false;
-  return true;
-}
-function isCI() {
-  if (typeof process === "undefined" || !process.env) return false;
-  return automatedEnvironmentVariables.some((name) => isTruthy(process.env[name]));
-}
-function hasSeen() {
-  return Boolean(globalThis[PROCESS_FLAG]);
-}
-function markSeen() {
-  globalThis[PROCESS_FLAG] = true;
-}
-function printNotice() {
-  if (typeof console === "undefined" || typeof console.log !== "function") return;
-  for (const line of NOTICE_LINES) console.log(line);
-  console.log("");
-}
-function maybeShowTelemetryNotice(options = {}) {
-  if (options.skip) return;
-  try {
-    if (!isServerRuntime()) return;
-    if (isCI()) return;
-    if (hasSeen()) return;
-    printNotice();
-    markSeen();
-  } catch {
-  }
-}
-function isWindowClerkWithMetadata(clerk) {
-  return typeof clerk === "object" && clerk !== null && "constructor" in clerk && typeof clerk.constructor === "function";
-}
-var PROCESS_FLAG, NOTICE_LINES, DEFAULT_CACHE_TTL_MS, TelemetryEventThrottler, LocalStorageThrottlerCache, InMemoryThrottlerCache, VALID_LOG_LEVELS, DEFAULT_CONFIG, TelemetryCollector;
-var init_telemetry_DmiY4LSf = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/_chunks/telemetry-DmiY4LSf.mjs"() {
-    "use strict";
-    init_keys_jlv3GIE3();
-    init_runtimeEnvironment_DHuMF_tN();
-    init_underscore_CPJSkOtE();
-    PROCESS_FLAG = /* @__PURE__ */ Symbol.for("@clerk/shared.telemetryNoticeShown");
-    NOTICE_LINES = [
-      "Attention: Clerk collects telemetry data from its SDKs when connected to development instances.",
-      "The data collected is used to inform Clerk's product roadmap.",
-      "To learn more, including how to opt-out from the telemetry program, visit: https://clerk.com/docs/telemetry."
+    verify = async (token, publicKey, algOrOptions) => {
+      if (!algOrOptions) {
+        throw new JwtAlgorithmRequired();
+      }
+      const {
+        alg,
+        iss,
+        nbf = true,
+        exp = true,
+        iat = true,
+        aud
+      } = typeof algOrOptions === "string" ? { alg: algOrOptions } : algOrOptions;
+      if (!alg) {
+        throw new JwtAlgorithmRequired();
+      }
+      const tokenParts = token.split(".");
+      if (tokenParts.length !== 3) {
+        throw new JwtTokenInvalid(token);
+      }
+      const { header: header2, payload } = decode(token);
+      if (!isTokenHeader(header2)) {
+        throw new JwtHeaderInvalid(header2);
+      }
+      if (header2.alg !== alg) {
+        throw new JwtAlgorithmMismatch(alg, header2.alg);
+      }
+      const now = Math.floor(Date.now() / 1e3);
+      if (nbf && payload.nbf !== void 0) {
+        if (typeof payload.nbf !== "number" || !Number.isFinite(payload.nbf) || payload.nbf > now) {
+          throw new JwtTokenNotBefore(token);
+        }
+      }
+      if (exp && payload.exp !== void 0) {
+        if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp) || payload.exp <= now) {
+          throw new JwtTokenExpired(token);
+        }
+      }
+      if (iat && payload.iat !== void 0) {
+        if (typeof payload.iat !== "number" || !Number.isFinite(payload.iat) || now < payload.iat) {
+          throw new JwtTokenIssuedAt(now, payload.iat);
+        }
+      }
+      if (iss) {
+        if (!payload.iss) {
+          throw new JwtTokenIssuer(iss, null);
+        }
+        if (typeof iss === "string" && payload.iss !== iss) {
+          throw new JwtTokenIssuer(iss, payload.iss);
+        }
+        if (iss instanceof RegExp && !iss.test(payload.iss)) {
+          throw new JwtTokenIssuer(iss, payload.iss);
+        }
+      }
+      if (aud) {
+        if (!payload.aud) {
+          throw new JwtPayloadRequiresAud(payload);
+        }
+        const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+        const matched = audiences.some(
+          (payloadAud) => aud instanceof RegExp ? aud.test(payloadAud) : typeof aud === "string" ? payloadAud === aud : Array.isArray(aud) && aud.includes(payloadAud)
+        );
+        if (!matched) {
+          throw new JwtTokenAudience(aud, payload.aud);
+        }
+      }
+      const headerPayload = token.substring(0, token.lastIndexOf("."));
+      const verified = await verifying(
+        publicKey,
+        alg,
+        decodeBase64Url(tokenParts[2]),
+        utf8Encoder.encode(headerPayload)
+      );
+      if (!verified) {
+        throw new JwtTokenSignatureMismatched(token);
+      }
+      return payload;
+    };
+    symmetricAlgorithms = [
+      AlgorithmTypes.HS256,
+      AlgorithmTypes.HS384,
+      AlgorithmTypes.HS512
     ];
-    DEFAULT_CACHE_TTL_MS = 864e5;
-    TelemetryEventThrottler = class {
-      #cache;
-      #cacheTtl = DEFAULT_CACHE_TTL_MS;
-      constructor(cache2) {
-        this.#cache = cache2;
+    verifyWithJwks = async (token, options, init2) => {
+      const verifyOpts = options.verification || {};
+      const header2 = decodeHeader(token);
+      if (!isTokenHeader(header2)) {
+        throw new JwtHeaderInvalid(header2);
       }
-      isEventThrottled(payload) {
-        const now = Date.now();
-        const key = this.#generateKey(payload);
-        const entry = this.#cache.getItem(key);
-        if (!entry) {
-          this.#cache.setItem(key, now);
-          return false;
+      if (!header2.kid) {
+        throw new JwtHeaderRequiresKid(header2);
+      }
+      if (symmetricAlgorithms.includes(header2.alg)) {
+        throw new JwtSymmetricAlgorithmNotAllowed(header2.alg);
+      }
+      if (!options.allowedAlgorithms.includes(header2.alg)) {
+        throw new JwtAlgorithmNotAllowed(header2.alg, options.allowedAlgorithms);
+      }
+      let verifyKeys = options.keys ? [...options.keys] : void 0;
+      if (options.jwks_uri) {
+        const response3 = await fetch(options.jwks_uri, init2);
+        if (!response3.ok) {
+          throw new Error(`failed to fetch JWKS from ${options.jwks_uri}`);
         }
-        if (now - entry > this.#cacheTtl) {
-          this.#cache.setItem(key, now);
-          return false;
+        const data = await response3.json();
+        if (!data.keys) {
+          throw new Error('invalid JWKS response. "keys" field is missing');
         }
-        return true;
+        if (!Array.isArray(data.keys)) {
+          throw new Error('invalid JWKS response. "keys" field is not an array');
+        }
+        verifyKeys ??= [];
+        verifyKeys.push(...data.keys);
+      } else if (!verifyKeys) {
+        throw new Error('verifyWithJwks requires options for either "keys" or "jwks_uri" or both');
       }
-      /**
-      * Generates a consistent unique key for telemetry events by sorting payload properties.
-      * This ensures that payloads with identical content in different orders produce the same key.
-      */
-      #generateKey(event) {
-        const { sk: _sk, pk: _pk, payload, ...rest } = event;
-        const sanitizedEvent = {
-          ...payload,
-          ...rest
-        };
-        return JSON.stringify(Object.keys({
-          ...payload,
-          ...rest
-        }).sort().map((key) => sanitizedEvent[key]));
+      const matchingKey = verifyKeys.find((key) => key.kid === header2.kid);
+      if (!matchingKey) {
+        throw new JwtTokenInvalid(token);
       }
+      if (matchingKey.alg && matchingKey.alg !== header2.alg) {
+        throw new JwtAlgorithmMismatch(matchingKey.alg, header2.alg);
+      }
+      return await verify(token, matchingKey, {
+        alg: header2.alg,
+        ...verifyOpts
+      });
     };
-    LocalStorageThrottlerCache = class {
-      #storageKey = "clerk_telemetry_throttler";
-      getItem(key) {
-        return this.#getCache()[key];
+    decode = (token) => {
+      const parts = token.split(".");
+      if (parts.length !== 3) {
+        throw new JwtTokenInvalid(token);
       }
-      setItem(key, value) {
-        try {
-          const cache2 = this.#getCache();
-          cache2[key] = value;
-          localStorage.setItem(this.#storageKey, JSON.stringify(cache2));
-        } catch (err2) {
-          if (err2 instanceof DOMException && (err2.name === "QuotaExceededError" || err2.name === "NS_ERROR_DOM_QUOTA_REACHED") && localStorage.length > 0) localStorage.removeItem(this.#storageKey);
-        }
-      }
-      removeItem(key) {
-        try {
-          const cache2 = this.#getCache();
-          delete cache2[key];
-          localStorage.setItem(this.#storageKey, JSON.stringify(cache2));
-        } catch {
-        }
-      }
-      #getCache() {
-        try {
-          const cacheString = localStorage.getItem(this.#storageKey);
-          if (!cacheString) return {};
-          return JSON.parse(cacheString);
-        } catch {
-          return {};
-        }
-      }
-      static isSupported() {
-        return typeof window !== "undefined" && !!window.localStorage;
-      }
-    };
-    InMemoryThrottlerCache = class {
-      #cache = /* @__PURE__ */ new Map();
-      #maxSize = 1e4;
-      getItem(key) {
-        if (this.#cache.size > this.#maxSize) {
-          this.#cache.clear();
-          return;
-        }
-        return this.#cache.get(key);
-      }
-      setItem(key, value) {
-        this.#cache.set(key, value);
-      }
-      removeItem(key) {
-        this.#cache.delete(key);
-      }
-    };
-    VALID_LOG_LEVELS = /* @__PURE__ */ new Set([
-      "error",
-      "warn",
-      "info",
-      "debug",
-      "trace"
-    ]);
-    DEFAULT_CONFIG = {
-      samplingRate: 1,
-      maxBufferSize: 5,
-      endpoint: "https://clerk-telemetry.com"
-    };
-    TelemetryCollector = class {
-      #config;
-      #eventThrottler;
-      #metadata = {};
-      #buffer = [];
-      #pendingFlush = null;
-      constructor(options) {
-        this.#config = {
-          maxBufferSize: options.maxBufferSize ?? DEFAULT_CONFIG.maxBufferSize,
-          samplingRate: options.samplingRate ?? DEFAULT_CONFIG.samplingRate,
-          perEventSampling: options.perEventSampling ?? true,
-          disabled: options.disabled ?? false,
-          debug: options.debug ?? false,
-          endpoint: DEFAULT_CONFIG.endpoint
-        };
-        if (!options.clerkVersion && typeof window === "undefined") this.#metadata.clerkVersion = "";
-        else this.#metadata.clerkVersion = options.clerkVersion ?? "";
-        this.#metadata.sdk = options.sdk;
-        this.#metadata.sdkVersion = options.sdkVersion;
-        this.#metadata.publishableKey = options.publishableKey ?? "";
-        const parsedKey = parsePublishableKey(options.publishableKey);
-        if (parsedKey) this.#metadata.instanceType = parsedKey.instanceType;
-        if (options.secretKey) this.#metadata.secretKey = options.secretKey.substring(0, 16);
-        this.#eventThrottler = new TelemetryEventThrottler(LocalStorageThrottlerCache.isSupported() ? new LocalStorageThrottlerCache() : new InMemoryThrottlerCache());
-        maybeShowTelemetryNotice({ skip: !this.isEnabled });
-      }
-      get isEnabled() {
-        if (this.#metadata.instanceType !== "development") return false;
-        if (this.#config.disabled || typeof process !== "undefined" && process.env && isTruthy(process.env.CLERK_TELEMETRY_DISABLED)) return false;
-        if (typeof window !== "undefined" && !!window?.navigator?.webdriver) return false;
-        return true;
-      }
-      get isDebug() {
-        return this.#config.debug || typeof process !== "undefined" && process.env && isTruthy(process.env.CLERK_TELEMETRY_DEBUG);
-      }
-      record(event) {
-        try {
-          const preparedPayload = this.#preparePayload(event.event, event.payload);
-          this.#logEvent(preparedPayload.event, preparedPayload);
-          if (!this.#shouldRecord(preparedPayload, event.eventSamplingRate)) return;
-          this.#buffer.push({
-            kind: "event",
-            value: preparedPayload
-          });
-          this.#scheduleFlush();
-        } catch (error) {
-          console.error("[clerk/telemetry] Error recording telemetry event", error);
-        }
-      }
-      /**
-      * Records a telemetry log entry if logging is enabled and not in debug mode.
-      *
-      * @param entry - The telemetry log entry to record.
-      */
-      recordLog(entry) {
-        try {
-          if (!this.#shouldRecordLog(entry)) return;
-          const levelIsValid = typeof entry?.level === "string" && VALID_LOG_LEVELS.has(entry.level);
-          const messageIsValid = typeof entry?.message === "string" && entry.message.trim().length > 0;
-          let normalizedTimestamp = null;
-          const timestampInput = entry?.timestamp;
-          if (typeof timestampInput === "number" || typeof timestampInput === "string") {
-            const candidate = new Date(timestampInput);
-            if (!Number.isNaN(candidate.getTime())) normalizedTimestamp = candidate;
-          }
-          if (!levelIsValid || !messageIsValid || normalizedTimestamp === null) {
-            if (this.isDebug && typeof console !== "undefined") console.warn("[clerk/telemetry] Dropping invalid telemetry log entry", {
-              levelIsValid,
-              messageIsValid,
-              timestampIsValid: normalizedTimestamp !== null
-            });
-            return;
-          }
-          const sdkMetadata = this.#getSDKMetadata();
-          const logData = {
-            sdk: sdkMetadata.name,
-            sdkv: sdkMetadata.version,
-            cv: this.#metadata.clerkVersion ?? "",
-            lvl: entry.level,
-            msg: entry.message,
-            ts: normalizedTimestamp.toISOString(),
-            pk: this.#metadata.publishableKey || null,
-            payload: this.#sanitizeContext(entry.context)
-          };
-          this.#buffer.push({
-            kind: "log",
-            value: logData
-          });
-          this.#scheduleFlush();
-        } catch (error) {
-          console.error("[clerk/telemetry] Error recording telemetry log entry", error);
-        }
-      }
-      #shouldRecord(preparedPayload, eventSamplingRate) {
-        return this.isEnabled && !this.isDebug && this.#shouldBeSampled(preparedPayload, eventSamplingRate);
-      }
-      #shouldRecordLog(_entry) {
-        return true;
-      }
-      #shouldBeSampled(preparedPayload, eventSamplingRate) {
-        const randomSeed = Math.random();
-        if (!(randomSeed <= this.#config.samplingRate && (this.#config.perEventSampling === false || typeof eventSamplingRate === "undefined" || randomSeed <= eventSamplingRate))) return false;
-        return !this.#eventThrottler.isEventThrottled(preparedPayload);
-      }
-      #scheduleFlush() {
-        if (typeof window === "undefined") {
-          this.#flush();
-          return;
-        }
-        if (this.#buffer.length >= this.#config.maxBufferSize) {
-          if (this.#pendingFlush) if (typeof cancelIdleCallback !== "undefined") cancelIdleCallback(Number(this.#pendingFlush));
-          else clearTimeout(Number(this.#pendingFlush));
-          this.#flush();
-          return;
-        }
-        if (this.#pendingFlush) return;
-        if ("requestIdleCallback" in window) this.#pendingFlush = requestIdleCallback(() => {
-          this.#flush();
-          this.#pendingFlush = null;
-        });
-        else this.#pendingFlush = setTimeout(() => {
-          this.#flush();
-          this.#pendingFlush = null;
-        }, 0);
-      }
-      #flush() {
-        const itemsToSend = [...this.#buffer];
-        this.#buffer = [];
-        this.#pendingFlush = null;
-        if (itemsToSend.length === 0) return;
-        const eventsToSend = itemsToSend.filter((item) => item.kind === "event").map((item) => item.value);
-        const logsToSend = itemsToSend.filter((item) => item.kind === "log").map((item) => item.value);
-        if (eventsToSend.length > 0) {
-          const eventsUrl = new URL("/v1/event", this.#config.endpoint);
-          fetch(eventsUrl, {
-            headers: { "Content-Type": "application/json" },
-            keepalive: true,
-            method: "POST",
-            body: JSON.stringify({ events: eventsToSend })
-          }).catch(() => void 0);
-        }
-        if (logsToSend.length > 0) {
-          const logsUrl = new URL("/v1/logs", this.#config.endpoint);
-          fetch(logsUrl, {
-            headers: { "Content-Type": "application/json" },
-            keepalive: true,
-            method: "POST",
-            body: JSON.stringify({ logs: logsToSend })
-          }).catch(() => void 0);
-        }
-      }
-      /**
-      * If running in debug mode, log the event and its payload to the console.
-      */
-      #logEvent(event, payload) {
-        if (!this.isDebug) return;
-        if (typeof console.groupCollapsed !== "undefined") {
-          console.groupCollapsed("[clerk/telemetry]", event);
-          console.log(payload);
-          console.groupEnd();
-        } else console.log("[clerk/telemetry]", event, payload);
-      }
-      /**
-      * If in browser, attempt to lazily grab the SDK metadata from the Clerk singleton, otherwise fallback to the initially passed in values.
-      *
-      * This is necessary because the sdkMetadata can be set by the host SDK after the TelemetryCollector is instantiated.
-      */
-      #getSDKMetadata() {
-        const sdkMetadata = {
-          name: this.#metadata.sdk,
-          version: this.#metadata.sdkVersion
-        };
-        if (typeof window !== "undefined") {
-          const windowWithClerk = window;
-          if (windowWithClerk.Clerk) {
-            const windowClerk = windowWithClerk.Clerk;
-            if (isWindowClerkWithMetadata(windowClerk) && windowClerk.constructor.sdkMetadata) {
-              const { name, version: version6 } = windowClerk.constructor.sdkMetadata;
-              if (name !== void 0) sdkMetadata.name = name;
-              if (version6 !== void 0) sdkMetadata.version = version6;
-            }
-          }
-        }
-        return sdkMetadata;
-      }
-      /**
-      * Append relevant metadata from the Clerk singleton to the event payload.
-      */
-      #preparePayload(event, payload) {
-        const sdkMetadata = this.#getSDKMetadata();
+      try {
+        const header2 = decodeJwtPart(parts[0]);
+        const payload = decodeJwtPart(parts[1]);
         return {
-          event,
-          cv: this.#metadata.clerkVersion ?? "",
-          it: this.#metadata.instanceType ?? "",
-          sdk: sdkMetadata.name,
-          sdkv: sdkMetadata.version,
-          ...this.#metadata.publishableKey ? { pk: this.#metadata.publishableKey } : {},
-          ...this.#metadata.secretKey ? { sk: this.#metadata.secretKey } : {},
+          header: header2,
           payload
         };
+      } catch {
+        throw new JwtTokenInvalid(token);
       }
-      /**
-      * Best-effort sanitization of the context payload. Returns a plain object with JSON-serializable
-      * values or null when the input is missing or not serializable. Arrays are not accepted.
-      */
-      #sanitizeContext(context2) {
-        if (context2 === null || typeof context2 === "undefined") return null;
-        if (typeof context2 !== "object") return null;
-        try {
-          const cleaned = JSON.parse(JSON.stringify(context2));
-          if (cleaned && typeof cleaned === "object" && !Array.isArray(cleaned)) return cleaned;
-          return null;
-        } catch {
-          return null;
-        }
+    };
+    decodeHeader = (token) => {
+      const parts = token.split(".");
+      if (parts.length !== 3) {
+        throw new JwtTokenInvalid(token);
+      }
+      try {
+        return decodeJwtPart(parts[0]);
+      } catch {
+        throw new JwtTokenInvalid(token);
       }
     };
   }
 });
 
-// ../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/telemetry.mjs
-var init_telemetry = __esm({
-  "../../node_modules/.pnpm/@clerk+shared@4.15.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/shared/dist/runtime/telemetry.mjs"() {
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/index.js
+var Jwt;
+var init_jwt2 = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/jwt/index.js"() {
     "use strict";
-    init_constants_BVchI2jn();
-    init_isomorphicAtob_C1KQ5FtS();
-    init_isomorphicBtoa_BBBfp_jr();
-    init_keys_jlv3GIE3();
-    init_getEnvVariable_CzO2lHzx();
-    init_runtimeEnvironment_DHuMF_tN();
-    init_underscore_CPJSkOtE();
-    init_telemetry_DmiY4LSf();
+    init_jwt();
+    Jwt = { sign, verify, decode, verifyWithJwks };
   }
 });
 
-// ../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/index.mjs
-var dist_exports = {};
-__export(dist_exports, {
-  createClerkClient: () => createClerkClient,
-  verifyToken: () => verifyToken2
-});
-function createClerkClient(options) {
-  const opts = { ...options };
-  const apiClient = createBackendApiClient(opts);
-  const requestState = createAuthenticateRequest({ options: opts, apiClient });
-  const telemetry = new TelemetryCollector({
-    publishableKey: opts.publishableKey,
-    secretKey: opts.secretKey,
-    samplingRate: 0.1,
-    ...opts.sdkMetadata ? { sdk: opts.sdkMetadata.name, sdkVersion: opts.sdkMetadata.version } : {},
-    ...opts.telemetry || {}
-  });
-  return {
-    ...apiClient,
-    ...requestState,
-    telemetry
-  };
-}
-var verifyToken2;
-var init_dist = __esm({
-  "../../node_modules/.pnpm/@clerk+backend@3.5.0_react-dom@19.2.7_react@19.2.7__react@19.2.7/node_modules/@clerk/backend/dist/index.mjs"() {
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/middleware/jwt/jwt.js
+var verifyWithJwks2, verify2, decode2, sign2;
+var init_jwt3 = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/middleware/jwt/jwt.js"() {
     "use strict";
-    init_chunk_H3NCOZAT();
-    init_chunk_YBVFDYDR();
-    init_chunk_P263NW7Z();
-    init_chunk_J2CDX2WG();
-    init_chunk_RZ7A7F6X();
-    init_chunk_TOROEX6P();
-    init_telemetry();
-    verifyToken2 = withLegacyReturn(verifyToken);
+    init_cookie2();
+    init_http_exception();
+    init_jwt2();
+    init_context();
+    verifyWithJwks2 = Jwt.verifyWithJwks;
+    verify2 = Jwt.verify;
+    decode2 = Jwt.decode;
+    sign2 = Jwt.sign;
+  }
+});
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/middleware/jwt/index.js
+var init_jwt4 = __esm({
+  "../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/middleware/jwt/index.js"() {
+    "use strict";
+    init_jwt3();
+    init_jwa();
+  }
+});
+
+// src/lib/auth-tokens.ts
+var auth_tokens_exports = {};
+__export(auth_tokens_exports, {
+  ACCESS_COOKIE: () => ACCESS_COOKIE,
+  ACCESS_TTL_SECONDS: () => ACCESS_TTL_SECONDS,
+  REFRESH_COOKIE: () => REFRESH_COOKIE,
+  REFRESH_TTL_DAYS: () => REFRESH_TTL_DAYS,
+  newRefreshToken: () => newRefreshToken,
+  refreshExpiry: () => refreshExpiry,
+  sha256: () => sha2565,
+  signAccessToken: () => signAccessToken,
+  verifyAccessToken: () => verifyAccessToken
+});
+function jwtSecret() {
+  const s2 = process.env.AUTH_JWT_SECRET;
+  if (!s2) throw new Error("AUTH_JWT_SECRET is not set");
+  return s2;
+}
+async function signAccessToken(userId, email) {
+  const now = Math.floor(Date.now() / 1e3);
+  return sign2({ sub: userId, email, type: "access", iat: now, exp: now + ACCESS_TTL_SECONDS }, jwtSecret());
+}
+async function verifyAccessToken(token) {
+  try {
+    const p2 = await verify2(token, jwtSecret(), "HS256");
+    if (p2.type !== "access" || typeof p2.sub !== "string") return null;
+    return { sub: p2.sub, email: String(p2.email ?? ""), type: "access" };
+  } catch {
+    return null;
+  }
+}
+function sha2565(s2) {
+  return (0, import_node_crypto.createHash)("sha256").update(s2).digest("hex");
+}
+function newRefreshToken() {
+  const raw2 = (0, import_node_crypto.randomBytes)(32).toString("hex");
+  return { raw: raw2, hash: sha2565(raw2) };
+}
+function refreshExpiry() {
+  return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
+}
+var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE;
+var init_auth_tokens = __esm({
+  "src/lib/auth-tokens.ts"() {
+    "use strict";
+    init_jwt4();
+    import_node_crypto = require("crypto");
+    ACCESS_TTL_SECONDS = 15 * 60;
+    REFRESH_TTL_DAYS = 30;
+    ACCESS_COOKIE = "md_at";
+    REFRESH_COOKIE = "md_rt";
   }
 });
 
@@ -18063,14 +11922,14 @@ __export(mcp_token_exports, {
   verifyMcpToken: () => verifyMcpToken
 });
 function secret2() {
-  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || process.env.CLERK_SECRET_KEY || "mondaily-dev-tracking-secret";
+  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
-function sign2(payload) {
-  return b64url2((0, import_node_crypto4.createHmac)("sha256", secret2()).update(payload).digest());
+function sign4(payload) {
+  return b64url2((0, import_node_crypto6.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
-  return `msk_${p2}.${sign2(p2)}`;
+  return `msk_${p2}.${sign4(p2)}`;
 }
 function verifyMcpToken(token) {
   if (!token || !token.startsWith("msk_")) return null;
@@ -18079,10 +11938,10 @@ function verifyMcpToken(token) {
   if (dot <= 0) return null;
   const p2 = raw2.slice(0, dot);
   const sig = raw2.slice(dot + 1);
-  const expected = sign2(p2);
+  const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto4.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto6.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -18090,11 +11949,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto4, b64url2;
+var import_node_crypto6, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto4 = require("crypto");
+    import_node_crypto6 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -18522,8 +12381,8 @@ var Response$1 = class Response$12 {
   #body;
   #init;
   [getResponseCache]() {
-    const cache2 = this[cacheKey];
-    const liveHeaders = cache2 && cache2[2] instanceof Headers ? cache2[2] : void 0;
+    const cache = this[cacheKey];
+    const liveHeaders = cache && cache[2] instanceof Headers ? cache[2] : void 0;
     delete this[cacheKey];
     return this[responseCache] ||= new GlobalResponse(this.#body, liveHeaders ? {
       ...this.#init,
@@ -18551,10 +12410,10 @@ var Response$1 = class Response$12 {
     ];
   }
   get headers() {
-    const cache2 = this[cacheKey];
-    if (cache2) {
-      if (!(cache2[2] instanceof Headers)) cache2[2] = new Headers(cache2[2] || (cache2[1] === null ? void 0 : { "content-type": defaultContentType }));
-      return cache2[2];
+    const cache = this[cacheKey];
+    if (cache) {
+      if (!(cache[2] instanceof Headers)) cache[2] = new Headers(cache[2] || (cache[1] === null ? void 0 : { "content-type": defaultContentType }));
+      return cache[2];
     }
     return this[getResponseCache]().headers;
   }
@@ -19192,1049 +13051,8 @@ var compose = (middleware, onError, onNotFound) => {
   };
 };
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/http-exception.js
-var HTTPException = class extends Error {
-  res;
-  status;
-  /**
-   * Creates an instance of `HTTPException`.
-   * @param status - HTTP status code for the exception. Defaults to 500.
-   * @param options - Additional options for the exception.
-   */
-  constructor(status = 500, options) {
-    super(options?.message, { cause: options?.cause });
-    this.res = options?.res;
-    this.status = status;
-  }
-  /**
-   * Returns the response object associated with the exception.
-   * If a response object is not provided, a new response is created with the error message and status code.
-   * @returns The response object.
-   */
-  getResponse() {
-    if (this.res) {
-      const newResponse = new Response(this.res.body, {
-        status: this.status,
-        headers: this.res.headers
-      });
-      return newResponse;
-    }
-    return new Response(this.message, {
-      status: this.status
-    });
-  }
-};
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/request/constants.js
-var GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/body.js
-var parseBody = async (request, options = /* @__PURE__ */ Object.create(null)) => {
-  const { all = false, dot = false } = options;
-  const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
-  const contentType2 = headers.get("Content-Type");
-  if (contentType2?.startsWith("multipart/form-data") || contentType2?.startsWith("application/x-www-form-urlencoded")) {
-    return parseFormData(request, { all, dot });
-  }
-  return {};
-};
-async function parseFormData(request, options) {
-  const formData = await request.formData();
-  if (formData) {
-    return convertFormDataToBodyData(formData, options);
-  }
-  return {};
-}
-function convertFormDataToBodyData(formData, options) {
-  const form = /* @__PURE__ */ Object.create(null);
-  formData.forEach((value, key) => {
-    const shouldParseAllValues = options.all || key.endsWith("[]");
-    if (!shouldParseAllValues) {
-      form[key] = value;
-    } else {
-      handleParsingAllValues(form, key, value);
-    }
-  });
-  if (options.dot) {
-    Object.entries(form).forEach(([key, value]) => {
-      const shouldParseDotValues = key.includes(".");
-      if (shouldParseDotValues) {
-        handleParsingNestedValues(form, key, value);
-        delete form[key];
-      }
-    });
-  }
-  return form;
-}
-var handleParsingAllValues = (form, key, value) => {
-  if (form[key] !== void 0) {
-    if (Array.isArray(form[key])) {
-      ;
-      form[key].push(value);
-    } else {
-      form[key] = [form[key], value];
-    }
-  } else {
-    if (!key.endsWith("[]")) {
-      form[key] = value;
-    } else {
-      form[key] = [value];
-    }
-  }
-};
-var handleParsingNestedValues = (form, key, value) => {
-  if (/(?:^|\.)__proto__\./.test(key)) {
-    return;
-  }
-  let nestedForm = form;
-  const keys = key.split(".");
-  keys.forEach((key2, index) => {
-    if (index === keys.length - 1) {
-      nestedForm[key2] = value;
-    } else {
-      if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
-        nestedForm[key2] = /* @__PURE__ */ Object.create(null);
-      }
-      nestedForm = nestedForm[key2];
-    }
-  });
-};
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/url.js
-var splitPath = (path) => {
-  const paths = path.split("/");
-  if (paths[0] === "") {
-    paths.shift();
-  }
-  return paths;
-};
-var splitRoutingPath = (routePath) => {
-  const { groups, path } = extractGroupsFromPath(routePath);
-  const paths = splitPath(path);
-  return replaceGroupMarks(paths, groups);
-};
-var extractGroupsFromPath = (path) => {
-  const groups = [];
-  path = path.replace(/\{[^}]+\}/g, (match3, index) => {
-    const mark = `@${index}`;
-    groups.push([mark, match3]);
-    return mark;
-  });
-  return { groups, path };
-};
-var replaceGroupMarks = (paths, groups) => {
-  for (let i2 = groups.length - 1; i2 >= 0; i2--) {
-    const [mark] = groups[i2];
-    for (let j2 = paths.length - 1; j2 >= 0; j2--) {
-      if (paths[j2].includes(mark)) {
-        paths[j2] = paths[j2].replace(mark, groups[i2][1]);
-        break;
-      }
-    }
-  }
-  return paths;
-};
-var patternCache = {};
-var getPattern = (label, next) => {
-  if (label === "*") {
-    return "*";
-  }
-  const match3 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
-  if (match3) {
-    const cacheKey2 = `${label}#${next}`;
-    if (!patternCache[cacheKey2]) {
-      if (match3[2]) {
-        patternCache[cacheKey2] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey2, match3[1], new RegExp(`^${match3[2]}(?=/${next})`)] : [label, match3[1], new RegExp(`^${match3[2]}$`)];
-      } else {
-        patternCache[cacheKey2] = [label, match3[1], true];
-      }
-    }
-    return patternCache[cacheKey2];
-  }
-  return null;
-};
-var tryDecode = (str2, decoder) => {
-  try {
-    return decoder(str2);
-  } catch {
-    return str2.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match3) => {
-      try {
-        return decoder(match3);
-      } catch {
-        return match3;
-      }
-    });
-  }
-};
-var tryDecodeURI = (str2) => tryDecode(str2, decodeURI);
-var getPath = (request) => {
-  const url = request.url;
-  const start = url.indexOf("/", url.indexOf(":") + 4);
-  let i2 = start;
-  for (; i2 < url.length; i2++) {
-    const charCode = url.charCodeAt(i2);
-    if (charCode === 37) {
-      const queryIndex = url.indexOf("?", i2);
-      const hashIndex = url.indexOf("#", i2);
-      const end = queryIndex === -1 ? hashIndex === -1 ? void 0 : hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex);
-      const path = url.slice(start, end);
-      return tryDecodeURI(path.includes("%25") ? path.replace(/%25/g, "%2525") : path);
-    } else if (charCode === 63 || charCode === 35) {
-      break;
-    }
-  }
-  return url.slice(start, i2);
-};
-var getPathNoStrict = (request) => {
-  const result = getPath(request);
-  return result.length > 1 && result.at(-1) === "/" ? result.slice(0, -1) : result;
-};
-var mergePath = (base, sub, ...rest) => {
-  if (rest.length) {
-    sub = mergePath(sub, ...rest);
-  }
-  return `${base?.[0] === "/" ? "" : "/"}${base}${sub === "/" ? "" : `${base?.at(-1) === "/" ? "" : "/"}${sub?.[0] === "/" ? sub.slice(1) : sub}`}`;
-};
-var checkOptionalParameter = (path) => {
-  if (path.charCodeAt(path.length - 1) !== 63 || !path.includes(":")) {
-    return null;
-  }
-  const segments = path.split("/");
-  const results = [];
-  let basePath33 = "";
-  segments.forEach((segment) => {
-    if (segment !== "" && !/\:/.test(segment)) {
-      basePath33 += "/" + segment;
-    } else if (/\:/.test(segment)) {
-      if (/\?/.test(segment)) {
-        if (results.length === 0 && basePath33 === "") {
-          results.push("/");
-        } else {
-          results.push(basePath33);
-        }
-        const optionalSegment = segment.replace("?", "");
-        basePath33 += "/" + optionalSegment;
-        results.push(basePath33);
-      } else {
-        basePath33 += "/" + segment;
-      }
-    }
-  });
-  return results.filter((v2, i2, a2) => a2.indexOf(v2) === i2);
-};
-var _decodeURI = (value) => {
-  if (!/[%+]/.test(value)) {
-    return value;
-  }
-  if (value.indexOf("+") !== -1) {
-    value = value.replace(/\+/g, " ");
-  }
-  return value.indexOf("%") !== -1 ? tryDecode(value, decodeURIComponent_) : value;
-};
-var _getQueryParam = (url, key, multiple) => {
-  let encoded;
-  if (!multiple && key && !/[%+]/.test(key)) {
-    let keyIndex2 = url.indexOf("?", 8);
-    if (keyIndex2 === -1) {
-      return void 0;
-    }
-    if (!url.startsWith(key, keyIndex2 + 1)) {
-      keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
-    }
-    while (keyIndex2 !== -1) {
-      const trailingKeyCode = url.charCodeAt(keyIndex2 + key.length + 1);
-      if (trailingKeyCode === 61) {
-        const valueIndex = keyIndex2 + key.length + 2;
-        const endIndex = url.indexOf("&", valueIndex);
-        return _decodeURI(url.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
-      } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
-        return "";
-      }
-      keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
-    }
-    encoded = /[%+]/.test(url);
-    if (!encoded) {
-      return void 0;
-    }
-  }
-  const results = {};
-  encoded ??= /[%+]/.test(url);
-  let keyIndex = url.indexOf("?", 8);
-  while (keyIndex !== -1) {
-    const nextKeyIndex = url.indexOf("&", keyIndex + 1);
-    let valueIndex = url.indexOf("=", keyIndex);
-    if (valueIndex > nextKeyIndex && nextKeyIndex !== -1) {
-      valueIndex = -1;
-    }
-    let name = url.slice(
-      keyIndex + 1,
-      valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
-    );
-    if (encoded) {
-      name = _decodeURI(name);
-    }
-    keyIndex = nextKeyIndex;
-    if (name === "") {
-      continue;
-    }
-    let value;
-    if (valueIndex === -1) {
-      value = "";
-    } else {
-      value = url.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
-      if (encoded) {
-        value = _decodeURI(value);
-      }
-    }
-    if (multiple) {
-      if (!(results[name] && Array.isArray(results[name]))) {
-        results[name] = [];
-      }
-      ;
-      results[name].push(value);
-    } else {
-      results[name] ??= value;
-    }
-  }
-  return key ? results[key] : results;
-};
-var getQueryParam = _getQueryParam;
-var getQueryParams = (url, key) => {
-  return _getQueryParam(url, key, true);
-};
-var decodeURIComponent_ = decodeURIComponent;
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/request.js
-var tryDecodeURIComponent = (str2) => tryDecode(str2, decodeURIComponent_);
-var HonoRequest = class {
-  /**
-   * `.raw` can get the raw Request object.
-   *
-   * @see {@link https://hono.dev/docs/api/request#raw}
-   *
-   * @example
-   * ```ts
-   * // For Cloudflare Workers
-   * app.post('/', async (c) => {
-   *   const metadata = c.req.raw.cf?.hostMetadata?
-   *   ...
-   * })
-   * ```
-   */
-  raw;
-  #validatedData;
-  // Short name of validatedData
-  #matchResult;
-  routeIndex = 0;
-  /**
-   * `.path` can get the pathname of the request.
-   *
-   * @see {@link https://hono.dev/docs/api/request#path}
-   *
-   * @example
-   * ```ts
-   * app.get('/about/me', (c) => {
-   *   const pathname = c.req.path // `/about/me`
-   * })
-   * ```
-   */
-  path;
-  bodyCache = {};
-  constructor(request, path = "/", matchResult = [[]]) {
-    this.raw = request;
-    this.path = path;
-    this.#matchResult = matchResult;
-    this.#validatedData = {};
-  }
-  param(key) {
-    return key ? this.#getDecodedParam(key) : this.#getAllDecodedParams();
-  }
-  #getDecodedParam(key) {
-    const paramKey = this.#matchResult[0][this.routeIndex][1][key];
-    const param = this.#getParamValue(paramKey);
-    return param && /\%/.test(param) ? tryDecodeURIComponent(param) : param;
-  }
-  #getAllDecodedParams() {
-    const decoded = {};
-    const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
-    for (const key of keys) {
-      const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
-      if (value !== void 0) {
-        decoded[key] = /\%/.test(value) ? tryDecodeURIComponent(value) : value;
-      }
-    }
-    return decoded;
-  }
-  #getParamValue(paramKey) {
-    return this.#matchResult[1] ? this.#matchResult[1][paramKey] : paramKey;
-  }
-  query(key) {
-    return getQueryParam(this.url, key);
-  }
-  queries(key) {
-    return getQueryParams(this.url, key);
-  }
-  header(name) {
-    if (name) {
-      return this.raw.headers.get(name) ?? void 0;
-    }
-    const headerData = {};
-    this.raw.headers.forEach((value, key) => {
-      headerData[key] = value;
-    });
-    return headerData;
-  }
-  async parseBody(options) {
-    return parseBody(this, options);
-  }
-  #cachedBody = (key) => {
-    const { bodyCache, raw: raw2 } = this;
-    const cachedBody = bodyCache[key];
-    if (cachedBody) {
-      return cachedBody;
-    }
-    const anyCachedKey = Object.keys(bodyCache)[0];
-    if (anyCachedKey) {
-      return bodyCache[anyCachedKey].then((body) => {
-        if (anyCachedKey === "json") {
-          body = JSON.stringify(body);
-        }
-        return new Response(body)[key]();
-      });
-    }
-    return bodyCache[key] = raw2[key]();
-  };
-  /**
-   * `.json()` can parse Request body of type `application/json`
-   *
-   * @see {@link https://hono.dev/docs/api/request#json}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.json()
-   * })
-   * ```
-   */
-  json() {
-    return this.#cachedBody("text").then((text) => JSON.parse(text));
-  }
-  /**
-   * `.text()` can parse Request body of type `text/plain`
-   *
-   * @see {@link https://hono.dev/docs/api/request#text}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.text()
-   * })
-   * ```
-   */
-  text() {
-    return this.#cachedBody("text");
-  }
-  /**
-   * `.arrayBuffer()` parse Request body as an `ArrayBuffer`
-   *
-   * @see {@link https://hono.dev/docs/api/request#arraybuffer}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.arrayBuffer()
-   * })
-   * ```
-   */
-  arrayBuffer() {
-    return this.#cachedBody("arrayBuffer");
-  }
-  /**
-   * `.bytes()` parses the request body as a `Uint8Array`.
-   *
-   * @see {@link https://hono.dev/docs/api/request#bytes}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.bytes()
-   * })
-   * ```
-   */
-  bytes() {
-    return this.#cachedBody("arrayBuffer").then((buffer) => new Uint8Array(buffer));
-  }
-  /**
-   * Parses the request body as a `Blob`.
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.blob();
-   * });
-   * ```
-   * @see https://hono.dev/docs/api/request#blob
-   */
-  blob() {
-    return this.#cachedBody("blob");
-  }
-  /**
-   * Parses the request body as `FormData`.
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.formData();
-   * });
-   * ```
-   * @see https://hono.dev/docs/api/request#formdata
-   */
-  formData() {
-    return this.#cachedBody("formData");
-  }
-  /**
-   * Adds validated data to the request.
-   *
-   * @param target - The target of the validation.
-   * @param data - The validated data to add.
-   */
-  addValidatedData(target, data) {
-    this.#validatedData[target] = data;
-  }
-  valid(target) {
-    return this.#validatedData[target];
-  }
-  /**
-   * `.url()` can get the request url strings.
-   *
-   * @see {@link https://hono.dev/docs/api/request#url}
-   *
-   * @example
-   * ```ts
-   * app.get('/about/me', (c) => {
-   *   const url = c.req.url // `http://localhost:8787/about/me`
-   *   ...
-   * })
-   * ```
-   */
-  get url() {
-    return this.raw.url;
-  }
-  /**
-   * `.method()` can get the method name of the request.
-   *
-   * @see {@link https://hono.dev/docs/api/request#method}
-   *
-   * @example
-   * ```ts
-   * app.get('/about/me', (c) => {
-   *   const method = c.req.method // `GET`
-   * })
-   * ```
-   */
-  get method() {
-    return this.raw.method;
-  }
-  get [GET_MATCH_RESULT]() {
-    return this.#matchResult;
-  }
-  /**
-   * `.matchedRoutes()` can return a matched route in the handler
-   *
-   * @deprecated
-   *
-   * Use matchedRoutes helper defined in "hono/route" instead.
-   *
-   * @see {@link https://hono.dev/docs/api/request#matchedroutes}
-   *
-   * @example
-   * ```ts
-   * app.use('*', async function logger(c, next) {
-   *   await next()
-   *   c.req.matchedRoutes.forEach(({ handler, method, path }, i) => {
-   *     const name = handler.name || (handler.length < 2 ? '[handler]' : '[middleware]')
-   *     console.log(
-   *       method,
-   *       ' ',
-   *       path,
-   *       ' '.repeat(Math.max(10 - path.length, 0)),
-   *       name,
-   *       i === c.req.routeIndex ? '<- respond from here' : ''
-   *     )
-   *   })
-   * })
-   * ```
-   */
-  get matchedRoutes() {
-    return this.#matchResult[0].map(([[, route]]) => route);
-  }
-  /**
-   * `routePath()` can retrieve the path registered within the handler
-   *
-   * @deprecated
-   *
-   * Use routePath helper defined in "hono/route" instead.
-   *
-   * @see {@link https://hono.dev/docs/api/request#routepath}
-   *
-   * @example
-   * ```ts
-   * app.get('/posts/:id', (c) => {
-   *   return c.json({ path: c.req.routePath })
-   * })
-   * ```
-   */
-  get routePath() {
-    return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex].path;
-  }
-};
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/html.js
-var HtmlEscapedCallbackPhase = {
-  Stringify: 1,
-  BeforeStream: 2,
-  Stream: 3
-};
-var raw = (value, callbacks) => {
-  const escapedString = new String(value);
-  escapedString.isEscaped = true;
-  escapedString.callbacks = callbacks;
-  return escapedString;
-};
-var resolveCallback = async (str2, phase, preserveCallbacks, context2, buffer) => {
-  if (typeof str2 === "object" && !(str2 instanceof String)) {
-    if (!(str2 instanceof Promise)) {
-      str2 = str2.toString();
-    }
-    if (str2 instanceof Promise) {
-      str2 = await str2;
-    }
-  }
-  const callbacks = str2.callbacks;
-  if (!callbacks?.length) {
-    return Promise.resolve(str2);
-  }
-  if (buffer) {
-    buffer[0] += str2;
-  } else {
-    buffer = [str2];
-  }
-  const resStr = Promise.all(callbacks.map((c2) => c2({ phase, buffer, context: context2 }))).then(
-    (res) => Promise.all(
-      res.filter(Boolean).map((str22) => resolveCallback(str22, phase, false, context2, buffer))
-    ).then(() => buffer[0])
-  );
-  if (preserveCallbacks) {
-    return raw(await resStr, callbacks);
-  } else {
-    return resStr;
-  }
-};
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/context.js
-var TEXT_PLAIN = "text/plain; charset=UTF-8";
-var setDefaultContentType = (contentType2, headers) => {
-  return {
-    "Content-Type": contentType2,
-    ...headers
-  };
-};
-var createResponseInstance = (body, init2) => new Response(body, init2);
-var Context = class {
-  #rawRequest;
-  #req;
-  /**
-   * `.env` can get bindings (environment variables, secrets, KV namespaces, D1 database, R2 bucket etc.) in Cloudflare Workers.
-   *
-   * @see {@link https://hono.dev/docs/api/context#env}
-   *
-   * @example
-   * ```ts
-   * // Environment object for Cloudflare Workers
-   * app.get('*', async c => {
-   *   const counter = c.env.COUNTER
-   * })
-   * ```
-   */
-  env = {};
-  #var;
-  finalized = false;
-  /**
-   * `.error` can get the error object from the middleware if the Handler throws an error.
-   *
-   * @see {@link https://hono.dev/docs/api/context#error}
-   *
-   * @example
-   * ```ts
-   * app.use('*', async (c, next) => {
-   *   await next()
-   *   if (c.error) {
-   *     // do something...
-   *   }
-   * })
-   * ```
-   */
-  error;
-  #status;
-  #executionCtx;
-  #res;
-  #layout;
-  #renderer;
-  #notFoundHandler;
-  #preparedHeaders;
-  #matchResult;
-  #path;
-  /**
-   * Creates an instance of the Context class.
-   *
-   * @param req - The Request object.
-   * @param options - Optional configuration options for the context.
-   */
-  constructor(req, options) {
-    this.#rawRequest = req;
-    if (options) {
-      this.#executionCtx = options.executionCtx;
-      this.env = options.env;
-      this.#notFoundHandler = options.notFoundHandler;
-      this.#path = options.path;
-      this.#matchResult = options.matchResult;
-    }
-  }
-  /**
-   * `.req` is the instance of {@link HonoRequest}.
-   */
-  get req() {
-    this.#req ??= new HonoRequest(this.#rawRequest, this.#path, this.#matchResult);
-    return this.#req;
-  }
-  /**
-   * @see {@link https://hono.dev/docs/api/context#event}
-   * The FetchEvent associated with the current request.
-   *
-   * @throws Will throw an error if the context does not have a FetchEvent.
-   */
-  get event() {
-    if (this.#executionCtx && "respondWith" in this.#executionCtx) {
-      return this.#executionCtx;
-    } else {
-      throw Error("This context has no FetchEvent");
-    }
-  }
-  /**
-   * @see {@link https://hono.dev/docs/api/context#executionctx}
-   * The ExecutionContext associated with the current request.
-   *
-   * @throws Will throw an error if the context does not have an ExecutionContext.
-   */
-  get executionCtx() {
-    if (this.#executionCtx) {
-      return this.#executionCtx;
-    } else {
-      throw Error("This context has no ExecutionContext");
-    }
-  }
-  /**
-   * @see {@link https://hono.dev/docs/api/context#res}
-   * The Response object for the current request.
-   */
-  get res() {
-    return this.#res ||= createResponseInstance(null, {
-      headers: this.#preparedHeaders ??= new Headers()
-    });
-  }
-  /**
-   * Sets the Response object for the current request.
-   *
-   * @param _res - The Response object to set.
-   */
-  set res(_res) {
-    if (this.#res && _res) {
-      _res = createResponseInstance(_res.body, _res);
-      for (const [k2, v2] of this.#res.headers.entries()) {
-        if (k2 === "content-type") {
-          continue;
-        }
-        if (k2 === "set-cookie") {
-          const cookies = this.#res.headers.getSetCookie();
-          _res.headers.delete("set-cookie");
-          for (const cookie of cookies) {
-            _res.headers.append("set-cookie", cookie);
-          }
-        } else {
-          _res.headers.set(k2, v2);
-        }
-      }
-    }
-    this.#res = _res;
-    this.finalized = true;
-  }
-  /**
-   * `.render()` can create a response within a layout.
-   *
-   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
-   *
-   * @example
-   * ```ts
-   * app.get('/', (c) => {
-   *   return c.render('Hello!')
-   * })
-   * ```
-   */
-  render = (...args) => {
-    this.#renderer ??= (content) => this.html(content);
-    return this.#renderer(...args);
-  };
-  /**
-   * Sets the layout for the response.
-   *
-   * @param layout - The layout to set.
-   * @returns The layout function.
-   */
-  setLayout = (layout) => this.#layout = layout;
-  /**
-   * Gets the current layout for the response.
-   *
-   * @returns The current layout function.
-   */
-  getLayout = () => this.#layout;
-  /**
-   * `.setRenderer()` can set the layout in the custom middleware.
-   *
-   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
-   *
-   * @example
-   * ```tsx
-   * app.use('*', async (c, next) => {
-   *   c.setRenderer((content) => {
-   *     return c.html(
-   *       <html>
-   *         <body>
-   *           <p>{content}</p>
-   *         </body>
-   *       </html>
-   *     )
-   *   })
-   *   await next()
-   * })
-   * ```
-   */
-  setRenderer = (renderer) => {
-    this.#renderer = renderer;
-  };
-  /**
-   * `.header()` can set headers.
-   *
-   * @see {@link https://hono.dev/docs/api/context#header}
-   *
-   * @example
-   * ```ts
-   * app.get('/welcome', (c) => {
-   *   // Set headers
-   *   c.header('X-Message', 'Hello!')
-   *   c.header('Content-Type', 'text/plain')
-   *
-   *   return c.body('Thank you for coming')
-   * })
-   * ```
-   */
-  header = (name, value, options) => {
-    if (this.finalized) {
-      this.#res = createResponseInstance(this.#res.body, this.#res);
-    }
-    const headers = this.#res ? this.#res.headers : this.#preparedHeaders ??= new Headers();
-    if (value === void 0) {
-      headers.delete(name);
-    } else if (options?.append) {
-      headers.append(name, value);
-    } else {
-      headers.set(name, value);
-    }
-  };
-  status = (status) => {
-    this.#status = status;
-  };
-  /**
-   * `.set()` can set the value specified by the key.
-   *
-   * @see {@link https://hono.dev/docs/api/context#set-get}
-   *
-   * @example
-   * ```ts
-   * app.use('*', async (c, next) => {
-   *   c.set('message', 'Hono is hot!!')
-   *   await next()
-   * })
-   * ```
-   */
-  set = (key, value) => {
-    this.#var ??= /* @__PURE__ */ new Map();
-    this.#var.set(key, value);
-  };
-  /**
-   * `.get()` can use the value specified by the key.
-   *
-   * @see {@link https://hono.dev/docs/api/context#set-get}
-   *
-   * @example
-   * ```ts
-   * app.get('/', (c) => {
-   *   const message = c.get('message')
-   *   return c.text(`The message is "${message}"`)
-   * })
-   * ```
-   */
-  get = (key) => {
-    return this.#var ? this.#var.get(key) : void 0;
-  };
-  /**
-   * `.var` can access the value of a variable.
-   *
-   * @see {@link https://hono.dev/docs/api/context#var}
-   *
-   * @example
-   * ```ts
-   * const result = c.var.client.oneMethod()
-   * ```
-   */
-  // c.var.propName is a read-only
-  get var() {
-    if (!this.#var) {
-      return {};
-    }
-    return Object.fromEntries(this.#var);
-  }
-  #newResponse(data, arg, headers) {
-    const responseHeaders = this.#res ? new Headers(this.#res.headers) : this.#preparedHeaders ?? new Headers();
-    if (typeof arg === "object" && "headers" in arg) {
-      const argHeaders = arg.headers instanceof Headers ? arg.headers : new Headers(arg.headers);
-      for (const [key, value] of argHeaders) {
-        if (key.toLowerCase() === "set-cookie") {
-          responseHeaders.append(key, value);
-        } else {
-          responseHeaders.set(key, value);
-        }
-      }
-    }
-    if (headers) {
-      for (const [k2, v2] of Object.entries(headers)) {
-        if (typeof v2 === "string") {
-          responseHeaders.set(k2, v2);
-        } else {
-          responseHeaders.delete(k2);
-          for (const v22 of v2) {
-            responseHeaders.append(k2, v22);
-          }
-        }
-      }
-    }
-    const status = typeof arg === "number" ? arg : arg?.status ?? this.#status;
-    return createResponseInstance(data, { status, headers: responseHeaders });
-  }
-  newResponse = (...args) => this.#newResponse(...args);
-  /**
-   * `.body()` can return the HTTP response.
-   * You can set headers with `.header()` and set HTTP status code with `.status`.
-   * This can also be set in `.text()`, `.json()` and so on.
-   *
-   * @see {@link https://hono.dev/docs/api/context#body}
-   *
-   * @example
-   * ```ts
-   * app.get('/welcome', (c) => {
-   *   // Set headers
-   *   c.header('X-Message', 'Hello!')
-   *   c.header('Content-Type', 'text/plain')
-   *   // Set HTTP status code
-   *   c.status(201)
-   *
-   *   // Return the response body
-   *   return c.body('Thank you for coming')
-   * })
-   * ```
-   */
-  body = (data, arg, headers) => this.#newResponse(data, arg, headers);
-  /**
-   * `.text()` can render text as `Content-Type:text/plain`.
-   *
-   * @see {@link https://hono.dev/docs/api/context#text}
-   *
-   * @example
-   * ```ts
-   * app.get('/say', (c) => {
-   *   return c.text('Hello!')
-   * })
-   * ```
-   */
-  text = (text, arg, headers) => {
-    return !this.#preparedHeaders && !this.#status && !arg && !headers && !this.finalized ? new Response(text) : this.#newResponse(
-      text,
-      arg,
-      setDefaultContentType(TEXT_PLAIN, headers)
-    );
-  };
-  /**
-   * `.json()` can render JSON as `Content-Type:application/json`.
-   *
-   * @see {@link https://hono.dev/docs/api/context#json}
-   *
-   * @example
-   * ```ts
-   * app.get('/api', (c) => {
-   *   return c.json({ message: 'Hello!' })
-   * })
-   * ```
-   */
-  json = (object, arg, headers) => {
-    return this.#newResponse(
-      JSON.stringify(object),
-      arg,
-      setDefaultContentType("application/json", headers)
-    );
-  };
-  html = (html, arg, headers) => {
-    const res = (html2) => this.#newResponse(html2, arg, setDefaultContentType("text/html; charset=UTF-8", headers));
-    return typeof html === "object" ? resolveCallback(html, HtmlEscapedCallbackPhase.Stringify, false, {}).then(res) : res(html);
-  };
-  /**
-   * `.redirect()` can Redirect, default status code is 302.
-   *
-   * @see {@link https://hono.dev/docs/api/context#redirect}
-   *
-   * @example
-   * ```ts
-   * app.get('/redirect', (c) => {
-   *   return c.redirect('/')
-   * })
-   * app.get('/redirect-permanently', (c) => {
-   *   return c.redirect('/', 301)
-   * })
-   * ```
-   */
-  redirect = (location2, status) => {
-    const locationString = String(location2);
-    this.header(
-      "Location",
-      // Multibyes should be encoded
-      // eslint-disable-next-line no-control-regex
-      !/[^\x00-\xFF]/.test(locationString) ? locationString : encodeURI(locationString)
-    );
-    return this.newResponse(null, status ?? 302);
-  };
-  /**
-   * `.notFound()` can return the Not Found Response.
-   *
-   * @see {@link https://hono.dev/docs/api/context#notfound}
-   *
-   * @example
-   * ```ts
-   * app.get('/notfound', (c) => {
-   *   return c.notFound()
-   * })
-   * ```
-   */
-  notFound = () => {
-    this.#notFoundHandler ??= () => createResponseInstance();
-    return this.#notFoundHandler(this);
-  };
-};
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/hono-base.js
+init_context();
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router.js
 var METHOD_NAME_ALL = "ALL";
@@ -20248,6 +13066,7 @@ var UnsupportedPathError = class extends Error {
 var COMPOSED_HANDLER = "__COMPOSED_HANDLER";
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/hono-base.js
+init_url();
 var notFoundHandler = (c2) => {
   return c2.text("404 Not Found", 404);
 };
@@ -20623,11 +13442,14 @@ var Hono = class _Hono {
   };
 };
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router/reg-exp-router/router.js
+init_url();
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router/reg-exp-router/matcher.js
 var emptyParam = [];
 function match(method, path) {
   const matchers = this.buildAllMatchers();
-  const match22 = ((method2, path2) => {
+  const match2 = ((method2, path2) => {
     const matcher = matchers[method2] || matchers[METHOD_NAME_ALL];
     const staticMatch = matcher[2][path2];
     if (staticMatch) {
@@ -20640,8 +13462,8 @@ function match(method, path) {
     const index = match3.indexOf("", 1);
     return [matcher[1][index], match3];
   });
-  this.match = match22;
-  return match22(method, path);
+  this.match = match2;
+  return match2(method, path);
 }
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router/reg-exp-router/node.js
@@ -20793,7 +13615,7 @@ var Trie = class {
     let captureIndex = 0;
     const indexReplacementMap = [];
     const paramReplacementMap = [];
-    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_3, handlerIndex, paramIndex) => {
+    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_2, handlerIndex, paramIndex) => {
       if (handlerIndex !== void 0) {
         indexReplacementMap[++captureIndex] = Number(handlerIndex);
         return "$()";
@@ -20815,7 +13637,7 @@ function buildWildcardRegExp(path) {
   return wildcardRegExpCache[path] ??= new RegExp(
     path === "*" ? "" : `^${path.replace(
       /\/\*$|([.\\+*[^\]$()])/g,
-      (_3, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
+      (_2, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
     )}$`
   );
 }
@@ -21011,20 +13833,20 @@ var SmartRouter = class {
     let i2 = 0;
     let res;
     for (; i2 < len; i2++) {
-      const router43 = routers[i2];
+      const router45 = routers[i2];
       try {
         for (let i22 = 0, len2 = routes.length; i22 < len2; i22++) {
-          router43.add(...routes[i22]);
+          router45.add(...routes[i22]);
         }
-        res = router43.match(method, path);
+        res = router45.match(method, path);
       } catch (e2) {
         if (e2 instanceof UnsupportedPathError) {
           continue;
         }
         throw e2;
       }
-      this.match = router43.match.bind(router43);
-      this.#routers = [router43];
+      this.match = router45.match.bind(router45);
+      this.#routers = [router45];
       this.#routes = void 0;
       break;
     }
@@ -21042,10 +13864,14 @@ var SmartRouter = class {
   }
 };
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router/trie-router/router.js
+init_url();
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/router/trie-router/node.js
+init_url();
 var emptyParams = /* @__PURE__ */ Object.create(null);
 var hasChildren = (children) => {
-  for (const _3 in children) {
+  for (const _2 in children) {
     return true;
   }
   return false;
@@ -21254,6 +14080,9 @@ var Hono2 = class extends Hono {
   }
 };
 
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/index.js
+init_context();
+
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/middleware/cors/index.js
 var cors = (options) => {
   const opts = {
@@ -21392,7 +14221,7 @@ async function log(fn, prefix, method, path, status = 0, elapsed) {
   fn(out);
 }
 var logger = (fn = console.log) => {
-  return async function logger22(c2, next) {
+  return async function logger2(c2, next) {
     const { method, url } = c2.req;
     const path = url.slice(url.indexOf("/", 8));
     await log(fn, "<--", method, path);
@@ -21982,7 +14811,7 @@ __export(external_exports, {
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
 (function(util2) {
-  util2.assertEqual = (_3) => {
+  util2.assertEqual = (_2) => {
   };
   function assertIs(_arg) {
   }
@@ -22032,7 +14861,7 @@ var util;
     return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
   }
   util2.joinValues = joinValues;
-  util2.jsonStringifyReplacer = (_3, value) => {
+  util2.jsonStringifyReplacer = (_2, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -22403,12 +15232,12 @@ var ParseStatus = class _ParseStatus {
   }
   static mergeArray(status, results) {
     const arrayValue = [];
-    for (const s3 of results) {
-      if (s3.status === "aborted")
+    for (const s2 of results) {
+      if (s2.status === "aborted")
         return INVALID;
-      if (s3.status === "dirty")
+      if (s2.status === "dirty")
         status.dirty();
-      arrayValue.push(s3.value);
+      arrayValue.push(s2.value);
     }
     return { status: status.value, value: arrayValue };
   }
@@ -22854,11 +15683,11 @@ function isValidIP(ip, version6) {
   }
   return false;
 }
-function isValidJWT(jwt, alg) {
-  if (!jwtRegex.test(jwt))
+function isValidJWT(jwt2, alg) {
+  if (!jwtRegex.test(jwt2))
     return false;
   try {
-    const [header2] = jwt.split(".");
+    const [header2] = jwt2.split(".");
     if (!header2)
       return false;
     const base64 = header2.replace(/-/g, "+").replace(/_/g, "/").padEnd(header2.length + (4 - header2.length % 4) % 4, "=");
@@ -26047,7 +18876,7 @@ var prettyError = ({ type = "error", whatHappened, otherwise, reassurance, toFix
   }[type];
   let header2 = `${icon}  ${import_chalk2.default.bold.underline(whatHappened.trim())}`;
   if (stack) header2 += "\n" + [...(/* @__PURE__ */ new Error()).stack?.split("\n").slice(1).filter(Boolean) || []].join("\n");
-  let toFixNowStr = (Array.isArray(toFixNow) ? toFixNow.map((s3) => s3.trim()).filter(Boolean).map((s3, i2) => `	${i2 + 1}. ${s3}`).join("\n") : toFixNow?.trim()) ?? "";
+  let toFixNowStr = (Array.isArray(toFixNow) ? toFixNow.map((s2) => s2.trim()).filter(Boolean).map((s2, i2) => `	${i2 + 1}. ${s2}`).join("\n") : toFixNow?.trim()) ?? "";
   if (Array.isArray(toFixNow) && toFixNowStr) toFixNowStr = `To fix this, you can take one of the following courses of action:
 
 ${toFixNowStr}`;
@@ -26293,10 +19122,10 @@ var batchSchema = external_exports.array(external_exports.record(external_export
 // ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/functions.js
 var cacheFn = (fn) => {
   const key = "value";
-  const cache2 = /* @__PURE__ */ new Map();
+  const cache = /* @__PURE__ */ new Map();
   return ((...args) => {
-    if (!cache2.has(key)) cache2.set(key, fn(...args));
-    return cache2.get(key);
+    if (!cache.has(key)) cache.set(key, fn(...args));
+    return cache.get(key);
   });
 };
 var waterfall = (fns, transform) => {
@@ -26773,7 +19602,7 @@ var getAsyncLocalStorage = async () => {
       console.warn("node:async_hooks is not supported in this runtime. Experimental async context is disabled.");
       resolve2({
         getStore: () => void 0,
-        run: (_3, fn) => fn()
+        run: (_2, fn) => fn()
       });
     }
   });
@@ -27124,7 +19953,7 @@ var createStepTools = (client, execution, stepHandler) => {
         ...Object.keys(opts).length ? { opts } : {},
         userland: { id }
       };
-    }, { fn: (_3, __, fn, ...input) => fn(...input) });
+    }, { fn: (_2, __, fn, ...input) => fn(...input) });
   };
   const createStepMetadataWrapper = (memoizationId, builder) => {
     if (!client["experimentalMetadataEnabled"]) throw new Error('step.metadata() is experimental. Enable it by adding metadataMiddleware() from "inngest/experimental" to your client middleware.');
@@ -27868,11 +20697,11 @@ var DiagComponentLogger = class {
   }
 };
 function logProxy(funcName, namespace, args) {
-  const logger3 = getGlobal("diag");
-  if (!logger3) {
+  const logger2 = getGlobal("diag");
+  if (!logger2) {
     return;
   }
-  return logger3[funcName](namespace, ...args);
+  return logger2[funcName](namespace, ...args);
 }
 
 // ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/diag/types.js
@@ -27888,17 +20717,17 @@ var DiagLogLevel;
 })(DiagLogLevel || (DiagLogLevel = {}));
 
 // ../../node_modules/.pnpm/@opentelemetry+api@1.9.1/node_modules/@opentelemetry/api/build/esm/diag/internal/logLevelLogger.js
-function createLogLevelDiagLogger(maxLevel, logger3) {
+function createLogLevelDiagLogger(maxLevel, logger2) {
   if (maxLevel < DiagLogLevel.NONE) {
     maxLevel = DiagLogLevel.NONE;
   } else if (maxLevel > DiagLogLevel.ALL) {
     maxLevel = DiagLogLevel.ALL;
   }
-  logger3 = logger3 || {};
+  logger2 = logger2 || {};
   function _filterFunc(funcName, theLevel) {
-    const theFunc = logger3[funcName];
+    const theFunc = logger2[funcName];
     if (typeof theFunc === "function" && maxLevel >= theLevel) {
-      return theFunc.bind(logger3);
+      return theFunc.bind(logger2);
     }
     return function() {
     };
@@ -27929,16 +20758,16 @@ var DiagAPI = class _DiagAPI {
   constructor() {
     function _logProxy(funcName) {
       return function(...args) {
-        const logger3 = getGlobal("diag");
-        if (!logger3)
+        const logger2 = getGlobal("diag");
+        if (!logger2)
           return;
-        return logger3[funcName](...args);
+        return logger2[funcName](...args);
       };
     }
     const self2 = this;
-    const setLogger = (logger3, optionsOrLogLevel = { logLevel: DiagLogLevel.INFO }) => {
+    const setLogger = (logger2, optionsOrLogLevel = { logLevel: DiagLogLevel.INFO }) => {
       var _a2, _b, _c;
-      if (logger3 === self2) {
+      if (logger2 === self2) {
         const err2 = new Error("Cannot use diag as the logger for itself. Please use a DiagLogger implementation like ConsoleDiagLogger or a custom implementation");
         self2.error((_a2 = err2.stack) !== null && _a2 !== void 0 ? _a2 : err2.message);
         return false;
@@ -27949,7 +20778,7 @@ var DiagAPI = class _DiagAPI {
         };
       }
       const oldLogger = getGlobal("diag");
-      const newLogger = createLogLevelDiagLogger((_b = optionsOrLogLevel.logLevel) !== null && _b !== void 0 ? _b : DiagLogLevel.INFO, logger3);
+      const newLogger = createLogLevelDiagLogger((_b = optionsOrLogLevel.logLevel) !== null && _b !== void 0 ? _b : DiagLogLevel.INFO, logger2);
       if (oldLogger && !optionsOrLogLevel.suppressOverrideMessage) {
         const stack = (_c = new Error().stack) !== null && _c !== void 0 ? _c : "<failed to generate stacktrace>";
         oldLogger.warn(`Current logger will be overwritten from ${stack}`);
@@ -30482,10 +23311,10 @@ var InngestFunction = class InngestFunction2 {
       timeouts,
       singleton
     };
-    if (cancelOn) fn.cancel = cancelOn.map(({ event, timeout, if: ifStr, match: match3 }) => {
+    if (cancelOn) fn.cancel = cancelOn.map(({ event, timeout, if: ifStr, match: match2 }) => {
       const ret = { event };
       if (timeout) ret.timeout = timeStr(timeout);
-      if (match3) ret.if = `event.${match3} == async.${match3}`;
+      if (match2) ret.if = `event.${match2} == async.${match2}`;
       else if (ifStr) ret.if = ifStr;
       return ret;
     }, []);
@@ -31530,7 +24359,7 @@ ${foundStepsSummary}.`;
         ...res,
         version: version$1
       })) : void 0;
-      const executionOptions = await (/* @__PURE__ */ ((s3) => s3)({
+      const executionOptions = await (/* @__PURE__ */ ((s2) => s2)({
         [ExecutionVersion.V0]: ({ event, events, steps, ctx, version: version$2 }) => {
           const stepState = Object.entries(steps ?? {}).reduce((acc, [id, data$1]) => {
             return {
@@ -31937,9 +24766,9 @@ ${foundStepsSummary}.`;
     ];
     const logLevelSetting = logLevels$1.indexOf(this.logLevel);
     if (logLevels$1.indexOf(level) >= logLevelSetting) {
-      let logger3 = console.log;
-      if (Object.hasOwn(console, level)) logger3 = console[level];
-      logger3(`${logPrefix} ${level} -`, ...args);
+      let logger2 = console.log;
+      if (Object.hasOwn(console, level)) logger2 = console[level];
+      logger2(`${logPrefix} ${level} -`, ...args);
     }
   }
 };
@@ -31983,58 +24812,8 @@ var RequestSignature = class {
   }
 };
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/adapter/index.js
-var env = (c2, runtime2) => {
-  const global3 = globalThis;
-  const globalEnv = global3?.process?.env;
-  runtime2 ??= getRuntimeKey();
-  const runtimeEnvHandlers = {
-    bun: () => globalEnv,
-    node: () => globalEnv,
-    "edge-light": () => globalEnv,
-    deno: () => {
-      return Deno.env.toObject();
-    },
-    workerd: () => c2.env,
-    // On Fastly Compute, you can use the ConfigStore to manage user-defined data.
-    fastly: () => ({}),
-    other: () => ({})
-  };
-  return runtimeEnvHandlers[runtime2]();
-};
-var knownUserAgents = {
-  deno: "Deno",
-  bun: "Bun",
-  workerd: "Cloudflare-Workers",
-  node: "Node.js"
-};
-var getRuntimeKey = () => {
-  const global3 = globalThis;
-  const userAgentSupported = typeof navigator !== "undefined" && typeof navigator.userAgent === "string";
-  if (userAgentSupported) {
-    for (const [runtimeKey, userAgent] of Object.entries(knownUserAgents)) {
-      if (checkUserAgentEquals(userAgent)) {
-        return runtimeKey;
-      }
-    }
-  }
-  if (typeof global3?.EdgeRuntime === "string") {
-    return "edge-light";
-  }
-  if (global3?.fastly !== void 0) {
-    return "fastly";
-  }
-  if (global3?.process?.release?.name === "node") {
-    return "node";
-  }
-  return "other";
-};
-var checkUserAgentEquals = (platform) => {
-  const userAgent = navigator.userAgent;
-  return userAgent.startsWith(platform);
-};
-
 // ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/hono.js
+init_adapter();
 var frameworkName = "hono";
 var serve2 = (options) => {
   return new InngestCommHandler({
@@ -32250,8 +25029,8 @@ var DefaultLogger = class {
 var ProxyLogger = class {
   logger;
   enabled = false;
-  constructor(logger3) {
-    this.logger = logger3;
+  constructor(logger2) {
+    this.logger = logger2;
     return new Proxy(this, { get(target, prop, receiver) {
       if (prop in target) return Reflect.get(target, prop, receiver);
       return Reflect.get(target.logger, prop, receiver);
@@ -32281,9 +25060,9 @@ var ProxyLogger = class {
   }
   async flush() {
     if (this.logger.constructor.name == DefaultLogger.name) return;
-    const logger3 = this.logger;
-    if (typeof logger3.flush === "function") {
-      await logger3.flush();
+    const logger2 = this.logger;
+    if (typeof logger2.flush === "function") {
+      await logger2.flush();
       return;
     }
     await resolveNextTick();
@@ -32722,7 +25501,7 @@ var Inngest = class Inngest2 {
   */
   constructor(options) {
     this.options = options;
-    const { id, fetch: fetch5, logger: logger3 = new DefaultLogger(), middleware, isDev, schemas, appVersion } = this.options;
+    const { id, fetch: fetch5, logger: logger2 = new DefaultLogger(), middleware, isDev, schemas, appVersion } = this.options;
     if (!id) throw new Error("An `id` must be passed to create an Inngest instance.");
     this.id = id;
     this._mode = getMode({ explicitMode: typeof isDev === "boolean" ? isDev ? "dev" : "cloud" : void 0 });
@@ -32736,7 +25515,7 @@ var Inngest = class Inngest2 {
     });
     this.schemas = schemas;
     this.loadModeEnvVars();
-    this.logger = logger3;
+    this.logger = logger2;
     this.middleware = this.initializeMiddleware([...builtInMiddleware, ...middleware || []]);
     this._appVersion = appVersion;
   }
@@ -33216,19 +25995,19 @@ var builtInMiddleware = /* @__PURE__ */ ((m2) => m2)([new InngestMiddleware({
       } catch (err2) {
         console.error('failed to create "childLogger" with error: ', err2);
       }
-      const logger3 = new ProxyLogger(providedLogger);
+      const logger2 = new ProxyLogger(providedLogger);
       return {
         transformInput() {
-          return { ctx: { logger: logger3 } };
+          return { ctx: { logger: logger2 } };
         },
         beforeExecution() {
-          logger3.enable();
+          logger2.enable();
         },
         transformOutput({ result: { error } }) {
-          if (error) logger3.error(error);
+          if (error) logger2.error(error);
         },
         async beforeResponse() {
-          await logger3.flush();
+          await logger2.flush();
         }
       };
     } };
@@ -33282,14 +26061,14 @@ var inngest = new Inngest({
 });
 
 // ../../node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
-function __rest(s3, e2) {
+function __rest(s2, e2) {
   var t2 = {};
-  for (var p2 in s3) if (Object.prototype.hasOwnProperty.call(s3, p2) && e2.indexOf(p2) < 0)
-    t2[p2] = s3[p2];
-  if (s3 != null && typeof Object.getOwnPropertySymbols === "function")
-    for (var i2 = 0, p2 = Object.getOwnPropertySymbols(s3); i2 < p2.length; i2++) {
-      if (e2.indexOf(p2[i2]) < 0 && Object.prototype.propertyIsEnumerable.call(s3, p2[i2]))
-        t2[p2[i2]] = s3[p2[i2]];
+  for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2) && e2.indexOf(p2) < 0)
+    t2[p2] = s2[p2];
+  if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
+    for (var i2 = 0, p2 = Object.getOwnPropertySymbols(s2); i2 < p2.length; i2++) {
+      if (e2.indexOf(p2[i2]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p2[i2]))
+        t2[p2[i2]] = s2[p2[i2]];
     }
   return t2;
 }
@@ -33873,7 +26652,7 @@ var PostgrestBuilder = class {
           res$1 = await _fetch(_this.url.toString(), {
             method: _this.method,
             headers: requestHeaders,
-            body: JSON.stringify(_this.body, (_3, value) => typeof value === "bigint" ? value.toString() : value),
+            body: JSON.stringify(_this.body, (_2, value) => typeof value === "bigint" ? value.toString() : value),
             signal: _this.signal
           });
         } catch (fetchError) {
@@ -35539,9 +28318,9 @@ var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
   * ```
   */
   in(column, values) {
-    const cleanedValues = Array.from(new Set(values)).map((s3) => {
-      if (typeof s3 === "string" && PostgrestReservedCharsRegexp.test(s3)) return `"${s3}"`;
-      else return `${s3}`;
+    const cleanedValues = Array.from(new Set(values)).map((s2) => {
+      if (typeof s2 === "string" && PostgrestReservedCharsRegexp.test(s2)) return `"${s2}"`;
+      else return `${s2}`;
     }).join(",");
     this.url.searchParams.append(column, `in.(${cleanedValues})`);
     return this;
@@ -35553,9 +28332,9 @@ var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
   * @param values - The values array to filter with
   */
   notIn(column, values) {
-    const cleanedValues = Array.from(new Set(values)).map((s3) => {
-      if (typeof s3 === "string" && PostgrestReservedCharsRegexp.test(s3)) return `"${s3}"`;
-      else return `${s3}`;
+    const cleanedValues = Array.from(new Set(values)).map((s2) => {
+      if (typeof s2 === "string" && PostgrestReservedCharsRegexp.test(s2)) return `"${s2}"`;
+      else return `${s2}`;
     }).join(",");
     this.url.searchParams.append(column, `not.in.(${cleanedValues})`);
     return this;
@@ -36387,7 +29166,7 @@ var PostgrestFilterBuilder = class extends PostgrestTransformBuilder {
   * ```
   */
   match(query) {
-    Object.entries(query).filter(([_3, value]) => value !== void 0).forEach(([column, value]) => {
+    Object.entries(query).filter(([_2, value]) => value !== void 0).forEach(([column, value]) => {
       this.url.searchParams.append(column, `eq.${value}`);
     });
     return this;
@@ -36761,13 +29540,13 @@ var PostgrestQueryBuilder = class {
   * )
   * ```
   */
-  constructor(url, { headers = {}, schema, fetch: fetch$1, urlLengthLimit = 8e3, retry: retry2 }) {
+  constructor(url, { headers = {}, schema, fetch: fetch$1, urlLengthLimit = 8e3, retry }) {
     this.url = url;
     this.headers = new Headers(headers);
     this.schema = schema;
     this.fetch = fetch$1;
     this.urlLengthLimit = urlLengthLimit;
-    this.retry = retry2;
+    this.retry = retry;
   }
   /**
   * Clone URL and headers to prevent shared state between operations.
@@ -38391,7 +31170,7 @@ var PostgrestClient = class PostgrestClient2 {
   * })
   * ```
   */
-  constructor(url, { headers = {}, schema, fetch: fetch$1, timeout, urlLengthLimit = 8e3, retry: retry2 } = {}) {
+  constructor(url, { headers = {}, schema, fetch: fetch$1, timeout, urlLengthLimit = 8e3, retry } = {}) {
     this.url = url;
     this.headers = new Headers(headers);
     this.schemaName = schema;
@@ -38419,7 +31198,7 @@ var PostgrestClient = class PostgrestClient2 {
       return originalFetch(input, _objectSpread2(_objectSpread2({}, init2), {}, { signal: controller.signal })).finally(() => clearTimeout(timeoutId));
     };
     else this.fetch = originalFetch;
-    this.retry = retry2;
+    this.retry = retry;
   }
   /**
   * Perform a query on a table or a view.
@@ -38633,7 +31412,7 @@ var PostgrestClient = class PostgrestClient2 {
       body = args;
     } else if (head2 || get2) {
       method = head2 ? "HEAD" : "GET";
-      Object.entries(args).filter(([_3, value]) => value !== void 0).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
+      Object.entries(args).filter(([_2, value]) => value !== void 0).map(([name, value]) => [name, Array.isArray(value) ? `{${value.join(",")}}` : `${value}`]).forEach(([name, value]) => {
         url.searchParams.append(name, value);
       });
     } else {
@@ -39081,7 +31860,7 @@ var toArray = (value, type) => {
     const valTrim = value.slice(1, lastIdx);
     try {
       arr = JSON.parse("[" + valTrim + "]");
-    } catch (_3) {
+    } catch (_2) {
       arr = valTrim ? valTrim.split(",") : [];
     }
     return arr.map((val) => convertCell(type, val));
@@ -40861,7 +33640,7 @@ var Socket = class {
    */
   triggerStateCallbacks(event, ...args) {
     try {
-      this.stateChangeCallbacks[event].forEach(([_3, callback]) => {
+      this.stateChangeCallbacks[event].forEach(([_2, callback]) => {
         try {
           callback(...args);
         } catch (e2) {
@@ -46612,14 +39391,14 @@ var GoTrueAdminApi = class {
    * @category Auth
    * @subcategory Auth Admin
    */
-  async signOut(jwt, scope = SIGN_OUT_SCOPES[0]) {
+  async signOut(jwt2, scope = SIGN_OUT_SCOPES[0]) {
     if (SIGN_OUT_SCOPES.indexOf(scope) < 0) {
       throw new Error(`@supabase/auth-js: Parameter scope must be one of ${SIGN_OUT_SCOPES.join(", ")}`);
     }
     try {
       await _request(this.fetch, "POST", `${this.url}/logout?scope=${scope}`, {
         headers: this.headers,
-        jwt,
+        jwt: jwt2,
         noResolveJson: true
       });
       return { data: null, error: null };
@@ -48146,7 +40925,7 @@ var DEFAULT_REQUEST_OPTIONS = {
   attestation: "direct"
 };
 function deepMerge(...sources) {
-  const isObject2 = (val) => val !== null && typeof val === "object" && !Array.isArray(val);
+  const isObject = (val) => val !== null && typeof val === "object" && !Array.isArray(val);
   const isArrayBufferLike = (val) => val instanceof ArrayBuffer || ArrayBuffer.isView(val);
   const result = {};
   for (const source of sources) {
@@ -48160,9 +40939,9 @@ function deepMerge(...sources) {
         result[key] = value;
       } else if (isArrayBufferLike(value)) {
         result[key] = value;
-      } else if (isObject2(value)) {
+      } else if (isObject(value)) {
         const existing = result[key];
-        if (isObject2(existing)) {
+        if (isObject(existing)) {
           result[key] = deepMerge(existing, value);
         } else {
           result[key] = deepMerge(value);
@@ -50780,9 +43559,9 @@ var GoTrueClient = class _GoTrueClient {
    * const { data: { user } } = await supabase.auth.getUser(jwt)
    * ```
    */
-  async getUser(jwt) {
-    if (jwt) {
-      return await this._getUser(jwt);
+  async getUser(jwt2) {
+    if (jwt2) {
+      return await this._getUser(jwt2);
     }
     await this.initializePromise;
     let result;
@@ -50798,12 +43577,12 @@ var GoTrueClient = class _GoTrueClient {
     }
     return result;
   }
-  async _getUser(jwt) {
+  async _getUser(jwt2) {
     try {
-      if (jwt) {
+      if (jwt2) {
         return await _request(this.fetch, "GET", `${this.url}/user`, {
           headers: this.headers,
-          jwt,
+          jwt: jwt2,
           xform: _userResponse
         });
       }
@@ -52825,17 +45604,17 @@ var GoTrueClient = class _GoTrueClient {
   /**
    * {@see GoTrueMFAApi#getAuthenticatorAssuranceLevel}
    */
-  async _getAuthenticatorAssuranceLevel(jwt) {
+  async _getAuthenticatorAssuranceLevel(jwt2) {
     var _a2, _b, _c, _d;
-    if (jwt) {
+    if (jwt2) {
       try {
-        const { payload: payload2 } = decodeJWT(jwt);
+        const { payload: payload2 } = decodeJWT(jwt2);
         let currentLevel2 = null;
         if (payload2.aal) {
           currentLevel2 = payload2.aal;
         }
         let nextLevel2 = currentLevel2;
-        const { data: { user }, error: userError } = await this.getUser(jwt);
+        const { data: { user }, error: userError } = await this.getUser(jwt2);
         if (userError) {
           return this._returnResult({ data: null, error: userError });
         }
@@ -53122,9 +45901,9 @@ var GoTrueClient = class _GoTrueClient {
    * }
    * ```
    */
-  async getClaims(jwt, options = {}) {
+  async getClaims(jwt2, options = {}) {
     try {
-      let token = jwt;
+      let token = jwt2;
       if (!token) {
         const { data, error } = await this.getSession();
         if (error || !data.session) {
@@ -53155,11 +45934,11 @@ var GoTrueClient = class _GoTrueClient {
           error: null
         };
       }
-      const algorithm = getAlgorithm(header2.alg);
-      const publicKey = await crypto.subtle.importKey("jwk", signingKey, algorithm, true, [
+      const algorithm2 = getAlgorithm(header2.alg);
+      const publicKey = await crypto.subtle.importKey("jwk", signingKey, algorithm2, true, [
         "verify"
       ]);
-      const isValid2 = await crypto.subtle.verify(algorithm, publicKey, signature, stringToUint8Array(`${rawHeader}.${rawPayload}`));
+      const isValid2 = await crypto.subtle.verify(algorithm2, publicKey, signature, stringToUint8Array(`${rawHeader}.${rawPayload}`));
       if (!isValid2) {
         throw new AuthInvalidJwtError("Invalid JWT signature");
       }
@@ -54022,7 +46801,7 @@ var SupabaseClient = class {
       this.auth = this._initSupabaseAuthClient((_settings$auth = settings.auth) !== null && _settings$auth !== void 0 ? _settings$auth : {}, this.headers, settings.global.fetch);
     } else {
       this.accessToken = settings.accessToken;
-      this.auth = new Proxy({}, { get: (_3, prop) => {
+      this.auth = new Proxy({}, { get: (_2, prop) => {
         throw new Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(prop)} is not possible`);
       } });
     }
@@ -54246,6 +47025,34 @@ async function logStep(id, step2) {
   const { data } = await supabase.from("agent_jobs").select("steps").eq("id", id).single();
   const steps = Array.isArray(data?.steps) ? data.steps : [];
   await supabase.from("agent_jobs").update({ steps: [...steps, step2] }).eq("id", id);
+}
+
+// src/lib/notify.ts
+async function createNotification(n2) {
+  const base = {
+    workspace_id: n2.workspace_id,
+    user_id: n2.user_id ?? null,
+    type: n2.type ?? "system",
+    title: n2.title,
+    body: n2.body ?? "",
+    message: n2.title,
+    // legacy NOT-NULL-friendly column
+    is_read: false,
+    read_at: null
+  };
+  if (n2.task_id) base.task_id = n2.task_id;
+  if (n2.record_name) base.record_name = n2.record_name;
+  const hasMeta = n2.metadata && Object.keys(n2.metadata).length > 0;
+  const payload = hasMeta ? { ...base, metadata: n2.metadata } : base;
+  let { error } = await supabase.from("notifications").insert(payload);
+  if (error && /metadata/i.test(error.message)) {
+    ({ error } = await supabase.from("notifications").insert(base));
+  }
+  if (error) {
+    console.error("[notify] failed to create notification:", error.message);
+    return false;
+  }
+  return true;
 }
 
 // ../../node_modules/.pnpm/openai@4.104.0_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
@@ -55706,9 +48513,9 @@ function fetch4(url, opts) {
       }
     });
     if (parseInt(process.version.substring(1)) < 14) {
-      req.on("socket", function(s3) {
-        s3.addListener("close", function(hadError) {
-          const hasDataListener = s3.listenerCount("data") > 0;
+      req.on("socket", function(s2) {
+        s2.addListener("close", function(hadError) {
+          const hasDataListener = s2.listenerCount("data") > 0;
           if (response3 && hasDataListener && !hadError && !(signal && signal.aborted)) {
             const err2 = new Error("Premature close");
             err2.code = "ERR_STREAM_PREMATURE_CLOSE";
@@ -55849,8 +48656,8 @@ function fetch4(url, opts) {
 }
 function fixResponseChunkedTransferBadEnding(request, errorCallback) {
   let socket;
-  request.on("socket", function(s3) {
-    socket = s3;
+  request.on("socket", function(s2) {
+    socket = s2;
   });
   request.on("response", function(response3) {
     const headers = response3.headers;
@@ -56056,11 +48863,11 @@ function isPlainObject2(value) {
 var isPlainObject_default = isPlainObject2;
 
 // ../../node_modules/.pnpm/form-data-encoder@1.7.2/node_modules/form-data-encoder/lib/esm/util/normalizeValue.js
-var normalizeValue = (value) => String(value).replace(/\r|\n/g, (match3, i2, str2) => {
-  if (match3 === "\r" && str2[i2 + 1] !== "\n" || match3 === "\n" && str2[i2 - 1] !== "\r") {
+var normalizeValue = (value) => String(value).replace(/\r|\n/g, (match2, i2, str2) => {
+  if (match2 === "\r" && str2[i2 + 1] !== "\n" || match2 === "\n" && str2[i2 - 1] !== "\r") {
     return "\r\n";
   }
-  return match3;
+  return match2;
 });
 var normalizeValue_default = normalizeValue;
 
@@ -56740,7 +49547,7 @@ var SSEDecoder = class {
     if (line.startsWith(":")) {
       return null;
     }
-    let [fieldname, _3, value] = partition(line, ":");
+    let [fieldname, _2, value] = partition(line, ":");
     if (value.startsWith(" ")) {
       value = value.substring(1);
     }
@@ -57177,7 +49984,7 @@ var APIClient = class {
     return url.toString();
   }
   stringifyQuery(query) {
-    return Object.entries(query).filter(([_3, value]) => typeof value !== "undefined").map(([key, value]) => {
+    return Object.entries(query).filter(([_2, value]) => typeof value !== "undefined").map(([key, value]) => {
       if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
         return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
       }
@@ -57420,11 +50227,11 @@ function getBrowserInfo() {
     { key: "safari", pattern: /(?:Version\W+(\d+)\.(\d+)(?:\.(\d+))?)?(?:\W+Mobile\S*)?\W+Safari/ }
   ];
   for (const { key, pattern } of browserPatterns) {
-    const match3 = pattern.exec(navigator.userAgent);
-    if (match3) {
-      const major2 = match3[1] || 0;
-      const minor = match3[2] || 0;
-      const patch = match3[3] || 0;
+    const match2 = pattern.exec(navigator.userAgent);
+    if (match2) {
+      const major2 = match2[1] || 0;
+      const minor = match2[2] || 0;
+      const patch = match2[3] || 0;
       return { browser: key, version: `${major2}.${minor}.${patch}` };
     }
   }
@@ -62094,11 +54901,15 @@ function recordAiUsage(workspaceId, model, usage, opts) {
 // src/lib/ai-gateway.ts
 var CEREBRAS_DEFAULT_SPEC = "openai-compat/gpt-oss-120b";
 function resolveModel(spec) {
-  const s3 = spec ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
-  const modelId = s3.startsWith("openai-compat/") ? s3.slice("openai-compat/".length) : s3;
+  const s2 = spec ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+  const modelId = s2.startsWith("openai-compat/") ? s2.slice("openai-compat/".length) : s2;
   return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
 }
-var FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? "openai-compat/zai-glm-4.7";
+var FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+var lastGatewayError = null;
+function getLastGatewayError() {
+  return lastGatewayError;
+}
 var CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
 var DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
 function routeAgentModel(req) {
@@ -62124,9 +54935,14 @@ var PROVIDER_FALLBACK_MODELS = [
   "accounts/fireworks/models/qwen2p5-72b-instruct",
   "accounts/fireworks/models/mixtral-8x22b-instruct"
 ];
+function gatewayEnv() {
+  return {
+    baseURL: process.env.AI_GATEWAY_BASE_URL || process.env.CEREBRAS_BASE_URL || process.env.CEREBRAS_API_BASE_URL,
+    apiKey: process.env.AI_GATEWAY_API_KEY || process.env.CEREBRAS_API_KEY
+  };
+}
 function openAIClient() {
-  const baseURL = process.env.AI_GATEWAY_BASE_URL;
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL) {
     throw new Error("[gateway] AI_GATEWAY_BASE_URL is not set \u2014 refusing to route inference to a default OpenAI endpoint. Configure the Cerebras gateway base URL.");
   }
@@ -62141,6 +54957,66 @@ function openAIClient() {
     timeout: 22e3,
     maxRetries: 1
   });
+}
+async function gatewayHealthCheck(opts) {
+  const { baseURL, apiKey } = gatewayEnv();
+  const env2 = {
+    AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? null,
+    AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? null,
+    AI_FAST_MODEL: process.env.AI_FAST_MODEL ?? null
+  };
+  let baseURLHost = null;
+  try {
+    baseURLHost = baseURL ? new URL(baseURL).host : null;
+  } catch {
+    baseURLHost = baseURL ?? null;
+  }
+  if (!baseURL || !apiKey) {
+    const missing = [!baseURL && "AI_GATEWAY_BASE_URL", !apiKey && "AI_GATEWAY_API_KEY"].filter(Boolean).join(" + ");
+    return { ok: false, baseURLHost, env: env2, error: `Missing env: ${missing}` };
+  }
+  if (!opts?.probe) {
+    return {
+      ok: true,
+      baseURLHost,
+      env: env2,
+      lastChatError: lastGatewayError,
+      note: "env configured; no live probe run (add ?probe=1 to test models \u2014 costs 4 requests). lastChatError shows the most recent real chat failure."
+    };
+  }
+  const strip = (m2) => m2.replace(/^openai-compat\//, "");
+  const providerModel = strip(env2.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  const agentModel = strip(env2.AI_AGENT_MODEL ?? env2.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  const fastModel = strip(FAST_MODEL_SPEC);
+  const client = new openai_default({ baseURL, apiKey, timeout: 12e3, maxRetries: 0 });
+  async function probe3(model, withTools) {
+    try {
+      await client.chat.completions.create({
+        model,
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+        ...withTools ? {
+          tools: [{ type: "function", function: { name: "noop", description: "noop", parameters: { type: "object", properties: {} } } }],
+          tool_choice: "auto"
+        } : {}
+      });
+      return { ok: true, model };
+    } catch (e2) {
+      const err2 = e2;
+      return { ok: false, model, status: err2?.status, error: err2?.message ?? String(e2) };
+    }
+  }
+  const gap = () => new Promise((r2) => setTimeout(r2, 600));
+  const provider_plain = await probe3(providerModel, false);
+  await gap();
+  const agent_plain = await probe3(agentModel, false);
+  await gap();
+  const agent_with_tools = await probe3(agentModel, true);
+  await gap();
+  const fast_plain = await probe3(fastModel, false);
+  const tests = { provider_plain, agent_plain, agent_with_tools, fast_plain };
+  const ok2 = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok && tests.fast_plain.ok;
+  return { ok: ok2, baseURLHost, env: env2, tests, lastChatError: lastGatewayError };
 }
 async function aiGateway(req) {
   const resolved = resolveModel();
@@ -62174,6 +55050,15 @@ async function aiGatewayToolUse(req) {
     }],
     tool_choice: { type: "function", function: { name: req.toolName } }
   });
+  if (req.onUsage && completion.usage) {
+    const u2 = completion.usage;
+    req.onUsage({
+      prompt_tokens: u2.prompt_tokens ?? 0,
+      completion_tokens: u2.completion_tokens ?? 0,
+      total_tokens: u2.total_tokens ?? 0,
+      reasoning_tokens: u2.completion_tokens_details?.reasoning_tokens ?? 0
+    });
+  }
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
   if (!toolCall?.function?.arguments) return {};
   try {
@@ -62183,8 +55068,7 @@ async function aiGatewayToolUse(req) {
   }
 }
 async function runOpenAICompatAgent(modelId, req, maxRounds) {
-  const baseURL = process.env.AI_GATEWAY_BASE_URL;
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL || !apiKey) {
     throw new Error(
       `openai-compat provider requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY \u2014 baseURL=${baseURL ?? "MISSING"} apiKey=${apiKey ? "set" : "MISSING"}`
@@ -62222,8 +55106,9 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
         model: activeModel,
         max_tokens: req.maxTokens ?? 2048,
         messages,
-        tools: openaiTools,
-        tool_choice: "auto"
+        // Only send tools when there ARE tools — Cerebras 400s on an empty
+        // `tools: []` + tool_choice (this is what broke every conversational turn).
+        ...openaiTools.length ? { tools: openaiTools, tool_choice: "auto" } : {}
       });
     } catch (e2) {
       const status = e2?.status ?? e2?.code ?? "unknown";
@@ -62295,6 +55180,7 @@ async function aiGatewayAgent(req) {
   try {
     return await runOpenAICompatAgent(resolved.modelId, req, MAX_ROUNDS);
   } catch (primaryErr) {
+    lastGatewayError = { at: `agent-primary/${resolved.modelId}`, message: primaryErr?.message ?? String(primaryErr), status: primaryErr?.status, when: (/* @__PURE__ */ new Date()).toISOString() };
     console.error(`[gateway:agent] primary failed (${resolved.type}/${resolved.modelId}): ${primaryErr?.message}`);
     console.error(`[gateway:agent] Cerebras gateway exhausted \u2014 returning graceful reply`);
     return {
@@ -62319,8 +55205,9 @@ async function aiGatewayAgentStream(req, onEvent) {
   try {
     const r2 = await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
     if (!r2.reply || !r2.reply.trim()) {
-      console.warn(`[gateway:agent-stream] empty streamed reply \u2014 recovering via non-streaming`);
-      const fb = await aiGatewayAgent(effectiveReq).catch(() => null);
+      console.warn(`[gateway:agent-stream] empty streamed reply \u2014 recovering on default model`);
+      const fbModel = resolveModel(CEREBRAS_DEFAULT_SPEC);
+      const fb = await runOpenAICompatAgent(fbModel.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
       if (fb?.reply?.trim()) {
         await onEvent({ type: "token", text: fb.reply });
         return { ...fb, usage: r2.usage ?? fb.usage };
@@ -62331,16 +55218,18 @@ async function aiGatewayAgentStream(req, onEvent) {
     }
     return r2;
   } catch (err2) {
-    console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 falling back to non-streaming`);
-    const r2 = await aiGatewayAgent(effectiveReq).catch(() => null);
-    const reply = r2?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
+    lastGatewayError = { at: "agent-stream", message: err2?.message ?? String(err2), status: err2?.status, when: (/* @__PURE__ */ new Date()).toISOString() };
+    console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 recovering on default model`);
+    const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
+    const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
+    const rateLimited = err2?.status === 429 || /\b429\b|rate limit/i.test(String(err2?.message ?? ""));
+    const reply = r2?.reply || (rateLimited ? "\u23F3 The AI hit its per-minute request limit (current plan: 5 requests/min). Give it ~60 seconds, then try again \u2014 or upgrade the Cerebras plan for higher throughput." : "I'm having trouble connecting to the AI service right now. Please try again in a moment.");
     await onEvent({ type: "token", text: reply });
     return r2 ?? { reply, provider: "none", model: "none", rounds: 0 };
   }
 }
 async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
-  const baseURL = process.env.AI_GATEWAY_BASE_URL;
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
+  const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
   const client = new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
   const openaiTools = req.tools.map((t2) => ({
@@ -62368,8 +55257,10 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
         model: modelId,
         max_tokens: req.maxTokens ?? 2048,
         messages,
-        tools: openaiTools,
-        tool_choice: "auto",
+        // Only send tools when there ARE tools — Cerebras 400s on an empty
+        // `tools: []` + tool_choice, which is exactly what conversational ("hi")
+        // turns sent (useTools:false strips tools to []). This was THE bug.
+        ...openaiTools.length ? { tools: openaiTools, tool_choice: "auto" } : {},
         stream: true,
         stream_options: { include_usage: true }
       });
@@ -62441,16 +55332,13 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
     }
   }
   if (!reply.trim()) {
-    const original = [...req.messages].reverse().find((m2) => m2.role === "user");
-    const originalText = typeof original?.content === "string" ? original.content : "Hello";
+    const hasGatheredData = messages.some((m2) => m2.role === "tool");
+    const synthMessages = hasGatheredData ? [...messages, { role: "user", content: "Now answer my original question using the data you gathered above. You already have the results \u2014 never ask for access or which workspace; just give the concise, well-formatted answer." }] : messages;
     const stream2 = await client.chat.completions.create({
       model: modelId,
       max_tokens: 2048,
       stream: true,
-      messages: [
-        { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct." },
-        { role: "user", content: redactSecrets(originalText) }
-      ]
+      messages: synthMessages
     });
     for await (const chunk of stream2) {
       const d2 = chunk.choices[0]?.delta;
@@ -62487,29 +55375,54 @@ function flattenEnrichment(fields) {
   }
   return out;
 }
-async function tavilySearch(query) {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return "";
+var SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+var SOVEREIGN_SCRAPE_URL = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/v2/scrape";
+async function searxngUrls(query, limit2 = 4) {
   try {
-    const res = await fetch("https://api.tavily.com/search", {
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      console.error(`[search] searxng HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    return (data.results ?? []).map((r2) => r2.url).filter((u2) => typeof u2 === "string" && u2.length > 0).slice(0, limit2);
+  } catch (e2) {
+    console.error("[search] searxng error:", e2 instanceof Error ? e2.message : String(e2));
+    return [];
+  }
+}
+async function scrapeMarkdown(targetUrl) {
+  try {
+    const res = await fetch(SOVEREIGN_SCRAPE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" })
+      body: JSON.stringify({ url: targetUrl, formats: ["markdown"] })
     });
     if (!res.ok) return "";
-    const json2 = await res.json();
-    return (json2.results ?? []).slice(0, 4).map((r2) => `${r2.title}: ${r2.content}`).join("\n");
+    const data = await res.json();
+    return data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
   } catch {
     return "";
   }
 }
-async function extractFields(prompt, toolName, toolSchema) {
+async function sovereignSearch(query) {
+  const urls = await searxngUrls(query);
+  if (urls.length === 0) return "";
+  const pages = await Promise.all(
+    urls.slice(0, 3).map((u2) => scrapeMarkdown(u2).then((md) => md ? `Source: ${u2}
+${md.slice(0, 1500)}` : ""))
+  );
+  return pages.filter(Boolean).join("\n\n");
+}
+async function extractFields(prompt, toolName, toolSchema, onUsage) {
   const raw2 = await aiGatewayToolUse({
     prompt,
     toolName,
     toolDescription: "Extract enrichment fields",
     toolSchema,
-    maxTokens: 512
+    maxTokens: 512,
+    onUsage
   }).catch((err2) => {
     console.error("[enrich-record] gateway call failed (non-fatal):", err2?.message ?? err2);
     return {};
@@ -62520,21 +55433,34 @@ var enrichRecord = inngest.createFunction(
   { id: "crm-enrich-record", name: "CRM: Enrich Record", concurrency: { limit: 5 } },
   { event: "crm/record.created" },
   async ({ event }) => {
-    const { workspaceId, nodeId, objectType: objectType2, recordData } = event.data;
-    const normalizedType = objectType2.toLowerCase();
-    if (!ENRICHABLE.some((t2) => normalizedType.includes(t2))) {
+    const { workspaceId, nodeId, objectType: objectType2 } = event.data;
+    let recordData = event.data.recordData ?? {};
+    const normalizedType = String(objectType2 ?? "").toLowerCase();
+    if (!normalizedType || !ENRICHABLE.some((t2) => normalizedType.includes(t2))) {
       return { skipped: true, reason: "object_type not enrichable" };
     }
-    const jobId = await startJob({
-      workspace_id: workspaceId,
-      agent_name: "crm_enricher",
-      trigger_type: "signal",
-      input: { nodeId, objectType: objectType2, recordData },
-      node_ids: [nodeId]
-    });
+    let jobId;
     try {
+      jobId = await startJob({
+        workspace_id: workspaceId,
+        agent_name: "crm_enricher",
+        trigger_type: "signal",
+        input: { nodeId, objectType: objectType2, recordData },
+        node_ids: [nodeId]
+      });
+      if (Object.keys(recordData).length === 0 && nodeId) {
+        const { data: n2 } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
+        recordData = n2?.data ?? {};
+      }
       const isPerson = ["contact", "person", "people", "lead"].some((t2) => normalizedType.includes(t2));
       let fields = {};
+      const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, reasoning_tokens: 0 };
+      const collect = (u2) => {
+        usage.prompt_tokens += u2.prompt_tokens;
+        usage.completion_tokens += u2.completion_tokens;
+        usage.total_tokens += u2.total_tokens;
+        usage.reasoning_tokens += u2.reasoning_tokens;
+      };
       if (isPerson) {
         const email = recordData.email ?? recordData.Email ?? "";
         const name = recordData.name ?? recordData.Name ?? "";
@@ -62544,12 +55470,12 @@ var enrichRecord = inngest.createFunction(
         const signalQuery = `${subject} ${company} news role change hiring recent`;
         const contactQuery = `${name} ${company} email address phone contact`;
         await logStep(jobId, { step: "web_sweep", queries: [profileQuery, signalQuery, contactQuery] });
-        const [profileCtx, signalCtx, contactCtx] = await Promise.all([
-          tavilySearch(profileQuery),
-          tavilySearch(signalQuery),
-          tavilySearch(contactQuery)
+        const sweep = await Promise.all([
+          sovereignSearch(profileQuery),
+          sovereignSearch(signalQuery),
+          sovereignSearch(contactQuery)
         ]);
-        const webContext = [profileCtx, signalCtx, contactCtx].filter(Boolean).join("\n");
+        const webContext = sweep.filter(Boolean).join("\n\n");
         await logStep(jobId, { step: "extract", type: "person" });
         fields = await extractFields(
           `Enrich this person from the web context below. Name: "${name}", Email: "${email}".
@@ -62593,7 +55519,8 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
                 properties: { level: { type: "string", description: "low | medium | high" }, rationale: { type: "string" } }
               }
             }
-          }
+          },
+          collect
         );
       } else {
         const name = recordData.name ?? recordData.Name ?? recordData.company_name ?? "";
@@ -62601,8 +55528,8 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
         const firmoQuery = `${name} ${domain} company funding employees revenue industry headquarters`;
         const signalQuery = `${name} news hiring funding round expansion layoffs ${(/* @__PURE__ */ new Date()).getFullYear()}`;
         await logStep(jobId, { step: "web_sweep", queries: [firmoQuery, signalQuery] });
-        const [firmoCtx, signalCtx] = await Promise.all([tavilySearch(firmoQuery), tavilySearch(signalQuery)]);
-        const webContext = [firmoCtx, signalCtx].filter(Boolean).join("\n");
+        const sweep = await Promise.all([sovereignSearch(firmoQuery), sovereignSearch(signalQuery)]);
+        const webContext = sweep.filter(Boolean).join("\n\n");
         await logStep(jobId, { step: "extract", type: "company" });
         fields = await extractFields(
           `Enrich this company from the web context below. Name: "${name}", Domain: "${domain}".
@@ -62638,12 +55565,13 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
                 properties: { level: { type: "string", description: "low | medium | high" }, rationale: { type: "string" } }
               }
             }
-          }
+          },
+          collect
         );
       }
       if (Object.keys(fields).length === 0) {
-        await failJob(jobId, "No fields extracted");
-        return { enriched: false };
+        await completeJob(jobId, { enriched: false, skipped: true, reason: "no source data found (search appliance may be offline)" }, []);
+        return { enriched: false, reason: "no_data" };
       }
       const flat = flattenEnrichment(fields);
       const { data: node } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
@@ -62652,19 +55580,27 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
       await supabase.from("nodes").update({ enriched_at: (/* @__PURE__ */ new Date()).toISOString(), enrichment_status: "done" }).eq("id", nodeId);
       const flatKeys = Object.keys(flat);
       const summary = flatKeys.slice(0, 3).join(", ");
-      await supabase.from("notifications").insert({
+      await createNotification({
         workspace_id: workspaceId,
         type: "agent",
         title: "\u2726 Record enriched",
         body: `AI filled in: ${summary}${flatKeys.length > 3 ? ` +${flatKeys.length - 3} more` : ""}`,
         metadata: { nodeId, object_type: objectType2, fields_added: flatKeys.length }
       });
-      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat }, []);
+      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, []);
       return { enriched: true, fields_count: Object.keys(fields).length };
     } catch (err2) {
       const msg = err2 instanceof Error ? err2.message : String(err2);
-      await failJob(jobId, msg);
-      throw err2;
+      if (/\b429\b|rate limit/i.test(msg)) {
+        console.warn(`[enrich-record] rate-limited for node ${nodeId} \u2014 skipping this run`);
+        if (jobId) await completeJob(jobId, { enriched: false, skipped: true, reason: "rate limited \u2014 will retry next run" }, []).catch(() => {
+        });
+        return { enriched: false, reason: "rate_limited" };
+      }
+      console.error(`[enrich-record] failed for node ${nodeId} (non-fatal):`, msg);
+      if (jobId) await failJob(jobId, msg).catch(() => {
+      });
+      return { enriched: false, error: msg };
     }
   }
 );
@@ -62684,7 +55620,7 @@ async function listWorkspaceIds(workspaceId) {
 var PERSON_OR_COMPANY_STEMS = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org", "investor", "supplier", "employee", "candidate"];
 function isRelationshipType(objectType2) {
   const t2 = objectType2.toLowerCase();
-  return PERSON_OR_COMPANY_STEMS.some((s3) => t2.includes(s3));
+  return PERSON_OR_COMPANY_STEMS.some((s2) => t2.includes(s2));
 }
 async function runDealAlerts(workspaceId) {
   const jobId = await startJob({
@@ -62702,7 +55638,7 @@ async function runDealAlerts(workspaceId) {
       for (const deal of deals ?? []) {
         const data = deal.data;
         const stage = String(data.stage ?? data.status ?? "").toLowerCase();
-        if (["won", "lost", "closed"].some((s3) => stage.includes(s3))) continue;
+        if (["won", "lost", "closed"].some((s2) => stage.includes(s2))) continue;
         const daysInactive = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 864e5);
         if (daysInactive < 14) continue;
         const { data: existing } = await supabase.from("deal_alerts").select("id").eq("node_id", deal.id).eq("alert_type", "cold_deal").is("dismissed_at", null).single();
@@ -62714,7 +55650,7 @@ async function runDealAlerts(workspaceId) {
           days_inactive: daysInactive
         });
         if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId,
           type: "alert",
           title: "\u{1F976} Cold deal detected",
@@ -62952,7 +55888,7 @@ async function runInvoiceChaser(workspaceId) {
           evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }]
         });
         steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId,
           type: "agent",
           title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
@@ -63031,7 +55967,7 @@ async function runRecurringInvoices(workspaceId) {
         }
         const updatedNextDue = nextDueDateAfter(nextDue, invoice.data.recurring_frequency ?? "monthly");
         await supabase.from("nodes").update({ data: { ...invoice.data, next_due_date: updatedNextDue } }).eq("id", invoice.id);
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: wsId,
           type: "agent",
           title: `Recurring invoice generated: ${newNumber}`,
@@ -63050,7 +55986,7 @@ async function runRecurringInvoices(workspaceId) {
   return { generated: totalGenerated };
 }
 var ENRICHABLE2 = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org"];
-async function tavilySearch2(query) {
+async function tavilySearch(query) {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return "";
   try {
@@ -63073,7 +56009,7 @@ async function enrichOne(nodeId, objectType2, recordData) {
   const email = recordData.email ?? recordData.Email ?? "";
   const domain = recordData.domain ?? recordData.website ?? "";
   const query = isPerson ? email ? `${email} linkedin job title company` : `${name} linkedin job title company professional` : `${name} ${domain} company funding employees revenue industry`;
-  const webContext = await tavilySearch2(query);
+  const webContext = await tavilySearch(query);
   const schema = isPerson ? { type: "object", properties: { company: { type: "string" }, job_title: { type: "string" }, linkedin: { type: "string" }, location: { type: "string" }, twitter: { type: "string" }, bio: { type: "string" } } } : { type: "object", properties: { description: { type: "string" }, country: { type: "string" }, employee_range: { type: "string" }, arr: { type: "number" }, funding_raised: { type: "number" }, website: { type: "string" }, industry: { type: "string" }, founded_year: { type: "number" } } };
   const raw2 = await aiGatewayToolUse({
     prompt: isPerson ? `Enrich this person. Name: "${name}", Email: "${email}"
@@ -63109,7 +56045,7 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
       const added = await enrichOne(n2.id, n2.object_type, n2.data ?? {});
       if (added > 0) {
         enrichedCount++;
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: workspaceId,
           type: "agent",
           title: "\u2726 Record enriched",
@@ -63128,17 +56064,17 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
 var DEAL_STEMS = ["deal", "opportunit", "pipeline"];
 function isDealType(objectType2) {
   const t2 = objectType2.toLowerCase();
-  return DEAL_STEMS.some((s3) => t2.includes(s3));
+  return DEAL_STEMS.some((s2) => t2.includes(s2));
 }
 function stageIntent(stage) {
-  const s3 = stage.toLowerCase();
-  if (!s3) return 0;
-  if (/(closed.?lost|lost|dead|abandon|disqualif)/.test(s3)) return -40;
-  if (/(closed.?won|won)/.test(s3)) return 30;
-  if (/(negotiat|contract|commit|verbal|final|signature)/.test(s3)) return 28;
-  if (/(proposal|quote|demo|present|poc|pilot|trial|evaluat)/.test(s3)) return 20;
-  if (/(qualif|discovery|meeting|engaged|contacted|working)/.test(s3)) return 10;
-  if (/(lead|new|prospect|inbound|cold|backlog|open)/.test(s3)) return 0;
+  const s2 = stage.toLowerCase();
+  if (!s2) return 0;
+  if (/(closed.?lost|lost|dead|abandon|disqualif)/.test(s2)) return -40;
+  if (/(closed.?won|won)/.test(s2)) return 30;
+  if (/(negotiat|contract|commit|verbal|final|signature)/.test(s2)) return 28;
+  if (/(proposal|quote|demo|present|poc|pilot|trial|evaluat)/.test(s2)) return 20;
+  if (/(qualif|discovery|meeting|engaged|contacted|working)/.test(s2)) return 10;
+  if (/(lead|new|prospect|inbound|cold|backlog|open)/.test(s2)) return 0;
   return 5;
 }
 function numericValue(v2) {
@@ -63226,10 +56162,10 @@ async function runLeadScoring(workspaceId) {
       for (let i2 = 0; i2 < heuristics.length; i2 += BATCH) {
         const slice = heuristics.slice(i2, i2 + BATCH);
         const list = slice.map((h2, j2) => {
-          const s3 = h2.signals;
+          const s2 = h2.signals;
           const name = String(h2.d.name ?? h2.d.title ?? "Untitled");
           const notes = sanitizeUntrustedText(h2.d.notes ?? h2.d.description ?? h2.d.summary ?? "");
-          return `${i2 + j2}. ${name} | stage:${s3.stage ?? "?"} | value:${s3.deal_value ?? "?"} | days_since_update:${s3.days_since_update} | activity30d:${s3.recent_activity_30d}${notes ? ` | notes:\xAB${notes}\xBB` : ""}`;
+          return `${i2 + j2}. ${name} | stage:${s2.stage ?? "?"} | value:${s2.deal_value ?? "?"} | days_since_update:${s2.days_since_update} | activity30d:${s2.recent_activity_30d}${notes ? ` | notes:\xAB${notes}\xBB` : ""}`;
         }).join("\n");
         const res = await withTimeout(aiGatewayToolUse({
           maxTokens: 8e3,
@@ -63247,9 +56183,9 @@ ${list}`,
         }
         const arr = res.scores;
         if (Array.isArray(arr)) {
-          for (const s3 of arr) {
-            if (typeof s3.index === "number" && typeof s3.intent === "number") {
-              scoreByIndex.set(s3.index, { intent: clampScore(s3.intent), reason: typeof s3.reason === "string" ? s3.reason : void 0 });
+          for (const s2 of arr) {
+            if (typeof s2.index === "number" && typeof s2.intent === "number") {
+              scoreByIndex.set(s2.index, { intent: clampScore(s2.intent), reason: typeof s2.reason === "string" ? s2.reason : void 0 });
             }
           }
         }
@@ -63607,7 +56543,7 @@ Produce 1\u20135 realistic line items grounded in the deal's value/products. Do 
     const raw2 = p2.line_items ?? [];
     const items = raw2.filter((li) => li && typeof li.unit_price === "number");
     const safeItems = items.length ? items : [{ description: `Proposal for ${recName2}`, quantity: 1, unit_price: Number(record.data.amount ?? record.data.value ?? 0) || 0 }];
-    const subtotal = safeItems.reduce((s3, li) => s3 + (Number(li.quantity) || 1) * (Number(li.unit_price) || 0), 0);
+    const subtotal = safeItems.reduce((s2, li) => s2 + (Number(li.quantity) || 1) * (Number(li.unit_price) || 0), 0);
     await supabase.from("nodes").insert({
       workspace_id: workspaceId,
       vertical: "finance",
@@ -63650,7 +56586,7 @@ What single field should be set to what value?`,
     return { action: action.type, mode: "executed", detail: "no field resolved" };
   }
   if (type === "notify") {
-    await supabase.from("notifications").insert({
+    await createNotification({
       workspace_id: workspaceId,
       type: "agent",
       title: `Workflow: ${action.label ?? "notification"}`,
@@ -63740,11 +56676,11 @@ async function runAllWorkflows() {
   const { data: workspaces } = await supabase.from("workspaces").select("id");
   let totalMatched = 0, totalExecuted = 0, totalQueued = 0;
   for (const ws of workspaces ?? []) {
-    const s3 = await runWorkflowsForWorkspace(ws.id).catch(() => null);
-    if (s3) {
-      totalMatched += s3.records_matched;
-      totalExecuted += s3.actions_executed;
-      totalQueued += s3.actions_queued;
+    const s2 = await runWorkflowsForWorkspace(ws.id).catch(() => null);
+    if (s2) {
+      totalMatched += s2.records_matched;
+      totalExecuted += s2.actions_executed;
+      totalQueued += s2.actions_queued;
     }
   }
   return { matched: totalMatched, executed: totalExecuted, queued: totalQueued };
@@ -63757,8 +56693,14 @@ var workflowTrigger = inngest.createFunction(
   async ({ event }) => {
     const { workspaceId, nodeId } = event.data;
     if (!workspaceId || !nodeId) return { skipped: true };
-    const summary = await runWorkflowsForWorkspace(workspaceId, { recordId: nodeId, limitRecords: 1 });
-    return { workspaceId, recordId: nodeId, ...summary };
+    try {
+      const summary = await runWorkflowsForWorkspace(workspaceId, { recordId: nodeId, limitRecords: 1 });
+      return { workspaceId, recordId: nodeId, ...summary };
+    } catch (err2) {
+      const msg = err2 instanceof Error ? err2.message : String(err2);
+      console.error(`[workflow-trigger] failed for record ${nodeId} (non-fatal):`, msg);
+      return { workspaceId, recordId: nodeId, error: msg };
+    }
   }
 );
 
@@ -63810,7 +56752,7 @@ function asContent(value) {
   return sanitizeForTraining(typeof value === "string" ? value : JSON.stringify(value));
 }
 var MAX_EXAMPLE_TOKENS = 8e3;
-var estimateTokens = (s3) => Math.ceil(s3.length / 4);
+var estimateTokens = (s2) => Math.ceil(s2.length / 4);
 function buildMessages(row) {
   const completion = row.edited_output ?? row.model_output;
   const messages = [];
@@ -63908,20 +56850,22 @@ var trainingExport = inngest.createFunction(
 );
 
 // src/jobs/social-discovery.ts
-async function tavily(query) {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return [];
+var SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
+var SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+async function searxng(query) {
   try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: 6, search_depth: "advanced" })
-    });
-    if (!res.ok) return [];
-    const json2 = await res.json();
-    return (json2.results ?? []).filter((r2) => r2.url).map((r2) => ({ title: r2.title ?? "", content: r2.content ?? "", url: r2.url }));
-  } catch {
-    return [];
+    const url = `${SOVEREIGN_SEARCH_URL2}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      console.error(`[social-discovery] searxng HTTP ${res.status}`);
+      return { hits: [], unreachable: res.status >= 500 };
+    }
+    const data = await res.json();
+    const hits = (data.results ?? []).filter((r2) => r2.url).map((r2) => ({ title: r2.title ?? "", content: r2.content ?? "", url: r2.url }));
+    return { hits, unreachable: false };
+  } catch (e2) {
+    console.error("[social-discovery] searxng unreachable:", e2 instanceof Error ? e2.message : String(e2));
+    return { hits: [], unreachable: true };
   }
 }
 function buildQueries(searchType, sector, region, targetSubject) {
@@ -63934,11 +56878,11 @@ function buildQueries(searchType, sector, region, targetSubject) {
       `"${subj}" review${loc}`
     ];
   }
-  const s3 = sector ?? "";
+  const s2 = sector ?? "";
   return [
-    `site:reddit.com "${s3}"${loc} ("looking to buy" OR "recommendation" OR "anyone know")`,
-    `site:x.com "${s3}"${loc} ("looking to buy" OR "in the market for" OR "recommend")`,
-    `"${s3}"${loc} ("looking to buy" OR "need a recommendation")`
+    `site:reddit.com "${s2}"${loc} ("looking to buy" OR "recommendation" OR "anyone know")`,
+    `site:x.com "${s2}"${loc} ("looking to buy" OR "in the market for" OR "recommend")`,
+    `"${s2}"${loc} ("looking to buy" OR "need a recommendation")`
   ];
 }
 var LEAD_TOOL_SCHEMA = {
@@ -63970,8 +56914,12 @@ var socialDiscoveryWorker = inngest.createFunction(
   async ({ event }) => {
     const { workspaceId, region, sector, searchType, targetSubject } = event.data;
     const queries = buildQueries(searchType, sector, region, targetSubject);
-    const hitGroups = await Promise.all(queries.map((q2) => tavily(q2)));
-    const hits = hitGroups.flat();
+    const sweep = await Promise.all(queries.map((q2) => searxng(q2)));
+    if (sweep.some((s2) => s2.unreachable)) {
+      console.error("[social-discovery] " + SEARCH_TIMEOUT_REASON);
+      return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT", reason: SEARCH_TIMEOUT_REASON };
+    }
+    const hits = sweep.flatMap((s2) => s2.hits);
     if (hits.length === 0) return { discovered: 0, reason: "no search results" };
     const seen = /* @__PURE__ */ new Set();
     const unique = hits.filter((h2) => seen.has(h2.url) ? false : (seen.add(h2.url), true)).slice(0, 24);
@@ -64017,6 +56965,50 @@ ${context2}`
   }
 );
 
+// src/jobs/daily-brief.ts
+var dailyBrief = inngest.createFunction(
+  { id: "daily-brief", name: "Daily brief notification", concurrency: { limit: 4 } },
+  { cron: "0 7 * * *" },
+  // 07:00 UTC, every day
+  async () => {
+    const { data: workspaces } = await supabase.from("workspaces").select("id");
+    if (!workspaces?.length) return { briefs_posted: 0 };
+    const now = /* @__PURE__ */ new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1e3).toISOString();
+    let posted = 0;
+    for (const ws of workspaces) {
+      const wsId = ws.id;
+      try {
+        const { data: tasks2 } = await supabase.from("tasks").select("completed, due_date, status").eq("workspace_id", wsId);
+        const active = (tasks2 ?? []).filter((t2) => !t2.completed && t2.status !== "done");
+        const openCount = active.length;
+        const overdue = active.filter((t2) => t2.due_date && new Date(t2.due_date) < now).length;
+        const { count: pending } = await supabase.from("decision_queue").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("status", "pending");
+        const { count: recent } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).gte("updated_at", dayAgo);
+        const pendingN = pending ?? 0;
+        const recentN = recent ?? 0;
+        if (overdue === 0 && openCount === 0 && pendingN === 0 && recentN === 0) continue;
+        const parts = [];
+        if (overdue > 0) parts.push(`${overdue} overdue task${overdue === 1 ? "" : "s"}`);
+        if (openCount > 0) parts.push(`${openCount} open task${openCount === 1 ? "" : "s"}`);
+        if (pendingN > 0) parts.push(`${pendingN} pending decision${pendingN === 1 ? "" : "s"}`);
+        if (recentN > 0) parts.push(`${recentN} record${recentN === 1 ? "" : "s"} updated`);
+        await createNotification({
+          workspace_id: wsId,
+          type: "daily_brief",
+          title: "\u2600\uFE0F Your daily brief",
+          body: `Today: ${parts.join(" \xB7 ")}. Ask "what should I focus on today?" for the full picture.`,
+          metadata: { route: "/home", overdue, open: openCount, pending_decisions: pendingN, recent_records: recentN }
+        });
+        posted++;
+      } catch (e2) {
+        console.error(`[daily-brief] workspace ${wsId} failed (non-fatal):`, e2 instanceof Error ? e2.message : String(e2));
+      }
+    }
+    return { briefs_posted: posted };
+  }
+);
+
 // src/jobs/vertical-agents.ts
 async function loadNodes(workspaceId) {
   const { data } = await supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).limit(5e3);
@@ -64024,7 +57016,7 @@ async function loadNodes(workspaceId) {
 }
 function matches(objectType2, stems) {
   const t2 = objectType2.toLowerCase();
-  return stems.some((s3) => t2.includes(s3));
+  return stems.some((s2) => t2.includes(s2));
 }
 var DAY = 864e5;
 function daysSince(iso) {
@@ -64032,9 +57024,7 @@ function daysSince(iso) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
 }
 async function notify(workspaceId, title, body, metadata = {}) {
-  await supabase.from("notifications").insert({ workspace_id: workspaceId, type: "agent", title, body, metadata }).then(() => {
-  }, () => {
-  });
+  await createNotification({ workspace_id: workspaceId, type: "agent", title, body, metadata });
 }
 async function queueDecision(workspaceId, agent, recordId, title, summary, action, risk, evidenceTitle) {
   const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_id", recordId).eq("agent_name", agent).eq("status", "pending").maybeSingle();
@@ -64218,79 +57208,9 @@ async function runAllVertical() {
   return totals;
 }
 
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/cookie.js
-var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
-var validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
-var trimCookieWhitespace = (value) => {
-  let start = 0;
-  let end = value.length;
-  while (start < end) {
-    const charCode = value.charCodeAt(start);
-    if (charCode !== 32 && charCode !== 9) {
-      break;
-    }
-    start++;
-  }
-  while (end > start) {
-    const charCode = value.charCodeAt(end - 1);
-    if (charCode !== 32 && charCode !== 9) {
-      break;
-    }
-    end--;
-  }
-  return start === 0 && end === value.length ? value : value.slice(start, end);
-};
-var parse = (cookie, name) => {
-  if (name && cookie.indexOf(name) === -1) {
-    return {};
-  }
-  const pairs = cookie.split(";");
-  const parsedCookie = /* @__PURE__ */ Object.create(null);
-  for (const pairStr of pairs) {
-    const valueStartPos = pairStr.indexOf("=");
-    if (valueStartPos === -1) {
-      continue;
-    }
-    const cookieName = trimCookieWhitespace(pairStr.substring(0, valueStartPos));
-    if (name && name !== cookieName || !validCookieNameRegEx.test(cookieName) || cookieName in parsedCookie) {
-      continue;
-    }
-    let cookieValue = trimCookieWhitespace(pairStr.substring(valueStartPos + 1));
-    if (cookieValue.startsWith('"') && cookieValue.endsWith('"')) {
-      cookieValue = cookieValue.slice(1, -1);
-    }
-    if (validCookieValueRegEx.test(cookieValue)) {
-      parsedCookie[cookieName] = cookieValue.indexOf("%") !== -1 ? tryDecode(cookieValue, decodeURIComponent_) : cookieValue;
-      if (name) {
-        break;
-      }
-    }
-  }
-  return parsedCookie;
-};
-
-// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/cookie/index.js
-var getCookie = (c2, key, prefix) => {
-  const cookie = c2.req.raw.headers.get("Cookie");
-  if (typeof key === "string") {
-    if (!cookie) {
-      return void 0;
-    }
-    let finalKey = key;
-    if (prefix === "secure") {
-      finalKey = "__Secure-" + key;
-    } else if (prefix === "host") {
-      finalKey = "__Host-" + key;
-    }
-    const obj2 = parse(cookie, finalKey);
-    return obj2[finalKey];
-  }
-  if (!cookie) {
-    return {};
-  }
-  const obj = parse(cookie);
-  return obj;
-};
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/validator/validator.js
+init_cookie2();
+init_http_exception();
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/utils/buffer.js
 var bufferToFormData = (arrayBuffer, contentType2) => {
@@ -64420,21 +57340,22 @@ var zValidator = (target, schema, hook, options) => (
 var createMiddleware = (middleware) => middleware;
 
 // src/middleware/auth.ts
-init_dist();
+init_http_exception();
+init_cookie2();
+init_auth_tokens();
+async function resolveUserId(c2) {
+  const at2 = getCookie(c2, ACCESS_COOKIE);
+  if (!at2) throw new HTTPException(401, { message: "Unauthorized" });
+  const claims = await verifyAccessToken(at2);
+  if (!claims?.sub) throw new HTTPException(401, { message: "Invalid or expired session" });
+  return claims.sub;
+}
 var requireAuth = createMiddleware(async (c2, next) => {
-  const token = c2.req.header("Authorization")?.replace("Bearer ", "");
   const workspaceId = c2.req.header("X-Workspace-Id");
-  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
   if (!workspaceId) throw new HTTPException(400, { message: "X-Workspace-Id header required" });
   let userId;
   try {
-    const verified = await verifyToken2(token, {
-      jwtKey: process.env.CLERK_JWT_KEY,
-      secretKey: process.env.CLERK_JWT_KEY ? void 0 : process.env.CLERK_SECRET_KEY,
-      skipJwksCache: true
-    });
-    userId = verified.sub;
-    if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
+    userId = await resolveUserId(c2);
   } catch (e2) {
     if (e2 instanceof HTTPException) throw e2;
     const msg = e2 instanceof Error ? e2.message : String(e2);
@@ -64450,16 +57371,8 @@ var requireAuth = createMiddleware(async (c2, next) => {
   await next();
 });
 var requireJwt = createMiddleware(async (c2, next) => {
-  const token = c2.req.header("Authorization")?.replace("Bearer ", "");
-  if (!token) throw new HTTPException(401, { message: "Unauthorized" });
   try {
-    const verified = await verifyToken2(token, {
-      jwtKey: process.env.CLERK_JWT_KEY,
-      secretKey: process.env.CLERK_JWT_KEY ? void 0 : process.env.CLERK_SECRET_KEY,
-      skipJwksCache: true
-    });
-    const userId = verified.sub;
-    if (!userId) throw new HTTPException(401, { message: "Token has no subject" });
+    const userId = await resolveUserId(c2);
     c2.set("userId", userId);
     c2.set("workspaceId", c2.req.header("X-Workspace-Id") ?? "");
     c2.set("role", "member");
@@ -64480,6 +57393,7 @@ var requireAdmin = createMiddleware(async (c2, next) => {
 });
 
 // src/middleware/rbac.ts
+init_http_exception();
 function isWorkspaceAdmin(role) {
   return role === "owner" || role === "admin";
 }
@@ -64566,6 +57480,10 @@ async function getActivities(nodeId, limit2 = 20) {
 }
 
 // src/routes/nodes.ts
+function dealStageOf(data) {
+  const d2 = data ?? {};
+  return String(d2.deal_stage ?? d2.stage ?? d2.status ?? "").trim();
+}
 var router = new Hono2();
 router.get("/:id/related", requireAuth, async (c2) => {
   const id = c2.req.param("id");
@@ -64623,11 +57541,32 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external_
   ai_summary: external_exports.string().optional()
 })), async (c2) => {
   const updates = c2.req.valid("json");
-  const node = await updateNode(c2.req.param("id"), c2.get("workspaceId"), updates);
-  await logActivity(node.id, c2.get("workspaceId"), "human", c2.get("userId"), "updated", updates);
+  const workspaceId = c2.get("workspaceId");
+  const nodeId = c2.req.param("id");
+  const { data: prev } = await supabase.from("nodes").select("object_type, data").eq("id", nodeId).eq("workspace_id", workspaceId).single();
+  const node = await updateNode(nodeId, workspaceId, updates);
+  await logActivity(node.id, workspaceId, "human", c2.get("userId"), "updated", updates);
+  try {
+    const isDeal = String(node.object_type ?? "").toLowerCase().includes("deal");
+    const oldStage = dealStageOf(prev?.data);
+    const newStage = dealStageOf(node.data);
+    if (isDeal && newStage && oldStage !== newStage) {
+      const d2 = node.data ?? {};
+      const name = String(d2.name ?? d2.title ?? "A deal");
+      await createNotification({
+        workspace_id: workspaceId,
+        user_id: c2.get("userId"),
+        title: "Deal stage changed",
+        body: `${name} moved${oldStage ? ` from ${oldStage}` : ""} to ${newStage}.`,
+        type: "deal_stage",
+        metadata: { node_id: node.id, object_type: node.object_type, from: oldStage || null, to: newStage }
+      });
+    }
+  } catch {
+  }
   inngest.send({
     name: "crm/record.updated",
-    data: { workspaceId: c2.get("workspaceId"), nodeId: node.id, objectType: node.object_type, vertical: node.vertical }
+    data: { workspaceId, nodeId: node.id, objectType: node.object_type, vertical: node.vertical }
   }).catch(() => {
   });
   return c2.json(node);
@@ -64759,6 +57698,7 @@ var isOldBunVersion = () => {
 };
 
 // ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/streaming/sse.js
+init_html();
 var SSEStreamingApi = class extends StreamingApi {
   constructor(writable, readable) {
     super(writable, readable);
@@ -64818,6 +57758,9 @@ var streamSSE = (c2, cb, onError) => {
   run(stream2, cb, onError);
   return c2.newResponse(stream2.responseReadable);
 };
+
+// ../../node_modules/.pnpm/hono@4.12.23/node_modules/hono/dist/helper/streaming/text.js
+init_context();
 
 // src/routes/reports.ts
 var router3 = new Hono2();
@@ -64921,7 +57864,7 @@ var runSchema = external_exports.object({
   destination_list_id: external_exports.string().uuid().optional(),
   require_approval: external_exports.boolean().default(true)
 });
-async function tavilySearch3(query, maxResults) {
+async function tavilySearch2(query, maxResults) {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return [];
   try {
@@ -65052,7 +57995,7 @@ async function runProspecting(workspaceId, userId, input) {
     input: { query: input.query, object_type: input.object_type, count: input.count }
   });
   try {
-    const searchResults = await tavilySearch3(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
+    const searchResults = await tavilySearch2(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
     const result = {
       created: 0,
@@ -65309,7 +58252,7 @@ async function gmailThreads(accessToken, opts = {}) {
       unread: msgs.some((m2) => (m2.labelIds ?? []).includes("UNREAD"))
     };
   }));
-  return summaries.filter((s3) => s3 !== null);
+  return summaries.filter((s2) => s2 !== null);
 }
 function decodeBody(payload) {
   if (!payload) return "";
@@ -65564,9 +58507,34 @@ router5.post("/:id/snooze", zValidator("json", external_exports.object({ until: 
   const until = body.until ?? new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString();
   return resolve(c2, "snoozed", { snoozed_until: until });
 });
+router5.post("/bulk", zValidator("json", external_exports.object({
+  ids: external_exports.array(external_exports.string().uuid()).min(1).max(500),
+  action: external_exports.enum(["approve", "reject", "snooze"])
+})), async (c2) => {
+  const { ids, action } = c2.req.valid("json");
+  const ws = c2.get("workspaceId");
+  const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed";
+  const extra = action === "snooze" ? { snoozed_until: new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString() } : {};
+  if (action === "approve") {
+    const { data: decisions } = await supabase.from("decision_queue").select("*").eq("workspace_id", ws).in("id", ids).eq("status", "pending");
+    for (const d2 of decisions ?? []) await executeApprovedAction(ws, d2).catch((e2) => console.error("[bulk-approve] swallowed:", e2));
+  }
+  const { data, error } = await supabase.from("decision_queue").update({ status, resolved_at: (/* @__PURE__ */ new Date()).toISOString(), resolved_by: c2.get("userId"), ...extra }).eq("workspace_id", ws).in("id", ids).eq("status", "pending").select("id");
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json({ ok: true, count: data?.length ?? 0 });
+});
 
 // src/routes/ask.ts
-var SYSTEM_PROMPT = `You are Mondaily AI \u2014 an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be concise, smart, and actionable.
+var SYSTEM_PROMPT = `You are Mondaily AI \u2014 an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be smart, substantive, and actionable.
+
+HOW TO ANSWER \u2014 be decisive, never bounce questions back:
+- DEFAULT TO ANSWERING, not asking. When a request is broad ("what changed in the workspace?", "show my pipeline", "any risks?", "what should I focus on?"), DO NOT reply with a clarifying question \u2014 call the relevant tools, pull the real data, and present a useful overview. Make a sensible assumption and STATE it ("Showing everything updated in the last 7 days:") instead of asking the user to narrow it down first.
+- Only ask a clarifying question when the request is genuinely impossible to act on (e.g. "update it" with no prior reference and nothing selected). Never ask more than one clarifying question, and never ask a question two turns in a row.
+- When the user replies "yes", "go ahead", "do it", or "ok" to something you proposed, EXECUTE it immediately with tools \u2014 never answer a "yes" with another question.
+- Give SUBSTANTIVE answers with real content \u2014 pulled data, a table, a structured summary \u2014 not a single sentence that punts back to the user. If you called a tool, report everything it returned, organized clearly.
+- Follow the command directly: "create a report on X", "list overdue invoices", "compare these deals" \u2192 do it and show the result; don't describe what you could do.
+- Prefer a clean Markdown TABLE whenever you're showing more than two records or any set of rows with shared fields (tasks, invoices, deals, contacts). Tables read far better than prose lists for structured data.
+- "What changed / what's new / recent activity / this week / what happened" \u2192 this means RECORDS, not just notifications. Call the data tools \u2014 list_records / search_records (recently updated nodes), list_tasks, list_invoices, and find_related_objects \u2014 to gather the actual tasks, deals, contacts, and records that were created or updated, then summarise them grouped by type (new vs updated). NEVER conclude "nothing changed" just because there are no notifications \u2014 notifications are a separate, often-empty signal; the real activity lives in the records themselves. If a tool returns items, report them; only say "no activity" if the record tools themselves come back empty.
 
 You have tools to take real actions inside Mondaily. When a user asks you to create a task, look up a contact, update a deal, search records, create a list, add records to a list, build a custom object type, or explore relationships between records \u2014 use the appropriate tool. After using a tool, summarize what you did in plain language.
 
@@ -65574,7 +58542,7 @@ Mondaily has a real workspace graph: every record is a node, and nodes can be co
 
 You also have real finance and report tools \u2014 never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points \u2014 always call run_report rather than guessing at numbers from a report's name or type alone.
 
-You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze \u2014 use this instead of claiming you did something sensitive yourself), and create_workflow_draft (saves a disabled workflow draft for the user to review in the builder \u2014 you can never enable a workflow yourself; always say so explicitly and never imply the workflow is now running).
+You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze \u2014 use this instead of claiming you did something sensitive yourself), create_workflow_draft (saves a disabled workflow draft for the user to review in the builder \u2014 for "build me a workflow", create the draft and tell them to review it), and set_workflow_enabled (enable/activate or disable/pause an EXISTING workflow by name). You MAY enable or disable a workflow when the user EXPLICITLY asks ("enable the X workflow", "turn off Y") \u2014 call set_workflow_enabled and confirm the new state plainly. Never enable a workflow on your own initiative or without an explicit instruction; for a brand-new workflow always create a draft first, don't auto-enable it.
 
 For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned \u2014 never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
 
@@ -65606,6 +58574,7 @@ FORMATTING \u2014 render every answer as clean GitHub-flavored Markdown:
 - Use "## " / "### " headings only when a reply has multiple sections; short answers need none.
 - Unordered points \u2192 "- "; ordered steps \u2192 "1."; one space after the marker, one blank line before and after the list.
 - Tabular data \u2192 a real Markdown table with a header row and a "---" separator row; keep cells terse; never an "ID" column.
+- Distributions and comparisons (pipeline by stage, deals/tasks by status, counts by category, simple trends) \u2192 ALSO add a chart. Emit a fenced block tagged \`chart\` containing ONLY compact JSON: \`\`\`chart {"title":"Pipeline by stage","data":[{"label":"Negotiation","value":7},{"label":"Proposal","value":3}]} \`\`\` \u2014 label is the category, value is a number. The app renders it as a bar chart. Use a chart when it makes the shape of the data clearer; keep it to \u226412 bars. You can include both a chart and a table.
 - Money, counts, and percentages get thousands separators and a unit ("\xA38,400", "12 deals", "31%") \u2014 never a raw float like 8400.0.
 - Code, JSON, and command output \u2192 a fenced code block with a language tag; pretty-print JSON with 2-space indentation, never one dense line.
 - Bold ("**\u2026**") only for true labels/emphasis \u2014 never whole sentences. Exactly one blank line between paragraphs.
@@ -65929,6 +58898,23 @@ var TOOLS = [
     }
   },
   {
+    name: "list_workflows",
+    description: "List the workspace's workflows/automations with their on/off state. Use for 'what workflows do I have', 'list my automations', 'which workflows are active', or before enabling/disabling one so you know the exact name.",
+    input_schema: { type: "object", properties: {} }
+  },
+  {
+    name: "set_workflow_enabled",
+    description: "Enable (activate) or disable an EXISTING workflow by name. Use when the user explicitly says 'enable/activate/turn on the X workflow' or 'disable/pause/turn off X'. Enabling makes it run automatically on its trigger; disabling stops it. Only act on an explicit user instruction \u2014 never enable a workflow on your own initiative.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "The workflow's name (or a distinctive part of it) to resolve it." },
+        enabled: { type: "boolean", description: "true to enable/activate, false to disable/pause. Default true." }
+      },
+      required: ["name"]
+    }
+  },
+  {
     name: "discover_web_prospects",
     description: "Search the live web for new candidate records \u2014 people, organizations, investors, partners, suppliers, assets, or any object type the workspace tracks \u2014 and add source-backed candidates to the workspace graph. Use for 'find me 25 AI startups in London', 'find investors focused on climate tech', 'find suppliers for X', 'find companies similar to this record', 'find potential partners'. Always queues for approval unless the user explicitly says to add them directly without review.",
     input_schema: {
@@ -65959,7 +58945,7 @@ var TOOL_GROUPS = [
   { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
   { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
-  { tools: ["create_workflow_draft"], keywords: /\b(workflow|automat|trigger|sequence|when .* then)\b/i },
+  { tools: ["create_workflow_draft", "set_workflow_enabled", "list_workflows"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
   { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i }
 ];
 function selectTools(query, history) {
@@ -66032,23 +59018,31 @@ async function executeTool(name, input, workspaceId, userId, sources) {
     switch (name) {
       case "list_tasks": {
         const filter = input.filter || "mine";
-        let taskQuery = supabase.from("tasks").select("id, title, priority, status, due_date, completed, assignee_id, created_by").eq("workspace_id", workspaceId).eq("completed", false);
-        if (filter === "mine") {
+        let taskQuery = supabase.from("tasks").select("id, title, priority, status, due_date, completed, assignee_id, created_by, created_at").eq("workspace_id", workspaceId);
+        if (filter === "mine" || filter === "overdue") {
           taskQuery = taskQuery.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
         }
-        if (filter === "overdue") {
-          taskQuery = taskQuery.or(`assignee_id.eq.${userId},created_by.eq.${userId}`).lt("due_date", (/* @__PURE__ */ new Date()).toISOString());
+        if (filter === "review") {
+          taskQuery = taskQuery.eq("status", "review");
         }
-        const { data, error } = await taskQuery.order("created_at", { ascending: false }).limit(20);
+        const { data, error } = await taskQuery.order("created_at", { ascending: false }).limit(60);
         if (error) return `Error fetching tasks: ${error.message}`;
-        if (!data?.length) return "No tasks found.";
-        for (const t2 of data.slice(0, 8)) {
+        const now = Date.now();
+        const isDone = (t2) => t2.completed === true || t2.status === "done";
+        let rows2 = data ?? [];
+        if (filter !== "all" && filter !== "review") rows2 = rows2.filter((t2) => !isDone(t2));
+        if (filter === "overdue") rows2 = rows2.filter((t2) => t2.due_date && new Date(t2.due_date).getTime() < now);
+        rows2 = rows2.slice(0, 20);
+        if (!rows2.length) {
+          return filter === "overdue" ? "No overdue tasks \u2014 nothing open is past its due date." : "No open tasks found.";
+        }
+        for (const t2 of rows2.slice(0, 8)) {
           sources.push({ type: "task", title: t2.title, node_id: t2.id, match_reason: `status: ${t2.status || "todo"}`, timestamp: t2.due_date ?? void 0 });
         }
-        const list = data.map(
+        const list = rows2.map(
           (t2) => `- [${t2.id}] ${t2.title} | priority: ${t2.priority || "medium"} | status: ${t2.status || "todo"}${t2.due_date ? ` | due: ${new Date(t2.due_date).toLocaleDateString()}` : ""}`
         ).join("\n");
-        return `Found ${data.length} task(s):
+        return `Found ${rows2.length} ${filter === "overdue" ? "overdue" : "open"} task(s):
 ${list}`;
       }
       case "create_task": {
@@ -66251,7 +59245,7 @@ ${results.join("\n")}`;
               type: a2.type
             }));
           }
-        } catch (_3) {
+        } catch (_2) {
         }
         const plural = `${input.name}s`;
         const { data, error } = await supabase.from("object_definitions").insert({
@@ -66270,10 +59264,10 @@ ${results.join("\n")}`;
         let nodeId = input.node_id;
         let sourceLabel = "";
         if (!nodeId && input.name) {
-          const { data: matches3 } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).ilike("data->>name", `%${input.name}%`).limit(1);
-          if (!matches3?.length) return `No record found matching "${input.name}" \u2014 cannot look up related objects.`;
-          nodeId = matches3[0].id;
-          sourceLabel = `${matches3[0].data.name ?? input.name} (${matches3[0].object_type})`;
+          const { data: matches2 } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).ilike("data->>name", `%${input.name}%`).limit(1);
+          if (!matches2?.length) return `No record found matching "${input.name}" \u2014 cannot look up related objects.`;
+          nodeId = matches2[0].id;
+          sourceLabel = `${matches2[0].data.name ?? input.name} (${matches2[0].object_type})`;
         }
         if (!nodeId) return "No node_id or name provided \u2014 cannot look up related objects.";
         const related = await getRelated(nodeId, workspaceId);
@@ -66349,7 +59343,7 @@ ${items || "  (none)"}`;
         if (invErr) return `Error fetching finance summary: ${invErr.message}`;
         const rows2 = (invoices ?? []).map((r2) => r2.data);
         const byStatus = (status) => rows2.filter((d2) => (d2.status ?? "draft") === status);
-        const sum = (list) => list.reduce((s3, d2) => s3 + Number(d2.total ?? 0), 0);
+        const sum = (list) => list.reduce((s2, d2) => s2 + Number(d2.total ?? 0), 0);
         const overdue = byStatus("overdue");
         const draft = byStatus("draft");
         const sent = byStatus("sent");
@@ -66524,6 +59518,36 @@ ${list}`;
         const summary = wfNodes.length ? `with ${wfNodes.filter((n2) => n2.kind === "trigger").length} trigger, ${wfNodes.filter((n2) => n2.kind === "condition").length} condition(s), ${wfNodes.filter((n2) => n2.kind === "action").length} action(s)` : "(empty \u2014 add steps in the builder)";
         return `Created a draft workflow "${input.name}" ${summary}. It's under Automations, saved as a draft. Open /automations/workflows/${data.id} to review and turn it on.`;
       }
+      case "list_workflows": {
+        const { data: rows2, error } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", "automation").limit(100);
+        if (error) return `Error listing workflows: ${error.message}`;
+        const wfs = (rows2 ?? []).map((r2) => {
+          const d2 = r2.data ?? {};
+          const enabled = d2.enabled === true || d2.status === "active";
+          return { id: r2.id, name: String(d2.name ?? "Untitled workflow"), enabled };
+        });
+        if (!wfs.length) return "No workflows yet. Ask me to 'build a workflow that\u2026' to create one.";
+        for (const w2 of wfs.slice(0, 8)) sources.push({ type: "workflow", title: w2.name, node_id: w2.id, object_type: "automation" });
+        const list = wfs.map((w2) => `- ${w2.name} \u2014 ${w2.enabled ? "\u{1F7E2} active" : "\u26AA disabled"}`).join("\n");
+        return `You have ${wfs.length} workflow(s):
+${list}`;
+      }
+      case "set_workflow_enabled": {
+        const wantEnabled = input.enabled !== false;
+        const target = String(input.name ?? "").trim().toLowerCase();
+        if (!target) return "Tell me which workflow to enable/disable by name.";
+        const { data: rows2, error: listErr } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", "automation").limit(100);
+        if (listErr) return `Error looking up workflows: ${listErr.message}`;
+        const wf = (rows2 ?? []).find((r2) => String(r2.data?.name ?? "").toLowerCase().includes(target));
+        if (!wf) return `No workflow matching "${input.name}" found. Create one first, or check the name \u2014 you can list them in Automations.`;
+        const wfData = wf.data ?? {};
+        const newData = { ...wfData, enabled: wantEnabled, status: wantEnabled ? "active" : "disabled" };
+        const { error: updErr } = await supabase.from("nodes").update({ data: newData }).eq("id", wf.id).eq("workspace_id", workspaceId);
+        if (updErr) return `Error updating workflow: ${updErr.message}`;
+        const wfName = String(wfData.name ?? input.name);
+        sources.push({ type: "workflow", title: wfName, node_id: wf.id, object_type: "automation" });
+        return wantEnabled ? `Workflow "${wfName}" is now ENABLED and live \u2014 it will run automatically whenever its trigger fires.` : `Workflow "${wfName}" is now disabled \u2014 it will no longer run until re-enabled.`;
+      }
       case "discover_web_prospects": {
         const result = await runProspecting(workspaceId, userId, {
           query: String(input.query),
@@ -66607,6 +59631,28 @@ The user is currently viewing: ${context2.scope_label}. Treat this as the defaul
   if (context2.route) contextNote += `
 
 Current route: ${context2.route}`;
+  if (Array.isArray(context2.attachments) && context2.attachments.length > 0) {
+    const lines = context2.attachments.slice(0, 8).map((a2, i2) => {
+      const label = a2.object_type ? OBJECT_LABEL[String(a2.object_type).toLowerCase()] ?? a2.object_type : a2.kind === "file" ? "file" : "record";
+      const title = a2.title ?? a2.name ?? "(untitled)";
+      const idPart = a2.node_id ? ` \u2014 node_id: ${a2.node_id}` : "";
+      let body = "";
+      if (a2.kind === "file" && typeof a2.text === "string") body = a2.text.slice(0, 4e3);
+      else if (a2.data != null) {
+        try {
+          body = JSON.stringify(a2.data).slice(0, 1500);
+        } catch {
+          body = "";
+        }
+      }
+      return `${i2 + 1}. [${label}] "${title}"${idPart}${body ? `
+   data: ${body}` : ""}`;
+    }).join("\n");
+    contextNote += `
+
+The user has ATTACHED the following as pinned context \u2014 use their data directly to answer or act on them, and you may reference them by name. Prefer this attached data over searching:
+${lines}`;
+  }
   return contextNote;
 }
 router6.post("/", requireAuth, zValidator("json", external_exports.object({
@@ -66708,8 +59754,8 @@ ${webContext}` : "") + contextNote;
       reply = reply.replace(/<followups>[\s\S]*?<\/followups>/, "").trim();
     }
     const seen = /* @__PURE__ */ new Set();
-    const dedupedSources = sources.filter((s3) => {
-      const key = s3.node_id ?? s3.title;
+    const dedupedSources = sources.filter((s2) => {
+      const key = s2.node_id ?? s2.title;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -66798,8 +59844,8 @@ ${webContext}` : "") + buildContextNote(context2);
         reply = reply.replace(/<followups>[\s\S]*?<\/followups>/, "").trim();
       }
       const seen = /* @__PURE__ */ new Set();
-      const dedupedSources = sources.filter((s3) => {
-        const k2 = s3.node_id ?? s3.title;
+      const dedupedSources = sources.filter((s2) => {
+        const k2 = s2.node_id ?? s2.title;
         if (seen.has(k2)) return false;
         seen.add(k2);
         return true;
@@ -66813,6 +59859,32 @@ ${webContext}` : "") + buildContextNote(context2);
   });
 });
 router6.get("/threads", requireAuth, async (c2) => c2.json([]));
+router6.get("/health", async (c2) => {
+  const probe3 = c2.req.query("probe") === "1";
+  const result = await gatewayHealthCheck({ probe: probe3 });
+  return c2.json(result, result.ok ? 200 : 503);
+});
+router6.get("/health/chat", async (c2) => {
+  let reply = "";
+  let threw = null;
+  try {
+    const res = await aiGatewayAgentStream(
+      { system: SYSTEM_PROMPT, messages: [{ role: "user", content: "hi" }], tools: [], maxTokens: 256, onToolCall: async () => "" },
+      () => {
+      }
+    );
+    reply = res.reply;
+  } catch (e2) {
+    threw = e2 instanceof Error ? e2.message : String(e2);
+  }
+  const isFallback = /trouble connecting to the AI service/i.test(reply);
+  return c2.json({
+    backend_ok: !!reply && !isFallback && !threw,
+    reply,
+    threw,
+    realError: getLastGatewayError()
+  });
+});
 
 // src/routes/public-ask.ts
 var router7 = new Hono2();
@@ -66868,10 +59940,46 @@ router8.post("/:id/run", async (c2) => {
     return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
   }
 });
+var RAW_TO_RUNNER = {
+  crm_enricher: "graph-enrichment",
+  invoice_chaser: "finance",
+  recurring_invoices: "finance",
+  credit_note_dispute_handler: "finance",
+  relationship_health: "relationship",
+  deal_alerts: "relationship",
+  lead_scoring: "lead-scoring",
+  operations: "operations",
+  overdue_task_decisions: "operations",
+  workflow: "workflow",
+  opportunity: "opportunity",
+  people: "people",
+  portfolio: "portfolio",
+  asset: "asset"
+};
+router8.post("/replay", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const { jobId } = await c2.req.json().catch(() => ({}));
+  if (!jobId) return c2.json({ error: "jobId required" }, 400);
+  const { data: job } = await supabase.from("agent_jobs").select("agent_name, input").eq("id", jobId).eq("workspace_id", workspaceId).single();
+  if (!job) return c2.json({ error: "run not found" }, 404);
+  const input = job.input ?? {};
+  if (job.agent_name === "crm_enricher" && (input.nodeId || input.node_id)) {
+    await inngest.send({ name: "crm/record.created", data: { ...input, workspace_id: workspaceId } });
+    return c2.json({ replayed: true, mode: "event", agent: job.agent_name });
+  }
+  const runner = AGENT_RUNNERS[RAW_TO_RUNNER[job.agent_name] ?? ""];
+  if (!runner) return c2.json({ error: `Run "${job.agent_name}" cannot be replayed on demand.` }, 400);
+  try {
+    const result = await runner(workspaceId);
+    return c2.json({ replayed: true, mode: "run", agent: job.agent_name, result });
+  } catch (err2) {
+    return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
+  }
+});
 function latestJob(jobs, agentName) {
-  const matches3 = jobs.filter((j2) => j2.agent_name === agentName);
-  if (!matches3.length) return null;
-  return matches3.reduce((latest, j2) => {
+  const matches2 = jobs.filter((j2) => j2.agent_name === agentName);
+  if (!matches2.length) return null;
+  return matches2.reduce((latest, j2) => {
     const jt2 = new Date(j2.completed_at ?? j2.started_at ?? 0).getTime();
     const lt2 = new Date(latest.completed_at ?? latest.started_at ?? 0).getTime();
     return jt2 > lt2 ? j2 : latest;
@@ -67171,9 +60279,119 @@ router8.get("/", async (c2) => {
   }
   return c2.json({ agents });
 });
+router8.get("/activity", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const agent = c2.req.query("agent");
+  const limit2 = Math.min(Number(c2.req.query("limit")) || 80, 200);
+  let q2 = supabase.from("agent_jobs").select("id, agent_name, trigger_type, status, output, steps, error, started_at, completed_at").eq("workspace_id", workspaceId).order("started_at", { ascending: false }).limit(limit2);
+  if (agent) q2 = q2.eq("agent_name", agent);
+  const { data, error } = await q2;
+  if (error) return c2.json({ activity: [] });
+  const rows2 = (data ?? []).map((j2) => {
+    const out = j2.output ?? {};
+    let summary = out.summary ?? out.message;
+    if (!summary) {
+      const nums = Object.entries(out).filter(([, v2]) => typeof v2 === "number" && v2 !== 0);
+      summary = nums.length ? nums.map(([k2, v2]) => `${v2} ${k2.replace(/_/g, " ")}`).join(", ") : "ran \u2014 no changes needed";
+    }
+    return {
+      id: j2.id,
+      agent: j2.agent_name,
+      trigger: j2.trigger_type,
+      status: j2.status,
+      summary,
+      detail: out,
+      // full structured output for the expanded view
+      steps: Array.isArray(j2.steps) ? j2.steps : [],
+      // real execution track (logStep entries)
+      error: j2.error ?? null,
+      started_at: j2.started_at,
+      completed_at: j2.completed_at
+    };
+  });
+  const todayStart = /* @__PURE__ */ new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const since = todayStart.toISOString();
+  const [runsToday, errorsToday, todayNames] = await Promise.all([
+    supabase.from("agent_jobs").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).gte("started_at", since),
+    supabase.from("agent_jobs").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("status", "failed").gte("started_at", since),
+    supabase.from("agent_jobs").select("agent_name").eq("workspace_id", workspaceId).gte("started_at", since)
+  ]);
+  const stats = {
+    runs_today: runsToday.count ?? 0,
+    errors_today: errorsToday.count ?? 0,
+    agents_today: Array.from(new Set((todayNames.data ?? []).map((r2) => r2.agent_name)))
+    // raw names; UI maps to real agents
+  };
+  const { data: rosterRows } = await supabase.from("agent_jobs").select("agent_name, status, started_at").eq("workspace_id", workspaceId).order("started_at", { ascending: false }).limit(500);
+  const byAgent = {};
+  for (const r2 of rosterRows ?? []) {
+    const a2 = r2.agent_name;
+    if (!byAgent[a2]) byAgent[a2] = { agent: a2, last_run: r2.started_at, last_status: r2.status, runs_today: 0, errors_today: 0 };
+    if (new Date(r2.started_at) >= todayStart) {
+      byAgent[a2].runs_today++;
+      if (r2.status === "failed") byAgent[a2].errors_today++;
+    }
+  }
+  const roster = Object.values(byAgent);
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1e3);
+  const { data: tl } = await supabase.from("agent_jobs").select("status, started_at").eq("workspace_id", workspaceId).gte("started_at", dayAgo.toISOString()).limit(4e3);
+  const nowMs = Date.now();
+  const timeline = Array.from({ length: 24 }, (_2, i2) => {
+    const end = nowMs - i2 * 36e5;
+    const start = end - 36e5;
+    const label = new Date(end).toLocaleTimeString(void 0, { hour: "2-digit" });
+    let completed = 0, failed = 0;
+    for (const r2 of tl ?? []) {
+      const t2 = new Date(r2.started_at).getTime();
+      if (t2 > start && t2 <= end) {
+        if (r2.status === "failed") failed++;
+        else completed++;
+      }
+    }
+    return { label, completed, failed };
+  }).reverse();
+  return c2.json({ activity: rows2, stats, roster, timeline });
+});
 
 // src/routes/activities.ts
 var router9 = new Hono2();
+router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const limit2 = Math.min(Number(c2.req.query("limit")) || 150, 300);
+  const actorFilter = c2.req.query("actor");
+  let q2 = supabase.from("activities").select("id, actor_type, actor_id, action, ai_summary, node_id, created_at, nodes(object_type, data)").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(limit2);
+  if (actorFilter) q2 = q2.eq("actor_id", actorFilter);
+  const { data: acts } = await q2;
+  const { data: members } = await supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws);
+  const byUser = new Map((members ?? []).map((m2) => [m2.user_id, m2]));
+  const rows2 = (acts ?? []).map((a2) => {
+    const m2 = a2.actor_type === "human" ? byUser.get(a2.actor_id) : void 0;
+    const node = a2.nodes;
+    const nodeName = node?.data?.name ?? node?.data?.title;
+    return {
+      id: a2.id,
+      actor_type: a2.actor_type,
+      // "human" | "agent" | "system"
+      actor_id: a2.actor_id,
+      // agent slug (frontend maps) or user id
+      actor_name: m2?.name || m2?.email || null,
+      // resolved human name (null → frontend labels)
+      actor_avatar: m2?.avatar_url ?? null,
+      action: a2.action,
+      ai_summary: a2.ai_summary ?? null,
+      object: node?.object_type ? { type: node.object_type, name: nodeName ?? null } : null,
+      created_at: a2.created_at
+    };
+  });
+  const tally = {};
+  for (const r2 of rows2) {
+    const key = String(r2.actor_id ?? r2.actor_type);
+    if (!tally[key]) tally[key] = { actor_id: String(r2.actor_id ?? ""), actor_type: r2.actor_type, actor_name: r2.actor_name, actor_avatar: r2.actor_avatar, count: 0 };
+    tally[key].count++;
+  }
+  return c2.json({ activity: rows2, actors: Object.values(tally).sort((a2, b2) => b2.count - a2.count) });
+});
 router9.get("/node/:nodeId", requireAuth, async (c2) => {
   const { data } = await supabase.from("activities").select("*").eq("node_id", c2.req.param("nodeId")).eq("workspace_id", c2.get("workspaceId")).order("created_at", { ascending: false }).limit(50);
   return c2.json(data ?? []);
@@ -67184,49 +60402,229 @@ router9.get("/", requireAuth, async (c2) => {
   return c2.json(data ?? []);
 });
 
-// src/routes/webhooks.ts
-var import_node_crypto2 = require("crypto");
+// src/routes/realtime.ts
+init_jwt4();
 var router10 = new Hono2();
-router10.post("/clerk", async (c2) => {
-  const svixId = c2.req.header("svix-id") ?? "";
-  const svixTimestamp = c2.req.header("svix-timestamp") ?? "";
-  const svixSignature = c2.req.header("svix-signature") ?? "";
-  const rawBody = await c2.req.text();
-  const secret3 = process.env.CLERK_WEBHOOK_SECRET ?? "";
-  if (secret3) {
-    const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
-    const secretBytes = Buffer.from(secret3.replace(/^whsec_/, ""), "base64");
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secretBytes).update(signedContent).digest("base64");
-    const signatures = svixSignature.split(" ").map((s3) => s3.replace(/^v1,/, ""));
-    const valid = signatures.some((sig) => {
-      try {
-        return (0, import_node_crypto2.timingSafeEqual)(Buffer.from(sig, "base64"), Buffer.from(expected, "base64"));
-      } catch {
-        return false;
-      }
+router10.use("*", requireAuth);
+router10.get("/token", async (c2) => {
+  const secret3 = process.env.SUPABASE_JWT_SECRET;
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!secret3 || !url || !anonKey) return c2.json({ enabled: false });
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const now = Math.floor(Date.now() / 1e3);
+  const token = await sign2(
+    {
+      sub: userId,
+      role: "authenticated",
+      workspace_id: workspaceId,
+      // custom claim → RLS: workspace_id = auth.jwt()->>'workspace_id'
+      iat: now,
+      exp: now + 60 * 60
+      // 1 hour; the client refreshes on reconnect
+    },
+    secret3
+  );
+  return c2.json({ enabled: true, token, url, anonKey, workspaceId });
+});
+
+// src/routes/auth.ts
+init_cookie2();
+var import_node_crypto3 = require("crypto");
+
+// src/lib/password.ts
+var import_node_crypto2 = require("crypto");
+function scryptAsync(password, salt, keylen, options) {
+  return new Promise((resolve2, reject) => {
+    (0, import_node_crypto2.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+  });
+}
+var N2 = 32768;
+var R2 = 8;
+var P2 = 1;
+var KEYLEN = 64;
+var MAXMEM = 64 * 1024 * 1024;
+async function hashPassword(plain) {
+  const salt = (0, import_node_crypto2.randomBytes)(16);
+  const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
+  return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
+}
+async function verifyPassword(stored, plain) {
+  try {
+    const parts = stored.split("$");
+    if (parts.length !== 6 || parts[0] !== "scrypt") return false;
+    const [, n2, r2, p2, saltB64, hashB64] = parts;
+    const salt = Buffer.from(saltB64, "base64");
+    const expected = Buffer.from(hashB64, "base64");
+    const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
+    return dk.length === expected.length && (0, import_node_crypto2.timingSafeEqual)(dk, expected);
+  } catch {
+    return false;
+  }
+}
+
+// src/lib/trial.ts
+var TRIAL_DAYS = 14;
+var TRIAL_PLAN = "trial";
+var DAY_MS = 864e5;
+function trialEndsAtISO(from = Date.now()) {
+  return new Date(from + TRIAL_DAYS * DAY_MS).toISOString();
+}
+async function insertTrialWorkspace(base) {
+  const trialEndsAt = trialEndsAtISO();
+  const settings = { trial_ends_at: trialEndsAt };
+  let res = await supabase.from("workspaces").insert({ ...base, plan: TRIAL_PLAN, settings }).select("id").single();
+  if (res.error && /check constraint/i.test(res.error.message)) {
+    res = await supabase.from("workspaces").insert({ ...base, plan: "free", settings }).select("id").single();
+  }
+  if (res.error || !res.data) throw new Error(res.error?.message ?? "workspace insert failed");
+  return { id: res.data.id, trialEndsAt };
+}
+
+// src/lib/bootstrap.ts
+async function ensureWorkspaceForUser(userId, name = "My Workspace") {
+  const { data: existing } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (existing?.workspace_id) return { workspaceId: existing.workspace_id, isNew: false };
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 7);
+  const ws = await insertTrialWorkspace({ name, slug });
+  const { error } = await supabase.from("workspace_members").upsert(
+    { workspace_id: ws.id, user_id: userId, role: "owner" },
+    { onConflict: "workspace_id,user_id" }
+  );
+  if (error) {
+    await supabase.from("workspaces").delete().eq("id", ws.id).then(() => {
+    }, () => {
     });
-    if (!valid) return c2.json({ error: "invalid signature" }, 401);
+    throw new Error(`Workspace bootstrap failed: ${error.message}`);
   }
-  const event = JSON.parse(rawBody);
-  if (event.type === "user.created" || event.type === "user.updated") {
-    const u2 = event.data;
-    const email = u2.email_addresses?.[0]?.email_address ?? "";
-    const name = `${u2.first_name ?? ""} ${u2.last_name ?? ""}`.trim();
-    const userId = u2.id;
-    if (email && userId) {
-      await supabase.from("workspace_members").update({ email, name, avatar_url: u2.image_url ?? null }).eq("user_id", userId);
-    }
+  return { workspaceId: ws.id, isNew: true };
+}
+
+// src/routes/auth.ts
+init_auth_tokens();
+var router11 = new Hono2();
+var PW_MIN = 8;
+var credSchema = external_exports.object({ email: external_exports.string().email(), password: external_exports.string().min(PW_MIN).max(200) });
+var cookieBase = { httpOnly: true, secure: true, sameSite: "Strict" };
+function setSessionCookies(c2, access, refreshRaw) {
+  setCookie(c2, ACCESS_COOKIE, access, { ...cookieBase, path: "/", maxAge: ACCESS_TTL_SECONDS });
+  setCookie(c2, REFRESH_COOKIE, refreshRaw, { ...cookieBase, path: "/api/v1/auth", maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 });
+}
+function clearSessionCookies(c2) {
+  deleteCookie(c2, ACCESS_COOKIE, { path: "/" });
+  deleteCookie(c2, REFRESH_COOKIE, { path: "/api/v1/auth" });
+}
+async function issueSession(c2, userId, email, userAgent) {
+  const access = await signAccessToken(userId, email);
+  const { raw: raw2, hash } = newRefreshToken();
+  await supabase.from("auth_refresh_tokens").insert({
+    user_id: userId,
+    token_hash: hash,
+    expires_at: refreshExpiry().toISOString(),
+    user_agent: userAgent ?? null
+  });
+  setSessionCookies(c2, access, raw2);
+}
+async function memberByEmail(email) {
+  const { data } = await supabase.from("workspace_members").select("user_id, name, email").ilike("email", email).limit(1).maybeSingle();
+  return data ? { user_id: data.user_id, name: data.name ?? null } : null;
+}
+async function credByEmail(email) {
+  const { data } = await supabase.from("auth_credentials").select("*").ilike("email", email).maybeSingle();
+  return data;
+}
+async function sessionProfile(userId) {
+  const { data } = await supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId).limit(1).maybeSingle();
+  return {
+    workspaceId: data?.workspace_id ?? null,
+    name: data?.name ?? null,
+    imageUrl: data?.avatar_url ?? null
+  };
+}
+router11.post("/register", zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
+  const { email, password, name } = c2.req.valid("json");
+  if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
+  const userId = `usr_${(0, import_node_crypto3.randomBytes)(12).toString("hex")}`;
+  const password_hash = await hashPassword(password);
+  const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
+  if (error) return c2.json({ error: error.message }, 400);
+  const displayName = name?.trim() || email;
+  let workspaceId = null;
+  try {
+    const ws = await ensureWorkspaceForUser(userId, name?.trim() ? `${name.trim()}'s Workspace` : "My Workspace");
+    workspaceId = ws.workspaceId;
+    await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to initialize workspace" }, 500);
   }
+  await issueSession(c2, userId, email, c2.req.header("user-agent"));
+  return c2.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
+});
+router11.post("/login", zValidator("json", credSchema), async (c2) => {
+  const { email, password } = c2.req.valid("json");
+  const cred = await credByEmail(email);
+  if (!cred) {
+    const member = await memberByEmail(email);
+    if (member) return c2.json({ requires_activation: true });
+    return c2.json({ error: "Invalid email or password." }, 401);
+  }
+  const ok2 = await verifyPassword(cred.password_hash, password);
+  if (!ok2) return c2.json({ error: "Invalid email or password." }, 401);
+  await issueSession(c2, cred.user_id, cred.email, c2.req.header("user-agent"));
+  return c2.json({ userId: cred.user_id, email: cred.email, ...await sessionProfile(cred.user_id) });
+});
+router11.post("/activate", zValidator("json", credSchema), async (c2) => {
+  const { email, password } = c2.req.valid("json");
+  if (await credByEmail(email)) return c2.json({ error: "This account is already activated \u2014 please log in." }, 409);
+  const member = await memberByEmail(email);
+  if (!member) return c2.json({ error: "No Mondaily account is associated with this email." }, 404);
+  const password_hash = await hashPassword(password);
+  const { error } = await supabase.from("auth_credentials").insert({ user_id: member.user_id, email, password_hash });
+  if (error) return c2.json({ error: error.message }, 400);
+  await issueSession(c2, member.user_id, email, c2.req.header("user-agent"));
+  return c2.json({ userId: member.user_id, email, activated: true, ...await sessionProfile(member.user_id) }, 201);
+});
+router11.post("/refresh", async (c2) => {
+  const raw2 = getCookie(c2, REFRESH_COOKIE);
+  if (!raw2) return c2.json({ error: "Not authenticated." }, 401);
+  const { data: row } = await supabase.from("auth_refresh_tokens").select("*").eq("token_hash", sha2565(raw2)).maybeSingle();
+  if (!row || row.revoked_at || new Date(row.expires_at).getTime() < Date.now()) {
+    clearSessionCookies(c2);
+    return c2.json({ error: "Session expired." }, 401);
+  }
+  const { data: cred } = await supabase.from("auth_credentials").select("email").eq("user_id", row.user_id).maybeSingle();
+  const access = await signAccessToken(row.user_id, cred?.email ?? "");
+  const next = newRefreshToken();
+  const { data: inserted } = await supabase.from("auth_refresh_tokens").insert({ user_id: row.user_id, token_hash: next.hash, expires_at: refreshExpiry().toISOString(), user_agent: c2.req.header("user-agent") ?? null }).select("id").single();
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: (/* @__PURE__ */ new Date()).toISOString(), replaced_by: inserted?.id ?? null }).eq("id", row.id);
+  setSessionCookies(c2, access, next.raw);
+  return c2.json({ userId: row.user_id });
+});
+router11.post("/logout", async (c2) => {
+  const raw2 = getCookie(c2, REFRESH_COOKIE);
+  if (raw2) await supabase.from("auth_refresh_tokens").update({ revoked_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("token_hash", sha2565(raw2));
+  clearSessionCookies(c2);
   return c2.json({ ok: true });
 });
-router10.post("/nylas", async (c2) => {
+router11.get("/me", async (c2) => {
+  const at2 = getCookie(c2, ACCESS_COOKIE);
+  const claims = at2 ? await verifyAccessToken(at2) : null;
+  if (!claims) return c2.json({ error: "Not authenticated." }, 401);
+  return c2.json({ userId: claims.sub, email: claims.email, ...await sessionProfile(claims.sub) });
+});
+
+// src/routes/webhooks.ts
+var import_node_crypto4 = require("crypto");
+var router12 = new Hono2();
+router12.post("/nylas", async (c2) => {
   const challenge = c2.req.query("challenge");
   if (challenge) return c2.text(challenge);
   const rawBody = await c2.req.text();
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret3 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret3 && sig) {
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secret3).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto4.createHmac)("sha256", secret3).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -67238,7 +60636,7 @@ router10.post("/nylas", async (c2) => {
       if (!grantId || !threadId) continue;
       const { data: conn } = await supabase.from("email_connections").select("workspace_id, user_id").eq("grant_id", grantId).single();
       if (conn) {
-        await supabase.from("notifications").insert({
+        await createNotification({
           workspace_id: conn.workspace_id,
           type: "email",
           title: "New email received",
@@ -67250,7 +60648,7 @@ router10.post("/nylas", async (c2) => {
   }
   return c2.json({ ok: true });
 });
-router10.post("/stripe", async (c2) => {
+router12.post("/stripe", async (c2) => {
   const sig = c2.req.header("stripe-signature") ?? "";
   const secret3 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   const rawBody = await c2.req.text();
@@ -67260,18 +60658,18 @@ router10.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto2.createHmac)("sha256", secret3).update(payload).digest("hex");
+    const expected = (0, import_node_crypto4.createHmac)("sha256", secret3).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto2.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto4.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
   const event = JSON.parse(rawBody);
   if (event.type === "checkout.session.completed") {
-    const s3 = event.data.object;
-    const workspaceId = s3.client_reference_id || s3.metadata?.workspace_id;
-    const customerId = s3.customer;
-    const plan = s3.metadata?.plan || "pro";
+    const s2 = event.data.object;
+    const workspaceId = s2.client_reference_id || s2.metadata?.workspace_id;
+    const customerId = s2.customer;
+    const plan = s2.metadata?.plan || "pro";
     if (workspaceId) {
       await supabase.from("workspaces").update({ ...customerId ? { stripe_customer_id: customerId } : {}, plan }).eq("id", workspaceId);
     }
@@ -67301,8 +60699,8 @@ router10.post("/stripe", async (c2) => {
 });
 
 // src/routes/billing.ts
-var router11 = new Hono2();
-router11.use("*", requireAuth);
+var router13 = new Hono2();
+router13.use("*", requireAuth);
 var STRIPE_API = "https://api.stripe.com/v1";
 var appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 function encodeForm(params) {
@@ -67323,7 +60721,7 @@ function priceFor(plan, interval) {
   const key = `STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`;
   return process.env[key];
 }
-router11.post("/checkout", async (c2) => {
+router13.post("/checkout", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const plan = (body.plan ?? "").toLowerCase();
   const interval = (body.interval ?? "month").toLowerCase();
@@ -67356,7 +60754,7 @@ router11.post("/checkout", async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start checkout." }, 500);
   }
 });
-router11.post("/portal", async (c2) => {
+router13.post("/portal", async (c2) => {
   if (!process.env.STRIPE_SECRET_KEY) {
     return c2.json({ error: "Billing isn't connected yet.", configured: false }, 503);
   }
@@ -67378,27 +60776,27 @@ router11.post("/portal", async (c2) => {
 });
 
 // src/lib/tracking.ts
-var import_node_crypto3 = require("crypto");
+var import_node_crypto5 = require("crypto");
 function secret() {
-  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || process.env.CLERK_SECRET_KEY || "mondaily-dev-tracking-secret";
+  return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-function sign(payload) {
-  return b64url((0, import_node_crypto3.createHmac)("sha256", secret()).update(payload).digest());
+function sign3(payload) {
+  return b64url((0, import_node_crypto5.createHmac)("sha256", secret()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
-  return `${p2}.${sign(p2)}`;
+  return `${p2}.${sign3(p2)}`;
 }
 function verifyTrackingToken(token) {
   const dot = token.lastIndexOf(".");
   if (dot <= 0) return null;
   const p2 = token.slice(0, dot);
   const sig = token.slice(dot + 1);
-  const expected = sign(p2);
+  const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto3.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto5.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -67407,8 +60805,8 @@ function verifyTrackingToken(token) {
 }
 
 // src/routes/app-data.ts
-var router12 = new Hono2();
-router12.use("*", requireAuth);
+var router14 = new Hono2();
+router14.use("*", requireAuth);
 var ADMIN_SETTINGS_AREAS = [
   "/settings/workspace",
   "/settings/members",
@@ -67418,7 +60816,7 @@ var ADMIN_SETTINGS_AREAS = [
   "/settings/security",
   "/settings/general"
 ];
-router12.use("/settings/*", async (c2, next) => {
+router14.use("/settings/*", async (c2, next) => {
   const m2 = c2.req.method;
   if (m2 === "GET" || m2 === "HEAD" || m2 === "OPTIONS") return next();
   const path = c2.req.path;
@@ -67507,37 +60905,37 @@ async function bootstrapWorkspace(workspaceId, createdBy) {
   ).select();
   if (defErr || !defs?.length) return;
 }
-router12.get("/objects", async (c2) => {
+router14.get("/objects", async (c2) => {
   await bootstrapWorkspace(c2.get("workspaceId"), c2.get("userId"));
   const data = await rows("object_definitions", c2.get("workspaceId"));
   return c2.json(data);
 });
-router12.get("/notifications", async (c2) => c2.json(await rows("notifications", c2.get("workspaceId"))));
-router12.post("/notifications/:id/read", async (c2) => {
-  await supabase.from("notifications").update({ read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
+router14.get("/notifications", async (c2) => c2.json(await rows("notifications", c2.get("workspaceId"))));
+router14.post("/notifications/:id/read", async (c2) => {
+  await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router12.post("/notifications/read-all", async (c2) => {
-  await supabase.from("notifications").update({ read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", c2.get("workspaceId")).is("read_at", null);
+router14.post("/notifications/read-all", async (c2) => {
+  await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", c2.get("workspaceId")).eq("is_read", false);
   return c2.json({ ok: true });
 });
-router12.get("/tasks", async (c2) => {
+router14.get("/tasks", async (c2) => {
   const nodes = await rows("nodes", c2.get("workspaceId"), { objectType: "task" });
   return c2.json(nodes.map((node) => ({ id: node.id, ...node.data ?? {} })));
 });
-router12.get("/meetings/today", async (c2) => {
+router14.get("/meetings/today", async (c2) => {
   const nodes = await rows("nodes", c2.get("workspaceId"), { objectType: "meeting" });
   const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   return c2.json(nodes.map((node) => ({ id: node.id, ...node.data ?? {} })).filter((meeting) => String(meeting.start_time ?? "").startsWith(today)));
 });
-router12.post("/tasks", zValidator("json", external_exports.object({ title: external_exports.string().min(1), due_date: external_exports.string().optional(), assignee_id: external_exports.string().optional() })), async (c2) => {
+router14.post("/tasks", zValidator("json", external_exports.object({ title: external_exports.string().min(1), due_date: external_exports.string().optional(), assignee_id: external_exports.string().optional() })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "tasks", object_type: "task", data: { ...body, completed: false }, created_by: c2.get("userId") }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "created", diff: body });
   return c2.json({ id: data.id, ...data.data }, 201);
 });
-router12.patch("/tasks/:id", async (c2) => {
+router14.patch("/tasks/:id", async (c2) => {
   const updates = await c2.req.json();
   const { data: existing } = await supabase.from("nodes").select("data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).single();
   const { data, error } = await supabase.from("nodes").update({ data: { ...existing?.data ?? {}, ...updates } }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
@@ -67545,7 +60943,7 @@ router12.patch("/tasks/:id", async (c2) => {
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "updated", diff: updates });
   return c2.json({ id: data.id, ...data.data });
 });
-router12.post("/emails/send", zValidator("json", external_exports.object({
+router14.post("/emails/send", zValidator("json", external_exports.object({
   to: external_exports.string().email(),
   subject: external_exports.string().min(1),
   body: external_exports.string().min(1)
@@ -67576,21 +60974,21 @@ router12.post("/emails/send", zValidator("json", external_exports.object({
 });
 for (const objectType2 of ["email_thread", "call"]) {
   const path = objectType2 === "email_thread" ? "/emails" : "/calls";
-  router12.get(path, async (c2) => {
+  router14.get(path, async (c2) => {
     const nodes = await rows("nodes", c2.get("workspaceId"), { objectType: objectType2 });
     return c2.json(nodes.map((node) => ({ id: node.id, ...node.data ?? {} })));
   });
-  router12.get(`${path}/:id`, async (c2) => {
+  router14.get(`${path}/:id`, async (c2) => {
     const { data } = await supabase.from("nodes").select("*").eq("workspace_id", c2.get("workspaceId")).eq("object_type", objectType2).eq("id", c2.req.param("id")).single();
     if (!data) return c2.json({ error: "Not found" }, 404);
     return c2.json({ id: data.id, ...data.data });
   });
 }
-router12.get("/reports", async (c2) => {
+router14.get("/reports", async (c2) => {
   const reports = await rows("nodes", c2.get("workspaceId"), { objectType: "report" });
   return c2.json({ charts: [], reports: reports.map((node) => ({ id: node.id, ...node.data ?? {} })) });
 });
-router12.get("/automations", async (c2) => {
+router14.get("/automations", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").order("updated_at", { ascending: false });
   return c2.json((data ?? []).map((node) => ({
     id: node.id,
@@ -67598,7 +60996,7 @@ router12.get("/automations", async (c2) => {
     ...node.data
   })));
 });
-router12.get("/settings/account", async (c2) => {
+router14.get("/settings/account", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const userPreferences = settings.user_preferences?.[c2.get("userId")] ?? {};
   return c2.json({
@@ -67609,7 +61007,7 @@ router12.get("/settings/account", async (c2) => {
     connected_accounts: userPreferences.connected_accounts ?? []
   });
 });
-router12.patch("/settings/account", async (c2) => {
+router14.patch("/settings/account", async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const preferences = settings.user_preferences ?? {};
@@ -67618,7 +61016,7 @@ router12.patch("/settings/account", async (c2) => {
   });
   return c2.json({ ok: true });
 });
-router12.delete("/settings/account/connections/:id", async (c2) => {
+router14.delete("/settings/account/connections/:id", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const preferences = settings.user_preferences ?? {};
   const current = preferences[c2.get("userId")] ?? {};
@@ -67631,7 +61029,7 @@ router12.delete("/settings/account/connections/:id", async (c2) => {
   });
   return c2.json({ ok: true });
 });
-router12.get("/settings/workspace", async (c2) => {
+router14.get("/settings/workspace", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [{ data }, { count: memberCount }] = await Promise.all([
     supabase.from("workspaces").select("name, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
@@ -67647,7 +61045,7 @@ router12.get("/settings/workspace", async (c2) => {
     modules: settings.modules ?? ["crm"]
   });
 });
-router12.patch("/settings/workspace", async (c2) => {
+router14.patch("/settings/workspace", async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   await supabase.from("workspaces").update({
@@ -67660,7 +61058,7 @@ router12.patch("/settings/workspace", async (c2) => {
   }).eq("id", c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
-router12.get("/settings/members", async (c2) => {
+router14.get("/settings/members", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [{ data: members }, { data: teams }, invites] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
@@ -67668,34 +61066,48 @@ router12.get("/settings/members", async (c2) => {
     rows("nodes", workspaceId, { objectType: "workspace_invitation" })
   ]);
   return c2.json({
-    members: (members ?? []).map((member) => ({ id: member.user_id, name: member.user_id, email: "", role: member.role, status: "active" })),
+    // Real profile fields are already cached on workspace_members (name/email/avatar_url were
+    // resolved from Clerk at add-time) — surface them instead of hardcoding blanks, so role
+    // gating and member lists across settings are accurate.
+    members: (members ?? []).map((member) => ({
+      id: member.user_id,
+      name: member.name || member.email || member.user_id,
+      email: member.email || "",
+      image_url: member.avatar_url ?? null,
+      // frontend Member type reads `image_url`
+      avatar_url: member.avatar_url ?? null,
+      // keep both for any other consumer
+      role: member.role,
+      position: member.position ?? null,
+      status: "active"
+    })),
     invitations: invites.map((node) => ({ id: node.id, ...node.data ?? {} })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item) => item.user_id) ?? [] }))
   });
 });
-router12.patch("/settings/members/:id", async (c2) => {
+router14.patch("/settings/members/:id", async (c2) => {
   const body = await c2.req.json();
   const { error } = await supabase.from("workspace_members").update({ role: body.role }).eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router12.delete("/settings/members/:id", async (c2) => {
+router14.delete("/settings/members/:id", async (c2) => {
   await supabase.from("workspace_members").delete().eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router12.post("/settings/teams", zValidator("json", external_exports.object({ name: external_exports.string().min(1), member_ids: external_exports.array(external_exports.string()) })), async (c2) => {
+router14.post("/settings/teams", zValidator("json", external_exports.object({ name: external_exports.string().min(1), member_ids: external_exports.array(external_exports.string()) })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("teams").insert({ workspace_id: c2.get("workspaceId"), name: body.name }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
   if (body.member_ids.length) await supabase.from("team_members").insert(body.member_ids.map((user_id) => ({ team_id: data.id, user_id })));
   return c2.json({ id: data.id, name: data.name, member_count: body.member_ids.length, member_ids: body.member_ids }, 201);
 });
-router12.get("/settings/objects", async (c2) => c2.json(await rows("object_definitions", c2.get("workspaceId"))));
-router12.post("/settings/objects", async (c2) => {
+router14.get("/settings/objects", async (c2) => c2.json(await rows("object_definitions", c2.get("workspaceId"))));
+router14.post("/settings/objects", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("object_definitions").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", slug: body.slug, name_singular: body.name, name_plural: body.name, attributes: [] }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router12.post("/settings/objects/:id/attributes", zValidator("json", external_exports.object({
+router14.post("/settings/objects/:id/attributes", zValidator("json", external_exports.object({
   name: external_exports.string().min(1),
   type: external_exports.enum(["text", "number", "date", "select", "relation"])
 })), async (c2) => {
@@ -67706,7 +61118,7 @@ router12.post("/settings/objects/:id/attributes", zValidator("json", external_ex
   const { data, error } = await supabase.from("object_definitions").update({ attributes }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router12.delete("/settings/objects/:id", async (c2) => {
+router14.delete("/settings/objects/:id", async (c2) => {
   const id = c2.req.param("id");
   const wid = c2.get("workspaceId");
   const { data: obj } = await supabase.from("object_definitions").select("slug").eq("workspace_id", wid).eq("id", id).single();
@@ -67715,7 +61127,7 @@ router12.delete("/settings/objects/:id", async (c2) => {
   const { error } = await supabase.from("object_definitions").delete().eq("workspace_id", wid).eq("id", id);
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router12.get("/settings/integrations", async (c2) => {
+router14.get("/settings/integrations", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const settings = await workspaceSettings(workspaceId);
   const connected = settings.integrations ?? {};
@@ -67730,14 +61142,14 @@ router12.get("/settings/integrations", async (c2) => {
     mcp_token: settings.mcp_token
   });
 });
-router12.patch("/settings/integrations/:id", async (c2) => {
+router14.patch("/settings/integrations/:id", async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const integrations = settings.integrations ?? {};
   await mergeWorkspaceSettings(c2.get("workspaceId"), { integrations: { ...integrations, [c2.req.param("id")]: body.connected } });
   return c2.json({ ok: true });
 });
-router12.post("/settings/integrations/api-keys", async (c2) => {
+router14.post("/settings/integrations/api-keys", async (c2) => {
   const body = await c2.req.json();
   const secret3 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
   const bytes = new TextEncoder().encode(secret3);
@@ -67746,20 +61158,20 @@ router12.post("/settings/integrations/api-keys", async (c2) => {
   const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret3.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret3 }, 201);
 });
-router12.delete("/settings/integrations/api-keys/:id", async (c2) => {
+router14.delete("/settings/integrations/api-keys/:id", async (c2) => {
   await supabase.from("api_keys").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router12.post("/settings/integrations/webhooks", async (c2) => {
+router14.post("/settings/integrations/webhooks", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "webhook", data: body, created_by: c2.get("userId") }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, ...data.data }, 201);
 });
-router12.delete("/settings/integrations/webhooks/:id", async (c2) => {
+router14.delete("/settings/integrations/webhooks/:id", async (c2) => {
   await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "webhook").eq("id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router12.get("/settings/tax-codes", requireAuth, async (c2) => {
+router14.get("/settings/tax-codes", requireAuth, async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const defaults2 = [
     { id: "vat_20", name: "VAT 20%", rate: 20 },
@@ -67770,7 +61182,7 @@ router12.get("/settings/tax-codes", requireAuth, async (c2) => {
   const custom2 = settings.tax_codes ?? [];
   return c2.json([...defaults2, ...custom2]);
 });
-router12.post("/settings/tax-codes", requireAuth, async (c2) => {
+router14.post("/settings/tax-codes", requireAuth, async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const existing = settings.tax_codes ?? [];
@@ -67778,12 +61190,12 @@ router12.post("/settings/tax-codes", requireAuth, async (c2) => {
   await supabase.from("workspaces").update({ settings: { ...settings, tax_codes: [...existing, newCode] } }).eq("id", c2.get("workspaceId"));
   return c2.json(newCode, 201);
 });
-router12.post("/settings/integrations/mcp-token", async (c2) => {
+router14.post("/settings/integrations/mcp-token", async (c2) => {
   const token = `mcp_${crypto.randomUUID().replaceAll("-", "")}`;
   await mergeWorkspaceSettings(c2.get("workspaceId"), { mcp_token: token });
   return c2.json({ token }, 201);
 });
-router12.get("/settings/security", async (c2) => {
+router14.get("/settings/security", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   return c2.json({
     saml_enabled: settings.saml_enabled ?? false,
@@ -67793,13 +61205,13 @@ router12.get("/settings/security", async (c2) => {
     sessions: []
   });
 });
-router12.patch("/settings/security", async (c2) => {
+router14.patch("/settings/security", async (c2) => {
   const updates = await c2.req.json();
   await mergeWorkspaceSettings(c2.get("workspaceId"), updates);
   return c2.json({ ok: true });
 });
-router12.delete("/settings/security/sessions/:id", (c2) => c2.json({ ok: true }));
-router12.get("/settings/email", async (c2) => {
+router14.delete("/settings/security/sessions/:id", (c2) => c2.json({ ok: true }));
+router14.get("/settings/email", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const integrations = settings.integrations ?? {};
   const { data: conn } = await supabase.from("email_connections").select("email, provider").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -67809,7 +61221,7 @@ router12.get("/settings/email", async (c2) => {
     { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }
   ] });
 });
-router12.get("/billing", async (c2) => {
+router14.get("/billing", async (c2) => {
   const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c2.get("workspaceId")).single();
   const settings = data?.settings ?? {};
   const trialEndsAt = settings.trial_ends_at;
@@ -67823,7 +61235,7 @@ router12.get("/billing", async (c2) => {
     trial_days_left: trialDaysLeft
   });
 });
-router12.post("/invites", async (c2) => {
+router14.post("/invites", async (c2) => {
   const { data: membership } = await supabase.from("workspace_members").select("role").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).single();
   if (!membership || !["owner", "admin"].includes(membership.role)) return c2.json({ error: "Admin authorization required." }, 403);
   const body = await c2.req.json();
@@ -67832,7 +61244,7 @@ router12.post("/invites", async (c2) => {
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "workspace_invitation", data: invitation, created_by: c2.get("userId") }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, ...invitation }, 201);
 });
-router12.get("/workspace/members", async (c2) => {
+router14.get("/workspace/members", async (c2) => {
   const { data, error } = await supabase.from("workspace_members").select("user_id, role, finance_role").eq("workspace_id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(
@@ -67843,7 +61255,7 @@ router12.get("/workspace/members", async (c2) => {
     }))
   );
 });
-router12.get("/workspace/members-full", async (c2) => {
+router14.get("/workspace/members-full", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [membersRes, invitesRes] = await Promise.all([
     supabase.from("workspace_members").select("user_id, email, name, role, finance_role").eq("workspace_id", workspaceId),
@@ -67865,7 +61277,7 @@ router12.get("/workspace/members-full", async (c2) => {
   }));
   return c2.json({ members, invitations });
 });
-router12.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
+router14.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { role } = await c2.req.json();
@@ -67881,7 +61293,7 @@ router12.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router12.delete("/workspace/members/:userId", requireAuth, async (c2) => {
+router14.delete("/workspace/members/:userId", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const targetId = c2.req.param("userId");
@@ -67894,7 +61306,7 @@ router12.delete("/workspace/members/:userId", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router12.patch("/workspace/members/:userId/finance-role", async (c2) => {
+router14.patch("/workspace/members/:userId/finance-role", async (c2) => {
   const role = c2.get("role");
   if (!["admin", "owner"].includes(role)) return c2.json({ error: "Forbidden" }, 403);
   const { finance_role } = await c2.req.json();
@@ -67904,12 +61316,12 @@ router12.patch("/workspace/members/:userId/finance-role", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router12.post("/settings/complete-onboarding", requireAuth, async (c2) => {
+router14.post("/settings/complete-onboarding", requireAuth, async (c2) => {
   const { error } = await supabase.from("workspaces").update({ onboarded: true }).eq("id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router12.patch("/settings/general", requireAuth, async (c2) => {
+router14.patch("/settings/general", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = await c2.req.json();
@@ -67923,18 +61335,18 @@ router12.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var router13 = new Hono2();
+var router15 = new Hono2();
 var inviteSchema = external_exports.object({
   email: external_exports.string().email(),
   role: external_exports.enum(["admin", "member", "viewer", "guest"]).default("member"),
   finance_role: external_exports.enum(["none", "viewer", "member", "reviewer", "approver"]).default("none")
 });
-router13.get("/", requireAuth, async (c2) => {
+router15.get("/", requireAuth, async (c2) => {
   const { data, error } = await supabase.from("workspace_invites").select("id,email,role,finance_role,invited_by,token,expires_at,created_at").eq("workspace_id", c2.get("workspaceId")).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router13.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => {
+router15.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = c2.req.valid("json");
@@ -67956,14 +61368,14 @@ router13.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => 
   });
   return c2.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
 });
-router13.delete("/:id", requireAuth, async (c2) => {
+router15.delete("/:id", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { error } = await supabase.from("workspace_invites").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router13.post("/accept", requireJwt, async (c2) => {
+router15.post("/accept", requireJwt, async (c2) => {
   const { token } = await c2.req.json().catch(() => ({ token: "" }));
   const userId = c2.get("userId");
   if (!token) return c2.json({ error: "Missing invite token" }, 400);
@@ -67981,8 +61393,8 @@ router13.post("/accept", requireJwt, async (c2) => {
 });
 
 // src/routes/notes.ts
-var router14 = new Hono2();
-router14.use("*", requireAuth);
+var router16 = new Hono2();
+router16.use("*", requireAuth);
 var noteBody = external_exports.object({
   content: external_exports.string().min(1),
   node_id: external_exports.string().uuid()
@@ -67991,7 +61403,7 @@ async function getRootNote(workspaceId, id) {
   const { data } = await supabase.from("activities").select("*").eq("workspace_id", workspaceId).eq("id", id).eq("action", "note").maybeSingle();
   return data;
 }
-router14.get("/", zValidator("query", external_exports.object({
+router16.get("/", zValidator("query", external_exports.object({
   filter: external_exports.enum(["all", "mine", "following"]).default("all"),
   sort: external_exports.enum(["newest", "oldest", "updated"]).default("newest"),
   search: external_exports.string().default(""),
@@ -68043,7 +61455,7 @@ router14.get("/", zValidator("query", external_exports.object({
   });
   return c2.json(result);
 });
-router14.post("/", zValidator("json", noteBody), async (c2) => {
+router16.post("/", zValidator("json", noteBody), async (c2) => {
   const body = c2.req.valid("json");
   const { data: node } = await supabase.from("nodes").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", body.node_id).maybeSingle();
   if (!node) return c2.json({ error: "Linked record not found" }, 404);
@@ -68058,7 +61470,7 @@ router14.post("/", zValidator("json", noteBody), async (c2) => {
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router14.patch("/:id", zValidator("json", external_exports.object({ content: external_exports.string().min(1) })), async (c2) => {
+router16.patch("/:id", zValidator("json", external_exports.object({ content: external_exports.string().min(1) })), async (c2) => {
   const root = await getRootNote(c2.get("workspaceId"), c2.req.param("id"));
   if (!root) return c2.json({ error: "Note not found" }, 404);
   if (root.actor_id !== c2.get("userId") && !["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Forbidden" }, 403);
@@ -68073,7 +61485,7 @@ router14.patch("/:id", zValidator("json", external_exports.object({ content: ext
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data);
 });
-router14.delete("/:id", async (c2) => {
+router16.delete("/:id", async (c2) => {
   const root = await getRootNote(c2.get("workspaceId"), c2.req.param("id"));
   if (!root) return c2.json({ error: "Note not found" }, 404);
   if (root.actor_id !== c2.get("userId") && !["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Forbidden" }, 403);
@@ -68094,8 +61506,8 @@ var PIXEL_GIF = Buffer.from(
   "base64"
 );
 var API_BASE = process.env.API_BASE_URL ?? "https://api.mondaily.com";
-var router15 = new Hono2();
-router15.get("/track/:token/open.gif", async (c2) => {
+var router17 = new Hono2();
+router17.get("/track/:token/open.gif", async (c2) => {
   const trackingId = verifyTrackingToken(c2.req.param("token"));
   if (trackingId) {
     supabase.from("nodes").select("id,data").eq("object_type", "email_outbox").eq("id", trackingId).maybeSingle().then(({ data: node }) => {
@@ -68112,7 +61524,7 @@ router15.get("/track/:token/open.gif", async (c2) => {
     headers: { "Content-Type": "image/gif", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" }
   });
 });
-router15.get("/track/:token/click", async (c2) => {
+router17.get("/track/:token/click", async (c2) => {
   const trackingId = verifyTrackingToken(c2.req.param("token"));
   const url = c2.req.query("url") ?? "/";
   if (trackingId) {
@@ -68126,7 +61538,7 @@ router15.get("/track/:token/click", async (c2) => {
   }
   return c2.redirect(url, 302);
 });
-router15.use("*", requireAuth);
+router17.use("*", requireAuth);
 async function getSettings(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
   return data?.settings ?? {};
@@ -68173,16 +61585,16 @@ function matchesFilter(thread, filter) {
   if (filter === "inbox") return folders.some((folder) => folder.includes("inbox"));
   return true;
 }
-function parseAddr(s3) {
-  const m2 = (s3 ?? "").match(/^\s*"?([^"<]*)"?\s*<([^>]+)>/);
+function parseAddr(s2) {
+  const m2 = (s2 ?? "").match(/^\s*"?([^"<]*)"?\s*<([^>]+)>/);
   if (m2) return { name: (m2[1] ?? "").trim() || void 0, email: (m2[2] ?? "").trim() };
-  return { email: (s3 ?? "").trim() };
+  return { email: (s2 ?? "").trim() };
 }
 function toUnixSeconds(dateStr) {
   const t2 = Date.parse(dateStr ?? "");
   return Number.isNaN(t2) ? Math.floor(Date.now() / 1e3) : Math.floor(t2 / 1e3);
 }
-router15.get("/threads", zValidator("query", external_exports.object({
+router17.get("/threads", zValidator("query", external_exports.object({
   search: external_exports.string().default(""),
   filter: external_exports.enum(["all", "inbox", "sent", "unread"]).default("all"),
   page_token: external_exports.string().optional()
@@ -68231,7 +61643,7 @@ router15.get("/threads", zValidator("query", external_exports.object({
   const connected = Boolean(grantId) || Boolean(conn?.grant_id || conn?.refresh_token);
   return c2.json({ threads: filtered, connected, connected_email: conn?.email, next_cursor: nextCursor });
 });
-router15.get("/threads/:id", async (c2) => {
+router17.get("/threads/:id", async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
   const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -68278,8 +61690,8 @@ router15.get("/threads/:id", async (c2) => {
 function injectTracking(html, trackingId) {
   const withLinks = html.replace(
     /<a\s+([^>]*?)href="([^"]+)"([^>]*?)>/gi,
-    (_3, before, url, after) => {
-      if (url.startsWith(`${API_BASE}/api/v1/emails/track/`)) return _3;
+    (_2, before, url, after) => {
+      if (url.startsWith(`${API_BASE}/api/v1/emails/track/`)) return _2;
       const tracked = `${API_BASE}/api/v1/emails/track/${trackingId}/click?url=${encodeURIComponent(url)}`;
       return `<a ${before}href="${tracked}"${after}>`;
     }
@@ -68287,7 +61699,7 @@ function injectTracking(html, trackingId) {
   const pixel = `<img src="${API_BASE}/api/v1/emails/track/${trackingId}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   return withLinks.includes("</body>") ? withLinks.replace("</body>", `${pixel}</body>`) : withLinks + pixel;
 }
-router15.post("/threads/:id/reply", zValidator("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
+router17.post("/threads/:id/reply", zValidator("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
   const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -68331,7 +61743,7 @@ router15.post("/threads/:id/reply", zValidator("json", external_exports.object({
   });
   return c2.json({ ...result.data, tracking_id: trackNode?.id }, 201);
 });
-router15.get("/outbox", async (c2) => {
+router17.get("/outbox", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_outbox").order("created_at", { ascending: false }).limit(100);
   return c2.json((data ?? []).map((n2) => ({
     id: n2.id,
@@ -68341,7 +61753,7 @@ router15.get("/outbox", async (c2) => {
     click_count: Array.isArray(n2.data.clicks) ? n2.data.clicks.length : 0
   })));
 });
-router15.post("/threads/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router17.post("/threads/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const threadId = c2.req.param("id");
   const { data: target } = await supabase.from("nodes").select("id").eq("workspace_id", workspaceId).eq("id", c2.req.valid("json").node_id).maybeSingle();
@@ -68364,8 +61776,8 @@ router15.post("/threads/:id/link", zValidator("json", external_exports.object({ 
 });
 
 // src/routes/calls.ts
-var router16 = new Hono2();
-router16.use("*", requireAuth);
+var router18 = new Hono2();
+router18.use("*", requireAuth);
 function normalizeCall(node) {
   const data = node.data ?? {};
   return {
@@ -68392,7 +61804,7 @@ async function getCall(workspaceId, id) {
   const { data } = await supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", workspaceId).eq("vertical", "sales").eq("object_type", "call").eq("id", id).maybeSingle();
   return data;
 }
-router16.get("/", zValidator("query", external_exports.object({
+router18.get("/", zValidator("query", external_exports.object({
   filter: external_exports.enum(["all", "mine", "week", "month"]).default("all"),
   search: external_exports.string().default("")
 })), async (c2) => {
@@ -68407,11 +61819,11 @@ router16.get("/", zValidator("query", external_exports.object({
   const calls = (data ?? []).map(normalizeCall).filter((call) => !search || `${call.contact_name} ${call.company_name ?? ""} ${call.ai_summary}`.toLowerCase().includes(search));
   return c2.json(calls);
 });
-router16.get("/:id", async (c2) => {
+router18.get("/:id", async (c2) => {
   const node = await getCall(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(normalizeCall(node)) : c2.json({ error: "Call not found" }, 404);
 });
-router16.post("/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router18.post("/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const call = await getCall(workspaceId, c2.req.param("id"));
   if (!call) return c2.json({ error: "Call not found" }, 404);
@@ -68422,7 +61834,7 @@ router16.post("/:id/link", zValidator("json", external_exports.object({ node_id:
   await supabase.from("activities").insert({ node_id: target.id, workspace_id: workspaceId, actor_type: "human", actor_id: c2.get("userId"), action: "call_linked", diff: { call_id: call.id } });
   return c2.json({ ok: true });
 });
-router16.post("/:id/analyze", zValidator("json", external_exports.object({ template_id: external_exports.enum(["objections", "quality", "upsell", "competitors", "commitments"]) })), async (c2) => {
+router18.post("/:id/analyze", zValidator("json", external_exports.object({ template_id: external_exports.enum(["objections", "quality", "upsell", "competitors", "commitments"]) })), async (c2) => {
   const call = await getCall(c2.get("workspaceId"), c2.req.param("id"));
   if (!call) return c2.json({ error: "Call not found" }, 404);
   const normalized = normalizeCall(call);
@@ -68473,40 +61885,40 @@ ${transcript ? `Transcript reviewed: ${normalized.transcript.length} segments.` 
 });
 
 // src/routes/dashboards.ts
-var router17 = new Hono2();
-router17.use("*", requireAuth);
+var router19 = new Hono2();
+router19.use("*", requireAuth);
 function unpack2(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
-router17.get("/", async (c2) => {
+router19.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((node) => unpack2(node)));
 });
-router17.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1) })), async (c2) => {
+router19.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1) })), async (c2) => {
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "dashboard", data: { name: c2.req.valid("json").name, access: "private", widgets: [] }, created_by: c2.get("userId") }).select("id,data,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "created", diff: { object_type: "dashboard" } });
   return c2.json(unpack2(data), 201);
 });
-router17.get("/:id", async (c2) => {
+router19.get("/:id", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").eq("id", c2.req.param("id")).maybeSingle();
   return data ? c2.json(unpack2(data)) : c2.json({ error: "Dashboard not found" }, 404);
 });
-router17.patch("/:id", async (c2) => {
+router19.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("nodes").update({ data: body }).eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").eq("id", c2.req.param("id")).select("id,data,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "updated", diff: { dashboard: body } });
   return c2.json(unpack2(data));
 });
-router17.delete("/:id", async (c2) => {
+router19.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
 
 // src/routes/sequences.ts
-var router18 = new Hono2();
-router18.use("*", requireAuth);
+var router20 = new Hono2();
+router20.use("*", requireAuth);
 var stepSchema = external_exports.object({
   id: external_exports.string().optional(),
   type: external_exports.enum(["email", "task"]),
@@ -68542,13 +61954,13 @@ function response(node, extra) {
 async function saveData(workspaceId, id, data) {
   return supabase.from("nodes").update({ data }).eq("workspace_id", workspaceId).eq("object_type", "automation").eq("id", id).select("id,data").single();
 }
-router18.get("/:id", async (c2) => {
+router20.get("/:id", async (c2) => {
   const extra = await context(c2.get("workspaceId"), c2.get("userId"));
   if (c2.req.param("id") === "new") return c2.json({ id: "new", name: "Untitled sequence", status: "draft", settings: defaultSettings, steps: [], enrollments: [], ...extra });
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(response({ id: node.id, data: node.data }, extra)) : c2.json({ error: "Sequence not found" }, 404);
 });
-router18.patch("/:id", async (c2) => {
+router20.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const workspaceId = c2.get("workspaceId");
   let result;
@@ -68558,11 +61970,11 @@ router18.patch("/:id", async (c2) => {
   await supabase.from("activities").insert({ node_id: result.data.id, workspace_id: workspaceId, actor_type: "human", actor_id: c2.get("userId"), action: c2.req.param("id") === "new" ? "created" : "updated", diff: { sequence: true } });
   return c2.json(response({ id: result.data.id, data: result.data.data }, await context(workspaceId, c2.get("userId"))));
 });
-router18.get("/:id/steps", async (c2) => {
+router20.get("/:id/steps", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json((node.data.steps ?? []).sort((a2, b2) => Number(a2.position) - Number(b2.position))) : c2.json({ error: "Sequence not found" }, 404);
 });
-router18.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), async (c2) => {
+router20.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -68570,7 +61982,7 @@ router18.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), a
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step2] });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(step2, 201);
 });
-router18.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c2) => {
+router20.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -68578,11 +61990,11 @@ router18.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), asyn
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(steps.find((step2) => step2.id === c2.req.param("sid")));
 });
-router18.delete("/:id", async (c2) => {
+router20.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router18.delete("/:id/steps/:sid", async (c2) => {
+router20.delete("/:id/steps/:sid", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -68590,11 +62002,11 @@ router18.delete("/:id/steps/:sid", async (c2) => {
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json({ ok: true });
 });
-router18.get("/:id/enrollments", async (c2) => {
+router20.get("/:id/enrollments", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(node.data.enrollments ?? []) : c2.json({ error: "Sequence not found" }, 404);
 });
-router18.post("/:id/enroll", zValidator("json", external_exports.object({ node_ids: external_exports.array(external_exports.string().uuid()).min(1) })), async (c2) => {
+router20.post("/:id/enroll", zValidator("json", external_exports.object({ node_ids: external_exports.array(external_exports.string().uuid()).min(1) })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const { data: contacts } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).in("id", c2.req.valid("json").node_ids);
@@ -68604,7 +62016,7 @@ router18.post("/:id/enroll", zValidator("json", external_exports.object({ node_i
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, enrollments: [...current.enrollments ?? [], ...additions] });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(additions, 201);
 });
-router18.patch("/:id/enrollments/:eid", zValidator("json", external_exports.object({ action: external_exports.enum(["pause", "resume", "unenroll", "remove"]) })), async (c2) => {
+router20.patch("/:id/enrollments/:eid", zValidator("json", external_exports.object({ action: external_exports.enum(["pause", "resume", "unenroll", "remove"]) })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -68615,10 +62027,10 @@ router18.patch("/:id/enrollments/:eid", zValidator("json", external_exports.obje
 });
 
 // src/routes/lists.ts
-var router19 = new Hono2();
-router19.use("*", requireAuth);
-router19.use("*", denyViewerWrites);
-router19.get("/", async (c2) => {
+var router21 = new Hono2();
+router21.use("*", requireAuth);
+router21.use("*", denyViewerWrites);
+router21.get("/", async (c2) => {
   const userId = c2.get("userId");
   const role = c2.get("role");
   const objectTypeFilter = c2.req.query("object_type");
@@ -68633,16 +62045,16 @@ router19.get("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((data ?? []).map((list) => ({ ...list, entry_count: Array.isArray(list.list_entries) ? Number(list.list_entries[0]?.count ?? 0) : 0 })));
 });
-router19.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c2) => {
+router21.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("lists").insert({ workspace_id: c2.get("workspaceId"), owner_id: c2.get("userId"), visibility: "workspace", access_level: "workspace", ...body }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ...data, entry_count: 0 }, 201);
 });
-router19.get("/:id", async (c2) => {
+router21.get("/:id", async (c2) => {
   const { data } = await supabase.from("lists").select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   return data ? c2.json({ ...data, entry_count: Array.isArray(data.list_entries) ? Number(data.list_entries[0]?.count ?? 0) : 0 }) : c2.json({ error: "List not found" }, 404);
 });
-router19.patch("/:id", async (c2) => {
+router21.patch("/:id", async (c2) => {
   const raw2 = await c2.req.json().catch(() => ({}));
   const allowed = ["name", "visibility", "access_level", "filters", "views", "shared_with", "owner_id"];
   const body = {};
@@ -68656,7 +62068,7 @@ router19.patch("/:id", async (c2) => {
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data);
 });
-router19.delete("/:id", async (c2) => {
+router21.delete("/:id", async (c2) => {
   const { data: existing } = await supabase.from("lists").select("owner_id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!existing) return c2.json({ error: "List not found" }, 404);
   if (!isWorkspaceAdmin(c2.get("role")) && existing.owner_id !== c2.get("userId")) {
@@ -68665,14 +62077,14 @@ router19.delete("/:id", async (c2) => {
   const { error } = await supabase.from("lists").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router19.get("/:id/entries", async (c2) => {
+router21.get("/:id/entries", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { data: entries, error } = await supabase.from("list_entries").select("position,nodes(id,object_type,data,updated_at,ai_summary,lead_score,lead_score_signals,relationship_health,created_by)").eq("list_id", list.id).order("position");
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((entries ?? []).flatMap((entry) => entry.nodes ? [entry.nodes] : []));
 });
-router19.post("/:id/entries", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router21.post("/:id/entries", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { data: node } = await supabase.from("nodes").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.valid("json").node_id).maybeSingle();
@@ -68684,13 +62096,13 @@ router19.post("/:id/entries", zValidator("json", external_exports.object({ node_
   const { data, error } = await supabase.from("list_entries").upsert({ list_id: list.id, node_id: node.id, position: (count ?? 0) + 1 }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router19.delete("/:id/entries/:nodeId", async (c2) => {
+router21.delete("/:id/entries/:nodeId", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { error } = await supabase.from("list_entries").delete().eq("list_id", list.id).eq("node_id", c2.req.param("nodeId"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router19.post("/:id/enrich", async (c2) => {
+router21.post("/:id/enrich", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const ENRICHABLE3 = ["contact", "person", "people", "lead", "company", "account", "organization"];
@@ -68764,6 +62176,12 @@ tasks.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const userName = body._user_name || "Someone";
   const { _user_name, ...updateBody } = body;
+  if (updateBody.status !== void 0) {
+    if (updateBody.status === "done") updateBody.completed = true;
+    else if (updateBody.completed === void 0) updateBody.completed = false;
+  }
+  if (updateBody.completed === true && updateBody.status === void 0) updateBody.status = "done";
+  if (updateBody.completed === false && updateBody.status === "done") updateBody.status = "todo";
   const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();
   const { data, error } = await supabase.from("tasks").update(updateBody).eq("id", id).eq("workspace_id", workspaceId).select().single();
   if (error) return c2.json({ error: error.message }, 500);
@@ -68881,14 +62299,14 @@ tasks.post("/check-overdue", async (c2) => {
 var tasks_default = tasks;
 
 // src/routes/chats.ts
-var router20 = new Hono2();
-router20.use("*", requireAuth);
-router20.get("/", async (c2) => {
+var router22 = new Hono2();
+router22.use("*", requireAuth);
+router22.get("/", async (c2) => {
   const { data, error } = await supabase.from("chat_threads").select("id, title, updated_at, messages").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).order("updated_at", { ascending: false }).limit(50);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router20.post("/", async (c2) => {
+router22.post("/", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("chat_threads").insert({
     workspace_id: c2.get("workspaceId"),
@@ -68899,7 +62317,7 @@ router20.post("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data, 201);
 });
-router20.patch("/:id", async (c2) => {
+router22.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const id = c2.req.param("id");
   const { data, error } = await supabase.from("chat_threads").upsert({
@@ -68913,16 +62331,16 @@ router20.patch("/:id", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router20.delete("/:id", async (c2) => {
+router22.delete("/:id", async (c2) => {
   const { error } = await supabase.from("chat_threads").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId")).eq("workspace_id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
 
 // src/routes/feedback.ts
-var router21 = new Hono2();
-router21.use("*", requireAuth);
-router21.post("/", zValidator("json", external_exports.object({
+var router23 = new Hono2();
+router23.use("*", requireAuth);
+router23.post("/", zValidator("json", external_exports.object({
   message: external_exports.string(),
   response: external_exports.string(),
   rating: external_exports.union([external_exports.literal(1), external_exports.literal(-1)]),
@@ -68939,14 +62357,14 @@ router21.post("/", zValidator("json", external_exports.object({
 });
 
 // src/routes/members.ts
-var router22 = new Hono2();
-router22.get("/", requireAuth, async (c2) => {
+var router24 = new Hono2();
+router24.get("/", requireAuth, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const { data, error } = await supabase.from("workspace_members").select("id, user_id, email, name, role, position, avatar_url").eq("workspace_id", workspaceId).order("name");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router22.patch("/:userId", requireAuth, async (c2) => {
+router24.patch("/:userId", requireAuth, async (c2) => {
   const requesterRole = c2.get("role");
   if (!["owner", "admin"].includes(requesterRole)) {
     return c2.json({ error: "Only owners and admins can update member roles" }, 403);
@@ -68956,7 +62374,7 @@ router22.patch("/:userId", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router22.post("/sync", requireJwt, async (c2) => {
+router24.post("/sync", requireJwt, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   let body = {};
@@ -68964,23 +62382,9 @@ router22.post("/sync", requireJwt, async (c2) => {
     body = await c2.req.json();
   } catch {
   }
-  let email = body.email || "";
-  let name = body.name || "";
-  let avatar_url = body.avatar_url || null;
-  if (!email && process.env.CLERK_SECRET_KEY) {
-    try {
-      const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-        headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` }
-      });
-      if (res.ok) {
-        const clerkUser = await res.json();
-        email = clerkUser.email_addresses?.[0]?.email_address || "";
-        name = `${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`.trim() || email;
-        avatar_url = clerkUser.image_url || null;
-      }
-    } catch {
-    }
-  }
+  const email = body.email || "";
+  const name = body.name || "";
+  const avatar_url = body.avatar_url || null;
   const { error: wsError } = await supabase.from("workspaces").upsert({ id: workspaceId, name: name || email || "My Workspace", slug: workspaceId }, { onConflict: "id", ignoreDuplicates: true });
   if (wsError) return c2.json({ error: `workspace upsert: ${wsError.message}` }, 500);
   const { data: existing } = await supabase.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
@@ -68997,16 +62401,16 @@ router22.post("/sync", requireJwt, async (c2) => {
 });
 
 // src/routes/notifications.ts
-var router23 = new Hono2();
-router23.use("*", requireAuth);
-router23.get("/", async (c2) => {
+var router25 = new Hono2();
+router25.use("*", requireAuth);
+router25.get("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { data, error } = await supabase.from("notifications").select("*").eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`).order("created_at", { ascending: false }).limit(100);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router23.post("/", async (c2) => {
+router25.post("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = await c2.req.json();
@@ -69024,21 +62428,21 @@ router23.post("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data, 201);
 });
-router23.patch("/read-all", async (c2) => {
+router25.patch("/read-all", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { error } = await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`).eq("is_read", false);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router23.patch("/:id/read", async (c2) => {
+router25.patch("/:id/read", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { error } = await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", c2.req.param("id")).eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router23.delete("/:id", async (c2) => {
+router25.delete("/:id", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { error } = await supabase.from("notifications").delete().eq("id", c2.req.param("id")).eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`);
@@ -69047,13 +62451,13 @@ router23.delete("/:id", async (c2) => {
 });
 
 // src/routes/task-reviews.ts
-var router24 = new Hono2();
-router24.use("*", requireAuth);
+var router26 = new Hono2();
+router26.use("*", requireAuth);
 async function assertTaskOwnership(taskId, workspaceId) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).single();
   if (!data) throw new Error("Task not found or access denied");
 }
-router24.get("/:id/reviews", async (c2) => {
+router26.get("/:id/reviews", async (c2) => {
   try {
     await assertTaskOwnership(c2.req.param("id"), c2.get("workspaceId"));
   } catch {
@@ -69063,7 +62467,7 @@ router24.get("/:id/reviews", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router24.post("/:id/reviews", async (c2) => {
+router26.post("/:id/reviews", async (c2) => {
   const userId = c2.get("userId");
   const workspaceId = c2.get("workspaceId");
   try {
@@ -69109,7 +62513,7 @@ router24.post("/:id/reviews", async (c2) => {
   });
   return c2.json(data, 201);
 });
-router24.patch("/:id/reviews/:reviewId", async (c2) => {
+router26.patch("/:id/reviews/:reviewId", async (c2) => {
   const userId = c2.get("userId");
   const workspaceId = c2.get("workspaceId");
   try {
@@ -69202,13 +62606,14 @@ Note: ${body.action_note}` : ""}`;
 });
 
 // src/routes/task-details.ts
-var router25 = new Hono2();
-router25.use("*", requireAuth);
+init_http_exception();
+var router27 = new Hono2();
+router27.use("*", requireAuth);
 async function assertTaskOwnership2(taskId, workspaceId) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).maybeSingle();
   if (!data) throw new HTTPException(404, { message: "Task not found" });
 }
-router25.patch("/:id/labels", async (c2) => {
+router27.patch("/:id/labels", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -69219,14 +62624,14 @@ router25.patch("/:id/labels", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router25.get("/:id/assignees", async (c2) => {
+router27.get("/:id/assignees", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_assignees").select("*").eq("task_id", taskId);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router25.post("/:id/assignees", async (c2) => {
+router27.post("/:id/assignees", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -69242,21 +62647,21 @@ router25.post("/:id/assignees", async (c2) => {
   });
   return c2.json(data);
 });
-router25.delete("/:id/assignees/:userId", async (c2) => {
+router27.delete("/:id/assignees/:userId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_assignees").delete().eq("task_id", taskId).eq("user_id", c2.req.param("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router25.get("/:id/checklist", async (c2) => {
+router27.get("/:id/checklist", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_checklist").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router25.post("/:id/checklist", async (c2) => {
+router27.post("/:id/checklist", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -69272,7 +62677,7 @@ router25.post("/:id/checklist", async (c2) => {
   });
   return c2.json(data, 201);
 });
-router25.patch("/:id/checklist/:itemId", async (c2) => {
+router27.patch("/:id/checklist/:itemId", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -69291,21 +62696,21 @@ router25.patch("/:id/checklist/:itemId", async (c2) => {
   }
   return c2.json(data);
 });
-router25.delete("/:id/checklist/:itemId", async (c2) => {
+router27.delete("/:id/checklist/:itemId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_checklist").delete().eq("id", c2.req.param("itemId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router25.get("/:id/comments", async (c2) => {
+router27.get("/:id/comments", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_comments").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router25.post("/:id/comments", async (c2) => {
+router27.post("/:id/comments", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const taskId = c2.req.param("id");
@@ -69328,20 +62733,20 @@ router25.post("/:id/comments", async (c2) => {
   }
   return c2.json(data, 201);
 });
-router25.delete("/:id/comments/:commentId", async (c2) => {
+router27.delete("/:id/comments/:commentId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_comments").delete().eq("id", c2.req.param("commentId")).eq("user_id", c2.get("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router25.get("/:id/comments/:commentId/reactions", async (c2) => {
+router27.get("/:id/comments/:commentId/reactions", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data } = await supabase.from("task_comment_reactions").select("*").eq("comment_id", c2.req.param("commentId"));
   return c2.json(data ?? []);
 });
-router25.post("/:id/comments/:commentId/reactions", async (c2) => {
+router27.post("/:id/comments/:commentId/reactions", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { emoji } = await c2.req.json();
@@ -69356,14 +62761,14 @@ router25.post("/:id/comments/:commentId/reactions", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router25.get("/:id/attachments", async (c2) => {
+router27.get("/:id/attachments", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_attachments").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router25.post("/:id/attachments", async (c2) => {
+router27.post("/:id/attachments", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -69372,14 +62777,14 @@ router25.post("/:id/attachments", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data, 201);
 });
-router25.delete("/:id/attachments/:attachmentId", async (c2) => {
+router27.delete("/:id/attachments/:attachmentId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_attachments").delete().eq("id", c2.req.param("attachmentId")).eq("uploaded_by", c2.get("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router25.post("/:id/view", async (c2) => {
+router27.post("/:id/view", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   await supabase.from("task_views").upsert(
@@ -69388,19 +62793,19 @@ router25.post("/:id/view", async (c2) => {
   );
   return c2.json({ ok: true });
 });
-router25.get("/:id/views", async (c2) => {
+router27.get("/:id/views", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data } = await supabase.from("task_views").select("user_id, viewed_at").eq("task_id", taskId).order("viewed_at", { ascending: false });
   return c2.json(data ?? []);
 });
-router25.get("/:id/activity", async (c2) => {
+router27.get("/:id/activity", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data } = await supabase.from("task_activity").select("*").eq("task_id", taskId).order("created_at", { ascending: true });
   return c2.json(data ?? []);
 });
-router25.post("/:id/activity", async (c2) => {
+router27.post("/:id/activity", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -69411,7 +62816,7 @@ router25.post("/:id/activity", async (c2) => {
 });
 
 // src/routes/import.ts
-var router26 = new Hono2();
+var router28 = new Hono2();
 var importBodySchema = external_exports.object({
   headers: external_exports.array(external_exports.string()),
   samples: external_exports.array(external_exports.array(external_exports.string())),
@@ -69421,7 +62826,7 @@ var importBodySchema = external_exports.object({
   object_type: external_exports.string().min(1),
   vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]).default("shared")
 });
-router26.post("/", requireAuth, zValidator("json", importBodySchema), async (c2) => {
+router28.post("/", requireAuth, zValidator("json", importBodySchema), async (c2) => {
   const { headers, samples, rows: rows2, object_type, vertical } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -69492,7 +62897,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
 });
 
 // src/routes/generate.ts
-var router27 = new Hono2();
+var router29 = new Hono2();
 async function callAnthropic(body) {
   const tool = body.tools?.[0];
   const lastMsg = body.messages?.[body.messages.length - 1];
@@ -69507,7 +62912,7 @@ async function callAnthropic(body) {
   });
   return { content: [{ type: "tool_use", name: tool.name, input }] };
 }
-router27.post("/schema", requireAuth, zValidator("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
+router29.post("/schema", requireAuth, zValidator("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
   const { prompt } = c2.req.valid("json");
   try {
     const data = await callAnthropic({
@@ -69556,7 +62961,7 @@ Use appropriate field types: currency for money, date for dates, checkbox for ye
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/nlp", requireAuth, zValidator("json", external_exports.object({
+router29.post("/nlp", requireAuth, zValidator("json", external_exports.object({
   query: external_exports.string().min(1),
   columns: external_exports.array(external_exports.string())
 })), async (c2) => {
@@ -69592,7 +62997,7 @@ Only include fields that are clearly requested. sortCol MUST exactly match one o
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/enrich/company", requireAuth, zValidator("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
+router29.post("/enrich/company", requireAuth, zValidator("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
   const { name } = c2.req.valid("json");
   const tavilyKey = process.env.TAVILY_API_KEY;
   let webContext = "";
@@ -69649,7 +63054,7 @@ ${webContext}
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/enrich/person", requireAuth, zValidator("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
+router29.post("/enrich/person", requireAuth, zValidator("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const tavilyKey = process.env.TAVILY_API_KEY;
   const domain = email.split("@")[1] ?? "";
@@ -69705,7 +63110,7 @@ ${webContext}
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/records", requireAuth, zValidator("json", external_exports.object({
+router29.post("/records", requireAuth, zValidator("json", external_exports.object({
   objectType: external_exports.string().min(1),
   columns: external_exports.array(external_exports.string()).min(1),
   prompt: external_exports.string().min(1),
@@ -69763,7 +63168,7 @@ Rules:
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/tasks", requireAuth, zValidator("json", external_exports.object({
+router29.post("/tasks", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   count: external_exports.number().int().min(1).max(20).default(5),
   members: external_exports.array(external_exports.object({ email: external_exports.string(), name: external_exports.string() })).optional(),
@@ -69821,7 +63226,7 @@ Make tasks specific, actionable, and realistic. Set priority based on urgency. S
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/insights", requireAuth, zValidator("json", external_exports.object({
+router29.post("/insights", requireAuth, zValidator("json", external_exports.object({
   objectType: external_exports.string().min(1),
   records: external_exports.array(external_exports.record(external_exports.unknown()))
 })), async (c2) => {
@@ -69881,7 +63286,7 @@ For each insight, also provide a concrete, specific action the user should take 
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/sequence", requireAuth, zValidator("json", external_exports.object({
+router29.post("/sequence", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   steps: external_exports.number().int().min(2).max(8).default(4)
 })), async (c2) => {
@@ -69938,7 +63343,7 @@ Guidelines:
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/list-name", requireAuth, zValidator("json", external_exports.object({
+router29.post("/list-name", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   objectTypes: external_exports.array(external_exports.string())
 })), async (c2) => {
@@ -69973,7 +63378,7 @@ Available object types: ${objectTypes.join(", ")}`
     return c2.json({ name: "New List", object_type: objectTypes[0] ?? "companies" });
   }
 });
-router27.post("/list-entries", requireAuth, zValidator("json", external_exports.object({
+router29.post("/list-entries", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   objectType: external_exports.string().min(1),
   records: external_exports.array(external_exports.object({ id: external_exports.string(), data: external_exports.record(external_exports.unknown()) }))
@@ -70018,7 +63423,7 @@ Select the IDs that best match. If none match, return an empty array. Be generou
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/workflow", requireAuth, zValidator("json", external_exports.object({
+router29.post("/workflow", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1)
 })), async (c2) => {
   const { prompt } = c2.req.valid("json");
@@ -70105,7 +63510,7 @@ Example: Deal stage changed \u2192 Field equals "Won" \u2192 Send email, Create 
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/forecast", requireAuth, zValidator("json", external_exports.object({
+router29.post("/forecast", requireAuth, zValidator("json", external_exports.object({
   objectType: external_exports.string().min(1),
   valueCol: external_exports.string().nullable(),
   stageCol: external_exports.string().nullable(),
@@ -70203,7 +63608,7 @@ Based on this data, generate a realistic forecast. Consider:
     return c2.json({ error: e2.message }, 500);
   }
 });
-router27.post("/risk-alerts", requireAuth, async (c2) => {
+router29.post("/risk-alerts", requireAuth, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const now = /* @__PURE__ */ new Date();
@@ -70299,8 +63704,8 @@ Focus on: overdue tasks, stale high-value deals, urgent items piling up, or patt
 });
 
 // src/routes/digests.ts
-var router28 = new Hono2();
-router28.use("*", requireAuth);
+var router30 = new Hono2();
+router30.use("*", requireAuth);
 function unpack3(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
@@ -70314,11 +63719,11 @@ var DigestSchema = external_exports.object({
   recipients: external_exports.array(external_exports.string().email()).min(1),
   label: external_exports.string().optional()
 });
-router28.get("/", async (c2) => {
+router30.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((n2) => unpack3(n2)));
 });
-router28.post("/", zValidator("json", DigestSchema), async (c2) => {
+router30.post("/", zValidator("json", DigestSchema), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: c2.get("workspaceId"),
@@ -70329,11 +63734,11 @@ router28.post("/", zValidator("json", DigestSchema), async (c2) => {
   }).select("id,data,updated_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(unpack3(data), 201);
 });
-router28.delete("/:id", async (c2) => {
+router30.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router28.post("/:id/send", async (c2) => {
+router30.post("/:id/send", async (c2) => {
   const { data: node } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").eq("id", c2.req.param("id")).maybeSingle();
   if (!node) return c2.json({ error: "Digest not found" }, 404);
   const cfg = node.data;
@@ -70350,8 +63755,8 @@ router28.post("/:id/send", async (c2) => {
   const LOST = ["lost", "closed lost", "rejected", "declined", "dead", "cancelled"];
   const wonRecs = stageCol ? recs.filter((r2) => WON.some((k2) => String(r2.data[stageCol] ?? "").toLowerCase().includes(k2))) : recs;
   const lostRecs = stageCol ? recs.filter((r2) => LOST.some((k2) => String(r2.data[stageCol] ?? "").toLowerCase().includes(k2))) : [];
-  const wonValue = valueCol ? wonRecs.reduce((s3, r2) => s3 + Number(r2.data[valueCol] ?? 0), 0) : 0;
-  const totalValue = valueCol ? recs.reduce((s3, r2) => s3 + Number(r2.data[valueCol] ?? 0), 0) : 0;
+  const wonValue = valueCol ? wonRecs.reduce((s2, r2) => s2 + Number(r2.data[valueCol] ?? 0), 0) : 0;
+  const totalValue = valueCol ? recs.reduce((s2, r2) => s2 + Number(r2.data[valueCol] ?? 0), 0) : 0;
   const winRate = wonRecs.length + lostRecs.length > 0 ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
   const fmt = (n2) => n2 >= 1e6 ? `$${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `$${(n2 / 1e3).toFixed(0)}K` : `$${n2.toLocaleString()}`;
   const label = cfg.label || `${cfg.object_type} \xB7 ${cfg.period}`;
@@ -70428,19 +63833,19 @@ router28.post("/:id/send", async (c2) => {
 });
 
 // src/routes/annotations.ts
-var router29 = new Hono2();
-router29.use("*", requireAuth);
+var router31 = new Hono2();
+router31.use("*", requireAuth);
 function unpack4(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
-router29.get("/", zValidator("query", external_exports.object({ object_type: external_exports.string().optional() })), async (c2) => {
+router31.get("/", zValidator("query", external_exports.object({ object_type: external_exports.string().optional() })), async (c2) => {
   let q2 = supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "chart_annotation").order("updated_at", { ascending: false });
   const { object_type } = c2.req.valid("query");
   if (object_type) q2 = q2.eq("data->>source_object", object_type);
   const { data, error } = await q2;
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((n2) => unpack4(n2)));
 });
-router29.post("/", zValidator("json", external_exports.object({
+router31.post("/", zValidator("json", external_exports.object({
   source_object: external_exports.string().min(1),
   bucket_label: external_exports.string().min(1),
   text: external_exports.string().min(1),
@@ -70456,14 +63861,14 @@ router29.post("/", zValidator("json", external_exports.object({
   }).select("id,data,updated_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(unpack4(data), 201);
 });
-router29.delete("/:id", async (c2) => {
+router31.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "chart_annotation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
 
 // src/routes/workflows.ts
-var router30 = new Hono2();
-router30.use("*", requireAuth);
+var router32 = new Hono2();
+router32.use("*", requireAuth);
 async function getWorkflow(workspaceId, id) {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "automation").eq("data->>type", "workflow").eq("id", id).maybeSingle();
   return data;
@@ -70477,14 +63882,14 @@ function response2(node) {
     updated_at: node.updated_at
   };
 }
-router30.get("/:id", async (c2) => {
+router32.get("/:id", async (c2) => {
   if (c2.req.param("id") === "new") {
     return c2.json({ id: "new", name: "New Workflow", status: "draft", nodes: [] });
   }
   const node = await getWorkflow(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(response2(node)) : c2.json({ error: "Workflow not found" }, 404);
 });
-router30.patch("/:id", async (c2) => {
+router32.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const workspaceId = c2.get("workspaceId");
   let result;
@@ -70510,7 +63915,7 @@ router30.patch("/:id", async (c2) => {
   });
   return c2.json(response2(result.data));
 });
-router30.post("/:id/run", async (c2) => {
+router32.post("/:id/run", async (c2) => {
   const id = c2.req.param("id");
   if (id === "new") return c2.json({ error: "Save the workflow before running it." }, 400);
   try {
@@ -70520,7 +63925,7 @@ router30.post("/:id/run", async (c2) => {
     return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
   }
 });
-router30.get("/:id/runs", async (c2) => {
+router32.get("/:id/runs", async (c2) => {
   const id = c2.req.param("id");
   if (id === "new") return c2.json({ runs: [] });
   const { data: runs } = await supabase.from("workflow_runs").select("id,record_id,trigger_key,status,actions,detail,created_at").eq("workspace_id", c2.get("workspaceId")).eq("workflow_id", id).order("created_at", { ascending: false }).limit(50);
@@ -70537,14 +63942,14 @@ router30.get("/:id/runs", async (c2) => {
     runs: (runs ?? []).map((r2) => ({ ...r2, record_title: titles.get(r2.record_id) ?? r2.record_id }))
   });
 });
-router30.delete("/:id", async (c2) => {
+router32.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
 
 // src/routes/invoices.ts
-var router31 = new Hono2();
-router31.use("*", requireAuth);
+var router33 = new Hono2();
+router33.use("*", requireAuth);
 var lineItemSchema = external_exports.object({
   description: external_exports.string(),
   quantity: external_exports.number().positive(),
@@ -70567,8 +63972,8 @@ var invoiceBodySchema = external_exports.object({
   next_due_date: external_exports.string().optional()
 });
 function calcTotals(lineItems) {
-  const subtotal = lineItems.reduce((s3, i2) => s3 + i2.quantity * i2.unit_price, 0);
-  const tax_total = lineItems.reduce((s3, i2) => s3 + i2.quantity * i2.unit_price * (i2.tax_rate / 100), 0);
+  const subtotal = lineItems.reduce((s2, i2) => s2 + i2.quantity * i2.unit_price, 0);
+  const tax_total = lineItems.reduce((s2, i2) => s2 + i2.quantity * i2.unit_price * (i2.tax_rate / 100), 0);
   return { subtotal, tax_total, total: subtotal + tax_total };
 }
 async function nextInvoiceNumber2(workspaceId) {
@@ -70576,7 +63981,7 @@ async function nextInvoiceNumber2(workspaceId) {
   const n2 = (count ?? 0) + 1;
   return `INV-${String(n2).padStart(4, "0")}`;
 }
-router31.get("/", async (c2) => {
+router33.get("/", async (c2) => {
   const status = c2.req.query("status");
   const search = c2.req.query("search") ?? "";
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -70592,13 +63997,13 @@ router31.get("/", async (c2) => {
   }).map((row) => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by }));
   return c2.json(result);
 });
-router31.get("/:id", async (c2) => {
+router33.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice").maybeSingle();
   if (error) return c2.json({ error: error.message }, 500);
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router31.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
+router33.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const number = body.number || await nextInvoiceNumber2(c2.get("workspaceId"));
   const { subtotal, tax_total, total } = calcTotals(body.line_items);
@@ -70642,7 +64047,7 @@ router31.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
   }
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router31.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c2) => {
+router33.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -70666,12 +64071,12 @@ router31.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router31.delete("/:id", async (c2) => {
+router33.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router31.post("/:id/payments", zValidator("json", external_exports.object({
+router33.post("/:id/payments", zValidator("json", external_exports.object({
   amount: external_exports.number().positive(),
   method: external_exports.enum(["bank_transfer", "card", "cash", "cheque", "other"]).default("bank_transfer"),
   reference: external_exports.string().optional(),
@@ -70692,7 +64097,7 @@ router31.post("/:id/payments", zValidator("json", external_exports.object({
     paid_at: body.paid_at ?? (/* @__PURE__ */ new Date()).toISOString()
   };
   const updatedPayments = [...payments, newPayment];
-  const totalPaid = updatedPayments.reduce((s3, p2) => s3 + Number(p2.amount), 0);
+  const totalPaid = updatedPayments.reduce((s2, p2) => s2 + Number(p2.amount), 0);
   const invoiceTotal = Number(current.total ?? 0);
   const statusUpdates = {};
   if (totalPaid >= invoiceTotal && current.status !== "paid") {
@@ -70704,7 +64109,7 @@ router31.post("/:id/payments", zValidator("json", external_exports.object({
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router31.get("/:id/credit-notes", async (c2) => {
+router33.get("/:id/credit-notes", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const invoiceId = c2.req.param("id");
   const { data: edges, error: edgeErr } = await supabase.from("edges").select("from_node_id").eq("workspace_id", workspaceId).eq("to_node_id", invoiceId).eq("relationship", "APPLIED_TO");
@@ -70717,8 +64122,9 @@ router31.get("/:id/credit-notes", async (c2) => {
 });
 
 // src/routes/credit-notes.ts
-var router32 = new Hono2();
-router32.use("*", requireAuth);
+init_http_exception();
+var router34 = new Hono2();
+router34.use("*", requireAuth);
 var VALID_TRANSITIONS = {
   draft: ["pending_review", "void"],
   pending_review: ["verified", "rejected", "void"],
@@ -70745,32 +64151,26 @@ var creditNoteSchema = external_exports.object({
 async function notifyAdmins(workspaceId, title, body, creditNoteId) {
   const { data: admins } = await supabase.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).in("role", ["admin", "owner"]);
   if (!admins?.length) return;
-  await supabase.from("notifications").insert(
-    admins.map((a2) => ({
-      workspace_id: workspaceId,
-      user_id: a2.user_id,
-      title,
-      body,
-      type: "credit_note",
-      is_read: false,
-      metadata: { credit_note_id: creditNoteId, object_type: "credit_note" }
-    }))
-  );
+  await Promise.all(admins.map((a2) => createNotification({
+    workspace_id: workspaceId,
+    user_id: a2.user_id,
+    title,
+    body,
+    type: "credit_note",
+    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" }
+  })));
 }
 async function notifyReviewers(workspaceId, title, body, creditNoteId) {
   const { data: reviewers } = await supabase.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).in("finance_role", ["reviewer", "approver"]);
   if (!reviewers?.length) return;
-  await supabase.from("notifications").insert(
-    reviewers.map((r2) => ({
-      workspace_id: workspaceId,
-      user_id: r2.user_id,
-      title,
-      body,
-      type: "credit_note",
-      is_read: false,
-      metadata: { credit_note_id: creditNoteId, object_type: "credit_note" }
-    }))
-  );
+  await Promise.all(reviewers.map((r2) => createNotification({
+    workspace_id: workspaceId,
+    user_id: r2.user_id,
+    title,
+    body,
+    type: "credit_note",
+    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" }
+  })));
 }
 async function getCreditNote(workspaceId, id) {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", workspaceId).eq("id", id).eq("object_type", "credit_note").maybeSingle();
@@ -70778,7 +64178,7 @@ async function getCreditNote(workspaceId, id) {
   if (!data) throw new HTTPException(404, { message: "Credit note not found" });
   return data;
 }
-router32.get("/", async (c2) => {
+router34.get("/", async (c2) => {
   const status = c2.req.query("status");
   const search = c2.req.query("search") ?? "";
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -70811,14 +64211,14 @@ router32.get("/", async (c2) => {
   }
   return c2.json(result);
 });
-router32.get("/:id", async (c2) => {
+router34.get("/:id", async (c2) => {
   const node = await getCreditNote(c2.get("workspaceId"), c2.req.param("id"));
   const { data: edges } = await supabase.from("edges").select("to_node_id,relationship").eq("from_node_id", node.id).in("relationship", ["APPLIED_TO", "ASSIGNED_REVIEWER"]);
   const edgeMap = {};
   for (const e2 of edges ?? []) edgeMap[e2.relationship] = e2.to_node_id;
   return c2.json({ id: node.id, ...node.data, created_at: node.created_at, updated_at: node.updated_at, created_by: node.created_by, edges: edgeMap });
 });
-router32.post("/", zValidator("json", creditNoteSchema), async (c2) => {
+router34.post("/", zValidator("json", creditNoteSchema), async (c2) => {
   const body = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const { data, error } = await supabase.from("nodes").insert({
@@ -70854,7 +64254,7 @@ router32.post("/", zValidator("json", creditNoteSchema), async (c2) => {
   }).catch((e2) => console.error("[bg-task] swallowed error:", e2));
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router32.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2) => {
+router34.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const node = await getCreditNote(workspaceId, c2.req.param("id"));
   const current = node.data;
@@ -70902,20 +64302,19 @@ router32.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2
   if (body.status === "rejected") {
     const creatorId = node.created_by;
     if (creatorId) {
-      await supabase.from("notifications").insert({
+      await createNotification({
         workspace_id: workspaceId,
         user_id: creatorId,
         title: "Credit note rejected",
         body: `Your credit note has been rejected.`,
         type: "credit_note",
-        is_read: false,
         metadata: { credit_note_id: cnId, object_type: "credit_note" }
       });
     }
   }
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router32.post("/:id/apply-to-invoice", zValidator("json", external_exports.object({ invoice_id: external_exports.string().uuid() })), async (c2) => {
+router34.post("/:id/apply-to-invoice", zValidator("json", external_exports.object({ invoice_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   await getCreditNote(workspaceId, c2.req.param("id"));
   const { invoice_id } = c2.req.valid("json");
@@ -70928,7 +64327,7 @@ router32.post("/:id/apply-to-invoice", zValidator("json", external_exports.objec
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router32.post("/:id/assign-reviewer", zValidator("json", external_exports.object({ user_id: external_exports.string() })), async (c2) => {
+router34.post("/:id/assign-reviewer", zValidator("json", external_exports.object({ user_id: external_exports.string() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   await getCreditNote(workspaceId, c2.req.param("id"));
   const { user_id } = c2.req.valid("json");
@@ -70942,7 +64341,7 @@ router32.post("/:id/assign-reviewer", zValidator("json", external_exports.object
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router32.delete("/:id", async (c2) => {
+router34.delete("/:id", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const node = await getCreditNote(workspaceId, c2.req.param("id"));
   const status = String(node.data.status ?? "");
@@ -70954,8 +64353,8 @@ router32.delete("/:id", async (c2) => {
 });
 
 // src/routes/quotes.ts
-var router33 = new Hono2();
-router33.use("*", requireAuth);
+var router35 = new Hono2();
+router35.use("*", requireAuth);
 var lineItemSchema2 = external_exports.object({
   description: external_exports.string(),
   quantity: external_exports.number().positive(),
@@ -70974,8 +64373,8 @@ var quoteBodySchema = external_exports.object({
   linked_record_id: external_exports.string().uuid().optional()
 });
 function calcTotals2(lineItems) {
-  const subtotal = lineItems.reduce((s3, i2) => s3 + i2.quantity * i2.unit_price, 0);
-  const tax_total = lineItems.reduce((s3, i2) => s3 + i2.quantity * i2.unit_price * (i2.tax_rate / 100), 0);
+  const subtotal = lineItems.reduce((s2, i2) => s2 + i2.quantity * i2.unit_price, 0);
+  const tax_total = lineItems.reduce((s2, i2) => s2 + i2.quantity * i2.unit_price * (i2.tax_rate / 100), 0);
   return { subtotal, tax_total, total: subtotal + tax_total };
 }
 async function nextQuoteNumber(workspaceId) {
@@ -70988,7 +64387,7 @@ async function nextInvoiceNumber3(workspaceId) {
   const n2 = (count ?? 0) + 1;
   return `INV-${String(n2).padStart(4, "0")}`;
 }
-router33.get("/", async (c2) => {
+router35.get("/", async (c2) => {
   const status = c2.req.query("status");
   const search = c2.req.query("search") ?? "";
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -71004,13 +64403,13 @@ router33.get("/", async (c2) => {
   }).map((row) => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by }));
   return c2.json(result);
 });
-router33.get("/:id", async (c2) => {
+router35.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (error) return c2.json({ error: error.message }, 500);
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router33.post("/", zValidator("json", quoteBodySchema), async (c2) => {
+router35.post("/", zValidator("json", quoteBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const number = body.number || await nextQuoteNumber(c2.get("workspaceId"));
   const { subtotal, tax_total, total } = calcTotals2(body.line_items);
@@ -71048,7 +64447,7 @@ router33.post("/", zValidator("json", quoteBodySchema), async (c2) => {
   }
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router33.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2) => {
+router35.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -71071,12 +64470,12 @@ router33.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2)
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router33.delete("/:id", async (c2) => {
+router35.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router33.post("/:id/convert", async (c2) => {
+router35.post("/:id/convert", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const { data: quote, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
@@ -71113,8 +64512,8 @@ router33.post("/:id/convert", async (c2) => {
 });
 
 // src/routes/expenses.ts
-var router34 = new Hono2();
-router34.use("*", requireAuth);
+var router36 = new Hono2();
+router36.use("*", requireAuth);
 var EXPENSE_CATEGORIES = ["travel", "software", "hardware", "meals", "marketing", "professional_services", "office", "other"];
 var expenseBodySchema = external_exports.object({
   description: external_exports.string().min(1),
@@ -71127,7 +64526,7 @@ var expenseBodySchema = external_exports.object({
   linked_record_id: external_exports.string().uuid().optional(),
   status: external_exports.enum(["draft", "submitted", "approved", "rejected"]).default("draft")
 });
-router34.get("/", async (c2) => {
+router36.get("/", async (c2) => {
   const category = c2.req.query("category");
   const status = c2.req.query("status");
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -71139,13 +64538,13 @@ router34.get("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json((data ?? []).map((row) => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by })));
 });
-router34.get("/:id", async (c2) => {
+router36.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense").maybeSingle();
   if (error) return c2.json({ error: error.message }, 500);
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router34.post("/", zValidator("json", expenseBodySchema), async (c2) => {
+router36.post("/", zValidator("json", expenseBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const expenseData = {
     description: body.description,
@@ -71168,7 +64567,7 @@ router34.post("/", zValidator("json", expenseBodySchema), async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router34.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c2) => {
+router36.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -71179,19 +64578,19 @@ router34.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router34.delete("/:id", async (c2) => {
+router36.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
 
 // src/routes/tags.ts
-var router35 = new Hono2();
-router35.get("/", requireAuth, async (c2) => {
+var router37 = new Hono2();
+router37.get("/", requireAuth, async (c2) => {
   const { data } = await supabase.from("tags").select("*").eq("workspace_id", c2.get("workspaceId")).order("name");
   return c2.json(data ?? []);
 });
-router35.post("/", requireAuth, zValidator("json", external_exports.object({
+router37.post("/", requireAuth, zValidator("json", external_exports.object({
   name: external_exports.string().min(1),
   color: external_exports.string().default("#6366f1")
 })), async (c2) => {
@@ -71204,15 +64603,15 @@ router35.post("/", requireAuth, zValidator("json", external_exports.object({
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
-router35.delete("/:id", requireAuth, async (c2) => {
+router37.delete("/:id", requireAuth, async (c2) => {
   await supabase.from("tags").delete().eq("id", c2.req.param("id")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
-router35.get("/node/:nodeId", requireAuth, async (c2) => {
+router37.get("/node/:nodeId", requireAuth, async (c2) => {
   const { data } = await supabase.from("node_tags").select("tag_id, tags(id, name, color)").eq("node_id", c2.req.param("nodeId")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json((data ?? []).map((r2) => r2.tags));
 });
-router35.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.object({
+router37.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.object({
   tag_id: external_exports.string().uuid()
 })), async (c2) => {
   const { tag_id } = c2.req.valid("json");
@@ -71224,95 +64623,24 @@ router35.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.
   if (error && !error.message.includes("duplicate")) return c2.json({ error: error.message }, 400);
   return c2.json({ ok: true });
 });
-router35.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
+router37.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
   await supabase.from("node_tags").delete().eq("node_id", c2.req.param("nodeId")).eq("tag_id", c2.req.param("tagId")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
 
 // src/routes/onboarding.ts
-init_dist();
-
-// src/lib/trial.ts
-var TRIAL_DAYS = 14;
-var TRIAL_PLAN = "trial";
-var DAY_MS = 864e5;
-function trialEndsAtISO(from = Date.now()) {
-  return new Date(from + TRIAL_DAYS * DAY_MS).toISOString();
-}
-async function insertTrialWorkspace(base) {
-  const trialEndsAt = trialEndsAtISO();
-  const settings = { trial_ends_at: trialEndsAt };
-  let res = await supabase.from("workspaces").insert({ ...base, plan: TRIAL_PLAN, settings }).select("id").single();
-  if (res.error && /check constraint/i.test(res.error.message)) {
-    res = await supabase.from("workspaces").insert({ ...base, plan: "free", settings }).select("id").single();
-  }
-  if (res.error || !res.data) throw new Error(res.error?.message ?? "workspace insert failed");
-  return { id: res.data.id, trialEndsAt };
-}
-
-// src/routes/onboarding.ts
-var router36 = new Hono2();
-router36.post("/bootstrap", requireJwt, async (c2) => {
+var router38 = new Hono2();
+router38.post("/bootstrap", requireJwt, async (c2) => {
   const userId = c2.get("userId");
-  if (process.env.CLERK_SECRET_KEY) {
-    try {
-      const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-      await clerk.users.getUser(userId);
-    } catch {
-      return c2.json({ error: "Account not found \u2014 please sign in again." }, 401);
-    }
+  const body = await c2.req.json().catch(() => ({}));
+  try {
+    const { workspaceId, isNew } = await ensureWorkspaceForUser(userId, body.name ?? "My Workspace");
+    return c2.json({ workspace_id: workspaceId, is_new: isNew });
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to create workspace" }, 500);
   }
-  const body = await c2.req.json();
-  const clerk_org_id = body.clerk_org_id ?? null;
-  const workspaceName = body.name ?? "My Workspace";
-  let workspaceId = null;
-  let isNew = false;
-  if (clerk_org_id) {
-    try {
-      const { data: ws } = await supabase.from("workspaces").select("id").eq("clerk_org_id", clerk_org_id).maybeSingle();
-      if (ws?.id) workspaceId = ws.id;
-    } catch {
-    }
-  }
-  if (!workspaceId) {
-    const { data: membership } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).order("created_at", { ascending: true }).limit(1).maybeSingle();
-    if (membership?.workspace_id) workspaceId = membership.workspace_id;
-  }
-  if (!workspaceId) {
-    isNew = true;
-    const slug = workspaceName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 7);
-    try {
-      workspaceId = (await insertTrialWorkspace(clerk_org_id ? { name: workspaceName, slug, clerk_org_id } : { name: workspaceName, slug })).id;
-    } catch {
-      if (clerk_org_id) {
-        try {
-          workspaceId = (await insertTrialWorkspace({ name: workspaceName, slug })).id;
-        } catch (e2) {
-          return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to create workspace" }, 500);
-        }
-      } else {
-        return c2.json({ error: "Failed to create workspace" }, 500);
-      }
-    }
-  }
-  const { error: memberErr } = await supabase.from("workspace_members").upsert(
-    { workspace_id: workspaceId, user_id: userId, role: "owner" },
-    { onConflict: "workspace_id,user_id" }
-  );
-  if (memberErr) {
-    if (isNew) await supabase.from("workspaces").delete().eq("id", workspaceId).then(() => {
-    }, () => {
-    });
-    return c2.json({ error: `Registration failed: ${memberErr.message}` }, 500);
-  }
-  if (clerk_org_id) {
-    await supabase.from("workspaces").update({ clerk_org_id }).eq("id", workspaceId).is("clerk_org_id", null).then(() => {
-    }, () => {
-    });
-  }
-  return c2.json({ workspace_id: workspaceId, is_new: isNew });
 });
-router36.get("/status", requireAuth, async (c2) => {
+router38.get("/status", requireAuth, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [
     { count: contactCount },
@@ -71350,13 +64678,13 @@ router36.get("/status", requireAuth, async (c2) => {
 });
 
 // src/routes/status.ts
-var router37 = new Hono2();
-router37.use("*", requireAuth);
+var router39 = new Hono2();
+router39.use("*", requireAuth);
 async function probeTable(table, columns = "id") {
   const { error } = await supabase.from(table).select(columns).limit(1);
   return !error;
 }
-router37.get("/", async (c2) => {
+router39.get("/", async (c2) => {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const checks = [];
   checks.push({ id: "api", label: "API health", state: "operational", explanation: "This request reached the API and is responding normally." });
@@ -71371,12 +64699,12 @@ router37.get("/", async (c2) => {
   } catch {
     checks.push({ id: "database", label: "Supabase / database connection", state: "error", explanation: "Could not reach the database." });
   }
-  const clerkConfigured = Boolean(process.env.CLERK_SECRET_KEY || process.env.CLERK_JWT_KEY);
+  const authConfigured = Boolean(process.env.AUTH_JWT_SECRET);
   checks.push({
     id: "auth",
-    label: "Clerk / auth configured",
-    state: clerkConfigured ? "operational" : "needs_setup",
-    explanation: clerkConfigured ? "CLERK_SECRET_KEY or CLERK_JWT_KEY is set \u2014 and this request itself passed Clerk auth." : "No Clerk key found in this environment."
+    label: "Sovereign auth configured",
+    state: authConfigured ? "operational" : "needs_setup",
+    explanation: authConfigured ? "AUTH_JWT_SECRET is set \u2014 native session signing is active, and this request itself passed sovereign auth." : "AUTH_JWT_SECRET is not set \u2014 native auth cannot sign sessions."
   });
   const gatewayConfigured = Boolean(process.env.AI_GATEWAY_BASE_URL && process.env.AI_GATEWAY_API_KEY);
   checks.push({
@@ -71446,7 +64774,7 @@ router37.get("/", async (c2) => {
     migrations
   });
 });
-router37.get("/log", async (c2) => {
+router39.get("/log", async (c2) => {
   const { data, error } = await supabase.from("project_log").select("id,kind,title,detail,category,status,sort_order,created_at,completed_at").order("sort_order", { ascending: true });
   if (error) return c2.json({ available: false, reason: error.message, updates: [], roadmap: [] });
   const rows2 = data ?? [];
@@ -71456,7 +64784,7 @@ router37.get("/log", async (c2) => {
     roadmap: rows2.filter((r2) => r2.kind === "roadmap")
   });
 });
-router37.post("/log", async (c2) => {
+router39.post("/log", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   if (!body.kind || !body.title || !body.status) {
     return c2.json({ error: "kind, title and status are required" }, 400);
@@ -71473,7 +64801,7 @@ router37.post("/log", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data?.id, created: true });
 });
-router37.patch("/log/:id", async (c2) => {
+router39.patch("/log/:id", async (c2) => {
   const id = c2.req.param("id");
   const body = await c2.req.json().catch(() => ({}));
   const patch = {};
@@ -71492,9 +64820,9 @@ router37.patch("/log/:id", async (c2) => {
 });
 
 // src/routes/usage.ts
-var router38 = new Hono2();
-router38.use("*", requireAuth);
-router38.get("/", async (c2) => {
+var router40 = new Hono2();
+router40.use("*", requireAuth);
+router40.get("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const allTime = c2.req.query("period") === "all";
   let q2 = supabase.from("ai_usage").select("model, message_count, prompt_tokens, completion_tokens, total_tokens").eq("workspace_id", workspaceId);
@@ -71534,8 +64862,8 @@ router38.get("/", async (c2) => {
 });
 
 // src/routes/discovery.ts
-var router39 = new Hono2();
-router39.use("*", requireAuth);
+var router41 = new Hono2();
+router41.use("*", requireAuth);
 var runSchema2 = external_exports.object({
   searchType: external_exports.enum(["INTENT_LEADS", "REVIEWS"]),
   sector: external_exports.string().max(120).optional(),
@@ -71559,20 +64887,47 @@ async function triggerSweep(c2) {
   });
   return c2.json({ queued: true }, 202);
 }
-router39.post("/trigger", zValidator("json", runSchema2), triggerSweep);
-router39.post("/run", zValidator("json", runSchema2), triggerSweep);
-router39.get("/", async (c2) => {
+router41.post("/trigger", zValidator("json", runSchema2), triggerSweep);
+router41.post("/run", zValidator("json", runSchema2), triggerSweep);
+router41.get("/", async (c2) => {
   const intent = c2.req.query("intent_type");
   let q2 = supabase.from("discovered_leads").select("*").eq("workspace_id", c2.get("workspaceId")).order("created_at", { ascending: false }).limit(200);
   if (intent) q2 = q2.eq("intent_type", intent);
   const { data, error } = await q2;
-  if (error) return c2.json({ error: error.message }, 500);
+  if (error) {
+    console.error("[discovery] read failed (returning empty):", error.message);
+    return c2.json([]);
+  }
   return c2.json(data ?? []);
+});
+async function probe2(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3e3);
+  try {
+    const res = await fetch(url, { method: "GET", signal: ctrl.signal });
+    return res.status > 0;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+router41.get("/status", async (c2) => {
+  const searchUrl = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/";
+  const [searxng_reachable, scraper_reachable] = await Promise.all([
+    probe2(`${searchUrl}?q=ping&format=json`),
+    probe2(scrapeUrl)
+  ]);
+  return c2.json({
+    status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",
+    services: { searxng_reachable, scraper_reachable }
+  });
 });
 
 // src/routes/workspaces.ts
-var router40 = new Hono2();
-router40.get("/mine", requireJwt, async (c2) => {
+var router42 = new Hono2();
+router42.get("/mine", requireJwt, async (c2) => {
   const userId = c2.get("userId");
   const { data: memberships, error } = await supabase.from("workspace_members").select("workspace_id, role, joined_at, workspaces(id, name, created_at)").eq("user_id", userId);
   if (error) return c2.json({ error: error.message }, 500);
@@ -71604,7 +64959,7 @@ router40.get("/mine", requireJwt, async (c2) => {
   workspaces.sort((a2, b2) => b2.counts.tasks + b2.counts.lists + b2.counts.nodes - (a2.counts.tasks + a2.counts.lists + a2.counts.nodes));
   return c2.json({ workspaces });
 });
-router40.post("/", requireJwt, async (c2) => {
+router42.post("/", requireJwt, async (c2) => {
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
   const name = (body.name ?? "").trim();
@@ -71627,13 +64982,13 @@ router40.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto5 = require("crypto");
-var router41 = new Hono2();
-var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
+var import_node_crypto7 = require("crypto");
+var router43 = new Hono2();
+var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto5.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto7.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -71641,10 +64996,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto5.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto7.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto5.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
@@ -71667,7 +65022,7 @@ function popupHtml(message, ok2) {
 <script>try{window.opener&&window.opener.postMessage({type:"nylas-connect",ok:${ok2}},"*")}catch(e){}setTimeout(function(){window.close()},1500)</script>
 </body></html>`;
 }
-router41.post("/connect", requireAuth, async (c2) => {
+router43.post("/connect", requireAuth, async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const provider = normalizeProvider(body.provider);
   if (provider !== "google") {
@@ -71684,7 +65039,7 @@ router41.post("/connect", requireAuth, async (c2) => {
   });
   return c2.json({ auth_url: googleAuthUrl(callbackUrl(), state) });
 });
-router41.get("/callback", async (c2) => {
+router43.get("/callback", async (c2) => {
   const code = c2.req.query("code");
   const state = c2.req.query("state");
   const oauthErr = c2.req.query("error");
@@ -71717,7 +65072,7 @@ router41.get("/callback", async (c2) => {
     return c2.html(popupHtml("Something went wrong connecting your inbox.", false));
   }
 });
-router41.get("/mcp-token", requireAuth, async (c2) => {
+router43.get("/mcp-token", requireAuth, async (c2) => {
   const { mintMcpToken: mintMcpToken2 } = await Promise.resolve().then(() => (init_mcp_token(), mcp_token_exports));
   const base = process.env.API_BASE_URL || "https://api.mondaily.com";
   return c2.json({
@@ -71730,7 +65085,7 @@ router41.get("/mcp-token", requireAuth, async (c2) => {
 
 // src/routes/mcp.ts
 init_mcp_token();
-var router42 = new Hono2();
+var router44 = new Hono2();
 var TOOLS2 = [
   {
     name: "search_records",
@@ -71752,7 +65107,7 @@ function summarize(n2) {
   const d2 = n2.data ?? {};
   return { id: n2.id, type: n2.object_type, name: d2.name ?? d2.title ?? d2.full_name ?? d2.company ?? null, updated_at: n2.updated_at };
 }
-var clean = (s3) => s3.replace(/[%,()]/g, " ").trim().slice(0, 200);
+var clean = (s2) => s2.replace(/[%,()]/g, " ").trim().slice(0, 200);
 async function runTool(workspaceId, name, args) {
   if (name === "search_records") {
     const q2 = clean(String(args.query ?? ""));
@@ -71775,7 +65130,7 @@ async function runTool(workspaceId, name, args) {
   }
   throw new Error(`Unknown tool: ${name}`);
 }
-router42.post("/", async (c2) => {
+router44.post("/", async (c2) => {
   const token = (c2.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   const workspaceId = verifyMcpToken(token);
   const body = await c2.req.json().catch(() => null);
@@ -71810,7 +65165,7 @@ router42.post("/", async (c2) => {
   const res = await handle(body);
   return res ? c2.json(res) : c2.body(null, 202);
 });
-router42.get("/", (c2) => c2.json({ name: "mondaily-mcp", transport: "streamable-http", protocolVersion: "2024-11-05" }));
+router44.get("/", (c2) => c2.json({ name: "mondaily-mcp", transport: "streamable-http", protocolVersion: "2024-11-05" }));
 
 // src/app.ts
 var app = new Hono2();
@@ -71823,8 +65178,8 @@ app.use("*", async (c2, next) => {
   c2.header("Cache-Control", "private, no-store");
   await next();
 });
-app.route("/api/v1/import", router26);
-app.route("/api/v1/generate", router27);
+app.route("/api/v1/import", router28);
+app.route("/api/v1/generate", router29);
 app.route("/api/v1/nodes", router);
 app.route("/api/v1/search", router2);
 app.route("/api/v1/ask", router6);
@@ -71832,41 +65187,43 @@ app.route("/api/v1/public/ask", router7);
 app.route("/api/v1/agents", router8);
 app.route("/api/v1/decisions", router5);
 app.route("/api/v1/prospecting", router4);
-app.route("/api/v1/status", router37);
-app.route("/api/v1/usage", router38);
-app.route("/api/v1/discovery", router39);
-app.route("/api/v1/workspaces", router40);
+app.route("/api/v1/status", router39);
+app.route("/api/v1/usage", router40);
+app.route("/api/v1/discovery", router41);
+app.route("/api/v1/workspaces", router42);
 app.route("/api/v1/activities", router9);
-app.route("/api/v1/webhooks", router10);
-app.route("/api/v1/billing", router11);
-app.route("/api/v1/invites", router13);
-app.route("/api/v1/notes", router14);
-app.route("/api/v1/emails", router15);
-app.route("/api/v1/calls", router16);
+app.route("/api/v1/realtime", router10);
+app.route("/api/v1/auth", router11);
+app.route("/api/v1/webhooks", router12);
+app.route("/api/v1/billing", router13);
+app.route("/api/v1/invites", router15);
+app.route("/api/v1/notes", router16);
+app.route("/api/v1/emails", router17);
+app.route("/api/v1/calls", router18);
 app.route("/api/v1/reports", router3);
-app.route("/api/v1/dashboards", router17);
-app.route("/api/v1/sequences", router18);
-app.route("/api/v1/lists", router19);
-app.route("/api/v1/chats", router20);
-app.route("/api/v1/feedback", router21);
-app.route("/api/v1/members", router22);
-app.route("/api/v1/notifications", router23);
-app.route("/api/v1/tasks", router24);
-app.route("/api/v1/tasks", router25);
+app.route("/api/v1/dashboards", router19);
+app.route("/api/v1/sequences", router20);
+app.route("/api/v1/lists", router21);
+app.route("/api/v1/chats", router22);
+app.route("/api/v1/feedback", router23);
+app.route("/api/v1/members", router24);
+app.route("/api/v1/notifications", router25);
+app.route("/api/v1/tasks", router26);
+app.route("/api/v1/tasks", router27);
 app.route("/api/v1/tasks", tasks_default);
-app.route("/api/v1/digests", router28);
-app.route("/api/v1/annotations", router29);
-app.route("/api/v1/workflows", router30);
-app.route("/api/v1/invoices", router31);
-app.route("/api/v1/credit-notes", router32);
-app.route("/api/v1/quotes", router33);
-app.route("/api/v1/expenses", router34);
-app.route("/api/v1/tags", router35);
-app.route("/api/v1/onboarding", router36);
-app.route("/api/v1/integrations", router41);
-app.route("/api/mcp", router42);
-app.route("/api/v1", router12);
-var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker] });
+app.route("/api/v1/digests", router30);
+app.route("/api/v1/annotations", router31);
+app.route("/api/v1/workflows", router32);
+app.route("/api/v1/invoices", router33);
+app.route("/api/v1/credit-notes", router34);
+app.route("/api/v1/quotes", router35);
+app.route("/api/v1/expenses", router36);
+app.route("/api/v1/tags", router37);
+app.route("/api/v1/onboarding", router38);
+app.route("/api/v1/integrations", router43);
+app.route("/api/mcp", router44);
+app.route("/api/v1", router14);
+var inngestHandler = serve2({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker, dailyBrief] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
   const secret3 = process.env.CRON_SECRET;
@@ -71897,23 +65254,17 @@ app.get("/api/cron/daily", async (c2) => {
 });
 app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.8.0-objreg" }));
 app.get("/api/debug-auth", async (c2) => {
-  const token = c2.req.header("Authorization")?.replace("Bearer ", "");
-  const clerkKey = process.env.CLERK_SECRET_KEY;
+  const { getCookie: getCookie2 } = await Promise.resolve().then(() => (init_cookie2(), cookie_exports));
+  const { verifyAccessToken: verifyAccessToken2, ACCESS_COOKIE: ACCESS_COOKIE2 } = await Promise.resolve().then(() => (init_auth_tokens(), auth_tokens_exports));
+  const at2 = getCookie2(c2, ACCESS_COOKIE2);
   const info = {
-    clerk_key_set: clerkKey ? "yes" : "no",
-    clerk_key_prefix: clerkKey?.substring(0, 12) ?? "NOT SET",
-    token_received: token ? "yes" : "no",
-    token_prefix: token?.substring(0, 20) ?? "none"
+    auth_secret_set: process.env.AUTH_JWT_SECRET ? "yes" : "no",
+    access_cookie: at2 ? "present" : "absent"
   };
-  if (token && clerkKey) {
-    try {
-      const { verifyToken: verifyToken3 } = await Promise.resolve().then(() => (init_dist(), dist_exports));
-      const verified = await verifyToken3(token, { secretKey: clerkKey, skipJwksCache: true });
-      info.verify_result = "ok";
-      info.sub = verified.sub;
-    } catch (e2) {
-      info.verify_error = e2?.message ?? String(e2);
-    }
+  if (at2) {
+    const claims = await verifyAccessToken2(at2);
+    info.verify_result = claims ? "ok" : "invalid";
+    if (claims) info.sub = claims.sub;
   }
   return c2.json(info);
 });

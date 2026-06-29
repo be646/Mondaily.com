@@ -1,18 +1,14 @@
-import { useAuth, useOrganizationList } from "@clerk/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { apiClient } from "../../lib/api-client";
 import { usePanelState } from "./onboarding-context";
 
 const SIZES = ["1–10", "11–50", "51–200", "201–500", "500+"];
 const INDUSTRIES = ["Technology", "Real Estate", "Finance", "Professional Services", "Healthcare", "Other"];
 
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
-
 export function StepWorkspace() {
   const navigate = useNavigate();
-  const { getToken } = useAuth();
-  const { createOrganization, setActive } = useOrganizationList();
   const [name,     setName]     = useState("");
   const [size,     setSize]     = useState("");
   const [industry, setIndustry] = useState("");
@@ -21,38 +17,18 @@ export function StepWorkspace() {
 
   usePanelState({ name, size, industry });
 
-  async function callBootstrap(clerkOrgId: string, orgName: string): Promise<string | null> {
-    const token = await getToken();
-    if (!token) return null;
-    const res = await fetch(`${API_BASE}/api/v1/onboarding/bootstrap`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ clerk_org_id: clerkOrgId, name: orgName }),
-    });
-    if (!res.ok) return null;
-    const json = await res.json() as { workspace_id?: string };
-    return json.workspace_id ?? null;
-  }
-
   async function continueSetup() {
     if (!name.trim()) return;
     setLoading(true);
     setError("");
     try {
-      const org = await createOrganization?.({ name });
-      if (!org) throw new Error("Could not create organisation");
-
       localStorage.setItem("mondaily_workspace_profile", JSON.stringify({ size, industry }));
 
-      const workspaceId = await callBootstrap(org.id, name);
-      if (workspaceId) {
-        localStorage.setItem("mondaily_workspace_id", workspaceId);
-      } else {
-        setError("Workspace created but could not link to database. Continue anyway — it will auto-connect on next sign in.");
-      }
+      // Native: ensure the user's workspace exists, then name it.
+      const res = await apiClient.post<{ workspace_id?: string }>("/onboarding/bootstrap", { name }).catch(() => null);
+      if (res?.workspace_id) localStorage.setItem("mondaily_workspace_id", res.workspace_id);
+      await apiClient.patch("/settings/workspace", { name }).catch(() => {});
 
-      // setActive first so Clerk context is current before navigation
-      await setActive?.({ organization: org.id });
       navigate("/onboarding/connect-email");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");

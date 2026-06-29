@@ -1,4 +1,4 @@
-import { useAuth } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { CheckCircle, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -7,7 +7,7 @@ import { apiClient } from "../../lib/api-client";
 export function InviteAcceptPage() {
   const { token } = useParams();
   const navigate = useNavigate();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useCurrentUser();
 
   useEffect(() => {
     if (!isLoaded) return;

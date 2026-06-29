@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@clerk/react";
+import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { LeadScoreBadge } from "@/components/records/lead-score-badge";
@@ -66,7 +66,7 @@ export function ListPage() {
   const { listId = "" } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
 
   const [filterText, setFilterText] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());

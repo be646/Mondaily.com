@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useUser } from "@clerk/react";
+import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { Check, ChevronDown, Copy, MoreHorizontal, Plus, RefreshCw, UserPlus, Users, X } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
@@ -80,8 +80,8 @@ export function MembersSettings() {
 
   // The backend enforces owner/admin on these mutations (403s otherwise); this
   // just hides the controls so non-admins aren't shown buttons that would fail.
-  const { user } = useUser();
-  const myEmail = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
+  const me = useCurrentUser();
+  const myEmail = me.email?.toLowerCase();
   const myRole = data.members.find((m) => m.email?.toLowerCase() === myEmail)?.role ?? "member";
   const isAdmin = myRole === "owner" || myRole === "admin";
 

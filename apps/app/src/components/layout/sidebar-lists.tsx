@@ -4,7 +4,7 @@ import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { apiClient } from "../../lib/api-client";
 
 interface ListItem {
@@ -28,7 +28,7 @@ export function SidebarLists() {
   const qc = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { userId } = useCurrentUser();
 
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"manual" | "ai">("manual");

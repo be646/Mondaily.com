@@ -1,16 +1,9 @@
-import { useAuth, useUser } from "@clerk/react";
-import { useSovereignAuthOptional } from "../components/auth/sovereign-auth-context";
-import { USE_SOVEREIGN_AUTH } from "../lib/api-client";
+import { useSovereignAuth } from "../components/auth/sovereign-auth-context";
 
 /**
- * Unified identity adapter — the single source the app reads for "who is signed in", regardless
- * of which auth runtime is active. Flag mirrors the api-client + middleware:
- *   VITE_USE_SOVEREIGN_AUTH==='true' → our native cookie session (useSovereignAuth)
- *   else                            → Clerk (useUser/useAuth)
- *
- * Both Clerk hooks and the (optional) sovereign hook are called UNCONDITIONALLY every render so
- * hook order is stable — the flag is a build constant, and ClerkProvider is mounted in both modes,
- * so this never violates the rules of hooks. We only branch on which result we RETURN.
+ * Unified identity hook — the single source for "who is signed in". Now sovereign-only
+ * (Clerk fully removed): reads our native cookie session. SovereignAuthProvider is the root
+ * of the app, so the context is always present.
  */
 export interface CurrentUser {
   isLoaded: boolean;
@@ -27,30 +20,14 @@ function workspaceFromStorage(): string | null {
 }
 
 export function useCurrentUser(): CurrentUser {
-  const clerk = useAuth();
-  const { user } = useUser();
-  const sov = useSovereignAuthOptional();
-  const workspaceId = workspaceFromStorage(); // persisted by both runtimes
-
-  if (USE_SOVEREIGN_AUTH) {
-    return {
-      isLoaded: sov ? sov.status !== "loading" : true,
-      isSignedIn: sov?.status === "authenticated",
-      userId: sov?.user?.userId ?? null,
-      workspaceId,
-      email: sov?.user?.email ?? null,
-      name: sov?.user?.name ?? null,
-      imageUrl: sov?.user?.imageUrl ?? null,
-    };
-  }
-
+  const sov = useSovereignAuth();
   return {
-    isLoaded: !!clerk.isLoaded,
-    isSignedIn: !!clerk.isSignedIn,
-    userId: clerk.userId ?? null,
-    workspaceId,
-    email: user?.primaryEmailAddress?.emailAddress ?? null,
-    name: user?.fullName ?? null,
-    imageUrl: user?.imageUrl ?? null,
+    isLoaded: sov.status !== "loading",
+    isSignedIn: sov.status === "authenticated",
+    userId: sov.user?.userId ?? null,
+    workspaceId: workspaceFromStorage(),
+    email: sov.user?.email ?? null,
+    name: sov.user?.name ?? null,
+    imageUrl: sov.user?.imageUrl ?? null,
   };
 }

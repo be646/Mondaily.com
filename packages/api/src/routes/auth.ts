@@ -5,6 +5,7 @@ import { setCookie, getCookie, deleteCookie } from "hono/cookie";
 import { randomBytes } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { hashPassword, verifyPassword } from "../lib/password";
+import { ensureWorkspaceForUser } from "../lib/bootstrap";
 import {
   signAccessToken, verifyAccessToken, newRefreshToken, refreshExpiry, sha256,
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
@@ -65,16 +66,29 @@ async function sessionProfile(userId: string): Promise<{ workspaceId: string | n
   };
 }
 
-// POST /auth/register — brand-new sovereign account (not a Clerk migrant).
+// POST /auth/register — brand-new sovereign account. Creates the credential, then natively
+// bootstraps a fresh workspace with the user as owner (no Clerk org).
 router.post("/register", zValidator("json", credSchema.extend({ name: z.string().max(120).optional() })), async (c) => {
-  const { email, password } = c.req.valid("json");
+  const { email, password, name } = c.req.valid("json");
   if (await credByEmail(email)) return c.json({ error: "An account with this email already exists." }, 409);
   const userId = `usr_${randomBytes(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c.json({ error: error.message }, 400);
+
+  // Native workspace bootstrap: new workspace + owner membership + cached profile.
+  const displayName = name?.trim() || email;
+  let workspaceId: string | null = null;
+  try {
+    const ws = await ensureWorkspaceForUser(userId, name?.trim() ? `${name.trim()}'s Workspace` : "My Workspace");
+    workspaceId = ws.workspaceId;
+    await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Failed to initialize workspace" }, 500);
+  }
+
   await issueSession(c, userId, email, c.req.header("user-agent"));
-  return c.json({ userId, email }, 201);
+  return c.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
 });
 
 // POST /auth/login — verify password, or flag legacy Clerk users for activation.

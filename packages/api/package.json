@@ -10,7 +10,6 @@
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
-    "@clerk/backend": "^3.5.0",
     "@hono/zod-validator": "^0.5.0",
     "@mondaily/agents": "workspace:*",
     "@mondaily/db": "workspace:*",

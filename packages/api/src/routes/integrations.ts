@@ -22,7 +22,7 @@ type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 
 const stateSecret = () =>
-  process.env.NYLAS_STATE_SECRET || process.env.CLERK_SECRET_KEY || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
+  process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 
 const b64url = (b: Buffer | string) => Buffer.from(b).toString("base64url");
 

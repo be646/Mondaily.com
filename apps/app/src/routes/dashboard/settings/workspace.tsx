@@ -1,4 +1,3 @@
-import { useOrganization } from "@clerk/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle, Building2, Check, Download, Globe, ImagePlus, Shield, Trash2, Users, X, Zap, Plus, Copy, CheckCircle2,
@@ -68,7 +67,7 @@ function GeneralSection({
   setForm: (f: WorkspaceData) => void;
   save: { mutate: () => void; isPending: boolean };
   saved: boolean;
-  organization: ReturnType<typeof useOrganization>["organization"];
+  organization: { name?: string; imageUrl?: string } | null;
   logoPreview: string;
   onUploadLogo: (file?: File) => void;
   logoRef: React.RefObject<HTMLInputElement | null>;
@@ -495,7 +494,7 @@ function FinanceAccessSection({ hasFinance }: { hasFinance: boolean }) {
 
 // ─── Danger Zone ──────────────────────────────────────────────────────────────
 
-function DangerZoneSection({ form, organization }: { form: WorkspaceData; organization: ReturnType<typeof useOrganization>["organization"] }) {
+function DangerZoneSection({ form }: { form: WorkspaceData }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
 
@@ -509,8 +508,8 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
   }
 
   async function deleteWorkspace() {
-    if (deleteText !== form.name || !organization) return;
-    await organization.destroy();
+    if (deleteText !== form.name) return;
+    await apiClient.delete("/settings/workspace");
     window.location.assign("/workspaces");
   }
 
@@ -559,7 +558,6 @@ function DangerZoneSection({ form, organization }: { form: WorkspaceData; organi
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 export function WorkspaceSettings() {
-  const { organization } = useOrganization();
   const qc = useQueryClient();
   const logoRef = useRef<HTMLInputElement>(null);
   const [section, setSection] = useState<Section>("general");
@@ -575,15 +573,14 @@ export function WorkspaceSettings() {
   useEffect(() => {
     if (query.data) setForm({
       ...query.data,
-      slug: query.data.slug ?? organization?.slug ?? "",
+      slug: query.data.slug ?? "",
       currency: query.data.currency ?? "USD",
       modules: query.data.modules ?? ["crm"],
     });
-  }, [organization?.slug, query.data]);
+  }, [query.data]);
 
   const save = useMutation({
     mutationFn: async () => {
-      await organization?.update({ name: form.name, slug: form.slug || undefined });
       return apiClient.patch("/settings/workspace", form);
     },
     onSuccess: () => {
@@ -594,9 +591,9 @@ export function WorkspaceSettings() {
   });
 
   async function uploadLogo(file?: File) {
-    if (!file || !organization) return;
+    if (!file) return;
     setLogoPreview(URL.createObjectURL(file));
-    await organization.setLogo({ file });
+    // TODO: native workspace logo upload endpoint
   }
 
   if (query.isLoading) return <PageSkeleton rows={6} />;
@@ -629,7 +626,7 @@ export function WorkspaceSettings() {
             setForm={setForm}
             save={save}
             saved={saved}
-            organization={organization}
+            organization={form.logo_url ? { name: form.name, imageUrl: form.logo_url } : null}
             logoPreview={logoPreview}
             onUploadLogo={uploadLogo}
             logoRef={logoRef}
@@ -640,7 +637,7 @@ export function WorkspaceSettings() {
           <ModulesSection form={form} setForm={setForm} save={save} saved={saved} />
         )}
         {section === "finance" && <FinanceAccessSection hasFinance={hasFinance} />}
-        {section === "danger" && <DangerZoneSection form={form} organization={organization} />}
+        {section === "danger" && <DangerZoneSection form={form} />}
       </div>
     </div>
   );
