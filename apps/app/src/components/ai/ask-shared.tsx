@@ -50,7 +50,9 @@ function linkifyPlain(seg: string, links: EntityLink[] | undefined, keyBase: str
 function renderInline(text: string, keyBase: string, links?: EntityLink[]): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   // Split on **bold**, *italic*, `code`, and [text](url) while keeping delimiters.
-  const re = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g;
+  // bold uses .+? (non-greedy) so "**bold * text**" parses; link URL allows one level
+  // of nested parens so "[x](http://a/(1))" doesn't truncate.
+  const re = /(\*\*.+?\*\*|`[^`]+`|\*[^*]+\*|\[[^\]]+\]\([^)]+(?:\([^)]*\)[^)]*)*\))/g;
   let last = 0; let m: RegExpExecArray | null; let i = 0;
   while ((m = re.exec(text)) !== null) {
     if (m.index > last) out.push(...linkifyPlain(text.slice(last, m.index), links, `${keyBase}-${i}`));
@@ -58,7 +60,7 @@ function renderInline(text: string, keyBase: string, links?: EntityLink[]): Reac
     if (tok.startsWith("**")) out.push(<strong key={`${keyBase}-${i}`}>{tok.slice(2, -2)}</strong>);
     else if (tok.startsWith("`")) out.push(<code key={`${keyBase}-${i}`} className="rounded px-1 py-0.5 text-[0.92em]" style={{ background: "var(--surface-hover)" }}>{tok.slice(1, -1)}</code>);
     else if (tok.startsWith("[")) {
-      const lm = tok.match(/\[([^\]]+)\]\(([^)]+)\)/);
+      const lm = tok.match(/\[([^\]]+)\]\(([^)]+(?:\([^)]*\)[^)]*)*)\)/);
       if (lm) out.push(<a key={`${keyBase}-${i}`} href={lm[2]} target="_blank" rel="noreferrer" className="underline" style={{ color: "var(--accent)" }}>{lm[1]}</a>);
     } else out.push(<em key={`${keyBase}-${i}`}>{tok.slice(1, -1)}</em>);
     last = m.index + tok.length; i++;
@@ -69,7 +71,8 @@ function renderInline(text: string, keyBase: string, links?: EntityLink[]): Reac
 
 const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
 const isTableSep = (l: string) => l.includes("-") && /^\s*\|?[\s:|-]+\|?\s*$/.test(l);
-const tableCells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+// Split on unescaped pipes — a literal "\|" inside a cell is preserved, not split.
+const tableCells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").replace(/\\\|/g, "\x01").split("|").map(c => c.trim().replace(/\x01/g, "|"));
 
 export function Markdown({ text, links }: { text: string; links?: EntityLink[] }) {
   const lines = (text ?? "").split("\n");
@@ -99,7 +102,7 @@ export function Markdown({ text, links }: { text: string; links?: EntityLink[] }
       while (j < lines.length && isTableRow(lines[j] ?? "")) { rows.push(tableCells(lines[j] ?? "")); j++; }
       // Per-column numeric detection: if most body cells in a column are numeric
       // (currency/percent/counts), right-align it — premium dashboard convention.
-      const isNumeric = (s: string) => /^[$€£]?\s*[-+]?[\d,]+(\.\d+)?\s*%?$/.test(s.trim());
+      const isNumeric = (s: string) => /^[$€£]?\s*[-+]?[\d,]+(\.\d+)?\s*[KMB]?\s*%?$/i.test(s.trim());
       const numericCol = header.map((_h, ci) => {
         const vals = rows.map(r => (r[ci] ?? "").trim()).filter(Boolean);
         return vals.length > 0 && vals.filter(isNumeric).length >= Math.ceil(vals.length / 2);
