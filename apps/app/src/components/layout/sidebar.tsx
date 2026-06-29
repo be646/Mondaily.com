@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, USE_SOVEREIGN_AUTH } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 import { useClerk, useUser } from "@clerk/react";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -353,6 +354,19 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const { signOut } = useClerk();
   const { user } = useUser();
   const me = useCurrentUser(); // unified identity (sovereign or Clerk) for profile display
+  const sov = useSovereignAuthOptional();
+
+  // Unified sign-out: native cookie-clear when the sovereign flag is on, else Clerk.
+  async function handleSignOut() {
+    setWorkspaceOpen(false);
+    if (USE_SOVEREIGN_AUTH) {
+      await sov?.logout();
+      localStorage.removeItem("mondaily_workspace_id");
+      navigate("/auth/shadow-login");
+    } else {
+      signOut(() => navigate("/sign-in"));
+    }
+  }
   const { hasFinance } = useModules();
   const [collapsed, setCollapsed] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -391,9 +405,14 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     apiClient.post("/members/sync", { email, name: name || email, avatar_url: user.imageUrl || undefined }).catch((e) => console.error("[bg-task] swallowed error:", e));
   }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName]);
 
-  const org = user?.organizationMemberships?.[0]?.organization;
-  const workspaceName    = org?.name || (user?.firstName ? `${user.firstName}'s Workspace` : "My Workspace");
-  const workspaceLogo    = (org as any)?.imageUrl as string | null || null;
+  // Workspace title from our own Postgres (workspace settings) — not Clerk's organization.
+  const { data: wsSettings } = useQuery<{ name?: string }>({
+    queryKey: ["workspace-settings"],
+    queryFn: () => apiClient.get<{ name?: string }>("/settings/workspace"),
+    staleTime: 300_000,
+  });
+  const workspaceName    = wsSettings?.name || (me.name ? `${me.name.split(" ")[0]}'s Workspace` : "My Workspace");
+  const workspaceLogo: string | null = null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
   const { data: notifications = [] } = useQuery<{ read_at: string | null }[]>({
@@ -464,7 +483,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   <Settings size={12}/> Workspace settings
                 </Link>
                 <div className="mx-2 my-1 border-t border-stone-100 dark:border-[var(--border-soft)]"/>
-                <button onClick={() => { setWorkspaceOpen(false); signOut(() => navigate("/sign-in")); }} className="dropdown-item text-rose-600 hover:text-rose-700 dark:text-red-400 dark:hover:text-red-300">
+                <button onClick={handleSignOut} className="dropdown-item text-rose-600 hover:text-rose-700 dark:text-red-400 dark:hover:text-red-300">
                   <LogOut size={12}/> Sign out
                 </button>
               </div>

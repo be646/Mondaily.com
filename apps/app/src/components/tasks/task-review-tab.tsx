@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useUser } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { CheckCircle, AlertCircle, UserPlus, RotateCcw } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 
@@ -72,9 +72,9 @@ function ReviewHistoryItem({ review }: { review: TaskReview }) {
 export function TaskReviewTab({ task, members, onUpdate }: {
   task: Task; members: Member[]; onUpdate: () => void;
 }) {
-  const { user } = useUser();
-  const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Unknown";
-  const userId = user?.id || "";
+  const me = useCurrentUser();
+  const userName = me.name || me.email || "Unknown";
+  const userId = me.userId || "";
   const isOwner = !task.assignee_id || task.assignee_id === userId;
   const isReviewer = task.reviewer_id === userId;
 

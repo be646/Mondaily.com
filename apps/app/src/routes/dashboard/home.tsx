@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
@@ -149,7 +149,8 @@ const PRIORITY_STYLE: Record<string, string> = {
 };
 
 export function HomePage() {
-  const { user } = useUser();
+  const me = useCurrentUser();
+  const firstName = me.name?.split(" ")[0];
   const { hasFinance } = useModules();
   const qc = useQueryClient();
   const askSectionRef = useRef<HTMLDivElement>(null);
@@ -514,7 +515,7 @@ export function HomePage() {
               kicker remains here so the top band isn't empty. */}
           <div className="welcome-info min-w-0">
             <p className="home-section-kicker">{todayLabel}</p>
-            {isChatting && <h1 className="home-hero-title mt-1.5">{greeting}, {user?.firstName || "there"}.</h1>}
+            {isChatting && <h1 className="home-hero-title mt-1.5">{greeting}, {firstName || "there"}.</h1>}
           </div>
 
           {/* Right — signals bar, top-right (always renders; not inside the
@@ -578,7 +579,7 @@ export function HomePage() {
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
           <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
-            <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}</h2>
+            <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName || "there"}</h2>
             <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
             <div className="mt-3 flex items-center gap-4">
               <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>

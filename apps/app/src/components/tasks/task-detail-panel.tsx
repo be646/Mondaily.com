@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, Plus, Check, Trash2, Paperclip, Send, CheckCheck, ChevronDown, Link2, ExternalLink, Loader2 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useUser } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { apiClient, getAuthHeaders } from "../../lib/api-client";
 import { TaskReviewTab } from "./task-review-tab";
 import { friendlyAskError } from "../ai/ask-shared";
@@ -161,9 +161,9 @@ const PRIORITY_META: Record<string, { label: string; dot: string }> = {
 export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   task: Task; members: Member[]; onClose: () => void; onUpdate: () => void;
 }) {
-  const { user } = useUser();
-  const userName = user?.fullName || user?.firstName || user?.primaryEmailAddress?.emailAddress || "Unknown";
-  const userId = user?.id || "";
+  const me = useCurrentUser();
+  const userName = me.name || me.email || "Unknown";
+  const userId = me.userId || "";
 
   const [activeTab, setActiveTab] = useState<"labels"|"assignees"|"review"|"checklist"|"comments"|"attachments">("comments");
   const [newCheckItem, setNewCheckItem] = useState("");

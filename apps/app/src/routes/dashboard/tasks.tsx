@@ -5,7 +5,7 @@ import { LogoMark } from "@/components/logo";
 import { useState, useEffect } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
-import { useUser } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
@@ -385,7 +385,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function TasksPage() {
   const qc = useQueryClient();
-  const { user } = useUser();
+  const me = useCurrentUser();
   const location = useLocation();
 
   useEffect(() => { apiClient.post("/tasks/check-overdue", {}).catch((e) => console.error("[bg-task] swallowed error:", e)); }, []);
@@ -447,10 +447,10 @@ export function TasksPage() {
     retry: false,
   });
   const flaggedTaskIds = new Set((decisionsQuery.data ?? []).map(d => d.source_id).filter(Boolean) as string[]);
-  const currentUserId = user?.id ?? "";
+  const currentUserId = me.userId ?? "";
 
   const toggle = useMutation({
-    mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed, _user_name: user?.fullName || user?.firstName || "Someone" }),
+    mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed, _user_name: me.name || "Someone" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
   const remove = useMutation({
@@ -458,7 +458,7 @@ export function TasksPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
   });
   const moveTask = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => apiClient.patch(`/tasks/${id}`, { status, _user_name: user?.fullName || user?.firstName || "Someone" }),
+    mutationFn: ({ id, status }: { id: string; status: string }) => apiClient.patch(`/tasks/${id}`, { status, _user_name: me.name || "Someone" }),
     onMutate: async ({ id, status }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const prev = qc.getQueryData(["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir]);
@@ -876,7 +876,7 @@ export function TasksPage() {
         />
       )}
       {editTask && <EditTaskModal task={editTask} onClose={() => setEditTask(null)} members={members} currentUserId={currentUserId}/>}
-      {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} members={members} currentUserId={currentUserId} userName={user?.fullName || user?.firstName || "Someone"}/>}
+      {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} members={members} currentUserId={currentUserId} userName={me.name || "Someone"}/>}
       {showAISuggest && <AISuggestModal onClose={() => setShowAISuggest(false)} members={members} currentUserId={currentUserId}/>}
     </div>
   );
