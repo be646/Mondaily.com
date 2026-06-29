@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
-import { getAuthHeaders } from "../../lib/api-client";
+import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { EvidenceStrip, SourceList, Markdown, TokenLedger, sourcesToLinks } from "./ask-shared";
@@ -45,7 +45,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     try {
       const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
-      await fetch(`${apiUrl}/api/v1/feedback`, {
+      await apiFetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
         headers,
         body: JSON.stringify({ message: userMsg, response: aiMsg, rating }),

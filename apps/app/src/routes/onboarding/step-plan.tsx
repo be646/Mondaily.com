@@ -2,7 +2,7 @@ import { Check, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePanelState } from "./onboarding-context";
-import { getAuthHeaders } from "../../lib/api-client";
+import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 
 const plans = [
   {
@@ -55,7 +55,7 @@ export function StepPlan() {
     try {
       const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
       const headers = await getAuthHeaders();
-      await fetch(`${apiBase}/api/v1/settings/complete-onboarding`, { method: "POST", headers });
+      await apiFetch(`${apiBase}/api/v1/settings/complete-onboarding`, { method: "POST", headers });
     } catch { /* non-fatal */ }
 
     if (selected === "enterprise") {
@@ -66,7 +66,7 @@ export function StepPlan() {
       try {
         const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
         const headers = await getAuthHeaders();
-        const res = await fetch(`${apiBase}/api/v1/billing/checkout`, {
+        const res = await apiFetch(`${apiBase}/api/v1/billing/checkout`, {
           method: "POST", headers, body: JSON.stringify({ plan: selected, interval: "month" }),
         });
         const data = await res.json().catch(() => ({})) as { url?: string };

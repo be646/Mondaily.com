@@ -1,14 +1,21 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, MailCheck } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton, SAGE } from "../../components/auth/auth-shell";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
+
+// Where to land after auth — preserves an invite/deep-link target (?next=), defaults to /home.
+function safeNext(raw: string | null): string {
+  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
+}
 
 /** /auth/shadow-login — native credentials login. A legacy account triggers an emailed
  *  activation link (email-ownership verified) rather than letting anyone set a password. */
 export function ShadowLoginPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const { status, login, requestActivation } = useSovereignAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,8 +25,8 @@ export function ShadowLoginPage() {
 
   const valid = /\S+@\S+\.\S+/.test(email) && password.length > 0;
 
-  // Already signed in → straight to the dashboard.
-  if (status === "authenticated") return <Navigate to="/home" replace />;
+  // Already signed in → straight to the target (or dashboard).
+  if (status === "authenticated") return <Navigate to={next} replace />;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,7 +38,7 @@ export function ShadowLoginPage() {
         await requestActivation(email.trim());
         setActivationSent(true);
       } else {
-        navigate("/home");
+        navigate(next);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
@@ -54,7 +61,7 @@ export function ShadowLoginPage() {
 
   return (
     <AuthShell kicker="Sovereign auth" title="Sign in" subtitle="Native Mondaily credentials — no third parties."
-      footer={<>New here? <span style={{ color: SAGE, cursor: "pointer" }} onClick={() => navigate("/auth/register")}>Create an account</span>.</>}>
+      footer={<>New here? <span style={{ color: SAGE, cursor: "pointer" }} onClick={() => navigate(`/auth/register?next=${encodeURIComponent(next)}`)}>Create an account</span>.</>}>
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
         <CapsuleInput label="Password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />

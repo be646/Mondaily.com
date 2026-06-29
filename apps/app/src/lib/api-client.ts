@@ -23,20 +23,60 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
   };
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = _getToken ? await _getToken() : null;
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+// Single in-flight refresh shared across concurrent 401s (so a burst of expired-token
+// requests triggers exactly one /auth/refresh, not one per call).
+let _refreshing: Promise<boolean> | null = null;
+export function refreshSession(): Promise<boolean> {
+  if (!_refreshing) {
+    _refreshing = fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" })
+      .then(r => r.ok)
+      .catch(() => false)
+      .finally(() => { _refreshing = null; });
+  }
+  return _refreshing;
+}
 
-  const response = await fetch(`${API_URL}${path}`, {
+/**
+ * Cookie-aware fetch for the raw (non-JSON-helper) call sites — streaming chat, file uploads,
+ * generate, feedback, etc. Adds credentials:"include" (so the HttpOnly session cookie is sent —
+ * the bug that broke chat after the Clerk→cookie cutover) and silently refreshes + retries once
+ * on a 401. Takes a FULL url (same as the existing call sites) and returns the raw Response.
+ */
+export async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const opts = (): RequestInit => ({
+    ...init,
+    credentials: "include",
+    headers: { ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}), ...init?.headers },
+  });
+  let res = await fetch(input, opts());
+  if (res.status === 401 && !input.includes("/api/v1/auth/")) {
+    if (await refreshSession()) res = await fetch(input, opts());
+  }
+  return res;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const send = () => fetch(`${API_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
-      ...init?.headers
-    }
+      ...init?.headers,
+    },
   });
+
+  let response = await send();
+
+  // Access cookie expired (15-min TTL)? Silently refresh once via the 30-day refresh cookie
+  // and retry. Skip for /auth/* so a failing refresh can't loop. This is what keeps chat,
+  // tasks, and settings working past the access-token lifetime.
+  if (response.status === 401 && !path.startsWith("/auth/")) {
+    if (await refreshSession()) response = await send();
+  }
+
   if (!response.ok) {
     const message = await response.text().catch(() => "");
     throw new Error(message || `${init?.method || "GET"} ${path} failed`);

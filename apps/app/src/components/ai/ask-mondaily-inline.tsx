@@ -1,6 +1,6 @@
 import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
-import { getAuthHeaders } from "../../lib/api-client";
+import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { friendlyAskError } from "./ask-shared";
 
@@ -16,7 +16,7 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
     try {
       const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
-      const response = await fetch(`${apiUrl}/api/v1/ask`, {
+      const response = await apiFetch(`${apiUrl}/api/v1/ask`, {
         method: "POST",
         headers,
         body: JSON.stringify({ message })

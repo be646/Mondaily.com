@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage, type ChatThread } from "../../lib/chat-store";
-import { getAuthHeaders } from "../../lib/api-client";
+import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import {
   inferAgentHandoff, friendlyAskError, mapBackendSources,
   type AgentHandoff, type SourceCardData, type BackendSourceMeta,
@@ -128,7 +128,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     try {
       // ── Streaming path (SSE): tokens render live, like Claude.ai ──
       bump(25_000); // up to 20s to first byte
-      const res = await fetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body, signal: controller.signal });
+      const res = await apiFetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body, signal: controller.signal });
       if (!res.ok || !res.body) throw new Error(`AI error: ${res.status}`);
 
       // Seed an empty assistant message we fill as tokens arrive.
@@ -209,7 +209,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       try {
         const ctrl2 = new AbortController();
         const t2 = setTimeout(() => ctrl2.abort(), 45_000);
-        const res = await fetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body, signal: ctrl2.signal });
+        const res = await apiFetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body, signal: ctrl2.signal });
         clearTimeout(t2);
         if (!res.ok) throw new Error(`AI error: ${res.status}`);
         const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[]; usage?: TokenUsage };

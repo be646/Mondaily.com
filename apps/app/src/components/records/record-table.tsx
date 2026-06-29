@@ -11,7 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { apiClient, getAuthHeaders } from "../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
@@ -945,7 +945,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
     try {
       const headers = await getAuthHeaders();
       const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
-      const res = await fetch(`${apiUrl}/api/v1/generate/nlp`, {
+      const res = await apiFetch(`${apiUrl}/api/v1/generate/nlp`, {
         method: "POST",
         headers,
         body: JSON.stringify({ query: trimmed, columns }),

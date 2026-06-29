@@ -9,7 +9,7 @@ import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records
 import { CsvImporter } from "../../../../components/records/csv-importer";
 import { DedupPanel } from "../../../../components/records/dedup-panel";
 import { SegmentBuilder } from "../../../../components/records/segment-builder";
-import { apiClient, getAuthHeaders } from "../../../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -143,7 +143,7 @@ function CreateRecordModal({
     try {
       const headers = await getAuthHeaders();
       const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
-      const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
+      const res = await apiFetch(`${apiUrl}/api/v1/generate/records`, {
         method: "POST",
         headers: {
           ...headers,
@@ -428,7 +428,7 @@ function AIFillModal({
     try {
       const headers = await getAuthHeaders();
       const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
-      const res = await fetch(`${apiUrl}/api/v1/generate/records`, {
+      const res = await apiFetch(`${apiUrl}/api/v1/generate/records`, {
         method: "POST",
         headers: {
           ...headers,

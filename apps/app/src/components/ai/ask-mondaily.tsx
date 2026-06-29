@@ -13,7 +13,7 @@ function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?:
 }
 import { useParams } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
-import { getAuthHeaders } from "../../lib/api-client";
+import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
 import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
@@ -221,7 +221,7 @@ export function AskMondaily() {
     try {
       const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
-      await fetch(`${apiUrl}/api/v1/feedback`, {
+      await apiFetch(`${apiUrl}/api/v1/feedback`, {
         method: "POST",
         headers,
         body: JSON.stringify({ message: userMsg, response: aiMsg, rating })

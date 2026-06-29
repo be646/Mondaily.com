@@ -1,9 +1,13 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldCheck, ArrowRight } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton } from "../../components/auth/auth-shell";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
+
+function safeNext(raw: string | null): string {
+  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
+}
 
 function pwIssues(pw: string): string | null {
   if (pw.length < 8) return "At least 8 characters.";
@@ -15,6 +19,8 @@ function pwIssues(pw: string): string | null {
 /** /auth/register — native sign-up. Creates the account + a fresh workspace (owner). */
 export function ShadowRegisterPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const { register } = useSovereignAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,7 +39,7 @@ export function ShadowRegisterPage() {
     setError(null); setLoading(true);
     try {
       await register(email.trim(), password, name.trim() || undefined);
-      navigate("/home");
+      navigate(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed.");
     } finally {

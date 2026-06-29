@@ -14,7 +14,7 @@ import { useVoiceDictation } from "../../components/ai/use-voice";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { apiClient, getAuthHeaders } from "../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
@@ -211,7 +211,7 @@ export function HomePage() {
     try {
       const headers = await getAuthHeaders();
       const apiUrl = import.meta.env.VITE_API_URL || "";
-      await fetch(`${apiUrl}/api/v1/feedback`, { method: "POST", headers, body: JSON.stringify({ message: userMsg, response: aiMsg, rating }) });
+      await apiFetch(`${apiUrl}/api/v1/feedback`, { method: "POST", headers, body: JSON.stringify({ message: userMsg, response: aiMsg, rating }) });
     } catch {}
   };
   const [attachQuery, setAttachQuery] = useState("");

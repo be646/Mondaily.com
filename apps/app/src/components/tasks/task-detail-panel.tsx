@@ -3,7 +3,7 @@ import { X, Plus, Check, Trash2, Paperclip, Send, CheckCheck, ChevronDown, Link2
 import { LogoMark } from "@/components/logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { apiClient, getAuthHeaders } from "../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { TaskReviewTab } from "./task-review-tab";
 import { friendlyAskError } from "../ai/ask-shared";
 import { useAskContextStore } from "../../lib/ask-context-store";
@@ -286,7 +286,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
       // Remove Content-Type so browser sets multipart boundary automatically
       const { "Content-Type": _ct, ...uploadHeaders } = authHeaders;
       const fd = new FormData(); fd.append("file", file); fd.append("user_name", userName);
-      const res = await fetch(`${apiUrl}/api/v1/tasks/${task.id}/upload`, { method: "POST", headers: uploadHeaders, body: fd });
+      const res = await apiFetch(`${apiUrl}/api/v1/tasks/${task.id}/upload`, { method: "POST", headers: uploadHeaders, body: fd });
       if (res.ok) attachmentsQ.refetch();
     } catch {} setUploading(false);
   };

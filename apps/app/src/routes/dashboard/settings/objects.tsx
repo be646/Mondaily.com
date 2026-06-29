@@ -7,7 +7,7 @@ import {
   Plus, Text, Trash2, X, Loader2, Check, ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { apiClient, getAuthHeaders } from "../../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders } from "../../../lib/api-client";
 import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
@@ -48,7 +48,7 @@ async function generateSchema(prompt: string): Promise<GeneratedSchema> {
   const headers = await getAuthHeaders();
   const apiUrl = import.meta.env.VITE_API_URL || "";
 
-  const res = await fetch(`${apiUrl}/api/v1/generate/schema`, {
+  const res = await apiFetch(`${apiUrl}/api/v1/generate/schema`, {
     method: "POST",
     headers,
     body: JSON.stringify({ prompt }),

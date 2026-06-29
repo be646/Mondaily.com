@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Trash2, MessageCircle } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { getThreads, saveThreads } from "../../../lib/chat-store";
-import { getAuthHeaders } from "../../../lib/api-client";
+import { apiFetch, getAuthHeaders } from "../../../lib/api-client";
 
 const SETTINGS_KEY = "mondaily_ask_settings";
 
@@ -58,7 +58,7 @@ export function AskMondailySettings() {
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || "";
     getAuthHeaders().then(headers =>
-      fetch(`${apiUrl}/api/v1/ask/credits`, { headers })
+      apiFetch(`${apiUrl}/api/v1/ask/credits`, { headers })
         .then(r => r.json())
         .then(data => setCredits(data))
         .catch((e) => console.error("[bg-task] swallowed error:", e))

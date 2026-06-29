@@ -1,4 +1,4 @@
-import { getAuthHeaders } from "./api-client";
+import { apiFetch, getAuthHeaders } from "./api-client";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -46,7 +46,7 @@ async function syncThreadToServer(thread: ChatThread): Promise<void> {
   // PATCH upserts by the client thread id (see packages/api/src/routes/chats.ts),
   // so the same thread always maps to one server row. No POST fallback — that
   // was creating a new chat on every message and flooding history with dupes.
-  await fetch(`${apiUrl}/api/v1/chats/${thread.id}`, {
+  await apiFetch(`${apiUrl}/api/v1/chats/${thread.id}`, {
     method: "PATCH",
     headers,
     body: JSON.stringify({ title: thread.title, messages: thread.messages }),
@@ -57,7 +57,7 @@ export async function loadThreadsFromServer(): Promise<ChatThread[]> {
   try {
     const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
     const headers = await getAuthHeaders();
-    const res = await fetch(`${apiUrl}/api/v1/chats`, { headers });
+    const res = await apiFetch(`${apiUrl}/api/v1/chats`, { headers });
     if (!res.ok) return getThreads();
     const data = await res.json() as any[];
     const threads: ChatThread[] = data.map(t => ({
@@ -77,6 +77,6 @@ export async function deleteThreadFromServer(threadId: string): Promise<void> {
   try {
     const apiUrl = (import.meta as any).env?.VITE_API_URL || "";
     const headers = await getAuthHeaders();
-    await fetch(`${apiUrl}/api/v1/chats/${threadId}`, { method: "DELETE", headers });
+    await apiFetch(`${apiUrl}/api/v1/chats/${threadId}`, { method: "DELETE", headers });
   } catch {}
 }

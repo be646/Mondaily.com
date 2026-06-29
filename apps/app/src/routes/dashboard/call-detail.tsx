@@ -4,7 +4,7 @@ import { LogoMark } from "@/components/logo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { apiClient, getAuthHeaders } from "../../lib/api-client";
+import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 
 interface TranscriptLine { speaker: string; text: string; start_time: number }
 interface Participant { id?: string; name: string; email?: string; object_type?: string }
@@ -128,7 +128,7 @@ export function CallDetailPage() {
     setAnalysisResults((current) => ({ ...current, [templateId]: "" }));
     setAnalyzing(true);
     const API_URL = (import.meta.env.VITE_API_URL || "/api/v1").replace(/\/$/, "");
-    const response = await fetch(`${API_URL}/calls/${id}/analyze`, {
+    const response = await apiFetch(`${API_URL}/calls/${id}/analyze`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
