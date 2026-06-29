@@ -15,6 +15,7 @@ import { agentsRouter } from "./routes/agents";
 import { decisionsRouter } from "./routes/decisions";
 import { activitiesRouter } from "./routes/activities";
 import { realtimeRouter } from "./routes/realtime";
+import { authRouter } from "./routes/auth";
 import { webhooksRouter } from "./routes/webhooks";
 import { billingRouter } from "./routes/billing";
 import { appDataRouter } from "./routes/app-data";
@@ -85,6 +86,7 @@ app.route("/api/v1/discovery", discoveryRouter);
 app.route("/api/v1/workspaces", workspacesRouter);
 app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/realtime", realtimeRouter);
+app.route("/api/v1/auth", authRouter);   // Sovereign Auth (shadow mode — runs alongside Clerk)
 app.route("/api/v1/webhooks", webhooksRouter);
 app.route("/api/v1/billing", billingRouter);
 app.route("/api/v1/invites", invitesRouter);
