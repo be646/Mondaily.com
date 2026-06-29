@@ -548,7 +548,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
   const spec = route.spec;
 
   const resolved = resolveModel(spec);
-  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 3) : 1;
+  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
 
   console.log(`[gateway:agent] tier=${route.tier} spec="${spec}" provider=${resolved.type} model=${resolved.modelId} tools=${req.tools.length}`);
 
@@ -593,7 +593,7 @@ export async function aiGatewayAgentStream(
   const route = routeAgentModel(req);
   const effectiveReq: AgentRequest = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
   const resolved = resolveModel(route.spec);
-  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 3) : 1;
+  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
   console.log(`[gateway:agent-stream] tier=${route.tier} spec="${route.spec}" tools=${effectiveReq.tools.length}`);
 
   if (resolved.type !== "openai-compat") {
@@ -782,17 +782,20 @@ async function runOpenAICompatAgentStream(
     }
   }
 
-  // Reasoning models sometimes end tool rounds with no text — one clean
-  // streamed conversational call so the user still gets an answer.
+  // Reasoning models sometimes end tool rounds with no final text (or hit the
+  // round cap mid-gather). Force ONE synthesis call using the FULL accumulated
+  // context — system + question + the assistant tool_calls + every tool RESULT —
+  // with NO tools, so the model MUST answer from the data it already gathered.
+  // (The old recovery re-asked with only system+question, discarding the tool
+  //  results, which made the model wrongly reply "I can't see your data / grant
+  //  me access" even though it had just fetched real records.)
   if (!reply.trim()) {
-    const original = [...req.messages].reverse().find(m => m.role === "user");
-    const originalText = typeof original?.content === "string" ? original.content : "Hello";
+    const hasGatheredData = messages.some(m => m.role === "tool");
+    const synthMessages: OpenAI.Chat.ChatCompletionMessageParam[] = hasGatheredData
+      ? [...messages, { role: "user", content: "Now answer my original question using the data you gathered above. You already have the results — never ask for access or which workspace; just give the concise, well-formatted answer." }]
+      : messages;
     const stream = await client.chat.completions.create({
-      model: modelId, max_tokens: 2048, stream: true,
-      messages: [
-        { role: "system", content: "You are Mondaily AI, a helpful business workspace assistant. Be concise and direct." },
-        { role: "user", content: redactSecrets(originalText) },
-      ],
+      model: modelId, max_tokens: 2048, stream: true, messages: synthMessages,
     });
     for await (const chunk of stream) {
       const d = chunk.choices[0]?.delta as { content?: string } | undefined;
