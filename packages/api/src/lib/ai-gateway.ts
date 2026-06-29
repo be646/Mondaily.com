@@ -57,6 +57,8 @@ export type GatewayToolRequest = {
   system?: string;
   /** Optional model spec override (e.g. the fast model for cheap batch scoring). */
   model?: string;
+  /** Optional: receive the real provider token usage for this call (for per-job telemetry). */
+  onUsage?: (u: { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens: number }) => void;
 };
 
 // ── Internal routing ────────────────────────────────────────────────────────────
@@ -322,6 +324,16 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
     }],
     tool_choice: { type: "function", function: { name: req.toolName } },
   });
+
+  if (req.onUsage && completion.usage) {
+    const u = completion.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+    req.onUsage({
+      prompt_tokens: u.prompt_tokens ?? 0,
+      completion_tokens: u.completion_tokens ?? 0,
+      total_tokens: u.total_tokens ?? 0,
+      reasoning_tokens: u.completion_tokens_details?.reasoning_tokens ?? 0,
+    });
+  }
 
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
   if (!toolCall?.function?.arguments) return {};

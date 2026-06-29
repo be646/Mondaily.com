@@ -83,7 +83,9 @@ async function sovereignSearch(query: string): Promise<string> {
   return pages.filter(Boolean).join("\n\n");
 }
 
-async function extractFields(prompt: string, toolName: string, toolSchema: object): Promise<Record<string, unknown>> {
+type UsageAcc = { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens: number };
+
+async function extractFields(prompt: string, toolName: string, toolSchema: object, onUsage?: GatewayToolRequest["onUsage"]): Promise<Record<string, unknown>> {
   // Local fail-safe (matches the other jobs): a gateway timeout / missing-config
   // throw degrades to "no fields enriched" rather than throwing into the Inngest
   // worker, so a provider hiccup never crashes the enrichment run.
@@ -93,6 +95,7 @@ async function extractFields(prompt: string, toolName: string, toolSchema: objec
     toolDescription: "Extract enrichment fields",
     toolSchema: toolSchema as GatewayToolRequest["toolSchema"],
     maxTokens: 512,
+    onUsage,
   }).catch((err: any) => {
     console.error("[enrich-record] gateway call failed (non-fatal):", err?.message ?? err);
     return {} as Record<string, unknown>;
@@ -135,6 +138,13 @@ export const enrichRecord = inngest.createFunction(
 
       const isPerson = ["contact", "person", "people", "lead"].some(t => normalizedType.includes(t));
       let fields: Record<string, unknown> = {};
+      // Accumulate REAL Cerebras token usage across this run's extraction calls → output.usage,
+      // which the ops center reads to show a genuine Tokens/sec (no fabricated number).
+      const usage: UsageAcc = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, reasoning_tokens: 0 };
+      const collect: GatewayToolRequest["onUsage"] = (u) => {
+        usage.prompt_tokens += u.prompt_tokens; usage.completion_tokens += u.completion_tokens;
+        usage.total_tokens += u.total_tokens; usage.reasoning_tokens += u.reasoning_tokens;
+      };
 
       if (isPerson) {
         const email = (recordData.email ?? recordData.Email ?? "") as string;
@@ -199,6 +209,7 @@ export const enrichRecord = inngest.createFunction(
               },
             },
           },
+          collect,
         );
       } else {
         const name = (recordData.name ?? recordData.Name ?? recordData.company_name ?? "") as string;
@@ -247,6 +258,7 @@ export const enrichRecord = inngest.createFunction(
               },
             },
           },
+          collect,
         );
       }
 
@@ -282,7 +294,7 @@ export const enrichRecord = inngest.createFunction(
         metadata: { nodeId, object_type: objectType, fields_added: flatKeys.length },
       });
 
-      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat }, []);
+      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, []);
       return { enriched: true, fields_count: Object.keys(fields).length };
     } catch (err: unknown) {
       // Best-effort enrichment: do NOT re-throw. Re-throwing turned every failure

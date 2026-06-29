@@ -204,7 +204,8 @@ export function AgentActivityPage() {
   // Tokens/sec — REAL when the agent recorded usage into output.usage (populates as agents are wired).
   const tpsList = all.map(a => {
     const u = (a.detail?.usage ?? {}) as Record<string, unknown>;
-    const toks = (Number(u.generation_tokens) || 0) + (Number(u.thinking_tokens) || 0) + (Number(u.completion_tokens) || 0);
+    // Real provider usage stored by the agent (output.usage). Tokens/sec = generated tokens / runtime.
+    const toks = Number(u.completion_tokens) || Number(u.total_tokens) || 0;
     const durS = a.completed_at ? (new Date(a.completed_at).getTime() - new Date(a.started_at).getTime()) / 1000 : 0;
     return toks > 0 && durS > 0 ? toks / durS : null;
   }).filter((x): x is number => x !== null);
