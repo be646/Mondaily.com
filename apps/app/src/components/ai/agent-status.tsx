@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2,
-  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain,
+  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain, Square,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
@@ -29,7 +29,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { const el = taRef.current; if (el && input === "") el.style.height = "auto"; }, [input]);
 
-  const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText } = useAskEngine({
+  const { messages, loading, messageMeta, tokenCount, streamStatus, doSend, buildChipText, stop } = useAskEngine({
     context: pageContext ?? { scope_label: "the workspace (no page context)" },
   });
 
@@ -254,11 +254,12 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             style={{ maxHeight: 120 }}
           />
           <button
-            onClick={send}
-            disabled={loading || !input.trim()}
+            onClick={loading ? stop : send}
+            disabled={!loading && !input.trim()}
+            title={loading ? "Stop generating" : "Send"}
             className="text-stone-600 hover:text-stone-400 disabled:opacity-30 transition-colors"
           >
-            {loading ? <Loader2 size={12} className="animate-spin"/> : <Send size={12}/>}
+            {loading ? <Square size={11} strokeWidth={3} fill="currentColor"/> : <Send size={12}/>}
           </button>
         </div>
       </div>

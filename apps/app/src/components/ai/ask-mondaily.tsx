@@ -1,4 +1,4 @@
-import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2 } from "lucide-react";
+import { Send, Loader2, ThumbsUp, ThumbsDown, Copy, Download, RefreshCw, Check, Zap, CornerDownLeft, BellDot, TrendingUp, Brain, MailCheck, ListChecks, Mail, Network, Inbox, GitBranch, BarChart2, Square } from "lucide-react";
 
 function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?: boolean }) {
   return (
@@ -188,7 +188,7 @@ export function AskMondaily() {
   // drawer): same endpoint, thread_id/history handling, agent inference,
   // and real sources. This page's context is general workspace scope
   // unless a thread is already open.
-  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, streamStatus, doSend, loadThread, buildChipText, clear } =
+  const { messages, setMessages, currentThreadId, loading, suggestions, setSuggestions, messageMeta, tokenCount, streamStatus, doSend, loadThread, buildChipText, clear, stop } =
     useAskEngine({
       initialThreadId: threadId && threadId !== "new" ? threadId : null,
       context: { scope_label: "the Ask Mondaily page (general workspace)" },
@@ -543,9 +543,10 @@ export function AskMondaily() {
                 Clear
               </button>
             )}
-            <button onClick={send} disabled={loading || !input.trim()}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${input.trim() && !loading ? "bg-stone-600 text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
-              {loading ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>}
+            <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
+              title={loading ? "Stop generating" : "Send"}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${(input.trim() || loading) ? "bg-stone-600 text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
+              {loading ? <Square size={12} strokeWidth={3} fill="currentColor"/> : <Send size={14}/>}
             </button>
           </div>
           <p className="mt-1.5 text-center text-[11px] text-stone-700">Enter to send · Shift+Enter for new line</p>
