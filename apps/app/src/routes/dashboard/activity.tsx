@@ -3,7 +3,7 @@ import type { ElementType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2, Loader2, XCircle, RefreshCw, ChevronDown,
-  Sparkles, Receipt, Users, ShieldAlert, ListChecks, Search, Box, TrendingUp, Target, GitBranch, Bot,
+  Receipt, Users, ShieldAlert, Search, TrendingUp, GitBranch, Workflow, Briefcase, Building2, Bot,
 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 
@@ -22,24 +22,43 @@ type ActivityItem = {
 // Raw agent_jobs.agent_name → real, user-facing agent identity (matches the Agent
 // Constellation). Several internal jobs roll up to one real agent (e.g. invoice_chaser
 // + recurring_invoices = Finance Agent), so we group by LABEL, never raw job name.
-const AGENTS: Record<string, { label: string; Icon: ElementType }> = {
-  crm_enricher:        { label: "Graph Enrichment Agent", Icon: Sparkles },
-  invoice_chaser:      { label: "Finance Agent",          Icon: Receipt },
-  recurring_invoices:  { label: "Finance Agent",          Icon: Receipt },
-  credit_note_dispute_handler: { label: "Finance Agent",  Icon: Receipt },
-  relationship_health: { label: "Relationship Agent",     Icon: Users },
-  deal_alerts:         { label: "Signal Agent",           Icon: ShieldAlert },
-  lead_scoring:        { label: "Operations Agent",       Icon: ListChecks },
-  operations:          { label: "Operations Agent",       Icon: ListChecks },
-  overdue_task_decisions: { label: "Operations Agent",    Icon: ListChecks },
-  prospecting:         { label: "Prospecting Agent",      Icon: Search },
-  people:              { label: "People Agent",           Icon: Users },
-  asset:               { label: "Asset Agent",            Icon: Box },
-  portfolio:           { label: "Portfolio Agent",        Icon: TrendingUp },
-  opportunity:         { label: "Opportunity Agent",      Icon: Target },
-  workflow:            { label: "Workflow Agent",         Icon: GitBranch },
+// Canonical agent identity → ONE icon per real agent, matching the Home constellation
+// (agent-dock AGENT_ICON), so an agent looks identical everywhere.
+const LABEL_ICON: Record<string, ElementType> = {
+  "Graph Enrichment Agent": GitBranch,
+  "Finance Agent": Receipt,
+  "Relationship Agent": Users,
+  "Signal Agent": ShieldAlert,
+  "Operations Agent": Workflow,
+  "Prospecting Agent": Search,
+  "People Agent": Briefcase,
+  "Asset Agent": Building2,
+  "Portfolio Agent": TrendingUp,
+  "Opportunity Agent": TrendingUp,
+  "Workflow Agent": Workflow,
 };
-const agentOf = (raw: string) => AGENTS[raw] ?? { label: raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), Icon: Bot };
+const RAW_LABEL: Record<string, string> = {
+  crm_enricher: "Graph Enrichment Agent",
+  invoice_chaser: "Finance Agent",
+  recurring_invoices: "Finance Agent",
+  credit_note_dispute_handler: "Finance Agent",
+  relationship_health: "Relationship Agent",
+  deal_alerts: "Signal Agent",
+  lead_scoring: "Operations Agent",
+  operations: "Operations Agent",
+  overdue_task_decisions: "Operations Agent",
+  prospecting: "Prospecting Agent",
+  people: "People Agent",
+  asset: "Asset Agent",
+  portfolio: "Portfolio Agent",
+  opportunity: "Opportunity Agent",
+  workflow: "Workflow Agent",
+};
+const iconForLabel = (label: string): ElementType => LABEL_ICON[label] ?? Bot;
+const agentOf = (raw: string) => {
+  const label = RAW_LABEL[raw] ?? raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return { label, Icon: iconForLabel(label) };
+};
 
 function fullTime(iso?: string | null): string {
   if (!iso) return "—";
@@ -121,8 +140,8 @@ export function AgentActivityPage() {
         ))}
       </div>
 
-      {/* Filters — segmented controls, matching the sheets */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* Status — small segmented control with counts */}
+      <div className="mb-3 inline-flex">
         <div className={segBox} style={segBoxStyle}>
           {([{ k: null, l: "All" }, { k: "completed", l: "Completed" }, { k: "failed", l: "Failed" }, { k: "running", l: "Running" }]).map(s => (
             <button key={s.l} onClick={() => setStatusFilter(s.k)} className={segBtn(statusFilter === s.k)} style={segBtnStyle(statusFilter === s.k)}>
@@ -130,15 +149,26 @@ export function AgentActivityPage() {
             </button>
           ))}
         </div>
-        {agentLabels.length > 0 && (
-          <div className={`${segBox} overflow-x-auto`} style={segBoxStyle}>
-            <button onClick={() => setAgentFilter(null)} className={segBtn(agentFilter === null)} style={segBtnStyle(agentFilter === null)}>All agents</button>
-            {agentLabels.map(l => (
-              <button key={l} onClick={() => setAgentFilter(l)} className={`${segBtn(agentFilter === l)} whitespace-nowrap`} style={segBtnStyle(agentFilter === l)}>{l.replace(" Agent", "")}</button>
-            ))}
-          </div>
-        )}
       </div>
+
+      {/* Agents — a clean WRAPPING row of icon chips (no horizontal scroll). Click to filter. */}
+      {agentLabels.length > 0 && (
+        <div className="mb-5 flex flex-wrap gap-1.5">
+          {agentLabels.map(l => {
+            const Icon = iconForLabel(l);
+            const active = agentFilter === l;
+            return (
+              <button key={l} onClick={() => setAgentFilter(active ? null : l)}
+                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-all hover:-translate-y-px"
+                style={active
+                  ? { borderColor: "var(--accent)", background: "color-mix(in srgb, var(--accent) 10%, transparent)", color: "var(--accent)" }
+                  : { borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                <Icon size={13}/> {l.replace(" Agent", "")}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Feed */}
       {isLoading ? (
