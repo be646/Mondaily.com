@@ -1,5 +1,5 @@
-import { Show, useAuth } from "@clerk/react";
 import type { ReactNode } from "react";
+import { useCurrentUser } from "./hooks/useCurrentUser";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { SovereignAuthProvider } from "./components/auth/sovereign-auth-context";
 import { ShadowLoginPage } from "./routes/auth/shadow-login";
@@ -64,17 +64,19 @@ import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  return <Show when="signed-in" fallback={<Navigate to="/sign-in" replace />}>{children}</Show>;
+  const { isLoaded, isSignedIn } = useCurrentUser();
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Navigate to="/sign-in" replace />;
+  return <>{children}</>;
 }
 
 // Redirects signed-in users to onboarding only if they have no Supabase workspace UUID yet.
 // AuthGate in main.tsx is responsible for resolving and storing this UUID via bootstrap.
 function DashboardRoute({ children }: { children: ReactNode }) {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isSignedIn, isLoaded, workspaceId } = useCurrentUser();
   const location = useLocation();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/sign-in" replace />;
-  const workspaceId = localStorage.getItem("mondaily_workspace_id");
   const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
   if (!hasWorkspace) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
   // New users (bootstrap returned is_new=true) go through onboarding before the dashboard

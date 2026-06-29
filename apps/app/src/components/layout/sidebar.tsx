@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 import { useClerk, useUser } from "@clerk/react";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -351,6 +352,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const navigate = useNavigate();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const me = useCurrentUser(); // unified identity (sovereign or Clerk) for profile display
   const { hasFinance } = useModules();
   const [collapsed, setCollapsed] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -553,15 +555,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   spans edge to edge. */}
               <div className="relative z-10 -mx-2 border-t border-stone-200 bg-white px-3 py-1 dark:border-stone-800 dark:bg-stone-950">
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
-                  {user?.imageUrl
-                    ? <img src={user.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>
+                  {me.imageUrl
+                    ? <img src={me.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>
                     : <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
-                        {user?.firstName?.[0]?.toUpperCase() || "?"}
+                        {(me.name || me.email)?.[0]?.toUpperCase() || "?"}
                       </div>
                   }
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-[13px] leading-tight" style={{ color: "var(--text-primary)" }}>{user?.fullName || user?.firstName || "You"}</div>
-                    <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{user?.primaryEmailAddress?.emailAddress}</div>
+                    <div className="truncate text-[13px] leading-tight" style={{ color: "var(--text-primary)" }}>{me.name || "You"}</div>
+                    <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{me.email}</div>
                   </div>
                   <Settings size={13} style={{ color: "var(--text-faint)" }}/>
                 </Link>

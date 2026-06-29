@@ -52,11 +52,17 @@ async function credByEmail(email: string) {
   const { data } = await supabase.from("auth_credentials").select("*").ilike("email", email).maybeSingle();
   return data;
 }
-// A default workspace for the session so the SPA can set X-Workspace-Id (multi-workspace users
-// switch via the header afterwards, exactly as in the Clerk flow).
-async function defaultWorkspace(userId: string): Promise<string | null> {
-  const { data } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).limit(1).maybeSingle();
-  return (data?.workspace_id as string) ?? null;
+// Session profile: a default workspace (so the SPA can set X-Workspace-Id) plus the cached
+// display name + avatar (the /settings/members fields), so profile components render natively.
+async function sessionProfile(userId: string): Promise<{ workspaceId: string | null; name: string | null; imageUrl: string | null }> {
+  const { data } = await supabase
+    .from("workspace_members").select("workspace_id, name, avatar_url")
+    .eq("user_id", userId).limit(1).maybeSingle();
+  return {
+    workspaceId: (data?.workspace_id as string) ?? null,
+    name: (data?.name as string) ?? null,
+    imageUrl: (data?.avatar_url as string) ?? null,
+  };
 }
 
 // POST /auth/register — brand-new sovereign account (not a Clerk migrant).
@@ -84,7 +90,7 @@ router.post("/login", zValidator("json", credSchema), async (c) => {
   const ok = await verifyPassword(cred.password_hash as string, password);
   if (!ok) return c.json({ error: "Invalid email or password." }, 401);
   await issueSession(c, cred.user_id as string, cred.email as string, c.req.header("user-agent"));
-  return c.json({ userId: cred.user_id, email: cred.email, workspaceId: await defaultWorkspace(cred.user_id as string) });
+  return c.json({ userId: cred.user_id, email: cred.email, ...(await sessionProfile(cred.user_id as string)) });
 });
 
 // POST /auth/activate — legacy bridge: bind a new password to an existing user_… id.
@@ -97,7 +103,7 @@ router.post("/activate", zValidator("json", credSchema), async (c) => {
   const { error } = await supabase.from("auth_credentials").insert({ user_id: member.user_id, email, password_hash });
   if (error) return c.json({ error: error.message }, 400);
   await issueSession(c, member.user_id, email, c.req.header("user-agent"));
-  return c.json({ userId: member.user_id, email, activated: true, workspaceId: await defaultWorkspace(member.user_id) }, 201);
+  return c.json({ userId: member.user_id, email, activated: true, ...(await sessionProfile(member.user_id)) }, 201);
 });
 
 // POST /auth/refresh — rotate the refresh token, mint a new access token.
@@ -134,7 +140,7 @@ router.get("/me", async (c) => {
   const at = getCookie(c, ACCESS_COOKIE);
   const claims = at ? await verifyAccessToken(at) : null;
   if (!claims) return c.json({ error: "Not authenticated." }, 401);
-  return c.json({ userId: claims.sub, email: claims.email, workspaceId: await defaultWorkspace(claims.sub) });
+  return c.json({ userId: claims.sub, email: claims.email, ...(await sessionProfile(claims.sub)) });
 });
 
 export { router as authRouter };

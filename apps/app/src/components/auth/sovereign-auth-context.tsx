@@ -21,7 +21,7 @@ async function authCall<T = Record<string, unknown>>(path: string, body?: unknow
   return { status: res.status, data };
 }
 
-export interface SovereignUser { userId: string; email: string }
+export interface SovereignUser { userId: string; email: string; name: string | null; imageUrl: string | null }
 type Status = "loading" | "authenticated" | "unauthenticated";
 
 interface SovereignAuthValue {
@@ -47,11 +47,14 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   const setAuthed = (u: SovereignUser, wsId?: string | null) => { persistWorkspace(wsId); setUser(u); setStatus("authenticated"); };
   const setGuest = () => { setUser(null); setStatus("unauthenticated"); };
 
+  type MeResp = { userId?: string; email?: string; name?: string | null; imageUrl?: string | null; workspaceId?: string };
+  const toUser = (d: MeResp, fallbackEmail = ""): SovereignUser => ({ userId: d.userId!, email: d.email ?? fallbackEmail, name: d.name ?? null, imageUrl: d.imageUrl ?? null });
+
   const refresh = useCallback(async (): Promise<boolean> => {
     const r = await authCall<{ userId?: string }>("/refresh");
     if (r.status !== 200 || !r.data.userId) return false;
-    const me = await authCall<{ userId?: string; email?: string; workspaceId?: string }>("/me", undefined, "GET");
-    if (me.status === 200 && me.data.userId) { setAuthed({ userId: me.data.userId, email: me.data.email ?? "" }, me.data.workspaceId); return true; }
+    const me = await authCall<MeResp>("/me", undefined, "GET");
+    if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return true; }
     return false;
   }, []);
 
@@ -60,22 +63,22 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     if (booted.current) return;
     booted.current = true;
     (async () => {
-      const me = await authCall<{ userId?: string; email?: string; workspaceId?: string }>("/me", undefined, "GET");
-      if (me.status === 200 && me.data.userId) { setAuthed({ userId: me.data.userId, email: me.data.email ?? "" }, me.data.workspaceId); return; }
+      const me = await authCall<MeResp>("/me", undefined, "GET");
+      if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return; }
       if (!(await refresh())) setGuest();
     })().catch(setGuest);
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const r = await authCall<{ userId?: string; email?: string; workspaceId?: string; requires_activation?: boolean; error?: string }>("/login", { email, password });
+    const r = await authCall<MeResp & { requires_activation?: boolean; error?: string }>("/login", { email, password });
     if (r.status === 200 && r.data.requires_activation) return { requiresActivation: true };
-    if (r.status === 200 && r.data.userId) { setAuthed({ userId: r.data.userId, email: r.data.email ?? email }, r.data.workspaceId); return {}; }
+    if (r.status === 200 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return {}; }
     throw new Error(r.data.error || "Invalid email or password.");
   }, []);
 
   const activate = useCallback(async (email: string, password: string) => {
-    const r = await authCall<{ userId?: string; email?: string; workspaceId?: string; error?: string }>("/activate", { email, password });
-    if (r.status === 201 && r.data.userId) { setAuthed({ userId: r.data.userId, email: r.data.email ?? email }, r.data.workspaceId); return; }
+    const r = await authCall<MeResp & { error?: string }>("/activate", { email, password });
+    if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
     throw new Error(r.data.error || "Activation failed.");
   }, []);
 
@@ -91,4 +94,10 @@ export function useSovereignAuth(): SovereignAuthValue {
   const v = useContext(Ctx);
   if (!v) throw new Error("useSovereignAuth must be used within <SovereignAuthProvider>");
   return v;
+}
+
+/** Non-throwing accessor — returns null when the provider isn't mounted (Clerk mode).
+ *  Lets the unified useCurrentUser() call it unconditionally without violating hook rules. */
+export function useSovereignAuthOptional(): SovereignAuthValue | null {
+  return useContext(Ctx);
 }
