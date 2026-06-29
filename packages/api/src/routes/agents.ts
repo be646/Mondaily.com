@@ -415,6 +415,7 @@ router.get("/activity", async (c) => {
       trigger: j.trigger_type,
       status: j.status,
       summary,
+      detail: out,                 // full structured output for the expanded view
       error: j.error ?? null,
       started_at: j.started_at,
       completed_at: j.completed_at,
