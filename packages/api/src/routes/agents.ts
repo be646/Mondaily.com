@@ -381,4 +381,46 @@ router.get("/", async (c) => {
   return c.json({ agents });
 });
 
+/**
+ * GET /api/v1/agents/activity — the agent PROOF-OF-WORK feed. Surfaces the
+ * agent_jobs log (every background run: what ran, when, and its outcome) so the
+ * app visibly shows the agents working instead of being silent. Optional
+ * ?agent=<name> for a single agent's log; ?limit=N (default 80).
+ */
+router.get("/activity", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const agent = c.req.query("agent");
+  const limit = Math.min(Number(c.req.query("limit")) || 80, 200);
+  let q = supabase
+    .from("agent_jobs")
+    .select("id, agent_name, trigger_type, status, output, error, started_at, completed_at")
+    .eq("workspace_id", workspaceId)
+    .order("started_at", { ascending: false })
+    .limit(limit);
+  if (agent) q = q.eq("agent_name", agent);
+  const { data, error } = await q;
+  if (error) return c.json({ activity: [] });
+
+  const rows = (data ?? []).map((j) => {
+    const out = (j.output ?? {}) as Record<string, unknown>;
+    // Prefer the agent's own summary; else build one from the numeric output keys.
+    let summary = (out.summary ?? out.message) as string | undefined;
+    if (!summary) {
+      const nums = Object.entries(out).filter(([, v]) => typeof v === "number" && (v as number) !== 0);
+      summary = nums.length ? nums.map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`).join(", ") : "ran — no changes needed";
+    }
+    return {
+      id: j.id,
+      agent: j.agent_name,
+      trigger: j.trigger_type,
+      status: j.status,
+      summary,
+      error: j.error ?? null,
+      started_at: j.started_at,
+      completed_at: j.completed_at,
+    };
+  });
+  return c.json({ activity: rows });
+});
+
 export { router as agentsRouter };
