@@ -393,7 +393,7 @@ router.get("/activity", async (c) => {
   const limit = Math.min(Number(c.req.query("limit")) || 80, 200);
   let q = supabase
     .from("agent_jobs")
-    .select("id, agent_name, trigger_type, status, output, error, started_at, completed_at")
+    .select("id, agent_name, trigger_type, status, output, steps, error, started_at, completed_at")
     .eq("workspace_id", workspaceId)
     .order("started_at", { ascending: false })
     .limit(limit);
@@ -416,6 +416,7 @@ router.get("/activity", async (c) => {
       status: j.status,
       summary,
       detail: out,                 // full structured output for the expanded view
+      steps: Array.isArray(j.steps) ? j.steps : [],  // real execution track (logStep entries)
       error: j.error ?? null,
       started_at: j.started_at,
       completed_at: j.completed_at,
