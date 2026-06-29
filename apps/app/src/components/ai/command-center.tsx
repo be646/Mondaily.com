@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
   UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers, Clock,
-  CheckCircle2, XCircle, ChevronDown,
+  CheckCircle2, XCircle, ChevronDown, Loader2,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
 import { agentById } from "../../lib/agents";
@@ -89,8 +89,25 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   const act = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) =>
       apiClient.post(`/decisions/${id}/${action}`, {}),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["decisions"] }),
   });
+  // Mission Deck verification loop, ported to Home: spinner in the clicked button →
+  // glowing badge over the row → 600ms pause → cache invalidation slides it out.
+  const [acting, setActing] = useState<{ id: string; action: string } | null>(null);
+  const [banner, setBanner] = useState<{ id: string; kind: "approved" | "rejected" | "snoozed" } | null>(null);
+  async function resolveDecision(id: string, action: "approve" | "reject" | "snooze") {
+    if (acting) return;
+    setActing({ id, action });
+    try {
+      await act.mutateAsync({ id, action });
+      setBanner({ id, kind: action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed" });
+      await new Promise<void>(r => setTimeout(r, 600));
+    } finally {
+      setBanner(null);
+      setActing(null);
+      qc.invalidateQueries({ queryKey: ["decisions"] });
+      qc.invalidateQueries({ queryKey: ["agent-registry"] });
+    }
+  }
 
   const riskAlerts = notifications.filter(n => n.type === "ai_risk").slice(0, 3);
 
@@ -206,8 +223,23 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
             {!decisionsError && decisions.map(d => {
               const open = openId === d.id;
               const sources = mapEvidence(d.evidence ?? []);
+              const act = acting?.id === d.id ? acting.action : null;
+              const bnr = banner?.id === d.id ? banner.kind : null;
               return (
-                <div key={d.id} className="border-b" style={{ borderColor: "var(--border-soft)" }}>
+                <div key={d.id} className="relative border-b" style={{ borderColor: "var(--border-soft)" }}>
+                  <AnimatePresence>
+                    {bnr && (
+                      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
+                        className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 72%, transparent)" }}>
+                        <span className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+                          style={bnr === "approved"
+                            ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))", boxShadow: "0 0 16px color-mix(in srgb, #10b981 35%, transparent)" }
+                            : { borderColor: bnr === "rejected" ? "#ef4444" : "var(--text-faint)", color: bnr === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                          {bnr === "approved" ? <><CheckCircle2 size={12} /> ✓ AUTOMATION INJECTED SECURELY</> : bnr === "rejected" ? <><XCircle size={12} /> ✕ DISMISSED</> : <><Clock size={12} /> ⏳ SNOOZED</>}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <button onClick={() => setOpenId(open ? null : d.id)} className="stream-row w-full text-left" style={{ borderLeft: `2px solid ${d.risk_level === "high" ? "#dc2626" : "#d97706"}` }}>
                     {d.risk_level === "high" ? <ShieldAlert size={13} className="mt-0.5 shrink-0 text-rose-500"/> : <Clock size={13} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>}
                     <div className="min-w-0 flex-1">
@@ -225,17 +257,17 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                       <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence != null ? `${d.confidence}% confidence` : "Source-backed"}</p>
                       {sources.length > 0 && <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s}/>)}</div>}
                       <div className="flex items-center gap-1.5 pt-1">
-                        <button onClick={() => act.mutate({ id: d.id, action: "approve" })} disabled={act.isPending}
+                        <button onClick={() => resolveDecision(d.id, "approve")} disabled={!!act}
                           className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-[var(--text-primary)] transition-colors disabled:opacity-50" style={{ background: "#10b981" }}>
-                          <CheckCircle2 size={11}/> Approve
+                          {act === "approve" ? <Loader2 size={11} className="animate-spin"/> : <CheckCircle2 size={11}/>} Approve
                         </button>
-                        <button onClick={() => act.mutate({ id: d.id, action: "reject" })} disabled={act.isPending}
+                        <button onClick={() => resolveDecision(d.id, "reject")} disabled={!!act}
                           className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ border: "1px solid var(--border-strong)", color: "var(--text-secondary)" }}>
-                          <XCircle size={11}/> Reject
+                          {act === "reject" ? <Loader2 size={11} className="animate-spin"/> : <XCircle size={11}/>} Reject
                         </button>
-                        <button onClick={() => act.mutate({ id: d.id, action: "snooze" })} disabled={act.isPending}
+                        <button onClick={() => resolveDecision(d.id, "snooze")} disabled={!!act}
                           className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ color: "var(--text-faint)" }}>
-                          <Clock size={11}/> Snooze
+                          {act === "snooze" ? <Loader2 size={11} className="animate-spin"/> : <Clock size={11}/>} Snooze
                         </button>
                       </div>
                     </div>
