@@ -1,6 +1,9 @@
 import { Show, useAuth } from "@clerk/react";
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { SovereignAuthProvider } from "./components/auth/sovereign-auth-context";
+import { ShadowLoginPage } from "./routes/auth/shadow-login";
+import { ShadowActivatePage } from "./routes/auth/shadow-activate";
 import { SignInPage } from "./routes/auth/sign-in";
 import { SignUpPage } from "./routes/auth/sign-up";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
@@ -90,6 +93,11 @@ export function App() {
       <Route path="/workspaces" element={<WorkspaceSelectPage />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
       <Route path="/sso-callback" element={<SsoCallbackPage />} />
+      {/* Sovereign Auth (shadow mode) — native cookie session, runs alongside Clerk */}
+      <Route path="/auth" element={<SovereignAuthProvider><Outlet /></SovereignAuthProvider>}>
+        <Route path="shadow-login" element={<ShadowLoginPage />} />
+        <Route path="shadow-activate" element={<ShadowActivatePage />} />
+      </Route>
       <Route path="/onboarding-setup" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="profile" replace />} />
