@@ -16,7 +16,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
-import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, TokenLedger } from "./ask-shared";
+import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger } from "./ask-shared";
 
 // ── Markdown renderer — organized: ordered lists keep numbers, tables render as
 // real tables, headings/HR styled, tighter spacing. ─────────────────────────
@@ -417,8 +417,8 @@ export function AskMondaily() {
 
                     {/* Source cards — honest empty state when backend returns none */}
                     {!isStreaming && meta && meta.sources.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2 pl-4">
-                        {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
+                      <div className="mt-2 pl-4">
+                        <SourceList sources={meta.sources}/>
                       </div>
                     )}
 

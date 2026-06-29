@@ -12,7 +12,7 @@ import { LogoMark } from "../logo";
 import { getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
-import { EvidenceStrip, SourceCard, Markdown, TokenLedger } from "./ask-shared";
+import { EvidenceStrip, SourceList, Markdown, TokenLedger } from "./ask-shared";
 
 // ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
 // main Ask page and Home: same endpoint, history/thread_id handling, real
@@ -172,8 +172,8 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 )}
                 {m.role === "assistant" && meta?.usage && <TokenLedger usage={meta.usage}/>}
                 {m.role === "assistant" && meta && meta.sources.length > 0 && (
-                  <div className="flex flex-wrap gap-1 ml-1">
-                    {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
+                  <div className="ml-1">
+                    <SourceList sources={meta.sources}/>
                   </div>
                 )}
 

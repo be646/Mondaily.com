@@ -7,7 +7,7 @@ import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 import {
-  GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, friendlyAskError, TokenLedger,
+  GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, friendlyAskError, TokenLedger,
 } from "../../components/ai/ask-shared";
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
@@ -645,8 +645,8 @@ export function HomePage() {
                           <div className="pl-4"><TokenLedger usage={meta.usage}/></div>
                         )}
                         {!isStreaming && meta && meta.sources.length > 0 && (
-                          <div className="mt-2.5 grid grid-cols-1 gap-1.5 pl-4 sm:grid-cols-2">
-                            {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
+                          <div className="mt-2.5 pl-4">
+                            <SourceList sources={meta.sources}/>
                           </div>
                         )}
                         {/* Suggested actions — clean, borderless inline pill row that

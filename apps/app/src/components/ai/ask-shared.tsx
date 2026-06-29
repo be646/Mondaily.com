@@ -272,15 +272,13 @@ export function mapBackendSources(raw: BackendSourceMeta[] | undefined): SourceC
   }));
 }
 
-export function SourceCard({ source }: { source: SourceCardData }) {
-  // Defensive fallback — an unrecognized source.type (e.g. a new evidence
-  // kind added on the backend before the frontend's SourceType union is
-  // updated) must never crash the render tree. Database is a neutral
-  // generic-record icon, used only when the real type isn't mapped yet.
+/** A single clean clickable LIST ROW for a referenced record (not a boxed card).
+ *  Icon · name · type · → — full width, divider between rows, subtle hover. */
+export function SourceCard({ source, divider }: { source: SourceCardData; divider?: boolean }) {
+  // Defensive fallback — an unrecognized source.type must never crash the tree.
   const Icon = SOURCE_ICON[source.type] ?? Database;
   const clickable = Boolean(source.href);
-  // Open the record in a NEW TAB so the chat thread is preserved — the user
-  // just closes the tab to return to the exact same conversation.
+  // Open in a NEW TAB so the chat thread is preserved.
   const open = () => { if (source.href) window.open(source.href, "_blank", "noopener"); };
   return (
     <div
@@ -288,32 +286,29 @@ export function SourceCard({ source }: { source: SourceCardData }) {
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter") open(); } : undefined}
-      className={`group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all ${clickable ? "cursor-pointer hover:-translate-y-px" : ""}`}
-      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-      onMouseEnter={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px -6px rgba(15,23,42,0.14)"; } : undefined}
-      onMouseLeave={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; } : undefined}
+      className={`group flex items-center gap-2.5 px-3 py-2 text-left transition-colors ${clickable ? "cursor-pointer hover:bg-[var(--surface-hover)]" : ""}`}
+      style={divider ? { borderTop: "1px solid var(--border-soft)" } : undefined}
       title={clickable ? "Open record in new tab" : undefined}
     >
-      {/* Type-tinted icon chip — premium micro-dashboard affordance */}
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
-        <Icon size={13} style={{ color: "var(--accent)" }}/>
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{source.title}</span>
-          <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-            {source.type}
-          </span>
-        </div>
-        {(source.timestamp || source.relevance) && (
-          <div className="truncate text-[10px]" style={{ color: "var(--text-faint)" }}>
-            {[source.relevance, source.timestamp].filter(Boolean).join(" · ")}
-          </div>
-        )}
-      </div>
-      {clickable && (
-        <ArrowUpRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }}/>
+      <Icon size={14} className="shrink-0" style={{ color: "var(--accent)" }}/>
+      <span className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{source.title}</span>
+      <span className="shrink-0 rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{source.type}</span>
+      {(source.relevance || source.timestamp) && (
+        <span className="ml-auto hidden truncate text-[10px] sm:inline" style={{ color: "var(--text-faint)" }}>{[source.relevance, source.timestamp].filter(Boolean).join(" · ")}</span>
       )}
+      {clickable && (
+        <ArrowUpRight size={13} className={`${(source.relevance || source.timestamp) ? "" : "ml-auto"} shrink-0 opacity-40 transition-opacity group-hover:opacity-100`} style={{ color: "var(--accent)" }}/>
+      )}
+    </div>
+  );
+}
+
+/** Wraps referenced records into ONE clean bordered list (not scattered boxes). */
+export function SourceList({ sources }: { sources: SourceCardData[] }) {
+  if (!sources.length) return null;
+  return (
+    <div className="overflow-hidden rounded-xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      {sources.map((s, i) => <SourceCard key={i} source={s} divider={i > 0}/>)}
     </div>
   );
 }
