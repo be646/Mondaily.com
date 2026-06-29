@@ -3,6 +3,7 @@ import { Sidebar, GettingStarted } from "../../components/layout/sidebar";
 import { AgentStatusBar } from "../../components/ai/agent-status";
 import { QuickActions } from "../../components/ui/quick-actions";
 import { CommandPalette } from "../../components/ui/command-palette";
+import { ToastHost } from "../../components/ui/toast-host";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
@@ -116,6 +117,8 @@ export function DashboardLayout() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden surface-page">
+      {/* Change toasts — slide-in pop-ups for new notifications/activity */}
+      <ToastHost />
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />
