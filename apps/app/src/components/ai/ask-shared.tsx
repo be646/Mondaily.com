@@ -3,7 +3,7 @@ import { Network, ShieldAlert, Workflow, Receipt, Users } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import {
   CheckSquare, FileSignature, UserRound, Box, GitBranch, BarChart2,
-  FileText, Mail, Bell, Wallet, Database,
+  FileText, Mail, Bell, Wallet, Database, ArrowUpRight,
 } from "lucide-react";
 
 /**
@@ -288,26 +288,32 @@ export function SourceCard({ source }: { source: SourceCardData }) {
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === "Enter") open(); } : undefined}
-      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${clickable ? "cursor-pointer hover:bg-[var(--surface-hover)]" : ""}`}
+      className={`group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all ${clickable ? "cursor-pointer hover:-translate-y-px" : ""}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-      onMouseEnter={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; } : undefined}
-      onMouseLeave={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; } : undefined}
+      onMouseEnter={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 14px -6px rgba(15,23,42,0.14)"; } : undefined}
+      onMouseLeave={clickable ? e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; } : undefined}
       title={clickable ? "Open record in new tab" : undefined}
     >
-      <Icon size={12} className="shrink-0" style={{ color: "var(--accent)" }}/>
+      {/* Type-tinted icon chip — premium micro-dashboard affordance */}
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+        <Icon size={13} style={{ color: "var(--accent)" }}/>
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-[11.5px] font-medium" style={{ color: "var(--text-primary)" }}>{source.title}</span>
-          <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>
+          <span className="truncate text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{source.title}</span>
+          <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
             {source.type}
           </span>
         </div>
         {(source.timestamp || source.relevance) && (
-          <div className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+          <div className="truncate text-[10px]" style={{ color: "var(--text-faint)" }}>
             {[source.relevance, source.timestamp].filter(Boolean).join(" · ")}
           </div>
         )}
       </div>
+      {clickable && (
+        <ArrowUpRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }}/>
+      )}
     </div>
   );
 }
