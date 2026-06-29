@@ -4,11 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, MailCheck, ArrowLeft } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton, SAGE } from "../../components/auth/auth-shell";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
+import { usePowShield, PowShieldLine } from "../../lib/pow-client";
 
 /** /auth/forgot — request a password-reset link. */
 export function ShadowForgotPage() {
   const navigate = useNavigate();
   const { requestPasswordReset } = useSovereignAuth();
+  const shield = usePowShield();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -17,7 +19,10 @@ export function ShadowForgotPage() {
     e.preventDefault();
     if (!/\S+@\S+\.\S+/.test(email) || loading) return;
     setLoading(true);
-    try { await requestPasswordReset(email.trim()); } finally { setLoading(false); setSent(true); }
+    try {
+      const pow = await shield.solve();
+      await requestPasswordReset(email.trim(), pow);
+    } finally { setLoading(false); setSent(true); }
   }
 
   if (sent) {
@@ -37,6 +42,7 @@ export function ShadowForgotPage() {
       footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Back to sign in</button>}>
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
+        <PowShieldLine status={shield.status} />
         <GlowButton type="submit" disabled={!/\S+@\S+\.\S+/.test(email)} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Sending…</> : "Send reset link"}
         </GlowButton>

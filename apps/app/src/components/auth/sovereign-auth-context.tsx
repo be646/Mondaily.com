@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { BASE_URL } from "../../lib/api-client";
+import { getPow } from "../../lib/pow-client";
+import type { Pow } from "../../lib/pow-client";
 
 /**
  * Client for Sovereign Auth (/api/v1/auth/*) — the app's sole authentication runtime. Owns a
@@ -20,24 +22,6 @@ async function authCall<T = Record<string, unknown>>(path: string, body?: unknow
   return { status: res.status, data };
 }
 
-// Native proof-of-work: fetch a signed challenge, then brute-force a nonce whose
-// sha256(`${challenge}:${nonce}`) starts with 0000 (~65k hashes — sub-second for a human,
-// a real cost for a bot hammering register/reset). Included in the protected requests.
-async function solvePow(challenge: string): Promise<string> {
-  const enc = new TextEncoder();
-  for (let nonce = 0; nonce < 8_000_000; nonce++) {
-    const buf = await crypto.subtle.digest("SHA-256", enc.encode(`${challenge}:${nonce}`));
-    const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-    if (hex.startsWith("0000")) return String(nonce);
-  }
-  throw new Error("Could not complete the security check. Please try again.");
-}
-async function getPow(): Promise<{ pow_challenge: string; pow_nonce: string }> {
-  const res = await fetch(`${AUTH_URL}/challenge`, { credentials: "include" }).then(r => r.json()).catch(() => ({}));
-  const challenge = (res as { challenge?: string }).challenge ?? "";
-  return challenge ? { pow_challenge: challenge, pow_nonce: await solvePow(challenge) } : { pow_challenge: "", pow_nonce: "" };
-}
-
 export interface SovereignUser { userId: string; email: string; name: string | null; imageUrl: string | null }
 type Status = "loading" | "authenticated" | "unauthenticated";
 
@@ -46,16 +30,17 @@ interface SovereignAuthValue {
   user: SovereignUser | null;
   /** Returns { requiresActivation: true } for legacy users with no password yet. */
   login: (email: string, password: string) => Promise<{ requiresActivation?: boolean }>;
-  /** New account: creates credentials + a fresh workspace (owner). */
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  /** New account: creates credentials + a fresh workspace (owner). Pass a pre-solved PoW to drive
+   *  a visible shield; omit it and the call solves one internally. */
+  register: (email: string, password: string, name?: string, pow?: Pow) => Promise<void>;
   /** Legacy bridge step 1: email a one-time activation link to the address on file. */
-  requestActivation: (email: string) => Promise<void>;
+  requestActivation: (email: string, pow?: Pow) => Promise<void>;
   /** Legacy bridge step 2: set the password using the emailed token. */
   activate: (token: string, password: string) => Promise<void>;
   /** Email a short-lived password-reset link to the address on file. */
-  requestPasswordReset: (email: string) => Promise<void>;
+  requestPasswordReset: (email: string, pow?: Pow) => Promise<void>;
   /** Set a new password using the emailed reset token (signs the user in). */
-  resetPassword: (token: string, password: string) => Promise<void>;
+  resetPassword: (token: string, password: string, pow?: Pow) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
   /** Re-fetch /me and update the cached profile (e.g. after an avatar/name change). */
@@ -104,16 +89,16 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     throw new Error(r.data.error || "Invalid email or password.");
   }, []);
 
-  const register = useCallback(async (email: string, password: string, name?: string) => {
-    const pow = await getPow();
-    const r = await authCall<MeResp & { error?: string }>("/register", { email, password, name, ...pow });
+  const register = useCallback(async (email: string, password: string, name?: string, pow?: Pow) => {
+    const solved = pow ?? await getPow();
+    const r = await authCall<MeResp & { error?: string }>("/register", { email, password, name, ...solved });
     if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
     throw new Error(r.data.error || "Registration failed.");
   }, []);
 
-  const requestActivation = useCallback(async (email: string) => {
-    const pow = await getPow();
-    await authCall("/request-activation", { email, ...pow });
+  const requestActivation = useCallback(async (email: string, pow?: Pow) => {
+    const solved = pow ?? await getPow();
+    await authCall("/request-activation", { email, ...solved });
   }, []);
 
   const activate = useCallback(async (token: string, password: string) => {
@@ -122,13 +107,14 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     throw new Error(r.data.error || "Activation failed.");
   }, []);
 
-  const requestPasswordReset = useCallback(async (email: string) => {
-    await authCall("/request-password-reset", { email });
+  const requestPasswordReset = useCallback(async (email: string, pow?: Pow) => {
+    const solved = pow ?? await getPow();
+    await authCall("/request-password-reset", { email, ...solved });
   }, []);
 
-  const resetPassword = useCallback(async (token: string, password: string) => {
-    const pow = await getPow();
-    const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password, ...pow });
+  const resetPassword = useCallback(async (token: string, password: string, pow?: Pow) => {
+    const solved = pow ?? await getPow();
+    const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password, ...solved });
     if (r.status === 200 && (r.data as { ok?: boolean }).ok !== false) {
       const me = await authCall<MeResp>("/me", undefined, "GET");
       if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return; }

@@ -12,7 +12,7 @@ import {
   signResetToken, verifyResetToken,
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
 } from "../lib/auth-tokens";
-import { sendWorkspaceEmail } from "../lib/mail";
+import { sendTransactionalEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
 import { grantCredits, SOLO_GRANT } from "../lib/credits";
 import { issuePowChallenge, requirePow } from "../lib/pow";
@@ -133,8 +133,8 @@ router.post("/request-activation", rateLimit(), requirePow, zValidator("json", z
   const token = await signActivationToken(member.user_id, email);
   const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
   const link = `${appUrl}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
-  if (member.workspace_id) {
-    await sendWorkspaceEmail(member.workspace_id, {
+  {
+    await sendTransactionalEmail({
       to: [{ email }],
       subject: "Activate your Mondaily account",
       body: `<p>Mondaily has upgraded to our own secure sign-in. Set your password to activate your account:</p>
@@ -161,7 +161,7 @@ router.post("/activate", rateLimit(), zValidator("json", z.object({ token: z.str
 
 // POST /auth/request-password-reset — emails a short-lived reset link to the address on file.
 // Generic response (no account enumeration), rate-limited.
-router.post("/request-password-reset", rateLimit(), zValidator("json", z.object({ email: z.string().email() })), async (c) => {
+router.post("/request-password-reset", rateLimit(), requirePow, zValidator("json", z.object({ email: z.string().email() })), async (c) => {
   const { email } = c.req.valid("json");
   const generic = { ok: true, message: "If an account exists for that email, a reset link is on its way." };
   const cred = await credByEmail(email);
@@ -169,9 +169,8 @@ router.post("/request-password-reset", rateLimit(), zValidator("json", z.object(
   const token = await signResetToken(cred.user_id as string, cred.email as string);
   const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
   const link = `${appUrl}/auth/reset?token=${encodeURIComponent(token)}`;
-  const member = await memberByEmail(email);
-  if (member?.workspace_id) {
-    await sendWorkspaceEmail(member.workspace_id, {
+  {
+    await sendTransactionalEmail({
       to: [{ email: cred.email as string }],
       subject: "Reset your Mondaily password",
       body: `<p>We received a request to reset your Mondaily password.</p>

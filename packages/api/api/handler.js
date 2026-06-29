@@ -57326,16 +57326,16 @@ async function sendViaGoogle(workspaceId, msg) {
     return false;
   }
 }
+var CORPORATE_FROM = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily Networks <no-reply@mondaily.com>";
 async function sendViaTransactional(msg) {
   const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
   if (!key) return false;
-  const from = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from,
+        from: CORPORATE_FROM,
         to: msg.to.map((t2) => t2.email),
         subject: msg.subject,
         html: msg.body
@@ -57345,6 +57345,9 @@ async function sendViaTransactional(msg) {
   } catch {
     return false;
   }
+}
+async function sendTransactionalEmail(msg) {
+  return sendViaTransactional(msg);
 }
 async function sendWorkspaceEmail(workspaceId, msg) {
   if (await sendViaGoogle(workspaceId, msg)) return true;
@@ -59683,8 +59686,8 @@ router11.post("/request-activation", rateLimit(), requirePow, zValidator("json",
   const token = await signActivationToken(member.user_id, email);
   const appUrl2 = process.env.APP_URL ?? "https://app.mondaily.com";
   const link = `${appUrl2}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
-  if (member.workspace_id) {
-    await sendWorkspaceEmail(member.workspace_id, {
+  {
+    await sendTransactionalEmail({
       to: [{ email }],
       subject: "Activate your Mondaily account",
       body: `<p>Mondaily has upgraded to our own secure sign-in. Set your password to activate your account:</p>
@@ -59706,7 +59709,7 @@ router11.post("/activate", rateLimit(), zValidator("json", external_exports.obje
   await issueSession(c2, claims.sub, claims.email, c2.req.header("user-agent"));
   return c2.json({ userId: claims.sub, email: claims.email, activated: true, ...await sessionProfile(claims.sub) }, 201);
 });
-router11.post("/request-password-reset", rateLimit(), zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+router11.post("/request-password-reset", rateLimit(), requirePow, zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const generic = { ok: true, message: "If an account exists for that email, a reset link is on its way." };
   const cred = await credByEmail(email);
@@ -59714,9 +59717,8 @@ router11.post("/request-password-reset", rateLimit(), zValidator("json", externa
   const token = await signResetToken(cred.user_id, cred.email);
   const appUrl2 = process.env.APP_URL ?? "https://app.mondaily.com";
   const link = `${appUrl2}/auth/reset?token=${encodeURIComponent(token)}`;
-  const member = await memberByEmail(email);
-  if (member?.workspace_id) {
-    await sendWorkspaceEmail(member.workspace_id, {
+  {
+    await sendTransactionalEmail({
       to: [{ email: cred.email }],
       subject: "Reset your Mondaily password",
       body: `<p>We received a request to reset your Mondaily password.</p>

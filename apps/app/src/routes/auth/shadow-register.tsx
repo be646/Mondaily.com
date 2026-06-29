@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, ShieldCheck, ArrowRight } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton } from "../../components/auth/auth-shell";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
+import { usePowShield, PowShieldLine } from "../../lib/pow-client";
 
 function safeNext(raw: string | null): string {
   return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
@@ -22,6 +23,7 @@ export function ShadowRegisterPage() {
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
   const { register } = useSovereignAuth();
+  const shield = usePowShield();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +40,8 @@ export function ShadowRegisterPage() {
     if (!valid || loading) return;
     setError(null); setLoading(true);
     try {
-      await register(email.trim(), password, name.trim() || undefined);
+      const pow = await shield.solve();
+      await register(email.trim(), password, name.trim() || undefined, pow);
       navigate(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed.");
@@ -56,6 +59,7 @@ export function ShadowRegisterPage() {
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
         <CapsuleInput label="Password" type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} error={pwError ?? undefined} hint="8+ chars, with a letter and a number." />
         <CapsuleInput label="Confirm password" type="password" autoComplete="new-password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} disabled={loading} error={matchError ?? undefined} />
+        <PowShieldLine status={shield.status} />
         {error && <p className="text-[11px] text-rose-400">{error}</p>}
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : <><ShieldCheck size={14} /> Create account</>}

@@ -44,19 +44,21 @@ async function sendViaGoogle(workspaceId: string, msg: OutboundMessage): Promise
   }
 }
 
-/** FALLBACK: transactional provider (Resend) for workspaces with no connected inbox.
- *  Reuses the same RESEND_API_KEY the digest mailer uses (digests.ts), so no new
- *  env var is needed; TRANSACTIONAL_MAIL_API_KEY is accepted as an alias. */
+/** Verified corporate sender on our own registered domain. Auth/transactional mail MUST come
+ *  from here (never the user's Gmail) so SPF/DKIM pass and the message isn't dropped as a spoof. */
+const CORPORATE_FROM = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily Networks <no-reply@mondaily.com>";
+
+/** Send via Resend with our verified API key + corporate from-address. Used both as the
+ *  inbox fallback AND directly for auth mail (which must bypass the Gmail path entirely). */
 async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
   const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
   if (!key) return false;
-  const from = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily <onboarding@mondaily.com>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from,
+        from: CORPORATE_FROM,
         to: msg.to.map((t) => t.email),
         subject: msg.subject,
         html: msg.body,
@@ -66,6 +68,16 @@ async function sendViaTransactional(msg: OutboundMessage): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * AUTH/TRANSACTIONAL mail (activation, password reset, anything identity-critical).
+ * ALWAYS goes through Resend on our verified domain — it deliberately SKIPS the Gmail path,
+ * because routing a reset link through the user's own connected inbox would try to "send from"
+ * an address Resend can't authenticate, getting the message blocked/spoof-flagged.
+ */
+export async function sendTransactionalEmail(msg: OutboundMessage): Promise<boolean> {
+  return sendViaTransactional(msg);
 }
 
 /**
