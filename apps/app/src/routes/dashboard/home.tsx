@@ -565,11 +565,12 @@ export function HomePage() {
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
           <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white" style={{ background: "var(--accent)" }}>
-              <LogoMark size={24}/>
-            </div>
-            <h2 className="mt-4 text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}</h2>
+            <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}</h2>
             <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
+            <div className="mt-3 flex items-center gap-4">
+              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+            </div>
           </div>
         )}
 
@@ -804,9 +805,26 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Smart starter cards — below the input, like the hero mockup */}
+        {/* Recent threads — directly under the input box, centered */}
+        {!isChatting && recentThreads.length > 0 && (
+          <div className="mx-auto mt-3 flex max-w-3xl flex-wrap items-center justify-center gap-2">
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
+            {recentThreads.map(t => (
+              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
+            ))}
+            <span className="text-xs" style={{ color: "var(--text-faint)" }}>·</span>
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
+          </div>
+        )}
+        {!isChatting && recentThreads.length === 0 && (
+          <div className="mx-auto mt-2 flex max-w-3xl justify-center">
+            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
+          </div>
+        )}
+
+        {/* Smart starter cards — spaced below the input + recent */}
         {!isChatting && (
-          <div className="mx-auto mt-4 grid max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <div className="mx-auto mt-7 grid max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2">
             {[
               {
                 Icon: ListChecks,
@@ -845,22 +863,6 @@ export function HomePage() {
           </div>
         )}
 
-        {/* Recent threads */}
-        {!isChatting && recentThreads.length > 0 && (
-          <div className="mx-auto mt-2.5 flex max-w-3xl flex-wrap items-center gap-2">
-            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
-            {recentThreads.map(t => (
-              <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
-            ))}
-            <span className="text-xs" style={{ color: "var(--text-faint)" }}>·</span>
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Full chat →</Link>
-          </div>
-        )}
-        {!isChatting && recentThreads.length === 0 && (
-          <div className="mx-auto mt-2 flex max-w-3xl justify-end">
-            <Link to="/ask/new" className="text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>Open full chat →</Link>
-          </div>
-        )}
         </div>
       </section>
 
