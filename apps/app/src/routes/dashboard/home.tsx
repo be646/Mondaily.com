@@ -199,6 +199,7 @@ export function HomePage() {
     | { kind: "file"; id: string; title: string; text: string };
   const [attachments, setAttachments] = useState<AttachItem[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [attachQuery, setAttachQuery] = useState("");
   const [attachResults, setAttachResults] = useState<{ id: string; object_type: string; data: Record<string, unknown> }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -653,23 +654,41 @@ export function HomePage() {
                             reads as a light extra layer under the answer (no heavy frame). */}
                         {!isStreaming && !loading && i === messages.length - 1 && (
                           <div className="chat-pills-in mt-2.5 flex flex-wrap items-center gap-1.5 pl-4">
+                            {/* Primary actions stay visible */}
                             {([
-                              { key: "task", label: "Create task", mark: true },
-                              { key: "draft", label: "Draft message", mark: true },
-                              { key: "related", label: "Show related" },
-                              { key: "explain", label: "Explain reasoning" },
-                              { key: "decision", label: "Add to decision queue" },
-                              { key: "workflow", label: "Draft workflow" },
-                            ] as { key: "task" | "draft" | "related" | "explain" | "decision" | "workflow"; label: string; mark?: boolean }[]).map(a => (
+                              { key: "task", label: "Create task" },
+                              { key: "draft", label: "Draft message" },
+                            ] as { key: "task" | "draft"; label: string }[]).map(a => (
                               <button key={a.key} onClick={() => sendSuggestion(buildChipText(a.key, i))}
                                 className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
                                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
-                                {a.mark && <LogoMark size={11}/>}{a.label}
+                                <LogoMark size={11}/>{a.label}
                               </button>
                             ))}
-                            <span title="Coming soon — no report-creation tool exists yet"
-                              className="inline-flex items-center rounded-full border px-3 py-1.5 text-[12.5px] font-medium"
-                              style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-faint)", opacity: 0.55, cursor: "not-allowed" }}>Create report</span>
+                            {/* Secondary actions collapsed into a tidy menu */}
+                            <div className="relative">
+                              <button onClick={() => setActionsOpen(o => !o)}
+                                className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                                Actions <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
+                              </button>
+                              {actionsOpen && (
+                                <div className="absolute bottom-full left-0 z-40 mb-1.5 w-48 overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.1)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+                                  {([
+                                    { key: "related", label: "Show related" },
+                                    { key: "explain", label: "Explain reasoning" },
+                                    { key: "decision", label: "Add to decision queue" },
+                                    { key: "workflow", label: "Draft workflow" },
+                                  ] as { key: "related" | "explain" | "decision" | "workflow"; label: string }[]).map(a => (
+                                    <button key={a.key} onClick={() => { setActionsOpen(false); sendSuggestion(buildChipText(a.key, i)); }}
+                                      className="block w-full px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-secondary)" }}>
+                                      {a.label}
+                                    </button>
+                                  ))}
+                                  <span title="Coming soon — no report-creation tool exists yet" className="block px-3 py-2 text-[12.5px] cursor-not-allowed" style={{ color: "var(--text-faint)", opacity: 0.6 }}>Create report</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

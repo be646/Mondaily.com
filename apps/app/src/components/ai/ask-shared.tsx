@@ -121,9 +121,10 @@ export function TokenLedger({ usage }: { usage?: { prompt_tokens?: number; compl
   const thinking = usage.reasoning_tokens ?? 0;
   const completion = usage.completion_tokens ?? 0;
   const generation = Math.max(0, completion - thinking);
+  const input = usage.prompt_tokens ?? Math.max(0, total - completion);
   return (
-    <div className="mt-1.5 font-mono text-[10.5px] tracking-tight" style={{ color: "var(--text-faint)" }}>
-      Thinking: {thinking.toLocaleString()} · Generation: {generation.toLocaleString()} · Total: {total.toLocaleString()} tokens
+    <div className="mt-1.5 font-mono text-[10.5px] tracking-tight" style={{ color: "var(--text-faint)" }} title="Input = system prompt + your message + tool data the model reads; Total = Input + Thinking + Generation">
+      Input: {input.toLocaleString()} · Thinking: {thinking.toLocaleString()} · Generation: {generation.toLocaleString()} · Total: {total.toLocaleString()} tokens
     </div>
   );
 }
