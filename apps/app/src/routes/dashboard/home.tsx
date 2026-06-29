@@ -497,21 +497,11 @@ export function HomePage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           {/* Left — greeting + a clean cluster: frameless AI agents and the
               graph/source status. Collapses while chatting (notifications stay). */}
-          <div className={`welcome-info min-w-0 ${isChatting ? "is-hidden" : ""}`}>
-            <div className="flex flex-col gap-1.5">
-              <p className="home-section-kicker">{todayLabel}</p>
-              <h1 className="home-hero-title">{greeting}, {user?.firstName || "there"}.</h1>
-            </div>
-            <div className="mt-5 flex flex-col items-start gap-px">
-              <span className="status-line">
-                <span className="live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>
-                Graph {graphSynced ? "synced" : "syncing"}
-              </span>
-              <span className="status-line">
-                <span className="live-dot" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>
-                Sources {sourcesChecked ? "checked" : "checking…"}
-              </span>
-            </div>
+          {/* Greeting moved into the centered chat hero below — only a slim date
+              kicker remains here so the top band isn't empty. */}
+          <div className="welcome-info min-w-0">
+            <p className="home-section-kicker">{todayLabel}</p>
+            {isChatting && <h1 className="home-hero-title mt-1.5">{greeting}, {user?.firstName || "there"}.</h1>}
           </div>
 
           {/* Right — signals bar, top-right (always renders; not inside the
@@ -574,42 +564,12 @@ export function HomePage() {
       <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
-          <div className="mx-auto mb-4 grid max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {[
-              {
-                Icon: ListChecks,
-                label: overdueCount > 0 ? `Show my ${overdueCount} overdue task${overdueCount === 1 ? "" : "s"}` : openTaskCount > 0 ? `Show my ${openTaskCount} open tasks` : "Show my tasks",
-                sub: "as a clear table",
-                prompt: "List my overdue and open tasks as a table with due dates and priority, then tell me what to focus on first.",
-              },
-              {
-                Icon: TrendingUp,
-                label: "What changed this week",
-                sub: "across the workspace",
-                prompt: "Summarise what changed across my workspace in the last 7 days — new and updated records, deals, and relationships — and flag anything that needs attention.",
-              },
-              hasFinance
-                ? { Icon: FileText, label: "List overdue invoices", sub: "with totals", prompt: "List my overdue invoices as a table with amounts and days overdue, and give me the total outstanding." }
-                : { Icon: Brain, label: "Plan my week", sub: "an opinionated brief", prompt: "Review my open tasks and recent activity, then build me an opinionated day-by-day plan for this week with specific next actions." },
-              {
-                Icon: Search,
-                label: "Find new prospects",
-                sub: "in my sector",
-                prompt: "Find new prospects relevant to my workspace from the web, dedupe them against my existing records, and add the best ones to my decision queue for approval.",
-              },
-            ].map(s => (
-              <button key={s.label} onClick={() => sendSuggestion(s.prompt)}
-                className="group flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all hover:-translate-y-px"
-                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}>
-                <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }}/>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
-                  <span className="block text-[12.5px]" style={{ color: "var(--text-muted)" }}>{s.sub}</span>
-                </span>
-              </button>
-            ))}
+          <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white" style={{ background: "var(--accent)" }}>
+              <LogoMark size={24}/>
+            </div>
+            <h2 className="mt-4 text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {user?.firstName || "there"}</h2>
+            <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
           </div>
         )}
 
@@ -843,6 +803,47 @@ export function HomePage() {
             </button>
           </div>
         </div>
+
+        {/* Smart starter cards — below the input, like the hero mockup */}
+        {!isChatting && (
+          <div className="mx-auto mt-4 grid max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {[
+              {
+                Icon: ListChecks,
+                label: overdueCount > 0 ? `Show my ${overdueCount} overdue task${overdueCount === 1 ? "" : "s"}` : openTaskCount > 0 ? `Show my ${openTaskCount} open tasks` : "Show my tasks",
+                sub: "as a clear table",
+                prompt: "List my overdue and open tasks as a table with due dates and priority, then tell me what to focus on first.",
+              },
+              {
+                Icon: TrendingUp,
+                label: "What changed this week",
+                sub: "across the workspace",
+                prompt: "Summarise what changed across my workspace in the last 7 days — new and updated records, deals, and relationships — and flag anything that needs attention.",
+              },
+              hasFinance
+                ? { Icon: FileText, label: "List overdue invoices", sub: "with totals", prompt: "List my overdue invoices as a table with amounts and days overdue, and give me the total outstanding." }
+                : { Icon: Brain, label: "Plan my week", sub: "an opinionated brief", prompt: "Review my open tasks and recent activity, then build me an opinionated day-by-day plan for this week with specific next actions." },
+              {
+                Icon: Search,
+                label: "Find new prospects",
+                sub: "in my sector",
+                prompt: "Find new prospects relevant to my workspace from the web, dedupe them against my existing records, and add the best ones to my decision queue for approval.",
+              },
+            ].map(s => (
+              <button key={s.label} onClick={() => sendSuggestion(s.prompt)}
+                className="group flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all hover:-translate-y-px"
+                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}>
+                <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }}/>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
+                  <span className="block text-[12.5px]" style={{ color: "var(--text-muted)" }}>{s.sub}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Recent threads */}
         {!isChatting && recentThreads.length > 0 && (
