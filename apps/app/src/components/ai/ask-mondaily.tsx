@@ -16,7 +16,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import { getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { useAskEngine } from "./use-ask-engine";
-import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard } from "./ask-shared";
+import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceCard, TokenLedger } from "./ask-shared";
 
 // ── Markdown renderer — organized: ordered lists keep numbers, tables render as
 // real tables, headings/HR styled, tighter spacing. ─────────────────────────
@@ -240,17 +240,24 @@ export function AskMondaily() {
   // scrolling back re-engages. Pin runs pre-paint (useLayoutEffect) and only while
   // a turn is active — solid, no jitter, no tug when reading back.
   const stickRef = useRef(true);
+  const lastTopRef = useRef(0);
   const onMessagesScroll = useCallback(() => {
     const el = messagesRef.current;
     if (!el) return;
-    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+    const top = el.scrollTop;
+    // Direction-aware: any upward scroll releases the follow (no tug); returning
+    // to the bottom re-engages. The programmatic pin only moves down.
+    if (top < lastTopRef.current - 1) stickRef.current = false;
+    if (el.scrollHeight - top - el.clientHeight < 24) stickRef.current = true;
+    lastTopRef.current = top;
   }, []);
   useLayoutEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
-    const active = loading || streamingMsgIdx !== null;
-    if (active && stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages, loading, streamedUpTo, streamingMsgIdx]);
+    // Pin whenever stuck — including the final frame when the footer/cards/pills
+    // mount — so late content never shoves the answer (no end-of-stream jump).
+    if (stickRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamedUpTo, streamingMsgIdx, messageMeta]);
 
   const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
 
@@ -384,10 +391,12 @@ export function AskMondaily() {
                   </div>
                 ) : (
                   <div className="flex-1 min-w-0">
-                    <div className="ask-assistant-line min-w-0 break-words pl-4 text-sm space-y-0.5">
-                      {/* Render through the markdown renderer during streaming too —
-                          no plain→markdown swap, so text reads solid and never reflows. */}
-                      {renderMarkdown(displayText)}
+                    <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
+                      {/* While streaming: STABLE plain text (no per-token markdown
+                          re-parse → no jitter). Format to markdown once complete. */}
+                      {isStreaming
+                        ? <span style={{ color: "var(--text-secondary)" }}>{displayText}</span>
+                        : renderMarkdown(displayText)}
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
 
@@ -399,13 +408,10 @@ export function AskMondaily() {
                           {meta.agent.name}
                         </span>
                         <EvidenceStrip sources={meta.sources}/>
-                        {meta.tokens != null && (
-                          <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }} title={meta.usage ? `${meta.usage.prompt_tokens.toLocaleString()} input (system + tools + context) + ${meta.usage.completion_tokens.toLocaleString()} output${meta.usage.reasoning_tokens ? ` incl. ${meta.usage.reasoning_tokens.toLocaleString()} thinking` : ""}` : "Estimated"}>
-                            {meta.tokensExact ? "" : "~"}{meta.tokens.toLocaleString()} tokens
-                            {meta.usage && <span style={{ opacity: 0.7 }}> · ↑{meta.usage.prompt_tokens.toLocaleString()} ↓{meta.usage.completion_tokens.toLocaleString()}{meta.usage.reasoning_tokens ? ` · ${meta.usage.reasoning_tokens.toLocaleString()} thinking` : ""}</span>}
-                          </span>
-                        )}
                       </div>
+                    )}
+                    {!isStreaming && meta?.usage && (
+                      <div className="pl-4"><TokenLedger usage={meta.usage}/></div>
                     )}
 
                     {/* Source cards — honest empty state when backend returns none */}

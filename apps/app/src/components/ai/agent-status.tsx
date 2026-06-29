@@ -12,7 +12,7 @@ import { LogoMark } from "../logo";
 import { getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
-import { EvidenceStrip, SourceCard, Markdown } from "./ask-shared";
+import { EvidenceStrip, SourceCard, Markdown, TokenLedger } from "./ask-shared";
 
 // ─── Ask side panel — Ask Mondaily in contextual mode. Same engine as the
 // main Ask page and Home: same endpoint, history/thread_id handling, real
@@ -50,16 +50,24 @@ function AskPanel({ onClose }: { onClose: () => void }) {
   // in useLayoutEffect — BEFORE paint — so the newest tokens are in view when the
   // frame lands: no post-paint jump, no shake. Only fires while a turn is active.
   const stickRef = useRef(true);
+  const lastTopRef = useRef(0);
   const onMessagesScroll = useCallback(() => {
     const el = messagesRef.current;
     if (!el) return;
-    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+    const top = el.scrollTop;
+    // Direction-aware: any upward scroll releases the follow (no tug); returning
+    // to the bottom re-engages. The programmatic pin only ever moves down.
+    if (top < lastTopRef.current - 1) stickRef.current = false;
+    if (el.scrollHeight - top - el.clientHeight < 24) stickRef.current = true;
+    lastTopRef.current = top;
   }, []);
   useLayoutEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
-    if (loading && stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages, loading]);
+    // Pin whenever stuck — including the final frame when the footer/cards mount —
+    // so late content never shoves the answer. Direction-aware stick prevents tug.
+    if (stickRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, messageMeta]);
 
   const send = () => { const t = input.trim(); if (t) { setInput(""); doSend(t); } };
   const sendChip = (text: string) => doSend(text);
@@ -141,9 +149,14 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 <div className={`min-w-0 break-words rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
                     ? "bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text-primary)] rounded-tr-sm whitespace-pre-wrap"
-                    : "text-stone-300"
-                }`}>
-                  {m.role === "assistant" ? <Markdown text={m.content}/> : m.content}
+                    : "whitespace-pre-wrap"
+                }`} style={m.role === "assistant" ? { color: "var(--text-secondary)" } : undefined}>
+                  {m.role === "user"
+                    ? m.content
+                    : (loading && i === displayMessages.length - 1)
+                      // Streaming: stable plain text (no per-token markdown re-parse → no jitter).
+                      ? m.content
+                      : <Markdown text={m.content}/>}
                 </div>
 
                 {m.role === "assistant" && meta && AgentIcon && (
@@ -153,14 +166,9 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                       {meta.agent.name}
                     </span>
                     <EvidenceStrip sources={meta.sources}/>
-                    {meta.tokens != null && (
-                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }} title={meta.usage ? `${meta.usage.prompt_tokens.toLocaleString()} input (system + tools + context) + ${meta.usage.completion_tokens.toLocaleString()} output${meta.usage.reasoning_tokens ? ` incl. ${meta.usage.reasoning_tokens.toLocaleString()} thinking` : ""}` : "Estimated"}>
-                        {meta.tokensExact ? "" : "~"}{meta.tokens.toLocaleString()} tok
-                        {meta.usage && <span style={{ opacity: 0.7 }}> ↑{meta.usage.prompt_tokens.toLocaleString()} ↓{meta.usage.completion_tokens.toLocaleString()}{meta.usage.reasoning_tokens ? ` ·${meta.usage.reasoning_tokens.toLocaleString()} think` : ""}</span>}
-                      </span>
-                    )}
                   </div>
                 )}
+                {m.role === "assistant" && meta?.usage && <TokenLedger usage={meta.usage}/>}
                 {m.role === "assistant" && meta && meta.sources.length > 0 && (
                   <div className="flex flex-wrap gap-1 ml-1">
                     {meta.sources.map((s, si) => <SourceCard key={si} source={s}/>)}
