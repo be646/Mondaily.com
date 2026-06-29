@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -14,7 +14,7 @@ import { useVoiceDictation } from "../../components/ai/use-voice";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, getAuthHeaders } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
@@ -204,6 +204,15 @@ export function HomePage() {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const copyMessage = (text: string, i: number) => { navigator.clipboard?.writeText(text).then(() => { setCopiedIdx(i); setTimeout(() => setCopiedIdx(null), 1500); }).catch(() => {}); };
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
+  const sendFeedback = async (userMsg: string, aiMsg: string, rating: 1 | -1, idx: number) => {
+    setFeedbackGiven(prev => ({ ...prev, [idx]: rating }));
+    try {
+      const headers = await getAuthHeaders();
+      const apiUrl = import.meta.env.VITE_API_URL || "";
+      await fetch(`${apiUrl}/api/v1/feedback`, { method: "POST", headers, body: JSON.stringify({ message: userMsg, response: aiMsg, rating }) });
+    } catch {}
+  };
   const [attachQuery, setAttachQuery] = useState("");
   const [attachResults, setAttachResults] = useState<{ id: string; object_type: string; data: Record<string, unknown> }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -636,6 +645,12 @@ export function HomePage() {
                           <div className="flex items-center gap-1 mt-1.5 pl-3.5">
                             <button onClick={() => copyMessage(m.content, i)} title="Copy" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: copiedIdx === i ? "var(--accent)" : "var(--text-faint)" }}>
                               {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
+                            </button>
+                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} title="Good response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === 1 ? "var(--accent)" : "var(--text-faint)" }}>
+                              <ThumbsUp size={12}/>
+                            </button>
+                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} title="Bad response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === -1 ? "var(--text-muted)" : "var(--text-faint)" }}>
+                              <ThumbsDown size={12}/>
                             </button>
                             {i === messages.length - 1 && !loading && (
                               <button onClick={regenerate} title="Regenerate" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-faint)" }}>
