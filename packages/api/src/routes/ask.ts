@@ -1522,7 +1522,7 @@ router.get("/health/chat", async (c) => {
   let threw: string | null = null;
   try {
     const res = await aiGatewayAgentStream(
-      { system: SYSTEM_PROMPT, messages: [{ role: "user", content: "hi" }], tools: [], maxTokens: 256 },
+      { system: SYSTEM_PROMPT, messages: [{ role: "user", content: "hi" }], tools: [], maxTokens: 256, onToolCall: async () => "" },
       () => {},
     );
     reply = res.reply;
