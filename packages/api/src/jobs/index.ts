@@ -9,3 +9,4 @@ export { overdueTaskDecisions } from "./overdue-task-decisions";
 export { workflowTrigger } from "./workflow-trigger";
 export { trainingExport } from "./training-export";
 export { socialDiscoveryWorker } from "./social-discovery";
+export { dailyBrief } from "./daily-brief";

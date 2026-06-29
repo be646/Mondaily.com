@@ -27,9 +27,12 @@ export function resolveNotificationLink(n: NotificationLike): string {
   if (invoiceId) return `/finance/invoices/${invoiceId}`;
   if (decisionId || n.type === "decision") return decisionId ? `/decisions?id=${decisionId}` : "/decisions";
   if (objectType && nodeId) return `/objects/${encodeURIComponent(objectType)}/${nodeId}`;
+  const route = str(m.route);
+  if (route && route.startsWith("/")) return route;
 
   // Type-based fallbacks when no specific id is present.
   switch (n.type) {
+    case "daily_brief": return "/home";
     case "alert": return "/decisions";
     case "agent": return nodeId ? `/search?focus=${nodeId}` : "/decisions";
     default: return "/notifications";
