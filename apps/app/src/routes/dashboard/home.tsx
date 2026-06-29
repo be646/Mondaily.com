@@ -282,11 +282,13 @@ export function HomePage() {
   useLayoutEffect(() => {
     const el = messagesRef.current;
     if (!el) return;
-    // Only auto-pin while a turn is actively streaming. Once idle, never touch
-    // scrollTop — so reading back through the thread is completely free, no tug.
-    const active = loading || streamingMsgIdx !== null;
-    if (active && stickRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages, loading, streamedUpTo, streamingMsgIdx]);
+    // Pin to bottom whenever the user is stuck there (stickRef) — INCLUDING the
+    // final frame when streaming ends and the footer/cards/pills mount, so that
+    // late content doesn't shove the answer (kills the end-of-stream jump). The
+    // direction-aware stickRef means any upward scroll has already released the
+    // follow, so this never tugs when reading back.
+    if (stickRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, streamedUpTo, streamingMsgIdx, messageMeta]);
 
   // Run AI risk scan once per day (throttled via localStorage)
   useEffect(() => {
