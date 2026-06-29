@@ -27,7 +27,7 @@ Mondaily has a real workspace graph: every record is a node, and nodes can be co
 
 You also have real finance and report tools — never answer a finance or report question generically without checking. list_invoices and get_invoice read real invoice records; list_finance_summary gives real aggregate overdue/draft/sent/paid totals. list_reports and get_report read a saved report's definition; run_report actually executes it and returns its real computed data points — always call run_report rather than guessing at numbers from a report's name or type alone.
 
-You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze — use this instead of claiming you did something sensitive yourself), and create_workflow_draft (saves a disabled workflow draft for the user to review in the builder — you can never enable a workflow yourself; always say so explicitly and never imply the workflow is now running).
+You can create_note (a standalone note, optionally linked to a record), create_decision (add a real item to the Decision Queue for a human to approve/reject/snooze — use this instead of claiming you did something sensitive yourself), create_workflow_draft (saves a disabled workflow draft for the user to review in the builder — for "build me a workflow", create the draft and tell them to review it), and set_workflow_enabled (enable/activate or disable/pause an EXISTING workflow by name). You MAY enable or disable a workflow when the user EXPLICITLY asks ("enable the X workflow", "turn off Y") — call set_workflow_enabled and confirm the new state plainly. Never enable a workflow on your own initiative or without an explicit instruction; for a brand-new workflow always create a draft first, don't auto-enable it.
 
 For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned — never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
 
@@ -384,6 +384,18 @@ const TOOLS = [
     }
   },
   {
+    name: "set_workflow_enabled",
+    description: "Enable (activate) or disable an EXISTING workflow by name. Use when the user explicitly says 'enable/activate/turn on the X workflow' or 'disable/pause/turn off X'. Enabling makes it run automatically on its trigger; disabling stops it. Only act on an explicit user instruction — never enable a workflow on your own initiative.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "The workflow's name (or a distinctive part of it) to resolve it." },
+        enabled: { type: "boolean", description: "true to enable/activate, false to disable/pause. Default true." }
+      },
+      required: ["name"]
+    }
+  },
+  {
     name: "discover_web_prospects",
     description: "Search the live web for new candidate records — people, organizations, investors, partners, suppliers, assets, or any object type the workspace tracks — and add source-backed candidates to the workspace graph. Use for 'find me 25 AI startups in London', 'find investors focused on climate tech', 'find suppliers for X', 'find companies similar to this record', 'find potential partners'. Always queues for approval unless the user explicitly says to add them directly without review.",
     input_schema: {
@@ -416,7 +428,7 @@ const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
   { tools: ["list_invoices", "get_invoice", "list_finance_summary"], keywords: /\b(invoice|finance|revenue|payment|paid|owed|billing|money|cash|arr|mrr|outstanding|overdue|total value)\b/i },
   { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
-  { tools: ["create_workflow_draft"], keywords: /\b(workflow|automat|trigger|sequence|when .* then)\b/i },
+  { tools: ["create_workflow_draft", "set_workflow_enabled"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
   { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i },
 ];
 /** Pick the tools a query plausibly needs: CORE + any keyword-matched group.
@@ -1169,6 +1181,27 @@ async function executeTool(
           ? `with ${wfNodes.filter(n => n.kind === "trigger").length} trigger, ${wfNodes.filter(n => n.kind === "condition").length} condition(s), ${wfNodes.filter(n => n.kind === "action").length} action(s)`
           : "(empty — add steps in the builder)";
         return `Created a draft workflow "${input.name}" ${summary}. It's under Automations, saved as a draft. Open /automations/workflows/${data.id} to review and turn it on.`;
+      }
+
+      case "set_workflow_enabled": {
+        const wantEnabled = input.enabled !== false; // default true
+        const target = String(input.name ?? "").trim().toLowerCase();
+        if (!target) return "Tell me which workflow to enable/disable by name.";
+        const { data: rows, error: listErr } = await supabase
+          .from("nodes").select("id, data")
+          .eq("workspace_id", workspaceId).eq("object_type", "automation").limit(100);
+        if (listErr) return `Error looking up workflows: ${listErr.message}`;
+        const wf = (rows ?? []).find(r => String((r.data as Record<string, unknown>)?.name ?? "").toLowerCase().includes(target));
+        if (!wf) return `No workflow matching "${input.name}" found. Create one first, or check the name — you can list them in Automations.`;
+        const wfData = (wf.data ?? {}) as Record<string, unknown>;
+        const newData = { ...wfData, enabled: wantEnabled, status: wantEnabled ? "active" : "disabled" };
+        const { error: updErr } = await supabase.from("nodes").update({ data: newData }).eq("id", wf.id).eq("workspace_id", workspaceId);
+        if (updErr) return `Error updating workflow: ${updErr.message}`;
+        const wfName = String(wfData.name ?? input.name);
+        sources.push({ type: "workflow", title: wfName, node_id: wf.id, object_type: "automation" });
+        return wantEnabled
+          ? `Workflow "${wfName}" is now ENABLED and live — it will run automatically whenever its trigger fires.`
+          : `Workflow "${wfName}" is now disabled — it will no longer run until re-enabled.`;
       }
 
       case "discover_web_prospects": {
