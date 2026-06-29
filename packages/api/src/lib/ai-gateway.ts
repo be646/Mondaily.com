@@ -409,9 +409,9 @@ async function runOpenAICompatAgent(
 
   // Non-streaming agent: short timeout + 1 retry so a stall fails fast and
   // bubbles up to the graceful reply instead of hanging the request.
-  // maxRetries:3 → the SDK backs off + respects Retry-After on 429s, so Cerebras
-  // rate-limit bursts self-recover instead of failing to "trouble connecting".
-  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 3 });
+  // maxRetries:1 — fail fast on 429 rather than hang on a long Retry-After backoff;
+  // the friendly rate-limit message tells the user to wait.
+  const client = new OpenAI({ baseURL, apiKey, timeout: 45000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
@@ -548,7 +548,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
   const spec = route.spec;
 
   const resolved = resolveModel(spec);
-  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
+  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 3) : 1;
 
   console.log(`[gateway:agent] tier=${route.tier} spec="${spec}" provider=${resolved.type} model=${resolved.modelId} tools=${req.tools.length}`);
 
@@ -593,7 +593,7 @@ export async function aiGatewayAgentStream(
   const route = routeAgentModel(req);
   const effectiveReq: AgentRequest = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
   const resolved = resolveModel(route.spec);
-  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
+  const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 3) : 1;
   console.log(`[gateway:agent-stream] tier=${route.tier} spec="${route.spec}" tools=${effectiveReq.tools.length}`);
 
   if (resolved.type !== "openai-compat") {
@@ -631,7 +631,12 @@ export async function aiGatewayAgentStream(
     // AI_FAST_MODEL — e.g. one that 400s — non-fatal instead of breaking chat.
     const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
     const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
-    const reply = r?.reply || "I'm having trouble connecting to the AI service right now. Please try again in a moment.";
+    // Rate-limit-aware message: a 429 means the Cerebras per-minute quota is spent,
+    // not that the service is down. Tell the user plainly so they wait, not retry-spam.
+    const rateLimited = err?.status === 429 || /\b429\b|rate limit/i.test(String(err?.message ?? ""));
+    const reply = r?.reply || (rateLimited
+      ? "⏳ The AI hit its per-minute request limit (current plan: 5 requests/min). Give it ~60 seconds, then try again — or upgrade the Cerebras plan for higher throughput."
+      : "I'm having trouble connecting to the AI service right now. Please try again in a moment.");
     await onEvent({ type: "token", text: reply });
     return r ?? { reply, provider: "none", model: "none", rounds: 0 };
   }
@@ -649,8 +654,8 @@ async function runOpenAICompatAgentStream(
   // surfaces instantly rather than hanging. A cut is safe here — mid-stream
   // drops preserve partial text below, and an empty result drops to the
   // non-streaming recovery + friendly fallback in aiGatewayAgentStream.
-  // maxRetries:3 → SDK backs off + honors Retry-After on 429 rate-limit bursts.
-  const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 3 });
+  // maxRetries:1 — fail fast on 429 (a hung Retry-After backoff was the "loads forever" bug).
+  const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
     type: "function" as const,
