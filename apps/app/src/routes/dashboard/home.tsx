@@ -701,7 +701,7 @@ export function HomePage() {
               <div className="flex flex-wrap gap-2 pl-9">
                 {suggestions.map((s, i) => (
                   <motion.button
-                    key={i}
+                    key={`${i}-${s}`}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.28, delay: i * 0.06 }}

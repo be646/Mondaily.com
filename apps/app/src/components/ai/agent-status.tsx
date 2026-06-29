@@ -147,7 +147,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                   <LogoMark size={16}/>
                 </div>
               )}
-              <div className="flex flex-col gap-1 min-w-0 max-w-[85%]">
+              <div className={`flex flex-col gap-1 min-w-0 ${m.role === "user" ? "max-w-[85%]" : "flex-1"}`}>
                 <div className={`min-w-0 break-words rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
                     ? "bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text-primary)] rounded-tr-sm whitespace-pre-wrap"

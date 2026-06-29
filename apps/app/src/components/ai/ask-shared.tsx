@@ -29,6 +29,8 @@ function linkifyPlain(seg: string, links: EntityLink[] | undefined, keyBase: str
   const parts: React.ReactNode[] = [];
   let last = 0; let m: RegExpExecArray | null; let i = 0;
   while ((m = re.exec(seg)) !== null) {
+    // Guard against a zero-length match (would never advance lastIndex → infinite loop).
+    if (m[0].length === 0) { re.lastIndex++; continue; }
     if (m.index > last) parts.push(seg.slice(last, m.index));
     const matched = m[0];
     const link = cands.find(l => l.title === matched);
@@ -155,7 +157,7 @@ export function TokenLedger({ usage }: { usage?: { prompt_tokens?: number; compl
   const generation = Math.max(0, completion - thinking);
   const input = usage.prompt_tokens ?? Math.max(0, total - completion);
   return (
-    <div className="mt-1.5 font-mono text-[10.5px] tracking-tight" style={{ color: "var(--text-faint)" }} title="Input = system prompt + your message + tool data the model reads; Total = Input + Thinking + Generation">
+    <div className="mt-1.5 break-words font-mono text-[10.5px] leading-relaxed tracking-tight" style={{ color: "var(--text-faint)" }} title="Input = system prompt + your message + tool data the model reads; Total = Input + Thinking + Generation">
       Input: {input.toLocaleString()} · Thinking: {thinking.toLocaleString()} · Generation: {generation.toLocaleString()} · Total: {total.toLocaleString()} tokens
     </div>
   );
@@ -324,7 +326,7 @@ export function SourceCard({ source, divider }: { source: SourceCardData; divide
       title={clickable ? "Open record in new tab" : undefined}
     >
       <Icon size={14} className="shrink-0" style={{ color: "var(--accent)" }}/>
-      <span className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{source.title}</span>
+      <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{source.title}</span>
       <span className="shrink-0 rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{source.type}</span>
       {(source.relevance || source.timestamp) && (
         <span className="ml-auto hidden truncate text-[10px] sm:inline" style={{ color: "var(--text-faint)" }}>{[source.relevance, source.timestamp].filter(Boolean).join(" · ")}</span>

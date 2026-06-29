@@ -481,14 +481,15 @@ export function AskMondaily() {
           </div>
         )}
 
-        {/* Follow-up suggestions */}
+        {/* Follow-up suggestions — fade-in sage pills, matching Home */}
         {!loading && streamingMsgIdx === null && suggestions.length > 0 && (
-          <div className="flex flex-col gap-1.5 pl-5">
+          <div className="chat-pills-in flex flex-wrap gap-2 pl-5">
             {suggestions.map((s, i) => (
-              <button key={i} onClick={() => sendSuggestion(s)}
-                className="ask-suggestion-row group text-sm">
+              <button key={`${i}-${s}`} onClick={() => sendSuggestion(s)}
+                className="group inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
                 <span>{s}</span>
-                <CornerDownLeft size={12} className="shrink-0 text-[#9ca3af] group-hover:text-[#52525b] dark:text-stone-600 dark:group-hover:text-stone-400 transition-colors"/>
+                <CornerDownLeft size={11} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }}/>
               </button>
             ))}
           </div>

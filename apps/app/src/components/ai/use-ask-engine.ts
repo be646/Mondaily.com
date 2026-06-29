@@ -209,8 +209,10 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         if (!res.ok) throw new Error(`AI error: ${res.status}`);
         const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[]; usage?: TokenUsage };
         const reply = data.reply || "I couldn't generate a response just now — please try again.";
-        setMessages([...withUser, { role: "assistant", content: reply }]);
-        addMessageToThread(tid, { role: "assistant", content: reply });
+        // Persist sources too, so reopening the thread keeps source attribution
+        // (the streaming success path does this; the fallback must match).
+        setMessages([...withUser, { role: "assistant", content: reply, sources: data.sources }]);
+        addMessageToThread(tid, { role: "assistant", content: reply, sources: data.sources });
         setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
         opts.onAssistantMessage?.(aiIdx, reply);
