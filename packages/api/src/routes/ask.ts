@@ -1506,7 +1506,10 @@ router.get("/threads", requireAuth, async (c) => c.json([]));
 // debugging. Pings the resolved Cerebras model and returns the real outcome.
 // Leaks nothing secret (only the base-URL host + model name + error message).
 router.get("/health", async (c) => {
-  const result = await gatewayHealthCheck();
+  // Default is CHEAP (no Cerebras calls) so reloading it never burns the rate
+  // limit. ?probe=1 runs live model tests (4 requests).
+  const probe = c.req.query("probe") === "1";
+  const result = await gatewayHealthCheck({ probe });
   return c.json(result, result.ok ? 200 : 503);
 });
 

@@ -200,12 +200,13 @@ function openAIClient(): OpenAI {
  */
 type ProbeResult = { ok: boolean; model: string; status?: number; error?: string };
 
-export async function gatewayHealthCheck(): Promise<{
+export async function gatewayHealthCheck(opts?: { probe?: boolean }): Promise<{
   ok: boolean;
   baseURLHost: string | null;
   env: { AI_PROVIDER_MODEL: string | null; AI_AGENT_MODEL: string | null; AI_FAST_MODEL: string | null };
   tests?: { provider_plain: ProbeResult; agent_plain: ProbeResult; agent_with_tools: ProbeResult; fast_plain: ProbeResult };
   lastChatError?: typeof lastGatewayError;
+  note?: string;
   error?: string;
 }> {
   const { baseURL, apiKey } = gatewayEnv();
@@ -220,6 +221,20 @@ export async function gatewayHealthCheck(): Promise<{
   if (!baseURL || !apiKey) {
     const missing = [!baseURL && "AI_GATEWAY_BASE_URL", !apiKey && "AI_GATEWAY_API_KEY"].filter(Boolean).join(" + ");
     return { ok: false, baseURLHost, env, error: `Missing env: ${missing}` };
+  }
+
+  // Default: a CHEAP check — env presence + the last real chat error. Makes NO
+  // Cerebras calls, so reloading /health never eats your 5-req/min quota (that
+  // was masking the real chat errors with 429s). Pass ?probe=1 to run live model
+  // tests (costs 4 requests).
+  if (!opts?.probe) {
+    return {
+      ok: true,
+      baseURLHost,
+      env,
+      lastChatError: lastGatewayError,
+      note: "env configured; no live probe run (add ?probe=1 to test models — costs 4 requests). lastChatError shows the most recent real chat failure.",
+    };
   }
 
   const strip = (m: string) => m.replace(/^openai-compat\//, "");
