@@ -471,6 +471,7 @@ export function HomePage() {
 
   const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
+  const openTaskCount = activeTasks.length;
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
   // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
@@ -573,16 +574,40 @@ export function HomePage() {
       <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
-          <div className="chat-suggestion-stack mx-auto mb-4 max-w-2xl">
+          <div className="mx-auto mb-4 grid max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2">
             {[
-              { label: "What needs my attention today?", action: () => sendSuggestion("What needs my attention today?") },
-              { label: "Ask Operations about overdue work", action: () => prefill("Ask Operations Agent: ") },
-              ...(hasFinance ? [{ label: "Ask Finance about overdue invoices", action: () => prefill("Ask Finance Agent: ") }] : []),
-              { label: "What changed in the graph?", action: () => sendSuggestion("What changed in the graph?") },
+              {
+                Icon: ListChecks,
+                label: overdueCount > 0 ? `Show my ${overdueCount} overdue task${overdueCount === 1 ? "" : "s"}` : openTaskCount > 0 ? `Show my ${openTaskCount} open tasks` : "Show my tasks",
+                sub: "as a clear table",
+                prompt: "List my overdue and open tasks as a table with due dates and priority, then tell me what to focus on first.",
+              },
+              {
+                Icon: TrendingUp,
+                label: "What changed this week",
+                sub: "across the workspace",
+                prompt: "Summarise what changed across my workspace in the last 7 days — new and updated records, deals, and relationships — and flag anything that needs attention.",
+              },
+              hasFinance
+                ? { Icon: FileText, label: "List overdue invoices", sub: "with totals", prompt: "List my overdue invoices as a table with amounts and days overdue, and give me the total outstanding." }
+                : { Icon: Brain, label: "Plan my week", sub: "an opinionated brief", prompt: "Review my open tasks and recent activity, then build me an opinionated day-by-day plan for this week with specific next actions." },
+              {
+                Icon: Search,
+                label: "Find new prospects",
+                sub: "in my sector",
+                prompt: "Find new prospects relevant to my workspace from the web, dedupe them against my existing records, and add the best ones to my decision queue for approval.",
+              },
             ].map(s => (
-              <button key={s.label} onClick={s.action} className="chat-suggestion-row group">
-                <span className="flex-1 truncate">{s.label}</span>
-                <CornerDownLeft size={12} className="shrink-0 opacity-45 transition-opacity group-hover:opacity-100"/>
+              <button key={s.label} onClick={() => sendSuggestion(s.prompt)}
+                className="group flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all hover:-translate-y-px"
+                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}>
+                <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }}/>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
+                  <span className="block text-[12.5px]" style={{ color: "var(--text-muted)" }}>{s.sub}</span>
+                </span>
               </button>
             ))}
           </div>
